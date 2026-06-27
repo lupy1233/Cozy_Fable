@@ -1,0 +1,15 @@
+node_modules/
+**/node_modules/
+.next/
+dist/
+build/
+coverage/
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+**/generated/
+**/.prisma/
+*.docx
+*.pdf
+.git/
+dev-infra/data/

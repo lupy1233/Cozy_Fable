@@ -1,0 +1,93 @@
+/* ============================================================
+   DIRECTION 3 — "Modern" (clean cool SaaS)
+   A full re-skin via tokens, activated by html[data-theme="modern"].
+   Cooler neutral palette, Space Grotesk headings, tighter radius,
+   crisper flatter shadows. Composes with the accent + density tweaks.
+   ============================================================ */
+
+html[data-theme="modern"] {
+  --bg: #EAEEF3;
+  --bg-tint: #E4E9F0;
+  --surface: #FFFFFF;
+  --surface-2: #F4F6FA;
+  --surface-3: #EBEFF5;
+  --ink: #0E141B;
+  --ink-2: #283139;
+  --muted: #5C6773;
+  --muted-2: #98A2AE;
+  --border: #E3E8EF;
+  --border-2: #CDD5DF;
+  --hairline: rgba(14,20,27,0.07);
+
+  /* default accent (walnut slot) becomes a cool blue so the stock look reads modern */
+  --walnut: #2D5BD6;
+  --walnut-deep: #1E40AF;
+  --sage: #0E9F6E;
+  --sage-soft: #E2F5EC;
+  --amber: #B4710E;
+  --amber-soft: #FBEACE;
+  --brass: #B4892F;
+  --brass-2: #D0A546;
+  --crimson: #D33B30;
+  --crimson-soft: #FBE2E0;
+  --info: #2563EB;
+  --info-soft: #E3ECFD;
+
+  --accent: var(--walnut);
+  --accent-deep: var(--walnut-deep);
+  --accent-soft: #E7EEFC;
+
+  --radius-xs: 3px;
+  --radius-sm: 5px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --shadow-sm: 0 1px 2px rgba(16,24,40,0.06), 0 1px 3px rgba(16,24,40,0.04);
+  --shadow: 0 4px 14px -4px rgba(16,24,40,0.12), 0 2px 6px -2px rgba(16,24,40,0.07);
+  --shadow-lg: 0 24px 50px -16px rgba(16,24,40,0.20), 0 8px 18px -8px rgba(16,24,40,0.10);
+  --shadow-glow: 0 0 0 1px rgba(16,24,40,0.05);
+
+  --font-serif: "Space Grotesk", var(--font-sans);
+}
+
+/* Headings: swap the editorial serif for a tight geometric grotesque */
+html[data-theme="modern"] .serif,
+html[data-theme="modern"] .page-title,
+html[data-theme="modern"] .metric-big,
+html[data-theme="modern"] .score-gauge .num,
+html[data-theme="modern"] .plan-card .price,
+html[data-theme="modern"] .market-card h3,
+html[data-theme="modern"] .brand-name {
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+}
+html[data-theme="modern"] .page-title { font-size: 38px; letter-spacing: -0.03em; }
+html[data-theme="modern"] .brand-mark { font-style: normal; font-weight: 700; }
+
+/* Accent recolors for the other accent picks, tuned to the cool ground */
+html[data-theme="modern"][data-accent="sage"]   { --accent: #0E9F6E; --accent-deep: #0A7D57; --accent-soft: #E2F5EC; }
+html[data-theme="modern"][data-accent="bronze"] { --accent: #B4892F; --accent-deep: #8C6A22; --accent-soft: #F6EDD7; }
+html[data-theme="modern"][data-accent="indigo"] { --accent: #5848D6; --accent-deep: #3F32AB; --accent-soft: #ECE9FC; }
+
+/* Crisper chrome: flatten the sidebar texture and sharpen separators */
+html[data-theme="modern"] .sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+html[data-theme="modern"] .nav-item.active {
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+html[data-theme="modern"] .topbar {
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(12px);
+}
+html[data-theme="modern"] .card,
+html[data-theme="modern"] .market-card { border-color: var(--border); }
+
+/* Pills/badges read crisper with uppercase mono labels already in place */
+html[data-theme="modern"] .pick.on {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 16%, transparent), var(--shadow-sm);
+}

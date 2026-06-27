@@ -1,0 +1,1076 @@
+// Schema Prisma — tabelele se adauga incremental per sprint (Sprint 2: auth).
+// Toate datetime-urile sunt TIMESTAMPTZ in UTC (invarianta 3.3).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// docs/04 §5.5 — enum-uri verbatim
+enum UserRole {
+  CLIENT
+  COMPANY_USER
+  ADMIN
+
+  @@map("user_role")
+}
+
+enum Language {
+  RO
+  EN
+
+  @@map("language")
+}
+
+enum CompanyStatus {
+  PENDING_VERIFICATION
+  APPROVED
+  REJECTED
+  SUSPENDED
+
+  @@map("company_status")
+}
+
+enum CompanyMemberRole {
+  OWNER
+  MANAGER
+  EMPLOYEE_TRUSTED
+  EMPLOYEE_MANAGED
+
+  @@map("company_member_role")
+}
+
+enum OfferFieldKey {
+  PRICE
+  DELIVERY_TERM
+  DELIVERY_DATE
+  WARRANTY
+  DESCRIPTION
+
+  @@map("offer_field_key")
+}
+
+enum RequestStatus {
+  DRAFT
+  IN_MARKETPLACE
+  CLAIMED_PARTIAL
+  CLAIMED_FULL
+  OFFERS_RECEIVED
+  NEGOTIATION
+  ACCEPTED
+  IN_EXECUTION
+  DELIVERED_BY_COMPANY
+  COMPLETED
+  DISPUTED
+  EXPIRED
+
+  @@map("request_status")
+}
+
+enum BudgetRange {
+  UNDER_5K
+  FROM_5K_TO_15K
+  OVER_15K
+
+  @@map("budget_range")
+}
+
+enum RoomType {
+  KITCHEN
+  DRESSING
+  LIVING
+  OFFICE
+  BEDROOM
+  BATHROOM
+
+  @@map("room_type")
+}
+
+enum Material {
+  PAL
+  MDF
+  LEMN_MASIV
+
+  @@map("material")
+}
+
+enum ItemSystem {
+  PUSH
+  GLISANTE
+  BUTON_PRESIUNE
+
+  @@map("item_system")
+}
+
+enum AttachmentStatus {
+  PENDING_UPLOAD
+  PENDING_SCAN
+  SAFE
+  BLOCKED
+
+  @@map("attachment_status")
+}
+
+enum ProjectSize {
+  SMALL
+  MEDIUM
+  LARGE
+
+  @@map("project_size")
+}
+
+// docs/04 §5.3 + 4.16 — tier abonament (gating delay 0/30/60 min).
+enum SubscriptionPlanTier {
+  SILVER
+  GOLD
+  PLATINUM
+
+  @@map("subscription_plan_tier")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+
+  @@map("subscription_status")
+}
+
+// docs/04 §5.1 credit_transactions — miscari in portofelul firmei (4.8).
+enum CreditTransactionType {
+  GRANT
+  RESERVE
+  REFUND
+  CONSUME
+
+  @@map("credit_transaction_type")
+}
+
+// docs/04 §5.5 — claim_slots.status. SLA_EXPIRED (ratare SLA, 4.11) + WITHDRAWN (anulari via
+// claim_withdrawals non-voluntare, 4.15) adaugate in Sprint 7 (confirmat in sesiune).
+enum ClaimSlotStatus {
+  ACTIVE
+  OFFER_SENT
+  CANCELLED_UNASSIGNED
+  CANCELLED_BY_CLIENT
+  WITHDRAWN_VOLUNTARY
+  WITHDRAWN
+  SLA_EXPIRED
+  COMPLETED
+
+  @@map("claim_slot_status")
+}
+
+// docs/04 §5.5 — claim_withdrawals.reason_type (verbatim, 4.15).
+enum WithdrawalReasonType {
+  CLIENT_UNRESPONSIVE_48H
+  REQUEST_MODIFIED_POST_CLAIM
+  CLIENT_CONTACT_INVALID
+  CLIENT_REQUESTED_CANCELLATION
+  VOLUNTARY_NO_REASON
+  CUSTOM
+
+  @@map("withdrawal_reason_type")
+}
+
+// docs/04 §5.5 — claim_withdrawals.status (verbatim, 4.15).
+enum WithdrawalStatus {
+  AUTO_APPROVED
+  PENDING_ADMIN_REVIEW
+  ADMIN_APPROVED
+  ADMIN_REJECTED
+
+  @@map("withdrawal_status")
+}
+
+// docs/04 §5.3 + 4.12 — scope penalizare (EMPLOYEE rezervat; MVP creeaza doar COMPANY).
+enum PenaltyScope {
+  EMPLOYEE
+  COMPANY
+
+  @@map("penalty_scope")
+}
+
+// clarification_requests.status (Sprint 7; nedefinit verbatim, confirmat in sesiune). 4.11.
+enum ClarificationStatus {
+  PENDING
+  ANSWERED
+
+  @@map("clarification_status")
+}
+
+// review_disputes.status (Sprint 8; nedefinit verbatim, confirmat sesiune). 4.18.
+enum ReviewDisputeStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+
+  @@map("review_dispute_status")
+}
+
+// mock_billing_orders.order_type / status (Sprint 8; nedefinit verbatim, confirmat sesiune). 4.16/4.17.
+enum BillingOrderType {
+  SUBSCRIPTION
+  CREDIT_PACKAGE
+
+  @@map("billing_order_type")
+}
+
+enum BillingOrderStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+
+  @@map("billing_order_status")
+}
+
+// docs/04 §5.2 request_company_exclusions — motiv excludere re-claim (4.11).
+enum RequestExclusionReason {
+  SLA_BREACH
+
+  @@map("request_exclusion_reason")
+}
+
+// docs/04 §5.3 + 4.13 / D-v6-12 — moneda ofertei (dubla afisare la client prin eur_ron_rate).
+enum QuoteCurrency {
+  RON
+  EUR
+
+  @@map("quote_currency")
+}
+
+// Status oferta (confirmat sesiune Sprint 6; nedefinit verbatim in docs/04).
+// SUPERSEDED = inlocuita de o versiune mai noua sau de oferta acceptata a altei firme.
+enum QuoteStatus {
+  DRAFT
+  SENT
+  WITHDRAWN
+  EXPIRED
+  ACCEPTED
+  SUPERSEDED
+
+  @@map("quote_status")
+}
+
+// Status cerere de modificare client (4.13). FULFILLED = firma a raspuns cu versiune noua;
+// REJECTED = firma a refuzat (nu consuma slot; clientul nu poate cere aceeasi modificare).
+enum QuoteChangeRequestStatus {
+  PENDING
+  FULFILLED
+  REJECTED
+
+  @@map("quote_change_request_status")
+}
+
+// docs/04 §5.5 — physical_consultation_invites.status (verbatim).
+enum PhysicalConsultationInviteStatus {
+  PENDING_CLIENT
+  ACCEPTED
+  DECLINED
+  COMPLETED
+  EXPIRED
+
+  @@map("physical_consultation_invite_status")
+}
+
+// docs/04 §5.1 + §5.3 (coloane users) + 3.12 (soft delete/GDPR)
+model User {
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  passwordHash       String    @map("password_hash")
+  name               String
+  phone              String?
+  role               UserRole
+  languagePreference Language  @default(RO) @map("language_preference")
+  emailVerifiedAt    DateTime? @map("email_verified_at") @db.Timestamptz()
+  twoFactorSecret    String?   @map("two_factor_secret")
+  twoFactorEnabled   Boolean   @default(false) @map("two_factor_enabled")
+  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz()
+  anonymizedAt       DateTime? @map("anonymized_at") @db.Timestamptz()
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  refreshTokens      RefreshToken[]
+  companyMemberships CompanyMember[]
+  claimsCreated      ClaimSlot[]     @relation("ClaimClaimedBy")
+  claimsAssigned     ClaimSlot[]     @relation("ClaimAssignedTo")
+
+  @@map("users")
+}
+
+// docs/04 §5.1 + §5.3 (companies: status, adresa geocoded) + 4.6 (verificare, reapply block)
+model Company {
+  id              String        @id @default(uuid())
+  name            String
+  cui             String        @map("cui")
+  regComNumber    String        @map("reg_com_number")
+  status          CompanyStatus @default(PENDING_VERIFICATION)
+  addressText     String        @map("address_text")
+  county          String
+  city            String
+  lat             Float
+  lng             Float
+  rejectedAt      DateTime?     @map("rejected_at") @db.Timestamptz()
+  rejectionReason String?       @map("rejection_reason")
+  suspendedAt     DateTime?     @map("suspended_at") @db.Timestamptz()
+  suspendedUntil  DateTime?     @map("suspended_until") @db.Timestamptz()
+  deletedAt       DateTime?     @map("deleted_at") @db.Timestamptz()
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+
+  members             CompanyMember[]
+  locations           CompanyLocation[]
+  portfolioItems      CompanyPortfolioItem[]
+  offerFieldPerms     CompanyOfferFieldPermission[]
+  verificationProfile CompanyVerificationProfile?
+  subscriptions       Subscription[]
+  creditWallet        CompanyCreditWallet?
+  creditTransactions  CreditTransaction[]
+  claims              ClaimSlot[]
+  exclusions          RequestCompanyExclusion[]
+  quotes              Quote[]
+  consultationInvites PhysicalConsultationInvite[]
+  penaltyEvents       PenaltyEvent[]
+  reviews             Review[]
+  billingOrders       MockBillingOrder[]
+
+  @@index([cui])
+  @@index([status])
+  @@map("companies")
+}
+
+// docs/04 §5.1 + 4.7 (OWNER/MANAGER/EMPLOYEE_TRUSTED/EMPLOYEE_MANAGED)
+model CompanyMember {
+  id        String            @id @default(uuid())
+  companyId String            @map("company_id")
+  userId    String            @map("user_id")
+  role      CompanyMemberRole
+  createdAt DateTime          @default(now()) @map("created_at") @db.Timestamptz()
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  // un user apartine unei singure firme (MVP)
+  @@unique([userId])
+  @@unique([companyId, userId])
+  @@index([companyId])
+  @@map("company_members")
+}
+
+// docs/04 §5.3 + 4.8 / D-v6-10 (coverage_radius_km per locatie, default 50)
+model CompanyLocation {
+  id               String   @id @default(uuid())
+  companyId        String   @map("company_id")
+  addressText      String   @map("address_text")
+  county           String
+  city             String
+  lat              Float
+  lng              Float
+  coverageRadiusKm Float    @default(50) @map("coverage_radius_km")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("company_locations")
+}
+
+// docs/04 §5.1 — inregistrare de verificare: risk flags snapshot + decizie admin
+model CompanyVerificationProfile {
+  id               String    @id @default(uuid())
+  companyId        String    @unique @map("company_id")
+  riskFlags        String[]  @map("risk_flags")
+  reviewedByUserId String?   @map("reviewed_by_user_id")
+  reviewedAt       DateTime? @map("reviewed_at") @db.Timestamptz()
+  decisionNote     String?   @map("decision_note")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("company_verification_profiles")
+}
+
+// docs/04 §5.1 + 4.6 (portofoliu firma)
+model CompanyPortfolioItem {
+  id          String   @id @default(uuid())
+  companyId   String   @map("company_id")
+  title       String
+  description String?
+  imageUrl    String?  @map("image_url")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("company_portfolio_items")
+}
+
+// docs/04 §5.2 + 4.13 / Î5 (matrice permisiuni campuri oferta per firma, default seed)
+model CompanyOfferFieldPermission {
+  id        String            @id @default(uuid())
+  companyId String            @map("company_id")
+  role      CompanyMemberRole
+  fieldKey  OfferFieldKey     @map("field_key")
+  canEdit   Boolean           @default(false) @map("can_edit")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, role, fieldKey])
+  @@index([companyId])
+  @@map("company_offer_field_permissions")
+}
+
+// docs/04 §5.2 + invarianta 3.13 (rotation, family, grace 30s)
+model RefreshToken {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  tokenHash     String    @unique @map("token_hash")
+  familyId      String    @map("family_id")
+  rotatedFromId String?   @map("rotated_from_id")
+  expiresAt     DateTime  @map("expires_at") @db.Timestamptz()
+  revokedAt     DateTime? @map("revoked_at") @db.Timestamptz()
+  replacedAt    DateTime? @map("replaced_at") @db.Timestamptz()
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+// docs/04 §5.3 + §8 (cerere client) + 3.x (draft anonim cu token, geocoding, expirare)
+model Request {
+  id                 String        @id @default(uuid())
+  clientUserId       String?       @map("client_user_id")
+  draftTokenHash     String?       @unique @map("draft_token_hash")
+  status             RequestStatus @default(DRAFT)
+  title              String?
+  description        String?
+  budgetRange        BudgetRange?  @map("budget_range")
+  desiredDeadline    DateTime?     @map("desired_deadline") @db.Date
+  includesPaidDesign Boolean       @default(false) @map("includes_paid_design")
+  hasOwnProject      Boolean       @default(false) @map("has_own_project")
+  addressText        String?       @map("address_text")
+  county             String?
+  city               String?
+  lat                Float?
+  lng                Float?
+  sizeScore          Int?          @map("size_score")
+  projectSize        ProjectSize?  @map("project_size")
+  creditCost         Int?          @map("credit_cost")
+  preClaimEditsUsed  Int           @default(0) @map("pre_claim_edits_used")
+  postClaimEditsUsed Int           @default(0) @map("post_claim_edits_used")
+  lastEditAt         DateTime?     @map("last_edit_at") @db.Timestamptz()
+  deletedAt          DateTime?     @map("deleted_at") @db.Timestamptz()
+  repostUsed         Boolean       @default(false) @map("repost_used")
+  publishedAt        DateTime?     @map("published_at") @db.Timestamptz()
+  expiresAt          DateTime?     @map("expires_at") @db.Timestamptz()
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
+
+  rooms              RequestRoom[]
+  contactPreferences RequestContactPreference[]
+  versions           RequestVersion[]
+  claims             ClaimSlot[]
+  exclusions         RequestCompanyExclusion[]
+  quotes             Quote[]
+  review             Review?
+
+  @@index([clientUserId])
+  @@index([status])
+  @@map("requests")
+}
+
+// Snapshot al continutului la fiecare editare (audit lejer + istoric).
+model RequestVersion {
+  id        String   @id @default(uuid())
+  requestId String   @map("request_id")
+  version   Int
+  snapshot  Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, version])
+  @@index([requestId])
+  @@map("request_versions")
+}
+
+model RequestRoom {
+  id        String   @id @default(uuid())
+  requestId String   @map("request_id")
+  roomType  RoomType @map("room_type")
+  lengthM   Float    @map("length_m")
+  widthM    Float    @map("width_m")
+  heightM   Float    @map("height_m")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  request Request           @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  items   RequestRoomItem[]
+
+  @@index([requestId])
+  @@map("request_rooms")
+}
+
+model RequestRoomItem {
+  id          String       @id @default(uuid())
+  roomId      String       @map("room_id")
+  name        String
+  material    Material
+  systems     ItemSystem[]
+  description String?
+  quantity    Int          @default(1)
+
+  room RequestRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@map("request_items")
+}
+
+model RequestContactPreference {
+  id        String @id @default(uuid())
+  requestId String @map("request_id")
+  channel   String
+  value     String
+  priority  Int
+
+  request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@map("request_contact_preferences")
+}
+
+// Atasamente generice (entity_type/entity_id); Sprint 4 foloseste entity_type='REQUEST'.
+// docs/04 §5.3 + 3.4 (presigned only) + invarianta scan status.
+model Attachment {
+  id         String           @id @default(uuid())
+  entityType String           @map("entity_type")
+  entityId   String           @map("entity_id")
+  filename   String
+  mimeType   String           @map("mime_type")
+  sizeBytes  Int              @map("size_bytes")
+  storageKey String           @map("storage_key")
+  status     AttachmentStatus @default(PENDING_UPLOAD)
+  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([entityType, entityId])
+  @@map("attachments")
+}
+
+// docs/sprint-0 §7 — config scoring (seed-uit). key=dimensiune, option=valoare, weight=scor.
+model ProjectSizingConfig {
+  id     String @id @default(uuid())
+  key    String
+  option String
+  weight Int
+
+  @@unique([key, option])
+  @@map("project_sizing_config")
+}
+
+// docs/sprint-0 §7 — praguri marime → cost credite.
+model ProjectSizeThreshold {
+  id         String      @id @default(uuid())
+  size       ProjectSize @unique
+  minScore   Int         @map("min_score")
+  maxScore   Int?        @map("max_score")
+  creditCost Int         @map("credit_cost")
+
+  @@map("project_size_thresholds")
+}
+
+// docs/04 §5.3 + 3.8 — cache geocoding Nominatim, TTL 90 zile.
+model GeocodingCache {
+  id          String   @id @default(uuid())
+  queryKey    String   @unique @map("query_key")
+  lat         Float
+  lng         Float
+  displayName String?  @map("display_name")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz()
+
+  @@map("geocoding_cache")
+}
+
+// docs/04 §5.4 — chei de configurare runtime (seed-uite per sprint).
+model SystemSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  updatedBy String?  @map("updated_by")
+
+  @@map("system_settings")
+}
+
+// docs/04 §5.3 + 4.10/4.16 — planuri abonament (seed configurabil din Admin).
+model SubscriptionPlan {
+  id                        String               @id @default(uuid())
+  tier                      SubscriptionPlanTier @unique
+  priceRon                  Int                  @map("price_ron")
+  includedCredits           Int                  @map("included_credits")
+  marketplaceGatingDelayMin Int                  @map("marketplace_gating_delay_minutes")
+  isActive                  Boolean              @default(true) @map("is_active")
+  createdAt                 DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+
+  subscriptions Subscription[]
+
+  @@map("subscription_plans")
+}
+
+// docs/04 §5.1 + §5.3 + 4.16 — abonament firma (o singura activa per firma).
+model Subscription {
+  id          String             @id @default(uuid())
+  companyId   String             @map("company_id")
+  planId      String             @map("plan_id")
+  status      SubscriptionStatus @default(ACTIVE)
+  isTrial     Boolean            @default(false) @map("is_trial")
+  startedAt   DateTime           @default(now()) @map("started_at") @db.Timestamptz()
+  expiresAt   DateTime           @map("expires_at") @db.Timestamptz()
+  trialEndsAt DateTime?          @map("trial_ends_at") @db.Timestamptz()
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz()
+
+  company Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  plan    SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  // O singura subscriptie ACTIVA per firma (enforce in service; index pe companyId+status).
+  @@index([companyId, status])
+  @@map("subscriptions")
+}
+
+// docs/04 §5.1 — portofel credite firma. Soldul derivat din credit_transactions,
+// dar pastram balance/reserved materializate pentru claim rapid sub lock (3.1).
+model CompanyCreditWallet {
+  id        String   @id @default(uuid())
+  companyId String   @unique @map("company_id")
+  balance   Int      @default(0)
+  reserved  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("company_credit_wallets")
+}
+
+// docs/04 §5.1 — registru miscari credite (audit + sursa de adevar a soldului).
+model CreditTransaction {
+  id          String                @id @default(uuid())
+  companyId   String                @map("company_id")
+  type        CreditTransactionType
+  amount      Int
+  reason      String
+  claimSlotId String?               @map("claim_slot_id")
+  createdAt   DateTime              @default(now()) @map("created_at") @db.Timestamptz()
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([claimSlotId])
+  @@map("credit_transactions")
+}
+
+// docs/04 §5.1 + §5.3 + 3.1/4.8/4.9 — claim slot (max 3 active per cerere).
+model ClaimSlot {
+  id                       String          @id @default(uuid())
+  requestId                String          @map("request_id")
+  companyId                String          @map("company_id")
+  claimedByUserId          String          @map("claimed_by_user_id")
+  assignedToUserId         String?         @map("assigned_to_user_id")
+  status                   ClaimSlotStatus @default(ACTIVE)
+  // quoteId nullable acum (FK reala vine in Sprint 6); folosit la regula 1-claim-activ.
+  quoteId                  String?         @map("quote_id")
+  slaDeadlineAt            DateTime?       @map("sla_deadline_at") @db.Timestamptz()
+  slaPausedAt              DateTime?       @map("sla_paused_at") @db.Timestamptz()
+  projectSizeSnapshot      ProjectSize     @map("project_size_snapshot")
+  projectScoreSnapshot     Int             @map("project_score_snapshot")
+  claimCostCreditsSnapshot Int             @map("claim_cost_credits_snapshot")
+  assignDeadlineAt         DateTime?       @map("assign_deadline_at") @db.Timestamptz()
+  withdrawnAt              DateTime?       @map("withdrawn_at") @db.Timestamptz()
+  createdAt                DateTime        @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt                DateTime        @updatedAt @map("updated_at") @db.Timestamptz()
+
+  request        Request                @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  company        Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  claimedBy      User                   @relation("ClaimClaimedBy", fields: [claimedByUserId], references: [id])
+  assignedTo     User?                  @relation("ClaimAssignedTo", fields: [assignedToUserId], references: [id])
+  chatThread     ChatThread?
+  // Ofertele slotului (1—N). quoteId de mai sus ramane denormalizat pentru indexul partial
+  // "1 claim activ fara oferta" (3.1/4.9) — setat la trimiterea primei versiuni.
+  quotes         Quote[]
+  withdrawals    ClaimWithdrawal[]
+  clarifications ClarificationRequest[]
+
+  // O firma da claim o singura data per cerere (slot ne-anulat). Enforce in service.
+  @@index([requestId, status])
+  @@index([companyId])
+  @@index([assignedToUserId])
+  @@map("claim_slots")
+}
+
+// docs/04 §4.14 — thread chat auto-creat la claim. last_client_message_at e folosit
+// de validarea CLIENT_UNRESPONSIVE_48H (4.15, Sprint 7).
+model ChatThread {
+  id                        String    @id @default(uuid())
+  claimSlotId               String    @unique @map("claim_slot_id")
+  negotiationEndedByCompany Boolean   @default(false) @map("negotiation_ended_by_company")
+  readOnly                  Boolean   @default(false) @map("read_only")
+  lastClientMessageAt       DateTime? @map("last_client_message_at") @db.Timestamptz()
+  createdAt                 DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  claimSlot ClaimSlot @relation(fields: [claimSlotId], references: [id], onDelete: Cascade)
+  messages  Message[]
+
+  @@map("chat_threads")
+}
+
+// docs/04 §5.2 + 4.11 — firme excluse de la re-claim pe o cerere (dupa ratare SLA in masa).
+model RequestCompanyExclusion {
+  id        String                 @id @default(uuid())
+  requestId String                 @map("request_id")
+  companyId String                 @map("company_id")
+  reason    RequestExclusionReason
+  createdAt DateTime               @default(now()) @map("created_at") @db.Timestamptz()
+
+  request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, companyId])
+  @@index([requestId])
+  @@map("request_company_exclusions")
+}
+
+// docs/04 §5.2 + invarianta 3.2 — dedup POST critice (claim/accept/quote/webhook/credits).
+model IdempotencyKey {
+  id             String   @id @default(uuid())
+  key            String
+  userId         String   @map("user_id")
+  endpoint       String
+  requestHash    String   @map("request_hash")
+  responseStatus Int      @map("response_status")
+  responseBody   Json     @map("response_body")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  expiresAt      DateTime @map("expires_at") @db.Timestamptz()
+
+  @@unique([key, endpoint])
+  @@index([expiresAt])
+  @@map("idempotency_keys")
+}
+
+// docs/04 §5.1/§5.3 + 4.13 — oferta firmei pentru un claim (1 per slot; iteratiile sunt
+// quote_versions). currency (RON/EUR, D-v6-12), extra_versions_count (a 4-a voluntara, D3).
+model Quote {
+  id                 String        @id @default(uuid())
+  // 1—N per slot (docs/04 §5.6): retragere → quote WITHDRAWN, firma poate trimite alta.
+  // "oferta curenta deschisa" = status SENT/EXPIRED (derivata in service).
+  claimSlotId        String        @map("claim_slot_id")
+  requestId          String        @map("request_id")
+  companyId          String        @map("company_id")
+  currency           QuoteCurrency @default(RON)
+  status             QuoteStatus   @default(DRAFT)
+  extraVersionsCount Int           @default(0) @map("extra_versions_count")
+  withdrawnAt        DateTime?     @map("withdrawn_at") @db.Timestamptz()
+  acceptedAt         DateTime?     @map("accepted_at") @db.Timestamptz()
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
+
+  claimSlot           ClaimSlot                    @relation(fields: [claimSlotId], references: [id], onDelete: Cascade)
+  request             Request                      @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  company             Company                      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  versions            QuoteVersion[]
+  consultationInvites PhysicalConsultationInvite[]
+
+  @@index([claimSlotId])
+  @@index([requestId])
+  @@index([companyId])
+  @@map("quotes")
+}
+
+// docs/04 §5.1/§5.3 + 4.13 — versiune de oferta (max 3 inlantuite + extra voluntara).
+// Campurile editabile = offer field_key (PRICE/DELIVERY_TERM/DELIVERY_DATE/WARRANTY/DESCRIPTION).
+model QuoteVersion {
+  id              String    @id @default(uuid())
+  quoteId         String    @map("quote_id")
+  version         Int
+  isExtra         Boolean   @default(false) @map("is_extra")
+  price           Decimal   @db.Decimal(12, 2)
+  designFee       Decimal?  @map("design_fee") @db.Decimal(12, 2)
+  deliveryTerm    String?   @map("delivery_term")
+  deliveryDate    DateTime? @map("delivery_date") @db.Date
+  warranty        String?
+  description     String?
+  validUntil      DateTime  @map("valid_until") @db.Timestamptz()
+  createdByUserId String    @map("created_by_user_id")
+  sentAt          DateTime  @default(now()) @map("sent_at") @db.Timestamptz()
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  quote              Quote                    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  changeRequests     QuoteChangeRequest[]
+  validityExtensions QuoteValidityExtension[]
+
+  @@unique([quoteId, version])
+  @@index([quoteId])
+  @@index([validUntil])
+  @@map("quote_versions")
+}
+
+// docs/04 §5.1 + 4.13 — cererea de modificare a clientului pe o versiune de oferta.
+model QuoteChangeRequest {
+  id             String                   @id @default(uuid())
+  quoteVersionId String                   @map("quote_version_id")
+  clientUserId   String                   @map("client_user_id")
+  requestedText  String                   @map("requested_text")
+  status         QuoteChangeRequestStatus @default(PENDING)
+  respondedAt    DateTime?                @map("responded_at") @db.Timestamptz()
+  createdAt      DateTime                 @default(now()) @map("created_at") @db.Timestamptz()
+
+  quoteVersion QuoteVersion @relation(fields: [quoteVersionId], references: [id], onDelete: Cascade)
+
+  @@index([quoteVersionId])
+  @@map("quote_change_requests")
+}
+
+// docs/04 §5.2 + D4 — extensie valabilitate (Buton A; max 2 × 14 zile, nu consuma slot).
+model QuoteValidityExtension {
+  id                 String   @id @default(uuid())
+  quoteVersionId     String   @map("quote_version_id")
+  extendedByDays     Int      @map("extended_by_days")
+  extendedByUserId   String   @map("extended_by_user_id")
+  previousValidUntil DateTime @map("previous_valid_until") @db.Timestamptz()
+  newValidUntil      DateTime @map("new_valid_until") @db.Timestamptz()
+  extendedAt         DateTime @default(now()) @map("extended_at") @db.Timestamptz()
+
+  quoteVersion QuoteVersion @relation(fields: [quoteVersionId], references: [id], onDelete: Cascade)
+
+  @@index([quoteVersionId])
+  @@map("quote_validity_extensions")
+}
+
+// docs/04 §5.2 + 4.13 / D-v6-8 — invitatie la sediu (block dupa v3); expira la +7 zile cal.
+model PhysicalConsultationInvite {
+  id                   String                           @id @default(uuid())
+  quoteId              String                           @map("quote_id")
+  companyId            String                           @map("company_id")
+  locationAddress      String                           @map("location_address")
+  proposedDatetime     DateTime                         @map("proposed_datetime") @db.Timestamptz()
+  alternativeDatetimes Json?                            @map("alternative_datetimes")
+  status               PhysicalConsultationInviteStatus @default(PENDING_CLIENT)
+  clientResponseText   String?                          @map("client_response_text")
+  respondedAt          DateTime?                        @map("responded_at") @db.Timestamptz()
+  expiresAt            DateTime                         @map("expires_at") @db.Timestamptz()
+  createdAt            DateTime                         @default(now()) @map("created_at") @db.Timestamptz()
+
+  quote   Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([quoteId])
+  @@index([expiresAt])
+  @@map("physical_consultation_invites")
+}
+
+// docs/04 §5.1 + 4.14 — mesaj de chat (thread auto-creat la claim). Atasamentele trec prin
+// tabelul generic `attachments` (entity_type='MESSAGE'). body nullable = mesaj doar cu fisier.
+model Message {
+  id           String   @id @default(uuid())
+  chatThreadId String   @map("chat_thread_id")
+  senderUserId String   @map("sender_user_id")
+  body         String?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  chatThread ChatThread @relation(fields: [chatThreadId], references: [id], onDelete: Cascade)
+
+  @@index([chatThreadId])
+  @@map("messages")
+}
+
+// docs/04 §5.1 + 4.15 — anulare/retragere claim. Motivele auto-validate → AUTO_APPROVED + refund;
+// CUSTOM → PENDING_ADMIN_REVIEW (admin decide, SLA 48h); VOLUNTARY_NO_REASON cu gratie 30 min.
+model ClaimWithdrawal {
+  id                String               @id @default(uuid())
+  claimSlotId       String               @map("claim_slot_id")
+  requestedByUserId String               @map("requested_by_user_id")
+  reasonType        WithdrawalReasonType @map("reason_type")
+  status            WithdrawalStatus
+  customReason      String?              @map("custom_reason")
+  refunded          Boolean              @default(false)
+  reviewedByUserId  String?              @map("reviewed_by_user_id")
+  reviewedAt        DateTime?            @map("reviewed_at") @db.Timestamptz()
+  adminNote         String?              @map("admin_note")
+  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+
+  claimSlot ClaimSlot @relation(fields: [claimSlotId], references: [id], onDelete: Cascade)
+
+  @@index([claimSlotId])
+  @@index([status])
+  @@map("claim_withdrawals")
+}
+
+// docs/04 §5.1 + 4.11 — clarificare ceruta firmei catre client; pune SLA pe pauza (+1 zi lucr.).
+model ClarificationRequest {
+  id                String              @id @default(uuid())
+  claimSlotId       String              @map("claim_slot_id")
+  requestedByUserId String              @map("requested_by_user_id")
+  questionText      String              @map("question_text")
+  answerText        String?             @map("answer_text")
+  status            ClarificationStatus @default(PENDING)
+  answeredAt        DateTime?           @map("answered_at") @db.Timestamptz()
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz()
+
+  claimSlot ClaimSlot @relation(fields: [claimSlotId], references: [id], onDelete: Cascade)
+
+  @@index([claimSlotId])
+  @@map("clarification_requests")
+}
+
+// docs/04 §5.1/§5.3 + 4.12 — eveniment de penalizare (fereastra rolling 180 zile).
+// MVP creeaza doar scope=COMPANY (blocul pe angajat e descopat — vezi sesiune).
+model PenaltyEvent {
+  id          String       @id @default(uuid())
+  scope       PenaltyScope
+  companyId   String       @map("company_id")
+  userId      String?      @map("user_id")
+  claimSlotId String?      @map("claim_slot_id")
+  ruleKey     String       @map("rule_key")
+  points      Int
+  reason      String?
+  appliedAt   DateTime     @default(now()) @map("applied_at") @db.Timestamptz()
+  expiresAt   DateTime     @map("expires_at") @db.Timestamptz()
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, scope, expiresAt])
+  @@map("penalty_events")
+}
+
+// docs/04 §5.2 + 4.12 — reguli penalizare configurabile (seed: cele 3 abateri MVP).
+model PenaltyRule {
+  id       String  @id @default(uuid())
+  ruleKey  String  @unique @map("rule_key")
+  points   Int
+  isActive Boolean @default(true) @map("is_active")
+
+  @@map("penalty_rules")
+}
+
+// docs/04 §3.3 — sarbatori mobile (Paste ortodox + a doua zi) + override admin (punti).
+// isWorkingDay=false → zi libera (sarbatoare/punte); true → zi lucratoare fortata.
+model BusinessCalendarHoliday {
+  id           String   @id @default(uuid())
+  date         DateTime @unique @db.Date
+  name         String
+  isWorkingDay Boolean  @default(false) @map("is_working_day")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@map("business_calendar_holidays")
+}
+
+// docs/04 §5.1 + 4.18 — review post-COMPLETED (o singura data per cerere). Sub 3★ → DISPUTED.
+model Review {
+  id           String   @id @default(uuid())
+  requestId    String   @unique @map("request_id")
+  companyId    String   @map("company_id")
+  clientUserId String   @map("client_user_id")
+  rating       Int
+  comment      String?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  request Request        @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  company Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  dispute ReviewDispute?
+
+  @@index([companyId])
+  @@map("reviews")
+}
+
+// docs/04 §5.1 + 4.18 — dispute deschis automat pentru review sub 3★; admin decide.
+model ReviewDispute {
+  id               String              @id @default(uuid())
+  reviewId         String              @unique @map("review_id")
+  status           ReviewDisputeStatus @default(OPEN)
+  resolutionNote   String?             @map("resolution_note")
+  resolvedByUserId String?             @map("resolved_by_user_id")
+  resolvedAt       DateTime?           @map("resolved_at") @db.Timestamptz()
+  createdAt        DateTime            @default(now()) @map("created_at") @db.Timestamptz()
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("review_disputes")
+}
+
+// docs/04 §5.2 + 4.16 — pachete de credite (top-up), configurabile din Admin.
+model CreditPackage {
+  id       String  @id @default(uuid())
+  credits  Int
+  priceRon Int     @map("price_ron")
+  isActive Boolean @default(true) @map("is_active")
+
+  @@map("credit_packages")
+}
+
+// docs/04 §5.1/§5.3 + 4.16/4.17 + 3.7 — comanda de facturare (abonament/pachet credite).
+// La confirmare se emite factura (serie + numar secvential) + grant credite / activare abonament.
+model MockBillingOrder {
+  id              String             @id @default(uuid())
+  companyId       String             @map("company_id")
+  orderType       BillingOrderType   @map("order_type")
+  status          BillingOrderStatus @default(PENDING)
+  planId          String?            @map("plan_id")
+  creditPackageId String?            @map("credit_package_id")
+  credits         Int?
+  baseAmountRon   Decimal            @map("base_amount_ron") @db.Decimal(12, 2)
+  vatRate         Decimal            @map("vat_rate") @db.Decimal(5, 2)
+  vatAmountRon    Decimal            @map("vat_amount_ron") @db.Decimal(12, 2)
+  totalRon        Decimal            @map("total_ron") @db.Decimal(12, 2)
+  invoiceSeries   String?            @map("invoice_series")
+  invoiceNumber   Int?               @map("invoice_number")
+  sellerSnapshot  Json?              @map("seller_snapshot")
+  paymentSource   String?            @map("payment_source")
+  confirmedAt     DateTime?          @map("confirmed_at") @db.Timestamptz()
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz()
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([invoiceSeries, invoiceNumber])
+  @@index([companyId])
+  @@index([status])
+  @@map("mock_billing_orders")
+}
+
+// docs/04 §5.1 + 3.9 — audit log append-only (trigger DB BEFORE UPDATE OR DELETE).
+// Niciodata parole/token-uri/continut mesaje — doar metadata + snapshot campuri non-sensibile.
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  role       String?
+  action     String
+  ipHash     String?  @map("ip_hash")
+  userAgent  String?  @map("user_agent")
+  entityType String?  @map("entity_type")
+  entityId   String?  @map("entity_id")
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// docs/04 §5.1 — notificari in-app (istoric realist demo + clopotel). type = nume eveniment
+// de domeniu (3.5); payload = ids relevante (niciodata continut mesaje).
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  type      String
+  title     String?
+  payload   Json?
+  readAt    DateTime? @map("read_at") @db.Timestamptz()
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}

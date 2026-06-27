@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.next/
+*.tsbuildinfo
+.env
+.env.local
+coverage/
+.DS_Store
+
+# generated / infra data
+**/generated/
+**/.prisma/
+dev-infra/data/

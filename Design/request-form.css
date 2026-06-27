@@ -1,0 +1,216 @@
+/* === Request configurator — card-driven form === */
+
+/* Phase rail (lighter than full stepper, used at top of form) */
+.rf-wrap { max-width: 1140px; }
+.rf-grid { display: grid; grid-template-columns: 1.62fr 1fr; gap: 26px; align-items: start; }
+.rf-main { min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+.rf-side { position: sticky; top: 96px; display: flex; flex-direction: column; gap: 14px; }
+
+/* Spec annotation pill (handoff: maps UI -> bible rule + data model) */
+.rf-spec {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em;
+  color: var(--muted-2);
+  background: color-mix(in oklab, var(--accent) 6%, var(--surface-2));
+  border: 1px dashed var(--border-2);
+  border-radius: 999px; padding: 3px 10px;
+}
+.rf-spec b { color: var(--accent); font-weight: 500; }
+html[data-spec="off"] .rf-spec { display: none; }
+
+/* Generic selectable pick card (material, accessories, budget, contact, size) */
+.pick-grid { display: grid; gap: 12px; }
+.pick-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.pick-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.pick-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.pick {
+  position: relative;
+  display: flex; flex-direction: column; gap: 9px;
+  padding: 15px 15px 14px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  text-align: left;
+  box-shadow: var(--shadow-sm);
+  transition: transform 160ms var(--ease), border-color 160ms var(--ease), background 160ms var(--ease), box-shadow 160ms var(--ease);
+}
+.pick:hover { transform: translateY(-2px); border-color: var(--muted-2); background: var(--surface-2); }
+.pick.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 14%, transparent), var(--shadow-sm);
+}
+.pick-ic {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: grid; place-items: center; flex-shrink: 0;
+  background: var(--surface-3); color: var(--ink-2);
+  border: 1px solid var(--border);
+  transition: all 160ms var(--ease);
+}
+.pick.on .pick-ic { background: var(--accent); color: #FBF6EC; border-color: var(--accent); }
+.pick-t { font-weight: 500; font-size: 14.5px; letter-spacing: -0.005em; }
+.pick-s { color: var(--muted); font-size: 12px; line-height: 1.45; margin-top: 1px; }
+.pick-pts {
+  position: absolute; top: 12px; right: 12px;
+  font-family: var(--font-mono); font-size: 10.5px;
+  color: var(--accent); background: var(--accent-soft);
+  padding: 2px 7px; border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--accent) 22%, transparent);
+}
+.pick.on .pick-pts { background: var(--surface); }
+.pick-check {
+  position: absolute; top: 11px; right: 11px;
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 1.5px solid var(--border-2); background: var(--surface);
+  display: grid; place-items: center; color: transparent;
+  transition: all 160ms var(--ease);
+}
+.pick.on .pick-check { background: var(--accent); border-color: var(--accent); color: #FBF6EC; }
+
+/* Room palette */
+.room-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.room-card {
+  position: relative;
+  display: flex; align-items: center; gap: 13px;
+  padding: 15px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer; text-align: left;
+  box-shadow: var(--shadow-sm);
+  transition: transform 160ms var(--ease), border-color 160ms var(--ease), background 160ms var(--ease);
+}
+.room-card:hover { transform: translateY(-2px); border-color: var(--muted-2); }
+.room-card.on { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 7%, var(--surface)); }
+.room-card .pick-ic { width: 42px; height: 42px; }
+.room-card.on .pick-ic { background: var(--accent); color: #FBF6EC; border-color: var(--accent); }
+.room-card .room-count {
+  margin-left: auto;
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--accent); background: var(--accent-soft);
+  border-radius: 999px; padding: 2px 9px; min-width: 22px; text-align: center;
+}
+
+/* Room block (active room with its piece palette) */
+.room-block { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); overflow: hidden; box-shadow: var(--shadow-sm); }
+.room-block-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  background: linear-gradient(160deg, var(--surface-2), var(--surface));
+}
+.room-block-head .pick-ic { width: 34px; height: 34px; background: var(--accent); color: #FBF6EC; border-color: var(--accent); }
+.room-block-body { padding: 16px 18px; }
+
+/* Piece card with qty stepper */
+.piece-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.piece-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 13px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  transition: border-color 140ms var(--ease), background 140ms var(--ease);
+}
+.piece-card.has { border-color: var(--accent); background: var(--accent-soft); }
+.piece-card .p-ic { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--surface-3); border: 1px solid var(--border); color: var(--ink-2); flex-shrink: 0; }
+.piece-card.has .p-ic { background: var(--accent); color: #FBF6EC; border-color: var(--accent); }
+.piece-card .p-name { flex: 1; font-size: 13.5px; font-weight: 500; line-height: 1.2; }
+.piece-card .p-sub { font-size: 11px; color: var(--muted); font-weight: 400; }
+
+/* Quantity stepper */
+.qty { display: inline-flex; align-items: center; gap: 0; border: 1px solid var(--border-2); border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.qty button { width: 26px; height: 26px; display: grid; place-items: center; color: var(--ink-2); transition: background 120ms; }
+.qty button:hover { background: var(--surface-3); }
+.qty button:disabled { opacity: 0.3; pointer-events: none; }
+.qty .n { min-width: 26px; text-align: center; font-family: var(--font-mono); font-size: 13px; }
+.qty.mini button { width: 22px; height: 22px; }
+.qty.mini .n { min-width: 20px; font-size: 12px; }
+
+.piece-card .add-btn {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid var(--border-2); background: var(--surface);
+  display: grid; place-items: center; color: var(--ink-2);
+  transition: all 140ms var(--ease);
+}
+.piece-card .add-btn:hover { background: var(--accent); color: #FBF6EC; border-color: var(--accent); transform: scale(1.06); }
+
+/* Cart panel (side) */
+.cart {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.cart-head { padding: 15px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; justify-content: space-between; }
+.cart-head .t { font-family: var(--font-serif); font-size: 20px; letter-spacing: -0.01em; }
+.cart-body { max-height: 360px; overflow-y: auto; }
+.cart-empty { padding: 30px 18px; text-align: center; color: var(--muted-2); font-size: 13px; }
+.cart-room { border-bottom: 1px solid var(--border); padding: 12px 16px; }
+.cart-room:last-child { border-bottom: none; }
+.cart-room-name { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.cart-line { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+.cart-line .cl-name { flex: 1; font-size: 13px; }
+.cart-line .cl-x { color: var(--muted-2); width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; }
+.cart-line .cl-x:hover { background: var(--crimson-soft); color: var(--crimson); }
+.cart-foot { padding: 14px 16px; border-top: 1px solid var(--border); background: var(--surface-2); }
+
+/* Per-item configuration loop */
+.cfg-rail { display: flex; flex-direction: column; gap: 6px; }
+.cfg-rail-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 11px; border-radius: var(--radius-sm);
+  border: 1px solid transparent; cursor: pointer; text-align: left; width: 100%;
+  transition: all 140ms var(--ease);
+}
+.cfg-rail-item:hover { background: var(--surface-2); }
+.cfg-rail-item.on { background: var(--surface); border-color: var(--accent); box-shadow: var(--shadow-sm); }
+.cfg-rail-item .ri-num { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-mono); font-size: 11px; border: 1px solid var(--border-2); flex-shrink: 0; }
+.cfg-rail-item.done .ri-num { background: var(--sage); color: #fff; border-color: var(--sage); }
+.cfg-rail-item.on .ri-num { background: var(--accent); color: #fff; border-color: var(--accent); }
+.cfg-rail-item .ri-name { flex: 1; font-size: 12.5px; line-height: 1.2; }
+.cfg-rail-item .ri-room { font-size: 10.5px; color: var(--muted); font-family: var(--font-mono); }
+
+.cfg-progress { height: 5px; background: var(--surface-3); border-radius: 999px; overflow: hidden; }
+.cfg-progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-deep)); border-radius: 999px; transition: width 300ms var(--ease); }
+
+/* Dimension inputs */
+.dim-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.dim-field { display: flex; flex-direction: column; gap: 5px; }
+.dim-field label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.dim-field .dim-input { display: flex; align-items: center; border: 1px solid var(--border-2); border-radius: var(--radius-sm); background: var(--surface); overflow: hidden; }
+.dim-field .dim-input input { border: none; padding: 9px 10px; font-family: var(--font-mono); font-size: 14px; width: 100%; background: transparent; }
+.dim-field .dim-input input:focus { outline: none; }
+.dim-field .dim-input .u { padding: 0 10px; font-family: var(--font-mono); font-size: 11px; color: var(--muted-2); border-left: 1px solid var(--border); }
+
+/* Upload dropzone */
+.dropzone {
+  border: 1.5px dashed var(--border-2);
+  border-radius: var(--radius-lg);
+  background:
+    repeating-linear-gradient(135deg, transparent 0 13px, color-mix(in oklab, var(--accent) 5%, transparent) 13px 14px),
+    var(--surface-2);
+  padding: 38px 24px; text-align: center; cursor: pointer;
+  transition: border-color 160ms var(--ease), background 160ms var(--ease);
+}
+.dropzone:hover { border-color: var(--accent); background: var(--accent-soft); }
+.dropzone .dz-ic { width: 52px; height: 52px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); display: grid; place-items: center; margin: 0 auto 14px; color: var(--accent); }
+.upload-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.upload-thumb { position: relative; }
+.upload-thumb .ut-x { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%; background: rgba(0,0,0,0.55); color: #fff; display: grid; place-items: center; backdrop-filter: blur(4px); }
+.upload-tag { position: absolute; left: 6px; bottom: 6px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; background: rgba(0,0,0,0.6); color: #fff; padding: 2px 7px; border-radius: 999px; }
+
+/* Score recap (publish) */
+.recap-line { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--border); }
+.recap-line:last-child { border-bottom: none; }
+.recap-line .rl-name { flex: 1; font-size: 13.5px; }
+.recap-line .rl-meta { font-size: 11.5px; color: var(--muted); font-family: var(--font-mono); }
+.recap-line .rl-pts { font-family: var(--font-mono); font-size: 13px; color: var(--accent); min-width: 56px; text-align: right; }
+
+@media (max-width: 1080px) {
+  .rf-grid { grid-template-columns: 1fr; }
+  .rf-side { position: static; }
+  .room-grid { grid-template-columns: repeat(2, 1fr); }
+  .pick-grid.cols-3, .pick-grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
+}

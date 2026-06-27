@@ -1,0 +1,16 @@
+{
+  "name": "marketplace-mobilier",
+  "private": true,
+  "scripts": {
+    "build:shared": "pnpm -F @marketplace/shared build",
+    "dev:backend": "pnpm -F backend dev",
+    "dev:frontend": "pnpm -F frontend dev",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "infra:up": "docker compose -f dev-infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f dev-infra/docker-compose.yml down"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
