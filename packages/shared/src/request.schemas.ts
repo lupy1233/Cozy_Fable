@@ -2,6 +2,8 @@ import { z } from 'zod';
 import {
   ATTACHMENT_STATUSES,
   BUDGET_RANGES,
+  CONTACT_CHANNELS,
+  DEADLINE_BUCKETS,
   ITEM_SYSTEMS,
   MATERIALS,
   PROJECT_SIZES,
@@ -34,51 +36,88 @@ export const requestRoomSchema = z.object({
 });
 export type RequestRoomInput = z.infer<typeof requestRoomSchema>;
 
-// Preferinta de contact ordonata (prioritate 1..5, maxim 5 canale).
-export const contactPreferenceSchema = z.object({
-  channel: z.string().trim().min(2, 'contactChannelTooShort').max(50),
-  value: z.string().trim().min(2, 'contactValueTooShort').max(200),
-  priority: z.number().int().min(1).max(5),
-});
+// Telefon RO: mobil (07xxxxxxxx) sau fix ([23]xxxxxxxx), cu sau fara prefixul +40.
+export const RO_PHONE_REGEX = /^(\+40|0)(7\d{8}|[23]\d{8})$/;
+
+// Preferinta de contact: doar EMAIL sau PHONE, valoarea validata ca format.
+export const contactPreferenceSchema = z.discriminatedUnion('channel', [
+  z.object({
+    channel: z.literal('EMAIL'),
+    value: z.string().trim().email('contactEmailInvalid').max(200),
+  }),
+  z.object({
+    channel: z.literal('PHONE'),
+    value: z.string().trim().regex(RO_PHONE_REGEX, 'contactPhoneInvalid'),
+  }),
+]);
 export type ContactPreferenceInput = z.infer<typeof contactPreferenceSchema>;
 
+// Lista de contacte: 1..4 intrari, maxim 2 per canal (ex. email principal + secundar).
+export const contactPreferencesSchema = z
+  .array(contactPreferenceSchema)
+  .min(1, 'needsContact')
+  .max(4, 'tooManyContacts')
+  .superRefine((arr, ctx) => {
+    for (const channel of CONTACT_CHANNELS) {
+      if (arr.filter((c) => c.channel === channel).length > 2) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'tooManyPerChannel' });
+      }
+    }
+  });
+
 // Continutul complet al unei cereri — validat strict la publicare.
+// description = mesaj liber optional (fara minim); termenul dorit = interval, nu data.
 export const requestContentSchema = z.object({
   title: z.string().trim().min(4, 'titleTooShort').max(200),
-  description: z.string().trim().min(10, 'descriptionTooShort').max(5000),
+  description: z.string().trim().max(5000, 'descriptionTooLong').optional().or(z.literal('')),
   budgetRange: z.enum(BUDGET_RANGES),
-  desiredDeadline: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'invalidDate')
-    .optional()
-    .or(z.literal('')),
+  deadlineBucket: z.enum(DEADLINE_BUCKETS).optional(),
   includesPaidDesign: z.boolean(),
   hasOwnProject: z.boolean(),
   addressText: z.string().trim().min(3, 'addressTooShort').max(300),
   county: z.string().trim().min(2, 'countyTooShort').max(100),
   city: z.string().trim().min(2, 'cityTooShort').max(100),
   rooms: z.array(requestRoomSchema).min(1, 'needsRoom').max(20),
-  contactPreferences: z.array(contactPreferenceSchema).min(1, 'needsContact').max(5),
+  contactPreferences: contactPreferencesSchema,
 });
 export type RequestContentInput = z.infer<typeof requestContentSchema>;
+
+// O camera in payload-ul configuratorului: raspunsuri brute + versiunea flow-ului.
+// Validarea semantica a answers (step-uri, sloturi dinamice, conditii) se face cu
+// validateRoomAnswers din questionnaire/ — aici doar forma de transport.
+export const configuratorRoomSchema = z.object({
+  roomType: z.enum(ROOM_TYPES),
+  flowVersion: z.number().int().positive(),
+  answers: z.record(z.string(), z.unknown()),
+});
+export type ConfiguratorRoomInput = z.infer<typeof configuratorRoomSchema>;
+
+// Continutul complet al unei cereri create prin configurator (payload publish/edit).
+// Backend-ul deriva rooms/items/dims + scoring din answers (nu se trimit derivate).
+// Titlul NU se trimite: e generat automat pe server din camere + oras.
+export const configuratorContentSchema = requestContentSchema
+  .omit({ rooms: true, title: true })
+  .extend({
+    rooms: z.array(configuratorRoomSchema).min(1, 'needsRoom').max(20),
+  });
+export type ConfiguratorContentInput = z.infer<typeof configuratorContentSchema>;
 
 // Patch incremental pe draft — toate campurile optionale.
 export const requestDraftPatchSchema = z.object({
   title: z.string().trim().max(200).optional(),
   description: z.string().trim().max(5000).optional(),
   budgetRange: z.enum(BUDGET_RANGES).optional(),
-  desiredDeadline: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'invalidDate')
-    .optional()
-    .or(z.literal('')),
+  deadlineBucket: z.enum(DEADLINE_BUCKETS).optional(),
   includesPaidDesign: z.boolean().optional(),
   hasOwnProject: z.boolean().optional(),
   addressText: z.string().trim().max(300).optional(),
   county: z.string().trim().max(100).optional(),
   city: z.string().trim().max(100).optional(),
   rooms: z.array(requestRoomSchema).max(20).optional(),
-  contactPreferences: z.array(contactPreferenceSchema).max(5).optional(),
+  contactPreferences: z.array(contactPreferenceSchema).max(4).optional(),
+  // starea bruta a wizard-ului configurator (backup server al draftului local);
+  // opaca pentru backend, cap de marime aplicat in service
+  configuratorState: z.unknown().optional(),
 });
 export type RequestDraftPatchInput = z.infer<typeof requestDraftPatchSchema>;
 
@@ -125,13 +164,15 @@ export interface RequestRoomDto {
   widthM: number;
   heightM: number;
   items: RequestItemDto[];
+  // raspunsuri brute configurator; null = cerere legacy (creata inainte de configurator)
+  answers: Record<string, unknown> | null;
+  flowVersion: number | null;
 }
 
 export interface ContactPreferenceDto {
   id: string;
-  channel: string;
+  channel: (typeof CONTACT_CHANNELS)[number];
   value: string;
-  priority: number;
 }
 
 export interface AttachmentDto {
@@ -156,7 +197,7 @@ export interface RequestDto {
   title: string;
   description: string;
   budgetRange: (typeof BUDGET_RANGES)[number];
-  desiredDeadline: string | null;
+  deadlineBucket: (typeof DEADLINE_BUCKETS)[number] | null;
   includesPaidDesign: boolean;
   hasOwnProject: boolean;
   addressText: string;
@@ -174,6 +215,8 @@ export interface RequestDto {
   rooms: RequestRoomDto[];
   contactPreferences: ContactPreferenceDto[];
   attachments: AttachmentDto[];
+  // stare wizard salvata pe draft (resume de pe alt device); null dupa publish
+  configuratorState: unknown | null;
 }
 
 export interface RequestListItemDto {
@@ -193,6 +236,22 @@ export interface RequestListItemDto {
 export interface RequestDraftCreatedDto {
   id: string;
   draftToken: string;
+}
+
+// Statistici pentru dashboardul clientului (agregate server-side).
+export interface ClientDashboardStatsDto {
+  totalRequests: number;
+  byStatus: Partial<Record<(typeof REQUEST_STATUSES)[number], number>>;
+  // oferte primite pe cererile mele (quotes SENT/ACCEPTED)
+  offersReceived: number;
+  // claim-uri active ale firmelor pe cererile mele
+  activeClaims: number;
+  recent: {
+    id: string;
+    title: string;
+    status: (typeof REQUEST_STATUSES)[number];
+    updatedAt: string;
+  }[];
 }
 
 // Raspuns presign upload.

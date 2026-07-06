@@ -8,6 +8,7 @@ import { useMe } from '@/hooks/use-auth';
 import { useMarketplace, useWallet } from '@/hooks/use-marketplace';
 import { Badge } from '@/components/ui/badge';
 import { SlotTrack } from '@/components/ui/slot-track';
+import { useRelativeTime } from '@/lib/relative-time';
 
 export default function MarketplacePage() {
   const t = useTranslations('Marketplace');
@@ -16,6 +17,7 @@ export default function MarketplacePage() {
   const me = useMe();
   const list = useMarketplace();
   const wallet = useWallet();
+  const relTime = useRelativeTime();
 
   // Acces doar COMPANY_USER; restul → dashboard / login
   useEffect(() => {
@@ -86,7 +88,7 @@ export default function MarketplacePage() {
                   {t('slots', { active: r.activeClaims, max: r.maxClaims })}
                 </span>
                 <span className="font-mono text-[11px] text-muted-2">
-                  {t('publishedAgo', { min: r.publishedAgoMinutes })}
+                  {relTime(r.publishedAt)}
                 </span>
                 {r.alreadyClaimedByMyCompany && (
                   <Badge tone="sage" dot>

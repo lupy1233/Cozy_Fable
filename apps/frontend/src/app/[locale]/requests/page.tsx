@@ -38,7 +38,6 @@ export default function MyRequestsPage() {
             <TR>
               <TH>{t('field.title')}</TH>
               <TH>{t('status')}</TH>
-              <TH>{t('size')}</TH>
               <TH>{t('field.city')}</TH>
               <TH>{t('expiresAt')}</TH>
               <TH />
@@ -47,7 +46,7 @@ export default function MyRequestsPage() {
           <TBody>
             {list.data?.length === 0 && (
               <TR>
-                <TD colSpan={6} className="py-10 text-center text-muted-foreground">
+                <TD colSpan={5} className="py-10 text-center text-muted-foreground">
                   {t('empty')}
                 </TD>
               </TR>
@@ -58,7 +57,6 @@ export default function MyRequestsPage() {
                 <TD>
                   <StatusBadge status={r.status} label={t(`statusValue.${r.status}`)} />
                 </TD>
-                <TD>{r.size ? t(`sizeValue.${r.size}`) : '—'}</TD>
                 <TD>{r.city}</TD>
                 <TD className="text-muted-foreground">
                   {r.expiresAt ? new Date(r.expiresAt).toLocaleDateString() : '—'}

@@ -8,6 +8,7 @@ import { ApiError } from '@/lib/api';
 import { useDeleteRequest, useRepostRequest, useRequest } from '@/hooks/use-requests';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/badge';
+import { RoomAnswerSummary } from '@/components/configurator/room-answer-summary';
 
 export default function RequestDetailPage() {
   const t = useTranslations('Requests');
@@ -49,20 +50,19 @@ export default function RequestDetailPage() {
           <StatusBadge status={r.status} label={t(`statusValue.${r.status}`)} />
         </div>
         <p className="mt-2 text-sm text-muted-foreground">{r.description}</p>
+        {/* marimea/costul in credite si coordonatele nu se afiseaza clientului */}
         <div className="mt-3 flex flex-wrap gap-4 text-sm">
-          {r.sizing && (
-            <span>
-              {t('size')}: <strong>{t(`sizeValue.${r.sizing.size}`)}</strong> ({r.sizing.score} ·{' '}
-              {r.sizing.creditCost} {t('credits')})
-            </span>
-          )}
           <span>
             {t('field.budgetRange')}: {t(`budget.${r.budgetRange}`)}
           </span>
+          {r.deadlineBucket && (
+            <span>
+              {t('field.desiredDeadline')}: {t(`deadline.${r.deadlineBucket}`)}
+            </span>
+          )}
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
           {r.addressText}, {r.city}, {r.county}
-          {r.lat !== null && r.lng !== null ? ` (${r.lat.toFixed(4)}, ${r.lng.toFixed(4)})` : ''}
         </p>
         {r.expiresAt && (
           <p className="text-sm text-muted-foreground">
@@ -72,6 +72,12 @@ export default function RequestDetailPage() {
         <p className="mt-1 font-mono text-xs text-muted-2">
           {t('editsUsed')}: {r.preClaimEditsUsed}/3 · {r.postClaimEditsUsed}/1
         </p>
+        <EditRequestButton
+          id={id}
+          status={r.status}
+          preUsed={r.preClaimEditsUsed}
+          postUsed={r.postClaimEditsUsed}
+        />
       </div>
 
       {/* Camere */}
@@ -82,15 +88,27 @@ export default function RequestDetailPage() {
             <p className="text-sm font-medium">
               {t(`roomType.${room.roomType}`)} · {room.lengthM}×{room.widthM}×{room.heightM} m
             </p>
-            <ul className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground">
-              {room.items.map((it) => (
-                <li key={it.id}>
-                  {it.quantity}× {it.name} — {t(`material.${it.material}`)}
-                  {it.systems.length > 0 &&
-                    ` · ${it.systems.map((s) => t(`system.${s}`)).join(', ')}`}
-                </li>
-              ))}
-            </ul>
+            {room.answers ? (
+              // cerere creata prin configurator: rezumat Q→A
+              <div className="mt-2">
+                <RoomAnswerSummary
+                  roomType={room.roomType}
+                  answers={room.answers}
+                  flowVersion={room.flowVersion}
+                />
+              </div>
+            ) : (
+              // fallback legacy (seed/demo, fara answers): lista de items
+              <ul className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground">
+                {room.items.map((it) => (
+                  <li key={it.id}>
+                    {it.quantity}× {it.name} — {t(`material.${it.material}`)}
+                    {it.systems.length > 0 &&
+                      ` · ${it.systems.map((s) => t(`system.${s}`)).join(', ')}`}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         ))}
       </div>
@@ -122,6 +140,42 @@ export default function RequestDetailPage() {
         r.status,
       ) && <DeleteRequestButton id={id} />}
     </div>
+  );
+}
+
+// Editare: 3 edit-uri pre-claim (IN_MARKETPLACE), 1 post-claim (inainte de oferte).
+// Post-claim: avertizare — scoringul se recalculeaza, dar claim-urile firmelor
+// raman pe snapshot (docs/03 §4.3); firmele pot retrage claim-ul dupa modificare.
+function EditRequestButton({
+  id,
+  status,
+  preUsed,
+  postUsed,
+}: {
+  id: string;
+  status: string;
+  preUsed: number;
+  postUsed: number;
+}) {
+  const t = useTranslations('Requests');
+  const router = useRouter();
+
+  const preClaim = status === 'IN_MARKETPLACE';
+  const postClaim = status === 'CLAIMED_PARTIAL' || status === 'CLAIMED_FULL';
+  if (!preClaim && !postClaim) return null;
+
+  const remaining = preClaim ? 3 - preUsed : 1 - postUsed;
+  if (remaining <= 0) return null;
+
+  const go = () => {
+    if (postClaim && !confirm(t('editPostClaimWarning'))) return;
+    router.push(`/requests/${id}/edit`);
+  };
+
+  return (
+    <Button variant="outline" size="sm" className="mt-3" onClick={go}>
+      {t('editRequest', { remaining })}
+    </Button>
   );
 }
 

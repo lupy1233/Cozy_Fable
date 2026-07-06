@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Link } from '@/i18n/routing';
+import { CozyHomeMark } from '@/components/brand/logo';
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '../_components/notification-bell';
 import { LangSwitch } from '../_components/lang-switch';
@@ -28,11 +29,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       {/* Sidebar — portat din prototip (.sidebar) */}
       <aside className="sticky top-0 flex h-screen flex-col gap-5 overflow-y-auto border-r border-border bg-gradient-to-b from-surface-2 to-surface px-4 pb-4 pt-6">
         <Link href="/admin" className="flex items-center gap-2.5 border-b border-border px-2 pb-4">
-          <span className="grid h-[34px] w-[34px] place-items-center rounded-[9px] bg-gradient-to-br from-foreground to-ink-2 font-serif text-xl italic text-background shadow-sm">
-            P
-          </span>
+          <CozyHomeMark className="h-[30px] w-[30px] shrink-0" />
           <span>
-            <span className="block font-serif text-2xl leading-none tracking-[-0.02em]">Plan</span>
+            <span className="block whitespace-nowrap font-serif text-[15px] uppercase leading-none tracking-[0.14em]">
+              Cozy Home
+            </span>
             <span className="mt-1 block font-mono text-[9.5px] uppercase tracking-[0.12em] text-muted-foreground">
               {t('console')}
             </span>

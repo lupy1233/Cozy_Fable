@@ -1,10 +1,13 @@
 {
   "Landing": {
-    "title": "Custom Furniture Marketplace",
-    "subtitle": "Request quotes from verified companies for your custom furniture.",
+    "title": "From your sketch to the right workshop.",
+    "subtitle": "Describe your furniture with its exact dimensions, and verified workshops compete with structured offers. You compare revisions and choose.",
+    "heroNote": "Free for clients · at most 3 workshops per request",
+    "processKicker": "Process",
+    "sizingKicker": "Format",
     "ctaNewRequest": "Create a request",
-    "ctaCompanies": "Are you a company? Sign up",
-    "kicker": "Custom furniture, end to end",
+    "ctaCompanies": "Run a workshop? Sign up",
+    "kicker": "A closed platform for custom furniture",
     "metricWorkshops": "340+",
     "metricWorkshopsLabel": "Verified workshops",
     "metricProjects": "2.8k",
@@ -12,14 +15,17 @@
     "metricSatisfaction": "94%",
     "metricSatisfactionLabel": "Client satisfaction",
     "howTitle": "How it works",
-    "step1Title": "Describe your project",
-    "step1Body": "Pick the rooms and pieces, materials and finishes. We score the project automatically.",
+    "step1Phase": "Sketch",
+    "step1Title": "Draw up your request",
+    "step1Body": "Pick the pieces, materials and dimensions. The system scores your project size automatically.",
+    "step2Phase": "Quoting",
     "step2Title": "Workshops claim it",
-    "step2Body": "Vetted workshops reserve your request and start a conversation with you.",
-    "step3Title": "Compare and choose",
-    "step3Body": "Negotiate, compare offers side by side and pick the workshop you trust.",
-    "sizingTitle": "Project sizing",
-    "sizingSub": "Each request gets a size that sets how many credits a workshop spends to claim it.",
+    "step2Body": "Up to three vetted workshops take on your request and talk with you directly.",
+    "step3Phase": "Decision",
+    "step3Title": "Compare revisions",
+    "step3Body": "You receive structured offers, request changes and pick the workshop to move forward with.",
+    "sizingTitle": "Project format",
+    "sizingSub": "Every request gets a format that sets how many credits it costs a workshop to claim.",
     "sizeSmall": "Small",
     "sizeSmallDesc": "A single piece or a compact set — quick to quote.",
     "sizeMedium": "Medium",
@@ -27,26 +33,174 @@
     "sizeLarge": "Large",
     "sizeLargeDesc": "Multi-room fit-outs and complex bespoke work.",
     "creditsUnit": "credits",
+    "creditsUnitOne": "credit",
+    "heroSheetTitle": "Bedroom wardrobe — axonometric",
+    "heroSheetClient": "Client request",
     "ctaBandTitle": "Run a workshop?",
-    "ctaBandBody": "Reach clients with real, scored projects and grow your reputation on Plan.",
-    "ctaBandButton": "Register your workshop"
+    "ctaBandBody": "Real, sized, verified requests — you spend credits only on the projects you claim.",
+    "ctaBandButton": "Register your workshop",
+    "footerTagline": "The marketplace for custom furniture",
+    "inspirationKicker": "Inspiration",
+    "inspirationTitle": "Ideas for your home",
+    "inspirationSub": "A curated gallery of projects and ideas — pick the style that fits your home and start a request from a picture.",
+    "inspirationCta": "Browse the full gallery",
+    "partnersKicker": "Partners",
+    "partnersTitle": "The workshops we work with",
+    "partnersSub": "Every workshop is vetted before it can quote. Ratings come from Google reviews.",
+    "partnersAll": "All partners",
+    "googleReviews": "Google Reviews rating",
+    "reviewsShort": "reviews",
+    "carouselPrev": "Previous",
+    "carouselNext": "Next",
+    "partnerSpecialty": {
+      "kitchens": "Custom kitchens and cooking spaces",
+      "dressings": "Made-to-measure wardrobes and dressings",
+      "living": "Living rooms, bookcases and everyday furniture",
+      "full": "Complete fit-outs, from sketch to install"
+    }
   },
   "Common": {
     "languageSwitcher": "Language",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "relativeTime": {
+      "minutes": "{count, plural, =0 {just now} =1 {1 min ago} other {# min ago}}",
+      "hours": "{count, plural, =1 {1 hour ago} other {# hours ago}}",
+      "days": "{count, plural, =1 {1 day ago} other {# days ago}}",
+      "months": "{count, plural, =1 {1 month ago} other {# months ago}}"
+    }
   },
   "Nav": {
-    "home": "Marketplace Mobilier",
+    "home": "Cozy Home",
+    "dashboard": "My account",
     "myRequests": "My requests",
     "newRequest": "New request",
     "marketplace": "Marketplace",
+    "claims": "Claims",
     "wallet": "Wallet",
+    "partners": "Partners",
+    "inspiration": "Inspiration",
+    "sketchGuide": "Sketch guide",
     "company": "Company",
     "admin": "Admin",
     "login": "Log in",
     "register": "Sign up",
     "forCompanies": "For companies",
-    "logout": "Log out"
+    "logout": "Log out",
+    "menu": "Menu"
+  },
+  "Partners": {
+    "title": "Our partner workshops",
+    "subtitle": "Vetted furniture workshops that quote and build the projects on Cozy Home.",
+    "loading": "Loading partners…",
+    "empty": "No partners to show yet.",
+    "ratingPlaceholder": "—",
+    "ratingSoon": "Google rating coming soon",
+    "memberSince": "Partner since {date}"
+  },
+  "Inspiration": {
+    "title": "Inspiration",
+    "subtitle": "Real ideas for custom furniture. Search, filter by furniture type and open them on Pinterest.",
+    "searchPlaceholder": "Search ideas — e.g. kitchen, dressing, reading…",
+    "all": "All",
+    "empty": "Nothing found for your search. Try another word or filter.",
+    "openPinterest": "View on Pinterest",
+    "types": {
+      "kitchen": "Kitchen",
+      "living": "Living",
+      "bedroom": "Bedroom",
+      "dressing": "Wardrobe",
+      "office": "Office"
+    },
+    "pins": {
+      "kitchen-bright": "Bright kitchen",
+      "kitchen-island": "Kitchen with island",
+      "kitchen-l": "L-shaped kitchen",
+      "living-green-sofa": "Living with a green sofa",
+      "reading-corner": "Reading corner",
+      "living-cat": "Sunday sofa",
+      "sofa-statement": "Statement sofa",
+      "living-boho": "Boho living",
+      "living-modern": "Modern living room",
+      "living-lounge": "Conversation corner",
+      "living-shelving": "Warm wood shelving",
+      "living-stairs": "Split-level living",
+      "bedroom-classic": "Classic bedroom",
+      "bedroom-minimal": "Minimalist bedroom",
+      "bedroom-hotel": "Hotel-style bedroom",
+      "dressing-vintage": "Vintage wardrobe",
+      "dressing-open": "Open dressing",
+      "dressing-shelves": "Open-shelf wardrobe",
+      "office-desk": "Home office",
+      "office-light": "Daylight home office"
+    }
+  },
+  "SketchGuidePage": {
+    "kicker": "Workshop guide",
+    "title": "How to sketch your space",
+    "subtitle": "No architect needed — four simple steps give workshops everything they need to quote accurately. The sheet on the left shows exactly what your sketch needs to include.",
+    "sheetTitle": "Kitchen sketch — example",
+    "legendWall": "The wall, measured corner to corner — width and height",
+    "legendSocket": "Sockets and pipes, marked with ✕ or a dashed circle",
+    "legendFurniture": "The furniture you want, drawn simply over the wall",
+    "legendDimensions": "The furniture dimensions, noted right on the drawing",
+    "steps": {
+      "measure": {
+        "title": "Measure the walls",
+        "body": "Take the length of every wall and the ceiling height. Measure at floor level, corner to corner.",
+        "tip": "A simple tape measure is enough — round to the centimetre."
+      },
+      "draw": {
+        "title": "Draw the plan from above",
+        "body": "A simple rectangle is enough. Write each dimension right on its side, like in the example.",
+        "tip": "It doesn't have to be to scale — the numbers matter, not pretty drawing."
+      },
+      "mark": {
+        "title": "Mark what can't move",
+        "body": "Doors with their swing, windows, sockets, pipes, radiators. Anything the future furniture could touch.",
+        "tip": "An ✕ for sockets, a double line for windows — like the socket mark on the sheet."
+      },
+      "photo": {
+        "title": "Photograph and attach",
+        "body": "One clear photo, from above, with the whole sketch in frame. Attach it to your request along with photos of the room.",
+        "tip": "Natural light, no shadows over the numbers."
+      }
+    },
+    "ctaTitle": "Sketch ready?",
+    "ctaHint": "Attach it while configuring your request — workshops receive it along with your dimensions.",
+    "cta": "Create a request"
+  },
+  "Dashboard": {
+    "loading": "Loading statistics…",
+    "client": {
+      "totalRequests": "Requests created",
+      "activeClaims": "Active firm claims",
+      "offersReceived": "Offers received",
+      "byStatus": "Requests by status",
+      "recent": "Recent activity",
+      "allRequests": "All requests",
+      "noRequests": "No requests yet — create your first one.",
+      "newRequest": "New request"
+    },
+    "company": {
+      "claimsTotal": "Claims made",
+      "claimsActive": "Active claims",
+      "quotesSent": "Offers sent",
+      "quotesTotalRon": "Offers value",
+      "credits": "Credits",
+      "walletLink": "Wallet & billing",
+      "available": "Available",
+      "reserved": "Reserved",
+      "consumed7d": "Used, last 7 days",
+      "consumed30d": "Used, last 30 days",
+      "perMember": "Active claims per member",
+      "unassigned": "Unassigned",
+      "claimsByStatus": "Claims by stage",
+      "noClaims": "No claims yet.",
+      "penalties": "Penalties",
+      "penaltyPoints": "active points",
+      "toMarketplace": "Go to marketplace",
+      "toClaims": "My claims"
+    }
   },
   "Auth": {
     "loginTitle": "Log in",
@@ -125,14 +279,24 @@
     "cancel": "Cancel",
     "locations": "Locations",
     "coverageRadiusKm": "Coverage radius (km)",
+    "coverageRadiusLabel": "coverage radius {km} km",
+    "coverageRadiusHint": "Requests within this distance are visible to you",
+    "latHint": "Decimal coordinate, e.g. 46.7712",
+    "lngHint": "Decimal coordinate, e.g. 23.6236",
+    "country": "Country",
+    "countryRomania": "Romania",
     "addLocation": "Add location",
     "deleteLocation": "Delete",
     "noLocations": "No locations yet. Add at least one so requests within range are visible.",
     "team": "Team",
     "memberEmail": "Member email",
+    "memberRole": "Role",
     "role": "Role",
     "addMember": "Add member",
     "removeMember": "Remove",
+    "unsavedChanges": "Unsaved changes",
+    "discardChanges": "Discard",
+    "permissionsSaved": "Saved.",
     "roleValue": {
       "OWNER": "Owner",
       "MANAGER": "Manager",
@@ -262,12 +426,33 @@
       "quantity": "Qty",
       "contactChannel": "Channel",
       "contactValue": "Value",
-      "contactPriority": "Priority"
+      "contactPriority": "Priority",
+      "message": "Message for firms",
+      "country": "Country"
     },
+    "autoTitleLabel": "Title (generated automatically)",
+    "messageHint": "Optional — anything else firms should know.",
+    "countryRomania": "Romania",
+    "addressSearchPlaceholder": "Start typing and pick your address…",
+    "editRequest": "Edit request ({remaining} left)",
+    "editPostClaimWarning": "This request was already claimed by firms. You have a single edit left; the project will be re-scored, but firms keep the credits they already spent and may withdraw their claim after your changes. Continue?",
     "budget": {
       "UNDER_5K": "Under 5,000 RON",
       "FROM_5K_TO_15K": "5,000 - 15,000 RON",
-      "OVER_15K": "Over 15,000 RON"
+      "OVER_15K": "Over 15,000 RON",
+      "UNDISCLOSED": "I prefer not to share"
+    },
+    "deadline": {
+      "none": "Not sure yet",
+      "ASAP": "As soon as possible",
+      "ONE_TO_THREE_MONTHS": "1–3 months",
+      "THREE_TO_SIX_MONTHS": "3–6 months",
+      "SIX_PLUS_MONTHS": "6+ months",
+      "FLEXIBLE": "Flexible"
+    },
+    "contactChannel": {
+      "EMAIL": "Email",
+      "PHONE": "Phone"
     },
     "roomType": {
       "KITCHEN": "Kitchen",
@@ -275,7 +460,8 @@
       "LIVING": "Living room",
       "OFFICE": "Office",
       "BEDROOM": "Bedroom",
-      "BATHROOM": "Bathroom"
+      "BATHROOM": "Bathroom",
+      "PIECES": "Individual pieces"
     },
     "material": {
       "PAL": "Particleboard (PAL)",
@@ -320,7 +506,12 @@
       "dimensionInvalid": "Invalid dimension.",
       "invalidDate": "Invalid date.",
       "contactChannelTooShort": "Channel is too short.",
-      "contactValueTooShort": "Value is too short."
+      "contactValueTooShort": "Value is too short.",
+      "contactEmailInvalid": "Enter a valid email address.",
+      "contactPhoneInvalid": "Enter a valid Romanian phone number.",
+      "tooManyContacts": "Maximum 4 contact entries.",
+      "tooManyPerChannel": "Maximum 2 entries per channel.",
+      "descriptionTooLong": "Message is too long."
     },
     "apiErrors": {
       "GEOCODING_FAILED": "We couldn't locate that address. Check it and try again.",
@@ -395,8 +586,17 @@
     },
     "myClaims": {
       "title": "My claims",
+      "subtitle": "All the requests your company has claimed, with their stage and offer.",
       "empty": "You have no claims yet.",
-      "unassigned": "Unassigned"
+      "unassigned": "Unassigned",
+      "goToPage": "See my claims — who claimed, stage and offers",
+      "request": "Request",
+      "claimedBy": "Claimed by",
+      "assignedTo": "Assigned to",
+      "when": "When",
+      "stage": "Stage",
+      "sla": "Offer deadline (SLA)",
+      "slaPaused": "paused"
     },
     "apiErrors": {
       "CLAIM_NOT_ALLOWED": "This request can no longer be claimed.",
@@ -673,13 +873,871 @@
     "markAll": "Mark all read",
     "empty": "No notifications.",
     "type": {
-      "quote.created": "New offer",
-      "quote.updated": "Offer updated",
-      "quote.accepted": "Offer accepted",
-      "message.created": "New message",
-      "request.status_changed": "Request status updated",
-      "claim.created": "New claim",
-      "claim.withdrawn": "Claim withdrawn"
+      "quote": {
+        "created": "New offer",
+        "updated": "Offer updated",
+        "accepted": "Offer accepted"
+      },
+      "message": {
+        "created": "New message"
+      },
+      "request": {
+        "status_changed": "Request status updated"
+      },
+      "claim": {
+        "created": "New claim",
+        "withdrawn": "Claim withdrawn"
+      }
+    }
+  },
+  "Configurator": {
+    "title": "Configure your project",
+    "subtitle": "Add rooms and answer a few questions — partner firms will see a fully structured request.",
+    "kicker": "New request",
+    "editKicker": "Edit request",
+    "loading": "Preparing...",
+    "sheet": {
+      "phaseLabel": "Phase {current}/{total}"
+    },
+    "phases": {
+      "cart": "Rooms",
+      "rooms": "Room details",
+      "details": "General info",
+      "uploads": "Files",
+      "review": "Summary"
+    },
+    "nav": {
+      "back": "Back",
+      "next": "Continue",
+      "continue": "Continue",
+      "startQuestions": "Start",
+      "toDetails": "To general info",
+      "toReview": "To summary"
+    },
+    "cart": {
+      "title": "Which rooms do you want furnished?",
+      "subtitle": "Add as many rooms as you need; you can add several of the same type.",
+      "totalRooms": "{count, plural, =0 {No rooms} =1 {One room} other {# rooms}}",
+      "hasOwnProject": "I already have a project for the whole home",
+      "hasOwnProjectHint": "You'll upload it once at the Files step and can skip the per-room sketch steps.",
+      "tabRooms": "Rooms",
+      "tabPieces": "Individual pieces",
+      "addPieces": "Add pieces",
+      "removePieces": "Remove"
+    },
+    "sketchUpload": {
+      "skipNotice": "You marked that you have a project for the whole home — you can skip this step. Upload the project at the Files step so you don't attach it for every room.",
+      "hint": "Up to {local} more for this room ({global} left in total)",
+      "limitReached": "Attachment limit reached for this request."
+    },
+    "sketchGuide": {
+      "title": "No project? Make a quick sketch",
+      "subtitle": "Four simple steps — enough for firms to quote accurately.",
+      "steps": {
+        "measure": {
+          "title": "Measure the walls",
+          "body": "Note the length of each wall and the ceiling height."
+        },
+        "draw": {
+          "title": "Draw the plan",
+          "body": "A simple top-view rectangle with the measurements written on it."
+        },
+        "mark": {
+          "title": "Mark doors & windows",
+          "body": "Also mark sockets, pipes or anything that can't move."
+        },
+        "photo": {
+          "title": "Photograph it",
+          "body": "Take a clear photo of the sketch and upload it here."
+        }
+      }
+    },
+    "rooms": {
+      "type": {
+        "KITCHEN": "Kitchen",
+        "DRESSING": "Walk-in closet",
+        "LIVING": "Living room",
+        "OFFICE": "Office",
+        "BEDROOM": "Bedroom",
+        "BATHROOM": "Bathroom",
+        "PIECES": "Individual pieces"
+      },
+      "desc": {
+        "KITCHEN": "Cabinets, countertop, island",
+        "DRESSING": "Wardrobes and interior modules",
+        "LIVING": "Bookshelves, TV units, display cabinets",
+        "OFFICE": "Desk, bookshelves, storage",
+        "BEDROOM": "Wardrobe, bed, nightstands",
+        "BATHROOM": "Vanity unit, mirror, tall storage",
+        "PIECES": "Just a wardrobe, a desk or a few standalone pieces"
+      }
+    },
+    "uploads": {
+      "title": "Add photos or plans",
+      "subtitle": "Optional — photos of the space, sketches or your own project (max 10 files).",
+      "dropLabel": "Drag files here or click to upload",
+      "dropHint": "JPG, PNG, WEBP or PDF, up to 10 MB",
+      "uploading": "Uploading...",
+      "status": {
+        "PENDING_UPLOAD": "pending",
+        "PENDING_SCAN": "scanning",
+        "SAFE": "verified",
+        "BLOCKED": "blocked"
+      }
+    },
+    "editTitle": "Edit your request",
+    "editSubtitle": "Change the answers, files or details, then save. Edit limits apply (3 before a claim, 1 after).",
+    "review": {
+      "title": "Review and publish",
+      "subtitle": "Confirm the details before sending your request to the marketplace.",
+      "saveEdit": "Save changes",
+      "edit": "Edit",
+      "detailsIncomplete": "Complete the general info before publishing.",
+      "roomIncomplete": "incomplete",
+      "loginToPublish": "Log in to publish",
+      "loginToPublishHint": "Your request is complete. Log in or create an account to send it to the marketplace — your answers are kept."
+    },
+    "info": {
+      "pros": "Pros",
+      "cons": "Cons",
+      "avgPrice": "Average price",
+      "recommended": "Recommended",
+      "showInfo": "Show details",
+      "hideInfo": "Back to option"
+    },
+    "diagram": {
+      "islandLength": "Island L",
+      "islandDepth": "Island D",
+      "caption": "The sketch updates as you type — the letters match the fields below."
+    },
+    "copyFromPrevious": "Copy answers from the previous {room}",
+    "pieces": {
+      "name": "Name",
+      "material": "Material",
+      "quantity": "Quantity",
+      "add": "Add piece",
+      "remove": "Remove"
+    },
+    "apiErrors": {
+      "CONFIGURATOR_ANSWERS_INVALID": "Some answers are invalid. Check the highlighted steps.",
+      "CONFIGURATOR_FLOW_VERSION_UNSUPPORTED": "The questionnaire was updated. Please redo the answers for the affected rooms.",
+      "CONFIGURATOR_STATE_TOO_LARGE": "Configurator data is too large.",
+      "GEOCODING_FAILED": "The address could not be located. Check the city and county.",
+      "GENERIC": "Something went wrong. Please try again."
+    },
+    "validation": {
+      "answerRequired": "This field is required.",
+      "answerInvalid": "Invalid answer.",
+      "optionInvalid": "Invalid option.",
+      "minOneOption": "Pick at least one option.",
+      "tooManyOptions": "Too many options selected.",
+      "dimensionOutOfRange": "Dimension out of allowed range.",
+      "numberOutOfRange": "Value out of range.",
+      "textTooLong": "Text too long.",
+      "minPieces": "Add at least one piece.",
+      "maxPieces": "Too many pieces.",
+      "tooManyFiles": "Too many files attached.",
+      "unknownAnswer": "Unknown answer."
+    },
+    "common": {
+      "boolean": {
+        "yes": "Yes",
+        "no": "No"
+      },
+      "slots": {
+        "ceilingHeight": "Ceiling height"
+      },
+      "materials": {
+        "PAL": {
+          "label": "Chipboard (PAL)",
+          "description": "Affordable, sturdy, many finishes",
+          "info": {
+            "title": "Melamine chipboard",
+            "body": "Melamine-faced chipboard — the best price/durability ratio for cabinet bodies.",
+            "pros1": "Lowest price",
+            "pros2": "Wide range of finishes",
+            "pros3": "Scratch resistant",
+            "cons1": "Edges less refined without ABS banding",
+            "cons2": "Sensitive to moisture on unsealed cuts",
+            "price": "250–450 RON/lm"
+          }
+        },
+        "MDF": {
+          "label": "MDF",
+          "description": "Painted or foil fronts, premium look",
+          "info": {
+            "title": "Painted/foiled MDF",
+            "body": "Medium-density fibreboard — ideal for painted, milled or foil-wrapped fronts.",
+            "pros1": "Smooth surface, paints beautifully",
+            "pros2": "Allows milling and shapes",
+            "pros3": "Premium look",
+            "cons1": "Costs more than chipboard",
+            "cons2": "Heavier",
+            "price": "450–800 RON/lm"
+          }
+        },
+        "LEMN_MASIV": {
+          "label": "Solid wood",
+          "description": "Natural, durable, most premium",
+          "info": {
+            "title": "Solid wood",
+            "body": "Natural timber — the most durable and valuable option, with unique grain.",
+            "pros1": "Excellent durability",
+            "pros2": "Warm, natural look",
+            "pros3": "Can be refinished",
+            "cons1": "Most expensive",
+            "cons2": "May warp with humidity swings",
+            "price": "900–1800 RON/lm"
+          }
+        }
+      },
+      "systems": {
+        "PUSH": {
+          "label": "Push (handleless)",
+          "description": "Press to open",
+          "info": {
+            "title": "Push-to-open",
+            "body": "Open with a simple press, no handles — minimalist look.",
+            "pros1": "Clean handleless fronts",
+            "pros2": "Modern look",
+            "cons1": "Fingerprints on fronts",
+            "cons2": "More sensitive adjustment",
+            "price": "+30–60 RON/front"
+          }
+        },
+        "GLISANTE": {
+          "label": "Sliding",
+          "description": "Doors or drawers on rails",
+          "info": {
+            "title": "Sliding systems",
+            "body": "Doors or drawers on rails — save space, ideal for wardrobes.",
+            "pros1": "Save opening space",
+            "pros2": "High capacity",
+            "cons1": "Quality rails cost more",
+            "cons2": "Need precise alignment",
+            "price": "+80–200 RON/set"
+          }
+        },
+        "BUTON_PRESIUNE": {
+          "label": "Press latch",
+          "description": "Simple, low cost",
+          "info": {
+            "title": "Press latch",
+            "body": "Simple click mechanism — the most economical handleless opening option.",
+            "pros1": "Cheapest",
+            "pros2": "Easy to fit",
+            "cons1": "Lower durability",
+            "cons2": "No soft-close",
+            "price": "+10–30 RON/front"
+          }
+        }
+      }
+    },
+    "flows": {
+      "KITCHEN": {
+        "layout": {
+          "title": "What layout is the kitchen?",
+          "subtitle": "Pick the configuration that fits your space.",
+          "options": {
+            "STRAIGHT": {
+              "label": "Straight",
+              "description": "Cabinets along one wall",
+              "info": {
+                "title": "Straight kitchen",
+                "body": "All cabinets on one wall — compact, suited to small spaces.",
+                "price": "RON 4,000–9,000",
+                "pros1": "Most economical",
+                "pros2": "Ideal for small spaces",
+                "pros3": "Simple to fit",
+                "cons1": "Limited worktop",
+                "cons2": "Less storage"
+              }
+            },
+            "L_SHAPE": {
+              "label": "L-shaped",
+              "description": "Cabinets on two adjoining walls",
+              "info": {
+                "title": "L-shaped kitchen",
+                "body": "Cabinets on two walls — a good balance of worktop and circulation.",
+                "price": "RON 7,000–15,000",
+                "pros1": "Efficient work triangle",
+                "pros2": "Good for medium spaces",
+                "pros3": "Allows a dining corner",
+                "cons1": "Corner can be hard to reach",
+                "cons2": "Needs corner fittings"
+              }
+            },
+            "U_SHAPE": {
+              "label": "U-shaped",
+              "description": "Cabinets on three walls",
+              "info": {
+                "title": "U-shaped kitchen",
+                "body": "Cabinets on three sides — maximum storage and worktop.",
+                "price": "RON 12,000–25,000",
+                "pros1": "Maximum storage",
+                "pros2": "Plenty of worktop",
+                "pros3": "Multiple work zones",
+                "cons1": "Needs a large room",
+                "cons2": "Two corners to manage"
+              }
+            },
+            "PARALLEL": {
+              "label": "Galley",
+              "description": "Cabinets on two facing walls",
+              "info": {
+                "title": "Galley kitchen",
+                "body": "Two parallel runs — efficient for pass-through kitchens.",
+                "price": "RON 9,000–18,000",
+                "pros1": "Very efficient for cooking",
+                "pros2": "Good for two people",
+                "cons1": "Needs a 1.2 m aisle",
+                "cons2": "No dining corner"
+              }
+            }
+          }
+        },
+        "hasIsland": {
+          "title": "Do you want an island?",
+          "subtitle": "An island adds worktop, storage and a serving spot.",
+          "info": {
+            "title": "Kitchen island",
+            "body": "A freestanding unit in the middle — needs at least 1.2 m clearance on each side.",
+            "price": "+RON 3,000–8,000",
+            "pros1": "Extra worktop and storage",
+            "pros2": "A place to dine",
+            "cons1": "Needs generous space",
+            "cons2": "Extra cost"
+          }
+        },
+        "dimensions": {
+          "title": "A few dimensions",
+          "subtitle": "Measure the length of the runs and the room height.",
+          "slots": {
+            "runA": "Run A length",
+            "runB": "Run B length",
+            "runC": "Run C length",
+            "islandLength": "Island length",
+            "islandDepth": "Island depth"
+          }
+        },
+        "cabinetZones": {
+          "title": "Which cabinet zones?",
+          "subtitle": "Pick the cabinet types you need.",
+          "options": {
+            "BASE_UNITS": {
+              "label": "Base units",
+              "description": "Below the worktop"
+            },
+            "WALL_UNITS": {
+              "label": "Wall units",
+              "description": "On the wall"
+            },
+            "TALL_PANTRY": {
+              "label": "Tall / pantry",
+              "description": "Tall storage"
+            },
+            "ISLAND_UNITS": {
+              "label": "Island units",
+              "description": "In the island"
+            }
+          }
+        },
+        "frontMaterial": {
+          "title": "Front material?",
+          "subtitle": "The material drives the look and price."
+        },
+        "frontMaterialBase": {
+          "title": "Front material for the base units?",
+          "subtitle": "The lower cabinets — the material drives the look and price."
+        },
+        "frontMaterialWall": {
+          "title": "Front material for the wall units?",
+          "subtitle": "The upper cabinets can use a different material."
+        },
+        "frontMaterialIsland": {
+          "title": "Front material for the island?",
+          "subtitle": "The island can stand out with its own material."
+        },
+        "openingSystems": {
+          "title": "Opening systems?",
+          "subtitle": "You can pick several."
+        },
+        "openingSystemsBase": {
+          "title": "Opening system for the base units?",
+          "subtitle": "You can pick several."
+        },
+        "openingSystemsWall": {
+          "title": "Opening system for the wall units?",
+          "subtitle": "You can pick several."
+        },
+        "openingSystemsIsland": {
+          "title": "Opening system for the island?",
+          "subtitle": "You can pick several."
+        },
+        "sketch": {
+          "title": "Upload your project or sketch",
+          "subtitle": "Optional — a sketch or plan for this kitchen helps firms quote accurately."
+        },
+        "countertop": {
+          "title": "Which countertop?",
+          "subtitle": "Optional — helps the firm estimate more accurately.",
+          "options": {
+            "LAMINATE": {
+              "label": "Laminate (HPL)",
+              "description": "Affordable, many designs",
+              "info": {
+                "title": "Laminate countertop",
+                "body": "Laminated chipboard — affordable with many finishes.",
+                "price": "RON 150–350/lm",
+                "pros1": "Most affordable",
+                "pros2": "Many designs",
+                "cons1": "Prone to deep scratches",
+                "cons2": "No direct heat"
+              }
+            },
+            "QUARTZ": {
+              "label": "Engineered quartz",
+              "description": "Durable, premium look",
+              "info": {
+                "title": "Quartz countertop",
+                "body": "Engineered stone — very durable and hygienic.",
+                "price": "RON 600–1,200/lm",
+                "pros1": "Very durable",
+                "pros2": "Non-porous, hygienic",
+                "cons1": "High price",
+                "cons2": "Heavy"
+              }
+            },
+            "GRANITE": {
+              "label": "Granite",
+              "description": "Natural, very durable",
+              "info": {
+                "title": "Granite countertop",
+                "body": "Natural stone — durable, with unique texture.",
+                "price": "RON 700–1,400/lm",
+                "pros1": "Very durable",
+                "pros2": "Natural look",
+                "cons1": "Needs maintenance",
+                "cons2": "High price"
+              }
+            },
+            "WOOD": {
+              "label": "Wood",
+              "description": "Warm, natural",
+              "info": {
+                "title": "Wood countertop",
+                "body": "Solid wood — warm look, needs periodic oiling.",
+                "price": "RON 400–900/lm",
+                "pros1": "Warm look",
+                "pros2": "Can be refinished",
+                "cons1": "Needs maintenance",
+                "cons2": "Water sensitive"
+              }
+            }
+          }
+        },
+        "appliances": {
+          "title": "Built-in appliances?",
+          "subtitle": "Optional — helps with cut-outs and niches.",
+          "options": {
+            "OVEN": {
+              "label": "Oven"
+            },
+            "HOB": {
+              "label": "Hob"
+            },
+            "HOOD": {
+              "label": "Hood"
+            },
+            "DISHWASHER": {
+              "label": "Dishwasher"
+            },
+            "FRIDGE": {
+              "label": "Fridge"
+            },
+            "MICROWAVE": {
+              "label": "Microwave"
+            }
+          }
+        },
+        "extraPieces": {
+          "title": "Extra pieces",
+          "subtitle": "Optional — add special units or accessories."
+        },
+        "notes": {
+          "title": "Anything else?",
+          "subtitle": "Optional — any preference or note for the firms."
+        }
+      },
+      "PIECES": {
+        "pieces": {
+          "title": "What pieces do you need?",
+          "subtitle": "Add each piece with its material and quantity."
+        },
+        "sketch": {
+          "title": "Upload your project or sketch",
+          "subtitle": "Optional — a sketch or plan helps firms quote accurately."
+        }
+      },
+      "DRESSING": {
+        "layout": {
+          "title": "What layout is the closet?",
+          "subtitle": "Pick the space configuration.",
+          "options": {
+            "LINEAR": {
+              "label": "Linear",
+              "description": "Along one wall",
+              "info": {
+                "title": "Linear closet",
+                "body": "Modules on a single wall — compact.",
+                "price": "RON 3,000–7,000",
+                "pros1": "Compact",
+                "pros2": "Economical",
+                "cons1": "Limited capacity"
+              }
+            },
+            "L_SHAPE": {
+              "label": "L-shaped",
+              "description": "On two walls",
+              "info": {
+                "title": "L-shaped closet",
+                "body": "Modules on two walls — good balance.",
+                "price": "RON 5,000–11,000",
+                "pros1": "Good capacity",
+                "pros2": "Uses the corner",
+                "cons1": "Corner harder to reach"
+              }
+            },
+            "U_SHAPE": {
+              "label": "U-shaped",
+              "description": "On three walls",
+              "info": {
+                "title": "U-shaped closet",
+                "body": "Modules on three sides — maximum capacity.",
+                "price": "RON 8,000–16,000",
+                "pros1": "Maximum capacity",
+                "pros2": "Many zones",
+                "cons1": "Needs a large space"
+              }
+            },
+            "WALK_IN": {
+              "label": "Walk-in",
+              "description": "Dedicated room",
+              "info": {
+                "title": "Walk-in closet",
+                "body": "A dedicated room with modules on several walls.",
+                "price": "RON 9,000–20,000",
+                "pros1": "Very spacious",
+                "pros2": "Comfortable",
+                "cons1": "Needs its own room"
+              }
+            }
+          }
+        },
+        "doorType": {
+          "title": "What door type?",
+          "subtitle": "Pick the access system.",
+          "options": {
+            "SLIDING": {
+              "label": "Sliding",
+              "description": "Save space",
+              "info": {
+                "title": "Sliding doors",
+                "body": "Doors on rails — no opening space needed.",
+                "price": "+RON 800–2,000",
+                "pros1": "Save space",
+                "pros2": "Modern look",
+                "cons1": "Quality rails cost more"
+              }
+            },
+            "HINGED": {
+              "label": "Hinged",
+              "description": "Classic, full access",
+              "info": {
+                "title": "Hinged doors",
+                "body": "Classic hinged doors — full access to the interior.",
+                "price": "+RON 300–900",
+                "pros1": "Full access",
+                "pros2": "Lower cost",
+                "cons1": "Needs opening space"
+              }
+            },
+            "OPEN": {
+              "label": "No doors",
+              "description": "Open modules",
+              "info": {
+                "title": "Open closet",
+                "body": "Doorless modules — quick access, airy look.",
+                "price": "included",
+                "pros1": "Quick access",
+                "pros2": "Minimal cost",
+                "cons1": "Dust on clothes"
+              }
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Closet dimensions",
+          "subtitle": "Run lengths and height.",
+          "slots": {
+            "runA": "Run A length",
+            "runB": "Run B length",
+            "runC": "Run C length"
+          }
+        },
+        "interiorModules": {
+          "title": "Interior modules?",
+          "subtitle": "Optional — interior organisation.",
+          "options": {
+            "HANGING_RODS": {
+              "label": "Hanging rods"
+            },
+            "DRAWERS": {
+              "label": "Drawers"
+            },
+            "SHELVES": {
+              "label": "Shelves"
+            },
+            "SHOE_RACK": {
+              "label": "Shoe rack"
+            }
+          }
+        },
+        "material": {
+          "title": "Which material?",
+          "subtitle": "Module material."
+        },
+        "notes": {
+          "title": "Anything else?",
+          "subtitle": "Optional."
+        }
+      },
+      "BEDROOM": {
+        "piecesNeeded": {
+          "title": "What pieces do you need?",
+          "subtitle": "Pick the bedroom furniture.",
+          "options": {
+            "WARDROBE": {
+              "label": "Wardrobe",
+              "description": "Clothes storage"
+            },
+            "BED_FRAME": {
+              "label": "Bed frame",
+              "description": "Bed structure"
+            },
+            "NIGHTSTANDS": {
+              "label": "Nightstands",
+              "description": "Beside the bed"
+            },
+            "DRESSER": {
+              "label": "Dresser",
+              "description": "Drawers"
+            },
+            "TV_UNIT": {
+              "label": "TV unit",
+              "description": "Below the TV"
+            }
+          }
+        },
+        "material": {
+          "title": "Which material?",
+          "subtitle": "Furniture material."
+        },
+        "openingSystems": {
+          "title": "Opening systems?",
+          "subtitle": "Optional — for wardrobe and drawers."
+        },
+        "dimensions": {
+          "title": "Dimensions",
+          "subtitle": "Available space and height.",
+          "slots": {
+            "spaceWidth": "Space width",
+            "wardrobeWidth": "Wardrobe width"
+          }
+        },
+        "notes": {
+          "title": "Anything else?",
+          "subtitle": "Optional."
+        }
+      },
+      "LIVING": {
+        "piecesNeeded": {
+          "title": "What pieces do you need?",
+          "subtitle": "Pick the living room furniture.",
+          "options": {
+            "TV_UNIT": {
+              "label": "TV unit",
+              "description": "Below the TV"
+            },
+            "BOOKSHELF": {
+              "label": "Bookshelf",
+              "description": "Book shelves"
+            },
+            "DISPLAY_CABINET": {
+              "label": "Display cabinet",
+              "description": "For display"
+            },
+            "COFFEE_TABLE": {
+              "label": "Coffee table",
+              "description": "Living centre"
+            }
+          }
+        },
+        "material": {
+          "title": "Which material?",
+          "subtitle": "Furniture material."
+        },
+        "openingSystems": {
+          "title": "Opening systems?",
+          "subtitle": "Optional."
+        },
+        "dimensions": {
+          "title": "Dimensions",
+          "subtitle": "Wall width and height.",
+          "slots": {
+            "wallWidth": "Wall width"
+          }
+        },
+        "notes": {
+          "title": "Anything else?",
+          "subtitle": "Optional."
+        }
+      },
+      "OFFICE": {
+        "piecesNeeded": {
+          "title": "What pieces do you need?",
+          "subtitle": "Pick the office furniture.",
+          "options": {
+            "DESK": {
+              "label": "Desk",
+              "description": "Work surface"
+            },
+            "BOOKSHELF": {
+              "label": "Bookshelf",
+              "description": "Shelves"
+            },
+            "STORAGE": {
+              "label": "Storage cabinet",
+              "description": "Documents and items"
+            }
+          }
+        },
+        "deskShape": {
+          "title": "What desk shape?",
+          "subtitle": "Work surface configuration.",
+          "options": {
+            "STRAIGHT": {
+              "label": "Straight",
+              "description": "A single top"
+            },
+            "L_SHAPE": {
+              "label": "L-shaped",
+              "description": "Two tops in a corner"
+            }
+          }
+        },
+        "material": {
+          "title": "Which material?",
+          "subtitle": "Furniture material."
+        },
+        "openingSystems": {
+          "title": "Opening systems?",
+          "subtitle": "Optional."
+        },
+        "dimensions": {
+          "title": "Dimensions",
+          "subtitle": "Available space and desk.",
+          "slots": {
+            "spaceWidth": "Space width",
+            "deskWidth": "Desk width",
+            "deskWidthA": "Desk width A",
+            "deskWidthB": "Desk width B"
+          }
+        },
+        "notes": {
+          "title": "Anything else?",
+          "subtitle": "Optional."
+        }
+      },
+      "BATHROOM": {
+        "piecesNeeded": {
+          "title": "What pieces do you need?",
+          "subtitle": "Pick the bathroom furniture.",
+          "options": {
+            "VANITY_UNIT": {
+              "label": "Vanity unit",
+              "description": "Below the basin"
+            },
+            "MIRROR_CABINET": {
+              "label": "Mirror cabinet",
+              "description": "With storage"
+            },
+            "TALL_STORAGE": {
+              "label": "Tall storage",
+              "description": "Tall cabinet"
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensions",
+          "subtitle": "The width of each selected piece, plus ceiling height.",
+          "slots": {
+            "vanityWidth": "Vanity width",
+            "mirrorWidth": "Mirror cabinet width",
+            "tallStorageWidth": "Tall storage width"
+          }
+        },
+        "ventilation": {
+          "title": "Is the bathroom ventilated?",
+          "subtitle": "Ventilation matters when choosing materials.",
+          "options": {
+            "WINDOW": {
+              "label": "Window",
+              "description": "Natural ventilation"
+            },
+            "FAN": {
+              "label": "Ceiling / wall fan",
+              "description": "Mechanical ventilation"
+            },
+            "NONE": {
+              "label": "Not ventilated",
+              "description": "No window or fan"
+            }
+          },
+          "info": {
+            "title": "Why ventilation matters",
+            "body": "In a bathroom without ventilation, humidity builds up and affects furniture. In that case we recommend MDF, which resists moisture better — but the final choice is yours."
+          }
+        },
+        "material": {
+          "title": "Which material?",
+          "subtitle": "Recommendation for a humid environment.",
+          "info": {
+            "title": "Bathroom material",
+            "body": "We recommend painted or foiled MDF, resistant to humidity. Avoid unsealed chipboard in areas exposed to water."
+          }
+        },
+        "materialVanity": {
+          "title": "Material for the vanity unit?",
+          "subtitle": "The piece most exposed to water."
+        },
+        "materialMirror": {
+          "title": "Material for the mirror cabinet?",
+          "subtitle": "Can differ from the other pieces."
+        },
+        "materialTall": {
+          "title": "Material for the tall storage?",
+          "subtitle": "Can differ from the other pieces."
+        },
+        "sketch": {
+          "title": "Upload your project or sketch",
+          "subtitle": "Optional — a sketch or plan for this bathroom helps firms quote accurately."
+        },
+        "notes": {
+          "title": "Anything else?",
+          "subtitle": "Optional."
+        }
+      }
     }
   }
 }

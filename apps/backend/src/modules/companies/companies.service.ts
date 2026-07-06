@@ -8,8 +8,10 @@ import {
 import { ERROR_CODES } from '@marketplace/shared';
 import type {
   AdminCompanyListItemDto,
+  CompanyDashboardStatsDto,
   CompanyDto,
   CompanyRiskFlag,
+  PartnerDto,
 } from '@marketplace/shared';
 import type { Company, CompanyMemberRole } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
@@ -73,6 +75,121 @@ export class CompaniesService {
       });
     }
     return member;
+  }
+
+  // Lista publica de parteneri pentru landing: firme APPROVED + cateva piese de
+  // portofoliu. Ratingul Google e placeholder (integrare externa ulterioara).
+  async listPartners(): Promise<PartnerDto[]> {
+    const companies = await this.prisma.company.findMany({
+      where: { status: 'APPROVED' },
+      select: {
+        id: true,
+        name: true,
+        city: true,
+        county: true,
+        createdAt: true,
+        portfolioItems: {
+          select: { title: true, imageUrl: true },
+          orderBy: { createdAt: 'desc' },
+          take: 3,
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: 100,
+    });
+    return companies.map((c) => ({
+      id: c.id,
+      name: c.name,
+      city: c.city,
+      county: c.county,
+      memberSince: c.createdAt.toISOString(),
+      rating: null,
+      portfolio: c.portfolioItems.map((p) => ({ title: p.title, imageUrl: p.imageUrl })),
+    }));
+  }
+
+  // Statistici agregate pentru dashboardul firmei (orice membru le poate vedea).
+  async dashboardStats(userId: string): Promise<CompanyDashboardStatsDto> {
+    const member = await this.requireMembership(userId);
+    const companyId = member.companyId;
+    const now = new Date();
+    const since7 = new Date(now.getTime() - 7 * 86_400_000);
+    const since30 = new Date(now.getTime() - 30 * 86_400_000);
+
+    const [byStatusRaw, perMemberRaw, wallet, consumed7, consumed30, penalties, quoteAgg] =
+      await Promise.all([
+        this.prisma.claimSlot.groupBy({
+          by: ['status'],
+          where: { companyId },
+          _count: { _all: true },
+        }),
+        this.prisma.claimSlot.groupBy({
+          by: ['assignedToUserId'],
+          where: { companyId, status: { in: ['ACTIVE', 'OFFER_SENT'] } },
+          _count: { _all: true },
+        }),
+        this.prisma.companyCreditWallet.findUnique({ where: { companyId } }),
+        this.prisma.creditTransaction.aggregate({
+          _sum: { amount: true },
+          where: { companyId, type: 'CONSUME', createdAt: { gte: since7 } },
+        }),
+        this.prisma.creditTransaction.aggregate({
+          _sum: { amount: true },
+          where: { companyId, type: 'CONSUME', createdAt: { gte: since30 } },
+        }),
+        this.prisma.penaltyEvent.aggregate({
+          _sum: { points: true },
+          where: { companyId, scope: 'COMPANY', expiresAt: { gt: now } },
+        }),
+        // valoarea ofertelor = pretul ULTIMEI versiuni per quote (SENT/ACCEPTED)
+        this.prisma.$queryRaw<{ quotes: number; total: number }[]>`
+          SELECT COUNT(DISTINCT q.id)::int AS quotes,
+                 COALESCE(SUM(qv.price), 0)::float AS total
+          FROM quotes q
+          JOIN quote_versions qv ON qv.quote_id = q.id
+           AND qv.version = (SELECT MAX(v2.version) FROM quote_versions v2 WHERE v2.quote_id = q.id)
+          WHERE q.company_id = ${companyId} AND q.status::text IN ('SENT', 'ACCEPTED')
+        `,
+      ]);
+
+    const claimsByStatus: CompanyDashboardStatsDto['claimsByStatus'] = {};
+    let claimsTotal = 0;
+    for (const g of byStatusRaw) {
+      claimsByStatus[g.status] = g._count._all;
+      claimsTotal += g._count._all;
+    }
+    const claimsActive = (claimsByStatus.ACTIVE ?? 0) + (claimsByStatus.OFFER_SENT ?? 0);
+
+    const memberIds = perMemberRaw
+      .map((g) => g.assignedToUserId)
+      .filter((id): id is string => id !== null);
+    const users = memberIds.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: memberIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const nameOf = new Map(users.map((u) => [u.id, u.name]));
+
+    const balance = wallet?.balance ?? 0;
+    const reserved = wallet?.reserved ?? 0;
+
+    return {
+      claimsTotal,
+      claimsActive,
+      claimsByStatus,
+      perMember: perMemberRaw.map((g) => ({
+        userId: g.assignedToUserId,
+        name: g.assignedToUserId ? (nameOf.get(g.assignedToUserId) ?? null) : null,
+        activeClaims: g._count._all,
+      })),
+      quotesSent: quoteAgg[0]?.quotes ?? 0,
+      quotesTotalRon: quoteAgg[0]?.total ?? 0,
+      wallet: { balance, reserved, available: balance - reserved },
+      creditsConsumed7d: Math.abs(consumed7._sum.amount ?? 0),
+      creditsConsumed30d: Math.abs(consumed30._sum.amount ?? 0),
+      activePenaltyPoints: penalties._sum.points ?? 0,
+    };
   }
 
   // Onboarding: COMPANY_USER fara firma creeaza firma + devine OWNER (4.6/4.7).

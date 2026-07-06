@@ -21,6 +21,9 @@ export default function RegisterPage() {
 
   // Landing "Esti firma?" trimite ?role=company → pre-selecteaza contul de firma
   const initialRole = searchParams.get('role') === 'company' ? 'COMPANY_USER' : 'CLIENT';
+  // pastreaza returnUrl-ul pe drumul register → login (dupa verificare email)
+  const redirect = searchParams.get('redirect');
+  const loginHref = redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
 
   const {
     register,
@@ -40,7 +43,7 @@ export default function RegisterPage() {
       <div className="flex flex-col gap-4">
         <h1 className="font-serif text-2xl">{t('registerSuccessTitle')}</h1>
         <p className="text-sm text-muted-foreground">{t('registerSuccessBody')}</p>
-        <Link href="/login" className="text-walnut underline">
+        <Link href={loginHref} className="text-walnut underline">
           {t('goToLogin')}
         </Link>
       </div>
@@ -96,7 +99,7 @@ export default function RegisterPage() {
 
       <p className="text-sm text-muted-foreground">
         {t('haveAccount')}{' '}
-        <Link href="/login" className="text-walnut underline">
+        <Link href={loginHref} className="text-walnut underline">
           {t('loginLink')}
         </Link>
       </p>

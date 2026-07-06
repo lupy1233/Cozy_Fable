@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
-import { useMyClaims, useSubscription, useWallet } from '@/hooks/use-marketplace';
+import { useSubscription, useWallet } from '@/hooks/use-marketplace';
 import { usePenaltyStatus } from '@/hooks/use-penalties';
 import { useBillingOrders, useCreditPackages, usePurchaseCredits } from '@/hooks/use-billing';
 import { cn } from '@/lib/utils';
@@ -14,13 +14,11 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
 export default function WalletPage() {
   const t = useTranslations('Marketplace');
-  const tr = useTranslations('Requests');
   const tp = useTranslations('Penalties');
   const router = useRouter();
   const me = useMe();
   const wallet = useWallet();
   const subscription = useSubscription();
-  const claims = useMyClaims();
   const penalties = usePenaltyStatus();
   const packages = useCreditPackages();
   const orders = useBillingOrders();
@@ -153,40 +151,13 @@ export default function WalletPage() {
         </section>
       )}
 
-      {/* Claim-urile mele */}
-      <section className="flex flex-col gap-3">
-        <h2 className="font-serif text-xl">{t('myClaims.title')}</h2>
-        {claims.isSuccess && claims.data.length === 0 && (
-          <p className="rounded-xl border border-border bg-surface px-4 py-6 text-center text-sm text-muted-foreground">
-            {t('myClaims.empty')}
-          </p>
-        )}
-        {claims.data?.map((c) => (
-          <div
-            key={c.id}
-            className="flex items-center justify-between rounded-xl border border-border bg-surface px-4 py-3 text-sm shadow-sm"
-          >
-            <div className="flex flex-col">
-              <span className="font-medium">
-                {tr(`sizeValue.${c.projectSizeSnapshot}`)} · {c.claimCostCreditsSnapshot}{' '}
-                {t('credits')}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {t(`claimStatus.${c.status}`)}
-                {c.assignedToUserId ? '' : ` · ${t('myClaims.unassigned')}`}
-              </span>
-            </div>
-            <div className="flex gap-3">
-              <Link href={`/marketplace/claims/${c.id}`} className="text-walnut hover:underline">
-                {t('manageOffer')}
-              </Link>
-              <Link href={`/marketplace/${c.requestId}`} className="text-muted-foreground hover:underline">
-                {t('view')}
-              </Link>
-            </div>
-          </div>
-        ))}
-      </section>
+      {/* Claim-urile s-au mutat pe pagina dedicata */}
+      <Link
+        href="/marketplace/claims"
+        className="rounded-xl border border-border bg-surface px-4 py-3 text-sm text-walnut shadow-sm transition-colors hover:bg-secondary"
+      >
+        {t('myClaims.goToPage')} →
+      </Link>
     </div>
   );
 }

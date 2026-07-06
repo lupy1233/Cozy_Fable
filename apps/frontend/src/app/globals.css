@@ -3,37 +3,41 @@
 @tailwind utilities;
 
 /* ============================================================
-   Plan — Marketplace Mobilier — design tokens (artisanal warm)
-   Portate din Design/styles.css. shadcn consuma hsl(var(--x))
-   cu triplete "H S% L%". Culorile de brand stau in :root si sunt
-   referite din tailwind.config.ts.
+   Plan — Marketplace Mobilier — design tokens "ATELIER"
+   Limbaj vizual: atelierul premium. Paleta calda originala
+   (ivorie + espresso + nuc), cu detalii de alama si tipografie
+   de galerie (Marcellus). Din limbajul "plansa" pastram doar
+   schita care se traseaza singura si cotele — ca piesa de arta,
+   nu ca document tehnic.
+   shadcn consuma hsl(var(--x)) cu triplete "H S% L%".
+   NOTA: aliasul tailwind `plan` = acelasi var ca `walnut`.
    ============================================================ */
 
 @layer base {
   :root {
     /* shadcn semantic tokens */
-    --background: 37 39% 91%;          /* bg #F1EADF */
-    --foreground: 30 13% 9%;           /* ink #1A1714 */
-    --card: 0 0% 100%;                 /* surface #FFFFFF */
+    --background: 37 39% 91%;          /* ivorie #F1EADF */
+    --foreground: 30 13% 9%;           /* espresso #1A1714 */
+    --card: 0 0% 100%;                 /* coala #FFFFFF */
     --card-foreground: 30 13% 9%;
     --popover: 0 0% 100%;
     --popover-foreground: 30 13% 9%;
-    --primary: 30 13% 9%;              /* ink — btn-primary dark */
+    --primary: 30 13% 9%;              /* espresso — btn primary */
     --primary-foreground: 40 30% 96%;
     --secondary: 39 44% 92%;           /* surface-3 */
     --secondary-foreground: 30 13% 9%;
     --muted: 38 52% 96%;               /* surface-2 */
-    --muted-foreground: 35 9% 43%;     /* muted #766E63 */
-    --accent: 39 44% 92%;              /* surface-3 (hover) */
+    --muted-foreground: 35 9% 43%;     /* #766E63 */
+    --accent: 39 44% 92%;              /* hover */
     --accent-foreground: 30 13% 9%;
-    --destructive: 7 54% 40%;          /* crimson #9C3A2E */
+    --destructive: 7 54% 40%;          /* #9C3A2E */
     --destructive-foreground: 10 58% 95%;
-    --border: 41 34% 86%;              /* border #E7DFCE */
+    --border: 41 34% 86%;              /* #E7DFCE */
     --input: 41 34% 86%;
-    --ring: 23 45% 36%;                /* walnut */
-    --radius: 0.6875rem;               /* 11px */
+    --ring: 23 45% 36%;                /* nuc */
+    --radius: 0.5rem;                  /* 8px — croit, nu bombat */
 
-    /* extra surfaces / ink steps (porting fidelity) */
+    /* extra surfaces / ink steps */
     --bg-tint: 37 40% 90%;
     --surface-2: 38 52% 96%;
     --surface-3: 39 44% 92%;
@@ -42,15 +46,15 @@
     --border-2: 39 29% 78%;
     --hairline: 26 13% 8%;
 
-    /* brand palette (semantic colors prototipul) */
-    --walnut: 23 45% 36%;              /* #855232 — accent */
+    /* paleta de brand (atelier: nuc, alama, salvie) */
+    --walnut: 23 45% 36%;              /* nuc #855232 (alias: plan) */
     --walnut-deep: 26 46% 25%;         /* #5C3B22 */
-    --walnut-soft: 34 45% 89%;         /* accent-soft #F0E5D7 */
+    --walnut-soft: 34 45% 89%;         /* #F0E5D7 */
     --sage: 111 17% 41%;
     --sage-soft: 90 25% 91%;
     --amber: 40 71% 40%;
     --amber-soft: 43 64% 89%;
-    --brass: 41 55% 45%;
+    --brass: 38 57% 45%;               /* alama — detalii premium */
     --brass-2: 41 55% 54%;
     --crimson: 7 54% 40%;
     --crimson-soft: 10 58% 90%;
@@ -59,7 +63,7 @@
   }
 
   .dark {
-    /* gallery theme — html[data-theme="dark"] din prototip */
+    /* galerie noaptea — tonuri calde stinse */
     --background: 34 19% 7%;
     --foreground: 39 47% 90%;
     --card: 30 18% 11%;
@@ -117,42 +121,109 @@
     font-family: var(--font-sans), system-ui, sans-serif;
     font-size: 14px;
     line-height: 1.5;
-    /* fundal cald cu blooming radial (accent + sage) */
+    /* lumina calda de galerie: blooming radial (nuc + salvie) */
     background-image:
       radial-gradient(1200px 600px at 78% -8%, hsl(var(--walnut) / 0.09), transparent 60%),
       radial-gradient(900px 500px at -6% 102%, hsl(var(--sage) / 0.08), transparent 55%);
     background-attachment: fixed;
   }
+  /* focus vizibil la tastatura */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
 }
 
 @layer components {
+  /* NOTA: .serif / font-serif poarta fata de display (Marcellus —
+     capitale romane, ton de galerie). O singura greutate (400):
+     nu folosi font-semibold/bold pe serif, browserul ar falsifica. */
   .serif {
     font-family: var(--font-serif), Georgia, serif;
     font-weight: 400;
-    letter-spacing: -0.015em;
+    letter-spacing: 0.005em;
   }
   .mono {
     font-family: var(--font-mono), ui-monospace, monospace;
   }
+  /* etichete premium: sans spatiat, nu mono tehnic */
   .label {
-    font-family: var(--font-mono), ui-monospace, monospace;
+    font-family: var(--font-sans), system-ui, sans-serif;
     font-size: 11px;
+    font-weight: 500;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: hsl(var(--muted-foreground));
   }
   .kicker {
-    font-family: var(--font-mono), ui-monospace, monospace;
-    font-size: 10px;
-    letter-spacing: 0.12em;
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: hsl(var(--muted-2));
+    color: hsl(var(--brass));
   }
   .page-title {
     font-family: var(--font-serif), Georgia, serif;
-    font-size: clamp(30px, 3.4vw, 46px);
-    line-height: 1.04;
-    letter-spacing: -0.025em;
+    font-size: clamp(32px, 3.6vw, 50px);
+    line-height: 1.08;
+    letter-spacing: 0.01em;
     font-weight: 400;
+  }
+
+  /* schita care se traseaza singura (pathLength=1), delay per
+     element prin --d (ms) — lenta, ca o mana care deseneaza. */
+  .plan-draw [data-draw] {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: planDraw 1100ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    animation-delay: calc(var(--d, 0) * 1ms);
+  }
+  .plan-draw [data-fade] {
+    opacity: 0;
+    animation: planFade 600ms ease forwards;
+    animation-delay: calc(var(--d, 0) * 1ms);
+  }
+  /* tine schita "pe loc" pana intra in viewport (scos de IntersectionObserver) */
+  .plan-paused [data-draw],
+  .plan-paused [data-fade] {
+    animation-play-state: paused;
+  }
+
+  /* reveal la scroll: elementele cu data-reveal urca si apar in cascada,
+     delay per element prin --rd (ms); parintele primeste .in-view */
+  [data-reveal] {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+      opacity 700ms cubic-bezier(0.22, 0.61, 0.36, 1),
+      transform 700ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    transition-delay: calc(var(--rd, 0) * 1ms);
+  }
+  .in-view [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes planDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes planFade {
+  to {
+    opacity: 1;
+  }
+}
+
+/* respectam preferinta de miscare redusa: totul apare desenat gata */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

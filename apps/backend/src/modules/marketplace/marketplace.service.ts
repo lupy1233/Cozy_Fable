@@ -24,7 +24,7 @@ interface MarketRow {
   credit_cost: number | null;
   includes_paid_design: boolean;
   has_own_project: boolean;
-  desired_deadline: Date | null;
+  desired_deadline_bucket: MarketplaceDetailDto['deadlineBucket'];
   published_at: Date;
   distance_km: number;
   active_claims: bigint;
@@ -71,13 +71,15 @@ export class MarketplaceService {
     });
     return {
       ...this.toItem(row),
-      desiredDeadline: row.desired_deadline ? row.desired_deadline.toISOString().slice(0, 10) : null,
+      deadlineBucket: row.desired_deadline_bucket,
       rooms: rooms.map((room) => ({
         id: room.id,
         roomType: room.roomType,
         lengthM: room.lengthM,
         widthM: room.widthM,
         heightM: room.heightM,
+        answers: (room.answers ?? null) as Record<string, unknown> | null,
+        flowVersion: room.flowVersion,
         items: room.items.map((it) => ({
           id: it.id,
           name: it.name,
@@ -125,12 +127,12 @@ export class MarketplaceService {
     return this.prisma.$queryRaw<MarketRow[]>`
       SELECT r.id, r.title, r.description, r.budget_range, r.city, r.county,
              r.project_size, r.credit_cost, r.includes_paid_design, r.has_own_project,
-             r.desired_deadline, r.published_at, d.distance_km,
+             r.desired_deadline_bucket, r.published_at, d.distance_km,
              (SELECT count(*) FROM claim_slots cs
-                WHERE cs.request_id = r.id AND cs.status IN ${OCCUPYING_SQL}) AS active_claims,
+                WHERE cs.request_id = r.id AND cs.status::text IN ${OCCUPYING_SQL}) AS active_claims,
              EXISTS (SELECT 1 FROM claim_slots cs2
                 WHERE cs2.request_id = r.id AND cs2.company_id = ${companyId}
-                  AND cs2.status IN ${OCCUPYING_SQL}) AS already_claimed
+                  AND cs2.status::text IN ${OCCUPYING_SQL}) AS already_claimed
       FROM requests r
       CROSS JOIN LATERAL (
         SELECT MIN(per_loc.dist) AS distance_km FROM (
@@ -143,7 +145,7 @@ export class MarketplaceService {
         ) per_loc
         WHERE per_loc.dist <= per_loc.radius
       ) d
-      WHERE r.status IN ${CLAIMABLE_SQL}
+      WHERE r.status::text IN ${CLAIMABLE_SQL}
         AND r.lat IS NOT NULL AND r.lng IS NOT NULL
         AND r.published_at IS NOT NULL
         AND r.published_at + make_interval(mins => ${gatingMinutes}::int) <= now()
@@ -151,8 +153,8 @@ export class MarketplaceService {
         AND NOT EXISTS (SELECT 1 FROM request_company_exclusions e
               WHERE e.request_id = r.id AND e.company_id = ${companyId})
         AND (SELECT count(*) FROM claim_slots cs3
-              WHERE cs3.request_id = r.id AND cs3.status IN ${OCCUPYING_SQL}) < ${maxClaims}::int
-        ${requestId ? Prisma.sql`AND r.id = ${requestId}::uuid` : Prisma.empty}
+              WHERE cs3.request_id = r.id AND cs3.status::text IN ${OCCUPYING_SQL}) < ${maxClaims}::int
+        ${requestId ? Prisma.sql`AND r.id = ${requestId}` : Prisma.empty}
       ORDER BY r.published_at DESC
       LIMIT 200
     `;

@@ -53,7 +53,14 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // brand palette (culori semantice prototip)
+        // brand palette (limbaj "PLANSA" — birou de proiectare)
+        // `plan` = albastru-plan (cerneala de trasat). `walnut` e numele
+        // istoric al aceluiasi var, pastrat pentru cele ~40 fisiere vechi.
+        plan: {
+          DEFAULT: 'hsl(var(--walnut))',
+          deep: 'hsl(var(--walnut-deep))',
+          soft: 'hsl(var(--walnut-soft))',
+        },
         walnut: {
           DEFAULT: 'hsl(var(--walnut))',
           deep: 'hsl(var(--walnut-deep))',
@@ -86,15 +93,18 @@ const config: Config = {
         mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
       },
       borderRadius: {
-        xl: '22px',
+        // croiala calma: rotunjire mica, nu bombata
+        xl: '14px',
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
       boxShadow: {
+        // lumina calda de galerie: umbre moi, adanci
         sm: '0 1px 2px rgba(46,33,20,0.05), 0 1px 1px rgba(46,33,20,0.03)',
         DEFAULT: '0 6px 20px -6px rgba(46,33,20,0.12), 0 2px 6px -2px rgba(46,33,20,0.06)',
         lg: '0 28px 60px -18px rgba(46,33,20,0.22), 0 8px 18px -8px rgba(46,33,20,0.10)',
+        sheet: '0 14px 30px -12px rgba(46,33,20,0.18)',
         glow: '0 0 0 1px rgba(26,23,20,0.04)',
       },
       transitionTimingFunction: {

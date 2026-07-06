@@ -11,3 +11,4 @@ export * from './reviews.schemas';
 export * from './billing.schemas';
 export * from './notification.schemas';
 export * from './admin.schemas';
+export * from './questionnaire';

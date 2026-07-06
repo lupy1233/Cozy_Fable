@@ -91,7 +91,16 @@ export type Language = (typeof LANGUAGES)[number];
 export const PENALTY_SCOPES = ['EMPLOYEE', 'COMPANY'] as const;
 export type PenaltyScope = (typeof PENALTY_SCOPES)[number];
 
-export const ROOM_TYPES = ['KITCHEN', 'DRESSING', 'LIVING', 'OFFICE', 'BEDROOM', 'BATHROOM'] as const;
+// PIECES = piese individuale de mobilier (tab separat in configurator, fara camera).
+export const ROOM_TYPES = [
+  'KITCHEN',
+  'DRESSING',
+  'LIVING',
+  'OFFICE',
+  'BEDROOM',
+  'BATHROOM',
+  'PIECES',
+] as const;
 export type RoomType = (typeof ROOM_TYPES)[number];
 
 export const MATERIALS = ['PAL', 'MDF', 'LEMN_MASIV'] as const;
@@ -103,8 +112,22 @@ export type ItemSystem = (typeof ITEM_SYSTEMS)[number];
 export const ATTACHMENT_STATUSES = ['PENDING_UPLOAD', 'PENDING_SCAN', 'SAFE', 'BLOCKED'] as const;
 export type AttachmentStatus = (typeof ATTACHMENT_STATUSES)[number];
 
-export const BUDGET_RANGES = ['UNDER_5K', 'FROM_5K_TO_15K', 'OVER_15K'] as const;
+export const BUDGET_RANGES = ['UNDER_5K', 'FROM_5K_TO_15K', 'OVER_15K', 'UNDISCLOSED'] as const;
 export type BudgetRange = (typeof BUDGET_RANGES)[number];
+
+// Termen dorit ca interval orientativ (carduri in configurator), nu data exacta.
+export const DEADLINE_BUCKETS = [
+  'ASAP',
+  'ONE_TO_THREE_MONTHS',
+  'THREE_TO_SIX_MONTHS',
+  'SIX_PLUS_MONTHS',
+  'FLEXIBLE',
+] as const;
+export type DeadlineBucket = (typeof DEADLINE_BUCKETS)[number];
+
+// Canale de contact permise (validate ca format email / telefon RO).
+export const CONTACT_CHANNELS = ['EMAIL', 'PHONE'] as const;
+export type ContactChannel = (typeof CONTACT_CHANNELS)[number];
 
 // Dimensiunea camerei pe metri liniari (length_m) — folosita la scoring.
 export const ROOM_SIZE_BUCKETS = ['UNDER_2M', 'FROM_2_TO_4M', 'OVER_4M'] as const;

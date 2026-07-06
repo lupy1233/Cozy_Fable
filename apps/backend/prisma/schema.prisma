@@ -75,8 +75,29 @@ enum BudgetRange {
   UNDER_5K
   FROM_5K_TO_15K
   OVER_15K
+  UNDISCLOSED
 
   @@map("budget_range")
+}
+
+// Interval orientativ de termen dorit (inlocuieste data exacta desired_deadline —
+// clientii nu pot estima o zi fixa; vezi plan overhaul 2026-07-05)
+enum DesiredDeadlineBucket {
+  ASAP
+  ONE_TO_THREE_MONTHS
+  THREE_TO_SIX_MONTHS
+  SIX_PLUS_MONTHS
+  FLEXIBLE
+
+  @@map("desired_deadline_bucket")
+}
+
+// Canal de contact permis (email sau telefon, validate ca format)
+enum ContactChannel {
+  EMAIL
+  PHONE
+
+  @@map("contact_channel")
 }
 
 enum RoomType {
@@ -86,6 +107,8 @@ enum RoomType {
   OFFICE
   BEDROOM
   BATHROOM
+  // piese individuale de mobilier, fara camera dedicata (tab separat in configurator)
+  PIECES
 
   @@map("room_type")
 }
@@ -451,7 +474,7 @@ model Request {
   title              String?
   description        String?
   budgetRange        BudgetRange?  @map("budget_range")
-  desiredDeadline    DateTime?     @map("desired_deadline") @db.Date
+  deadlineBucket     DesiredDeadlineBucket? @map("desired_deadline_bucket")
   includesPaidDesign Boolean       @default(false) @map("includes_paid_design")
   hasOwnProject      Boolean       @default(false) @map("has_own_project")
   addressText        String?       @map("address_text")
@@ -465,6 +488,8 @@ model Request {
   preClaimEditsUsed  Int           @default(0) @map("pre_claim_edits_used")
   postClaimEditsUsed Int           @default(0) @map("post_claim_edits_used")
   lastEditAt         DateTime?     @map("last_edit_at") @db.Timestamptz()
+  // stare bruta wizard configurator (backup server al draftului local); null dupa publish
+  configuratorState  Json?         @map("configurator_state")
   deletedAt          DateTime?     @map("deleted_at") @db.Timestamptz()
   repostUsed         Boolean       @default(false) @map("repost_used")
   publishedAt        DateTime?     @map("published_at") @db.Timestamptz()
@@ -501,13 +526,16 @@ model RequestVersion {
 }
 
 model RequestRoom {
-  id        String   @id @default(uuid())
-  requestId String   @map("request_id")
-  roomType  RoomType @map("room_type")
-  lengthM   Float    @map("length_m")
-  widthM    Float    @map("width_m")
-  heightM   Float    @map("height_m")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  id          String   @id @default(uuid())
+  requestId   String   @map("request_id")
+  roomType    RoomType @map("room_type")
+  lengthM     Float    @map("length_m")
+  widthM      Float    @map("width_m")
+  heightM     Float    @map("height_m")
+  // raspunsuri brute chestionar configurator; null = cerere legacy
+  answers     Json?
+  flowVersion Int?     @map("flow_version")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   request Request           @relation(fields: [requestId], references: [id], onDelete: Cascade)
   items   RequestRoomItem[]
@@ -532,11 +560,10 @@ model RequestRoomItem {
 }
 
 model RequestContactPreference {
-  id        String @id @default(uuid())
-  requestId String @map("request_id")
-  channel   String
+  id        String         @id @default(uuid())
+  requestId String         @map("request_id")
+  channel   ContactChannel
   value     String
-  priority  Int
 
   request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
 

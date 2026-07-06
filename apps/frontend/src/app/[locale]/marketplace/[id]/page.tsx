@@ -8,6 +8,8 @@ import { ApiError } from '@/lib/api';
 import { useClaim, useMarketplaceDetail, useWallet } from '@/hooks/use-marketplace';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { RoomAnswerSummary } from '@/components/configurator/room-answer-summary';
+import { useRelativeTime } from '@/lib/relative-time';
 
 export default function MarketplaceDetailPage() {
   const t = useTranslations('Marketplace');
@@ -15,6 +17,7 @@ export default function MarketplaceDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
   const detail = useMarketplaceDetail(id);
+  const relTime = useRelativeTime();
 
   if (detail.isPending) {
     return <p className="py-20 text-center text-muted-foreground">{t('loading')}</p>;
@@ -49,13 +52,13 @@ export default function MarketplaceDetailPage() {
         <p className="mt-2 text-sm text-muted-foreground">
           {r.city}, {r.county}
         </p>
-        {r.desiredDeadline && (
+        {r.deadlineBucket && (
           <p className="text-sm text-muted-foreground">
-            {t('desiredDeadline')}: {new Date(r.desiredDeadline).toLocaleDateString()}
+            {t('desiredDeadline')}: {tr(`deadline.${r.deadlineBucket}`)}
           </p>
         )}
         <p className="mt-1 font-mono text-xs text-muted-2">
-          {t('publishedAgo', { min: r.publishedAgoMinutes })} ·{' '}
+          {relTime(r.publishedAt)} ·{' '}
           {t('slots', { active: r.activeClaims, max: r.maxClaims })}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -72,15 +75,25 @@ export default function MarketplaceDetailPage() {
             <p className="text-sm font-medium">
               {tr(`roomType.${room.roomType}`)} · {room.lengthM}×{room.widthM}×{room.heightM} m
             </p>
-            <ul className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground">
-              {room.items.map((it) => (
-                <li key={it.id}>
-                  {it.quantity}× {it.name} — {tr(`material.${it.material}`)}
-                  {it.systems.length > 0 &&
-                    ` · ${it.systems.map((s) => tr(`system.${s}`)).join(', ')}`}
-                </li>
-              ))}
-            </ul>
+            {room.answers ? (
+              <div className="mt-2">
+                <RoomAnswerSummary
+                  roomType={room.roomType}
+                  answers={room.answers}
+                  flowVersion={room.flowVersion}
+                />
+              </div>
+            ) : (
+              <ul className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground">
+                {room.items.map((it) => (
+                  <li key={it.id}>
+                    {it.quantity}× {it.name} — {tr(`material.${it.material}`)}
+                    {it.systems.length > 0 &&
+                      ` · ${it.systems.map((s) => tr(`system.${s}`)).join(', ')}`}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         ))}
       </div>

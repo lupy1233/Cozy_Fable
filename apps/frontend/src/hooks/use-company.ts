@@ -3,7 +3,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   AdminCompanyListItemDto,
+  CompanyDashboardStatsDto,
   CompanyDto,
+  PartnerDto,
   CompanyLocationInput,
   CompanyMemberInviteInput,
   CompanyMemberRoleInput,
@@ -22,6 +24,26 @@ export function useMyCompany() {
   return useQuery({
     queryKey: MY_COMPANY_KEY,
     queryFn: () => api<CompanyDto>('/companies/me'),
+    retry: false,
+    staleTime: 30_000,
+  });
+}
+
+// Lista publica de parteneri (landing /partners; fara autentificare).
+export function usePartners() {
+  return useQuery({
+    queryKey: ['companies', 'partners'],
+    queryFn: () => api<PartnerDto[]>('/companies/partners'),
+    staleTime: 60_000,
+  });
+}
+
+// Statistici pentru dashboardul firmei.
+export function useCompanyDashboardStats(enabled = true) {
+  return useQuery({
+    queryKey: ['company', 'dashboard-stats'],
+    queryFn: () => api<CompanyDashboardStatsDto>('/companies/me/dashboard-stats'),
+    enabled,
     retry: false,
     staleTime: 30_000,
   });

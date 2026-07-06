@@ -47,10 +47,17 @@ export class RequestsController {
     return this.requests.patchDraft(token, dto);
   }
 
+  // Publicarea necesita autentificare (decizie: "fill as guest, login to publish").
+  // Ruta ramane sub OptionalJwtAuthGuard ca sa putem returna o eroare clara daca
+  // utilizatorul nu e logat; serviciul leaga draftul anonim de contul care publica.
   @Public()
   @Post('drafts/:token/publish')
-  publish(@Param('token') token: string, @Body() dto: CreateRequestContentDto) {
-    return this.requests.publish(token, dto);
+  publish(
+    @CurrentUser() user: AccessTokenPayload | undefined,
+    @Param('token') token: string,
+    @Body() dto: CreateRequestContentDto,
+  ) {
+    return this.requests.publish(token, dto, user?.sub ?? null);
   }
 
   @Public()
@@ -100,10 +107,60 @@ export class RequestsController {
     return this.requests.listForClient(user.sub);
   }
 
+  // ATENTIE la ordine: ruta statica trebuie declarata INAINTE de @Get(':id').
+  @Roles(UserRole.CLIENT)
+  @Get('dashboard-stats')
+  dashboardStats(@CurrentUser() user: AccessTokenPayload) {
+    return this.requests.dashboardStatsForClient(user.sub);
+  }
+
   @Roles(UserRole.CLIENT)
   @Get(':id')
   getOne(@CurrentUser() user: AccessTokenPayload, @Param('id') id: string) {
     return this.requests.getForClient(user.sub, id);
+  }
+
+  // Editare autentificata (proprietar, orice device — tokenul draftului e doar hash).
+  @Roles(UserRole.CLIENT)
+  @Post(':id/edit')
+  editById(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id') id: string,
+    @Body() dto: CreateRequestContentDto,
+  ) {
+    return this.requests.editForClient(user.sub, id, dto);
+  }
+
+  // Atasamente pe cererea proprie (echivalentul autentificat al rutelor cu token).
+  @Roles(UserRole.CLIENT)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @Post(':id/attachments')
+  presignAttachmentById(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id') id: string,
+    @Body() dto: PresignAttachmentDto,
+  ) {
+    return this.requests.presignAttachmentForClient(user.sub, id, dto);
+  }
+
+  @Roles(UserRole.CLIENT)
+  @Post(':id/attachments/:attachmentId/confirm')
+  confirmAttachmentById(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id') id: string,
+    @Param('attachmentId') attachmentId: string,
+  ) {
+    return this.requests.confirmAttachmentForClient(user.sub, id, attachmentId);
+  }
+
+  @Roles(UserRole.CLIENT)
+  @Delete(':id/attachments/:attachmentId')
+  removeAttachmentById(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id') id: string,
+    @Param('attachmentId') attachmentId: string,
+  ) {
+    return this.requests.removeAttachmentForClient(user.sub, id, attachmentId);
   }
 
   // Î17 — clientul sterge cererea (soft delete + anulare claim-uri + refund).

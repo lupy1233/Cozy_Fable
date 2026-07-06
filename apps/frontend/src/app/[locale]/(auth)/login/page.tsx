@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@marketplace/shared';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { Link, useRouter } from '@/i18n/routing';
 import { apiErrorKey } from '@/lib/error-messages';
@@ -16,6 +17,9 @@ export default function LoginPage() {
   const t = useTranslations('Auth');
   const router = useRouter();
   const login = useLogin();
+  // returnUrl: revenire la pagina de origine dupa login (ex. configuratorul de cereri)
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get('redirect');
 
   const {
     register,
@@ -24,7 +28,9 @@ export default function LoginPage() {
   } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
 
   const onSubmit = handleSubmit((values) =>
-    login.mutate(values, { onSuccess: () => router.push('/dashboard') }),
+    login.mutate(values, {
+      onSuccess: () => router.push(redirect && redirect.startsWith('/') ? redirect : '/dashboard'),
+    }),
   );
 
   const apiErr = login.error ? apiErrorKey(login.error) : null;
@@ -59,7 +65,10 @@ export default function LoginPage() {
 
       <p className="text-sm text-muted-foreground">
         {t('noAccount')}{' '}
-        <Link href="/register" className="text-walnut underline">
+        <Link
+          href={redirect ? `/register?redirect=${encodeURIComponent(redirect)}` : '/register'}
+          className="text-walnut underline"
+        >
           {t('registerLink')}
         </Link>
       </p>

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   BUDGET_RANGES,
   CLAIM_SLOT_STATUSES,
+  DEADLINE_BUCKETS,
   PROJECT_SIZES,
   REQUEST_STATUSES,
   SUBSCRIPTION_PLAN_TIERS,
@@ -52,7 +53,7 @@ export interface MarketplaceItemDto {
 
 // Detaliu cerere in marketplace (pre-claim): include camerele, fara date de contact (4.2).
 export interface MarketplaceDetailDto extends MarketplaceItemDto {
-  desiredDeadline: string | null;
+  deadlineBucket: (typeof DEADLINE_BUCKETS)[number] | null;
   rooms: RequestRoomDto[];
 }
 
@@ -71,6 +72,10 @@ export interface ClaimSlotDto {
   slaDeadlineAt: string | null;
   slaPaused: boolean;
   createdAt: string;
+  // aditive (pagina dedicata de claims): titlul cererii + numele persoanelor
+  requestTitle?: string | null;
+  claimedByName?: string | null;
+  assignedToName?: string | null;
 }
 
 export interface CreditWalletDto {

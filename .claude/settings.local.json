@@ -78,7 +78,12 @@
       "Bash(pnpm prisma *)",
       "Bash(curl -s -o /dev/null -w \"redirect to: %{redirect_url}\\\\n\" http://localhost:3000)",
       "Bash(curl -s -i http://localhost:3001/health)",
-      "Bash(curl -s -o /dev/null -w \"status=%{http_code} size=%{size_download}\\\\n\" http://localhost:3000/ro)"
+      "Bash(curl -s -o /dev/null -w \"status=%{http_code} size=%{size_download}\\\\n\" http://localhost:3000/ro)",
+      "Bash(gh --version)",
+      "Bash(gh auth *)",
+      "Bash(git ls-remote *)",
+      "Bash(git remote *)",
+      "Bash(gh repo *)"
     ]
   }
 }

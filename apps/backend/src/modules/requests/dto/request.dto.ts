@@ -7,105 +7,67 @@ import {
   IsEnum,
   IsIn,
   IsInt,
-  IsNumber,
+  IsObject,
   IsOptional,
   IsString,
-  Matches,
   Max,
   MaxLength,
   Min,
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { BudgetRange, ItemSystem, Material, RoomType } from '@prisma/client';
+import { BudgetRange, ContactChannel, DesiredDeadlineBucket, RoomType } from '@prisma/client';
 import { ALLOWED_ATTACHMENT_MIME, MAX_ATTACHMENT_BYTES } from '@marketplace/shared';
 
-export class RoomItemInputDto {
-  @IsString()
-  @MinLength(2)
-  @MaxLength(150)
-  name: string;
-
-  @IsEnum(Material)
-  material: Material;
-
-  @IsArray()
-  @IsEnum(ItemSystem, { each: true })
-  systems: ItemSystem[];
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(2000)
-  description?: string;
-
-  @IsInt()
-  @Min(1)
-  @Max(999)
-  quantity: number;
-}
-
-export class RoomInputDto {
+// O camera in payload-ul configuratorului: raspunsuri brute + versiunea flow-ului.
+// Continutul `answers` NU e validat de class-validator (JSON dinamic); validarea
+// semantica (step-uri, sloturi, conditii) se face cu validateRoomAnswers in
+// ConfiguratorService. Whitelist-ul trece pentru ca `answers` e proprietate declarata.
+export class ConfiguratorRoomInputDto {
   @IsEnum(RoomType)
   roomType: RoomType;
 
-  @IsNumber()
-  @Min(0.01)
-  @Max(100)
-  lengthM: number;
+  @IsInt()
+  @Min(1)
+  flowVersion: number;
 
-  @IsNumber()
-  @Min(0.01)
-  @Max(100)
-  widthM: number;
-
-  @IsNumber()
-  @Min(0.01)
-  @Max(100)
-  heightM: number;
-
-  @IsArray()
-  @ArrayMinSize(1)
-  @ArrayMaxSize(50)
-  @ValidateNested({ each: true })
-  @Type(() => RoomItemInputDto)
-  items: RoomItemInputDto[];
+  @IsObject()
+  answers: Record<string, unknown>;
 }
 
+// Canal restrans la EMAIL/PHONE; formatul valorii (email valid / telefon RO)
+// e verificat semantic in service cu schema partajata (contactPreferencesSchema).
 export class ContactPreferenceInputDto {
-  @IsString()
-  @MinLength(2)
-  @MaxLength(50)
-  channel: string;
+  @IsEnum(ContactChannel)
+  channel: ContactChannel;
 
   @IsString()
   @MinLength(2)
   @MaxLength(200)
   value: string;
-
-  @IsInt()
-  @Min(1)
-  @Max(5)
-  priority: number;
 }
 
 // Continut complet — la publicare si la editare.
+// Titlul e optional: lipseste in fluxul configurator (generat automat pe server
+// din camere + oras); description e mesaj liber optional.
 export class CreateRequestContentDto {
+  @IsOptional()
   @IsString()
   @MinLength(4)
   @MaxLength(200)
-  title: string;
+  title?: string;
 
+  @IsOptional()
   @IsString()
-  @MinLength(10)
   @MaxLength(5000)
-  description: string;
+  description?: string;
 
   @IsEnum(BudgetRange)
   budgetRange: BudgetRange;
 
   @IsOptional()
-  @Matches(/^\d{4}-\d{2}-\d{2}$/)
-  desiredDeadline?: string;
+  @IsEnum(DesiredDeadlineBucket)
+  deadlineBucket?: DesiredDeadlineBucket;
 
   @IsBoolean()
   includesPaidDesign: boolean;
@@ -132,12 +94,12 @@ export class CreateRequestContentDto {
   @ArrayMinSize(1)
   @ArrayMaxSize(20)
   @ValidateNested({ each: true })
-  @Type(() => RoomInputDto)
-  rooms: RoomInputDto[];
+  @Type(() => ConfiguratorRoomInputDto)
+  rooms: ConfiguratorRoomInputDto[];
 
   @IsArray()
   @ArrayMinSize(1)
-  @ArrayMaxSize(5)
+  @ArrayMaxSize(4)
   @ValidateNested({ each: true })
   @Type(() => ContactPreferenceInputDto)
   contactPreferences: ContactPreferenceInputDto[];
@@ -160,8 +122,8 @@ export class PatchDraftDto {
   budgetRange?: BudgetRange;
 
   @IsOptional()
-  @Matches(/^\d{4}-\d{2}-\d{2}$/)
-  desiredDeadline?: string;
+  @IsEnum(DesiredDeadlineBucket)
+  deadlineBucket?: DesiredDeadlineBucket;
 
   @IsOptional()
   @IsBoolean()
@@ -186,16 +148,15 @@ export class PatchDraftDto {
   @MaxLength(100)
   city?: string;
 
+  // starea bruta a wizard-ului configurator (backup server al draftului local);
+  // opaca pentru backend, cap de marime aplicat in service
   @IsOptional()
-  @IsArray()
-  @ArrayMaxSize(20)
-  @ValidateNested({ each: true })
-  @Type(() => RoomInputDto)
-  rooms?: RoomInputDto[];
+  @IsObject()
+  configuratorState?: Record<string, unknown>;
 
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(5)
+  @ArrayMaxSize(4)
   @ValidateNested({ each: true })
   @Type(() => ContactPreferenceInputDto)
   contactPreferences?: ContactPreferenceInputDto[];

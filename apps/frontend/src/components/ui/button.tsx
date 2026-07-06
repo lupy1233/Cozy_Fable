@@ -8,13 +8,15 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground shadow hover:bg-primary/90',
+        default:
+          'bg-primary text-primary-foreground shadow hover:bg-primary/90 active:translate-y-px',
+        // "walnut" = accentul de brand (istoric); acum albastru-plan
         walnut:
-          'bg-walnut text-primary-foreground shadow-sm hover:brightness-110',
+          'bg-walnut text-primary-foreground shadow-sm hover:bg-walnut-deep active:translate-y-px',
         destructive:
-          'bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90',
+          'bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 active:translate-y-px',
         outline:
-          'border border-border-2 bg-surface shadow-sm hover:bg-secondary hover:border-muted-2 hover:-translate-y-px',
+          'border border-border-2 bg-surface shadow-sm hover:border-muted-2 hover:bg-secondary hover:shadow-sheet active:translate-y-px active:shadow-none',
         secondary: 'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80',
         ghost: 'hover:bg-accent hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:underline',

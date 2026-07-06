@@ -1,19 +1,24 @@
 import {
   type AttachmentDto,
+  type ClientDashboardStatsDto,
+  contactPreferencesSchema,
   ERROR_CODES,
   type PresignUploadResultDto,
   type RequestDraftCreatedDto,
   type RequestDto,
   type RequestListItemDto,
 } from '@marketplace/shared';
+import { ConfiguratorService, type ProcessedRoom } from './configurator.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
-import type { Prisma, Request as RequestModel, RequestStatus } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import type { Request as RequestModel, RequestStatus } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { createHash, randomBytes } from 'crypto';
 import { BusinessCalendarService } from '../../infra/calendar/business-calendar.service';
@@ -60,12 +65,28 @@ export class RequestsService {
     private readonly prisma: PrismaService,
     private readonly geo: GeoService,
     private readonly sizing: SizingService,
+    private readonly configurator: ConfiguratorService,
     private readonly uploads: UploadsService,
     private readonly calendar: BusinessCalendarService,
     private readonly eventBus: EventBusService,
     private readonly credits: CreditsService,
     @InjectQueue(QUEUE_REQUEST_EXPIRATION) private readonly expirationQueue: Queue,
   ) {}
+
+  // Cap de marime pentru starea bruta a wizard-ului salvata pe draft.
+  private static readonly MAX_CONFIGURATOR_STATE_CHARS = 200_000;
+
+  private serializeConfiguratorState(state: unknown): Prisma.InputJsonValue | undefined {
+    if (state === undefined) return undefined;
+    const json = JSON.stringify(state);
+    if (json.length > RequestsService.MAX_CONFIGURATOR_STATE_CHARS) {
+      throw new BadRequestException({
+        code: ERROR_CODES.CONFIGURATOR_STATE_TOO_LARGE,
+        message: 'Configurator state exceeds the maximum allowed size',
+      });
+    }
+    return state as Prisma.InputJsonValue;
+  }
 
   private hashToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
@@ -99,16 +120,19 @@ export class RequestsService {
         title: patch?.title,
         description: patch?.description,
         budgetRange: patch?.budgetRange,
-        desiredDeadline: patch?.desiredDeadline ? new Date(patch.desiredDeadline) : undefined,
+        deadlineBucket: patch?.deadlineBucket,
         includesPaidDesign: patch?.includesPaidDesign ?? false,
         hasOwnProject: patch?.hasOwnProject ?? false,
         addressText: patch?.addressText,
         county: patch?.county,
         city: patch?.city,
+        configuratorState: this.serializeConfiguratorState(patch?.configuratorState),
       },
     });
-    if (patch?.rooms || patch?.contactPreferences) {
-      await this.replaceChildren(this.prisma, request.id, patch);
+    // in draft NU materializam camerele (dims derivate incomplete); starea wizard-ului
+    // traieste in configuratorState. Doar preferintele de contact se persista imediat.
+    if (patch?.contactPreferences) {
+      await this.writeContactPreferences(this.prisma, request.id, patch.contactPreferences);
     }
     return { id: request.id, draftToken: token };
   }
@@ -126,6 +150,7 @@ export class RequestsService {
         message: 'Only drafts can be patched; use edit after publishing',
       });
     }
+    const configuratorState = this.serializeConfiguratorState(dto.configuratorState);
     await this.prisma.$transaction(async (tx) => {
       await tx.request.update({
         where: { id: request.id },
@@ -133,16 +158,18 @@ export class RequestsService {
           title: dto.title,
           description: dto.description,
           budgetRange: dto.budgetRange,
-          desiredDeadline: dto.desiredDeadline ? new Date(dto.desiredDeadline) : undefined,
+          deadlineBucket: dto.deadlineBucket,
           includesPaidDesign: dto.includesPaidDesign,
           hasOwnProject: dto.hasOwnProject,
           addressText: dto.addressText,
           county: dto.county,
           city: dto.city,
+          configuratorState,
         },
       });
-      if (dto.rooms || dto.contactPreferences) {
-        await this.replaceChildren(tx, request.id, dto);
+      // draftul nu materializeaza camere; doar contact preferences se pot salva incremental
+      if (dto.contactPreferences) {
+        await this.writeContactPreferences(tx, request.id, dto.contactPreferences);
       }
     });
     return this.toDto(request.id);
@@ -150,7 +177,19 @@ export class RequestsService {
 
   // ---- publicare ----
 
-  async publish(token: string, dto: CreateRequestContentDto): Promise<RequestDto> {
+  async publish(
+    token: string,
+    dto: CreateRequestContentDto,
+    userId: string | null,
+  ): Promise<RequestDto> {
+    // Publicarea trimite cererea in marketplace (firmele o revendica, apoi chat/oferte),
+    // deci necesita un cont — draftul se poate completa anonim, dar nu se poate publica.
+    if (!userId) {
+      throw new UnauthorizedException({
+        code: ERROR_CODES.UNAUTHORIZED,
+        message: 'Authentication required to publish a request',
+      });
+    }
     const request = await this.findByToken(token);
     if (request.status !== 'DRAFT') {
       throw new BadRequestException({
@@ -159,8 +198,19 @@ export class RequestsService {
       });
     }
 
+    // valideaza raspunsurile + deriva camere/items/scoring (sursa de adevar server)
+    const processed = this.configurator.processRooms(dto.rooms);
+    this.assertContactFormats(dto.contactPreferences);
+    await this.assertRoomAttachments(
+      request.id,
+      this.configurator.collectUploadAttachmentIds(processed.rooms),
+    );
     const geo = await this.geo.geocode(dto.addressText, dto.city, dto.county);
-    const sizing = await this.sizing.compute(dto);
+    const sizing = await this.sizing.compute({
+      scoreEntries: processed.scoreEntries,
+      budgetRange: dto.budgetRange,
+      includesPaidDesign: dto.includesPaidDesign,
+    });
 
     const now = new Date();
     const expiresAt = this.calendar.addWorkingDays(now, EXPIRATION_WORKING_DAYS);
@@ -170,6 +220,9 @@ export class RequestsService {
         where: { id: request.id },
         data: {
           ...this.scalarData(dto),
+          title: this.resolveTitle(dto, processed.rooms),
+          // leaga draftul (posibil anonim) de contul care publica
+          clientUserId: userId,
           lat: geo.lat,
           lng: geo.lng,
           sizeScore: sizing.score,
@@ -178,9 +231,12 @@ export class RequestsService {
           status: 'IN_MARKETPLACE',
           publishedAt: now,
           expiresAt,
+          // starea bruta a wizard-ului nu mai e necesara: answers sunt canonice pe camere
+          configuratorState: Prisma.DbNull,
         },
       });
-      await this.replaceChildren(tx, request.id, dto);
+      await this.writeRooms(tx, request.id, processed.rooms);
+      await this.writeContactPreferences(tx, request.id, dto.contactPreferences);
       await this.writeVersion(tx, request.id, dto);
     });
 
@@ -195,10 +251,27 @@ export class RequestsService {
 
   // ---- editare post-publicare (3 pre-claim / 1 post-claim) ----
 
+  // varianta token (device-ul care a creat draftul)
   async edit(token: string, dto: CreateRequestContentDto): Promise<RequestDto> {
     const request = await this.findByToken(token);
+    return this.editRequest(request, dto);
+  }
+
+  // varianta autentificata (proprietarul, de pe orice device)
+  async editForClient(userId: string, id: string, dto: CreateRequestContentDto): Promise<RequestDto> {
+    const request = await this.findOwnedRequest(userId, id);
+    return this.editRequest(request, dto);
+  }
+
+  private async editRequest(request: RequestModel, dto: CreateRequestContentDto): Promise<RequestDto> {
     const editCounters = this.assertEditableAndCount(request);
 
+    const processed = this.configurator.processRooms(dto.rooms);
+    this.assertContactFormats(dto.contactPreferences);
+    await this.assertRoomAttachments(
+      request.id,
+      this.configurator.collectUploadAttachmentIds(processed.rooms),
+    );
     const addressChanged =
       request.addressText !== dto.addressText ||
       request.city !== dto.city ||
@@ -206,13 +279,18 @@ export class RequestsService {
     const geo = addressChanged
       ? await this.geo.geocode(dto.addressText, dto.city, dto.county)
       : { lat: request.lat, lng: request.lng };
-    const sizing = await this.sizing.compute(dto);
+    const sizing = await this.sizing.compute({
+      scoreEntries: processed.scoreEntries,
+      budgetRange: dto.budgetRange,
+      includesPaidDesign: dto.includesPaidDesign,
+    });
 
     await this.prisma.$transaction(async (tx) => {
       await tx.request.update({
         where: { id: request.id },
         data: {
           ...this.scalarData(dto),
+          title: this.resolveTitle(dto, processed.rooms),
           lat: geo.lat,
           lng: geo.lng,
           sizeScore: sizing.score,
@@ -222,7 +300,8 @@ export class RequestsService {
           ...editCounters,
         },
       });
-      await this.replaceChildren(tx, request.id, dto);
+      await this.writeRooms(tx, request.id, processed.rooms);
+      await this.writeContactPreferences(tx, request.id, dto.contactPreferences);
       await this.writeVersion(tx, request.id, dto);
     });
 
@@ -286,10 +365,11 @@ export class RequestsService {
       id: r.id,
       status: r.status,
       title: r.title ?? '',
-      budgetRange: r.budgetRange ?? 'UNDER_5K',
+      budgetRange: r.budgetRange ?? 'UNDISCLOSED',
       city: r.city ?? '',
       county: r.county ?? '',
-      size: r.projectSize,
+      // marimea proiectului nu se afiseaza clientului (doar firmelor)
+      size: null,
       publishedAt: r.publishedAt?.toISOString() ?? null,
       expiresAt: r.expiresAt?.toISOString() ?? null,
       createdAt: r.createdAt.toISOString(),
@@ -297,6 +377,12 @@ export class RequestsService {
   }
 
   async getForClient(userId: string, id: string): Promise<RequestDto> {
+    await this.findOwnedRequest(userId, id);
+    return this.toDto(id);
+  }
+
+  // Cererea exista, nu e stearsa si apartine clientului curent (ownership).
+  private async findOwnedRequest(userId: string, id: string): Promise<RequestModel> {
     const request = await this.prisma.request.findUnique({ where: { id } });
     if (!request || request.deletedAt) {
       throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Request not found' });
@@ -304,7 +390,50 @@ export class RequestsService {
     if (request.clientUserId !== userId) {
       throw new ForbiddenException({ code: ERROR_CODES.FORBIDDEN, message: 'Not your request' });
     }
-    return this.toDto(id);
+    return request;
+  }
+
+  // Statistici agregate pentru dashboardul clientului.
+  async dashboardStatsForClient(userId: string): Promise<ClientDashboardStatsDto> {
+    const where = { clientUserId: userId, deletedAt: null };
+    const [total, grouped, offersReceived, activeClaims, recent] = await Promise.all([
+      this.prisma.request.count({ where }),
+      this.prisma.request.groupBy({ by: ['status'], where, _count: { _all: true } }),
+      this.prisma.quote.count({
+        where: {
+          status: { in: ['SENT', 'ACCEPTED'] },
+          request: { clientUserId: userId, deletedAt: null },
+        },
+      }),
+      this.prisma.claimSlot.count({
+        where: {
+          status: { in: ['ACTIVE', 'OFFER_SENT'] },
+          request: { clientUserId: userId, deletedAt: null },
+        },
+      }),
+      this.prisma.request.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' },
+        take: 5,
+        select: { id: true, title: true, status: true, updatedAt: true },
+      }),
+    ]);
+
+    const byStatus: ClientDashboardStatsDto['byStatus'] = {};
+    for (const g of grouped) byStatus[g.status] = g._count._all;
+
+    return {
+      totalRequests: total,
+      byStatus,
+      offersReceived,
+      activeClaims,
+      recent: recent.map((r) => ({
+        id: r.id,
+        title: r.title ?? '',
+        status: r.status,
+        updatedAt: r.updatedAt.toISOString(),
+      })),
+    };
   }
 
   // Î17 — clientul sterge cererea: soft delete + claim-uri active → CANCELLED_BY_CLIENT + refund.
@@ -369,17 +498,51 @@ export class RequestsService {
     return this.uploads.remove(ENTITY_TYPE_REQUEST, request.id, attachmentId);
   }
 
+  // ---- atasamente pe cererea proprie (client autentificat, fara token) ----
+  // Editarea de pe alt device: tokenul draftului e stocat doar ca hash, deci
+  // proprietarul autentificat primeste rute echivalente scope-uite pe ownership.
+
+  async presignAttachmentForClient(
+    userId: string,
+    id: string,
+    dto: PresignAttachmentDto,
+  ): Promise<PresignUploadResultDto> {
+    const request = await this.findOwnedRequest(userId, id);
+    this.assertAttachmentEditableStatus(request);
+    return this.uploads.presign(ENTITY_TYPE_REQUEST, request.id, dto);
+  }
+
+  async confirmAttachmentForClient(
+    userId: string,
+    id: string,
+    attachmentId: string,
+  ): Promise<AttachmentDto> {
+    const request = await this.findOwnedRequest(userId, id);
+    this.assertAttachmentEditableStatus(request);
+    return this.uploads.confirm(ENTITY_TYPE_REQUEST, request.id, attachmentId);
+  }
+
+  async removeAttachmentForClient(userId: string, id: string, attachmentId: string): Promise<void> {
+    const request = await this.findOwnedRequest(userId, id);
+    this.assertAttachmentEditableStatus(request);
+    return this.uploads.remove(ENTITY_TYPE_REQUEST, request.id, attachmentId);
+  }
+
   // ---- helpers ----
 
   private async requireAttachmentEditable(token: string): Promise<RequestModel> {
     const request = await this.findByToken(token);
+    this.assertAttachmentEditableStatus(request);
+    return request;
+  }
+
+  private assertAttachmentEditableStatus(request: RequestModel): void {
     if (!ATTACHMENT_EDITABLE_STATUSES.includes(request.status)) {
       throw new BadRequestException({
         code: ERROR_CODES.REQUEST_NOT_EDITABLE,
         message: 'Attachments cannot be changed in this state',
       });
     }
-    return request;
   }
 
   private assertEditableAndCount(
@@ -415,12 +578,13 @@ export class RequestsService {
     });
   }
 
+  // Campuri scalare comune publish/edit. Titlul NU e aici: e rezolvat separat
+  // (auto-generat cand lipseste din payload — fluxul configurator nu il trimite).
   private scalarData(dto: CreateRequestContentDto) {
     return {
-      title: dto.title,
-      description: dto.description,
+      description: dto.description ?? '',
       budgetRange: dto.budgetRange,
-      desiredDeadline: dto.desiredDeadline ? new Date(dto.desiredDeadline) : null,
+      deadlineBucket: dto.deadlineBucket ?? null,
       includesPaidDesign: dto.includesPaidDesign,
       hasOwnProject: dto.hasOwnProject,
       addressText: dto.addressText,
@@ -429,46 +593,112 @@ export class RequestsService {
     };
   }
 
-  // Inlocuieste camerele + itemele + preferintele de contact (daca prezente in dto).
-  private async replaceChildren(
-    tx: Prisma.TransactionClient,
-    requestId: string,
-    dto: PatchDraftDto | CreateRequestContentDto,
-  ): Promise<void> {
-    if (dto.rooms) {
-      await tx.requestRoom.deleteMany({ where: { requestId } });
-      for (const room of dto.rooms) {
-        await tx.requestRoom.create({
-          data: {
-            requestId,
-            roomType: room.roomType,
-            lengthM: room.lengthM,
-            widthM: room.widthM,
-            heightM: room.heightM,
-            items: {
-              create: room.items.map((it) => ({
-                name: it.name,
-                material: it.material,
-                systems: it.systems,
-                description: it.description,
-                quantity: it.quantity,
-              })),
-            },
-          },
-        });
-      }
-    }
-    if (dto.contactPreferences) {
-      await tx.requestContactPreference.deleteMany({ where: { requestId } });
-      await tx.requestContactPreference.createMany({
-        data: dto.contactPreferences.map((c) => ({
-          requestId,
-          channel: c.channel,
-          value: c.value,
-          priority: c.priority,
-        })),
+  // Eticheta RO per tip camera pentru titlul generat automat (singular/plural).
+  // Titlul stocat e sursa de adevar (RO); frontendul poate randa varianta localizata
+  // din rooms[] + city unde are datele.
+  private static readonly ROOM_TITLE_LABELS: Record<string, { one: string; many: string }> = {
+    KITCHEN: { one: 'Bucătărie', many: 'Bucătării' },
+    BATHROOM: { one: 'Baie', many: 'Băi' },
+    BEDROOM: { one: 'Dormitor', many: 'Dormitoare' },
+    LIVING: { one: 'Living', many: 'Living-uri' },
+    OFFICE: { one: 'Birou', many: 'Birouri' },
+    DRESSING: { one: 'Dressing', many: 'Dressing-uri' },
+    PIECES: { one: 'Piese individuale', many: 'Piese individuale' },
+  };
+
+  private buildRequestTitle(rooms: ProcessedRoom[], city: string): string {
+    const counts = new Map<string, number>();
+    for (const room of rooms) counts.set(room.roomType, (counts.get(room.roomType) ?? 0) + 1);
+    const parts = [...counts.entries()].map(([type, n]) => {
+      const label = RequestsService.ROOM_TITLE_LABELS[type] ?? { one: type, many: type };
+      return n === 1 ? label.one : `${n} ${label.many}`;
+    });
+    const base = parts.join(' + ');
+    const full = city ? `${base} — ${city}` : base;
+    return full.slice(0, 200);
+  }
+
+  private resolveTitle(dto: CreateRequestContentDto, rooms: ProcessedRoom[]): string {
+    const manual = dto.title?.trim();
+    return manual && manual.length >= 4 ? manual : this.buildRequestTitle(rooms, dto.city);
+  }
+
+  // Attachment id-urile din step-urile 'upload' (schita per camera) trebuie sa
+  // apartina cererii curente — inchide clasa de atac "id-uri fabricate/straine".
+  private async assertRoomAttachments(requestId: string, ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+    const unique = [...new Set(ids)];
+    const found = await this.prisma.attachment.count({
+      where: { id: { in: unique }, entityType: ENTITY_TYPE_REQUEST, entityId: requestId },
+    });
+    if (found !== unique.length) {
+      throw new BadRequestException({
+        code: ERROR_CODES.VALIDATION_ERROR,
+        message: 'Sketch attachments do not belong to this request',
       });
     }
+  }
+
+  // Formatul valorilor de contact (email valid / telefon RO) — aceeasi schema
+  // partajata ca in frontend; class-validator verifica doar forma de transport.
+  private assertContactFormats(
+    contacts: CreateRequestContentDto['contactPreferences'],
+  ): void {
+    const parsed = contactPreferencesSchema.safeParse(contacts);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        code: ERROR_CODES.VALIDATION_ERROR,
+        message: 'Contact preferences invalid',
+        details: parsed.error.issues.map((i) => ({ path: i.path, message: i.message })),
+      });
+    }
+  }
+
+  // Inlocuieste camerele derivate + itemele lor. Fiecare camera pastreaza in plus
+  // answers-ul brut si flowVersion (sursa de adevar pentru randarea detaliu).
+  private async writeRooms(
+    tx: Prisma.TransactionClient,
+    requestId: string,
+    rooms: ProcessedRoom[],
+  ): Promise<void> {
+    await tx.requestRoom.deleteMany({ where: { requestId } });
+    for (const room of rooms) {
+      await tx.requestRoom.create({
+        data: {
+          requestId,
+          roomType: room.roomType,
+          lengthM: room.derived.lengthM,
+          widthM: room.derived.widthM,
+          heightM: room.derived.heightM,
+          answers: room.answers as Prisma.InputJsonValue,
+          flowVersion: room.flowVersion,
+          items: {
+            create: room.derived.items.map((it) => ({
+              name: it.name,
+              material: it.material,
+              systems: it.systems,
+              description: it.description,
+              quantity: it.quantity,
+            })),
+          },
+        },
+      });
+    }
+  }
+
+  private async writeContactPreferences(
+    tx: Prisma.TransactionClient,
+    requestId: string,
+    contactPreferences: CreateRequestContentDto['contactPreferences'],
+  ): Promise<void> {
+    await tx.requestContactPreference.deleteMany({ where: { requestId } });
+    await tx.requestContactPreference.createMany({
+      data: contactPreferences.map((c) => ({
+        requestId,
+        channel: c.channel,
+        value: c.value,
+      })),
+    });
   }
 
   private async writeVersion(
@@ -505,7 +735,7 @@ export class RequestsService {
       where: { id },
       include: {
         rooms: { include: { items: true }, orderBy: { createdAt: 'asc' } },
-        contactPreferences: { orderBy: { priority: 'asc' } },
+        contactPreferences: true,
       },
     });
     const attachments = await this.uploads.listForEntity(ENTITY_TYPE_REQUEST, id);
@@ -515,37 +745,33 @@ export class RequestsService {
       status: request.status,
       title: request.title ?? '',
       description: request.description ?? '',
-      budgetRange: request.budgetRange ?? 'UNDER_5K',
-      desiredDeadline: request.desiredDeadline
-        ? request.desiredDeadline.toISOString().slice(0, 10)
-        : null,
+      budgetRange: request.budgetRange ?? 'UNDISCLOSED',
+      deadlineBucket: request.deadlineBucket,
       includesPaidDesign: request.includesPaidDesign,
       hasOwnProject: request.hasOwnProject,
       addressText: request.addressText ?? '',
       county: request.county ?? '',
       city: request.city ?? '',
-      lat: request.lat,
-      lng: request.lng,
-      sizing:
-        request.sizeScore !== null && request.projectSize !== null && request.creditCost !== null
-          ? {
-              score: request.sizeScore,
-              size: request.projectSize,
-              creditCost: request.creditCost,
-            }
-          : null,
+      // Marimea/costul in credite si coordonatele NU sunt informatii de client:
+      // ele privesc firmele (marketplace) si adminul. DTO-ul de proprietar le ascunde.
+      lat: null,
+      lng: null,
+      sizing: null,
       preClaimEditsUsed: request.preClaimEditsUsed,
       postClaimEditsUsed: request.postClaimEditsUsed,
       publishedAt: request.publishedAt?.toISOString() ?? null,
       expiresAt: request.expiresAt?.toISOString() ?? null,
       repostUsed: request.repostUsed,
       createdAt: request.createdAt.toISOString(),
+      configuratorState: (request.configuratorState ?? null) as unknown,
       rooms: request.rooms.map((r) => ({
         id: r.id,
         roomType: r.roomType,
         lengthM: r.lengthM,
         widthM: r.widthM,
         heightM: r.heightM,
+        answers: (r.answers ?? null) as Record<string, unknown> | null,
+        flowVersion: r.flowVersion,
         items: r.items.map((it) => ({
           id: it.id,
           name: it.name,
@@ -559,7 +785,6 @@ export class RequestsService {
         id: c.id,
         channel: c.channel,
         value: c.value,
-        priority: c.priority,
       })),
       attachments,
     };

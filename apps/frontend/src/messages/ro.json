@@ -1,10 +1,13 @@
 {
   "Landing": {
-    "title": "Marketplace Mobilier la Comanda",
-    "subtitle": "Cere oferte de la firme verificate pentru mobilierul tau la comanda.",
-    "ctaNewRequest": "Creeaza o cerere",
-    "ctaCompanies": "Esti firma? Inscrie-te",
-    "kicker": "Mobilier la comandă, cap-coadă",
+    "title": "De la schița ta, la atelierul potrivit.",
+    "subtitle": "Descrii mobilierul pe cotele tale, iar ateliere verificate concurează cu oferte structurate. Tu compari reviziile și alegi.",
+    "heroNote": "Gratuit pentru clienți · cel mult 3 ateliere pe cerere",
+    "processKicker": "Proces",
+    "sizingKicker": "Format",
+    "ctaNewRequest": "Creează o cerere",
+    "ctaCompanies": "Ești atelier? Înscrie-te",
+    "kicker": "Platformă închisă pentru mobilier la comandă",
     "metricWorkshops": "340+",
     "metricWorkshopsLabel": "Ateliere verificate",
     "metricProjects": "2.8k",
@@ -12,14 +15,17 @@
     "metricSatisfaction": "94%",
     "metricSatisfactionLabel": "Satisfacție clienți",
     "howTitle": "Cum funcționează",
-    "step1Title": "Descrie proiectul",
-    "step1Body": "Alegi camerele și piesele, materialele și finisajele. Calculăm scorul proiectului automat.",
+    "step1Phase": "Schiță",
+    "step1Title": "Desenezi cererea",
+    "step1Body": "Alegi piesele, materialele și cotele. Sistemul calculează automat mărimea proiectului.",
+    "step2Phase": "Ofertare",
     "step2Title": "Atelierele revendică",
-    "step2Body": "Ateliere verificate îți rezervă cererea și încep o conversație cu tine.",
-    "step3Title": "Compară și alege",
-    "step3Body": "Negociezi, compari ofertele una lângă alta și alegi atelierul în care ai încredere.",
-    "sizingTitle": "Dimensionarea proiectului",
-    "sizingSub": "Fiecare cerere primește o mărime care stabilește câte credite costă un atelier să o revendice.",
+    "step2Body": "Cel mult trei ateliere verificate îți preiau cererea și discută direct cu tine.",
+    "step3Phase": "Decizie",
+    "step3Title": "Compari reviziile",
+    "step3Body": "Primești oferte structurate, ceri modificări și alegi atelierul cu care mergi mai departe.",
+    "sizingTitle": "Formatul proiectului",
+    "sizingSub": "Fiecare cerere primește un format care stabilește câte credite costă revendicarea ei.",
     "sizeSmall": "Small",
     "sizeSmallDesc": "O singură piesă sau un set compact — ușor de ofertat.",
     "sizeMedium": "Medium",
@@ -27,26 +33,174 @@
     "sizeLarge": "Large",
     "sizeLargeDesc": "Amenajări pe mai multe camere și lucrări complexe la comandă.",
     "creditsUnit": "credite",
+    "creditsUnitOne": "credit",
+    "heroSheetTitle": "Dulap dormitor — axonometrie",
+    "heroSheetClient": "Cerere client",
     "ctaBandTitle": "Conduci un atelier?",
-    "ctaBandBody": "Ajungi la clienți cu proiecte reale, scorate, și îți crești reputația pe Plan.",
-    "ctaBandButton": "Înregistrează atelierul"
+    "ctaBandBody": "Primești cereri reale, dimensionate și verificate — și plătești credite doar pentru proiectele pe care le revendici.",
+    "ctaBandButton": "Înregistrează atelierul",
+    "footerTagline": "Marketplace pentru mobilier la comandă",
+    "inspirationKicker": "Inspirație",
+    "inspirationTitle": "Idei pentru casa ta",
+    "inspirationSub": "O galerie curată de proiecte și idei — alege stilul care ți se potrivește și pornește o cerere de la o imagine.",
+    "inspirationCta": "Vezi toată galeria",
+    "partnersKicker": "Parteneri",
+    "partnersTitle": "Atelierele cu care lucrăm",
+    "partnersSub": "Fiecare atelier e verificat înainte să poată oferta. Ratingurile vin din recenziile Google.",
+    "partnersAll": "Toți partenerii",
+    "googleReviews": "Rating Google Reviews",
+    "reviewsShort": "recenzii",
+    "carouselPrev": "Înapoi",
+    "carouselNext": "Înainte",
+    "partnerSpecialty": {
+      "kitchens": "Bucătării la comandă și spații de gătit",
+      "dressings": "Dressinguri și dulapuri pe măsură",
+      "living": "Livinguri, biblioteci și mobilier de zi",
+      "full": "Amenajări complete, de la schiță la montaj"
+    }
   },
   "Common": {
     "languageSwitcher": "Limba",
-    "loading": "Se incarca..."
+    "loading": "Se incarca...",
+    "relativeTime": {
+      "minutes": "{count, plural, =0 {chiar acum} =1 {acum 1 min} other {acum # min}}",
+      "hours": "{count, plural, =1 {acum o ora} few {acum # ore} other {acum # de ore}}",
+      "days": "{count, plural, =1 {acum o zi} few {acum # zile} other {acum # de zile}}",
+      "months": "{count, plural, =1 {acum o luna} few {acum # luni} other {acum # de luni}}"
+    }
   },
   "Nav": {
-    "home": "Marketplace Mobilier",
+    "home": "Cozy Home",
+    "dashboard": "Contul meu",
     "myRequests": "Cererile mele",
     "newRequest": "Cerere nouă",
     "marketplace": "Marketplace",
+    "claims": "Revendicări",
     "wallet": "Portofel",
+    "partners": "Parteneri",
+    "inspiration": "Inspirație",
+    "sketchGuide": "Ghid schiță",
     "company": "Firma mea",
     "admin": "Admin",
     "login": "Autentificare",
     "register": "Înregistrare",
     "forCompanies": "Pentru firme",
-    "logout": "Deconectare"
+    "logout": "Deconectare",
+    "menu": "Meniu"
+  },
+  "Partners": {
+    "title": "Atelierele partenere",
+    "subtitle": "Ateliere de mobilier verificate, care ofertează și execută proiectele de pe Cozy Home.",
+    "loading": "Se încarcă partenerii…",
+    "empty": "Niciun partener de afișat încă.",
+    "ratingPlaceholder": "—",
+    "ratingSoon": "Rating Google în curând",
+    "memberSince": "Partener din {date}"
+  },
+  "Inspiration": {
+    "title": "Inspirație",
+    "subtitle": "Idei reale pentru mobilier la comandă. Caută, filtrează după tipul de mobilier și deschide-le pe Pinterest.",
+    "searchPlaceholder": "Caută idei — ex. bucătărie, dressing, lectură…",
+    "all": "Toate",
+    "empty": "Nimic găsit pentru căutarea ta. Încearcă alt cuvânt sau alt filtru.",
+    "openPinterest": "Vezi pe Pinterest",
+    "types": {
+      "kitchen": "Bucătărie",
+      "living": "Living",
+      "bedroom": "Dormitor",
+      "dressing": "Dressing",
+      "office": "Birou"
+    },
+    "pins": {
+      "kitchen-bright": "Bucătărie luminoasă",
+      "kitchen-island": "Bucătărie cu insulă",
+      "kitchen-l": "Bucătărie în formă de L",
+      "living-green-sofa": "Living cu canapea verde",
+      "reading-corner": "Colț de lectură",
+      "living-cat": "Canapea de duminică",
+      "sofa-statement": "Canapea statement",
+      "living-boho": "Living boho",
+      "living-modern": "Living modern",
+      "living-lounge": "Fotolii de conversație",
+      "living-shelving": "Bibliotecă din lemn cald",
+      "living-stairs": "Living pe două niveluri",
+      "bedroom-classic": "Dormitor clasic",
+      "bedroom-minimal": "Dormitor minimalist",
+      "bedroom-hotel": "Dormitor tip hotel",
+      "dressing-vintage": "Dulap vintage",
+      "dressing-open": "Dressing deschis",
+      "dressing-shelves": "Dulap cu rafturi deschise",
+      "office-desk": "Birou de acasă",
+      "office-light": "Birou cu lumină naturală"
+    }
+  },
+  "SketchGuidePage": {
+    "kicker": "Ghid de atelier",
+    "title": "Cum îți schițezi spațiul",
+    "subtitle": "Nu ai nevoie de arhitect — patru pași simpli le dau atelierelor tot ce le trebuie ca să oferteze precis. Planșa alăturată îți arată exact ce trebuie să cuprindă schița ta.",
+    "sheetTitle": "Schiță bucătărie — exemplu",
+    "legendWall": "Peretele, măsurat din colț în colț — lățime și înălțime",
+    "legendSocket": "Prizele și țevile, marcate cu ✕ sau cerc întrerupt",
+    "legendFurniture": "Mobilierul dorit, desenat simplu peste perete",
+    "legendDimensions": "Dimensiunile mobilierului, notate direct pe desen",
+    "steps": {
+      "measure": {
+        "title": "Măsoară pereții",
+        "body": "Ia lungimea fiecărui perete și înălțimea tavanului. Măsoară la nivelul podelei, din colț în colț.",
+        "tip": "O ruletă simplă e de ajuns — rotunjește la centimetru."
+      },
+      "draw": {
+        "title": "Desenează planul văzut de sus",
+        "body": "Un dreptunghi simplu e suficient. Scrie fiecare dimensiune direct pe latura ei, ca în exemplul alăturat.",
+        "tip": "Nu trebuie să fie la scară — contează cifrele, nu desenul frumos."
+      },
+      "mark": {
+        "title": "Marchează ce nu se mută",
+        "body": "Uși cu sensul de deschidere, ferestre, prize, țevi, calorifere. Orice ar putea atinge mobilierul viitor.",
+        "tip": "Un ✕ pentru prize, linie dublă pentru ferestre — ca în planșa alăturată, la priză."
+      },
+      "photo": {
+        "title": "Fotografiază și atașează",
+        "body": "O poză clară, de sus, cu toată schița în cadru. O atașezi la cerere împreună cu pozele camerei.",
+        "tip": "Lumină naturală, fără umbre peste cifre."
+      }
+    },
+    "ctaTitle": "Ai schița gata?",
+    "ctaHint": "O atașezi în timp ce îți configurezi cererea — atelierele o primesc odată cu cotele tale.",
+    "cta": "Creează o cerere"
+  },
+  "Dashboard": {
+    "loading": "Se încarcă statisticile…",
+    "client": {
+      "totalRequests": "Cereri create",
+      "activeClaims": "Preluări active de firme",
+      "offersReceived": "Oferte primite",
+      "byStatus": "Cereri pe statusuri",
+      "recent": "Activitate recentă",
+      "allRequests": "Toate cererile",
+      "noRequests": "Nicio cerere încă — creează prima ta cerere.",
+      "newRequest": "Cerere nouă"
+    },
+    "company": {
+      "claimsTotal": "Revendicări făcute",
+      "claimsActive": "Revendicări active",
+      "quotesSent": "Oferte trimise",
+      "quotesTotalRon": "Valoarea ofertelor",
+      "credits": "Credite",
+      "walletLink": "Portofel & facturare",
+      "available": "Disponibile",
+      "reserved": "Rezervate",
+      "consumed7d": "Folosite, ultimele 7 zile",
+      "consumed30d": "Folosite, ultimele 30 zile",
+      "perMember": "Revendicări active pe membru",
+      "unassigned": "Neatribuite",
+      "claimsByStatus": "Revendicări pe stadii",
+      "noClaims": "Nicio revendicare încă.",
+      "penalties": "Penalizări",
+      "penaltyPoints": "puncte active",
+      "toMarketplace": "Mergi la marketplace",
+      "toClaims": "Revendicările mele"
+    }
   },
   "Auth": {
     "loginTitle": "Autentificare",
@@ -125,14 +279,24 @@
     "cancel": "Anulează",
     "locations": "Locații",
     "coverageRadiusKm": "Rază de acoperire (km)",
+    "coverageRadiusLabel": "rază de acoperire {km} km",
+    "coverageRadiusHint": "Cererile aflate în această rază îți sunt vizibile",
+    "latHint": "Coordonată zecimală, ex. 46.7712",
+    "lngHint": "Coordonată zecimală, ex. 23.6236",
+    "country": "Țară",
+    "countryRomania": "România",
     "addLocation": "Adaugă locație",
     "deleteLocation": "Șterge",
     "noLocations": "Nicio locație încă. Adaugă cel puțin una ca să vezi cererile din rază.",
     "team": "Echipă",
     "memberEmail": "Email membru",
+    "memberRole": "Rol",
     "role": "Rol",
     "addMember": "Adaugă membru",
     "removeMember": "Elimină",
+    "unsavedChanges": "Modificări nesalvate",
+    "discardChanges": "Renunță",
+    "permissionsSaved": "Salvat.",
     "roleValue": {
       "OWNER": "Proprietar",
       "MANAGER": "Manager",
@@ -262,12 +426,33 @@
       "quantity": "Cant.",
       "contactChannel": "Canal",
       "contactValue": "Valoare",
-      "contactPriority": "Prioritate"
+      "contactPriority": "Prioritate",
+      "message": "Mesaj pentru firme",
+      "country": "Țară"
     },
+    "autoTitleLabel": "Titlu (generat automat)",
+    "messageHint": "Opțional — orice altceva ar trebui să știe firmele.",
+    "countryRomania": "România",
+    "addressSearchPlaceholder": "Începe să tastezi și alege adresa…",
+    "editRequest": "Editează cererea ({remaining} rămase)",
+    "editPostClaimWarning": "Cererea a fost deja preluată de firme. Mai ai o singură editare; proiectul va fi re-evaluat, dar firmele păstrează creditele deja cheltuite și își pot retrage preluarea după modificări. Continui?",
     "budget": {
       "UNDER_5K": "Sub 5.000 RON",
       "FROM_5K_TO_15K": "5.000 - 15.000 RON",
-      "OVER_15K": "Peste 15.000 RON"
+      "OVER_15K": "Peste 15.000 RON",
+      "UNDISCLOSED": "Prefer să nu spun"
+    },
+    "deadline": {
+      "none": "Nu știu încă",
+      "ASAP": "Cât mai repede",
+      "ONE_TO_THREE_MONTHS": "1–3 luni",
+      "THREE_TO_SIX_MONTHS": "3–6 luni",
+      "SIX_PLUS_MONTHS": "6+ luni",
+      "FLEXIBLE": "Flexibil"
+    },
+    "contactChannel": {
+      "EMAIL": "Email",
+      "PHONE": "Telefon"
     },
     "roomType": {
       "KITCHEN": "Bucătărie",
@@ -275,7 +460,8 @@
       "LIVING": "Living",
       "OFFICE": "Birou",
       "BEDROOM": "Dormitor",
-      "BATHROOM": "Baie"
+      "BATHROOM": "Baie",
+      "PIECES": "Piese individuale"
     },
     "material": {
       "PAL": "PAL",
@@ -320,7 +506,12 @@
       "dimensionInvalid": "Dimensiune invalidă.",
       "invalidDate": "Dată invalidă.",
       "contactChannelTooShort": "Canalul este prea scurt.",
-      "contactValueTooShort": "Valoarea este prea scurtă."
+      "contactValueTooShort": "Valoarea este prea scurtă.",
+      "contactEmailInvalid": "Introdu o adresă de email validă.",
+      "contactPhoneInvalid": "Introdu un număr de telefon românesc valid.",
+      "tooManyContacts": "Maximum 4 intrări de contact.",
+      "tooManyPerChannel": "Maximum 2 intrări per canal.",
+      "descriptionTooLong": "Mesajul este prea lung."
     },
     "apiErrors": {
       "GEOCODING_FAILED": "Nu am putut localiza adresa. Verific-o și încearcă din nou.",
@@ -395,8 +586,17 @@
     },
     "myClaims": {
       "title": "Revendicările mele",
+      "subtitle": "Toate cererile preluate de firma ta, cu stadiul și oferta fiecăreia.",
       "empty": "Nu ai nicio revendicare încă.",
-      "unassigned": "Neatribuit"
+      "unassigned": "Neatribuit",
+      "goToPage": "Vezi revendicările — cine a preluat, stadiu și oferte",
+      "request": "Cerere",
+      "claimedBy": "Preluat de",
+      "assignedTo": "Atribuit lui",
+      "when": "Când",
+      "stage": "Stadiu",
+      "sla": "Termen ofertă (SLA)",
+      "slaPaused": "pauză"
     },
     "apiErrors": {
       "CLAIM_NOT_ALLOWED": "Cererea nu mai poate fi revendicată.",
@@ -673,13 +873,871 @@
     "markAll": "Marchează toate citite",
     "empty": "Nicio notificare.",
     "type": {
-      "quote.created": "Ofertă nouă",
-      "quote.updated": "Ofertă actualizată",
-      "quote.accepted": "Ofertă acceptată",
-      "message.created": "Mesaj nou",
-      "request.status_changed": "Status cerere actualizat",
-      "claim.created": "Revendicare nouă",
-      "claim.withdrawn": "Revendicare retrasă"
+      "quote": {
+        "created": "Ofertă nouă",
+        "updated": "Ofertă actualizată",
+        "accepted": "Ofertă acceptată"
+      },
+      "message": {
+        "created": "Mesaj nou"
+      },
+      "request": {
+        "status_changed": "Status cerere actualizat"
+      },
+      "claim": {
+        "created": "Revendicare nouă",
+        "withdrawn": "Revendicare retrasă"
+      }
+    }
+  },
+  "Configurator": {
+    "title": "Configureaza-ti proiectul",
+    "subtitle": "Adauga camerele si raspunde la cateva intrebari — firmele partenere vor vedea cererea ta gata structurata.",
+    "kicker": "Comanda noua",
+    "editKicker": "Editare cerere",
+    "loading": "Se pregateste...",
+    "sheet": {
+      "phaseLabel": "Faza {current}/{total}"
+    },
+    "phases": {
+      "cart": "Camere",
+      "rooms": "Detalii camere",
+      "details": "Date generale",
+      "uploads": "Fisiere",
+      "review": "Sumar"
+    },
+    "nav": {
+      "back": "Inapoi",
+      "next": "Continua",
+      "continue": "Continua",
+      "startQuestions": "Incepe",
+      "toDetails": "Spre date generale",
+      "toReview": "Spre sumar"
+    },
+    "cart": {
+      "title": "Ce camere vrei sa mobilezi?",
+      "subtitle": "Adauga cate camere ai nevoie; poti pune si mai multe de acelasi tip.",
+      "totalRooms": "{count, plural, =0 {Nicio camera} =1 {O camera} other {# camere}}",
+      "hasOwnProject": "Am deja un proiect pentru toata locuinta",
+      "hasOwnProjectHint": "Il incarci o singura data la pasul Fisiere si poti sari peste pasii de schita per camera.",
+      "tabRooms": "Camere",
+      "tabPieces": "Piese individuale",
+      "addPieces": "Adauga piese",
+      "removePieces": "Elimina"
+    },
+    "sketchUpload": {
+      "skipNotice": "Ai marcat ca ai un proiect pentru toata locuinta — poti sari peste acest pas. Incarca proiectul la pasul Fisiere, ca sa nu-l atasezi pentru fiecare camera.",
+      "hint": "Inca maximum {local} pentru aceasta camera ({global} ramase in total)",
+      "limitReached": "Limita de fisiere atinsa pentru aceasta cerere."
+    },
+    "sketchGuide": {
+      "title": "Nu ai proiect? Fa o schita rapida",
+      "subtitle": "Patru pasi simpli — suficient ca firmele sa oferteze precis.",
+      "steps": {
+        "measure": {
+          "title": "Masoara peretii",
+          "body": "Noteaza lungimea fiecarui perete si inaltimea tavanului."
+        },
+        "draw": {
+          "title": "Deseneaza planul",
+          "body": "Un dreptunghi simplu vazut de sus, cu masuratorile notate pe el."
+        },
+        "mark": {
+          "title": "Marcheaza usi si geamuri",
+          "body": "Marcheaza si prizele, tevile sau orice nu poate fi mutat."
+        },
+        "photo": {
+          "title": "Fotografiaza schita",
+          "body": "Fa o poza clara schitei si incarc-o aici."
+        }
+      }
+    },
+    "rooms": {
+      "type": {
+        "KITCHEN": "Bucatarie",
+        "DRESSING": "Dressing",
+        "LIVING": "Living",
+        "OFFICE": "Birou",
+        "BEDROOM": "Dormitor",
+        "BATHROOM": "Baie",
+        "PIECES": "Piese individuale"
+      },
+      "desc": {
+        "KITCHEN": "Corpuri, blat, insula",
+        "DRESSING": "Dulapuri si module interioare",
+        "LIVING": "Biblioteci, comode TV, vitrine",
+        "OFFICE": "Birou, biblioteci, depozitare",
+        "BEDROOM": "Dulap, pat, noptiere",
+        "BATHROOM": "Corp lavoar, oglinda, coloane",
+        "PIECES": "Doar un dulap, un birou sau cateva piese separate"
+      }
+    },
+    "uploads": {
+      "title": "Adauga poze sau planuri",
+      "subtitle": "Optional — imagini din spatiu, schite sau proiectul tau (maxim 10 fisiere).",
+      "dropLabel": "Trage fisiere aici sau apasa pentru a incarca",
+      "dropHint": "JPG, PNG, WEBP sau PDF, pana la 10 MB",
+      "uploading": "Se incarca...",
+      "status": {
+        "PENDING_UPLOAD": "in asteptare",
+        "PENDING_SCAN": "se scaneaza",
+        "SAFE": "verificat",
+        "BLOCKED": "blocat"
+      }
+    },
+    "editTitle": "Editeaza cererea",
+    "editSubtitle": "Modifica raspunsurile, fisierele sau detaliile, apoi salveaza. Se aplica limitele de editare (3 inainte de claim, 1 dupa).",
+    "review": {
+      "title": "Verifica si publica",
+      "subtitle": "Confirma detaliile inainte de a trimite cererea in marketplace.",
+      "saveEdit": "Salveaza modificarile",
+      "edit": "Editeaza",
+      "detailsIncomplete": "Completeaza datele generale inainte de publicare.",
+      "roomIncomplete": "incompleta",
+      "loginToPublish": "Autentifica-te pentru a publica",
+      "loginToPublishHint": "Cererea ta e completa. Autentifica-te sau creeaza un cont pentru a o trimite in marketplace — raspunsurile se pastreaza."
+    },
+    "info": {
+      "pros": "Avantaje",
+      "cons": "Dezavantaje",
+      "avgPrice": "Pret mediu",
+      "recommended": "Recomandat",
+      "showInfo": "Vezi detalii",
+      "hideInfo": "Inapoi la optiune"
+    },
+    "diagram": {
+      "islandLength": "Insula L",
+      "islandDepth": "Insula D",
+      "caption": "Schita se actualizeaza pe masura ce completezi — literele corespund campurilor de mai jos."
+    },
+    "copyFromPrevious": "Copiaza raspunsurile de la {room} anterioara",
+    "pieces": {
+      "name": "Denumire",
+      "material": "Material",
+      "quantity": "Cantitate",
+      "add": "Adauga piesa",
+      "remove": "Sterge"
+    },
+    "apiErrors": {
+      "CONFIGURATOR_ANSWERS_INVALID": "Unele raspunsuri nu sunt valide. Verifica pasii marcati.",
+      "CONFIGURATOR_FLOW_VERSION_UNSUPPORTED": "Chestionarul a fost actualizat. Reia raspunsurile pentru camerele afectate.",
+      "CONFIGURATOR_STATE_TOO_LARGE": "Datele configuratorului sunt prea mari.",
+      "GEOCODING_FAILED": "Adresa nu a putut fi localizata. Verifica orasul si judetul.",
+      "GENERIC": "A aparut o eroare. Incearca din nou."
+    },
+    "validation": {
+      "answerRequired": "Acest camp este obligatoriu.",
+      "answerInvalid": "Raspuns invalid.",
+      "optionInvalid": "Optiune invalida.",
+      "minOneOption": "Alege cel putin o optiune.",
+      "tooManyOptions": "Prea multe optiuni selectate.",
+      "dimensionOutOfRange": "Dimensiune in afara intervalului permis.",
+      "numberOutOfRange": "Valoare in afara intervalului.",
+      "textTooLong": "Text prea lung.",
+      "minPieces": "Adauga cel putin o piesa.",
+      "maxPieces": "Prea multe piese.",
+      "tooManyFiles": "Prea multe fisiere atasate.",
+      "unknownAnswer": "Raspuns necunoscut."
+    },
+    "common": {
+      "boolean": {
+        "yes": "Da",
+        "no": "Nu"
+      },
+      "slots": {
+        "ceilingHeight": "Inaltime tavan"
+      },
+      "materials": {
+        "PAL": {
+          "label": "PAL",
+          "description": "Economic, rezistent, multe decoruri",
+          "info": {
+            "title": "PAL melaminat",
+            "body": "Placa aglomerata melaminata — cel mai bun raport pret/rezistenta pentru mobilier de corp.",
+            "pros1": "Cel mai accesibil pret",
+            "pros2": "Gama larga de decoruri",
+            "pros3": "Rezistent la zgarieturi",
+            "cons1": "Muchii mai putin fine fara cant ABS",
+            "cons2": "Sensibil la umiditate pe taieturi neprotejate",
+            "price": "250–450 lei/ml"
+          }
+        },
+        "MDF": {
+          "label": "MDF",
+          "description": "Fronturi vopsite sau folie, aspect premium",
+          "info": {
+            "title": "MDF vopsit/foliat",
+            "body": "Fibra de densitate medie — ideala pentru fronturi vopsite, frezate sau infoliate.",
+            "pros1": "Suprafata neteda, se vopseste excelent",
+            "pros2": "Permite freze si forme",
+            "pros3": "Aspect premium",
+            "cons1": "Pret mai mare decat PAL",
+            "cons2": "Mai greu",
+            "price": "450–800 lei/ml"
+          }
+        },
+        "LEMN_MASIV": {
+          "label": "Lemn masiv",
+          "description": "Natural, durabil, cel mai premium",
+          "info": {
+            "title": "Lemn masiv",
+            "body": "Lemn natural — cea mai durabila si valoroasa optiune, cu textura unica.",
+            "pros1": "Durabilitate excelenta",
+            "pros2": "Aspect natural, cald",
+            "pros3": "Se poate reconditiona",
+            "cons1": "Cel mai scump",
+            "cons2": "Se poate deforma la variatii de umiditate",
+            "price": "900–1800 lei/ml"
+          }
+        }
+      },
+      "systems": {
+        "PUSH": {
+          "label": "Push (fara manere)",
+          "description": "Deschidere prin apasare",
+          "info": {
+            "title": "Sistem Push-to-open",
+            "body": "Deschidere prin simpla apasare, fara manere — aspect minimalist.",
+            "pros1": "Fronturi curate, fara manere",
+            "pros2": "Aspect modern",
+            "cons1": "Amprente pe fronturi",
+            "cons2": "Reglaj mai sensibil",
+            "price": "+30–60 lei/front"
+          }
+        },
+        "GLISANTE": {
+          "label": "Glisante",
+          "description": "Usi sau sertare pe sine",
+          "info": {
+            "title": "Sisteme glisante",
+            "body": "Usi sau sertare pe sine — economisesc spatiu, ideale pentru dressing.",
+            "pros1": "Economisesc spatiu de deschidere",
+            "pros2": "Capacitate mare",
+            "cons1": "Sine de calitate = cost mai mare",
+            "cons2": "Necesita aliniere precisa",
+            "price": "+80–200 lei/set"
+          }
+        },
+        "BUTON_PRESIUNE": {
+          "label": "Buton presiune",
+          "description": "Amortizare simpla, cost redus",
+          "info": {
+            "title": "Buton cu presiune",
+            "body": "Mecanism simplu cu clic — cea mai economica optiune de deschidere fara manere.",
+            "pros1": "Cel mai ieftin",
+            "pros2": "Simplu de montat",
+            "cons1": "Durabilitate mai mica",
+            "cons2": "Fara amortizare la inchidere",
+            "price": "+10–30 lei/front"
+          }
+        }
+      }
+    },
+    "flows": {
+      "KITCHEN": {
+        "layout": {
+          "title": "Ce forma are bucataria?",
+          "subtitle": "Alege configuratia care se potriveste spatiului tau.",
+          "options": {
+            "STRAIGHT": {
+              "label": "Liniara",
+              "description": "Corpuri pe un singur perete",
+              "info": {
+                "title": "Bucatarie liniara",
+                "body": "Toate corpurile pe un perete — solutie compacta, potrivita spatiilor mici.",
+                "price": "4.000–9.000 lei",
+                "pros1": "Cea mai economica",
+                "pros2": "Ideala pentru spatii mici",
+                "pros3": "Montaj simplu",
+                "cons1": "Spatiu de lucru limitat",
+                "cons2": "Depozitare mai mica"
+              }
+            },
+            "L_SHAPE": {
+              "label": "In forma de L",
+              "description": "Corpuri pe doi pereti alaturati",
+              "info": {
+                "title": "Bucatarie in L",
+                "body": "Corpuri pe doi pereti — echilibru bun intre spatiu de lucru si circulatie.",
+                "price": "7.000–15.000 lei",
+                "pros1": "Triunghi de lucru eficient",
+                "pros2": "Buna pentru spatii medii",
+                "pros3": "Permite coltar de servire",
+                "cons1": "Coltul poate fi greu de accesat",
+                "cons2": "Necesita accesorii de colt"
+              }
+            },
+            "U_SHAPE": {
+              "label": "In forma de U",
+              "description": "Corpuri pe trei pereti",
+              "info": {
+                "title": "Bucatarie in U",
+                "body": "Corpuri pe trei laturi — maxim de depozitare si blat de lucru.",
+                "price": "12.000–25.000 lei",
+                "pros1": "Depozitare maxima",
+                "pros2": "Mult blat de lucru",
+                "pros3": "Multe zone de lucru",
+                "cons1": "Necesita spatiu mare",
+                "cons2": "Doua colturi de gestionat"
+              }
+            },
+            "PARALLEL": {
+              "label": "Paralela",
+              "description": "Corpuri pe doi pereti fata in fata",
+              "info": {
+                "title": "Bucatarie paralela",
+                "body": "Doua fronturi paralele — eficienta pentru bucatarii de trecere.",
+                "price": "9.000–18.000 lei",
+                "pros1": "Foarte eficienta la gatit",
+                "pros2": "Buna pentru doua persoane",
+                "cons1": "Necesita culoar de minim 1.2 m",
+                "cons2": "Fara colt de servire"
+              }
+            }
+          }
+        },
+        "hasIsland": {
+          "title": "Vrei si o insula?",
+          "subtitle": "Insula adauga blat, depozitare si un loc de servire.",
+          "info": {
+            "title": "Insula de bucatarie",
+            "body": "Un corp independent in mijloc — necesita spatiu de trecere de minim 1.2 m pe fiecare latura.",
+            "price": "+3.000–8.000 lei",
+            "pros1": "Blat si depozitare in plus",
+            "pros2": "Loc de servit masa",
+            "cons1": "Necesita spatiu generos",
+            "cons2": "Cost suplimentar"
+          }
+        },
+        "dimensions": {
+          "title": "Cateva dimensiuni",
+          "subtitle": "Masoara lungimea fronturilor si inaltimea camerei.",
+          "slots": {
+            "runA": "Lungime latura A",
+            "runB": "Lungime latura B",
+            "runC": "Lungime latura C",
+            "islandLength": "Lungime insula",
+            "islandDepth": "Adancime insula"
+          }
+        },
+        "cabinetZones": {
+          "title": "Ce zone de corpuri incluzi?",
+          "subtitle": "Alege tipurile de corpuri de care ai nevoie.",
+          "options": {
+            "BASE_UNITS": {
+              "label": "Corpuri baza",
+              "description": "Sub blat"
+            },
+            "WALL_UNITS": {
+              "label": "Corpuri suspendate",
+              "description": "Pe perete"
+            },
+            "TALL_PANTRY": {
+              "label": "Coloane / camara",
+              "description": "Depozitare inalta"
+            },
+            "ISLAND_UNITS": {
+              "label": "Corpuri insula",
+              "description": "In insula"
+            }
+          }
+        },
+        "frontMaterial": {
+          "title": "Ce material pentru fronturi?",
+          "subtitle": "Materialul influenteaza aspectul si pretul."
+        },
+        "frontMaterialBase": {
+          "title": "Ce material pentru corpurile de baza?",
+          "subtitle": "Corpurile de jos — materialul influenteaza aspectul si pretul."
+        },
+        "frontMaterialWall": {
+          "title": "Ce material pentru corpurile suspendate?",
+          "subtitle": "Corpurile de sus pot avea alt material."
+        },
+        "frontMaterialIsland": {
+          "title": "Ce material pentru insula?",
+          "subtitle": "Insula poate iesi in evidenta cu materialul ei."
+        },
+        "openingSystems": {
+          "title": "Ce sisteme de deschidere?",
+          "subtitle": "Poti alege mai multe."
+        },
+        "openingSystemsBase": {
+          "title": "Ce sistem de deschidere pentru corpurile de baza?",
+          "subtitle": "Poti alege mai multe."
+        },
+        "openingSystemsWall": {
+          "title": "Ce sistem de deschidere pentru corpurile suspendate?",
+          "subtitle": "Poti alege mai multe."
+        },
+        "openingSystemsIsland": {
+          "title": "Ce sistem de deschidere pentru insula?",
+          "subtitle": "Poti alege mai multe."
+        },
+        "sketch": {
+          "title": "Incarca proiectul sau schita ta",
+          "subtitle": "Optional — o schita sau un plan pentru aceasta bucatarie ajuta firmele sa oferteze precis."
+        },
+        "countertop": {
+          "title": "Ce blat preferi?",
+          "subtitle": "Optional — ajuta firma sa estimeze mai exact.",
+          "options": {
+            "LAMINATE": {
+              "label": "Laminat (HPL)",
+              "description": "Economic, multe modele",
+              "info": {
+                "title": "Blat laminat",
+                "body": "Blat din PAL laminat — economic si cu multe decoruri.",
+                "price": "150–350 lei/ml",
+                "pros1": "Cel mai accesibil",
+                "pros2": "Multe decoruri",
+                "cons1": "Sensibil la zgarieturi adanci",
+                "cons2": "Nu suporta caldura directa"
+              }
+            },
+            "QUARTZ": {
+              "label": "Cuart compozit",
+              "description": "Rezistent, aspect premium",
+              "info": {
+                "title": "Blat cuart",
+                "body": "Piatra compozita — foarte rezistenta si igienica.",
+                "price": "600–1200 lei/ml",
+                "pros1": "Foarte rezistent",
+                "pros2": "Neporos, igienic",
+                "cons1": "Pret ridicat",
+                "cons2": "Greu"
+              }
+            },
+            "GRANITE": {
+              "label": "Granit",
+              "description": "Natural, foarte durabil",
+              "info": {
+                "title": "Blat granit",
+                "body": "Piatra naturala — durabila, cu textura unica.",
+                "price": "700–1400 lei/ml",
+                "pros1": "Foarte durabil",
+                "pros2": "Aspect natural",
+                "cons1": "Necesita intretinere",
+                "cons2": "Pret ridicat"
+              }
+            },
+            "WOOD": {
+              "label": "Lemn",
+              "description": "Cald, natural",
+              "info": {
+                "title": "Blat lemn",
+                "body": "Lemn masiv — aspect cald, necesita ulei periodic.",
+                "price": "400–900 lei/ml",
+                "pros1": "Aspect cald",
+                "pros2": "Se poate reconditiona",
+                "cons1": "Necesita intretinere",
+                "cons2": "Sensibil la apa"
+              }
+            }
+          }
+        },
+        "appliances": {
+          "title": "Ce electrocasnice incorporezi?",
+          "subtitle": "Optional — ajuta la decupaje si nise.",
+          "options": {
+            "OVEN": {
+              "label": "Cuptor"
+            },
+            "HOB": {
+              "label": "Plita"
+            },
+            "HOOD": {
+              "label": "Hota"
+            },
+            "DISHWASHER": {
+              "label": "Masina de spalat vase"
+            },
+            "FRIDGE": {
+              "label": "Frigider"
+            },
+            "MICROWAVE": {
+              "label": "Cuptor cu microunde"
+            }
+          }
+        },
+        "extraPieces": {
+          "title": "Piese suplimentare",
+          "subtitle": "Optional — adauga corpuri speciale sau accesorii."
+        },
+        "notes": {
+          "title": "Alte detalii?",
+          "subtitle": "Optional — orice preferinta sau observatie pentru firme."
+        }
+      },
+      "PIECES": {
+        "pieces": {
+          "title": "Ce piese ai nevoie?",
+          "subtitle": "Adauga fiecare piesa cu material si cantitate."
+        },
+        "sketch": {
+          "title": "Incarca proiectul sau schita ta",
+          "subtitle": "Optional — o schita sau un plan ajuta firmele sa oferteze precis."
+        }
+      },
+      "DRESSING": {
+        "layout": {
+          "title": "Ce forma are dressingul?",
+          "subtitle": "Alege configuratia spatiului.",
+          "options": {
+            "LINEAR": {
+              "label": "Liniar",
+              "description": "Pe un perete",
+              "info": {
+                "title": "Dressing liniar",
+                "body": "Module pe un singur perete — compact.",
+                "price": "3.000–7.000 lei",
+                "pros1": "Compact",
+                "pros2": "Economic",
+                "cons1": "Capacitate limitata"
+              }
+            },
+            "L_SHAPE": {
+              "label": "In L",
+              "description": "Pe doi pereti",
+              "info": {
+                "title": "Dressing in L",
+                "body": "Module pe doi pereti — bun echilibru.",
+                "price": "5.000–11.000 lei",
+                "pros1": "Capacitate buna",
+                "pros2": "Foloseste coltul",
+                "cons1": "Colt mai greu accesibil"
+              }
+            },
+            "U_SHAPE": {
+              "label": "In U",
+              "description": "Pe trei pereti",
+              "info": {
+                "title": "Dressing in U",
+                "body": "Module pe trei laturi — capacitate maxima.",
+                "price": "8.000–16.000 lei",
+                "pros1": "Capacitate maxima",
+                "pros2": "Multe zone",
+                "cons1": "Necesita spatiu mare"
+              }
+            },
+            "WALK_IN": {
+              "label": "Walk-in",
+              "description": "Camera dedicata",
+              "info": {
+                "title": "Dressing walk-in",
+                "body": "Camera dedicata cu module pe mai multi pereti.",
+                "price": "9.000–20.000 lei",
+                "pros1": "Foarte spatios",
+                "pros2": "Confortabil",
+                "cons1": "Necesita camera proprie"
+              }
+            }
+          }
+        },
+        "doorType": {
+          "title": "Ce tip de usi?",
+          "subtitle": "Alege sistemul de acces.",
+          "options": {
+            "SLIDING": {
+              "label": "Glisante",
+              "description": "Economisesc spatiu",
+              "info": {
+                "title": "Usi glisante",
+                "body": "Usi pe sine — nu ocupa spatiu la deschidere.",
+                "price": "+800–2.000 lei",
+                "pros1": "Economisesc spatiu",
+                "pros2": "Aspect modern",
+                "cons1": "Sine de calitate = cost"
+              }
+            },
+            "HINGED": {
+              "label": "Batante",
+              "description": "Clasice, acces total",
+              "info": {
+                "title": "Usi batante",
+                "body": "Usi clasice pe balamale — acces complet la interior.",
+                "price": "+300–900 lei",
+                "pros1": "Acces total",
+                "pros2": "Cost redus",
+                "cons1": "Necesita spatiu de deschidere"
+              }
+            },
+            "OPEN": {
+              "label": "Fara usi",
+              "description": "Module deschise",
+              "info": {
+                "title": "Dressing deschis",
+                "body": "Module fara usi — acces rapid, aspect airy.",
+                "price": "inclus",
+                "pros1": "Acces rapid",
+                "pros2": "Cost minim",
+                "cons1": "Praf pe haine"
+              }
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensiuni dressing",
+          "subtitle": "Lungimea fronturilor si inaltimea.",
+          "slots": {
+            "runA": "Lungime latura A",
+            "runB": "Lungime latura B",
+            "runC": "Lungime latura C"
+          }
+        },
+        "interiorModules": {
+          "title": "Ce module interioare?",
+          "subtitle": "Optional — organizarea interiorului.",
+          "options": {
+            "HANGING_RODS": {
+              "label": "Bare de agatat"
+            },
+            "DRAWERS": {
+              "label": "Sertare"
+            },
+            "SHELVES": {
+              "label": "Rafturi"
+            },
+            "SHOE_RACK": {
+              "label": "Suport pantofi"
+            }
+          }
+        },
+        "material": {
+          "title": "Ce material?",
+          "subtitle": "Materialul modulelor."
+        },
+        "notes": {
+          "title": "Alte detalii?",
+          "subtitle": "Optional."
+        }
+      },
+      "BEDROOM": {
+        "piecesNeeded": {
+          "title": "Ce piese ai nevoie?",
+          "subtitle": "Alege mobilierul pentru dormitor.",
+          "options": {
+            "WARDROBE": {
+              "label": "Dulap",
+              "description": "Depozitare haine"
+            },
+            "BED_FRAME": {
+              "label": "Cadru pat",
+              "description": "Structura pat"
+            },
+            "NIGHTSTANDS": {
+              "label": "Noptiere",
+              "description": "Langa pat"
+            },
+            "DRESSER": {
+              "label": "Comoda",
+              "description": "Sertare"
+            },
+            "TV_UNIT": {
+              "label": "Comoda TV",
+              "description": "Sub televizor"
+            }
+          }
+        },
+        "material": {
+          "title": "Ce material?",
+          "subtitle": "Materialul mobilierului."
+        },
+        "openingSystems": {
+          "title": "Sisteme de deschidere?",
+          "subtitle": "Optional — pentru dulap si sertare."
+        },
+        "dimensions": {
+          "title": "Dimensiuni",
+          "subtitle": "Spatiul disponibil si inaltimea.",
+          "slots": {
+            "spaceWidth": "Latime spatiu",
+            "wardrobeWidth": "Latime dulap"
+          }
+        },
+        "notes": {
+          "title": "Alte detalii?",
+          "subtitle": "Optional."
+        }
+      },
+      "LIVING": {
+        "piecesNeeded": {
+          "title": "Ce piese ai nevoie?",
+          "subtitle": "Alege mobilierul pentru living.",
+          "options": {
+            "TV_UNIT": {
+              "label": "Comoda TV",
+              "description": "Sub televizor"
+            },
+            "BOOKSHELF": {
+              "label": "Biblioteca",
+              "description": "Rafturi carti"
+            },
+            "DISPLAY_CABINET": {
+              "label": "Vitrina",
+              "description": "Expunere"
+            },
+            "COFFEE_TABLE": {
+              "label": "Masuta cafea",
+              "description": "Centru living"
+            }
+          }
+        },
+        "material": {
+          "title": "Ce material?",
+          "subtitle": "Materialul mobilierului."
+        },
+        "openingSystems": {
+          "title": "Sisteme de deschidere?",
+          "subtitle": "Optional."
+        },
+        "dimensions": {
+          "title": "Dimensiuni",
+          "subtitle": "Latimea peretelui si inaltimea.",
+          "slots": {
+            "wallWidth": "Latime perete"
+          }
+        },
+        "notes": {
+          "title": "Alte detalii?",
+          "subtitle": "Optional."
+        }
+      },
+      "OFFICE": {
+        "piecesNeeded": {
+          "title": "Ce piese ai nevoie?",
+          "subtitle": "Alege mobilierul pentru birou.",
+          "options": {
+            "DESK": {
+              "label": "Birou",
+              "description": "Spatiu de lucru"
+            },
+            "BOOKSHELF": {
+              "label": "Biblioteca",
+              "description": "Rafturi"
+            },
+            "STORAGE": {
+              "label": "Dulap depozitare",
+              "description": "Documente si obiecte"
+            }
+          }
+        },
+        "deskShape": {
+          "title": "Ce forma are biroul?",
+          "subtitle": "Configuratia blatului de lucru.",
+          "options": {
+            "STRAIGHT": {
+              "label": "Drept",
+              "description": "Un singur blat"
+            },
+            "L_SHAPE": {
+              "label": "In L",
+              "description": "Doua blaturi in colt"
+            }
+          }
+        },
+        "material": {
+          "title": "Ce material?",
+          "subtitle": "Materialul mobilierului."
+        },
+        "openingSystems": {
+          "title": "Sisteme de deschidere?",
+          "subtitle": "Optional."
+        },
+        "dimensions": {
+          "title": "Dimensiuni",
+          "subtitle": "Spatiul disponibil si biroul.",
+          "slots": {
+            "spaceWidth": "Latime spatiu",
+            "deskWidth": "Latime birou",
+            "deskWidthA": "Latime birou A",
+            "deskWidthB": "Latime birou B"
+          }
+        },
+        "notes": {
+          "title": "Alte detalii?",
+          "subtitle": "Optional."
+        }
+      },
+      "BATHROOM": {
+        "piecesNeeded": {
+          "title": "Ce piese ai nevoie?",
+          "subtitle": "Alege mobilierul pentru baie.",
+          "options": {
+            "VANITY_UNIT": {
+              "label": "Corp lavoar",
+              "description": "Sub chiuveta"
+            },
+            "MIRROR_CABINET": {
+              "label": "Dulap oglinda",
+              "description": "Cu depozitare"
+            },
+            "TALL_STORAGE": {
+              "label": "Coloana",
+              "description": "Depozitare inalta"
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensiuni",
+          "subtitle": "Latimea fiecarei piese selectate, plus inaltimea tavanului.",
+          "slots": {
+            "vanityWidth": "Latime lavoar",
+            "mirrorWidth": "Latime dulap oglinda",
+            "tallStorageWidth": "Latime coloana"
+          }
+        },
+        "ventilation": {
+          "title": "Baia este ventilata?",
+          "subtitle": "Ventilatia conteaza la alegerea materialelor.",
+          "options": {
+            "WINDOW": {
+              "label": "Geam",
+              "description": "Ventilatie naturala"
+            },
+            "FAN": {
+              "label": "Ventilator",
+              "description": "Ventilatie mecanica"
+            },
+            "NONE": {
+              "label": "Neventilata",
+              "description": "Fara geam sau ventilator"
+            }
+          },
+          "info": {
+            "title": "De ce conteaza ventilatia",
+            "body": "Intr-o baie fara ventilatie, umiditatea se acumuleaza si afecteaza mobilierul. In acest caz recomandam MDF, care rezista mai bine la umezeala — dar alegerea finala iti apartine."
+          }
+        },
+        "material": {
+          "title": "Ce material?",
+          "subtitle": "Recomandare pentru mediu umed.",
+          "info": {
+            "title": "Material pentru baie",
+            "body": "Recomandam MDF vopsit sau foliat, rezistent la umiditate. Evita PAL neprotejat in zonele expuse la apa."
+          }
+        },
+        "materialVanity": {
+          "title": "Ce material pentru corpul de lavoar?",
+          "subtitle": "Piesa cea mai expusa la apa."
+        },
+        "materialMirror": {
+          "title": "Ce material pentru dulapul cu oglinda?",
+          "subtitle": "Poate diferi de celelalte piese."
+        },
+        "materialTall": {
+          "title": "Ce material pentru coloana?",
+          "subtitle": "Poate diferi de celelalte piese."
+        },
+        "sketch": {
+          "title": "Incarca proiectul sau schita ta",
+          "subtitle": "Optional — o schita sau un plan pentru aceasta baie ajuta firmele sa oferteze precis."
+        },
+        "notes": {
+          "title": "Alte detalii?",
+          "subtitle": "Optional."
+        }
+      }
     }
   }
 }

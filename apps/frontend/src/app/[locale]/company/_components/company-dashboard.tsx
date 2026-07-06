@@ -9,13 +9,20 @@ import {
   type OfferFieldPermissionEntry,
   type PortfolioItemInput,
 } from '@marketplace/shared';
+import { Plus, X } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Link } from '@/i18n/routing';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import {
   useAddLocation,
   useAddMember,
   useAddPortfolioItem,
+  useChangeMemberRole,
   useDeleteLocation,
   useDeletePortfolioItem,
   useRemoveMember,
@@ -89,18 +96,22 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+const EMPTY_LOCATION: CompanyLocationInput = {
+  addressText: '',
+  county: '',
+  city: '',
+  lat: 0,
+  lng: 0,
+  coverageRadiusKm: 50,
+};
+
 function LocationsSection({ company, canManage }: { company: CompanyDto; canManage: boolean }) {
   const t = useTranslations('Company');
   const add = useAddLocation();
   const del = useDeleteLocation();
-  const [form, setForm] = useState<CompanyLocationInput>({
-    addressText: '',
-    county: '',
-    city: '',
-    lat: 0,
-    lng: 0,
-    coverageRadiusKm: 50,
-  });
+  // formularul apare doar la apasarea butonului "+ Adauga locatie"
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState<CompanyLocationInput>(EMPTY_LOCATION);
 
   return (
     <Section title={t('locations')}>
@@ -109,7 +120,8 @@ function LocationsSection({ company, canManage }: { company: CompanyDto; canMana
         {company.locations.map((l) => (
           <li key={l.id} className="flex items-center justify-between rounded-md border border-border bg-surface-2 px-3 py-2 text-sm">
             <span>
-              {l.addressText}, {l.city}, {l.county} · {t('coverageRadiusKm')}: {l.coverageRadiusKm}
+              {l.addressText}, {l.city}, {l.county}, {t('countryRomania')} ·{' '}
+              {t('coverageRadiusLabel', { km: l.coverageRadiusKm })}
             </span>
             {canManage && (
               <button onClick={() => del.mutate(l.id)} className="text-crimson hover:underline">
@@ -120,110 +132,175 @@ function LocationsSection({ company, canManage }: { company: CompanyDto; canMana
         ))}
       </ul>
 
-      {canManage && (
-        <div className="grid grid-cols-2 gap-2 border-t border-border pt-3">
-          <input
-            placeholder={t('addressText')}
-            className="col-span-2 rounded-md border border-border-2 bg-surface px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:border-foreground"
-            value={form.addressText}
-            onChange={(e) => setForm({ ...form, addressText: e.target.value })}
-          />
-          <input
-            placeholder={t('county')}
-            className="rounded-md border border-border-2 bg-surface px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:border-foreground"
-            value={form.county}
-            onChange={(e) => setForm({ ...form, county: e.target.value })}
-          />
-          <input
-            placeholder={t('city')}
-            className="rounded-md border border-border-2 bg-surface px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:border-foreground"
-            value={form.city}
-            onChange={(e) => setForm({ ...form, city: e.target.value })}
-          />
-          <input
-            type="number"
-            step="any"
-            placeholder={t('lat')}
-            className="rounded-md border border-border-2 bg-surface px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:border-foreground"
-            value={form.lat}
-            onChange={(e) => setForm({ ...form, lat: Number(e.target.value) })}
-          />
-          <input
-            type="number"
-            step="any"
-            placeholder={t('lng')}
-            className="rounded-md border border-border-2 bg-surface px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:border-foreground"
-            value={form.lng}
-            onChange={(e) => setForm({ ...form, lng: Number(e.target.value) })}
-          />
-          <input
-            type="number"
-            step="any"
-            placeholder={t('coverageRadiusKm')}
-            className="rounded-md border border-border-2 bg-surface px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:border-foreground"
-            value={form.coverageRadiusKm}
-            onChange={(e) => setForm({ ...form, coverageRadiusKm: Number(e.target.value) })}
-          />
-          <button
-            onClick={() => add.mutate(form)}
-            disabled={add.isPending}
-            className="col-span-2 rounded-md bg-foreground px-3 py-1.5 text-sm font-medium text-background transition-colors hover:bg-ink-2 disabled:opacity-50"
-          >
-            {t('addLocation')}
-          </button>
+      {canManage && !adding && (
+        <Button variant="secondary" size="sm" className="self-start" onClick={() => setAdding(true)}>
+          <Plus className="mr-1 h-4 w-4" />
+          {t('addLocation')}
+        </Button>
+      )}
+
+      {canManage && adding && (
+        <div className="flex flex-col gap-3 border-t border-border pt-3">
+          <Field label={t('addressText')}>
+            <Input
+              value={form.addressText}
+              onChange={(e) => setForm({ ...form, addressText: e.target.value })}
+            />
+          </Field>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label={t('county')}>
+              <Input value={form.county} onChange={(e) => setForm({ ...form, county: e.target.value })} />
+            </Field>
+            <Field label={t('city')}>
+              <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+            </Field>
+            <Field label={t('country')}>
+              <Input value={t('countryRomania')} disabled readOnly />
+            </Field>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label={t('lat')} hint={t('latHint')}>
+              <Input
+                type="number"
+                step="any"
+                value={form.lat}
+                onChange={(e) => setForm({ ...form, lat: Number(e.target.value) })}
+              />
+            </Field>
+            <Field label={t('lng')} hint={t('lngHint')}>
+              <Input
+                type="number"
+                step="any"
+                value={form.lng}
+                onChange={(e) => setForm({ ...form, lng: Number(e.target.value) })}
+              />
+            </Field>
+            <Field label={t('coverageRadiusKm')} hint={t('coverageRadiusHint')}>
+              <Input
+                type="number"
+                step="any"
+                value={form.coverageRadiusKm}
+                onChange={(e) => setForm({ ...form, coverageRadiusKm: Number(e.target.value) })}
+              />
+            </Field>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={() =>
+                add.mutate(form, {
+                  onSuccess: () => {
+                    setForm(EMPTY_LOCATION);
+                    setAdding(false);
+                  },
+                })
+              }
+              disabled={add.isPending}
+            >
+              {t('addLocation')}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setAdding(false)}>
+              <X className="mr-1 h-4 w-4" />
+              {t('cancel')}
+            </Button>
+          </div>
         </div>
       )}
     </Section>
   );
 }
 
+// Tonuri de badge per rol — managerul si angajatii se disting dintr-o privire.
+const ROLE_TONE: Record<string, 'walnut' | 'sage' | 'info' | 'muted'> = {
+  OWNER: 'walnut',
+  MANAGER: 'sage',
+  EMPLOYEE_TRUSTED: 'info',
+  EMPLOYEE_MANAGED: 'muted',
+};
+
 function TeamSection({ company, canManage }: { company: CompanyDto; canManage: boolean }) {
   const t = useTranslations('Company');
   const add = useAddMember();
   const remove = useRemoveMember();
+  const changeRole = useChangeMemberRole();
+  const [adding, setAdding] = useState(false);
   const [form, setForm] = useState<CompanyMemberInviteInput>({ email: '', role: 'EMPLOYEE_MANAGED' });
 
   return (
     <Section title={t('team')}>
       <ul className="flex flex-col gap-2">
         {company.members.map((m) => (
-          <li key={m.id} className="flex items-center justify-between rounded-md border border-border bg-surface-2 px-3 py-2 text-sm">
-            <span>
-              {m.name} · {m.email} · <strong>{t(`roleValue.${m.role}`)}</strong>
+          <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-surface-2 px-3 py-2 text-sm">
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="truncate">
+                {m.name} · {m.email}
+              </span>
+              <Badge tone={ROLE_TONE[m.role] ?? 'muted'}>{t(`roleValue.${m.role}`)}</Badge>
             </span>
             {canManage && m.role !== 'OWNER' && (
-              <button onClick={() => remove.mutate(m.id)} className="text-crimson hover:underline">
-                {t('removeMember')}
-              </button>
+              <span className="flex items-center gap-3">
+                {/* schimbare rol: promovare/retrogradare fara stergere (PO overhaul) */}
+                <Select
+                  className="h-8 w-auto py-0 text-xs"
+                  value={m.role}
+                  disabled={changeRole.isPending}
+                  onChange={(e) => changeRole.mutate({ id: m.id, role: e.target.value as CompanyMemberInviteInput['role'] })}
+                >
+                  <option value="MANAGER">{t('roleValue.MANAGER')}</option>
+                  <option value="EMPLOYEE_TRUSTED">{t('roleValue.EMPLOYEE_TRUSTED')}</option>
+                  <option value="EMPLOYEE_MANAGED">{t('roleValue.EMPLOYEE_MANAGED')}</option>
+                </Select>
+                <button onClick={() => remove.mutate(m.id)} className="text-crimson hover:underline">
+                  {t('removeMember')}
+                </button>
+              </span>
             )}
           </li>
         ))}
       </ul>
 
-      {canManage && (
-        <div className="grid grid-cols-3 gap-2 border-t border-border pt-3">
-          <input
-            placeholder={t('memberEmail')}
-            className="rounded-md border border-border-2 bg-surface px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:border-foreground"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-          />
-          <select
-            className="rounded-md border border-border-2 bg-surface px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:border-foreground"
-            value={form.role}
-            onChange={(e) => setForm({ ...form, role: e.target.value as CompanyMemberInviteInput['role'] })}
-          >
-            <option value="MANAGER">{t('roleValue.MANAGER')}</option>
-            <option value="EMPLOYEE_TRUSTED">{t('roleValue.EMPLOYEE_TRUSTED')}</option>
-            <option value="EMPLOYEE_MANAGED">{t('roleValue.EMPLOYEE_MANAGED')}</option>
-          </select>
-          <button
-            onClick={() => add.mutate(form)}
-            disabled={add.isPending}
-            className="rounded-md bg-foreground px-3 py-1.5 text-sm font-medium text-background transition-colors hover:bg-ink-2 disabled:opacity-50"
-          >
-            {t('addMember')}
-          </button>
+      {canManage && !adding && (
+        <Button variant="secondary" size="sm" className="self-start" onClick={() => setAdding(true)}>
+          <Plus className="mr-1 h-4 w-4" />
+          {t('addMember')}
+        </Button>
+      )}
+
+      {canManage && adding && (
+        <div className="flex flex-col gap-3 border-t border-border pt-3 sm:flex-row sm:items-end">
+          <Field label={t('memberEmail')} className="flex-1">
+            <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          </Field>
+          <Field label={t('memberRole')}>
+            <Select
+              value={form.role}
+              onChange={(e) => setForm({ ...form, role: e.target.value as CompanyMemberInviteInput['role'] })}
+            >
+              <option value="MANAGER">{t('roleValue.MANAGER')}</option>
+              <option value="EMPLOYEE_TRUSTED">{t('roleValue.EMPLOYEE_TRUSTED')}</option>
+              <option value="EMPLOYEE_MANAGED">{t('roleValue.EMPLOYEE_MANAGED')}</option>
+            </Select>
+          </Field>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={() =>
+                add.mutate(form, {
+                  onSuccess: () => {
+                    setForm({ email: '', role: 'EMPLOYEE_MANAGED' });
+                    setAdding(false);
+                  },
+                })
+              }
+              disabled={add.isPending}
+            >
+              {t('addMember')}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setAdding(false)}>
+              <X className="mr-1 h-4 w-4" />
+              {t('cancel')}
+            </Button>
+          </div>
         </div>
       )}
     </Section>
@@ -297,6 +374,13 @@ function OfferPermissionsSection({ company, isOwner }: { company: CompanyDto; is
   for (const p of company.offerFieldPermissions) initial[`${p.role}|${p.fieldKey}`] = p.canEdit;
   const [matrix, setMatrix] = useState<Record<string, boolean>>(initial);
 
+  // dirty = matricea locala difera de cea salvata (buton Save activ + avertizare)
+  const isDirty = COMPANY_MEMBER_ROLES.some((role) =>
+    OFFER_FIELD_KEYS.some(
+      (field) => (matrix[`${role}|${field}`] ?? false) !== (initial[`${role}|${field}`] ?? false),
+    ),
+  );
+
   const toggle = (role: string, field: string) => {
     if (!isOwner) return;
     setMatrix((m) => ({ ...m, [`${role}|${field}`]: !m[`${role}|${field}`] }));
@@ -347,13 +431,29 @@ function OfferPermissionsSection({ company, isOwner }: { company: CompanyDto; is
         </table>
       </div>
       {isOwner && (
-        <button
-          onClick={save}
-          disabled={update.isPending}
-          className="self-start rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-ink-2 disabled:opacity-50"
-        >
-          {t('savePermissions')}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={save}
+            disabled={update.isPending || !isDirty}
+            className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-ink-2 disabled:opacity-50"
+          >
+            {t('savePermissions')}
+          </button>
+          {isDirty && (
+            <>
+              <span className="text-sm text-amber">{t('unsavedChanges')}</span>
+              <button
+                onClick={() => setMatrix(initial)}
+                className="text-sm text-muted-foreground hover:underline"
+              >
+                {t('discardChanges')}
+              </button>
+            </>
+          )}
+          {update.isSuccess && !isDirty && (
+            <span className="text-sm text-sage">{t('permissionsSaved')}</span>
+          )}
+        </div>
       )}
     </Section>
   );

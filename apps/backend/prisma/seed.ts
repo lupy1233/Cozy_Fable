@@ -12,6 +12,8 @@ const SIZING_CONFIG: { key: string; option: string; weight: number }[] = [
   { key: 'ROOM_TYPE', option: 'BEDROOM', weight: 4 },
   { key: 'ROOM_TYPE', option: 'OFFICE', weight: 3 },
   { key: 'ROOM_TYPE', option: 'BATHROOM', weight: 3 },
+  // piese individuale (tab separat in configurator, fara camera dedicata)
+  { key: 'ROOM_TYPE', option: 'PIECES', weight: 1 },
   // ROOM_SIZE (metri liniari = length_m)
   { key: 'ROOM_SIZE', option: 'UNDER_2M', weight: 1 },
   { key: 'ROOM_SIZE', option: 'FROM_2_TO_4M', weight: 3 },
@@ -30,10 +32,23 @@ const SIZING_CONFIG: { key: string; option: string; weight: number }[] = [
   { key: 'ITEM_QUANTITY', option: 'QTY_4_PLUS', weight: 4 },
   // PAID_DESIGN
   { key: 'PAID_DESIGN', option: 'YES', weight: 2 },
+  // Configurator — scoring per raspuns (referite din flow config prin ScoringRef)
+  { key: 'KITCHEN_LAYOUT', option: 'STRAIGHT', weight: 1 },
+  { key: 'KITCHEN_LAYOUT', option: 'L_SHAPE', weight: 2 },
+  { key: 'KITCHEN_LAYOUT', option: 'U_SHAPE', weight: 3 },
+  { key: 'KITCHEN_LAYOUT', option: 'PARALLEL', weight: 2 },
+  { key: 'KITCHEN_ISLAND', option: 'YES', weight: 2 },
+  // placeholder admin: blatul nu puncteaza in seed, dar e ajustabil fara deploy
+  { key: 'KITCHEN_COUNTERTOP', option: 'LAMINATE', weight: 0 },
+  { key: 'KITCHEN_COUNTERTOP', option: 'QUARTZ', weight: 0 },
+  { key: 'KITCHEN_COUNTERTOP', option: 'GRANITE', weight: 0 },
+  { key: 'KITCHEN_COUNTERTOP', option: 'WOOD', weight: 0 },
   // BUDGET
   { key: 'BUDGET', option: 'UNDER_5K', weight: 1 },
   { key: 'BUDGET', option: 'FROM_5K_TO_15K', weight: 3 },
   { key: 'BUDGET', option: 'OVER_15K', weight: 5 },
+  // buget nedivulgat: nu influenteaza scorul
+  { key: 'BUDGET', option: 'UNDISCLOSED', weight: 0 },
 ];
 
 const THRESHOLDS: {

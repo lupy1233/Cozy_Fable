@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Put } from '@nestjs/
 import { UserRole } from '@prisma/client';
 import { AccessTokenPayload } from '../auth/auth.constants';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CompaniesService } from './companies.service';
 import {
@@ -20,6 +21,15 @@ import {
 export class CompaniesController {
   constructor(private readonly companies: CompaniesService) {}
 
+  // Lista publica de parteneri (landing /partners): @Public sare peste auth,
+  // @Roles() gol suprascrie rolul de la nivel de clasa (getAllAndOverride).
+  @Public()
+  @Roles()
+  @Get('partners')
+  partners() {
+    return this.companies.listPartners();
+  }
+
   @Post()
   onboard(@CurrentUser() user: AccessTokenPayload, @Body() dto: OnboardCompanyDto) {
     return this.companies.onboard(user.sub, user.email, dto);
@@ -28,6 +38,11 @@ export class CompaniesController {
   @Get('me')
   getMine(@CurrentUser() user: AccessTokenPayload) {
     return this.companies.getMyCompany(user.sub);
+  }
+
+  @Get('me/dashboard-stats')
+  dashboardStats(@CurrentUser() user: AccessTokenPayload) {
+    return this.companies.dashboardStats(user.sub);
   }
 
   @Patch('me')

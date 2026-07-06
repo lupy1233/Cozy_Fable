@@ -4,6 +4,7 @@ import { BillingModule } from '../billing/billing.module';
 import { GeoModule } from '../geo/geo.module';
 import { SizingModule } from '../sizing/sizing.module';
 import { UploadsModule } from '../uploads/uploads.module';
+import { ConfiguratorService } from './configurator.service';
 import { RequestExpirationProcessor } from './request-expiration.processor';
 import { RequestsController } from './requests.controller';
 import { RequestsService } from './requests.service';
@@ -11,6 +12,6 @@ import { RequestsService } from './requests.service';
 @Module({
   imports: [AuthModule, BillingModule, GeoModule, SizingModule, UploadsModule],
   controllers: [RequestsController],
-  providers: [RequestsService, RequestExpirationProcessor],
+  providers: [RequestsService, ConfiguratorService, RequestExpirationProcessor],
 })
 export class RequestsModule {}

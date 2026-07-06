@@ -153,3 +153,31 @@ export interface AdminCompanyListItemDto {
   locationCount: number;
   portfolioCount: number;
 }
+
+// Statistici pentru dashboardul firmei (agregate server-side).
+export interface CompanyDashboardStatsDto {
+  claimsTotal: number;
+  claimsActive: number;
+  claimsByStatus: Partial<Record<string, number>>;
+  // claim-uri active per membru (assignedTo; null = neatribuite, afisate separat)
+  perMember: { userId: string | null; name: string | null; activeClaims: number }[];
+  // oferte trimise/acceptate + valoarea totala a ultimei versiuni per oferta
+  quotesSent: number;
+  quotesTotalRon: number;
+  wallet: { balance: number; reserved: number; available: number };
+  creditsConsumed7d: number;
+  creditsConsumed30d: number;
+  activePenaltyPoints: number;
+}
+
+// Partener afisat public pe landing (/partners): firma APPROVED + portofoliu.
+// Ratingul Google vine ulterior (integrare externa) — deocamdata placeholder null.
+export interface PartnerDto {
+  id: string;
+  name: string;
+  city: string;
+  county: string;
+  memberSince: string;
+  rating: number | null;
+  portfolio: { title: string; imageUrl: string | null }[];
+}

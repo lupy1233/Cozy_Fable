@@ -301,10 +301,20 @@ export class ClaimsService {
   async listMine(companyId: string): Promise<ClaimSlotDto[]> {
     const slots = await this.prisma.claimSlot.findMany({
       where: { companyId },
-      include: { chatThread: true },
+      include: {
+        chatThread: true,
+        request: { select: { title: true } },
+        claimedBy: { select: { name: true } },
+        assignedTo: { select: { name: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
-    return slots.map((s) => this.toDto(s, s.chatThread?.id ?? ''));
+    return slots.map((s) => ({
+      ...this.toDto(s, s.chatThread?.id ?? ''),
+      requestTitle: s.request?.title ?? null,
+      claimedByName: s.claimedBy?.name ?? null,
+      assignedToName: s.assignedTo?.name ?? null,
+    }));
   }
 
   // --- helpers ---
