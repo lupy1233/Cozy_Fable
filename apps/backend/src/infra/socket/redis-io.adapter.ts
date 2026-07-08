@@ -12,8 +12,8 @@ export class RedisIoAdapter extends IoAdapter {
     super(app);
   }
 
-  async connectToRedis(host: string, port: number): Promise<void> {
-    const pubClient = new Redis({ host, port });
+  async connectToRedis(host: string, port: number, password?: string): Promise<void> {
+    const pubClient = new Redis({ host, port, password: password || undefined, family: 0 });
     const subClient = pubClient.duplicate();
     this.adapterConstructor = createAdapter(pubClient, subClient);
   }

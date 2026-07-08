@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+**/.next
+**/dist
+.git
+.claude
+Design
+docs/*.docx
+**/.env
+**/.env.local
+**/.env.production
+dev-infra

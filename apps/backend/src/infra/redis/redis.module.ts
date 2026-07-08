@@ -14,6 +14,8 @@ export const REDIS_CLIENT = Symbol('REDIS_CLIENT');
         new Redis({
           host: config.getOrThrow<string>('REDIS_HOST'),
           port: config.getOrThrow<number>('REDIS_PORT'),
+          password: config.get<string>('REDIS_PASSWORD') || undefined,
+          family: 0, // dual-stack DNS (IPv6 private networking pe hosting managed)
           maxRetriesPerRequest: 3,
         }),
     },

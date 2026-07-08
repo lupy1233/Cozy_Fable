@@ -9,10 +9,14 @@ export class MailService {
 
   constructor(config: ConfigService) {
     this.from = config.getOrThrow<string>('MAIL_FROM');
+    const user = config.get<string>('SMTP_USER');
+    const pass = config.get<string>('SMTP_PASS');
     this.transporter = createTransport({
       host: config.getOrThrow<string>('SMTP_HOST'),
       port: config.getOrThrow<number>('SMTP_PORT'),
-      secure: false, // Mailpit dev
+      // dev (Mailpit): fara TLS si fara auth; prod: SMTP_SECURE=true + SMTP_USER/PASS
+      secure: config.get<boolean>('SMTP_SECURE') ?? false,
+      auth: user && pass ? { user, pass } : undefined,
     });
   }
 

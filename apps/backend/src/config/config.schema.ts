@@ -10,6 +10,8 @@ export const configSchema = z.object({
 
   REDIS_HOST: z.string().min(1),
   REDIS_PORT: z.coerce.number().int().positive(),
+  // Optional — necesar pe hosting managed (Railway/Upstash); gol in dev local
+  REDIS_PASSWORD: z.string().optional(),
 
   S3_ENDPOINT: z.string().url(),
   S3_ACCESS_KEY: z.string().min(1),
@@ -19,6 +21,14 @@ export const configSchema = z.object({
 
   SMTP_HOST: z.string().min(1),
   SMTP_PORT: z.coerce.number().int().positive(),
+  // Optional — SMTP autentificat (provider real in prod); gol in dev (Mailpit)
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_SECURE: z
+    .string()
+    .optional()
+    .default('false')
+    .transform((v) => v === 'true'),
   MAIL_FROM: z.string().min(1),
 
   // 2FA TOTP implementat dar inactiv in MVP (invarianta 3.13) — flag off by default

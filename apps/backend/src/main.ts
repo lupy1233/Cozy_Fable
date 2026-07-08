@@ -1,6 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
@@ -9,12 +10,15 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { RedisIoAdapter } from './infra/socket/redis-io.adapter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
 
   const config = app.get(ConfigService);
 
   app.setGlobalPrefix('api/v1');
+  // In productie stam dupa edge proxy + rewrite-ul Next — fara asta req.ip ar fi
+  // IP-ul proxy-ului si throttlingul per-IP ar pune toti userii in acelasi bucket
+  app.set('trust proxy', true);
   app.use(helmet());
   app.use(cookieParser()); // tokens in cookies httpOnly (3.5/3.13)
   app.enableCors({
@@ -33,6 +37,7 @@ async function bootstrap() {
   await redisAdapter.connectToRedis(
     config.getOrThrow<string>('REDIS_HOST'),
     config.getOrThrow<number>('REDIS_PORT'),
+    config.get<string>('REDIS_PASSWORD'),
   );
   app.useWebSocketAdapter(redisAdapter);
 

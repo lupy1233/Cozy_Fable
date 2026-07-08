@@ -13,7 +13,10 @@ const SOCKET_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/ap
 
 let socket: Socket | null = null;
 function getSocket(): Socket {
-  socket ??= io(SOCKET_URL, { withCredentials: true, autoConnect: true });
+  // Baza relativa (API proxied prin Next in prod) → same-origin: io() fara URL
+  socket ??= SOCKET_URL
+    ? io(SOCKET_URL, { withCredentials: true, autoConnect: true })
+    : io({ withCredentials: true, autoConnect: true });
   return socket;
 }
 

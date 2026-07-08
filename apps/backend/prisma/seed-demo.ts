@@ -27,7 +27,11 @@ async function main() {
     console.log('Demo already seeded (admin@demo.ro exists). Skipping.');
     return;
   }
-  const hash = await bcrypt.hash('Demo1234!', 12);
+  // Parole demo suprascriibile din env pentru deploy public (adminul separat de restul)
+  const demoPassword = process.env.DEMO_PASSWORD ?? 'Demo1234!';
+  const adminPassword = process.env.DEMO_ADMIN_PASSWORD ?? demoPassword;
+  const hash = await bcrypt.hash(demoPassword, 12);
+  const adminHash = await bcrypt.hash(adminPassword, 12);
   const plans = {
     SILVER: await prisma.subscriptionPlan.findFirstOrThrow({ where: { tier: 'SILVER' } }),
     GOLD: await prisma.subscriptionPlan.findFirstOrThrow({ where: { tier: 'GOLD' } }),
@@ -35,7 +39,15 @@ async function main() {
   };
 
   const mkUser = (email: string, name: string, role: 'CLIENT' | 'COMPANY_USER' | 'ADMIN') =>
-    prisma.user.create({ data: { email, name, role, passwordHash: hash, emailVerifiedAt: daysAgo(60) } });
+    prisma.user.create({
+      data: {
+        email,
+        name,
+        role,
+        passwordHash: role === 'ADMIN' ? adminHash : hash,
+        emailVerifiedAt: daysAgo(60),
+      },
+    });
 
   // ===== 7.1 admin + clienti =====
   const admin = await mkUser('admin@demo.ro', 'Admin Demo', 'ADMIN');

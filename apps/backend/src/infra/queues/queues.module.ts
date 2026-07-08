@@ -19,6 +19,8 @@ export const QUEUE_WITHDRAWAL_REMINDER = 'withdrawal-reminder';
         connection: {
           host: config.getOrThrow<string>('REDIS_HOST'),
           port: config.getOrThrow<number>('REDIS_PORT'),
+          password: config.get<string>('REDIS_PASSWORD') || undefined,
+          family: 0, // dual-stack DNS (IPv6 private networking pe hosting managed)
         },
       }),
     }),
