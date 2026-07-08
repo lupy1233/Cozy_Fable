@@ -149,7 +149,7 @@ async function main() {
   // ===== 7.2 cereri (15) =====
   type RoomType = 'KITCHEN' | 'DRESSING' | 'LIVING' | 'OFFICE' | 'BEDROOM' | 'BATHROOM';
   async function mkRequest(opts: {
-    client: { id: string }; city: string; status: any; roomType: RoomType; size: keyof typeof SIZE;
+    client: { id: string; email?: string }; city: string; status: any; roomType: RoomType; size: keyof typeof SIZE;
     paidDesign?: boolean; published?: number; expiresInDays?: number; draft?: boolean; repostUsed?: boolean;
   }) {
     const c = CITY[opts.city];
@@ -173,7 +173,10 @@ async function main() {
         items: { create: [{ name: 'Corp principal', material: 'PAL', systems: ['PUSH'], quantity: 3 }] },
       },
     });
-    await prisma.requestContactPreference.create({ data: { requestId: req.id, channel: 'CHAT', value: 'in-app', priority: 1 } });
+    // enum ContactChannel = EMAIL | PHONE (rework configurator 2026-07); CHAT si priority nu mai exista
+    await prisma.requestContactPreference.create({
+      data: { requestId: req.id, channel: 'EMAIL', value: opts.client.email ?? 'client@demo.ro' },
+    });
     return req;
   }
 
