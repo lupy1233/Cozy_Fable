@@ -49,9 +49,9 @@ export default function CompanyClaimPage() {
       <section className="flex flex-col gap-3">
         <h2 className="font-serif text-xl">{t('offerSection')}</h2>
         {c.quote ? (
-          <OfferCard quote={c.quote} mode="company" includesPaidDesign={c.includesPaidDesign} />
+          <OfferCard quote={c.quote} mode="company" includesPaidDesign={c.includesPaidDesign} rooms={c.rooms} />
         ) : (
-          <OfferBuilder kind="create" claimSlotId={c.claimSlotId} includesPaidDesign={c.includesPaidDesign} />
+          <OfferBuilder kind="create" claimSlotId={c.claimSlotId} includesPaidDesign={c.includesPaidDesign} rooms={c.rooms} />
         )}
         {c.quote?.status === 'ACCEPTED' && <DeliverButton requestId={c.requestId} />}
       </section>

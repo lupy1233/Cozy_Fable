@@ -24,6 +24,7 @@ import {
   type RequestQuoteChangeInput,
   type ReviseQuoteInput,
   type RespondConsultationInviteInput,
+  sortByRoomOrder,
 } from '@marketplace/shared';
 import {
   Prisma,
@@ -63,7 +64,12 @@ const QUOTE_INCLUDE = {
   company: true,
   versions: {
     orderBy: { version: 'asc' as const },
-    include: { changeRequests: true, validityExtensions: true },
+    include: {
+      changeRequests: true,
+      validityExtensions: true,
+      // defalcarea pe camere (F7) — roomType pentru afisare directa la client
+      roomPrices: { include: { room: { select: { roomType: true } } } },
+    },
   },
   consultationInvites: { orderBy: { createdAt: 'asc' as const } },
 };
@@ -106,6 +112,7 @@ export class QuotesService {
     }
     this.assertDesignFee(dto, slot.request.includesPaidDesign);
     await this.assertFieldPermissions(ctx.companyId, ctx.memberRole, dto);
+    await this.assertRoomPrices(slot.requestId, dto);
 
     const validityDays = await this.resolveValidityDays(dto.validityDays);
     const validUntil = new Date(Date.now() + validityDays * DAY_MS);
@@ -135,6 +142,7 @@ export class QuotesService {
           createdByUserId: actingUserId,
         },
       });
+      await this.writeRoomPrices(tx, version.id, dto.roomPrices);
       await this.relinkAttachments(tx, dto.attachmentIds, slot.id, version.id);
       // slot ACTIVE → OFFER_SENT + quoteId denormalizat (elibereaza indexul 1-claim-fara-oferta).
       await tx.claimSlot.update({
@@ -251,6 +259,7 @@ export class QuotesService {
     }
     const validityDays = await this.resolveValidityDays(dto.validityDays);
     const validUntil = new Date(Date.now() + validityDays * DAY_MS);
+    await this.assertRoomPrices(quote.requestId, dto);
     const nextVersion = this.maxVersionNumber(quote.versions) + 1;
 
     const versionId = await this.prisma.$transaction(async (tx) => {
@@ -261,6 +270,7 @@ export class QuotesService {
       const version = await tx.quoteVersion.create({
         data: this.versionData(quote.id, nextVersion, false, dto, actingUserId, validUntil),
       });
+      await this.writeRoomPrices(tx, version.id, dto.roomPrices);
       await this.relinkAttachments(tx, dto.attachmentIds, quote.claimSlotId, version.id);
       if (quote.status === 'EXPIRED') {
         await tx.quote.update({ where: { id: quote.id }, data: { status: 'SENT' } });
@@ -312,12 +322,14 @@ export class QuotesService {
     }
     const validityDays = await this.resolveValidityDays(dto.validityDays);
     const validUntil = new Date(Date.now() + validityDays * DAY_MS);
+    await this.assertRoomPrices(quote.requestId, dto);
     const nextVersion = this.maxVersionNumber(quote.versions) + 1;
 
     const versionId = await this.prisma.$transaction(async (tx) => {
       const version = await tx.quoteVersion.create({
         data: this.versionData(quote.id, nextVersion, true, dto, actingUserId, validUntil),
       });
+      await this.writeRoomPrices(tx, version.id, dto.roomPrices);
       await this.relinkAttachments(tx, dto.attachmentIds, quote.claimSlotId, version.id);
       await tx.quote.update({
         where: { id: quote.id },
@@ -357,12 +369,14 @@ export class QuotesService {
     }
     const validityDays = await this.resolveValidityDays(dto.validityDays);
     const validUntil = new Date(Date.now() + validityDays * DAY_MS);
+    await this.assertRoomPrices(quote.requestId, dto);
     const nextVersion = this.maxVersionNumber(quote.versions) + 1;
 
     const versionId = await this.prisma.$transaction(async (tx) => {
       const version = await tx.quoteVersion.create({
         data: this.versionData(quote.id, nextVersion, false, dto, actingUserId, validUntil),
       });
+      await this.writeRoomPrices(tx, version.id, dto.roomPrices);
       await this.relinkAttachments(tx, dto.attachmentIds, quote.claimSlotId, version.id);
       if (quote.status === 'EXPIRED') {
         await tx.quote.update({ where: { id: quote.id }, data: { status: 'SENT' } });
@@ -593,7 +607,17 @@ export class QuotesService {
   async getClaimContext(ctx: CompanyContext, claimSlotId: string): Promise<ClaimQuoteContextDto> {
     const slot = await this.prisma.claimSlot.findUnique({
       where: { id: claimSlotId },
-      include: { request: { select: { title: true, includesPaidDesign: true } }, chatThread: true },
+      include: {
+        request: {
+          select: {
+            title: true,
+            includesPaidDesign: true,
+            // camerele pentru formularul de pret per camera (F7, item 22)
+            rooms: { select: { id: true, roomType: true, createdAt: true } },
+          },
+        },
+        chatThread: true,
+      },
     });
     if (!slot || slot.companyId !== ctx.companyId) {
       throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Claim not found' });
@@ -611,6 +635,7 @@ export class QuotesService {
       claimStatus: slot.status,
       slaDeadlineAt: slot.slaDeadlineAt?.toISOString() ?? null,
       slaPaused: slot.slaPausedAt !== null,
+      rooms: sortByRoomOrder(slot.request.rooms).map((r) => ({ id: r.id, roomType: r.roomType })),
       quote: open ? await this.getQuoteDto(open.id) : null,
     };
   }
@@ -699,6 +724,58 @@ export class QuotesService {
     if (!slot || slot.companyId !== ctx.companyId) {
       throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Claim not found' });
     }
+  }
+
+  // Defalcarea pe camere (F7, item 22): daca firma o trimite, trebuie sa
+  // acopere TOATE camerele cererii (fara duplicate) si suma sa egaleze price.
+  private async assertRoomPrices(
+    requestId: string,
+    dto: { price: number; roomPrices?: { requestRoomId: string; price: number }[] },
+  ): Promise<void> {
+    if (!dto.roomPrices || dto.roomPrices.length === 0) return;
+    const rooms = await this.prisma.requestRoom.findMany({
+      where: { requestId },
+      select: { id: true },
+    });
+    const roomIds = new Set(rooms.map((r) => r.id));
+    const seen = new Set<string>();
+    for (const rp of dto.roomPrices) {
+      if (!roomIds.has(rp.requestRoomId) || seen.has(rp.requestRoomId)) {
+        throw new BadRequestException({
+          code: ERROR_CODES.VALIDATION_ERROR,
+          message: 'Room prices must reference each request room exactly once',
+        });
+      }
+      seen.add(rp.requestRoomId);
+    }
+    if (seen.size !== roomIds.size) {
+      throw new BadRequestException({
+        code: ERROR_CODES.VALIDATION_ERROR,
+        message: 'Room prices must cover all rooms of the request',
+      });
+    }
+    const sum = dto.roomPrices.reduce((acc, rp) => acc + rp.price, 0);
+    if (Math.abs(sum - dto.price) > 0.01) {
+      throw new BadRequestException({
+        code: ERROR_CODES.VALIDATION_ERROR,
+        message: 'Room prices must sum to the total price',
+      });
+    }
+  }
+
+  private async writeRoomPrices(
+    tx: Prisma.TransactionClient,
+    quoteVersionId: string,
+    roomPrices: { requestRoomId: string; price: number }[] | undefined,
+  ): Promise<void> {
+    if (!roomPrices || roomPrices.length === 0) return;
+    await tx.quoteVersionRoomPrice.createMany({
+      data: roomPrices.map((rp) => ({
+        quoteVersionId,
+        requestRoomId: rp.requestRoomId,
+        price: new Prisma.Decimal(rp.price),
+      })),
+    });
   }
 
   private versionData(
@@ -897,6 +974,11 @@ export class QuotesService {
           validityExtensionsUsed: v.validityExtensions.length,
           createdByUserId: v.createdByUserId,
           sentAt: v.sentAt.toISOString(),
+          roomPrices: v.roomPrices.map((rp) => ({
+            requestRoomId: rp.requestRoomId,
+            roomType: rp.room.roomType,
+            price: rp.price.toNumber(),
+          })),
           changeRequest: pendingChange
             ? {
                 id: pendingChange.id,

@@ -11,7 +11,10 @@ import { PublicShell } from '../_components/public-shell';
 // in patru acte, ca un GIF in bucla: peretele -> cotele lui -> bucataria
 // desenata peste (in stilul dulapului de pe landing) -> cotele bucatariei.
 
-const d = (ms: number) => ({ '--d': ms }) as CSSProperties;
+// Ghidul se deseneaza mai lent decat schitele de pe landing (feedback PO):
+// delay-urile sunt intinse cu SLOW, iar durata trasarii vine din .plan-draw--slow.
+const SLOW = 1.7;
+const d = (ms: number) => ({ '--d': ms * SLOW }) as CSSProperties;
 
 const ink = 'hsl(var(--foreground))';
 const brass = 'hsl(var(--brass))';
@@ -26,14 +29,14 @@ const hidden = 'hsl(var(--muted-2))';
  * perete (~600 adancime, punctele frontale scalate cu 1.16 fata de
  * punctul de fuga), corpuri suspendate (~350, factor 1.09), hota cu
  * volum; (4) cotele bucatariei (2900 × 2300) se noteaza peste desen.
- * Bucla se reia prin remount (key) la fiecare 8s, sarita la
+ * Bucla se reia prin remount (key) la fiecare 13s, sarita la
  * prefers-reduced-motion.
  */
 function KitchenSketchExample({ label }: { label: string }) {
   const [cycle, setCycle] = useState(0);
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const id = window.setInterval(() => setCycle((c) => c + 1), 8000);
+    const id = window.setInterval(() => setCycle((c) => c + 1), 13000);
     return () => window.clearInterval(id);
   }, []);
 
@@ -41,7 +44,7 @@ function KitchenSketchExample({ label }: { label: string }) {
     <svg
       key={cycle}
       viewBox="0 0 460 400"
-      className="plan-draw h-auto w-full"
+      className="plan-draw plan-draw--slow h-auto w-full"
       role="img"
       aria-label={label}
       fill="none"

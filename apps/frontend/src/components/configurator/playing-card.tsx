@@ -127,28 +127,21 @@ export function PlayingCard({
                 <Undo2 className="h-4 w-4" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto px-4 py-2.5 text-[12.5px] leading-snug">
-              {has(info.bodyKey) && <p className="text-muted-foreground">{t(info.bodyKey)}</p>}
-              {pros.length > 0 && (
-                <ul className="mt-2 flex flex-col gap-1">
-                  {pros.map((k) => (
-                    <li key={k} className="flex items-start gap-1.5">
-                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sage" />
-                      <span>{t(k)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {cons.length > 0 && (
-                <ul className="mt-2 flex flex-col gap-1">
-                  {cons.map((k) => (
-                    <li key={k} className="flex items-start gap-1.5">
-                      <Minus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-crimson" />
-                      <span>{t(k)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+            {/* fara paragraful introductiv (feedback PO F3): doar pros/cons,
+                dimensionate sa incapa pe spatele cardului fara scroll */}
+            <div className="flex flex-1 flex-col justify-center gap-1 px-4 py-2 text-[12px] leading-tight">
+              {pros.map((k) => (
+                <span key={k} className="flex items-start gap-1.5">
+                  <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sage" />
+                  <span>{t(k)}</span>
+                </span>
+              ))}
+              {cons.map((k) => (
+                <span key={k} className="flex items-start gap-1.5">
+                  <Minus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-crimson" />
+                  <span>{t(k)}</span>
+                </span>
+              ))}
             </div>
             {showPrice && (
               <div className="flex items-center gap-2 border-t border-border-2 bg-surface-2 px-4 py-2 text-[12.5px]">

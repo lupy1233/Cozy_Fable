@@ -26,6 +26,17 @@ const offerFieldsSchema = z.object({
     .or(z.literal('')),
   warranty: z.string().trim().max(500).optional().or(z.literal('')),
   description: z.string().trim().min(1, 'descriptionRequired').max(5000),
+  // Defalcarea pe camere (F7, item 22): optionala; daca exista, serviciul cere
+  // sa acopere TOATE camerele cererii si suma sa egaleze price.
+  roomPrices: z
+    .array(
+      z.object({
+        requestRoomId: z.string().uuid(),
+        price: z.number().positive('priceInvalid').max(100_000_000),
+      }),
+    )
+    .max(50)
+    .optional(),
 });
 
 // Trimiterea ofertei initiale (v1) pentru un claim slot. POST /quotes (Idempotency-Key, 3.2).
@@ -118,6 +129,8 @@ export interface QuoteVersionDto {
   sentAt: string;
   changeRequest: QuoteChangeRequestDto | null;
   attachments: QuoteAttachmentRef[];
+  // defalcarea pe camere (F7); gol la ofertele fara breakdown
+  roomPrices: QuoteRoomPriceDto[];
 }
 
 export interface QuoteAttachmentRef {
@@ -125,6 +138,14 @@ export interface QuoteAttachmentRef {
   filename: string;
   mimeType: string;
   downloadUrl: string | null;
+}
+
+// Defalcarea pe camere a unei versiuni (F7): roomType inclus pentru afisare
+// fara fetch suplimentar pe pagina de oferte a clientului.
+export interface QuoteRoomPriceDto {
+  requestRoomId: string;
+  roomType: string;
+  price: number;
 }
 
 export interface QuoteChangeRequestDto {
@@ -162,6 +183,8 @@ export interface ClaimQuoteContextDto {
   claimStatus: string;
   slaDeadlineAt: string | null;
   slaPaused: boolean;
+  // camerele cererii, pentru formularul de pret per camera (F7, item 22)
+  rooms: { id: string; roomType: string }[];
   quote: QuoteDto | null;
 }
 

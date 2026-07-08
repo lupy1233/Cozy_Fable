@@ -7,16 +7,30 @@ import {
   STANDARD_CABINET_DEPTH,
 } from '../mapping';
 import type { AnswerMap, Condition, DimensionGroupStep, DimensionSlot, RoomFlow } from '../types';
-import { ceilingHeightSlot, linearSlot, materialOptions, systemOptions } from './common';
+import {
+  ceilingHeightSlot,
+  KITCHEN_SYSTEMS_BASE,
+  KITCHEN_SYSTEMS_WALL,
+  linearSlot,
+  materialOptions,
+  OFFERED_MATERIALS,
+  otherMaterialStep,
+  systemOptions,
+} from './common';
 
 // Bucatarie v2 (overhaul 2026-07):
-// - PARALLEL (galley) eliminat; insula devine add-on pe acelasi ecran cu layout-ul
-//   (screenGroup) — exclusivitatea formelor e garantata de single-choice.
+// - PARALLEL (galley) eliminat; exclusivitatea formelor e garantata de single-choice.
 // - cabinetZones eliminat: intrebari separate per zona (baza / suspendate / insula)
 //   pentru material front si sistem de deschidere.
 // - extraPieces si notes eliminate; pasul final devine upload schita/proiect.
 // - layout NU mai afiseaza pret mediu (nu influenteaza direct pretul).
 // Punctajul per zona curge prin items-urile derivate (MATERIAL/SYSTEM per item).
+// Feedback PO 2026-07-08 (sprint F3):
+// - insula = intrebare de sine statatoare (carduri Da/Nu), nu toggle sub layout;
+// - materiale: setul nou (PAL / MDF infoliat / vopsit / furnir / lemn masiv) +
+//   "Altul" cu text liber pe acelasi ecran (otherMaterialStep);
+// - deschidere: jos/insula = maner/push/Gola, suspendate + Aventos;
+// - blat: PAL / HPL / cuart / granit.
 
 const F = 'flows.KITCHEN';
 
@@ -71,7 +85,6 @@ export const kitchenFlowV2: RoomFlow = {
       type: 'single-choice',
       titleKey: `${F}.layout.title`,
       subtitleKey: `${F}.layout.subtitle`,
-      screenGroup: 'layoutScreen',
       options: ['STRAIGHT', 'L_SHAPE', 'U_SHAPE'].map((value) => ({
         value,
         labelKey: `${F}.layout.options.${value}.label`,
@@ -92,9 +105,7 @@ export const kitchenFlowV2: RoomFlow = {
       type: 'boolean',
       titleKey: `${F}.hasIsland.title`,
       subtitleKey: `${F}.hasIsland.subtitle`,
-      screenGroup: 'layoutScreen',
-      // comutator add-on: lipsa raspunsului = fara insula (nu blocheaza ecranul)
-      optional: true,
+      // intrebare de sine statatoare cu carduri Da/Nu (feedback PO F3)
       info: {
         titleKey: `${F}.hasIsland.info.title`,
         bodyKey: `${F}.hasIsland.info.body`,
@@ -110,30 +121,36 @@ export const kitchenFlowV2: RoomFlow = {
       type: 'single-choice',
       titleKey: `${F}.frontMaterialBase.title`,
       subtitleKey: `${F}.frontMaterialBase.subtitle`,
-      options: materialOptions(),
+      screenGroup: 'frontBase',
+      options: materialOptions(OFFERED_MATERIALS),
     },
+    otherMaterialStep('frontMaterialBase', 'frontBase'),
     {
       id: 'frontMaterialWall',
       type: 'single-choice',
       titleKey: `${F}.frontMaterialWall.title`,
       subtitleKey: `${F}.frontMaterialWall.subtitle`,
-      options: materialOptions(),
+      screenGroup: 'frontWall',
+      options: materialOptions(OFFERED_MATERIALS),
     },
+    otherMaterialStep('frontMaterialWall', 'frontWall'),
     {
       id: 'frontMaterialIsland',
       type: 'single-choice',
       titleKey: `${F}.frontMaterialIsland.title`,
       subtitleKey: `${F}.frontMaterialIsland.subtitle`,
       visibleIf: ifIsland,
-      options: materialOptions(),
+      screenGroup: 'frontIsland',
+      options: materialOptions(OFFERED_MATERIALS),
     },
+    otherMaterialStep('frontMaterialIsland', 'frontIsland'),
     {
       id: 'openingSystemsBase',
       type: 'multi-choice',
       titleKey: `${F}.openingSystemsBase.title`,
       subtitleKey: `${F}.openingSystemsBase.subtitle`,
       minSelected: 1,
-      options: systemOptions(),
+      options: systemOptions(KITCHEN_SYSTEMS_BASE),
     },
     {
       id: 'openingSystemsWall',
@@ -141,7 +158,7 @@ export const kitchenFlowV2: RoomFlow = {
       titleKey: `${F}.openingSystemsWall.title`,
       subtitleKey: `${F}.openingSystemsWall.subtitle`,
       minSelected: 1,
-      options: systemOptions(),
+      options: systemOptions(KITCHEN_SYSTEMS_WALL),
     },
     {
       id: 'openingSystemsIsland',
@@ -150,14 +167,14 @@ export const kitchenFlowV2: RoomFlow = {
       subtitleKey: `${F}.openingSystemsIsland.subtitle`,
       visibleIf: ifIsland,
       minSelected: 1,
-      options: systemOptions(),
+      options: systemOptions(KITCHEN_SYSTEMS_BASE),
     },
     {
       id: 'countertop',
       type: 'single-choice',
       titleKey: `${F}.countertop.title`,
       subtitleKey: `${F}.countertop.subtitle`,
-      options: ['LAMINATE', 'QUARTZ', 'GRANITE', 'WOOD'].map((value) => ({
+      options: ['PAL', 'HPL', 'QUARTZ', 'GRANITE'].map((value) => ({
         value,
         labelKey: `${F}.countertop.options.${value}.label`,
         descriptionKey: `${F}.countertop.options.${value}.description`,
@@ -207,6 +224,13 @@ export const kitchenFlowV2: RoomFlow = {
     const material = (id: string): Material => (answers[id] as Material) ?? 'PAL';
     const systems = (id: string): ItemSystem[] =>
       Array.isArray(answers[id]) ? (answers[id] as ItemSystem[]) : [];
+    // materialul liber ("Altul"): textul clientului intra in description
+    const otherDesc = (id: string): string | undefined => {
+      const text = answers[`${id}Other`];
+      return material(id) === 'ALTUL' && typeof text === 'string' && text.trim()
+        ? `Material dorit: ${text.trim()}`
+        : undefined;
+    };
 
     // un item per zona, cu materialul si sistemele proprii → scoring per zona
     const items: RequestItemInput[] = [
@@ -214,12 +238,14 @@ export const kitchenFlowV2: RoomFlow = {
         name: 'Corpuri baza',
         material: material('frontMaterialBase'),
         systems: systems('openingSystemsBase'),
+        description: otherDesc('frontMaterialBase'),
         quantity: 1,
       },
       {
         name: 'Corpuri suspendate',
         material: material('frontMaterialWall'),
         systems: systems('openingSystemsWall'),
+        description: otherDesc('frontMaterialWall'),
         quantity: 1,
       },
     ];
@@ -228,6 +254,7 @@ export const kitchenFlowV2: RoomFlow = {
         name: 'Insula bucatarie',
         material: material('frontMaterialIsland'),
         systems: systems('openingSystemsIsland'),
+        description: otherDesc('frontMaterialIsland'),
         quantity: 1,
       });
     }

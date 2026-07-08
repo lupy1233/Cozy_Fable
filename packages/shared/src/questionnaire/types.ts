@@ -83,6 +83,9 @@ interface BaseStep {
   subtitleKey?: string;
   info?: InfoContentRef;
   visibleIf?: Condition;
+  // pur prezentational: icon lucide afisat langa titlul intrebarii (frontend) —
+  // "vizualul piesei la care se refera intrebarea" (feedback PO F4)
+  icon?: string;
   // optional=true: poate ramane fara raspuns la publish
   optional?: boolean;
   // pur prezentational: step-urile vizibile consecutive cu acelasi screenGroup

@@ -194,7 +194,8 @@ export function KitchenDimensionsDiagram({ answers }: { answers: AnswerMap }) {
             </Tag>
           )}
           {showC && (
-            <Tag at={[W - 0.3, D - 0.35, CH]} dx={6} dy={4} anchor="start">
+            // pe fata superioara a laturii C, nu langa insula (se suprapuneau)
+            <Tag at={[W - RUN / 2, RUN + (D - RUN) / 2, CH]} dy={-4}>
               C = {fmt(dims.runC)}
             </Tag>
           )}
@@ -204,7 +205,8 @@ export function KitchenDimensionsDiagram({ answers }: { answers: AnswerMap }) {
         {hasIsland && (
           <g className="text-sage">
             <Box x={1.25} y={1.35} w={1.1} d={0.7} h={CH} />
-            {/* etichetele insulei, stivuite sub ea pe podeaua libera */}
+            {/* etichetele insulei: litere scurte (L/D), ca A/B/C/H — literele
+                corespund campurilor de sub schita */}
             <Tag at={[1.8, 2.05, 0]} dy={18}>
               {t('diagram.islandLength')} = {fmt(dims.islandLength)}
             </Tag>

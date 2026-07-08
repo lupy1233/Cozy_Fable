@@ -10,6 +10,7 @@
     "test": "jest",
     "prisma:generate": "prisma generate",
     "prisma:seed": "prisma db seed",
+    "seed:inspiration": "tsx prisma/seed-inspiration.ts",
     "prisma": "prisma"
   },
   "prisma": {

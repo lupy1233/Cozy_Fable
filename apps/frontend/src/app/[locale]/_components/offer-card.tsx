@@ -22,10 +22,13 @@ export function OfferCard({
   quote,
   mode,
   includesPaidDesign,
+  rooms,
 }: {
   quote: QuoteDto;
   mode: 'client' | 'company';
   includesPaidDesign: boolean;
+  // camerele cererii — pentru defalcarea pe camere in re-ofertare (F7)
+  rooms?: { id: string; roomType: string }[];
 }) {
   const t = useTranslations('Quotes');
   const current = quote.versions.reduce((a, b) => (b.version > a.version ? b : a), quote.versions[0]);
@@ -61,7 +64,12 @@ export function OfferCard({
         <ClientActions quote={quote} pendingChange={!!pendingChange} />
       )}
       {mode === 'company' && (
-        <CompanyActions quote={quote} includesPaidDesign={includesPaidDesign} pendingChangeId={pendingChange?.id ?? null} />
+        <CompanyActions
+          quote={quote}
+          includesPaidDesign={includesPaidDesign}
+          pendingChangeId={pendingChange?.id ?? null}
+          rooms={rooms}
+        />
       )}
 
       <ConsultationInvites quote={quote} mode={mode} />
@@ -71,9 +79,33 @@ export function OfferCard({
 
 function VersionView({ v, quote }: { v: QuoteVersionDto; quote: QuoteDto }) {
   const t = useTranslations('Quotes');
+  const tc = useTranslations('Configurator');
   const fmt = (n: number) => new Intl.NumberFormat('ro-RO', { minimumFractionDigits: 2 }).format(n);
   return (
     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+      {/* defalcarea pe camere (F7, item 22) — tabelul pretului per camera */}
+      {v.roomPrices.length > 0 && (
+        <div className="col-span-2 mb-1 overflow-hidden rounded-lg border border-border-2">
+          <table className="w-full text-sm">
+            <tbody>
+              {v.roomPrices.map((rp, i) => (
+                <tr key={rp.requestRoomId} className={i % 2 ? 'bg-surface-2/60' : undefined}>
+                  <td className="px-3 py-1.5">{tc(`rooms.type.${rp.roomType}`)}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">
+                    {fmt(rp.price)} {quote.currency}
+                  </td>
+                </tr>
+              ))}
+              <tr className="border-t border-border-2 bg-walnut-soft/60">
+                <td className="px-3 py-1.5 font-medium">{t('builder.roomPricesTotal')}</td>
+                <td className="px-3 py-1.5 text-right font-serif text-base tabular-nums">
+                  {fmt(v.price)} {quote.currency}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
       <span className="text-muted-foreground">{t('builder.price')}</span>
       <span className="text-right font-semibold">
         {fmt(v.price)} {quote.currency}
@@ -189,10 +221,12 @@ function CompanyActions({
   quote,
   includesPaidDesign,
   pendingChangeId,
+  rooms,
 }: {
   quote: QuoteDto;
   includesPaidDesign: boolean;
   pendingChangeId: string | null;
+  rooms?: { id: string; roomType: string }[];
 }) {
   const t = useTranslations('Quotes');
   const reject = useRejectChange(quote.id);
@@ -216,7 +250,7 @@ function CompanyActions({
     <div className="flex flex-col gap-3 border-t border-border pt-3">
       {/* Raspuns la o cerere de modificare */}
       {pendingChangeId && !quote.versionLimitReached && (
-        <OfferBuilder kind="revise" quoteId={quote.id} changeRequestId={pendingChangeId} includesPaidDesign={includesPaidDesign} />
+        <OfferBuilder kind="revise" quoteId={quote.id} changeRequestId={pendingChangeId} includesPaidDesign={includesPaidDesign} rooms={rooms} />
       )}
       {pendingChangeId && (
         <button
@@ -240,7 +274,7 @@ function CompanyActions({
             {t('extendValidity')}
           </button>
           {!quote.versionLimitReached && (
-            <OfferBuilder kind="reoffer" quoteId={quote.id} includesPaidDesign={includesPaidDesign} />
+            <OfferBuilder kind="reoffer" quoteId={quote.id} includesPaidDesign={includesPaidDesign} rooms={rooms} />
           )}
         </div>
       )}
@@ -261,7 +295,7 @@ function CompanyActions({
               {t('endNegotiation')}
             </button>
           </div>
-          {showBlock && <OfferBuilder kind="extra" quoteId={quote.id} includesPaidDesign={includesPaidDesign} onDone={() => setShowBlock(false)} />}
+          {showBlock && <OfferBuilder kind="extra" quoteId={quote.id} includesPaidDesign={includesPaidDesign} rooms={rooms} onDone={() => setShowBlock(false)} />}
           <div className="flex flex-col gap-2 rounded-md border border-border bg-surface p-3">
             <p className="text-sm font-medium">{t('consultationTitle')}</p>
             <input

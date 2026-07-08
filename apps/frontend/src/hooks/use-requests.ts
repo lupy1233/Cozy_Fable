@@ -2,7 +2,9 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
+  AnswerMap,
   AttachmentDto,
+  BudgetEstimateDto,
   ClientDashboardStatsDto,
   ConfiguratorContentInput,
   PresignUploadInput,
@@ -11,6 +13,7 @@ import type {
   RequestDraftPatchInput,
   RequestDto,
   RequestListItemDto,
+  RoomType,
 } from '@marketplace/shared';
 import { api } from '@/lib/api';
 
@@ -71,6 +74,9 @@ export function usePublishDraft(token: string) {
       }),
     onSuccess: (data) => {
       qc.setQueryData(draftKey(token), data);
+      // seed pentru pagina de detalii: redirectul de dupa publish randeaza
+      // instant din cache in loc sa refaca fetch-ul complet
+      qc.setQueryData(['request', data.id], data);
       qc.invalidateQueries({ queryKey: MINE_KEY });
     },
   });
@@ -86,6 +92,7 @@ export function useEditRequest(token: string) {
       }),
     onSuccess: (data) => {
       qc.setQueryData(draftKey(token), data);
+      qc.setQueryData(['request', data.id], data);
       qc.invalidateQueries({ queryKey: MINE_KEY });
     },
   });
@@ -98,6 +105,7 @@ export function useRepostRequest(token: string) {
       api<RequestDto>(`/requests/drafts/${token}/repost`, { method: 'POST' }),
     onSuccess: (data) => {
       qc.setQueryData(draftKey(token), data);
+      qc.setQueryData(['request', data.id], data);
       qc.invalidateQueries({ queryKey: MINE_KEY });
     },
   });
@@ -153,6 +161,30 @@ export function useUploadAttachment(token: string) {
 
 export function useRemoveAttachment(token: string) {
   return useRemoveAttachmentFor({ kind: 'draft', token });
+}
+
+// Estimarea de buget din scorul camerelor (F5, item 18) — cheia de query e
+// continutul camerelor: se recalculeaza doar cand raspunsurile chiar se schimba.
+export function useBudgetEstimate(
+  rooms: { roomType: RoomType; flowVersion: number; answers: AnswerMap }[],
+) {
+  const payload = rooms.map((r) => ({
+    roomType: r.roomType,
+    flowVersion: r.flowVersion,
+    answers: r.answers,
+  }));
+  const key = JSON.stringify(payload);
+  return useQuery({
+    queryKey: ['requests', 'estimate', key],
+    queryFn: () =>
+      api<BudgetEstimateDto>('/requests/estimate', {
+        method: 'POST',
+        body: JSON.stringify({ rooms: payload }),
+      }),
+    enabled: rooms.length > 0,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
 }
 
 // Î17 — clientul sterge cererea (soft delete + anulare claim-uri + refund).

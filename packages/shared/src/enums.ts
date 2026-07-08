@@ -92,6 +92,10 @@ export const PENALTY_SCOPES = ['EMPLOYEE', 'COMPANY'] as const;
 export type PenaltyScope = (typeof PENALTY_SCOPES)[number];
 
 // PIECES = piese individuale de mobilier (tab separat in configurator, fara camera).
+// Extindere 2026-07-07 (decizie PO): camere noi (hol, debara, spalatorie, balcon)
+// + piese ghidate individuale cu prefix PIECE_ (fiecare cu flow propriu de intrebari).
+// PIECES ramane fallback-ul "Alta piesa" cu formular liber. Gruparea camera/piesa si
+// ordinea fixa a intrebarilor stau in room-meta.ts (nu aici — enum VERBATIM docs/04).
 export const ROOM_TYPES = [
   'KITCHEN',
   'DRESSING',
@@ -100,17 +104,60 @@ export const ROOM_TYPES = [
   'BEDROOM',
   'BATHROOM',
   'PIECES',
+  'HALLWAY',
+  'PANTRY',
+  'LAUNDRY',
+  'BALCONY',
+  'PIECE_WARDROBE',
+  'PIECE_TV_UNIT',
+  'PIECE_BOOKCASE',
+  'PIECE_DESK',
+  'PIECE_BED',
+  'PIECE_DRESSER',
+  'PIECE_TABLE',
+  'PIECE_SHOE_CABINET',
+  'PIECE_NIGHTSTAND',
+  'PIECE_BENCH',
 ] as const;
 export type RoomType = (typeof ROOM_TYPES)[number];
 
-export const MATERIALS = ['PAL', 'MDF', 'LEMN_MASIV'] as const;
+// Extindere 2026-07-08 (feedback PO, kitchen v2): variante MDF explicite + ALTUL
+// (material liber, textul vine dintr-un step conditional si intra in description).
+// MDF simplu ramane pentru raspunsurile vechi, dar nu se mai ofera in flow-uri.
+export const MATERIALS = [
+  'PAL',
+  'MDF',
+  'MDF_INFOLIAT',
+  'MDF_VOPSIT',
+  'MDF_FURNIR',
+  'LEMN_MASIV',
+  'ALTUL',
+] as const;
 export type Material = (typeof MATERIALS)[number];
 
-export const ITEM_SYSTEMS = ['PUSH', 'GLISANTE', 'BUTON_PRESIUNE'] as const;
+// Extindere 2026-07-08: MANER (maner clasic), GOLA (profil frezat), AVENTOS
+// (ridicare verticala, doar corpuri suspendate). BUTON_PRESIUNE ramane legacy.
+export const ITEM_SYSTEMS = ['PUSH', 'GLISANTE', 'BUTON_PRESIUNE', 'MANER', 'GOLA', 'AVENTOS'] as const;
 export type ItemSystem = (typeof ITEM_SYSTEMS)[number];
 
 export const ATTACHMENT_STATUSES = ['PENDING_UPLOAD', 'PENDING_SCAN', 'SAFE', 'BLOCKED'] as const;
 export type AttachmentStatus = (typeof ATTACHMENT_STATUSES)[number];
+
+// Culorile galeriei de inspiratie (F6 2026-07-08) — filtru pe /inspiration.
+export const INSPIRATION_COLORS = [
+  'WHITE',
+  'BLACK',
+  'GRAY',
+  'BEIGE',
+  'BROWN',
+  'NATURAL_WOOD',
+  'GREEN',
+  'BLUE',
+  'RED',
+  'YELLOW',
+  'MULTICOLOR',
+] as const;
+export type InspirationColor = (typeof INSPIRATION_COLORS)[number];
 
 export const BUDGET_RANGES = ['UNDER_5K', 'FROM_5K_TO_15K', 'OVER_15K', 'UNDISCLOSED'] as const;
 export type BudgetRange = (typeof BUDGET_RANGES)[number];

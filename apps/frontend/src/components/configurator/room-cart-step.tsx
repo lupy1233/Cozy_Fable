@@ -1,6 +1,12 @@
 'use client';
 
-import { ROOM_TYPES, type RoomType } from '@marketplace/shared';
+import {
+  compareRoomTypes,
+  MAX_REQUEST_ROOMS,
+  ROOM_KIND,
+  ROOM_TYPES,
+  type RoomType,
+} from '@marketplace/shared';
 import { motion } from 'framer-motion';
 import { Minus, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -18,12 +24,95 @@ const ROOM_ICONS: Record<RoomType, string> = {
   BEDROOM: 'bed-double',
   BATHROOM: 'bath',
   PIECES: 'package',
+  HALLWAY: 'door-open',
+  PANTRY: 'boxes',
+  LAUNDRY: 'washing-machine',
+  BALCONY: 'sun',
+  PIECE_WARDROBE: 'door-closed',
+  PIECE_TV_UNIT: 'tv',
+  PIECE_BOOKCASE: 'library',
+  PIECE_DESK: 'monitor',
+  PIECE_BED: 'bed-double',
+  PIECE_DRESSER: 'archive',
+  PIECE_TABLE: 'table',
+  PIECE_SHOE_CABINET: 'footprints',
+  PIECE_NIGHTSTAND: 'lamp',
+  PIECE_BENCH: 'armchair',
 };
 
-// PIECES nu apare in grila de camere: are tab separat (A7 — piese individuale).
-const GRID_ROOM_TYPES = ROOM_TYPES.filter((rt) => rt !== 'PIECES');
+// Grilele vin din ROOM_KIND (room-meta): camerele in tab-ul principal, piesele
+// ghidate in tab-ul "Piese individuale". PIECES (formular liber) e cardul
+// separat "Alta piesa", mereu ultimul, cap 1 instanta.
+const GRID_ROOM_TYPES = ROOM_TYPES.filter((rt) => ROOM_KIND[rt] === 'room').sort(compareRoomTypes);
+const GRID_PIECE_TYPES = ROOM_TYPES.filter(
+  (rt) => ROOM_KIND[rt] === 'piece' && rt !== 'PIECES',
+).sort(compareRoomTypes);
 
-const MAX_ROOMS = 20;
+// plafonul tehnic vine din schema partajata (aceeasi validare ca backend-ul)
+const MAX_ROOMS = MAX_REQUEST_ROOMS;
+
+function CartTile({
+  roomType,
+  count,
+  disableAdd,
+  onAdd,
+  onRemove,
+}: {
+  roomType: RoomType;
+  count: number;
+  disableAdd: boolean;
+  onAdd: () => void;
+  onRemove: () => void;
+}) {
+  const t = useTranslations('Configurator');
+  return (
+    <div
+      className={
+        'flex items-center gap-3 rounded-xl border p-4 transition-colors ' +
+        (count > 0 ? 'border-walnut bg-walnut-soft' : 'border-border-2 bg-surface')
+      }
+    >
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-surface-2 text-walnut [&_svg]:size-5">
+        <ConfiguratorIcon name={ROOM_ICONS[roomType]} />
+      </span>
+      <div className="flex-1">
+        <div className="text-sm font-medium">{t(`rooms.type.${roomType}`)}</div>
+        <div className="text-xs text-muted-foreground">{t(`rooms.desc.${roomType}`)}</div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          disabled={count === 0}
+          onClick={onRemove}
+          aria-label={t('cart.removeOne', { type: t(`rooms.type.${roomType}`) })}
+        >
+          <Minus className="h-4 w-4" />
+        </Button>
+        <motion.span
+          key={count}
+          initial={{ scale: 0.6, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 24 }}
+          className="w-5 text-center font-mono text-sm"
+        >
+          {count}
+        </motion.span>
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          disabled={disableAdd}
+          onClick={onAdd}
+          aria-label={t('cart.addOne', { type: t(`rooms.type.${roomType}`) })}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export function RoomCartStep({ onContinue }: { onContinue: () => void }) {
   const t = useTranslations('Configurator');
@@ -56,99 +145,74 @@ export function RoomCartStep({ onContinue }: { onContinue: () => void }) {
         ]}
       />
 
-      {tab === 'pieces' && (
-        <div
-          className={
-            'flex items-center gap-3 rounded-xl border p-4 transition-colors ' +
-            (piecesAdded ? 'border-walnut bg-walnut-soft' : 'border-border-2 bg-surface')
-          }
-        >
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-surface-2 text-walnut [&_svg]:size-5">
-            <ConfiguratorIcon name={ROOM_ICONS.PIECES} />
-          </span>
-          <div className="flex-1">
-            <div className="text-sm font-medium">{t('rooms.type.PIECES')}</div>
-            <div className="text-xs text-muted-foreground">{t('rooms.desc.PIECES')}</div>
-          </div>
-          {piecesAdded ? (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => removeLastOfType('PIECES')}
-            >
-              <Minus className="mr-1 h-4 w-4" />
-              {t('cart.removePieces')}
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={total >= MAX_ROOMS}
-              onClick={() => addRoom('PIECES')}
-            >
-              <Plus className="mr-1 h-4 w-4" />
-              {t('cart.addPieces')}
-            </Button>
-          )}
+      {tab === 'rooms' && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {GRID_ROOM_TYPES.map((rt) => (
+            <CartTile
+              key={rt}
+              roomType={rt}
+              count={countOf(rt)}
+              disableAdd={total >= MAX_ROOMS}
+              onAdd={() => addRoom(rt)}
+              onRemove={() => removeLastOfType(rt)}
+            />
+          ))}
         </div>
       )}
 
-      {tab === 'rooms' && (
-      <div className="grid gap-3 sm:grid-cols-2">
-        {GRID_ROOM_TYPES.map((rt) => {
-          const count = countOf(rt);
-          return (
-            <div
-              key={rt}
-              className={
-                'flex items-center gap-3 rounded-xl border p-4 transition-colors ' +
-                (count > 0 ? 'border-walnut bg-walnut-soft' : 'border-border-2 bg-surface')
-              }
-            >
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-surface-2 text-walnut [&_svg]:size-5">
-                <ConfiguratorIcon name={ROOM_ICONS[rt]} />
-              </span>
-              <div className="flex-1">
-                <div className="text-sm font-medium">{t(`rooms.type.${rt}`)}</div>
-                <div className="text-xs text-muted-foreground">{t(`rooms.desc.${rt}`)}</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon"
-                  disabled={count === 0}
-                  onClick={() => removeLastOfType(rt)}
-                  aria-label="remove"
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <motion.span
-                  key={count}
-                  initial={{ scale: 0.6, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 24 }}
-                  className="w-5 text-center font-mono text-sm"
-                >
-                  {count}
-                </motion.span>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon"
-                  disabled={total >= MAX_ROOMS}
-                  onClick={() => addRoom(rt)}
-                  aria-label="add"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
+      {tab === 'pieces' && (
+        <div className="flex flex-col gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {GRID_PIECE_TYPES.map((rt) => (
+              <CartTile
+                key={rt}
+                roomType={rt}
+                count={countOf(rt)}
+                disableAdd={total >= MAX_ROOMS}
+                onAdd={() => addRoom(rt)}
+                onRemove={() => removeLastOfType(rt)}
+              />
+            ))}
+          </div>
+
+          {/* fallback formular liber — cap 1 instanta, mereu ultimul in flow */}
+          <div
+            className={
+              'flex items-center gap-3 rounded-xl border border-dashed p-4 transition-colors ' +
+              (piecesAdded ? 'border-walnut bg-walnut-soft' : 'border-border-2 bg-surface')
+            }
+          >
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-surface-2 text-walnut [&_svg]:size-5">
+              <ConfiguratorIcon name={ROOM_ICONS.PIECES} />
+            </span>
+            <div className="flex-1">
+              <div className="text-sm font-medium">{t('rooms.type.PIECES')}</div>
+              <div className="text-xs text-muted-foreground">{t('rooms.desc.PIECES')}</div>
             </div>
-          );
-        })}
-      </div>
+            {piecesAdded ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => removeLastOfType('PIECES')}
+              >
+                <Minus className="mr-1 h-4 w-4" />
+                {t('cart.removePieces')}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={total >= MAX_ROOMS}
+                onClick={() => addRoom('PIECES')}
+              >
+                <Plus className="mr-1 h-4 w-4" />
+                {t('cart.addPieces')}
+              </Button>
+            )}
+          </div>
+        </div>
       )}
 
       {/* proiect pentru toata locuinta → pasii de schita per camera se pot sari */}

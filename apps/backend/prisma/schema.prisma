@@ -107,8 +107,25 @@ enum RoomType {
   OFFICE
   BEDROOM
   BATHROOM
-  // piese individuale de mobilier, fara camera dedicata (tab separat in configurator)
+  // piese individuale de mobilier, fara camera dedicata (tab separat in configurator);
+  // din 2026-07 = fallback-ul "Alta piesa" cu formular liber
   PIECES
+  // camere noi (2026-07, decizie PO)
+  HALLWAY
+  PANTRY
+  LAUNDRY
+  BALCONY
+  // piese ghidate individuale, fiecare cu flow propriu de intrebari (2026-07)
+  PIECE_WARDROBE
+  PIECE_TV_UNIT
+  PIECE_BOOKCASE
+  PIECE_DESK
+  PIECE_BED
+  PIECE_DRESSER
+  PIECE_TABLE
+  PIECE_SHOE_CABINET
+  PIECE_NIGHTSTAND
+  PIECE_BENCH
 
   @@map("room_type")
 }
@@ -116,7 +133,11 @@ enum RoomType {
 enum Material {
   PAL
   MDF
+  MDF_INFOLIAT
+  MDF_VOPSIT
+  MDF_FURNIR
   LEMN_MASIV
+  ALTUL
 
   @@map("material")
 }
@@ -125,6 +146,9 @@ enum ItemSystem {
   PUSH
   GLISANTE
   BUTON_PRESIUNE
+  MANER
+  GOLA
+  AVENTOS
 
   @@map("item_system")
 }
@@ -358,6 +382,7 @@ model Company {
   penaltyEvents       PenaltyEvent[]
   reviews             Review[]
   billingOrders       MockBillingOrder[]
+  inspirationPhotos   InspirationPhoto[]
 
   @@index([cui])
   @@index([status])
@@ -474,12 +499,16 @@ model Request {
   title              String?
   description        String?
   budgetRange        BudgetRange?  @map("budget_range")
+  // bugetul ales pe sliderul estimat din scor (F5, item 18); bucket-ul ramane pentru filtre
+  budgetEstimateRon  Int?          @map("budget_estimate_ron")
   deadlineBucket     DesiredDeadlineBucket? @map("desired_deadline_bucket")
   includesPaidDesign Boolean       @default(false) @map("includes_paid_design")
   hasOwnProject      Boolean       @default(false) @map("has_own_project")
   addressText        String?       @map("address_text")
   county             String?
   city               String?
+  // ISO2, implicit RO — livram si international (F5, item 19)
+  country            String        @default("RO") @db.VarChar(2)
   lat                Float?
   lng                Float?
   sizeScore          Int?          @map("size_score")
@@ -504,10 +533,68 @@ model Request {
   exclusions         RequestCompanyExclusion[]
   quotes             Quote[]
   review             Review?
+  inspirationPhotos  RequestInspirationPhoto[]
 
   @@index([clientUserId])
   @@index([status])
   @@map("requests")
+}
+
+// Galeria de inspiratie (F6, item 3): fotografii reale de mobilier facut de
+// atelierele partenere, incarcate din admin. Imaginea vine ORI dintr-un
+// attachment uploadat (presigned GET la citire, invarianta 3.4), ORI dintr-un
+// URL extern (seed/demo). Soft delete: pozele pot fi referite de cereri.
+enum InspirationColor {
+  WHITE
+  BLACK
+  GRAY
+  BEIGE
+  BROWN
+  NATURAL_WOOD
+  GREEN
+  BLUE
+  RED
+  YELLOW
+  MULTICOLOR
+
+  @@map("inspiration_color")
+}
+
+model InspirationPhoto {
+  id           String             @id @default(uuid())
+  companyId    String             @map("company_id")
+  title        String
+  roomType     RoomType           @map("room_type")
+  colors       InspirationColor[]
+  materials    Material[]
+  systems      ItemSystem[]
+  imageUrl     String?            @map("image_url")
+  attachmentId String?            @unique @map("attachment_id")
+  published    Boolean            @default(false)
+  featured     Boolean            @default(false)
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt    DateTime?          @map("deleted_at") @db.Timestamptz()
+
+  company  Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  requests RequestInspirationPhoto[]
+
+  @@index([roomType])
+  @@index([companyId])
+  @@index([published])
+  @@map("inspiration_photos")
+}
+
+// Pozele din galerie alese de client ca inspiratie pe o cerere (F6, item 3).
+model RequestInspirationPhoto {
+  requestId String @map("request_id")
+  photoId   String @map("photo_id")
+
+  request Request          @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  photo   InspirationPhoto @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@id([requestId, photoId])
+  @@index([photoId])
+  @@map("request_inspiration_photos")
 }
 
 // Snapshot al continutului la fiecare editare (audit lejer + istoric).
@@ -537,8 +624,9 @@ model RequestRoom {
   flowVersion Int?     @map("flow_version")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
-  request Request           @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  items   RequestRoomItem[]
+  request     Request                 @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  items       RequestRoomItem[]
+  quotePrices QuoteVersionRoomPrice[]
 
   @@index([requestId])
   @@map("request_rooms")
@@ -837,11 +925,29 @@ model QuoteVersion {
   quote              Quote                    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   changeRequests     QuoteChangeRequest[]
   validityExtensions QuoteValidityExtension[]
+  roomPrices         QuoteVersionRoomPrice[]
 
   @@unique([quoteId, version])
   @@index([quoteId])
   @@index([validUntil])
   @@map("quote_versions")
+}
+
+// Defalcarea pretului pe camere (F7, item 22): scrisa O DATA cu versiunea de
+// oferta (versiunile sunt snapshot-uri imuabile); suma trebuie sa egaleze
+// price-ul versiunii — validat in QuotesService.
+model QuoteVersionRoomPrice {
+  id             String  @id @default(uuid())
+  quoteVersionId String  @map("quote_version_id")
+  requestRoomId  String  @map("request_room_id")
+  price          Decimal @db.Decimal(12, 2)
+
+  version QuoteVersion @relation(fields: [quoteVersionId], references: [id], onDelete: Cascade)
+  room    RequestRoom  @relation(fields: [requestRoomId], references: [id], onDelete: Cascade)
+
+  @@unique([quoteVersionId, requestRoomId])
+  @@index([requestRoomId])
+  @@map("quote_version_room_prices")
 }
 
 // docs/04 §5.1 + 4.13 — cererea de modificare a clientului pe o versiune de oferta.

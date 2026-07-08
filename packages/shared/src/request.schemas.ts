@@ -16,6 +16,24 @@ import {
 
 const dimensionSchema = z.number().positive('dimensionInvalid').max(100);
 
+// Plafon tehnic de camere/piese per cerere (protectie payload/scoring),
+// nu limita de produs — clientul nu ar trebui sa-l atinga in practica.
+export const MAX_REQUEST_ROOMS = 50;
+
+// Estimarea de buget (feedback PO F5, item 18): scorul proiectului × 1000 RON
+// e baza sliderului, plafonul = 3× baza. Valoarea aleasa se persista numeric
+// (budget_estimate_ron), iar bucket-ul budget_range se deriva din ea — scoringul
+// si filtrele existente raman pe bucket-uri.
+export const BUDGET_RON_PER_POINT = 1000;
+export const BUDGET_RANGE_FACTOR = 3;
+export const MAX_BUDGET_RON = 10_000_000;
+
+export function budgetRangeFromRon(ron: number): 'UNDER_5K' | 'FROM_5K_TO_15K' | 'OVER_15K' {
+  if (ron < 5000) return 'UNDER_5K';
+  if (ron <= 15000) return 'FROM_5K_TO_15K';
+  return 'OVER_15K';
+}
+
 // Un item dintr-o camera (corp de mobilier).
 export const requestItemSchema = z.object({
   name: z.string().trim().min(2, 'itemNameTooShort').max(150),
@@ -38,6 +56,9 @@ export type RequestRoomInput = z.infer<typeof requestRoomSchema>;
 
 // Telefon RO: mobil (07xxxxxxxx) sau fix ([23]xxxxxxxx), cu sau fara prefixul +40.
 export const RO_PHONE_REGEX = /^(\+40|0)(7\d{8}|[23]\d{8})$/;
+// Telefon international E.164 (feedback PO F5, item 20 — livram si in afara RO).
+export const INTL_PHONE_REGEX = /^\+[1-9]\d{6,14}$/;
+const PHONE_REGEX = new RegExp(`(${RO_PHONE_REGEX.source})|(${INTL_PHONE_REGEX.source})`);
 
 // Preferinta de contact: doar EMAIL sau PHONE, valoarea validata ca format.
 export const contactPreferenceSchema = z.discriminatedUnion('channel', [
@@ -47,7 +68,7 @@ export const contactPreferenceSchema = z.discriminatedUnion('channel', [
   }),
   z.object({
     channel: z.literal('PHONE'),
-    value: z.string().trim().regex(RO_PHONE_REGEX, 'contactPhoneInvalid'),
+    value: z.string().trim().regex(PHONE_REGEX, 'contactPhoneInvalid'),
   }),
 ]);
 export type ContactPreferenceInput = z.infer<typeof contactPreferenceSchema>;
@@ -77,7 +98,7 @@ export const requestContentSchema = z.object({
   addressText: z.string().trim().min(3, 'addressTooShort').max(300),
   county: z.string().trim().min(2, 'countyTooShort').max(100),
   city: z.string().trim().min(2, 'cityTooShort').max(100),
-  rooms: z.array(requestRoomSchema).min(1, 'needsRoom').max(20),
+  rooms: z.array(requestRoomSchema).min(1, 'needsRoom').max(MAX_REQUEST_ROOMS),
   contactPreferences: contactPreferencesSchema,
 });
 export type RequestContentInput = z.infer<typeof requestContentSchema>;
@@ -98,7 +119,18 @@ export type ConfiguratorRoomInput = z.infer<typeof configuratorRoomSchema>;
 export const configuratorContentSchema = requestContentSchema
   .omit({ rooms: true, title: true })
   .extend({
-    rooms: z.array(configuratorRoomSchema).min(1, 'needsRoom').max(20),
+    rooms: z.array(configuratorRoomSchema).min(1, 'needsRoom').max(MAX_REQUEST_ROOMS),
+    // bugetul ales pe sliderul estimat (item 18); bucket-ul ramane sursa filtrelor
+    budgetEstimateRon: z.number().int().min(0).max(MAX_BUDGET_RON).optional(),
+    // tara ISO2 (item 19) — implicit RO pe server; livram si international
+    country: z
+      .string()
+      .trim()
+      .regex(/^[A-Za-z]{2}$/, 'countryInvalid')
+      .transform((v) => v.toUpperCase())
+      .optional(),
+    // pozele din galerie alese ca inspiratie (F6, item 3)
+    inspirationPhotoIds: z.array(z.string().uuid()).max(10).optional(),
   });
 export type ConfiguratorContentInput = z.infer<typeof configuratorContentSchema>;
 
@@ -113,7 +145,7 @@ export const requestDraftPatchSchema = z.object({
   addressText: z.string().trim().max(300).optional(),
   county: z.string().trim().max(100).optional(),
   city: z.string().trim().max(100).optional(),
-  rooms: z.array(requestRoomSchema).max(20).optional(),
+  rooms: z.array(requestRoomSchema).max(MAX_REQUEST_ROOMS).optional(),
   contactPreferences: z.array(contactPreferenceSchema).max(4).optional(),
   // starea bruta a wizard-ului configurator (backup server al draftului local);
   // opaca pentru backend, cap de marime aplicat in service
@@ -197,12 +229,16 @@ export interface RequestDto {
   title: string;
   description: string;
   budgetRange: (typeof BUDGET_RANGES)[number];
+  // bugetul ales pe sliderul estimat din scor (F5); null la cererile vechi
+  budgetEstimateRon: number | null;
   deadlineBucket: (typeof DEADLINE_BUCKETS)[number] | null;
   includesPaidDesign: boolean;
   hasOwnProject: boolean;
   addressText: string;
   county: string;
   city: string;
+  // ISO2, implicit RO (F5)
+  country: string;
   lat: number | null;
   lng: number | null;
   sizing: RequestSizingDto | null;
@@ -215,6 +251,8 @@ export interface RequestDto {
   rooms: RequestRoomDto[];
   contactPreferences: ContactPreferenceDto[];
   attachments: AttachmentDto[];
+  // pozele din galerie alese ca inspiratie (F6); detaliile se iau din GET /inspiration?ids=
+  inspirationPhotoIds: string[];
   // stare wizard salvata pe draft (resume de pe alt device); null dupa publish
   configuratorState: unknown | null;
 }
@@ -236,6 +274,13 @@ export interface RequestListItemDto {
 export interface RequestDraftCreatedDto {
   id: string;
   draftToken: string;
+}
+
+// Raspunsul POST /requests/estimate (F5, item 18).
+export interface BudgetEstimateDto {
+  score: number;
+  minRon: number;
+  maxRon: number;
 }
 
 // Statistici pentru dashboardul clientului (agregate server-side).

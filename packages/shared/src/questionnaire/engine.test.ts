@@ -11,7 +11,9 @@ import {
 } from './engine';
 import { roomSizeBucket } from './mapping';
 import type { AnswerMap, ScoringRef } from './types';
-import { ROOM_TYPES } from '../enums';
+import { ROOM_TYPES, type RoomType } from '../enums';
+import { ROOM_KIND, ROOM_ORDER, sortByRoomOrder } from '../room-meta';
+import { CURRENT_FLOW_VERSION } from './flows';
 
 // Un set complet valid de raspunsuri pentru bucatarie L cu insula.
 function kitchenLIslandAnswers(): AnswerMap {
@@ -215,47 +217,136 @@ describe('summarizeAnswers', () => {
 
 describe('deriveRoom pentru toate flow-urile → forma valida', () => {
   it('fiecare flow deriva o camera cu minim un item si dimensiuni pozitive', () => {
-    // raspunsuri minime pentru VERSIUNEA CURENTA a fiecarui flow
-    const minimal: Record<string, AnswerMap> = {
+    // raspunsuri minime pentru VERSIUNEA CURENTA a fiecarui flow.
+    // Record<RoomType, ...> — exhaustiv la compilare: un RoomType nou fara
+    // raspunsuri minimale aici nu compileaza.
+    const minimal: Record<(typeof ROOM_TYPES)[number], AnswerMap> = {
       KITCHEN: {
         layout: 'STRAIGHT',
+        hasIsland: false,
         dimensions: { runA: 3, ceilingHeight: 2.6 },
         frontMaterialBase: 'PAL',
         frontMaterialWall: 'PAL',
         openingSystemsBase: ['PUSH'],
         openingSystemsWall: ['PUSH'],
-        countertop: 'LAMINATE',
+        countertop: 'PAL',
       },
       DRESSING: {
         layout: 'LINEAR',
         doorType: 'SLIDING',
-        dimensions: { runA: 2.5, ceilingHeight: 2.6 },
+        dimensions: { runA: 2.5, wardrobeHeight: 2.4 },
+        interiorModules: ['HANGING_RODS'],
         material: 'PAL',
       },
       LIVING: {
         piecesNeeded: ['TV_UNIT'],
-        material: 'MDF',
-        dimensions: { wallWidth: 3, ceilingHeight: 2.6 },
+        tvStyle: 'ON_FLOOR',
+        dimensions: { tvUnitWidth: 3, ceilingHeight: 2.6 },
+        materialTvUnit: 'MDF_VOPSIT',
+        systemsTvUnit: ['MANER'],
       },
       OFFICE: {
         piecesNeeded: ['DESK'],
         deskShape: 'STRAIGHT',
-        material: 'PAL',
-        dimensions: { spaceWidth: 2.5, ceilingHeight: 2.6, deskWidth: 1.4 },
+        dimensions: { deskWidthA: 1.4, ceilingHeight: 2.6 },
+        materialDesk: 'PAL',
+        systemsDesk: ['MANER'],
       },
       BEDROOM: {
         piecesNeeded: ['WARDROBE'],
-        material: 'MDF',
-        dimensions: { spaceWidth: 3.5, ceilingHeight: 2.6, wardrobeWidth: 2.4 },
+        wardrobeDoorType: 'SLIDING',
+        dimensions: { wardrobeWidth: 2.4, ceilingHeight: 2.6 },
+        materialWardrobe: 'MDF_INFOLIAT',
+        systemsWardrobe: ['GLISANTE'],
       },
       BATHROOM: {
         piecesNeeded: ['VANITY_UNIT'],
         dimensions: { vanityWidth: 0.8, ceilingHeight: 2.6 },
         ventilation: 'WINDOW',
-        materialVanity: 'MDF',
+        materialVanity: 'MDF_INFOLIAT',
       },
       PIECES: {
         pieces: [{ name: 'Dulap hol', material: 'PAL', systems: [], quantity: 1 }],
+      },
+      HALLWAY: {
+        piecesNeeded: ['SHOE_CABINET'],
+        dimensions: { shoeCabinetWidth: 1 },
+        materialShoeCabinet: 'PAL',
+        systemsShoeCabinet: ['MANER'],
+      },
+      PANTRY: {
+        wallsUsed: 'ONE_WALL',
+        storageStyle: 'OPEN_SHELVES',
+        dimensions: { runA: 2, ceilingHeight: 2.6 },
+        material: 'PAL',
+      },
+      LAUNDRY: {
+        applianceSetup: 'WASHER_ONLY',
+        piecesNeeded: ['STORAGE'],
+        ventilation: 'FAN',
+        dimensions: { runA: 2, ceilingHeight: 2.6 },
+        material: 'MDF',
+      },
+      BALCONY: {
+        enclosed: 'ENCLOSED',
+        piecesNeeded: ['STORAGE_BENCH'],
+        dimensions: { balconyLength: 2, balconyDepth: 1, ceilingHeight: 2.6 },
+        material: 'PAL',
+      },
+      PIECE_WARDROBE: {
+        doorType: 'HINGED',
+        dimensions: { width: 2, height: 2.4 },
+        interiorModules: ['HANGING_RODS'],
+        material: 'PAL',
+      },
+      PIECE_TV_UNIT: {
+        style: 'LOW_UNIT',
+        tvSetup: 'UNDECIDED',
+        dimensions: { width: 2 },
+        material: 'PAL',
+      },
+      PIECE_BOOKCASE: {
+        style: 'OPEN',
+        dimensions: { width: 1.2, height: 2 },
+        material: 'PAL',
+      },
+      PIECE_DESK: {
+        shape: 'STRAIGHT',
+        dimensions: { widthA: 1.4, depth: 0.6 },
+        material: 'PAL',
+      },
+      PIECE_BED: {
+        bedSize: 'Q_160',
+        storage: 'NONE',
+        material: 'PAL',
+      },
+      PIECE_DRESSER: {
+        configuration: 'DRAWERS_ONLY',
+        dimensions: { width: 1.2, height: 0.9 },
+        material: 'PAL',
+      },
+      PIECE_TABLE: {
+        tableType: 'DINING',
+        shape: 'RECTANGULAR',
+        seats: 'SIX',
+        dimensions: { length: 1.6, width: 0.9 },
+        material: 'LEMN_MASIV',
+      },
+      PIECE_SHOE_CABINET: {
+        style: 'SLIM_TILT',
+        dimensions: { width: 0.9, height: 1.2 },
+        material: 'PAL',
+      },
+      PIECE_NIGHTSTAND: {
+        style: 'DRAWERS',
+        count: 'TWO',
+        dimensions: { width: 0.5 },
+        material: 'PAL',
+      },
+      PIECE_BENCH: {
+        style: 'WITH_STORAGE',
+        dimensions: { width: 1 },
+        material: 'PAL',
       },
     };
 
@@ -286,11 +377,11 @@ describe('kitchen v2 — insula ca add-on, intrebari per zona', () => {
       hasIsland: true,
       dimensions: { runA: 2.4, runB: 1.8, ceilingHeight: 2.6, islandLength: 2.0, islandDepth: 0.9 },
       frontMaterialBase: 'PAL',
-      frontMaterialWall: 'MDF',
+      frontMaterialWall: 'MDF_VOPSIT',
       frontMaterialIsland: 'LEMN_MASIV',
       openingSystemsBase: ['PUSH'],
-      openingSystemsWall: ['GLISANTE'],
-      openingSystemsIsland: ['BUTON_PRESIUNE'],
+      openingSystemsWall: ['AVENTOS'],
+      openingSystemsIsland: ['GOLA'],
       countertop: 'QUARTZ',
     };
   }
@@ -305,13 +396,40 @@ describe('kitchen v2 — insula ca add-on, intrebari per zona', () => {
     expect(layout.options.every((o) => o.info?.priceHintKey === undefined)).toBe(true);
   });
 
-  it('layout + hasIsland impart acelasi ecran (screenGroup), hasIsland e optional', () => {
+  it('hasIsland e intrebare de sine statatoare si obligatorie (feedback PO F3)', () => {
     const flow = getFlow('KITCHEN');
     const layout = flow.steps.find((s) => s.id === 'layout');
     const island = flow.steps.find((s) => s.id === 'hasIsland');
-    expect(layout?.screenGroup).toBe('layoutScreen');
-    expect(island?.screenGroup).toBe('layoutScreen');
-    expect(island?.optional).toBe(true);
+    expect(layout?.screenGroup).toBeUndefined();
+    expect(island?.screenGroup).toBeUndefined();
+    expect(island?.optional).toBeUndefined();
+  });
+
+  it('sistemele per zona: jos/insula = maner/push/Gola, suspendate + Aventos', () => {
+    const flow = getFlow('KITCHEN');
+    const values = (id: string) => {
+      const s = flow.steps.find((st) => st.id === id);
+      return s?.type === 'multi-choice' ? s.options.map((o) => o.value) : [];
+    };
+    expect(values('openingSystemsBase')).toEqual(['MANER', 'PUSH', 'GOLA']);
+    expect(values('openingSystemsWall')).toEqual(['MANER', 'PUSH', 'GOLA', 'AVENTOS']);
+    expect(values('openingSystemsIsland')).toEqual(['MANER', 'PUSH', 'GOLA']);
+  });
+
+  it('material "Altul": textul liber e obligatoriu si intra in description-ul itemului', () => {
+    const withOther: AnswerMap = {
+      ...kitchenV2Answers(),
+      frontMaterialBase: 'ALTUL',
+    };
+    // fara text → stepul conditional devine vizibil si obligatoriu
+    const invalid = validateRoomAnswers('KITCHEN', withOther, { partial: false });
+    expect(invalid.ok).toBe(false);
+    withOther.frontMaterialBaseOther = 'sticla mata';
+    expect(validateRoomAnswers('KITCHEN', withOther, { partial: false })).toEqual({ ok: true });
+    const derived = getFlow('KITCHEN').deriveRoom(withOther);
+    const base = derived.items.find((it) => it.name === 'Corpuri baza');
+    expect(base?.material).toBe('ALTUL');
+    expect(base?.description).toBe('Material dorit: sticla mata');
   });
 
   it('set complet v2 trece validarea la publish; fara insula, intrebarile de insula dispar', () => {
@@ -320,12 +438,13 @@ describe('kitchen v2 — insula ca add-on, intrebari per zona', () => {
     });
     const noIsland: AnswerMap = {
       layout: 'STRAIGHT',
+      hasIsland: false,
       dimensions: { runA: 3, ceilingHeight: 2.6 },
       frontMaterialBase: 'PAL',
       frontMaterialWall: 'PAL',
       openingSystemsBase: ['PUSH'],
       openingSystemsWall: ['PUSH'],
-      countertop: 'LAMINATE',
+      countertop: 'HPL',
     };
     expect(validateRoomAnswers('KITCHEN', noIsland, { partial: false })).toEqual({ ok: true });
     const flow = getFlow('KITCHEN');
@@ -339,9 +458,9 @@ describe('kitchen v2 — insula ca add-on, intrebari per zona', () => {
     expect(derived.items).toHaveLength(3);
     const byName = Object.fromEntries(derived.items.map((it) => [it.name, it]));
     expect(byName['Corpuri baza'].material).toBe('PAL');
-    expect(byName['Corpuri suspendate'].material).toBe('MDF');
+    expect(byName['Corpuri suspendate'].material).toBe('MDF_VOPSIT');
     expect(byName['Insula bucatarie'].material).toBe('LEMN_MASIV');
-    expect(byName['Insula bucatarie'].systems).toEqual(['BUTON_PRESIUNE']);
+    expect(byName['Insula bucatarie'].systems).toEqual(['GOLA']);
     // metri liniari: runA + runB + islandLength = 6.2
     expect(derived.lengthM).toBeCloseTo(6.2, 5);
   });
@@ -377,11 +496,11 @@ describe('bathroom v2 — ventilatie + dimensiuni/material per piesa', () => {
     expect(ids).not.toContain('materialTall');
   });
 
-  it('MDF are recommendedIf pe ventilation=NONE (badge, nu restrictie)', () => {
+  it('MDF infoliat are recommendedIf pe ventilation=NONE (badge, nu restrictie)', () => {
     const flow = getFlow('BATHROOM');
     const step = flow.steps.find((s) => s.id === 'materialVanity');
     if (step?.type !== 'single-choice') throw new Error('missing material step');
-    const mdf = step.options.find((o) => o.value === 'MDF');
+    const mdf = step.options.find((o) => o.value === 'MDF_INFOLIAT');
     expect(mdf?.recommendedIf).toEqual({ questionId: 'ventilation', equals: 'NONE' });
     expect(evalCondition(mdf!.recommendedIf!, { ventilation: 'NONE' })).toBe(true);
     expect(evalCondition(mdf!.recommendedIf!, { ventilation: 'WINDOW' })).toBe(false);
@@ -392,13 +511,13 @@ describe('bathroom v2 — ventilatie + dimensiuni/material per piesa', () => {
       piecesNeeded: ['VANITY_UNIT', 'MIRROR_CABINET'],
       dimensions: { vanityWidth: 0.8, mirrorWidth: 0.6, ceilingHeight: 2.5 },
       ventilation: 'NONE',
-      materialVanity: 'MDF',
+      materialVanity: 'MDF_INFOLIAT',
       materialMirror: 'PAL',
     };
     expect(validateRoomAnswers('BATHROOM', answers, { partial: false })).toEqual({ ok: true });
     const derived = getFlow('BATHROOM').deriveRoom(answers);
     const byName = Object.fromEntries(derived.items.map((it) => [it.name, it]));
-    expect(byName['Corp lavoar'].material).toBe('MDF');
+    expect(byName['Corp lavoar'].material).toBe('MDF_INFOLIAT');
     expect(byName['Dulap oglinda'].material).toBe('PAL');
     expect(derived.lengthM).toBeCloseTo(1.4, 5);
     expect(derived.heightM).toBe(2.5);
@@ -500,5 +619,105 @@ describe('collectScoreEntries — regresie fata de semantica SizingService', () 
     expect(scoreWith(collectScoreEntries('KITCHEN', uIsland, 1), wU)).toBeGreaterThan(
       scoreWith(collectScoreEntries('KITCHEN', straight, 1), wU),
     );
+  });
+});
+
+describe('v2 pentru dressing/living/bedroom/office — versiuni si compatibilitate FROZEN', () => {
+  it('versiunea curenta este 2; camerele si piesele noi pornesc la 1', () => {
+    expect(CURRENT_FLOW_VERSION.DRESSING).toBe(2);
+    expect(CURRENT_FLOW_VERSION.LIVING).toBe(2);
+    expect(CURRENT_FLOW_VERSION.BEDROOM).toBe(2);
+    expect(CURRENT_FLOW_VERSION.OFFICE).toBe(2);
+    expect(CURRENT_FLOW_VERSION.HALLWAY).toBe(1);
+    expect(CURRENT_FLOW_VERSION.PIECE_WARDROBE).toBe(1);
+    // "Alta piesa" ramane pe flow-ul v1 neschimbat
+    expect(CURRENT_FLOW_VERSION.PIECES).toBe(1);
+  });
+
+  it('raspunsurile v1 raman valide contra versiunii 1 (FROZEN), dar nu contra v2', () => {
+    const dressingV1: AnswerMap = {
+      layout: 'LINEAR',
+      doorType: 'SLIDING',
+      dimensions: { runA: 2.5, ceilingHeight: 2.6 },
+      material: 'PAL',
+    };
+    expect(validateRoomAnswers('DRESSING', dressingV1, { partial: false, version: 1 })).toEqual({
+      ok: true,
+    });
+    // v2 cere interiorModules (min 1) → acelasi set pica pe versiunea curenta
+    expect(validateRoomAnswers('DRESSING', dressingV1, { partial: false }).ok).toBe(false);
+
+    const livingV1: AnswerMap = {
+      piecesNeeded: ['TV_UNIT'],
+      material: 'MDF',
+      dimensions: { wallWidth: 3, ceilingHeight: 2.6 },
+    };
+    expect(validateRoomAnswers('LIVING', livingV1, { partial: false, version: 1 })).toEqual({
+      ok: true,
+    });
+    expect(validateRoomAnswers('LIVING', livingV1, { partial: false }).ok).toBe(false);
+  });
+
+  it('flow-ul PIECES (Alta piesa) ramane neatins: pieces + sketch', () => {
+    const flow = getFlow('PIECES');
+    expect(flow.version).toBe(1);
+    expect(flow.steps.map((s) => s.id)).toEqual(['pieces', 'sketch']);
+  });
+
+  it('config per piesa in v2 (F4): material + sisteme, ecran propriu per piesa', () => {
+    const flow = getFlow('BEDROOM');
+    const answers: AnswerMap = { piecesNeeded: ['WARDROBE', 'DRESSER'] };
+    const ids = visibleSteps(flow, answers).map((s) => s.id);
+    expect(ids).toContain('materialWardrobe');
+    expect(ids).toContain('systemsWardrobe');
+    expect(ids).toContain('materialDresser');
+    expect(ids).not.toContain('materialBed');
+    expect(ids).not.toContain('systemsBed');
+    // materialul si sistemele piesei impart acelasi ecran (screenGroup piece:X)
+    const matStep = flow.steps.find((s) => s.id === 'materialWardrobe');
+    const sysStep = flow.steps.find((s) => s.id === 'systemsWardrobe');
+    expect(matStep?.screenGroup).toBe('piece:WARDROBE');
+    expect(sysStep?.screenGroup).toBe('piece:WARDROBE');
+    // "Altul" deschide textul liber pe acelasi ecran
+    const withOther: AnswerMap = { piecesNeeded: ['WARDROBE'], materialWardrobe: 'ALTUL' };
+    expect(visibleSteps(flow, withOther).map((s) => s.id)).toContain('materialWardrobeOther');
+  });
+});
+
+describe('room-meta — ordinea fixa a intrebarilor', () => {
+  it('ROOM_ORDER: camerele inaintea pieselor, PIECES mereu ultima, bucataria prima', () => {
+    const rooms = ROOM_TYPES.filter((rt) => ROOM_KIND[rt] === 'room');
+    const pieces = ROOM_TYPES.filter((rt) => ROOM_KIND[rt] === 'piece' && rt !== 'PIECES');
+    for (const room of rooms) {
+      for (const piece of pieces) {
+        expect(ROOM_ORDER[room]).toBeLessThan(ROOM_ORDER[piece]);
+      }
+    }
+    for (const rt of ROOM_TYPES.filter((r) => r !== 'PIECES')) {
+      expect(ROOM_ORDER[rt]).toBeLessThan(ROOM_ORDER.PIECES);
+      expect(ROOM_ORDER.KITCHEN).toBeLessThanOrEqual(ROOM_ORDER[rt]);
+    }
+  });
+
+  it('sortByRoomOrder e stabila: instantele de acelasi tip pastreaza ordinea intre ele', () => {
+    const list: { roomType: RoomType; tag: string }[] = [
+      { roomType: 'BATHROOM', tag: 'baie1' },
+      { roomType: 'PIECES', tag: 'liber' },
+      { roomType: 'PIECE_WARDROBE', tag: 'dulap1' },
+      { roomType: 'KITCHEN', tag: 'buc1' },
+      { roomType: 'PIECE_WARDROBE', tag: 'dulap2' },
+      { roomType: 'BATHROOM', tag: 'baie2' },
+    ];
+    const sorted = sortByRoomOrder(list);
+    expect(sorted.map((e) => e.tag)).toEqual([
+      'buc1',
+      'baie1',
+      'baie2',
+      'dulap1',
+      'dulap2',
+      'liber',
+    ]);
+    // nu muteaza inputul
+    expect(list[0].tag).toBe('baie1');
   });
 });

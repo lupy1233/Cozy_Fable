@@ -1,5 +1,7 @@
 import {
   type AttachmentDto,
+  BUDGET_RANGE_FACTOR,
+  BUDGET_RON_PER_POINT,
   type ClientDashboardStatsDto,
   contactPreferencesSchema,
   ERROR_CODES,
@@ -7,6 +9,7 @@ import {
   type RequestDraftCreatedDto,
   type RequestDto,
   type RequestListItemDto,
+  sortByRoomOrder,
 } from '@marketplace/shared';
 import { ConfiguratorService, type ProcessedRoom } from './configurator.service';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -26,10 +29,12 @@ import { EventBusService } from '../../infra/event-bus/event-bus.service';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { QUEUE_REQUEST_EXPIRATION } from '../../infra/queues/queues.module';
 import { SizingService } from '../sizing/sizing.service';
+import { InspirationService } from '../inspiration/inspiration.service';
 import { GeoService } from '../geo/geo.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { CreditsService } from '../billing/credits.service';
 import {
+  ConfiguratorRoomInputDto,
   CreateRequestContentDto,
   PatchDraftDto,
   PresignAttachmentDto,
@@ -67,6 +72,7 @@ export class RequestsService {
     private readonly sizing: SizingService,
     private readonly configurator: ConfiguratorService,
     private readonly uploads: UploadsService,
+    private readonly inspiration: InspirationService,
     private readonly calendar: BusinessCalendarService,
     private readonly eventBus: EventBusService,
     private readonly credits: CreditsService,
@@ -201,6 +207,7 @@ export class RequestsService {
     // valideaza raspunsurile + deriva camere/items/scoring (sursa de adevar server)
     const processed = this.configurator.processRooms(dto.rooms);
     this.assertContactFormats(dto.contactPreferences);
+    await this.inspiration.assertSelectable(dto.inspirationPhotoIds ?? []);
     await this.assertRoomAttachments(
       request.id,
       this.configurator.collectUploadAttachmentIds(processed.rooms),
@@ -237,6 +244,7 @@ export class RequestsService {
       });
       await this.writeRooms(tx, request.id, processed.rooms);
       await this.writeContactPreferences(tx, request.id, dto.contactPreferences);
+      await this.writeInspirationPhotos(tx, request.id, dto.inspirationPhotoIds);
       await this.writeVersion(tx, request.id, dto);
     });
 
@@ -268,6 +276,7 @@ export class RequestsService {
 
     const processed = this.configurator.processRooms(dto.rooms);
     this.assertContactFormats(dto.contactPreferences);
+    await this.inspiration.assertSelectable(dto.inspirationPhotoIds ?? []);
     await this.assertRoomAttachments(
       request.id,
       this.configurator.collectUploadAttachmentIds(processed.rooms),
@@ -302,6 +311,7 @@ export class RequestsService {
       });
       await this.writeRooms(tx, request.id, processed.rooms);
       await this.writeContactPreferences(tx, request.id, dto.contactPreferences);
+      await this.writeInspirationPhotos(tx, request.id, dto.inspirationPhotoIds);
       await this.writeVersion(tx, request.id, dto);
     });
 
@@ -584,13 +594,33 @@ export class RequestsService {
     return {
       description: dto.description ?? '',
       budgetRange: dto.budgetRange,
+      budgetEstimateRon: dto.budgetEstimateRon ?? null,
       deadlineBucket: dto.deadlineBucket ?? null,
       includesPaidDesign: dto.includesPaidDesign,
       hasOwnProject: dto.hasOwnProject,
       addressText: dto.addressText,
       county: dto.county,
       city: dto.city,
+      country: dto.country ?? 'RO',
     };
+  }
+
+  // Estimare de buget pre-publish (F5, item 18): scorul camerelor completate —
+  // fara bucket-ul de buget (ar fi circular) si fara design platit (se aleg
+  // dupa) — inmultit cu BUDGET_RON_PER_POINT; plafonul sliderului = 3× baza.
+  async estimate(rooms: ConfiguratorRoomInputDto[]): Promise<{
+    score: number;
+    minRon: number;
+    maxRon: number;
+  }> {
+    const processed = this.configurator.processRooms(rooms);
+    const sizing = await this.sizing.compute({
+      scoreEntries: processed.scoreEntries,
+      budgetRange: 'UNDISCLOSED',
+      includesPaidDesign: false,
+    });
+    const minRon = sizing.score * BUDGET_RON_PER_POINT;
+    return { score: sizing.score, minRon, maxRon: minRon * BUDGET_RANGE_FACTOR };
   }
 
   // Eticheta RO per tip camera pentru titlul generat automat (singular/plural).
@@ -604,6 +634,20 @@ export class RequestsService {
     OFFICE: { one: 'Birou', many: 'Birouri' },
     DRESSING: { one: 'Dressing', many: 'Dressing-uri' },
     PIECES: { one: 'Piese individuale', many: 'Piese individuale' },
+    HALLWAY: { one: 'Hol', many: 'Holuri' },
+    PANTRY: { one: 'Debara', many: 'Debarale' },
+    LAUNDRY: { one: 'Spălătorie', many: 'Spălătorii' },
+    BALCONY: { one: 'Balcon', many: 'Balcoane' },
+    PIECE_WARDROBE: { one: 'Dulap', many: 'Dulapuri' },
+    PIECE_TV_UNIT: { one: 'Comodă TV', many: 'Comode TV' },
+    PIECE_BOOKCASE: { one: 'Bibliotecă', many: 'Biblioteci' },
+    PIECE_BED: { one: 'Pat', many: 'Paturi' },
+    PIECE_DESK: { one: 'Birou', many: 'Birouri' },
+    PIECE_DRESSER: { one: 'Comodă', many: 'Comode' },
+    PIECE_TABLE: { one: 'Masă', many: 'Mese' },
+    PIECE_SHOE_CABINET: { one: 'Pantofar', many: 'Pantofare' },
+    PIECE_NIGHTSTAND: { one: 'Noptiere', many: 'Noptiere' },
+    PIECE_BENCH: { one: 'Băncuță', many: 'Băncuțe' },
   };
 
   private buildRequestTitle(rooms: ProcessedRoom[], city: string): string {
@@ -701,6 +745,23 @@ export class RequestsService {
     });
   }
 
+  // pozele din galerie alese ca inspiratie (F6, item 3) — inlocuire completa;
+  // validitatea (publicate, nesterse) e verificata inainte de tranzactie
+  private async writeInspirationPhotos(
+    tx: Prisma.TransactionClient,
+    requestId: string,
+    photoIds: string[] | undefined,
+  ): Promise<void> {
+    if (photoIds === undefined) return;
+    await tx.requestInspirationPhoto.deleteMany({ where: { requestId } });
+    const unique = [...new Set(photoIds)];
+    if (unique.length > 0) {
+      await tx.requestInspirationPhoto.createMany({
+        data: unique.map((photoId) => ({ requestId, photoId })),
+      });
+    }
+  }
+
   private async writeVersion(
     tx: Prisma.TransactionClient,
     requestId: string,
@@ -736,6 +797,7 @@ export class RequestsService {
       include: {
         rooms: { include: { items: true }, orderBy: { createdAt: 'asc' } },
         contactPreferences: true,
+        inspirationPhotos: { select: { photoId: true } },
       },
     });
     const attachments = await this.uploads.listForEntity(ENTITY_TYPE_REQUEST, id);
@@ -746,12 +808,14 @@ export class RequestsService {
       title: request.title ?? '',
       description: request.description ?? '',
       budgetRange: request.budgetRange ?? 'UNDISCLOSED',
+      budgetEstimateRon: request.budgetEstimateRon,
       deadlineBucket: request.deadlineBucket,
       includesPaidDesign: request.includesPaidDesign,
       hasOwnProject: request.hasOwnProject,
       addressText: request.addressText ?? '',
       county: request.county ?? '',
       city: request.city ?? '',
+      country: request.country,
       // Marimea/costul in credite si coordonatele NU sunt informatii de client:
       // ele privesc firmele (marketplace) si adminul. DTO-ul de proprietar le ascunde.
       lat: null,
@@ -764,7 +828,9 @@ export class RequestsService {
       repostUsed: request.repostUsed,
       createdAt: request.createdAt.toISOString(),
       configuratorState: (request.configuratorState ?? null) as unknown,
-      rooms: request.rooms.map((r) => ({
+      // createdAt e identic pentru toate camerele unei publicari (aceeasi tranzactie),
+      // deci orderBy-ul din query nu e determinist — ordinea canonica vine din ROOM_ORDER
+      rooms: sortByRoomOrder(request.rooms).map((r) => ({
         id: r.id,
         roomType: r.roomType,
         lengthM: r.lengthM,
@@ -787,6 +853,7 @@ export class RequestsService {
         value: c.value,
       })),
       attachments,
+      inspirationPhotoIds: request.inspirationPhotos.map((p) => p.photoId),
     };
   }
 }

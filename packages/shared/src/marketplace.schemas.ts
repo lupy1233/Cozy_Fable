@@ -55,6 +55,8 @@ export interface MarketplaceItemDto {
 export interface MarketplaceDetailDto extends MarketplaceItemDto {
   deadlineBucket: (typeof DEADLINE_BUCKETS)[number] | null;
   rooms: RequestRoomDto[];
+  // pozele de inspiratie alese de client (F6); detaliile din GET /inspiration?ids=
+  inspirationPhotoIds: string[];
 }
 
 export interface ClaimSlotDto {

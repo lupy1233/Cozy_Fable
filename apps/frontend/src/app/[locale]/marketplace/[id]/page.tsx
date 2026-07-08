@@ -9,6 +9,7 @@ import { useClaim, useMarketplaceDetail, useWallet } from '@/hooks/use-marketpla
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RoomAnswerSummary } from '@/components/configurator/room-answer-summary';
+import { RequestInspirationStrip } from '@/components/configurator/request-inspiration-strip';
 import { useRelativeTime } from '@/lib/relative-time';
 
 export default function MarketplaceDetailPage() {
@@ -97,6 +98,9 @@ export default function MarketplaceDetailPage() {
           </div>
         ))}
       </div>
+
+      {/* inspiratia aleasa de client din galerie (F6) */}
+      <RequestInspirationStrip ids={r.inspirationPhotoIds} />
 
       <ClaimPanel request={r} />
     </div>

@@ -13,15 +13,20 @@ const stroke = {
   strokeLinejoin: 'round' as const,
 };
 
+// Redesenate (feedback PO F3): fara text in interiorul desenelor — cota din
+// StepMeasure se suprapunea cu peretele; compozitii mai aerisite, linii mai clare.
+
 function StepMeasure() {
   return (
     <svg viewBox="0 0 120 90" {...stroke} aria-hidden="true">
-      <rect x="18" y="18" width="84" height="54" rx="3" opacity={0.4} strokeWidth={1.75} />
-      <path d="M18 80h84M18 76v8M102 76v8" />
-      <path d="M24 80l6-3m-6 3l6 3M96 80l-6-3m6 3l-6 3" strokeWidth={1.75} />
-      <text x="60" y="14" textAnchor="middle" fontSize="11" className="fill-current" stroke="none">
-        3,40 m
-      </text>
+      {/* peretele masurat */}
+      <rect x="20" y="12" width="80" height="50" rx="2" opacity={0.4} strokeWidth={1.75} />
+      {/* ruleta trasa de-a lungul peretelui */}
+      <rect x="14" y="70" width="14" height="12" rx="3" strokeWidth={2} />
+      <path d="M28 76h64" strokeWidth={2} />
+      <path d="M92 72v8" strokeWidth={2} />
+      {/* gradatiile ruletei */}
+      <path d="M40 76v-4M52 76v-4M64 76v-4M76 76v-4M88 76v-4" strokeWidth={1.5} opacity={0.7} />
     </svg>
   );
 }
@@ -29,9 +34,13 @@ function StepMeasure() {
 function StepDraw() {
   return (
     <svg viewBox="0 0 120 90" {...stroke} aria-hidden="true">
-      <rect x="22" y="14" width="76" height="62" rx="3" strokeWidth={1.75} opacity={0.4} />
-      <path d="M26 18v54h20M26 40h24M50 18v22" strokeWidth={2} />
-      <path d="M78 62l24 24m-4-28l-20 20-4 8 8-4z" strokeWidth={2} />
+      {/* foaia de hartie */}
+      <rect x="16" y="12" width="66" height="66" rx="3" strokeWidth={1.75} opacity={0.4} />
+      {/* conturul camerei desenat pe foaie */}
+      <path d="M26 22v46h30M26 44h20M46 22v22" strokeWidth={2} />
+      {/* creionul, clar separat de plan */}
+      <path d="M92 30l14 14-26 26-16 4 4-16z" strokeWidth={2} strokeLinejoin="round" />
+      <path d="M88 34l10 10" strokeWidth={1.5} opacity={0.7} />
     </svg>
   );
 }
@@ -39,13 +48,14 @@ function StepDraw() {
 function StepMark() {
   return (
     <svg viewBox="0 0 120 90" {...stroke} aria-hidden="true">
-      <rect x="18" y="14" width="84" height="62" rx="3" strokeWidth={1.75} opacity={0.4} />
-      {/* usa cu arc */}
-      <path d="M34 76v-20M34 56a20 20 0 0 1 20 20" strokeWidth={2} />
-      {/* fereastra */}
-      <path d="M64 14h28M64 18h28" strokeWidth={2} />
-      {/* priza/teava marcate cu x */}
-      <path d="M84 52l6 6m0-6l-6 6" strokeWidth={2} />
+      {/* conturul camerei */}
+      <rect x="18" y="12" width="84" height="66" rx="2" strokeWidth={1.75} opacity={0.4} />
+      {/* usa cu arc — coltul stanga-jos */}
+      <path d="M32 78v-22M32 56a22 22 0 0 1 22 22" strokeWidth={2} />
+      {/* fereastra — linie dubla pe latura de sus */}
+      <path d="M66 12h26M66 17h26" strokeWidth={2} />
+      {/* priza marcata cu X — pe peretele din dreapta, cu spatiu in jur */}
+      <path d="M88 46l8 8m0-8l-8 8" strokeWidth={2} />
     </svg>
   );
 }
@@ -53,10 +63,12 @@ function StepMark() {
 function StepPhoto() {
   return (
     <svg viewBox="0 0 120 90" {...stroke} aria-hidden="true">
-      <rect x="24" y="28" width="72" height="46" rx="6" />
-      <path d="M46 28l6-8h16l6 8" />
-      <circle cx="60" cy="51" r="13" />
-      <circle cx="60" cy="51" r="5" strokeWidth={2} />
+      <rect x="22" y="26" width="76" height="50" rx="7" />
+      <path d="M45 26l7-9h16l7 9" />
+      <circle cx="60" cy="51" r="14" />
+      <circle cx="60" cy="51" r="5.5" strokeWidth={2} />
+      {/* blitul */}
+      <path d="M86 36h6" strokeWidth={2} />
     </svg>
   );
 }

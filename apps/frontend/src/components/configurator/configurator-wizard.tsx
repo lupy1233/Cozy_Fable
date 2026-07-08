@@ -35,12 +35,14 @@ function buildSnapshotFromRequest(dto: RequestDto): ConfiguratorSnapshot {
   const details: Partial<DetailsValues> = {
     description: dto.description ?? '',
     budgetRange: dto.budgetRange,
+    budgetEstimateRon: dto.budgetEstimateRon,
     deadlineBucket: dto.deadlineBucket ?? '',
     includesPaidDesign: dto.includesPaidDesign,
     hasOwnProject: dto.hasOwnProject,
     addressText: dto.addressText ?? '',
     county: dto.county ?? '',
     city: dto.city ?? '',
+    country: dto.country ?? 'RO',
     contactPreferences: dto.contactPreferences.map((c) => ({
       channel: c.channel,
       value: c.value,
@@ -60,6 +62,7 @@ function buildSnapshotFromRequest(dto: RequestDto): ConfiguratorSnapshot {
     activeRoomIndex: 0,
     activeStepIndex: 0,
     details,
+    inspirationPhotoIds: dto.inspirationPhotoIds ?? [],
     updatedAt: Date.now(),
   };
 }

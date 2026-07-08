@@ -1,5 +1,6 @@
 export * from './error-codes';
 export * from './enums';
+export * from './room-meta';
 export * from './auth.schemas';
 export * from './company.schemas';
 export * from './request.schemas';
@@ -11,4 +12,5 @@ export * from './reviews.schemas';
 export * from './billing.schemas';
 export * from './notification.schemas';
 export * from './admin.schemas';
+export * from './inspiration.schemas';
 export * from './questionnaire';

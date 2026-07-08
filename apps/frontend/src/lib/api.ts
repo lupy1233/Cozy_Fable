@@ -15,10 +15,14 @@ export class ApiError extends Error {
 }
 
 function rawFetch(path: string, init?: RequestInit): Promise<Response> {
+  // headers se compun EXPLICIT: init venea dupa `headers` si il suprascria
+  // integral cand apelul avea headere proprii (Idempotency-Key) → corpul pleca
+  // fara Content-Type si DTO-ul ajungea gol pe server (bug claim/oferte, F7)
+  const { headers, ...rest } = init ?? {};
   return fetch(`${BASE_URL}${path}`, {
     credentials: 'include', // cookies httpOnly — niciodata JWT in localStorage
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
-    ...init,
+    ...rest,
+    headers: { 'Content-Type': 'application/json', ...headers },
   });
 }
 

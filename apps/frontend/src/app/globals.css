@@ -184,6 +184,14 @@
     animation: planFade 600ms ease forwards;
     animation-delay: calc(var(--d, 0) * 1ms);
   }
+  /* varianta lenta (ghidul de schita): fiecare linie e trasata vizibil
+     mai rar, ca o demonstratie pas cu pas, nu ca un intro de pagina */
+  .plan-draw--slow [data-draw] {
+    animation-duration: 1800ms;
+  }
+  .plan-draw--slow [data-fade] {
+    animation-duration: 900ms;
+  }
   /* tine schita "pe loc" pana intra in viewport (scos de IntersectionObserver) */
   .plan-paused [data-draw],
   .plan-paused [data-fade] {

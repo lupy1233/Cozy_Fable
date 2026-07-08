@@ -16,12 +16,25 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ValidateNested } from 'class-validator';
 import { QuoteCurrency } from '@prisma/client';
 import {
   ALLOWED_ATTACHMENT_MIME,
   MAX_ATTACHMENT_BYTES,
   MAX_ATTACHMENTS_PER_QUOTE,
 } from '@marketplace/shared';
+
+// Pretul unei camere din defalcare (F7, item 22).
+export class QuoteRoomPriceInputDto {
+  @IsUUID()
+  requestRoomId: string;
+
+  @IsNumber()
+  @Min(0.01)
+  @Max(100_000_000)
+  price: number;
+}
 
 // Campurile editabile ale ofertei (offer field_key). Permisiunile per rol se verifica in service.
 export class OfferFieldsDto {
@@ -66,6 +79,14 @@ export class OfferFieldsDto {
   @ArrayMaxSize(MAX_ATTACHMENTS_PER_QUOTE)
   @IsUUID('4', { each: true })
   attachmentIds?: string[];
+
+  // defalcarea pe camere (F7): daca exista, acopera toate camerele si suma = price
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @ValidateNested({ each: true })
+  @Type(() => QuoteRoomPriceInputDto)
+  roomPrices?: QuoteRoomPriceInputDto[];
 }
 
 export class CreateQuoteDto extends OfferFieldsDto {

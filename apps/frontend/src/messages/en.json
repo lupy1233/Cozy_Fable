@@ -36,6 +36,12 @@
     "creditsUnitOne": "credit",
     "heroSheetTitle": "Bedroom wardrobe — axonometric",
     "heroSheetClient": "Client request",
+    "heroSheetsSwitcher": "Choose a sheet",
+    "heroSheets": {
+      "wardrobe": "Bedroom wardrobe",
+      "kitchen": "Kitchen",
+      "bookcase": "Bookcase"
+    },
     "ctaBandTitle": "Run a workshop?",
     "ctaBandBody": "Real, sized, verified requests — you spend credits only on the projects you claim.",
     "ctaBandButton": "Register your workshop",
@@ -74,6 +80,7 @@
     "dashboard": "My account",
     "myRequests": "My requests",
     "newRequest": "New request",
+    "createRequest": "Create a request",
     "marketplace": "Marketplace",
     "claims": "Claims",
     "wallet": "Wallet",
@@ -99,11 +106,31 @@
   },
   "Inspiration": {
     "title": "Inspiration",
-    "subtitle": "Real ideas for custom furniture. Search, filter by furniture type and open them on Pinterest.",
+    "subtitle": "Real furniture made by our partner workshops. Filter by type, colour, material or opening system.",
     "searchPlaceholder": "Search ideas — e.g. kitchen, dressing, reading…",
     "all": "All",
     "empty": "Nothing found for your search. Try another word or filter.",
     "openPinterest": "View on Pinterest",
+    "byFirm": "by {name}",
+    "requestSection": "Gallery inspiration",
+    "filters": {
+      "color": "Colour",
+      "material": "Material",
+      "opening": "Opening"
+    },
+    "colors": {
+      "WHITE": "White",
+      "BLACK": "Black",
+      "GRAY": "Gray",
+      "BEIGE": "Beige",
+      "BROWN": "Brown",
+      "NATURAL_WOOD": "Natural wood",
+      "GREEN": "Green",
+      "BLUE": "Blue",
+      "RED": "Red",
+      "YELLOW": "Yellow",
+      "MULTICOLOR": "Multicolour"
+    },
     "types": {
       "kitchen": "Kitchen",
       "living": "Living",
@@ -344,6 +371,24 @@
     },
     "marketplaceLink": "Marketplace"
   },
+  "AdminInspiration": {
+    "title": "Inspiration gallery",
+    "addTitle": "Add a photo",
+    "fields": {
+      "title": "Title",
+      "company": "Workshop that made the piece",
+      "roomType": "Furniture type",
+      "imageUrl": "Image URL (optional)",
+      "imageUrlHint": "You can leave this empty and upload the image after creating."
+    },
+    "addButton": "Add to gallery",
+    "empty": "No photos yet. Add the first one above.",
+    "published": "Published",
+    "featured": "On landing",
+    "uploadImage": "Upload image",
+    "delete": "Delete",
+    "noImage": "No image"
+  },
   "AdminCompanies": {
     "title": "Company verification",
     "filterAll": "All",
@@ -442,6 +487,7 @@
       "OVER_15K": "Over 15,000 RON",
       "UNDISCLOSED": "I prefer not to share"
     },
+    "budgetEstimateHint": "Rough estimate from your answers: {min} – {max}. Pick the budget you are comfortable with.",
     "deadline": {
       "none": "Not sure yet",
       "ASAP": "As soon as possible",
@@ -461,7 +507,21 @@
       "OFFICE": "Office",
       "BEDROOM": "Bedroom",
       "BATHROOM": "Bathroom",
-      "PIECES": "Individual pieces"
+      "PIECES": "Individual pieces",
+      "HALLWAY": "Hallway / Entryway",
+      "PANTRY": "Pantry",
+      "LAUNDRY": "Laundry room",
+      "BALCONY": "Balcony",
+      "PIECE_WARDROBE": "Wardrobe",
+      "PIECE_TV_UNIT": "TV unit",
+      "PIECE_BOOKCASE": "Bookcase",
+      "PIECE_DESK": "Desk (piece)",
+      "PIECE_BED": "Bed",
+      "PIECE_DRESSER": "Dresser",
+      "PIECE_TABLE": "Table",
+      "PIECE_SHOE_CABINET": "Shoe cabinet",
+      "PIECE_NIGHTSTAND": "Nightstands",
+      "PIECE_BENCH": "Bench"
     },
     "material": {
       "PAL": "Particleboard (PAL)",
@@ -508,7 +568,8 @@
       "contactChannelTooShort": "Channel is too short.",
       "contactValueTooShort": "Value is too short.",
       "contactEmailInvalid": "Enter a valid email address.",
-      "contactPhoneInvalid": "Enter a valid Romanian phone number.",
+      "contactPhoneInvalid": "Enter a valid phone number (with the country prefix for international numbers).",
+      "countryInvalid": "Invalid country.",
       "tooManyContacts": "Maximum 4 contact entries.",
       "tooManyPerChannel": "Maximum 2 entries per channel.",
       "descriptionTooLong": "Message is too long."
@@ -678,6 +739,10 @@
       "reviseTitle": "Reply with a new version",
       "extraTitle": "Extra version",
       "reofferTitle": "Modify (new version)",
+      "roomPrices": "Price per room (adds up automatically)",
+      "roomPricesTotal": "Total",
+      "roomPricesPartial": "Fill a price for every room, or leave all empty for a single price.",
+      "priceLocked": "The total comes from the room prices.",
       "price": "Price",
       "currency": "Currency",
       "designFee": "Design fee",
@@ -828,6 +893,7 @@
     "nav": {
       "dashboard": "Dashboard",
       "companies": "Companies",
+      "inspiration": "Inspiration",
       "disputes": "Disputes",
       "payments": "Payments",
       "withdrawals": "Withdrawals",
@@ -923,7 +989,9 @@
       "tabRooms": "Rooms",
       "tabPieces": "Individual pieces",
       "addPieces": "Add pieces",
-      "removePieces": "Remove"
+      "removePieces": "Remove",
+      "addOne": "Add {type}",
+      "removeOne": "Remove {type}"
     },
     "sketchUpload": {
       "skipNotice": "You marked that you have a project for the whole home — you can skip this step. Upload the project at the Files step so you don't attach it for every room.",
@@ -960,7 +1028,21 @@
         "OFFICE": "Office",
         "BEDROOM": "Bedroom",
         "BATHROOM": "Bathroom",
-        "PIECES": "Individual pieces"
+        "PIECES": "Something else",
+        "HALLWAY": "Hallway / Entryway",
+        "PANTRY": "Pantry",
+        "LAUNDRY": "Laundry room",
+        "BALCONY": "Balcony",
+        "PIECE_WARDROBE": "Wardrobe",
+        "PIECE_TV_UNIT": "TV unit",
+        "PIECE_BOOKCASE": "Bookcase",
+        "PIECE_DESK": "Desk",
+        "PIECE_BED": "Bed",
+        "PIECE_DRESSER": "Dresser",
+        "PIECE_TABLE": "Table",
+        "PIECE_SHOE_CABINET": "Shoe cabinet",
+        "PIECE_NIGHTSTAND": "Nightstands",
+        "PIECE_BENCH": "Bench"
       },
       "desc": {
         "KITCHEN": "Cabinets, countertop, island",
@@ -969,7 +1051,21 @@
         "OFFICE": "Desk, bookshelves, storage",
         "BEDROOM": "Wardrobe, bed, nightstands",
         "BATHROOM": "Vanity unit, mirror, tall storage",
-        "PIECES": "Just a wardrobe, a desk or a few standalone pieces"
+        "PIECES": "Any other piece — free description",
+        "HALLWAY": "Shoe cabinet, coat rack, wardrobe, bench",
+        "PANTRY": "Shelving and storage cabinets",
+        "LAUNDRY": "Cabinets around the washer",
+        "BALCONY": "Storage bench, cabinet, worktop",
+        "PIECE_WARDROBE": "Sliding or hinged doors",
+        "PIECE_TV_UNIT": "Low unit or full media wall",
+        "PIECE_BOOKCASE": "Shelves, display, closed bases",
+        "PIECE_DESK": "Straight or corner",
+        "PIECE_BED": "Upholstered, lift-up or drawers",
+        "PIECE_DRESSER": "With drawers and doors",
+        "PIECE_TABLE": "Dining, coffee or console",
+        "PIECE_SHOE_CABINET": "Slim tilt-out or with seat",
+        "PIECE_NIGHTSTAND": "One or a pair",
+        "PIECE_BENCH": "With storage or simple"
       }
     },
     "uploads": {
@@ -995,7 +1091,17 @@
       "detailsIncomplete": "Complete the general info before publishing.",
       "roomIncomplete": "incomplete",
       "loginToPublish": "Log in to publish",
-      "loginToPublishHint": "Your request is complete. Log in or create an account to send it to the marketplace — your answers are kept."
+      "loginToPublishHint": "Your request is complete. Log in or create an account to send it to the marketplace — your answers are kept.",
+      "publishing": "Publishing your request...",
+      "publishingEdit": "Saving your changes...",
+      "publishingHint": "This takes a few seconds — we are preparing your request for the workshops."
+    },
+    "inspirationPicker": {
+      "title": "Gallery inspiration",
+      "subtitle": "Pick up to {max} photos of furniture made by our workshops — firms see exactly what you like.",
+      "browse": "Browse the gallery",
+      "dialogTitle": "Choose inspiration photos",
+      "selectedCount": "{count} of {max} selected"
     },
     "info": {
       "pros": "Pros",
@@ -1006,8 +1112,8 @@
       "hideInfo": "Back to option"
     },
     "diagram": {
-      "islandLength": "Island L",
-      "islandDepth": "Island D",
+      "islandLength": "L",
+      "islandDepth": "D",
       "caption": "The sketch updates as you type — the letters match the fields below."
     },
     "copyFromPrevious": "Copy answers from the previous {room}",
@@ -1028,6 +1134,7 @@
     "validation": {
       "answerRequired": "This field is required.",
       "answerInvalid": "Invalid answer.",
+      "dimensionRange": "Value must be between {range}.",
       "optionInvalid": "Invalid option.",
       "minOneOption": "Pick at least one option.",
       "tooManyOptions": "Too many options selected.",
@@ -1045,7 +1152,7 @@
         "no": "No"
       },
       "slots": {
-        "ceilingHeight": "Ceiling height"
+        "ceilingHeight": "Ceiling height (H)"
       },
       "materials": {
         "PAL": {
@@ -1076,6 +1183,48 @@
             "price": "450–800 RON/lm"
           }
         },
+        "MDF_INFOLIAT": {
+          "label": "Foil-wrapped MDF",
+          "description": "PVC foil on routed fronts, easy to maintain",
+          "info": {
+            "title": "Foil-wrapped MDF",
+            "body": "MDF fronts covered with heat-pressed PVC foil — allows routed profiles with a clean look at a moderate price.",
+            "pros1": "Moisture resistant",
+            "pros2": "Easy to clean",
+            "pros3": "Allows routed fronts",
+            "cons1": "Foil can peel near strong heat",
+            "cons2": "Narrower colour palette than paint",
+            "price": "350–600 RON/lm"
+          }
+        },
+        "MDF_VOPSIT": {
+          "label": "Painted MDF",
+          "description": "Any colour, matte or gloss",
+          "info": {
+            "title": "Painted MDF",
+            "body": "Electrostatically painted MDF fronts — any RAL colour, in matte, satin or gloss finish.",
+            "pros1": "Any colour and gloss level",
+            "pros2": "Premium look, fine edges",
+            "pros3": "Can be repainted",
+            "cons1": "Higher price",
+            "cons2": "Sensitive to impacts (may chip)",
+            "price": "500–900 RON/lm"
+          }
+        },
+        "MDF_FURNIR": {
+          "label": "Veneered MDF",
+          "description": "Natural wood veneer on a stable core",
+          "info": {
+            "title": "Veneered MDF",
+            "body": "MDF covered with natural wood veneer — authentic wood grain without the warping risk of solid timber.",
+            "pros1": "Natural wood look",
+            "pros2": "Dimensionally stable",
+            "pros3": "Can be stained in different shades",
+            "cons1": "Rare veneers cost close to solid wood",
+            "cons2": "Sensitive to deep scratches",
+            "price": "600–1100 RON/lm"
+          }
+        },
         "LEMN_MASIV": {
           "label": "Solid wood",
           "description": "Natural, durable, most premium",
@@ -1089,7 +1238,19 @@
             "cons2": "May warp with humidity swings",
             "price": "900–1800 RON/lm"
           }
+        },
+        "ALTUL": {
+          "label": "Other",
+          "description": "Type the material you want below"
         }
+      },
+      "otherMaterial": {
+        "title": "What material do you have in mind?",
+        "subtitle": "Briefly describe the material or finish you want — the workshop will confirm availability."
+      },
+      "pieceSystems": {
+        "title": "Which opening system?",
+        "subtitle": "For this piece's doors and drawers — you can pick several."
       },
       "systems": {
         "PUSH": {
@@ -1129,6 +1290,45 @@
             "cons1": "Lower durability",
             "cons2": "No soft-close",
             "price": "+10–30 RON/front"
+          }
+        },
+        "MANER": {
+          "label": "Handle",
+          "description": "Applied handles, your choice of model",
+          "info": {
+            "title": "Classic handles",
+            "body": "Handles mounted on the fronts — from minimal to classic, the model is chosen with the workshop.",
+            "pros1": "Reliable grip, always works",
+            "pros2": "Huge variety of models",
+            "cons1": "Visible — a deliberate style",
+            "cons2": "Can snag in tight spaces",
+            "price": "10–80 RON/pc"
+          }
+        },
+        "GOLA": {
+          "label": "Gola",
+          "description": "Integrated profile, no applied handle",
+          "info": {
+            "title": "Gola profile",
+            "body": "Aluminium channel integrated between fronts — you open from the profile and the front line stays uninterrupted.",
+            "pros1": "Premium look, continuous lines",
+            "pros2": "Nothing snags, easy to clean",
+            "cons1": "Routing and profile costs",
+            "cons2": "More complex fitting",
+            "price": "+150–300 RON/lm"
+          }
+        },
+        "AVENTOS": {
+          "label": "Aventos (lift-up)",
+          "description": "The front lifts vertically, with soft-close",
+          "info": {
+            "title": "Aventos system",
+            "body": "Wall-cabinet fronts lift upwards on damped arms — full access, no door at head height.",
+            "pros1": "Easy access, no door to bump into",
+            "pros2": "Stays open at any angle",
+            "cons1": "Most expensive system",
+            "cons2": "Needs periodic adjustment",
+            "price": "+250–500 RON/unit"
           }
         }
       }
@@ -1216,8 +1416,8 @@
             "runA": "Run A length",
             "runB": "Run B length",
             "runC": "Run C length",
-            "islandLength": "Island length",
-            "islandDepth": "Island depth"
+            "islandLength": "Island length (L)",
+            "islandDepth": "Island depth (D)"
           }
         },
         "cabinetZones": {
@@ -1282,6 +1482,32 @@
           "title": "Which countertop?",
           "subtitle": "Optional — helps the firm estimate more accurately.",
           "options": {
+            "PAL": {
+              "label": "Laminated board",
+              "description": "Standard laminate worktop, most affordable",
+              "info": {
+                "title": "Laminated chipboard worktop",
+                "body": "Chipboard core with a laminated surface — the affordable standard, many designs.",
+                "price": "RON 150–300/lm",
+                "pros1": "Low price",
+                "pros2": "Many designs",
+                "cons1": "Edges sensitive to water",
+                "cons2": "Scratches over time"
+              }
+            },
+            "HPL": {
+              "label": "HPL",
+              "description": "High-pressure laminate, very durable",
+              "info": {
+                "title": "HPL worktop",
+                "body": "High-pressure laminate — far denser and more resistant to water and scratches than standard boards.",
+                "price": "RON 400–800/lm",
+                "pros1": "Water and wear resistant",
+                "pros2": "Can be thin, modern look",
+                "cons1": "Costs more than standard board",
+                "cons2": "Narrower range of designs"
+              }
+            },
             "LAMINATE": {
               "label": "Laminate (HPL)",
               "description": "Affordable, many designs",
@@ -1482,24 +1708,58 @@
           "slots": {
             "runA": "Run A length",
             "runB": "Run B length",
-            "runC": "Run C length"
+            "runC": "Run C length",
+            "wardrobeHeight": "Closet height (H)"
           }
         },
         "interiorModules": {
           "title": "Interior modules?",
-          "subtitle": "Optional — interior organisation.",
+          "subtitle": "Pick at least one module — the interior layout.",
           "options": {
             "HANGING_RODS": {
-              "label": "Hanging rods"
+              "label": "Hanging rods",
+              "description": "Shirts, dresses, jackets",
+              "info": {
+                "title": "Hanging rods",
+                "body": "The classic hanger zone. One meter of rod holds about 10-12 hangers; long dresses need 150-160 cm of free height.",
+                "price": "usually included"
+              }
             },
             "DRAWERS": {
-              "label": "Drawers"
+              "label": "Drawers",
+              "description": "Underwear, t-shirts, small items",
+              "info": {
+                "title": "Drawers",
+                "body": "The priciest interior module: slides, fronts, assembly. Soft-close drawers are worth it in daily-use zones.",
+                "price": "+250–450 lei / drawer"
+              }
             },
             "SHELVES": {
-              "label": "Shelves"
+              "label": "Shelves",
+              "description": "Folded clothes, boxes, bags",
+              "info": {
+                "title": "Shelves",
+                "body": "The most affordable modules. Adjustable shelves are a small extra that pays off quickly.",
+                "price": "usually included"
+              }
             },
             "SHOE_RACK": {
-              "label": "Shoe rack"
+              "label": "Shoe rack",
+              "description": "Tilted shelves or pull-outs",
+              "info": {
+                "title": "Shoe rack",
+                "body": "Tilted shelves with a stopper or pull-out racks. Allow about 20 cm of width per pair.",
+                "price": "+150–400 lei / module"
+              }
+            },
+            "ACCESSORIES": {
+              "label": "Accessories",
+              "description": "Trouser rack, belt/tie holders",
+              "info": {
+                "title": "Interior accessories",
+                "body": "Pull-out trouser rack, belt and tie holders, wire baskets. Easy to add later, but cheaper if planned from the start.",
+                "price": "+200–600 lei / accessory"
+              }
             }
           }
         },
@@ -1510,6 +1770,33 @@
         "notes": {
           "title": "Anything else?",
           "subtitle": "Optional."
+        },
+        "toCeiling": {
+          "title": "Up to the ceiling?",
+          "info": {
+            "title": "Floor-to-ceiling dressing",
+            "body": "Modules go all the way up: no dust collecting on top and you gain seasonal storage. Needs careful measuring — ceilings are rarely perfectly level.",
+            "pros1": "No dust on top",
+            "pros2": "Maximum storage",
+            "cons1": "Top zone needs a step stool",
+            "price": "+10–15% vs standard height"
+          }
+        },
+        "lighting": {
+          "title": "Integrated LED lighting?",
+          "subtitle": "LED strip with a door sensor.",
+          "info": {
+            "title": "LED lighting",
+            "body": "LED strip under shelves or along the sides, usually with a door or motion sensor. Needs power nearby — tell the company where the closest outlet is.",
+            "pros1": "See everything, even at night",
+            "pros2": "Premium look",
+            "cons1": "Needs an outlet nearby",
+            "price": "+400–1,200 lei"
+          }
+        },
+        "sketch": {
+          "title": "Do you have a sketch of the space?",
+          "subtitle": "Optional — a simple sketch with measurements helps companies quote precisely."
         }
       },
       "BEDROOM": {
@@ -1536,6 +1823,10 @@
             "TV_UNIT": {
               "label": "TV unit",
               "description": "Below the TV"
+            },
+            "VANITY": {
+              "label": "Vanity table",
+              "description": "With mirror and drawers"
             }
           }
         },
@@ -1552,12 +1843,167 @@
           "subtitle": "Available space and height.",
           "slots": {
             "spaceWidth": "Space width",
-            "wardrobeWidth": "Wardrobe width"
+            "wardrobeWidth": "Wardrobe width",
+            "dresserWidth": "Dresser width",
+            "tvUnitWidth": "TV unit width",
+            "vanityWidth": "Vanity width",
+            "nightstandWidth": "Nightstand width"
           }
         },
         "notes": {
           "title": "Anything else?",
           "subtitle": "Optional."
+        },
+        "wardrobeDoorType": {
+          "title": "What doors for the wardrobe?",
+          "subtitle": "Choose the access system.",
+          "options": {
+            "SLIDING": {
+              "label": "Sliding",
+              "description": "Save space",
+              "info": {
+                "title": "Sliding doors",
+                "body": "Doors glide on tracks — no clearance needed, ideal when the bed sits close to the wardrobe.",
+                "pros1": "Zero opening clearance",
+                "pros2": "Modern look",
+                "cons1": "Only half the wardrobe visible at a time",
+                "price": "+800–2,000 lei"
+              }
+            },
+            "HINGED": {
+              "label": "Hinged",
+              "description": "Classic, full access",
+              "info": {
+                "title": "Hinged doors",
+                "body": "Classic doors on hinges — full access to the interior and lower cost. Need ~50 cm of clearance in front.",
+                "pros1": "Full access to the interior",
+                "pros2": "Lower cost",
+                "cons1": "Needs opening clearance",
+                "price": "+300–900 lei"
+              }
+            }
+          }
+        },
+        "wardrobeToCeiling": {
+          "title": "Wardrobe up to the ceiling?",
+          "info": {
+            "title": "Floor-to-ceiling wardrobe",
+            "body": "The unit goes all the way up: no dust on top, seasonal storage above. Needs the ceiling height measured in several spots.",
+            "pros1": "No dust on top",
+            "pros2": "Maximum storage",
+            "cons1": "Top zone needs a step stool",
+            "price": "+10–15%"
+          }
+        },
+        "bedSize": {
+          "title": "What mattress size?",
+          "subtitle": "The bed is built around the mattress.",
+          "info": {
+            "title": "Standard mattress sizes",
+            "body": "Standard sizes in Romania: 90x200 (single), 140x200 (compact double), 160x200 (the standard double), 180x200 (king). The mattress is NOT included."
+          },
+          "options": {
+            "S_90": {
+              "label": "90 × 200",
+              "description": "Single"
+            },
+            "M_140": {
+              "label": "140 × 200",
+              "description": "Compact double"
+            },
+            "Q_160": {
+              "label": "160 × 200",
+              "description": "Standard double"
+            },
+            "K_180": {
+              "label": "180 × 200",
+              "description": "King"
+            },
+            "CUSTOM": {
+              "label": "Custom dimensions",
+              "description": "Enter your mattress width and length"
+            }
+          }
+        },
+        "bedCustomSize": {
+          "title": "Your mattress dimensions",
+          "slots": {
+            "bedCustomWidth": "Mattress width",
+            "bedCustomLength": "Mattress length"
+          }
+        },
+        "bedStorage": {
+          "title": "Storage under the bed?",
+          "options": {
+            "NONE": {
+              "label": "None",
+              "info": {
+                "title": "Simple bed",
+                "body": "Classic frame, no mechanisms. The most affordable and easiest to move.",
+                "price": "included"
+              }
+            },
+            "LIFT_UP": {
+              "label": "Lift-up storage",
+              "info": {
+                "title": "Gas-lift base",
+                "body": "The mattress lifts on gas pistons revealing a full-size storage box underneath. The biggest hidden storage in the bedroom.",
+                "price": "+600–1,200 lei"
+              }
+            },
+            "DRAWERS": {
+              "label": "Side drawers",
+              "info": {
+                "title": "Under-bed drawers",
+                "body": "Two to four drawers accessible from the side, without lifting the mattress. They need clear space next to the bed.",
+                "price": "+400–900 lei"
+              }
+            }
+          }
+        },
+        "bedUpholstered": {
+          "title": "Upholstered bed?",
+          "info": {
+            "title": "Upholstered bed",
+            "body": "Frame and headboard wrapped in fabric or eco-leather — a soft look with many color options. The exact fabric is chosen with the company."
+          }
+        },
+        "nightstandsCount": {
+          "title": "How many nightstands?",
+          "info": {
+            "title": "One or a pair",
+            "body": "A pair costs nearly double but looks balanced next to a double bed. For a single bed, one is enough."
+          },
+          "options": {
+            "ONE": {
+              "label": "One"
+            },
+            "TWO": {
+              "label": "Pair (2)"
+            }
+          }
+        },
+        "materialWardrobe": {
+          "title": "Material — wardrobe"
+        },
+        "materialBed": {
+          "title": "Material — bed"
+        },
+        "materialNightstands": {
+          "title": "Material — nightstands"
+        },
+        "materialDresser": {
+          "title": "Material — dresser"
+        },
+        "materialTvUnit": {
+          "title": "Material — TV unit"
+        },
+        "materialVanity": {
+          "title": "Material — vanity"
+        },
+        "sketch": {
+          "title": "Do you have a room sketch?",
+          "subtitle": "Optional — the room plan with the bed and wardrobe positions."
         }
       },
       "LIVING": {
@@ -1580,6 +2026,14 @@
             "COFFEE_TABLE": {
               "label": "Coffee table",
               "description": "Living centre"
+            },
+            "WALL_SHELVES": {
+              "label": "Wall shelves",
+              "description": "Wall-mounted"
+            },
+            "OTHER": {
+              "label": "Something else",
+              "description": "A piece that is not in the list"
             }
           }
         },
@@ -1595,12 +2049,98 @@
           "title": "Dimensions",
           "subtitle": "Wall width and height.",
           "slots": {
-            "wallWidth": "Wall width"
+            "wallWidth": "Wall width",
+            "tvUnitWidth": "TV area width",
+            "bookshelfWidth": "Bookcase width",
+            "displayWidth": "Display cabinet width",
+            "coffeeTableLength": "Coffee table length",
+            "shelvesTotal": "Total shelf length",
+            "otherWidth": "Your piece's width"
           }
         },
         "notes": {
           "title": "Anything else?",
           "subtitle": "Optional."
+        },
+        "tvStyle": {
+          "title": "What does the TV area look like?",
+          "subtitle": "Floating, on the floor, or a full unit with cabinets.",
+          "options": {
+            "FLOATING": {
+              "label": "Floating unit",
+              "description": "Wall-mounted, floor stays clear",
+              "info": {
+                "title": "Floating TV unit",
+                "body": "A horizontal unit fixed to the wall — the floor stays clear and the look is airy.",
+                "pros1": "Airy, modern look",
+                "pros2": "Easy to clean underneath",
+                "cons1": "Needs a solid wall for mounting",
+                "price": "2,000–5,000 lei"
+              }
+            },
+            "ON_FLOOR": {
+              "label": "On the floor",
+              "description": "Unit standing on legs or a plinth",
+              "info": {
+                "title": "Floor-standing TV unit",
+                "body": "Classic and versatile: storage for electronics and media, with the TV on top or wall-mounted above.",
+                "pros1": "Affordable",
+                "pros2": "Easy to move later",
+                "cons1": "Limited storage",
+                "price": "1,500–4,000 lei"
+              }
+            },
+            "COMPLEX_UNIT": {
+              "label": "Unit with cabinets",
+              "description": "TV unit + cabinets left/right",
+              "info": {
+                "title": "TV unit with cabinets",
+                "body": "A full-wall composition: TV unit with cabinets or columns on the left and right, often with a niche and LED lighting.",
+                "pros1": "Maximum storage",
+                "pros2": "Unified, striking look",
+                "cons1": "Significant cost and installation",
+                "price": "6,000–15,000 lei"
+              }
+            }
+          }
+        },
+        "piecesOtherText": {
+          "title": "What piece do you have in mind?",
+          "subtitle": "Briefly describe the piece that is not in the list."
+        },
+        "materialOtherPiece": {
+          "title": "Material — your piece"
+        },
+        "materialTvUnit": {
+          "title": "Material — TV area"
+        },
+        "materialBookshelf": {
+          "title": "Material — bookcase"
+        },
+        "materialDisplay": {
+          "title": "Material — display cabinet"
+        },
+        "materialCoffeeTable": {
+          "title": "Material — coffee table"
+        },
+        "materialShelves": {
+          "title": "Material — shelves"
+        },
+        "ledLighting": {
+          "title": "LED lighting in the furniture?",
+          "subtitle": "LED strip in panels or units.",
+          "info": {
+            "title": "LED lighting",
+            "body": "Warm LED strip behind TV panels or inside display cabinets. Needs an outlet nearby.",
+            "pros1": "Warm evening atmosphere",
+            "pros2": "Shows off the display cabinet",
+            "cons1": "Needs an outlet nearby",
+            "price": "+400–1,500 lei"
+          }
+        },
+        "sketch": {
+          "title": "Do you have a sketch of the space?",
+          "subtitle": "Optional — the TV wall with measurements and outlets marked."
         }
       },
       "OFFICE": {
@@ -1619,6 +2159,10 @@
             "STORAGE": {
               "label": "Storage cabinet",
               "description": "Documents and items"
+            },
+            "WALL_SHELVES": {
+              "label": "Wall shelves",
+              "description": "Mounted above the desk"
             }
           }
         },
@@ -1628,11 +2172,36 @@
           "options": {
             "STRAIGHT": {
               "label": "Straight",
-              "description": "A single top"
+              "description": "A single top",
+              "info": {
+                "title": "Straight desk",
+                "body": "A worktop along one wall — compact and flexible. For comfortable work we recommend at least 120 cm width and 60 cm depth.",
+                "pros1": "Takes little space",
+                "pros2": "Lower cost",
+                "cons1": "Limited work surface"
+              }
             },
             "L_SHAPE": {
               "label": "L-shaped",
-              "description": "Two tops in a corner"
+              "description": "Two tops in a corner",
+              "info": {
+                "title": "Corner desk",
+                "body": "Two work sides — one for the monitor, one kept clear. Uses the room corner that would otherwise be wasted.",
+                "pros1": "Double the work surface",
+                "pros2": "Uses the corner",
+                "cons1": "Harder to reposition"
+              }
+            },
+            "U_SHAPE": {
+              "label": "U-shaped",
+              "description": "Three work sides",
+              "info": {
+                "title": "U-shaped desk",
+                "body": "Worktop on three sides — a complete workstation with everything within a chair's spin.",
+                "pros1": "Maximum work surface",
+                "pros2": "Everything within reach",
+                "cons1": "Needs a generous room"
+              }
             }
           }
         },
@@ -1651,12 +2220,39 @@
             "spaceWidth": "Space width",
             "deskWidth": "Desk width",
             "deskWidthA": "Desk width A",
-            "deskWidthB": "Desk width B"
+            "deskWidthB": "Desk width B",
+            "deskWidthC": "Desk width C",
+            "bookshelfWidth": "Bookcase width",
+            "storageWidth": "Storage cabinet width",
+            "shelvesTotal": "Total shelf length"
           }
         },
         "notes": {
           "title": "Anything else?",
           "subtitle": "Optional."
+        },
+        "cableManagement": {
+          "title": "Cable management?",
+          "info": {
+            "title": "Organizing the cables",
+            "body": "A metal tray under the worktop plus discreet cutouts. The desk stays clean and vacuuming stops being an adventure. Tell the company how many monitors/devices you have."
+          }
+        },
+        "materialDesk": {
+          "title": "Material — desk"
+        },
+        "materialBookshelf": {
+          "title": "Material — bookcase"
+        },
+        "materialStorage": {
+          "title": "Material — storage"
+        },
+        "materialShelves": {
+          "title": "Material — shelves"
+        },
+        "sketch": {
+          "title": "Do you have a room sketch?",
+          "subtitle": "Optional — the working wall, with outlets and the window marked."
         }
       },
       "BATHROOM": {
@@ -1736,6 +2332,1098 @@
         "notes": {
           "title": "Anything else?",
           "subtitle": "Optional."
+        }
+      },
+      "HALLWAY": {
+        "piecesNeeded": {
+          "title": "What pieces do you need?",
+          "subtitle": "Choose the hallway furniture.",
+          "options": {
+            "SHOE_CABINET": {
+              "label": "Shoe cabinet",
+              "description": "Footwear storage"
+            },
+            "COAT_UNIT": {
+              "label": "Coat rack panel",
+              "description": "Hooks on a wall panel"
+            },
+            "WARDROBE": {
+              "label": "Hallway wardrobe",
+              "description": "Seasonal coats, vacuum"
+            },
+            "BENCH": {
+              "label": "Bench",
+              "description": "Put shoes on sitting down"
+            },
+            "MIRROR": {
+              "label": "Mirror with shelf",
+              "description": "Frame + a shelf for keys"
+            }
+          }
+        },
+        "depthProfile": {
+          "title": "How wide is the hallway?",
+          "subtitle": "Furniture depth follows the passage space.",
+          "info": {
+            "title": "Why depth matters",
+            "body": "In a narrow hallway every centimeter counts: keep at least 90 cm of free passage. Slim furniture (25–35 cm) uses tilt-out doors and angled racks to fit the shoes."
+          },
+          "options": {
+            "SLIM": {
+              "label": "Narrow hallway — slim",
+              "description": "25–35 cm deep",
+              "info": {
+                "title": "Slim units",
+                "body": "Tilt-out shoe cabinet, flat coat panel, mirror — everything under 35 cm deep so the passage stays clear.",
+                "pros1": "Keeps the passage clear",
+                "pros2": "Airy look",
+                "cons1": "Less capacity per unit"
+              }
+            },
+            "STANDARD": {
+              "label": "Generous hallway — standard",
+              "description": "45–60 cm deep",
+              "info": {
+                "title": "Standard units",
+                "body": "Normal wardrobe depth — hangers sit normally and storage boxes fit.",
+                "pros1": "Maximum capacity",
+                "pros2": "Hangers sit normally",
+                "cons1": "Needs a hallway over 1.5 m wide"
+              }
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensions",
+          "subtitle": "The width of each selected piece.",
+          "slots": {
+            "shoeCabinetWidth": "Shoe cabinet width",
+            "coatUnitWidth": "Coat panel width",
+            "wardrobeWidth": "Wardrobe width",
+            "benchWidth": "Bench width",
+            "mirrorWidth": "Mirror width"
+          }
+        },
+        "materialShoeCabinet": {
+          "title": "Material — shoe cabinet"
+        },
+        "materialCoatUnit": {
+          "title": "Material — coat rack"
+        },
+        "materialWardrobe": {
+          "title": "Material — wardrobe"
+        },
+        "materialBench": {
+          "title": "Material — bench"
+        },
+        "materialMirror": {
+          "title": "Material — mirror"
+        },
+        "openingSystems": {
+          "title": "Opening systems",
+          "subtitle": "Optional — for units with doors or drawers."
+        },
+        "sketch": {
+          "title": "Do you have a hallway sketch?",
+          "subtitle": "Optional — wall lengths and door positions."
+        }
+      },
+      "LAUNDRY": {
+        "applianceSetup": {
+          "title": "How do the appliances sit?",
+          "subtitle": "The washer and dryer layout decides the rest.",
+          "options": {
+            "WASHER_ONLY": {
+              "label": "Washer only",
+              "description": "No dryer",
+              "info": {
+                "title": "Washer only",
+                "body": "A single appliance to build around — the rest of the space goes to storage and worktop.",
+                "pros1": "Simplest and cheapest",
+                "pros2": "Plenty of storage space",
+                "cons1": "No dryer, clothes dry on a rack"
+              }
+            },
+            "STACKED": {
+              "label": "Stacked column",
+              "description": "Dryer above the washer",
+              "info": {
+                "title": "Appliance column",
+                "body": "The dryer sits on top of the washer in a dedicated cabinet with a support shelf. Takes only 60–70 cm of width.",
+                "pros1": "Minimal footprint",
+                "pros2": "Good ergonomics (dryer up high)",
+                "cons1": "Tall cabinet, precise install"
+              }
+            },
+            "SIDE_BY_SIDE": {
+              "label": "Side by side, under worktop",
+              "description": "Continuous worktop above",
+              "info": {
+                "title": "Side by side",
+                "body": "Washer and dryer next to each other under a continuous worktop — a generous surface for sorting and folding.",
+                "pros1": "Big work surface",
+                "pros2": "Easy access to both",
+                "cons1": "Takes ~130 cm of width"
+              }
+            }
+          }
+        },
+        "piecesNeeded": {
+          "title": "What furniture do you need?",
+          "subtitle": "Choose the laundry room units.",
+          "options": {
+            "APPLIANCE_HOUSING": {
+              "label": "Appliance housing",
+              "description": "Wraps the appliances"
+            },
+            "STORAGE": {
+              "label": "Storage cabinets",
+              "description": "Detergents, baskets, supplies"
+            },
+            "COUNTERTOP": {
+              "label": "Worktop",
+              "description": "Sorting and folding"
+            },
+            "SINK_UNIT": {
+              "label": "Sink unit",
+              "description": "Utility sink for hand-washing"
+            }
+          }
+        },
+        "ventilation": {
+          "title": "Is the room ventilated?",
+          "subtitle": "Laundry humidity matters when choosing materials.",
+          "info": {
+            "title": "Why ventilation matters",
+            "body": "The washer and dryer release moisture. Without a window or fan, steam builds up and affects the furniture — in that case we recommend painted MDF, which handles humidity better."
+          },
+          "options": {
+            "WINDOW": {
+              "label": "Window",
+              "description": "Natural ventilation"
+            },
+            "FAN": {
+              "label": "Fan",
+              "description": "Mechanical ventilation"
+            },
+            "NONE": {
+              "label": "Not ventilated",
+              "description": "No window or fan"
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensions",
+          "subtitle": "The main wall and ceiling height.",
+          "slots": {
+            "runA": "Main wall length"
+          }
+        },
+        "material": {
+          "title": "What material?",
+          "subtitle": "Humid environment — see the recommendation."
+        },
+        "sketch": {
+          "title": "Do you have a sketch of the space?",
+          "subtitle": "Optional — water hookups and outlet positions help a lot."
+        }
+      },
+      "PANTRY": {
+        "wallsUsed": {
+          "title": "How many walls do we use?",
+          "subtitle": "The shelving layout in the pantry.",
+          "info": {
+            "title": "Moving around the pantry",
+            "body": "Keep at least 80 cm free between shelves so you can move and see what is on them. In a narrow pantry, single-wall shelving is the right call."
+          },
+          "options": {
+            "ONE_WALL": {
+              "label": "One wall",
+              "description": "Shelves on one side"
+            },
+            "L_SHAPE": {
+              "label": "L-shape",
+              "description": "Two sides"
+            },
+            "U_SHAPE": {
+              "label": "U-shape",
+              "description": "Three sides"
+            }
+          }
+        },
+        "storageStyle": {
+          "title": "Open or closed storage?",
+          "subtitle": "Open shelves, cabinets with doors, or a mix.",
+          "options": {
+            "OPEN_SHELVES": {
+              "label": "Open shelves",
+              "description": "Quick access, visible",
+              "info": {
+                "title": "Open shelves",
+                "body": "The most practical and affordable pantry option: you see everything at a glance.",
+                "pros1": "Instant access",
+                "pros2": "Lowest cost",
+                "cons1": "Dust settles on items",
+                "price": "1,200–3,500 lei"
+              }
+            },
+            "CLOSED_CABINETS": {
+              "label": "Closed cabinets",
+              "description": "Dust-protected",
+              "info": {
+                "title": "Cabinets with doors",
+                "body": "Items stay protected from dust and everything looks tidy, even when it is not.",
+                "pros1": "Dust protection",
+                "pros2": "Tidy look",
+                "cons1": "Higher cost, slower access",
+                "price": "2,500–6,000 lei"
+              }
+            },
+            "MIXED": {
+              "label": "Mixed",
+              "description": "Shelves up, cabinets down",
+              "info": {
+                "title": "Combination",
+                "body": "Closed cabinets below for rarely used items, open shelves above for daily access — the practical balance.",
+                "pros1": "Flexible",
+                "pros2": "Cost/protection balance",
+                "cons1": "Slightly pricier than plain shelves",
+                "price": "2,000–5,000 lei"
+              }
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensions",
+          "subtitle": "The length of each shelved side.",
+          "slots": {
+            "runA": "Side A length",
+            "runB": "Side B length",
+            "runC": "Side C length"
+          }
+        },
+        "material": {
+          "title": "What material?",
+          "subtitle": "The pantry is a utility space — PAL offers the best value here."
+        },
+        "sketch": {
+          "title": "Do you have a pantry sketch?",
+          "subtitle": "Optional — wall sizes and the door position."
+        }
+      },
+      "BALCONY": {
+        "enclosed": {
+          "title": "Is the balcony enclosed?",
+          "subtitle": "Indoor furniture only lasts on an enclosed balcony.",
+          "info": {
+            "title": "Why enclosure matters",
+            "body": "PAL and MDF suffer from moisture, frost and direct sun. On a glazed balcony they behave like indoors; on an open one we recommend treated solid wood or rethinking the project."
+          },
+          "options": {
+            "ENCLOSED": {
+              "label": "Enclosed (glazed)",
+              "description": "Weather-protected",
+              "info": {
+                "title": "Enclosed balcony",
+                "body": "The environment is close to indoors — any material works, minding direct sun which fades fronts over time.",
+                "pros1": "Any material works",
+                "pros2": "Year-round storage",
+                "cons1": "Direct sun fades the fronts"
+              }
+            },
+            "OPEN": {
+              "label": "Open",
+              "description": "Exposed to weather",
+              "info": {
+                "title": "Open balcony",
+                "body": "Rain, frost, sun — tough conditions for furniture. We recommend exterior-treated solid wood and stainless hardware.",
+                "pros1": "Treated wood can work",
+                "pros2": "Open air",
+                "cons1": "PAL/MDF do not survive here"
+              }
+            }
+          }
+        },
+        "piecesNeeded": {
+          "title": "What pieces do you need?",
+          "subtitle": "Choose the balcony furniture.",
+          "options": {
+            "STORAGE_BENCH": {
+              "label": "Storage bench",
+              "description": "Seat + storage"
+            },
+            "TALL_CABINET": {
+              "label": "Tall cabinet",
+              "description": "Tools, jars, sundries"
+            },
+            "WORKTOP": {
+              "label": "Worktop",
+              "description": "Desk or plant table"
+            },
+            "SHELVES": {
+              "label": "Shelves",
+              "description": "Open storage"
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensions",
+          "subtitle": "Usable length and free depth of the balcony.",
+          "slots": {
+            "balconyLength": "Usable length",
+            "balconyDepth": "Free depth"
+          }
+        },
+        "material": {
+          "title": "What material?",
+          "subtitle": "See the recommendation based on the balcony type."
+        },
+        "sketch": {
+          "title": "Do you have a balcony sketch?",
+          "subtitle": "Optional — length, depth and window positions."
+        }
+      },
+      "PIECE_WARDROBE": {
+        "doorType": {
+          "title": "What doors for the wardrobe?",
+          "subtitle": "The access system changes price and required space.",
+          "options": {
+            "SLIDING": {
+              "label": "Sliding",
+              "description": "Save space",
+              "info": {
+                "title": "Sliding doors",
+                "body": "Doors glide on tracks — no opening clearance needed. Quality tracks make the long-term difference.",
+                "pros1": "Zero opening clearance",
+                "pros2": "Modern look",
+                "cons1": "Only half the wardrobe visible at a time",
+                "price": "+800–2,000 lei"
+              }
+            },
+            "HINGED": {
+              "label": "Hinged",
+              "description": "Classic, full access",
+              "info": {
+                "title": "Hinged doors",
+                "body": "Doors on hinges — full access and lower cost. Need ~50 cm of clearance in front of the wardrobe.",
+                "pros1": "Full access to the interior",
+                "pros2": "Lower cost",
+                "cons1": "Needs opening clearance",
+                "price": "+300–900 lei"
+              }
+            }
+          }
+        },
+        "toCeiling": {
+          "title": "Up to the ceiling (dressing-style)?",
+          "subtitle": "The wardrobe goes all the way up, like a built-in dressing.",
+          "info": {
+            "title": "Floor-to-ceiling wardrobe",
+            "body": "Built-in look, no dust on top, seasonal storage above. Requires measuring the height in several spots — ceilings are rarely level.",
+            "pros1": "No dust on top",
+            "pros2": "Maximum vertical storage",
+            "cons1": "Top zone needs a step stool",
+            "price": "+10–15%"
+          }
+        },
+        "dimensions": {
+          "title": "Dimensions",
+          "subtitle": "Wardrobe width and height.",
+          "slots": {
+            "width": "Wardrobe width",
+            "height": "Wardrobe height"
+          }
+        },
+        "interiorModules": {
+          "title": "What interior modules?",
+          "subtitle": "Pick at least one module.",
+          "options": {
+            "HANGING_RODS": {
+              "label": "Hanging rods",
+              "description": "Shirts, dresses, jackets"
+            },
+            "SHELVES": {
+              "label": "Shelves",
+              "description": "Folded clothes, boxes"
+            },
+            "DRAWERS": {
+              "label": "Drawers",
+              "description": "Underwear, accessories"
+            },
+            "SHOE_RACK": {
+              "label": "Shoe rack",
+              "description": "Tilted shelves"
+            }
+          }
+        },
+        "material": {
+          "title": "What material?",
+          "subtitle": "The carcass and front material."
+        },
+        "sketch": {
+          "title": "Do you have a wall sketch?",
+          "subtitle": "Optional — wall width and obstacles (outlets, radiator, door)."
+        }
+      },
+      "PIECE_TV_UNIT": {
+        "style": {
+          "title": "Low unit or media wall?",
+          "subtitle": "From a simple unit to a full-wall composition.",
+          "options": {
+            "LOW_UNIT": {
+              "label": "Low unit",
+              "description": "Horizontal unit under the TV",
+              "info": {
+                "title": "Low TV unit",
+                "body": "A horizontal unit with doors and drawers — electronics and media hidden away, TV above.",
+                "pros1": "Affordable",
+                "pros2": "Easy to move later",
+                "cons1": "Limited storage",
+                "price": "1,500–4,000 lei"
+              }
+            },
+            "MEDIA_WALL": {
+              "label": "Media wall",
+              "description": "Panels + units across the wall",
+              "info": {
+                "title": "Full media wall",
+                "body": "A complete composition: decorative panels, suspended units, a TV niche and usually LED lighting. Cables vanish behind the panels.",
+                "pros1": "Striking look",
+                "pros2": "Cables fully hidden",
+                "cons1": "Significant cost and installation",
+                "price": "6,000–15,000 lei"
+              }
+            }
+          }
+        },
+        "tvSetup": {
+          "title": "Where does the TV go?",
+          "info": {
+            "title": "TV on the wall or on the unit",
+            "body": "If the TV is wall-mounted, the company prepares the cable route and possibly a niche. If it sits on the unit, the top depth matters. You can also decide later, together with the company."
+          },
+          "options": {
+            "TV_ON_WALL": {
+              "label": "On the wall"
+            },
+            "TV_ON_UNIT": {
+              "label": "On the unit"
+            },
+            "UNDECIDED": {
+              "label": "Not decided yet"
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensions",
+          "subtitle": "The width of the TV area.",
+          "slots": {
+            "width": "Width"
+          }
+        },
+        "material": {
+          "title": "What material?",
+          "subtitle": "The units and panel material."
+        },
+        "openingSystems": {
+          "title": "Opening systems"
+        },
+        "sketch": {
+          "title": "Do you have a wall sketch?",
+          "subtitle": "Optional — wall width and outlet positions."
+        }
+      },
+      "PIECE_BOOKCASE": {
+        "style": {
+          "title": "What bookcase style?",
+          "subtitle": "Open, with base cabinets, or glass doors.",
+          "options": {
+            "OPEN": {
+              "label": "Open shelves",
+              "description": "Everything visible",
+              "info": {
+                "title": "Open bookcase",
+                "body": "Simple shelves, instant access to books. Needs regular dusting — the books are exposed.",
+                "pros1": "Quick access",
+                "pros2": "Lowest cost",
+                "cons1": "Dust on books",
+                "price": "1,500–4,000 lei"
+              }
+            },
+            "BASE_CABINETS": {
+              "label": "Base cabinets + shelves",
+              "description": "Closed storage below",
+              "info": {
+                "title": "With base cabinets",
+                "body": "Closed doors below for less sightly things, open shelves above for books and decor.",
+                "pros1": "Hides clutter below",
+                "pros2": "Balanced look",
+                "cons1": "Medium cost",
+                "price": "2,500–5,500 lei"
+              }
+            },
+            "GLASS_DOORS": {
+              "label": "Glass display",
+              "description": "Protected and elegant",
+              "info": {
+                "title": "Display bookcase",
+                "body": "Glass doors over the full height — books and objects stay dust-free and visible.",
+                "pros1": "Zero dust on books",
+                "pros2": "Elegant look",
+                "cons1": "Priciest; glass needs care",
+                "price": "3,500–7,000 lei"
+              }
+            }
+          }
+        },
+        "toCeiling": {
+          "title": "Up to the ceiling?",
+          "info": {
+            "title": "Floor-to-ceiling bookcase",
+            "body": "A full wall of books — striking and efficient. The top row needs a step stool."
+          }
+        },
+        "dimensions": {
+          "title": "Dimensions",
+          "subtitle": "Bookcase width and height.",
+          "slots": {
+            "width": "Width",
+            "height": "Height"
+          }
+        },
+        "material": {
+          "title": "What material?",
+          "subtitle": "Wide shelves need a rigid material."
+        },
+        "openingSystems": {
+          "title": "Opening systems"
+        },
+        "sketch": {
+          "title": "Do you have a wall sketch?",
+          "subtitle": "Optional — wall width and ceiling height."
+        }
+      },
+      "PIECE_DESK": {
+        "shape": {
+          "title": "What desk shape?",
+          "subtitle": "Straight along a wall or L-shaped in a corner.",
+          "options": {
+            "STRAIGHT": {
+              "label": "Straight",
+              "description": "Along one wall",
+              "info": {
+                "title": "Straight desk",
+                "body": "A worktop along one wall — compact. For comfortable work: at least 120 cm wide, 60 cm deep.",
+                "pros1": "Takes little space",
+                "pros2": "Lower cost",
+                "cons1": "Limited surface"
+              }
+            },
+            "L_SHAPE": {
+              "label": "L-shape (corner)",
+              "description": "Two work sides",
+              "info": {
+                "title": "Corner desk",
+                "body": "Two work zones and a well-used corner. Ideal with two monitors or when you need a clear writing area.",
+                "pros1": "Double the surface",
+                "pros2": "Uses the corner",
+                "cons1": "Harder to reposition"
+              }
+            }
+          }
+        },
+        "cableManagement": {
+          "title": "Cable management?",
+          "info": {
+            "title": "Organizing the cables",
+            "body": "A tray under the worktop and discreet cutouts — the desk stays clean. Tell the company how many devices you have (monitors, laptop, chargers)."
+          }
+        },
+        "dimensions": {
+          "title": "Dimensions",
+          "subtitle": "Worktop width (and side B if L-shaped).",
+          "slots": {
+            "widthA": "Worktop width",
+            "widthB": "Side B width",
+            "depth": "Worktop depth"
+          }
+        },
+        "storage": {
+          "title": "Desk storage?",
+          "subtitle": "Optional — a drawer unit or a shelf riser.",
+          "options": {
+            "DRAWER_UNIT": {
+              "label": "Drawer unit",
+              "description": "Under the top, fixed or mobile",
+              "info": {
+                "title": "Drawer unit",
+                "body": "Three-four drawers under the worktop, fixed or on wheels. Home for documents and small items.",
+                "price": "+600–1,200 lei"
+              }
+            },
+            "SHELF_ABOVE": {
+              "label": "Shelf riser",
+              "description": "Shelves above the worktop",
+              "info": {
+                "title": "Shelf riser",
+                "body": "Shelves above the desk for books and files — you use the wall, not the worktop.",
+                "price": "+400–900 lei"
+              }
+            }
+          }
+        },
+        "material": {
+          "title": "What material?",
+          "subtitle": "The desktop gets scratched first — the finish matters."
+        },
+        "sketch": {
+          "title": "Do you have a sketch of the space?",
+          "subtitle": "Optional — the working wall, with outlets and the window."
+        }
+      },
+      "PIECE_BED": {
+        "bedSize": {
+          "title": "What mattress size?",
+          "subtitle": "The bed is built around the mattress.",
+          "info": {
+            "title": "Standard sizes",
+            "body": "Romanian standards: 90x200 (single), 140x200 (compact double), 160x200 (double), 180x200 (king). The mattress is NOT included."
+          },
+          "options": {
+            "S_90": {
+              "label": "90 × 200",
+              "description": "Single"
+            },
+            "M_140": {
+              "label": "140 × 200",
+              "description": "Compact double"
+            },
+            "Q_160": {
+              "label": "160 × 200",
+              "description": "Standard double"
+            },
+            "K_180": {
+              "label": "180 × 200",
+              "description": "King"
+            }
+          }
+        },
+        "upholstered": {
+          "title": "Upholstered bed?",
+          "info": {
+            "title": "Upholstered bed",
+            "body": "Frame and headboard wrapped in fabric or eco-leather. Fabric and color are chosen with the company."
+          }
+        },
+        "storage": {
+          "title": "Storage under the bed?",
+          "subtitle": "Lift-up box or side drawers.",
+          "options": {
+            "NONE": {
+              "label": "None",
+              "description": "Simple frame",
+              "info": {
+                "title": "Simple bed",
+                "body": "Classic frame with no mechanisms — the most affordable.",
+                "pros1": "Lowest cost",
+                "pros2": "Easy to move",
+                "cons1": "Under-bed space unused",
+                "price": "included"
+              }
+            },
+            "LIFT_UP": {
+              "label": "Lift-up storage",
+              "description": "Mattress lifts on pistons",
+              "info": {
+                "title": "Gas-lift base",
+                "body": "The mattress lifts on gas pistons; underneath, a full-size storage box. The biggest hidden storage.",
+                "pros1": "Huge storage",
+                "pros2": "No side clearance needed",
+                "cons1": "The mechanism adds cost",
+                "price": "+600–1,200 lei"
+              }
+            },
+            "DRAWERS": {
+              "label": "Side drawers",
+              "description": "Access without lifting",
+              "info": {
+                "title": "Under-bed drawers",
+                "body": "Two-four drawers on the sides — quick access to linens without lifting anything.",
+                "pros1": "Quick access",
+                "pros2": "Moderate cost",
+                "cons1": "Needs clear space beside the bed",
+                "price": "+400–900 lei"
+              }
+            }
+          }
+        },
+        "material": {
+          "title": "What material?",
+          "subtitle": "The frame material (for upholstered beds, the inner structure)."
+        },
+        "sketch": {
+          "title": "Do you have a room sketch?",
+          "subtitle": "Optional — the bed position in the room."
+        }
+      },
+      "PIECE_DRESSER": {
+        "configuration": {
+          "title": "How is the dresser divided?",
+          "subtitle": "Drawers, doors, or both.",
+          "options": {
+            "DRAWERS_ONLY": {
+              "label": "Drawers only",
+              "description": "3–6 drawers",
+              "info": {
+                "title": "Drawer dresser",
+                "body": "The bedroom classic — everything organized by level. Soft-close drawers are worth it here.",
+                "pros1": "Excellent organization",
+                "pros2": "Quick access",
+                "cons1": "Drawers raise the price",
+                "price": "1,500–3,500 lei"
+              }
+            },
+            "MIXED": {
+              "label": "Drawers + doors",
+              "description": "Combination",
+              "info": {
+                "title": "Mixed dresser",
+                "body": "Drawers on one side, doors with shelves on the other — flexible for differently shaped items.",
+                "pros1": "Flexible",
+                "pros2": "Balanced price",
+                "cons1": "Smaller compartments",
+                "price": "1,300–3,000 lei"
+              }
+            },
+            "DOORS_ONLY": {
+              "label": "Doors only",
+              "description": "Shelves behind",
+              "info": {
+                "title": "Door dresser",
+                "body": "Doors with interior shelves — the most affordable option, good for bulky items.",
+                "pros1": "Lowest cost",
+                "pros2": "Fits bulky items",
+                "cons1": "Less fine-grained organization",
+                "price": "1,200–2,500 lei"
+              }
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensions",
+          "subtitle": "Dresser width and height.",
+          "slots": {
+            "width": "Width",
+            "height": "Height"
+          }
+        },
+        "material": {
+          "title": "What material?",
+          "subtitle": "The carcass and front material."
+        },
+        "openingSystems": {
+          "title": "Opening systems"
+        },
+        "sketch": {
+          "title": "Do you have a sketch?",
+          "subtitle": "Optional — the wall where the dresser will sit."
+        }
+      },
+      "PIECE_TABLE": {
+        "tableType": {
+          "title": "What kind of table?",
+          "subtitle": "The purpose decides size and height.",
+          "options": {
+            "DINING": {
+              "label": "Dining table",
+              "description": "For meals"
+            },
+            "COFFEE": {
+              "label": "Coffee table",
+              "description": "Low, by the sofa"
+            },
+            "CONSOLE": {
+              "label": "Console",
+              "description": "Narrow, decorative"
+            }
+          }
+        },
+        "shape": {
+          "title": "What shape?",
+          "subtitle": "Rectangular, round or extendable.",
+          "options": {
+            "RECTANGULAR": {
+              "label": "Rectangular",
+              "description": "Classic",
+              "info": {
+                "title": "Rectangular table",
+                "body": "The classic shape — fits against a wall or centered, easy to place in any room.",
+                "pros1": "Space-efficient",
+                "pros2": "Most versatile",
+                "cons1": "Corners in tight spaces",
+                "price": "2,000–5,000 lei"
+              }
+            },
+            "ROUND": {
+              "label": "Round",
+              "description": "No corners",
+              "info": {
+                "title": "Round table",
+                "body": "Friendly in small spaces and with kids — no corners. For the same seat count it needs a bit more room around it.",
+                "pros1": "No corners",
+                "pros2": "Natural conversation",
+                "cons1": "Needs clear space around",
+                "price": "2,200–5,500 lei"
+              }
+            },
+            "EXTENDABLE": {
+              "label": "Extendable",
+              "description": "Grows when needed",
+              "info": {
+                "title": "Extendable table",
+                "body": "Compact day to day, extends by 40–80 cm for guests. A good mechanism makes the difference — ask the company what hardware they use.",
+                "pros1": "Compact daily, big when needed",
+                "pros2": "Ideal for guests",
+                "cons1": "The mechanism adds cost",
+                "price": "+700–1,500 lei vs fixed"
+              }
+            }
+          }
+        },
+        "seats": {
+          "title": "How many people?",
+          "info": {
+            "title": "Seats and sizes",
+            "body": "As a guide: 4 people → 120–140 cm; 6 people → 160–180 cm; 8+ → over 200 cm. Allow ~60 cm of width per person."
+          },
+          "options": {
+            "FOUR": {
+              "label": "4"
+            },
+            "SIX": {
+              "label": "6"
+            },
+            "EIGHT_PLUS": {
+              "label": "8+"
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensions",
+          "subtitle": "Tabletop dimensions.",
+          "slots": {
+            "length": "Length",
+            "width": "Width",
+            "diameter": "Diameter"
+          }
+        },
+        "material": {
+          "title": "What material?",
+          "subtitle": "The tabletop works hardest — solid wood is the favorite here."
+        },
+        "sketch": {
+          "title": "Do you have a sketch?",
+          "subtitle": "Optional — the space where the table will sit."
+        }
+      },
+      "PIECE_SHOE_CABINET": {
+        "style": {
+          "title": "What type of shoe cabinet?",
+          "subtitle": "The mechanism decides depth and capacity.",
+          "options": {
+            "SLIM_TILT": {
+              "label": "Slim tilt-out",
+              "description": "17–25 cm deep",
+              "info": {
+                "title": "Slim shoe cabinet",
+                "body": "Tilt-out doors with angled racks — shoes stand vertically. Perfect for narrow hallways.",
+                "pros1": "Minimal depth",
+                "pros2": "Ideal for narrow hallways",
+                "cons1": "Less capacity; tall boots do not fit",
+                "price": "900–2,200 lei"
+              }
+            },
+            "STANDARD": {
+              "label": "Standard with shelves",
+              "description": "~35 cm deep",
+              "info": {
+                "title": "Classic shoe cabinet",
+                "body": "Horizontal shelves — boots and boxes fit too. Needs a bit more hallway space.",
+                "pros1": "High capacity",
+                "pros2": "Tall boots fit",
+                "cons1": "Greater depth",
+                "price": "800–1,800 lei"
+              }
+            },
+            "WITH_SEAT": {
+              "label": "With seat",
+              "description": "Put shoes on sitting down",
+              "info": {
+                "title": "Shoe cabinet with bench",
+                "body": "A low unit with a seat (often upholstered) and storage below — comfortable shoe changes.",
+                "pros1": "Comfortable",
+                "pros2": "Two functions in one piece",
+                "cons1": "Less shoe capacity",
+                "price": "1,200–2,500 lei"
+              }
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensions",
+          "subtitle": "Shoe cabinet width and height.",
+          "slots": {
+            "width": "Width",
+            "height": "Height"
+          }
+        },
+        "material": {
+          "title": "What material?",
+          "subtitle": "High-traffic zone — durable fronts matter."
+        },
+        "sketch": {
+          "title": "Do you have a hallway sketch?",
+          "subtitle": "Optional — the available hallway space."
+        }
+      },
+      "PIECE_NIGHTSTAND": {
+        "style": {
+          "title": "What nightstand style?",
+          "subtitle": "With drawers, open shelf or wall-mounted.",
+          "options": {
+            "DRAWERS": {
+              "label": "With drawers",
+              "description": "1–2 drawers",
+              "info": {
+                "title": "Drawer nightstand",
+                "body": "The classic — small things stay hidden. A soft-close drawer wakes no one at night.",
+                "pros1": "Closed storage",
+                "pros2": "Tidy look",
+                "cons1": "Drawers add cost",
+                "price": "600–1,200 lei / pc"
+              }
+            },
+            "OPEN_SHELF": {
+              "label": "Open shelf",
+              "description": "Visible shelf",
+              "info": {
+                "title": "Open nightstand",
+                "body": "A simple shelf — book and phone within reach. The most affordable option.",
+                "pros1": "Lowest cost",
+                "pros2": "Instant access",
+                "cons1": "Everything visible",
+                "price": "400–800 lei / pc"
+              }
+            },
+            "SUSPENDED": {
+              "label": "Wall-mounted",
+              "description": "Floats on the wall",
+              "info": {
+                "title": "Floating nightstand",
+                "body": "Floats on the wall — airy look and easy cleaning underneath. Needs a solid wall for mounting.",
+                "pros1": "Modern, airy look",
+                "pros2": "Easy cleaning",
+                "cons1": "Wall mounting required",
+                "price": "500–1,000 lei / pc"
+              }
+            }
+          }
+        },
+        "count": {
+          "title": "How many nightstands?",
+          "info": {
+            "title": "One or a pair",
+            "body": "A pair looks balanced next to a double bed; for a single bed, one is enough."
+          },
+          "options": {
+            "ONE": {
+              "label": "One"
+            },
+            "TWO": {
+              "label": "Pair (2)"
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensions",
+          "subtitle": "The width of one nightstand.",
+          "slots": {
+            "width": "Width"
+          }
+        },
+        "material": {
+          "title": "What material?",
+          "subtitle": "Usually matched to the bed or wardrobe."
+        },
+        "sketch": {
+          "title": "Do you have a sketch?",
+          "subtitle": "Optional — the space next to the bed."
+        }
+      },
+      "PIECE_BENCH": {
+        "style": {
+          "title": "What type of bench?",
+          "subtitle": "With storage, shoe space, or simple.",
+          "options": {
+            "WITH_STORAGE": {
+              "label": "With storage box",
+              "description": "The seat lifts up",
+              "info": {
+                "title": "Storage bench",
+                "body": "The seat lifts to reveal a full storage box — blankets, seasonal shoes, toys.",
+                "pros1": "Hidden storage",
+                "pros2": "Two functions in one piece",
+                "cons1": "The mechanism adds cost",
+                "price": "1,000–2,000 lei"
+              }
+            },
+            "WITH_SHOE_SPACE": {
+              "label": "With shoe space",
+              "description": "Open rack below",
+              "info": {
+                "title": "Bench with shoe rack",
+                "body": "An open rack under the seat — everyday shoes within reach, no doors to open.",
+                "pros1": "Instant shoe access",
+                "pros2": "Friendly price",
+                "cons1": "Shoes stay visible",
+                "price": "800–1,600 lei"
+              }
+            },
+            "SIMPLE": {
+              "label": "Simple",
+              "description": "Seat only",
+              "info": {
+                "title": "Simple bench",
+                "body": "A clean, minimal piece — just the seat. Works at the foot of the bed or in the hallway.",
+                "pros1": "Lowest cost",
+                "pros2": "Minimalist look",
+                "cons1": "No storage",
+                "price": "700–1,300 lei"
+              }
+            }
+          }
+        },
+        "upholsteredSeat": {
+          "title": "Upholstered seat?",
+          "info": {
+            "title": "Upholstered seat",
+            "body": "A fixed cushion wrapped in fabric — comfortable shoe changes. The fabric is chosen with the company."
+          }
+        },
+        "dimensions": {
+          "title": "Dimensions",
+          "subtitle": "The bench width.",
+          "slots": {
+            "width": "Width"
+          }
+        },
+        "material": {
+          "title": "What material?",
+          "subtitle": "The bench structure."
+        },
+        "sketch": {
+          "title": "Do you have a sketch?",
+          "subtitle": "Optional — the space where the bench will sit."
         }
       }
     }

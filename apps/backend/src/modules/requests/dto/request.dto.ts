@@ -10,6 +10,8 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  IsUUID,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -17,7 +19,12 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { BudgetRange, ContactChannel, DesiredDeadlineBucket, RoomType } from '@prisma/client';
-import { ALLOWED_ATTACHMENT_MIME, MAX_ATTACHMENT_BYTES } from '@marketplace/shared';
+import {
+  ALLOWED_ATTACHMENT_MIME,
+  MAX_ATTACHMENT_BYTES,
+  MAX_BUDGET_RON,
+  MAX_REQUEST_ROOMS,
+} from '@marketplace/shared';
 
 // O camera in payload-ul configuratorului: raspunsuri brute + versiunea flow-ului.
 // Continutul `answers` NU e validat de class-validator (JSON dinamic); validarea
@@ -90,9 +97,29 @@ export class CreateRequestContentDto {
   @MaxLength(100)
   city: string;
 
+  // ISO2 (F5, item 19) — optional, serverul pune implicit RO
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Za-z]{2}$/)
+  country?: string;
+
+  // bugetul ales pe sliderul estimat (F5, item 18)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(MAX_BUDGET_RON)
+  budgetEstimateRon?: number;
+
+  // pozele din galerie alese ca inspiratie (F6, item 3)
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsUUID('4', { each: true })
+  inspirationPhotoIds?: string[];
+
   @IsArray()
   @ArrayMinSize(1)
-  @ArrayMaxSize(20)
+  @ArrayMaxSize(MAX_REQUEST_ROOMS)
   @ValidateNested({ each: true })
   @Type(() => ConfiguratorRoomInputDto)
   rooms: ConfiguratorRoomInputDto[];
@@ -160,6 +187,16 @@ export class PatchDraftDto {
   @ValidateNested({ each: true })
   @Type(() => ContactPreferenceInputDto)
   contactPreferences?: ContactPreferenceInputDto[];
+}
+
+// Estimare de buget pre-publish (F5, item 18) — doar camerele, anonim.
+export class EstimateRequestDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(MAX_REQUEST_ROOMS)
+  @ValidateNested({ each: true })
+  @Type(() => ConfiguratorRoomInputDto)
+  rooms: ConfiguratorRoomInputDto[];
 }
 
 export class PresignAttachmentDto {

@@ -12,20 +12,44 @@ const SIZING_CONFIG: { key: string; option: string; weight: number }[] = [
   { key: 'ROOM_TYPE', option: 'BEDROOM', weight: 4 },
   { key: 'ROOM_TYPE', option: 'OFFICE', weight: 3 },
   { key: 'ROOM_TYPE', option: 'BATHROOM', weight: 3 },
-  // piese individuale (tab separat in configurator, fara camera dedicata)
+  // piese individuale (tab separat in configurator, fara camera dedicata);
+  // din 2026-07 = fallback "Alta piesa" cu formular liber
   { key: 'ROOM_TYPE', option: 'PIECES', weight: 1 },
+  // camere noi (2026-07, decizie PO) — ponderi propuse, ajustabile din Admin
+  { key: 'ROOM_TYPE', option: 'HALLWAY', weight: 3 },
+  { key: 'ROOM_TYPE', option: 'LAUNDRY', weight: 2 },
+  { key: 'ROOM_TYPE', option: 'PANTRY', weight: 2 },
+  { key: 'ROOM_TYPE', option: 'BALCONY', weight: 2 },
+  // piese ghidate individuale (2026-07) — flow propriu per piesa
+  { key: 'ROOM_TYPE', option: 'PIECE_WARDROBE', weight: 3 },
+  { key: 'ROOM_TYPE', option: 'PIECE_TV_UNIT', weight: 2 },
+  { key: 'ROOM_TYPE', option: 'PIECE_BOOKCASE', weight: 2 },
+  { key: 'ROOM_TYPE', option: 'PIECE_DESK', weight: 2 },
+  { key: 'ROOM_TYPE', option: 'PIECE_BED', weight: 2 },
+  { key: 'ROOM_TYPE', option: 'PIECE_DRESSER', weight: 1 },
+  { key: 'ROOM_TYPE', option: 'PIECE_TABLE', weight: 1 },
+  { key: 'ROOM_TYPE', option: 'PIECE_SHOE_CABINET', weight: 1 },
+  { key: 'ROOM_TYPE', option: 'PIECE_NIGHTSTAND', weight: 1 },
+  { key: 'ROOM_TYPE', option: 'PIECE_BENCH', weight: 1 },
   // ROOM_SIZE (metri liniari = length_m)
   { key: 'ROOM_SIZE', option: 'UNDER_2M', weight: 1 },
   { key: 'ROOM_SIZE', option: 'FROM_2_TO_4M', weight: 3 },
   { key: 'ROOM_SIZE', option: 'OVER_4M', weight: 5 },
-  // MATERIAL
+  // MATERIAL (extindere 2026-07-08: variante MDF + ALTUL; MDF simplu ramane legacy)
   { key: 'MATERIAL', option: 'PAL', weight: 1 },
   { key: 'MATERIAL', option: 'MDF', weight: 2 },
+  { key: 'MATERIAL', option: 'MDF_INFOLIAT', weight: 2 },
+  { key: 'MATERIAL', option: 'MDF_VOPSIT', weight: 3 },
+  { key: 'MATERIAL', option: 'MDF_FURNIR', weight: 3 },
   { key: 'MATERIAL', option: 'LEMN_MASIV', weight: 4 },
-  // SYSTEM
+  { key: 'MATERIAL', option: 'ALTUL', weight: 2 },
+  // SYSTEM (extindere 2026-07-08: MANER/GOLA/AVENTOS; BUTON_PRESIUNE ramane legacy)
   { key: 'SYSTEM', option: 'BUTON_PRESIUNE', weight: 1 },
+  { key: 'SYSTEM', option: 'MANER', weight: 1 },
   { key: 'SYSTEM', option: 'PUSH', weight: 2 },
   { key: 'SYSTEM', option: 'GLISANTE', weight: 3 },
+  { key: 'SYSTEM', option: 'GOLA', weight: 3 },
+  { key: 'SYSTEM', option: 'AVENTOS', weight: 3 },
   // ITEM_QUANTITY (per camera)
   { key: 'ITEM_QUANTITY', option: 'QTY_1', weight: 0 },
   { key: 'ITEM_QUANTITY', option: 'QTY_2_3', weight: 2 },
@@ -38,11 +62,24 @@ const SIZING_CONFIG: { key: string; option: string; weight: number }[] = [
   { key: 'KITCHEN_LAYOUT', option: 'U_SHAPE', weight: 3 },
   { key: 'KITCHEN_LAYOUT', option: 'PARALLEL', weight: 2 },
   { key: 'KITCHEN_ISLAND', option: 'YES', weight: 2 },
+  // Configurator 2026-07 — categorii noi referite din flow-urile v2 + piese ghidate
+  { key: 'DRESSING_LAYOUT', option: 'LINEAR', weight: 1 },
+  { key: 'DRESSING_LAYOUT', option: 'L_SHAPE', weight: 2 },
+  { key: 'DRESSING_LAYOUT', option: 'U_SHAPE', weight: 3 },
+  { key: 'DRESSING_LAYOUT', option: 'WALK_IN', weight: 3 },
+  { key: 'WARDROBE_TO_CEILING', option: 'YES', weight: 1 },
+  { key: 'TV_MEDIA_WALL', option: 'YES', weight: 2 },
+  { key: 'BED_STORAGE', option: 'LIFT_UP', weight: 1 },
+  { key: 'BED_STORAGE', option: 'DRAWERS', weight: 1 },
+  { key: 'TABLE_EXTENDABLE', option: 'YES', weight: 1 },
   // placeholder admin: blatul nu puncteaza in seed, dar e ajustabil fara deploy
   { key: 'KITCHEN_COUNTERTOP', option: 'LAMINATE', weight: 0 },
   { key: 'KITCHEN_COUNTERTOP', option: 'QUARTZ', weight: 0 },
   { key: 'KITCHEN_COUNTERTOP', option: 'GRANITE', weight: 0 },
   { key: 'KITCHEN_COUNTERTOP', option: 'WOOD', weight: 0 },
+  // optiunile v2 din 2026-07-08 (PAL/HPL); LAMINATE/WOOD raman pentru kitchen v1
+  { key: 'KITCHEN_COUNTERTOP', option: 'PAL', weight: 0 },
+  { key: 'KITCHEN_COUNTERTOP', option: 'HPL', weight: 0 },
   // BUDGET
   { key: 'BUDGET', option: 'UNDER_5K', weight: 1 },
   { key: 'BUDGET', option: 'FROM_5K_TO_15K', weight: 3 },

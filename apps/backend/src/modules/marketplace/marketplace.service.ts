@@ -3,6 +3,7 @@ import {
   ERROR_CODES,
   type MarketplaceDetailDto,
   type MarketplaceItemDto,
+  sortByRoomOrder,
 } from '@marketplace/shared';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
@@ -69,10 +70,16 @@ export class MarketplaceService {
       include: { items: true },
       orderBy: { createdAt: 'asc' },
     });
+    const inspiration = await this.prisma.requestInspirationPhoto.findMany({
+      where: { requestId },
+      select: { photoId: true },
+    });
     return {
       ...this.toItem(row),
       deadlineBucket: row.desired_deadline_bucket,
-      rooms: rooms.map((room) => ({
+      inspirationPhotoIds: inspiration.map((p) => p.photoId),
+      // createdAt identic in tranzactia de publish → ordinea canonica = ROOM_ORDER
+      rooms: sortByRoomOrder(rooms).map((room) => ({
         id: room.id,
         roomType: room.roomType,
         lengthM: room.lengthM,

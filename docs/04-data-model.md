@@ -24,10 +24,11 @@ users, companies, company_members, company_locations, teams, company_verificatio
 
 | **Tabel** | **Coloane adăugate** | **Sursă** |
 | --- | --- | --- |
-| requests | project_score INT, project_size ENUM, includes_paid_design BOOLEAN DEFAULT FALSE, address_text/county/city/lat/lng, deleted_at, anonymized_at, last_edit_at, desired_deadline_bucket ENUM (inlocuieste desired_deadline DATE, overhaul 2026-07) | 4.5/4.1/4.3 |
+| requests | project_score INT, project_size ENUM, includes_paid_design BOOLEAN DEFAULT FALSE, address_text/county/city/lat/lng, country VARCHAR(2) DEFAULT 'RO' (livrare internationala, F5 2026-07-08), budget_estimate_ron INT nullable (sliderul estimat din scor, F5; budget_range ramane pentru filtre/scoring), deleted_at, anonymized_at, last_edit_at, desired_deadline_bucket ENUM (inlocuieste desired_deadline DATE, overhaul 2026-07) | 4.5/4.1/4.3 |
 | request_contact_preferences | channel ENUM(EMAIL/PHONE), value (validat ca format); priority ELIMINAT (overhaul 2026-07) | 4.2 |
 | claim_slots | claimed_by_user_id, assigned_to_user_id (nullable), sla_deadline_at, sla_paused_at, project_size_snapshot, project_score_snapshot, claim_cost_credits_snapshot, withdrawn_at, status | 4.x |
 | quotes | extra_versions_count INT DEFAULT 0, currency ENUM(RON/EUR) DEFAULT RON | 4.13 |
+| quote_version_room_prices | quote_version_id FK, request_room_id FK, price NUMERIC(12,2) — defalcarea pe camere a unei versiuni de oferta (F7 2026-07-08, item 22); scrisa o data cu versiunea; suma = price-ul versiunii (validat in service); UNIQUE(quote_version_id, request_room_id) | 4.13 |
 | quote_versions | valid_until TIMESTAMPTZ (default trimitere + 14 zile), design_fee NUMERIC nullable | 4.13/4.1 |
 | chat_threads | negotiation_ended_by_company BOOLEAN DEFAULT FALSE | 4.13 |
 | subscription_plans | price_ron, included_credits, marketplace_gating_delay_minutes (0/30/60) | 4.10/4.16 |
@@ -47,9 +48,17 @@ quote_validity_default_days=14 · consultation_invite_expiry_days=7 · employee_
 
 - budget_range: UNDER_5K, FROM_5K_TO_15K, OVER_15K, UNDISCLOSED
 
-- room_type: KITCHEN, DRESSING, LIVING, OFFICE, BEDROOM, BATHROOM, PIECES (piese individuale)
+- room_type: KITCHEN, DRESSING, LIVING, OFFICE, BEDROOM, BATHROOM, PIECES (fallback "Alta piesa", formular liber), HALLWAY, PANTRY, LAUNDRY, BALCONY (camere noi 2026-07), PIECE_WARDROBE, PIECE_TV_UNIT, PIECE_BOOKCASE, PIECE_DESK, PIECE_BED, PIECE_DRESSER, PIECE_TABLE, PIECE_SHOE_CABINET, PIECE_NIGHTSTAND, PIECE_BENCH (piese ghidate individuale 2026-07, fiecare cu flow propriu)
 
 - desired_deadline_bucket: ASAP, ONE_TO_THREE_MONTHS, THREE_TO_SIX_MONTHS, SIX_PLUS_MONTHS, FLEXIBLE
+
+- material: PAL, MDF (legacy, nu se mai ofera in flow-uri), MDF_INFOLIAT, MDF_VOPSIT, MDF_FURNIR, LEMN_MASIV, ALTUL (material liber — textul clientului intra in request_items.description) — extindere 2026-07-08
+
+- item_system: PUSH, GLISANTE, BUTON_PRESIUNE (legacy), MANER, GOLA, AVENTOS (doar corpuri suspendate in kitchen v2) — extindere 2026-07-08
+
+- inspiration_color: WHITE, BLACK, GRAY, BEIGE, BROWN, NATURAL_WOOD, GREEN, BLUE, RED, YELLOW, MULTICOLOR — nou F6 2026-07-08 (filtru galerie inspiratie)
+
+- inspiration_photos (F6): company_id FK (atelierul care a facut piesa — doar mobilier real al partenerilor), title, room_type ENUM, colors[]/materials[]/systems[] (filtre), image_url SAU attachment_id (upload prin presign, servit cu presigned GET), published/featured BOOLEAN, deleted_at (soft delete — pozele pot fi referite de cereri); request_inspiration_photos (request_id, photo_id) — pozele alese de client ca inspiratie pe cerere (max 10)
 
 - contact_channel: EMAIL, PHONE
 

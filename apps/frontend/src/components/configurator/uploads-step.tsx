@@ -10,6 +10,7 @@ import {
   useUploadAttachmentFor,
   type AttachmentTarget,
 } from '@/hooks/use-requests';
+import { InspirationPicker } from './inspiration-picker';
 
 const STATUS_ICON = {
   SAFE: FileCheck,
@@ -50,6 +51,9 @@ export function UploadsStep({
         hint={t('uploads.dropHint')}
       />
       {upload.isPending && <p className="text-xs text-muted-foreground">{t('uploads.uploading')}</p>}
+
+      {/* inspiratie din galeria atelierelor (F6, item 3) */}
+      <InspirationPicker />
 
       {attachments.length > 0 && (
         <ul className="flex flex-col gap-1.5 text-sm">

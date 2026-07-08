@@ -17,6 +17,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import {
   CreateRequestContentDto,
+  EstimateRequestDto,
   PatchDraftDto,
   PresignAttachmentDto,
 } from './dto/request.dto';
@@ -26,6 +27,15 @@ import { RequestsService } from './requests.service';
 @UseGuards(OptionalJwtAuthGuard)
 export class RequestsController {
   constructor(private readonly requests: RequestsService) {}
+
+  // Estimare de buget din scorul camerelor (F5, item 18) — anonim (draftul nu
+  // e inca publicat), fara efecte; throttle dedicat fiindca e apelabil liber.
+  @Public()
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Post('estimate')
+  estimate(@Body() dto: EstimateRequestDto) {
+    return this.requests.estimate(dto.rooms);
+  }
 
   // --- flux draft anonim cu token (Public; legat de client daca e logat) ---
 

@@ -14,7 +14,13 @@ import type {
   DimensionSlot,
   RoomFlow,
 } from '../types';
-import { ceilingHeightSlot, linearSlot, materialOptions } from './common';
+import {
+  ceilingHeightSlot,
+  linearSlot,
+  materialOptions,
+  OFFERED_MATERIALS,
+  otherMaterialStep,
+} from './common';
 import { pieceChoiceOptions, type PieceDef } from './pieces-flow';
 
 // Baie v2 (overhaul 2026-07):
@@ -66,25 +72,34 @@ const dimensionsStep: DimensionGroupStep = {
   },
 };
 
-// MDF recomandat cand baia nu e ventilata (badge pe card, nu restrictie)
+// MDF infoliat recomandat cand baia nu e ventilata (badge, nu restrictie) —
+// folia PVC rezista la umezeala; setul de materiale = cel de la bucatarie (item 13)
 const mdfRecommended: Condition = { questionId: 'ventilation', equals: 'NONE' };
 
 function bathMaterialOptions(): ChoiceOption[] {
-  return materialOptions().map((o) =>
-    o.value === 'MDF' ? { ...o, recommendedIf: mdfRecommended } : o,
+  return materialOptions(OFFERED_MATERIALS).map((o) =>
+    o.value === 'MDF_INFOLIAT' ? { ...o, recommendedIf: mdfRecommended } : o,
   );
 }
 
-function pieceMaterialStep(pieceValue: string) {
+function pieceMaterialSteps(pieceValue: string) {
   const id = PIECE_MATERIAL_STEP[pieceValue];
-  return {
-    id,
-    type: 'single-choice' as const,
-    titleKey: `${F}.${id}.title`,
-    subtitleKey: `${F}.${id}.subtitle`,
-    visibleIf: { questionId: 'piecesNeeded', in: [pieceValue] } as Condition,
-    options: bathMaterialOptions(),
-  };
+  const ifSelected: Condition = { questionId: 'piecesNeeded', in: [pieceValue] };
+  return [
+    {
+      id,
+      type: 'single-choice' as const,
+      titleKey: `${F}.${id}.title`,
+      subtitleKey: `${F}.${id}.subtitle`,
+      visibleIf: ifSelected,
+      screenGroup: `piece:${pieceValue}`,
+      options: bathMaterialOptions(),
+    },
+    {
+      ...otherMaterialStep(id, `piece:${pieceValue}`),
+      visibleIf: { all: [ifSelected, { questionId: id, equals: 'ALTUL' }] } as Condition,
+    },
+  ];
 }
 
 export const bathroomFlowV2: RoomFlow = {
@@ -115,9 +130,9 @@ export const bathroomFlowV2: RoomFlow = {
         descriptionKey: `${F}.ventilation.options.${value}.description`,
       })),
     },
-    pieceMaterialStep('VANITY_UNIT'),
-    pieceMaterialStep('MIRROR_CABINET'),
-    pieceMaterialStep('TALL_STORAGE'),
+    ...pieceMaterialSteps('VANITY_UNIT'),
+    ...pieceMaterialSteps('MIRROR_CABINET'),
+    ...pieceMaterialSteps('TALL_STORAGE'),
     {
       id: 'sketch',
       type: 'upload',
@@ -129,12 +144,21 @@ export const bathroomFlowV2: RoomFlow = {
   ],
   deriveRoom: (answers) => {
     const selected = selectedPieces(answers);
-    const items: RequestItemInput[] = PIECES.filter((d) => selected.includes(d.value)).map((d) => ({
-      name: d.itemName,
-      material: (answers[PIECE_MATERIAL_STEP[d.value]] as Material) ?? 'PAL',
-      systems: [],
-      quantity: d.quantity ?? 1,
-    }));
+    const items: RequestItemInput[] = PIECES.filter((d) => selected.includes(d.value)).map((d) => {
+      const materialId = PIECE_MATERIAL_STEP[d.value];
+      const material = (answers[materialId] as Material) ?? 'PAL';
+      const otherText = answers[`${materialId}Other`];
+      return {
+        name: d.itemName,
+        material,
+        systems: [],
+        description:
+          material === 'ALTUL' && typeof otherText === 'string' && otherText.trim()
+            ? `Material dorit: ${otherText.trim()}`
+            : undefined,
+        quantity: d.quantity ?? 1,
+      };
+    });
     if (items.length === 0) {
       items.push({ name: 'Mobilier baie', material: 'PAL', systems: [], quantity: 1 });
     }

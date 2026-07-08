@@ -45,11 +45,14 @@ export interface AddressParts {
 export function AddressAutocomplete({
   defaultValue,
   error,
+  country = 'RO',
   onText,
   onResolved,
 }: {
   defaultValue: string;
   error?: string;
+  // ISO2 — restrictioneaza sugestiile la tara aleasa (F5, item 19: livram si international)
+  country?: string;
   // tastare manuala: actualizeaza doar addressText (nu atinge judet/oras)
   onText: (text: string) => void;
   // apelat cand utilizatorul alege o sugestie; campurile county/city se completeaza
@@ -58,6 +61,13 @@ export function AddressAutocomplete({
   const t = useTranslations('Requests');
   const inputRef = useRef<HTMLInputElement | null>(null);
   const attached = useRef(false);
+  // instanta Places, ca sa putem schimba restrictia de tara fara reatasare
+  const autocompleteRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
+
+  useEffect(() => {
+    if (!PLACES_KEY || !attached.current || !autocompleteRef.current) return;
+    autocompleteRef.current.setComponentRestrictions({ country: country.toLowerCase() });
+  }, [country]);
 
   useEffect(() => {
     if (!PLACES_KEY || attached.current) return;
@@ -67,10 +77,11 @@ export function AddressAutocomplete({
         if (cancelled || attached.current || !inputRef.current || !window.google) return;
         attached.current = true;
         const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
-          componentRestrictions: { country: 'ro' },
+          componentRestrictions: { country: country.toLowerCase() },
           fields: ['address_components', 'formatted_address'],
           types: ['address'],
         });
+        autocompleteRef.current = autocomplete;
         autocomplete.addListener('place_changed', () => {
           const place = autocomplete.getPlace();
           const comps: { long_name: string; types: string[] }[] = place?.address_components ?? [];

@@ -1,7 +1,7 @@
 'use client';
 
 import type { ConfiguratorContentInput, ContactPreferenceInput } from '@marketplace/shared';
-import { ArrowLeft, Check, LogIn, Pencil, Send } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, LogIn, Pencil, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,7 @@ export function ReviewStep({
   const isEdit = Boolean(editId);
   const rooms = useConfiguratorStore((s) => s.roomInstances);
   const details = useConfiguratorStore((s) => s.details);
+  const inspirationPhotoIds = useConfiguratorStore((s) => s.inspirationPhotoIds);
   const publishDraft = usePublishDraft(token ?? '');
   const editRequest = useEditRequestById(editId ?? '');
   const publish = isEdit ? editRequest : publishDraft;
@@ -54,6 +55,7 @@ export function ReviewStep({
     const payload: ConfiguratorContentInput = {
       description: details.description ?? '',
       budgetRange: (details.budgetRange as ConfiguratorContentInput['budgetRange']) ?? 'UNDER_5K',
+      budgetEstimateRon: details.budgetEstimateRon ?? undefined,
       deadlineBucket:
         (details.deadlineBucket as ConfiguratorContentInput['deadlineBucket']) || undefined,
       includesPaidDesign: details.includesPaidDesign ?? false,
@@ -61,20 +63,42 @@ export function ReviewStep({
       addressText: details.addressText!,
       county: details.county!,
       city: details.city!,
+      country: details.country ?? 'RO',
       rooms: rooms.map((r) => ({
         roomType: r.roomType,
         flowVersion: r.flowVersion,
         answers: r.answers,
       })),
       contactPreferences: (details.contactPreferences ?? []) as ContactPreferenceInput[],
+      inspirationPhotoIds,
     };
     publish.mutate(payload, { onSuccess: (req) => onPublished(req.id) });
   };
 
   const apiErr = publish.error instanceof ApiError ? publish.error.code : null;
 
+  // Overlay-ul ramane vizibil si dupa succes (isSuccess), pana la redirect:
+  // publish-ul face geocoding pe server si poate dura cateva secunde.
+  const publishing = publish.isPending || publish.isSuccess;
+
   return (
     <div className="flex flex-col gap-6">
+      {publishing && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-background/80 backdrop-blur-sm">
+          <div
+            role="status"
+            aria-live="polite"
+            className="flex flex-col items-center gap-3 rounded-xl border border-border bg-surface px-10 py-8 text-center shadow-lg"
+          >
+            <Loader2 className="h-7 w-7 animate-spin text-walnut" />
+            <p className="font-serif text-lg">
+              {isEdit ? t('review.publishingEdit') : t('review.publishing')}
+            </p>
+            <p className="max-w-xs text-sm text-muted-foreground">{t('review.publishingHint')}</p>
+          </div>
+        </div>
+      )}
+
       <div>
         <h2 className="font-serif text-2xl tracking-[-0.01em]">{t('review.title')}</h2>
         <p className="mt-1 text-sm text-muted-foreground">{t('review.subtitle')}</p>

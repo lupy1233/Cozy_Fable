@@ -9,6 +9,7 @@ import { useDeleteRequest, useRepostRequest, useRequest } from '@/hooks/use-requ
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/badge';
 import { RoomAnswerSummary } from '@/components/configurator/room-answer-summary';
+import { RequestInspirationStrip } from '@/components/configurator/request-inspiration-strip';
 
 export default function RequestDetailPage() {
   const t = useTranslations('Requests');
@@ -133,6 +134,9 @@ export default function RequestDetailPage() {
           </ul>
         </div>
       )}
+
+      {/* inspiratia aleasa din galerie (F6) */}
+      <RequestInspirationStrip ids={r.inspirationPhotoIds} />
 
       {r.status === 'EXPIRED' && token && <RepostButton id={id} token={token} />}
 

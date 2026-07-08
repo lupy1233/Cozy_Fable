@@ -19,7 +19,8 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { useEffect } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -27,10 +28,20 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useMe } from '@/hooks/use-auth';
+import { useBudgetEstimate } from '@/hooks/use-requests';
 import { cn } from '@/lib/utils';
 import { useConfiguratorStore, type DetailsValues } from '@/stores/configurator-store';
 import { AddressAutocomplete } from './address-autocomplete';
 import { BudgetSlider } from './budget-slider';
+import { PhoneInput } from './phone-input';
+
+// Tarile oferite la livrare (F5, item 19) — RO implicit; etichetele vin din
+// Intl.DisplayNames in limba interfetei.
+const COUNTRIES = [
+  'RO', 'MD', 'HU', 'BG', 'DE', 'AT', 'FR', 'IT', 'ES', 'BE', 'NL', 'CH',
+  'GB', 'IE', 'PL', 'CZ', 'SK', 'GR', 'PT', 'SE', 'DK', 'NO', 'FI',
+] as const;
 
 // Pasul de detalii generale (dupa fisiere, inainte de sumar).
 // Titlul NU se mai introduce: e generat automat pe server din camere + oras;
@@ -56,9 +67,14 @@ export function DetailsStep({
 }) {
   const t = useTranslations('Requests');
   const tc = useTranslations('Configurator');
+  const locale = useLocale();
+  const me = useMe();
   const stored = useConfiguratorStore((s) => s.details);
   const rooms = useConfiguratorStore((s) => s.roomInstances);
   const setDetails = useConfiguratorStore((s) => s.setDetails);
+
+  // estimarea de buget din scorul camerelor completate (F5, item 18)
+  const estimate = useBudgetEstimate(rooms.filter((r) => r.completed));
 
   const {
     register,
@@ -72,12 +88,14 @@ export function DetailsStep({
     defaultValues: {
       description: stored.description ?? '',
       budgetRange: (stored.budgetRange as DetailsFormValues['budgetRange']) ?? 'UNDER_5K',
+      budgetEstimateRon: stored.budgetEstimateRon ?? undefined,
       deadlineBucket: (stored.deadlineBucket as DetailsFormValues['deadlineBucket']) || undefined,
       includesPaidDesign: stored.includesPaidDesign ?? false,
       hasOwnProject: stored.hasOwnProject ?? false,
       addressText: stored.addressText ?? '',
       county: stored.county ?? '',
       city: stored.city ?? '',
+      country: stored.country ?? 'RO',
       contactPreferences: stored.contactPreferences?.length
         ? stored.contactPreferences
         : [{ channel: 'EMAIL', value: '' }],
@@ -90,8 +108,42 @@ export function DetailsStep({
     errors.contactPreferences?.root?.message ?? errors.contactPreferences?.message;
 
   const budget = watch('budgetRange');
+  const budgetRon = watch('budgetEstimateRon');
   const deadline = watch('deadlineBucket');
   const city = watch('city');
+  const country = watch('country') ?? 'RO';
+  const contactValues = watch('contactPreferences');
+
+  // numele localizate ale tarilor, din motorul Intl al browserului
+  const regionNames = new Intl.DisplayNames([locale], { type: 'region' });
+
+  // emailul contului devine contactul implicit (F5, item 20) — doar daca
+  // clientul nu a completat deja ceva
+  useEffect(() => {
+    const email = me.data?.email;
+    if (!email) return;
+    const first = contactValues?.[0];
+    if (contactValues?.length === 1 && first?.channel === 'EMAIL' && !first.value) {
+      setValue('contactPreferences.0.value', email, { shouldValidate: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me.data?.email]);
+
+  // cand soseste estimarea: initializeaza valoarea pe baza (sau clameaza una
+  // salvata care a iesit din interval dupa editarea camerelor)
+  useEffect(() => {
+    const est = estimate.data;
+    if (!est || est.minRon <= 0 || budget === 'UNDISCLOSED') return;
+    const current = budgetRon;
+    if (typeof current !== 'number') {
+      setValue('budgetEstimateRon', est.minRon, { shouldValidate: true });
+    } else if (current < est.minRon || current > est.maxRon) {
+      setValue('budgetEstimateRon', Math.min(Math.max(current, est.minRon), est.maxRon), {
+        shouldValidate: true,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estimate.data]);
 
   // previzualizare titlu generat: "Bucatarie + 2 Bai — Cluj" (sursa de adevar = server)
   const counts = new Map<string, number>();
@@ -134,6 +186,11 @@ export function DetailsStep({
         <BudgetSlider
           value={budget}
           onChange={(v) => setValue('budgetRange', v, { shouldValidate: true })}
+          estimate={estimate.data && estimate.data.minRon > 0 ? estimate.data : null}
+          valueRon={typeof budgetRon === 'number' ? budgetRon : null}
+          onChangeRon={(ron) =>
+            setValue('budgetEstimateRon', ron ?? undefined, { shouldValidate: true })
+          }
         />
       </Field>
 
@@ -173,9 +230,25 @@ export function DetailsStep({
       <div className="border-t border-border-2 pt-5">
         <h3 className="mb-3 font-serif text-xl">{t('sectionAddress')}</h3>
         <div className="flex flex-col gap-4">
+          {/* tara inaintea adresei: restrictioneaza sugestiile Places (item 19) */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label={t('field.country')}>
+              <Select
+                value={country}
+                onChange={(e) => setValue('country', e.target.value, { shouldValidate: true })}
+              >
+                {COUNTRIES.map((c) => (
+                  <option key={c} value={c}>
+                    {regionNames.of(c) ?? c}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
           <AddressAutocomplete
             defaultValue={stored.addressText ?? ''}
             error={vmsg(errors.addressText?.message)}
+            country={country}
             onText={(text) => setValue('addressText', text, { shouldValidate: true })}
             onResolved={(parts) => {
               setValue('addressText', parts.addressText, { shouldValidate: true });
@@ -183,15 +256,12 @@ export function DetailsStep({
               if (parts.city) setValue('city', parts.city, { shouldValidate: true });
             }}
           />
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t('field.county')} error={vmsg(errors.county?.message)}>
               <Input {...register('county')} />
             </Field>
             <Field label={t('field.city')} error={vmsg(errors.city?.message)}>
               <Input {...register('city')} />
-            </Field>
-            <Field label={t('field.country')}>
-              <Input value={t('countryRomania')} disabled readOnly />
             </Field>
           </div>
         </div>
@@ -214,31 +284,51 @@ export function DetailsStep({
         {contactsRootError && (
           <p className="mb-2 text-sm text-crimson">{vmsg(contactsRootError)}</p>
         )}
+        {/* items-start: eroarea de sub camp creste in jos, fara sa urce inputurile
+            vecine (feedback PO F5, item 20) */}
         <div className="flex flex-col gap-3">
-          {contacts.fields.map((c, ci) => (
-            <div key={c.id} className="grid grid-cols-[1fr_2fr_auto] items-end gap-3">
-              <Field label={t('field.contactChannel')}>
-                <Select {...register(`contactPreferences.${ci}.channel` as const)}>
-                  {CONTACT_CHANNELS.map((ch) => (
-                    <option key={ch} value={ch}>
-                      {t(`contactChannel.${ch}`)}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field
-                label={t('field.contactValue')}
-                error={vmsg(errors.contactPreferences?.[ci]?.value?.message)}
-              >
-                <Input {...register(`contactPreferences.${ci}.value` as const)} />
-              </Field>
-              {contacts.fields.length > 1 && (
-                <Button type="button" variant="ghost" size="icon" onClick={() => contacts.remove(ci)}>
-                  <X className="h-4 w-4 text-crimson" />
-                </Button>
-              )}
-            </div>
-          ))}
+          {contacts.fields.map((c, ci) => {
+            const channel = contactValues?.[ci]?.channel ?? 'EMAIL';
+            return (
+              <div key={c.id} className="grid grid-cols-[1fr_2fr_auto] items-start gap-3">
+                <Field label={t('field.contactChannel')}>
+                  <Select {...register(`contactPreferences.${ci}.channel` as const)}>
+                    {CONTACT_CHANNELS.map((ch) => (
+                      <option key={ch} value={ch}>
+                        {t(`contactChannel.${ch}`)}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field
+                  label={t('field.contactValue')}
+                  error={vmsg(errors.contactPreferences?.[ci]?.value?.message)}
+                >
+                  {channel === 'PHONE' ? (
+                    <PhoneInput
+                      value={contactValues?.[ci]?.value ?? ''}
+                      onChange={(v) =>
+                        setValue(`contactPreferences.${ci}.value`, v, { shouldValidate: true })
+                      }
+                    />
+                  ) : (
+                    <Input type="email" {...register(`contactPreferences.${ci}.value` as const)} />
+                  )}
+                </Field>
+                {contacts.fields.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="mt-[26px]"
+                    onClick={() => contacts.remove(ci)}
+                  >
+                    <X className="h-4 w-4 text-crimson" />
+                  </Button>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

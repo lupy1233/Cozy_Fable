@@ -1,7 +1,7 @@
 'use client';
 
 import type { AnswerMap, AnswerValue, RoomType } from '@marketplace/shared';
-import { CURRENT_FLOW_VERSION, getFlow, pruneAnswers } from '@marketplace/shared';
+import { CURRENT_FLOW_VERSION, getFlow, pruneAnswers, sortByRoomOrder } from '@marketplace/shared';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -31,12 +31,16 @@ export interface DetailsValues {
   // fara titlu: e generat automat pe server din camere + oras
   description: string;
   budgetRange: string;
+  // valoarea aleasa pe sliderul estimat din scor (F5, item 18); null = UNDISCLOSED
+  budgetEstimateRon?: number | null;
   deadlineBucket: string;
   includesPaidDesign: boolean;
   hasOwnProject: boolean;
   addressText: string;
   county: string;
   city: string;
+  // ISO2, implicit RO (F5, item 19)
+  country?: string;
   contactPreferences: ContactPreferenceValue[];
 }
 
@@ -47,11 +51,19 @@ export interface ConfiguratorSnapshot {
   activeRoomIndex: number;
   activeStepIndex: number;
   details: Partial<DetailsValues>;
+  // pozele din galerie alese ca inspiratie (F6, item 3)
+  inspirationPhotoIds: string[];
   updatedAt: number;
 }
 
+// Unitatea de afisare pentru inputurile de dimensiuni (valorile raman in metri
+// in answers — conversia e pur prezentationala, in StepRenderer).
+export type DimensionUnit = 'm' | 'cm' | 'mm';
+
 interface ConfiguratorStore extends ConfiguratorSnapshot {
   token: string | null;
+  dimensionUnit: DimensionUnit;
+  setDimensionUnit: (unit: DimensionUnit) => void;
   setToken: (token: string) => void;
   setPhase: (phase: ConfiguratorPhase) => void;
   addRoom: (roomType: RoomType) => void;
@@ -63,6 +75,7 @@ interface ConfiguratorStore extends ConfiguratorSnapshot {
   copyRoomAnswers: (sourceLocalId: string, targetLocalId: string) => void;
   markRoomCompleted: (localId: string, completed: boolean) => void;
   setDetails: (patch: Partial<DetailsValues>) => void;
+  setInspirationPhotos: (ids: string[]) => void;
   loadSnapshot: (snapshot: ConfiguratorSnapshot) => void;
   snapshot: () => ConfiguratorSnapshot;
   reset: () => void;
@@ -73,9 +86,41 @@ function newLocalId(): string {
 }
 
 // Normalizeaza instante provenite din snapshot-uri vechi (fara flowVersion):
-// acele camere au fost create pe versiunea 1 a flow-urilor.
+// acele camere au fost create pe versiunea 1 a flow-urilor. Aplicata pe TOATE
+// caile de intrare (migrate localStorage, resume de pe server, edit-mode),
+// impune si ordinea canonica a intrebarilor (ROOM_ORDER, stabila per tip).
 function normalizeInstances(rooms: RoomInstance[] | undefined): RoomInstance[] {
-  return (rooms ?? []).map((r) => ({ ...r, flowVersion: r.flowVersion ?? 1 }));
+  return sortByRoomOrder((rooms ?? []).map((r) => ({ ...r, flowVersion: r.flowVersion ?? 1 })));
+}
+
+// Dupa reordonare, indexul camerei active trebuie remapat prin localId —
+// altfel resume-ul mid-flow ar deschide alta camera decat cea in lucru.
+function normalizeSnapshot(snapshot: Partial<ConfiguratorSnapshot>): Partial<ConfiguratorSnapshot> {
+  const original = snapshot.roomInstances ?? [];
+  const activeId = original[snapshot.activeRoomIndex ?? 0]?.localId;
+  const roomInstances = normalizeInstances(original);
+  const remapped = activeId ? roomInstances.findIndex((r) => r.localId === activeId) : -1;
+  return {
+    ...snapshot,
+    roomInstances,
+    activeRoomIndex: remapped >= 0 ? remapped : 0,
+    details: normalizeDetails(snapshot.details),
+    inspirationPhotoIds: Array.isArray(snapshot.inspirationPhotoIds)
+      ? snapshot.inspirationPhotoIds
+      : [],
+  };
+}
+
+// Patch comun pentru mutatiile care schimba componenta cosului: pastreaza
+// ordinea canonica si camera activa (identificata prin localId).
+function sortedRoomsPatch(
+  current: Pick<ConfiguratorSnapshot, 'roomInstances' | 'activeRoomIndex'>,
+  nextRooms: RoomInstance[],
+): Pick<ConfiguratorSnapshot, 'roomInstances' | 'activeRoomIndex'> {
+  const activeId = current.roomInstances[current.activeRoomIndex]?.localId;
+  const roomInstances = sortByRoomOrder(nextRooms);
+  const idx = activeId ? roomInstances.findIndex((r) => r.localId === activeId) : -1;
+  return { roomInstances, activeRoomIndex: idx >= 0 ? idx : 0 };
 }
 
 // Curata detaliile din snapshot-uri vechi: titlul si prioritatea contactelor au
@@ -104,6 +149,7 @@ const initialSnapshot: ConfiguratorSnapshot = {
   activeRoomIndex: 0,
   activeStepIndex: 0,
   details: {},
+  inspirationPhotoIds: [],
   updatedAt: Date.now(),
 };
 
@@ -111,14 +157,20 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
   persist(
     (set, get) => ({
       token: null,
+      // cm e unitatea naturala pentru mobilier; clientul poate comuta pe m/mm
+      dimensionUnit: 'cm' as DimensionUnit,
       ...initialSnapshot,
 
+      setDimensionUnit: (unit) => set({ dimensionUnit: unit }),
+      setInspirationPhotos: (ids) =>
+        set({ inspirationPhotoIds: [...new Set(ids)].slice(0, 10), updatedAt: Date.now() }),
       setToken: (token) => set({ token }),
       setPhase: (phase) => set({ phase, updatedAt: Date.now() }),
 
+      // insertia pastreaza ordinea canonica ROOM_ORDER (nu ordinea adaugarii in cos)
       addRoom: (roomType) =>
         set((s) => ({
-          roomInstances: [
+          ...sortedRoomsPatch(s, [
             ...s.roomInstances,
             {
               localId: newLocalId(),
@@ -127,7 +179,7 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
               answers: {},
               completed: false,
             },
-          ],
+          ]),
           updatedAt: Date.now(),
         })),
 
@@ -135,13 +187,15 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
         set((s) => {
           const idx = [...s.roomInstances].map((r) => r.roomType).lastIndexOf(roomType);
           if (idx < 0) return s;
-          const roomInstances = s.roomInstances.filter((_, i) => i !== idx);
-          return { roomInstances, updatedAt: Date.now() };
+          return {
+            ...sortedRoomsPatch(s, s.roomInstances.filter((_, i) => i !== idx)),
+            updatedAt: Date.now(),
+          };
         }),
 
       removeRoom: (localId) =>
         set((s) => ({
-          roomInstances: s.roomInstances.filter((r) => r.localId !== localId),
+          ...sortedRoomsPatch(s, s.roomInstances.filter((r) => r.localId !== localId)),
           updatedAt: Date.now(),
         })),
 
@@ -201,12 +255,7 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
       setDetails: (patch) =>
         set((s) => ({ details: { ...s.details, ...patch }, updatedAt: Date.now() })),
 
-      loadSnapshot: (snapshot) =>
-        set({
-          ...snapshot,
-          roomInstances: normalizeInstances(snapshot.roomInstances),
-          details: normalizeDetails(snapshot.details),
-        }),
+      loadSnapshot: (snapshot) => set({ ...snapshot, ...normalizeSnapshot(snapshot) }),
 
       snapshot: () => {
         const s = get();
@@ -216,6 +265,7 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
           activeRoomIndex: s.activeRoomIndex,
           activeStepIndex: s.activeStepIndex,
           details: s.details,
+          inspirationPhotoIds: s.inspirationPhotoIds,
           updatedAt: s.updatedAt,
         };
       },
@@ -224,16 +274,14 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
     }),
     {
       name: 'mm_configurator_v1',
-      version: 2,
+      // v3 (2026-07): ordinea canonica ROOM_ORDER + remap activeRoomIndex
+      version: 3,
       // snapshot-uri persistate inainte de versionarea flow-urilor → flowVersion 1;
-      // detaliile vechi (titlu, prioritati contact, termen-data) sunt normalizate
+      // detaliile vechi (titlu, prioritati contact, termen-data) sunt normalizate;
+      // draft-urile in curs sunt resortate pe ordinea canonica (camera activa pastrata)
       migrate: (persisted) => {
         const state = persisted as Partial<ConfiguratorSnapshot>;
-        return {
-          ...state,
-          roomInstances: normalizeInstances(state.roomInstances),
-          details: normalizeDetails(state.details),
-        };
+        return { ...state, ...normalizeSnapshot(state) };
       },
       // nu persista tokenul in acelasi blob cu datele — el sta separat (vezi wizard)
       partialize: (s) => ({
@@ -242,7 +290,9 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
         activeRoomIndex: s.activeRoomIndex,
         activeStepIndex: s.activeStepIndex,
         details: s.details,
+        inspirationPhotoIds: s.inspirationPhotoIds,
         updatedAt: s.updatedAt,
+        dimensionUnit: s.dimensionUnit,
       }),
     },
   ),

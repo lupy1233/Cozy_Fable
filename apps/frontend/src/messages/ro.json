@@ -36,6 +36,12 @@
     "creditsUnitOne": "credit",
     "heroSheetTitle": "Dulap dormitor — axonometrie",
     "heroSheetClient": "Cerere client",
+    "heroSheetsSwitcher": "Alege plansa",
+    "heroSheets": {
+      "wardrobe": "Dulap dormitor",
+      "kitchen": "Bucatarie",
+      "bookcase": "Biblioteca"
+    },
     "ctaBandTitle": "Conduci un atelier?",
     "ctaBandBody": "Primești cereri reale, dimensionate și verificate — și plătești credite doar pentru proiectele pe care le revendici.",
     "ctaBandButton": "Înregistrează atelierul",
@@ -74,6 +80,7 @@
     "dashboard": "Contul meu",
     "myRequests": "Cererile mele",
     "newRequest": "Cerere nouă",
+    "createRequest": "Creează o cerere",
     "marketplace": "Marketplace",
     "claims": "Revendicări",
     "wallet": "Portofel",
@@ -99,11 +106,31 @@
   },
   "Inspiration": {
     "title": "Inspirație",
-    "subtitle": "Idei reale pentru mobilier la comandă. Caută, filtrează după tipul de mobilier și deschide-le pe Pinterest.",
+    "subtitle": "Mobilier real, făcut de atelierele partenere. Filtrează după tip, culoare, material sau sistemul de deschidere.",
     "searchPlaceholder": "Caută idei — ex. bucătărie, dressing, lectură…",
     "all": "Toate",
     "empty": "Nimic găsit pentru căutarea ta. Încearcă alt cuvânt sau alt filtru.",
     "openPinterest": "Vezi pe Pinterest",
+    "byFirm": "de {name}",
+    "requestSection": "Inspirație din galerie",
+    "filters": {
+      "color": "Culoare",
+      "material": "Material",
+      "opening": "Deschidere"
+    },
+    "colors": {
+      "WHITE": "Alb",
+      "BLACK": "Negru",
+      "GRAY": "Gri",
+      "BEIGE": "Bej",
+      "BROWN": "Maro",
+      "NATURAL_WOOD": "Lemn natur",
+      "GREEN": "Verde",
+      "BLUE": "Albastru",
+      "RED": "Roșu",
+      "YELLOW": "Galben",
+      "MULTICOLOR": "Multicolor"
+    },
     "types": {
       "kitchen": "Bucătărie",
       "living": "Living",
@@ -344,6 +371,24 @@
     },
     "marketplaceLink": "Marketplace"
   },
+  "AdminInspiration": {
+    "title": "Galeria de inspirație",
+    "addTitle": "Adaugă o poză",
+    "fields": {
+      "title": "Titlu",
+      "company": "Atelierul care a făcut piesa",
+      "roomType": "Tip mobilier",
+      "imageUrl": "URL imagine (opțional)",
+      "imageUrlHint": "Poți lăsa gol și să încarci imaginea după creare."
+    },
+    "addButton": "Adaugă în galerie",
+    "empty": "Nicio poză încă. Adaugă prima mai sus.",
+    "published": "Publicată",
+    "featured": "Pe landing",
+    "uploadImage": "Încarcă imagine",
+    "delete": "Șterge",
+    "noImage": "Fără imagine"
+  },
   "AdminCompanies": {
     "title": "Verificare firme",
     "filterAll": "Toate",
@@ -442,6 +487,7 @@
       "OVER_15K": "Peste 15.000 RON",
       "UNDISCLOSED": "Prefer să nu spun"
     },
+    "budgetEstimateHint": "Estimare orientativă din răspunsurile tale: {min} – {max}. Alege bugetul cu care ești confortabil.",
     "deadline": {
       "none": "Nu știu încă",
       "ASAP": "Cât mai repede",
@@ -461,7 +507,21 @@
       "OFFICE": "Birou",
       "BEDROOM": "Dormitor",
       "BATHROOM": "Baie",
-      "PIECES": "Piese individuale"
+      "PIECES": "Piese individuale",
+      "HALLWAY": "Hol / Intrare",
+      "PANTRY": "Debara",
+      "LAUNDRY": "Spălătorie",
+      "BALCONY": "Balcon",
+      "PIECE_WARDROBE": "Dulap",
+      "PIECE_TV_UNIT": "Comodă TV",
+      "PIECE_BOOKCASE": "Bibliotecă",
+      "PIECE_DESK": "Birou (piesă)",
+      "PIECE_BED": "Pat",
+      "PIECE_DRESSER": "Comodă",
+      "PIECE_TABLE": "Masă",
+      "PIECE_SHOE_CABINET": "Pantofar",
+      "PIECE_NIGHTSTAND": "Noptiere",
+      "PIECE_BENCH": "Băncuță"
     },
     "material": {
       "PAL": "PAL",
@@ -508,7 +568,8 @@
       "contactChannelTooShort": "Canalul este prea scurt.",
       "contactValueTooShort": "Valoarea este prea scurtă.",
       "contactEmailInvalid": "Introdu o adresă de email validă.",
-      "contactPhoneInvalid": "Introdu un număr de telefon românesc valid.",
+      "contactPhoneInvalid": "Introdu un număr de telefon valid (cu prefixul țării pentru numere internaționale).",
+      "countryInvalid": "Țară invalidă.",
       "tooManyContacts": "Maximum 4 intrări de contact.",
       "tooManyPerChannel": "Maximum 2 intrări per canal.",
       "descriptionTooLong": "Mesajul este prea lung."
@@ -678,6 +739,10 @@
       "reviseTitle": "Răspunde cu o variantă nouă",
       "extraTitle": "Variantă suplimentară",
       "reofferTitle": "Modifică (variantă nouă)",
+      "roomPrices": "Preț pe camere (se adună singur)",
+      "roomPricesTotal": "Total",
+      "roomPricesPartial": "Completează prețul pentru toate camerele sau lasă toate goale pentru un preț unic.",
+      "priceLocked": "Totalul vine din prețurile pe camere.",
       "price": "Preț",
       "currency": "Monedă",
       "designFee": "Tarif proiectare",
@@ -828,6 +893,7 @@
     "nav": {
       "dashboard": "Tablou de bord",
       "companies": "Firme",
+      "inspiration": "Inspirație",
       "disputes": "Dispute",
       "payments": "Plăți",
       "withdrawals": "Retrageri",
@@ -923,7 +989,9 @@
       "tabRooms": "Camere",
       "tabPieces": "Piese individuale",
       "addPieces": "Adauga piese",
-      "removePieces": "Elimina"
+      "removePieces": "Elimina",
+      "addOne": "Adauga {type}",
+      "removeOne": "Sterge {type}"
     },
     "sketchUpload": {
       "skipNotice": "Ai marcat ca ai un proiect pentru toata locuinta — poti sari peste acest pas. Incarca proiectul la pasul Fisiere, ca sa nu-l atasezi pentru fiecare camera.",
@@ -960,7 +1028,21 @@
         "OFFICE": "Birou",
         "BEDROOM": "Dormitor",
         "BATHROOM": "Baie",
-        "PIECES": "Piese individuale"
+        "PIECES": "Alta piesa",
+        "HALLWAY": "Hol / Intrare",
+        "PANTRY": "Debara",
+        "LAUNDRY": "Spalatorie",
+        "BALCONY": "Balcon",
+        "PIECE_WARDROBE": "Dulap",
+        "PIECE_TV_UNIT": "Comoda TV",
+        "PIECE_BOOKCASE": "Biblioteca",
+        "PIECE_DESK": "Birou",
+        "PIECE_BED": "Pat",
+        "PIECE_DRESSER": "Comoda",
+        "PIECE_TABLE": "Masa",
+        "PIECE_SHOE_CABINET": "Pantofar",
+        "PIECE_NIGHTSTAND": "Noptiere",
+        "PIECE_BENCH": "Bancuta"
       },
       "desc": {
         "KITCHEN": "Corpuri, blat, insula",
@@ -969,7 +1051,21 @@
         "OFFICE": "Birou, biblioteci, depozitare",
         "BEDROOM": "Dulap, pat, noptiere",
         "BATHROOM": "Corp lavoar, oglinda, coloane",
-        "PIECES": "Doar un dulap, un birou sau cateva piese separate"
+        "PIECES": "Orice alta piesa — descriere libera",
+        "HALLWAY": "Pantofar, cuier, dulap, bancuta",
+        "PANTRY": "Rafturi si dulapuri de depozitare",
+        "LAUNDRY": "Dulapuri in jurul masinii de spalat",
+        "BALCONY": "Banca cu lada, dulap, blat",
+        "PIECE_WARDROBE": "Cu usi glisante sau batante",
+        "PIECE_TV_UNIT": "Comoda joasa sau perete media",
+        "PIECE_BOOKCASE": "Rafturi, vitrine, corpuri inchise",
+        "PIECE_DESK": "Drept sau pe colt",
+        "PIECE_BED": "Tapitat, cu lada sau sertare",
+        "PIECE_DRESSER": "Cu sertare si usi",
+        "PIECE_TABLE": "Dining, cafea sau consola",
+        "PIECE_SHOE_CABINET": "Slim rabatabil sau cu bancuta",
+        "PIECE_NIGHTSTAND": "Una sau pereche",
+        "PIECE_BENCH": "Cu depozitare sau simpla"
       }
     },
     "uploads": {
@@ -995,7 +1091,17 @@
       "detailsIncomplete": "Completeaza datele generale inainte de publicare.",
       "roomIncomplete": "incompleta",
       "loginToPublish": "Autentifica-te pentru a publica",
-      "loginToPublishHint": "Cererea ta e completa. Autentifica-te sau creeaza un cont pentru a o trimite in marketplace — raspunsurile se pastreaza."
+      "loginToPublishHint": "Cererea ta e completa. Autentifica-te sau creeaza un cont pentru a o trimite in marketplace — raspunsurile se pastreaza.",
+      "publishing": "Publicam cererea ta...",
+      "publishingEdit": "Salvam modificarile...",
+      "publishingHint": "Dureaza cateva secunde — pregatim cererea pentru ateliere."
+    },
+    "inspirationPicker": {
+      "title": "Inspiratie din galerie",
+      "subtitle": "Alege pana la {max} poze cu mobilier facut de atelierele noastre — firmele vad exact ce iti place.",
+      "browse": "Rasfoieste galeria",
+      "dialogTitle": "Alege poze de inspiratie",
+      "selectedCount": "{count} din {max} selectate"
     },
     "info": {
       "pros": "Avantaje",
@@ -1006,8 +1112,8 @@
       "hideInfo": "Inapoi la optiune"
     },
     "diagram": {
-      "islandLength": "Insula L",
-      "islandDepth": "Insula D",
+      "islandLength": "L",
+      "islandDepth": "D",
       "caption": "Schita se actualizeaza pe masura ce completezi — literele corespund campurilor de mai jos."
     },
     "copyFromPrevious": "Copiaza raspunsurile de la {room} anterioara",
@@ -1028,6 +1134,7 @@
     "validation": {
       "answerRequired": "Acest camp este obligatoriu.",
       "answerInvalid": "Raspuns invalid.",
+      "dimensionRange": "Valoarea trebuie sa fie intre {range}.",
       "optionInvalid": "Optiune invalida.",
       "minOneOption": "Alege cel putin o optiune.",
       "tooManyOptions": "Prea multe optiuni selectate.",
@@ -1045,7 +1152,7 @@
         "no": "Nu"
       },
       "slots": {
-        "ceilingHeight": "Inaltime tavan"
+        "ceilingHeight": "Inaltime tavan (H)"
       },
       "materials": {
         "PAL": {
@@ -1076,6 +1183,48 @@
             "price": "450–800 lei/ml"
           }
         },
+        "MDF_INFOLIAT": {
+          "label": "MDF infoliat",
+          "description": "Folie PVC pe fronturi frezate, intretinere usoara",
+          "info": {
+            "title": "MDF infoliat",
+            "body": "Fronturi MDF acoperite cu folie PVC presata la cald — permite freze si un aspect curat, la pret moderat.",
+            "pros1": "Rezistent la umezeala",
+            "pros2": "Se curata usor",
+            "pros3": "Permite fronturi frezate",
+            "cons1": "Folia se poate desprinde la caldura mare",
+            "cons2": "Paleta de culori mai limitata decat vopsitul",
+            "price": "350–600 lei/ml"
+          }
+        },
+        "MDF_VOPSIT": {
+          "label": "MDF vopsit",
+          "description": "Vopsea in orice culoare, mat sau lucios",
+          "info": {
+            "title": "MDF vopsit",
+            "body": "Fronturi MDF vopsite electrostatic — orice culoare RAL, finisaj mat, satinat sau lucios.",
+            "pros1": "Orice culoare si grad de luciu",
+            "pros2": "Aspect premium, muchii fine",
+            "pros3": "Se poate revopsi",
+            "cons1": "Pret ridicat",
+            "cons2": "Sensibil la lovituri (se poate ciobi)",
+            "price": "500–900 lei/ml"
+          }
+        },
+        "MDF_FURNIR": {
+          "label": "MDF furniruit",
+          "description": "Furnir de lemn natural pe suport stabil",
+          "info": {
+            "title": "MDF furniruit",
+            "body": "MDF acoperit cu furnir din lemn natural — textura autentica de lemn, fara riscul de deformare al masivului.",
+            "pros1": "Aspect de lemn natural",
+            "pros2": "Stabil dimensional",
+            "pros3": "Se poate baitui in nuante diferite",
+            "cons1": "Pret apropiat de masiv la furnire rare",
+            "cons2": "Sensibil la zgarieturi adanci",
+            "price": "600–1100 lei/ml"
+          }
+        },
         "LEMN_MASIV": {
           "label": "Lemn masiv",
           "description": "Natural, durabil, cel mai premium",
@@ -1089,7 +1238,19 @@
             "cons2": "Se poate deforma la variatii de umiditate",
             "price": "900–1800 lei/ml"
           }
+        },
+        "ALTUL": {
+          "label": "Altul",
+          "description": "Scrie mai jos materialul dorit"
         }
+      },
+      "otherMaterial": {
+        "title": "Ce material ai in minte?",
+        "subtitle": "Scrie pe scurt materialul sau finisajul dorit — atelierul va confirma disponibilitatea."
+      },
+      "pieceSystems": {
+        "title": "Ce sistem de deschidere?",
+        "subtitle": "Pentru usile si sertarele acestei piese — poti alege mai multe."
       },
       "systems": {
         "PUSH": {
@@ -1129,6 +1290,45 @@
             "cons1": "Durabilitate mai mica",
             "cons2": "Fara amortizare la inchidere",
             "price": "+10–30 lei/front"
+          }
+        },
+        "MANER": {
+          "label": "Maner",
+          "description": "Manere aplicate, la alegere",
+          "info": {
+            "title": "Manere clasice",
+            "body": "Manere aplicate pe fronturi — de la minimal la clasic, modelul se alege impreuna cu atelierul.",
+            "pros1": "Prindere sigura, functioneaza mereu",
+            "pros2": "Varietate mare de modele",
+            "cons1": "Se vad — stil asumat",
+            "cons2": "Pot agata in spatii inguste",
+            "price": "10–80 lei/buc"
+          }
+        },
+        "GOLA": {
+          "label": "Gola",
+          "description": "Profil integrat, fara maner aplicat",
+          "info": {
+            "title": "Profil Gola",
+            "body": "Canal de aluminiu integrat intre fronturi — deschizi din profil, linia frontului ramane continua.",
+            "pros1": "Aspect premium, linii continue",
+            "pros2": "Nu agata, usor de curatat",
+            "cons1": "Cost de frezare si profil",
+            "cons2": "Montaj mai complex",
+            "price": "+150–300 lei/ml"
+          }
+        },
+        "AVENTOS": {
+          "label": "Aventos (ridicare)",
+          "description": "Frontul se ridica vertical, cu amortizare",
+          "info": {
+            "title": "Sistem Aventos",
+            "body": "Fronturile corpurilor suspendate se ridica in sus pe brate cu amortizare — acces complet, fara usi in cap.",
+            "pros1": "Acces usor, nu te lovesti de usa",
+            "pros2": "Ramane deschis la orice unghi",
+            "cons1": "Cel mai scump sistem",
+            "cons2": "Necesita reglaj periodic",
+            "price": "+250–500 lei/corp"
           }
         }
       }
@@ -1216,8 +1416,8 @@
             "runA": "Lungime latura A",
             "runB": "Lungime latura B",
             "runC": "Lungime latura C",
-            "islandLength": "Lungime insula",
-            "islandDepth": "Adancime insula"
+            "islandLength": "Lungime insula (L)",
+            "islandDepth": "Adancime insula (D)"
           }
         },
         "cabinetZones": {
@@ -1282,6 +1482,32 @@
           "title": "Ce blat preferi?",
           "subtitle": "Optional — ajuta firma sa estimeze mai exact.",
           "options": {
+            "PAL": {
+              "label": "PAL",
+              "description": "Blat laminat standard, cel mai accesibil",
+              "info": {
+                "title": "Blat PAL laminat",
+                "body": "Blat din PAL cu suprafata laminata — standardul accesibil, cu multe decoruri.",
+                "price": "150–300 lei/ml",
+                "pros1": "Pret mic",
+                "pros2": "Multe decoruri",
+                "cons1": "Sensibil la apa pe muchii",
+                "cons2": "Se zgarie in timp"
+              }
+            },
+            "HPL": {
+              "label": "HPL",
+              "description": "Laminat de inalta presiune, foarte rezistent",
+              "info": {
+                "title": "Blat HPL",
+                "body": "Laminat la presiune inalta — mult mai dens si mai rezistent la apa si zgarieturi decat PAL-ul.",
+                "price": "400–800 lei/ml",
+                "pros1": "Rezistent la apa si uzura",
+                "pros2": "Poate fi subtire, aspect modern",
+                "cons1": "Pret peste PAL",
+                "cons2": "Paleta de decoruri mai restransa"
+              }
+            },
             "LAMINATE": {
               "label": "Laminat (HPL)",
               "description": "Economic, multe modele",
@@ -1478,28 +1704,62 @@
         },
         "dimensions": {
           "title": "Dimensiuni dressing",
-          "subtitle": "Lungimea fronturilor si inaltimea.",
+          "subtitle": "Lungimea fiecarei laturi si inaltimea dulapului — literele corespund schitei.",
           "slots": {
             "runA": "Lungime latura A",
             "runB": "Lungime latura B",
-            "runC": "Lungime latura C"
+            "runC": "Lungime latura C",
+            "wardrobeHeight": "Inaltime dressing (H)"
           }
         },
         "interiorModules": {
           "title": "Ce module interioare?",
-          "subtitle": "Optional — organizarea interiorului.",
+          "subtitle": "Alege minim un modul — organizarea interiorului.",
           "options": {
             "HANGING_RODS": {
-              "label": "Bare de agatat"
+              "label": "Bare de agatat",
+              "description": "Pentru camasi, rochii, sacouri",
+              "info": {
+                "title": "Bare de agatat",
+                "body": "Zona clasica de umerase. O bara la 1 m tine cam 10-12 umerase; pentru rochii lungi lasa 150-160 cm inaltime libera.",
+                "price": "incluse de regula"
+              }
             },
             "DRAWERS": {
-              "label": "Sertare"
+              "label": "Sertare",
+              "description": "Lenjerie, tricouri, accesorii mici",
+              "info": {
+                "title": "Sertare",
+                "body": "Cel mai scump modul interior: glisiere, fronturi, montaj. Sertarele cu amortizare merita in zonele folosite zilnic.",
+                "price": "+250–450 lei / sertar"
+              }
             },
             "SHELVES": {
-              "label": "Rafturi"
+              "label": "Rafturi",
+              "description": "Haine impaturite, cutii, genti",
+              "info": {
+                "title": "Rafturi",
+                "body": "Cele mai ieftine module. Rafturile reglabile sunt un plus mic de pret care se amortizeaza rapid.",
+                "price": "incluse de regula"
+              }
             },
             "SHOE_RACK": {
-              "label": "Suport pantofi"
+              "label": "Suport pantofi",
+              "description": "Rafturi inclinate sau suporturi",
+              "info": {
+                "title": "Suport pantofi",
+                "body": "Rafturi inclinate cu opritor sau suporturi extractibile. Calculeaza cam 20 cm latime per pereche.",
+                "price": "+150–400 lei / modul"
+              }
+            },
+            "ACCESSORIES": {
+              "label": "Accesorii",
+              "description": "Pantalonar, suport curele/cravate",
+              "info": {
+                "title": "Accesorii interioare",
+                "body": "Pantalonar extractibil, suporturi de curele si cravate, cosuri metalice. Se adauga usor la final, dar costa mai putin daca le planifici de la inceput.",
+                "price": "+200–600 lei / accesoriu"
+              }
             }
           }
         },
@@ -1510,6 +1770,33 @@
         "notes": {
           "title": "Alte detalii?",
           "subtitle": "Optional."
+        },
+        "toCeiling": {
+          "title": "Pana in tavan?",
+          "info": {
+            "title": "Dressing pana in tavan",
+            "body": "Modulele urca pana la tavan: nu se mai aduna praf deasupra si castigi zona de depozitare sezoniera. Necesita masuratori atente (tavanul rar e perfect drept).",
+            "pros1": "Fara praf deasupra",
+            "pros2": "Depozitare maxima",
+            "cons1": "Acces la zona de sus doar cu scarita",
+            "price": "+10–15% fata de inaltimea standard"
+          }
+        },
+        "lighting": {
+          "title": "Iluminare LED integrata?",
+          "subtitle": "Banda LED cu senzor la deschidere.",
+          "info": {
+            "title": "Iluminare LED",
+            "body": "Banda LED montata sub rafturi sau in lateral, de regula cu senzor de usa sau de miscare. Are nevoie de alimentare in apropiere — spune-i firmei unde e cea mai apropiata priza.",
+            "pros1": "Vezi tot interiorul, si seara",
+            "pros2": "Aspect premium",
+            "cons1": "Necesita priza in apropiere",
+            "price": "+400–1.200 lei"
+          }
+        },
+        "sketch": {
+          "title": "Ai o schita a spatiului?",
+          "subtitle": "Optional — o schita simpla cu dimensiuni ajuta firmele sa ofere un pret precis."
         }
       },
       "BEDROOM": {
@@ -1536,6 +1823,10 @@
             "TV_UNIT": {
               "label": "Comoda TV",
               "description": "Sub televizor"
+            },
+            "VANITY": {
+              "label": "Masuta toaleta",
+              "description": "Cu oglinda si sertare"
             }
           }
         },
@@ -1552,12 +1843,167 @@
           "subtitle": "Spatiul disponibil si inaltimea.",
           "slots": {
             "spaceWidth": "Latime spatiu",
-            "wardrobeWidth": "Latime dulap"
+            "wardrobeWidth": "Latime dulap",
+            "dresserWidth": "Latime comoda",
+            "tvUnitWidth": "Latime comoda TV",
+            "vanityWidth": "Latime masuta toaleta",
+            "nightstandWidth": "Latime noptiera"
           }
         },
         "notes": {
           "title": "Alte detalii?",
           "subtitle": "Optional."
+        },
+        "wardrobeDoorType": {
+          "title": "Ce usi are dulapul?",
+          "subtitle": "Alege sistemul de acces.",
+          "options": {
+            "SLIDING": {
+              "label": "Glisante",
+              "description": "Economisesc spatiu",
+              "info": {
+                "title": "Usi glisante",
+                "body": "Usile aluneca pe sine — nu ocupa loc la deschidere, ideale cand patul e aproape de dulap.",
+                "pros1": "Zero spatiu de deschidere",
+                "pros2": "Aspect modern",
+                "cons1": "Vezi doar jumatate de dulap odata",
+                "price": "+800–2.000 lei"
+              }
+            },
+            "HINGED": {
+              "label": "Batante",
+              "description": "Clasice, acces total",
+              "info": {
+                "title": "Usi batante",
+                "body": "Usi clasice pe balamale — acces complet la interior si cost mai mic. Au nevoie de ~50 cm liberi in fata.",
+                "pros1": "Acces total la interior",
+                "pros2": "Cost mai mic",
+                "cons1": "Necesita spatiu de deschidere",
+                "price": "+300–900 lei"
+              }
+            }
+          }
+        },
+        "wardrobeToCeiling": {
+          "title": "Dulap pana in tavan?",
+          "info": {
+            "title": "Dulap pana in tavan",
+            "body": "Corpul urca pana la tavan: fara praf deasupra, depozitare sezoniera sus. Necesita masuratori atente ale inaltimii in mai multe puncte.",
+            "pros1": "Fara praf deasupra",
+            "pros2": "Depozitare maxima",
+            "cons1": "Zona de sus accesibila doar cu scarita",
+            "price": "+10–15%"
+          }
+        },
+        "bedSize": {
+          "title": "Ce dimensiune de saltea?",
+          "subtitle": "Patul se construieste in jurul saltelei.",
+          "info": {
+            "title": "Dimensiuni standard de saltea",
+            "body": "Dimensiunile standard in Romania: 90x200 (o persoana), 140x200 (doua persoane, compact), 160x200 (standardul matrimonial), 180x200 (king). Salteaua NU e inclusa in mobilier."
+          },
+          "options": {
+            "S_90": {
+              "label": "90 × 200",
+              "description": "O persoana"
+            },
+            "M_140": {
+              "label": "140 × 200",
+              "description": "Compact, 2 persoane"
+            },
+            "Q_160": {
+              "label": "160 × 200",
+              "description": "Matrimonial standard"
+            },
+            "K_180": {
+              "label": "180 × 200",
+              "description": "King"
+            },
+            "CUSTOM": {
+              "label": "Dimensiuni custom",
+              "description": "Introdu latimea si lungimea saltelei tale"
+            }
+          }
+        },
+        "bedCustomSize": {
+          "title": "Dimensiunile saltelei tale",
+          "slots": {
+            "bedCustomWidth": "Latime saltea",
+            "bedCustomLength": "Lungime saltea"
+          }
+        },
+        "bedStorage": {
+          "title": "Depozitare sub pat?",
+          "options": {
+            "NONE": {
+              "label": "Fara",
+              "info": {
+                "title": "Pat simplu",
+                "body": "Structura clasica, fara mecanisme. Cel mai accesibil si cel mai usor de mutat.",
+                "price": "inclus"
+              }
+            },
+            "LIFT_UP": {
+              "label": "Lada rabatabila",
+              "info": {
+                "title": "Somiera rabatabila cu lada",
+                "body": "Salteaua se ridica pe pistoane cu gaz si dedesubt ai o lada pe toata suprafata patului. Cea mai mare depozitare ascunsa din dormitor.",
+                "price": "+600–1.200 lei"
+              }
+            },
+            "DRAWERS": {
+              "label": "Sertare laterale",
+              "info": {
+                "title": "Sertare sub pat",
+                "body": "Doua-patru sertare accesibile lateral, fara sa ridici salteaua. Au nevoie de spatiu liber langa pat pentru deschidere.",
+                "price": "+400–900 lei"
+              }
+            }
+          }
+        },
+        "bedUpholstered": {
+          "title": "Pat tapitat?",
+          "info": {
+            "title": "Pat tapitat",
+            "body": "Cadrul si tablia sunt imbracate in stofa sau piele ecologica — aspect moale, culori variate. Tesatura exacta se alege impreuna cu firma."
+          }
+        },
+        "nightstandsCount": {
+          "title": "Cate noptiere?",
+          "info": {
+            "title": "Una sau pereche",
+            "body": "Perechea costa aproape dublu, dar arata echilibrat langa un pat matrimonial. Pentru pat de o persoana, una e suficienta."
+          },
+          "options": {
+            "ONE": {
+              "label": "Una"
+            },
+            "TWO": {
+              "label": "Pereche (2)"
+            }
+          }
+        },
+        "materialWardrobe": {
+          "title": "Material — dulap"
+        },
+        "materialBed": {
+          "title": "Material — pat"
+        },
+        "materialNightstands": {
+          "title": "Material — noptiere"
+        },
+        "materialDresser": {
+          "title": "Material — comoda"
+        },
+        "materialTvUnit": {
+          "title": "Material — comoda TV"
+        },
+        "materialVanity": {
+          "title": "Material — masuta toaleta"
+        },
+        "sketch": {
+          "title": "Ai o schita a camerei?",
+          "subtitle": "Optional — planul camerei cu pozitia patului si a dulapului."
         }
       },
       "LIVING": {
@@ -1580,6 +2026,14 @@
             "COFFEE_TABLE": {
               "label": "Masuta cafea",
               "description": "Centru living"
+            },
+            "WALL_SHELVES": {
+              "label": "Rafturi suspendate",
+              "description": "Montate pe perete"
+            },
+            "OTHER": {
+              "label": "Altceva",
+              "description": "O piesa care nu e in lista"
             }
           }
         },
@@ -1595,12 +2049,98 @@
           "title": "Dimensiuni",
           "subtitle": "Latimea peretelui si inaltimea.",
           "slots": {
-            "wallWidth": "Latime perete"
+            "wallWidth": "Latime perete",
+            "tvUnitWidth": "Latime zona TV",
+            "bookshelfWidth": "Latime biblioteca",
+            "displayWidth": "Latime vitrina",
+            "coffeeTableLength": "Lungime masuta",
+            "shelvesTotal": "Lungime totala rafturi",
+            "otherWidth": "Latime piesa ta"
           }
         },
         "notes": {
           "title": "Alte detalii?",
           "subtitle": "Optional."
+        },
+        "tvStyle": {
+          "title": "Cum arata zona TV?",
+          "subtitle": "Suspendata, pe pardoseala sau ansamblu complet cu dulapuri.",
+          "options": {
+            "FLOATING": {
+              "label": "Comoda suspendata",
+              "description": "Corp montat pe perete, pardoseala libera",
+              "info": {
+                "title": "Comoda TV suspendata",
+                "body": "Corp orizontal fixat pe perete — pardoseala ramane libera si aspectul e aerisit.",
+                "pros1": "Aspect aerisit, modern",
+                "pros2": "Curatenie usoara sub corp",
+                "cons1": "Necesita perete solid pentru fixare",
+                "price": "2.000–5.000 lei"
+              }
+            },
+            "ON_FLOOR": {
+              "label": "Comoda pe pardoseala",
+              "description": "Corp asezat pe picioare sau soclu",
+              "info": {
+                "title": "Comoda TV pe pardoseala",
+                "body": "Clasica si versatila: depozitare pentru electronice si media, TV-ul sta pe comoda sau pe perete deasupra ei.",
+                "pros1": "Cost accesibil",
+                "pros2": "Usor de mutat ulterior",
+                "cons1": "Depozitare limitata",
+                "price": "1.500–4.000 lei"
+              }
+            },
+            "COMPLEX_UNIT": {
+              "label": "Ansamblu cu dulapuri",
+              "description": "Comoda + dulapuri in stanga/dreapta",
+              "info": {
+                "title": "Ansamblu TV cu dulapuri",
+                "body": "Compozitie pe tot peretele: comoda TV cu dulapuri sau coloane in stanga si dreapta, adesea cu nisa si iluminare LED.",
+                "pros1": "Depozitare maxima",
+                "pros2": "Aspect unitar, spectaculos",
+                "cons1": "Cost si montaj semnificative",
+                "price": "6.000–15.000 lei"
+              }
+            }
+          }
+        },
+        "piecesOtherText": {
+          "title": "Ce piesa ai in minte?",
+          "subtitle": "Descrie pe scurt piesa care nu e in lista."
+        },
+        "materialOtherPiece": {
+          "title": "Material — piesa ta"
+        },
+        "materialTvUnit": {
+          "title": "Material — zona TV"
+        },
+        "materialBookshelf": {
+          "title": "Material — biblioteca"
+        },
+        "materialDisplay": {
+          "title": "Material — vitrina"
+        },
+        "materialCoffeeTable": {
+          "title": "Material — masuta"
+        },
+        "materialShelves": {
+          "title": "Material — rafturi"
+        },
+        "ledLighting": {
+          "title": "Iluminare LED in mobilier?",
+          "subtitle": "Banda LED in panouri sau corpuri.",
+          "info": {
+            "title": "Iluminare LED",
+            "body": "Banda LED calda in spatele panourilor TV sau in vitrine. Are nevoie de o priza in apropiere.",
+            "pros1": "Atmosfera calda seara",
+            "pros2": "Pune in valoare vitrina",
+            "cons1": "Necesita priza in apropiere",
+            "price": "+400–1.500 lei"
+          }
+        },
+        "sketch": {
+          "title": "Ai o schita a spatiului?",
+          "subtitle": "Optional — peretele cu TV-ul, cu dimensiuni si prize marcate."
         }
       },
       "OFFICE": {
@@ -1619,6 +2159,10 @@
             "STORAGE": {
               "label": "Dulap depozitare",
               "description": "Documente si obiecte"
+            },
+            "WALL_SHELVES": {
+              "label": "Rafturi perete",
+              "description": "Suspendate, deasupra biroului"
             }
           }
         },
@@ -1628,11 +2172,36 @@
           "options": {
             "STRAIGHT": {
               "label": "Drept",
-              "description": "Un singur blat"
+              "description": "Un singur blat",
+              "info": {
+                "title": "Birou drept",
+                "body": "Blat pe un singur perete — compact si flexibil. Pentru lucru confortabil recomandam minim 120 cm latime si 60 cm adancime.",
+                "pros1": "Ocupa putin spatiu",
+                "pros2": "Cost mai mic",
+                "cons1": "Suprafata de lucru limitata"
+              }
             },
             "L_SHAPE": {
               "label": "In L",
-              "description": "Doua blaturi in colt"
+              "description": "Doua blaturi in colt",
+              "info": {
+                "title": "Birou pe colt",
+                "body": "Doua laturi de lucru — o zona pentru monitor si una libera. Foloseste coltul camerei, care altfel ramane pierdut.",
+                "pros1": "Suprafata dubla de lucru",
+                "pros2": "Valorifica coltul",
+                "cons1": "Mai greu de repozitionat"
+              }
+            },
+            "U_SHAPE": {
+              "label": "In U",
+              "description": "Trei laturi de lucru",
+              "info": {
+                "title": "Birou in U",
+                "body": "Blat pe trei laturi — statie de lucru completa, cu tot la indemana prin simpla rotire a scaunului.",
+                "pros1": "Suprafata maxima de lucru",
+                "pros2": "Totul la indemana",
+                "cons1": "Cere o camera generoasa"
+              }
             }
           }
         },
@@ -1651,12 +2220,39 @@
             "spaceWidth": "Latime spatiu",
             "deskWidth": "Latime birou",
             "deskWidthA": "Latime birou A",
-            "deskWidthB": "Latime birou B"
+            "deskWidthB": "Latime birou B",
+            "deskWidthC": "Latime birou C",
+            "bookshelfWidth": "Latime biblioteca",
+            "storageWidth": "Latime dulap depozitare",
+            "shelvesTotal": "Lungime totala rafturi"
           }
         },
         "notes": {
           "title": "Alte detalii?",
           "subtitle": "Optional."
+        },
+        "cableManagement": {
+          "title": "Canal pentru cabluri?",
+          "info": {
+            "title": "Organizarea cablurilor",
+            "body": "Canal metalic sub blat + decupaje discrete pentru cabluri. Biroul ramane curat si aspiratul nu mai e o aventura. Spune-i firmei cate monitoare/echipamente ai."
+          }
+        },
+        "materialDesk": {
+          "title": "Material — birou"
+        },
+        "materialBookshelf": {
+          "title": "Material — biblioteca"
+        },
+        "materialStorage": {
+          "title": "Material — dulap"
+        },
+        "materialShelves": {
+          "title": "Material — rafturi"
+        },
+        "sketch": {
+          "title": "Ai o schita a camerei?",
+          "subtitle": "Optional — peretele de lucru, cu prize si fereastra marcate."
         }
       },
       "BATHROOM": {
@@ -1736,6 +2332,1098 @@
         "notes": {
           "title": "Alte detalii?",
           "subtitle": "Optional."
+        }
+      },
+      "HALLWAY": {
+        "piecesNeeded": {
+          "title": "Ce piese ai nevoie?",
+          "subtitle": "Alege mobilierul pentru hol.",
+          "options": {
+            "SHOE_CABINET": {
+              "label": "Pantofar",
+              "description": "Depozitare incaltaminte"
+            },
+            "COAT_UNIT": {
+              "label": "Cuier cu panou",
+              "description": "Agatatori pe panou de perete"
+            },
+            "WARDROBE": {
+              "label": "Dulap de hol",
+              "description": "Haine de sezon, aspirator"
+            },
+            "BENCH": {
+              "label": "Bancuta",
+              "description": "Te incalti sezand"
+            },
+            "MIRROR": {
+              "label": "Oglinda cu polita",
+              "description": "Rama + polita pentru chei"
+            }
+          }
+        },
+        "depthProfile": {
+          "title": "Cat de lat e holul?",
+          "subtitle": "Adancimea mobilierului se alege dupa spatiul de trecere.",
+          "info": {
+            "title": "De ce conteaza adancimea",
+            "body": "Pe un hol ingust, fiecare centimetru conteaza: lasa minim 90 cm de trecere libera. Mobilierul slim (25–35 cm) foloseste usi rabatabile si suporturi inclinate ca sa incapa pantofii."
+          },
+          "options": {
+            "SLIM": {
+              "label": "Hol ingust — slim",
+              "description": "Adancime 25–35 cm",
+              "info": {
+                "title": "Corpuri slim",
+                "body": "Pantofar cu usi rabatabile, cuier plat, oglinda — totul sub 35 cm adancime, ca sa ramana loc de trecere.",
+                "pros1": "Pastreaza trecerea libera",
+                "pros2": "Aspect aerisit",
+                "cons1": "Capacitate mai mica per corp"
+              }
+            },
+            "STANDARD": {
+              "label": "Hol generos — standard",
+              "description": "Adancime 45–60 cm",
+              "info": {
+                "title": "Corpuri standard",
+                "body": "Adancime normala de dulap — incap umerase asezate normal si cutii de depozitare.",
+                "pros1": "Capacitate maxima",
+                "pros2": "Umerasele stau normal",
+                "cons1": "Cere un hol de peste 1,5 m latime"
+              }
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensiuni",
+          "subtitle": "Latimea fiecarei piese selectate.",
+          "slots": {
+            "shoeCabinetWidth": "Latime pantofar",
+            "coatUnitWidth": "Latime cuier/panou",
+            "wardrobeWidth": "Latime dulap",
+            "benchWidth": "Latime bancuta",
+            "mirrorWidth": "Latime oglinda"
+          }
+        },
+        "materialShoeCabinet": {
+          "title": "Material — pantofar"
+        },
+        "materialCoatUnit": {
+          "title": "Material — cuier"
+        },
+        "materialWardrobe": {
+          "title": "Material — dulap"
+        },
+        "materialBench": {
+          "title": "Material — bancuta"
+        },
+        "materialMirror": {
+          "title": "Material — oglinda"
+        },
+        "openingSystems": {
+          "title": "Sisteme de deschidere",
+          "subtitle": "Optional — pentru corpurile cu usi sau sertare."
+        },
+        "sketch": {
+          "title": "Ai o schita a holului?",
+          "subtitle": "Optional — lungimea peretilor si pozitia usilor."
+        }
+      },
+      "LAUNDRY": {
+        "applianceSetup": {
+          "title": "Cum stau electrocasnicele?",
+          "subtitle": "Asezarea masinii de spalat si a uscatorului decide restul.",
+          "options": {
+            "WASHER_ONLY": {
+              "label": "Doar masina de spalat",
+              "description": "Fara uscator",
+              "info": {
+                "title": "Doar masina de spalat",
+                "body": "Un singur electrocasnic de incadrat — restul spatiului ramane pentru depozitare si blat.",
+                "pros1": "Cel mai simplu si ieftin",
+                "pros2": "Mult spatiu de depozitare",
+                "cons1": "Fara uscator, rufele se usuca pe stativ"
+              }
+            },
+            "STACKED": {
+              "label": "Coloana (suprapuse)",
+              "description": "Uscator peste masina",
+              "info": {
+                "title": "Coloana de electrocasnice",
+                "body": "Uscatorul sta peste masina de spalat, intr-un dulap dedicat cu polita intermediara. Ocupa doar 60–70 cm latime.",
+                "pros1": "Footprint minim",
+                "pros2": "Ergonomie buna (uscatorul sus)",
+                "cons1": "Dulap inalt, montaj precis"
+              }
+            },
+            "SIDE_BY_SIDE": {
+              "label": "Alaturate sub blat",
+              "description": "Blat continuu deasupra",
+              "info": {
+                "title": "Alaturate sub blat",
+                "body": "Masina si uscatorul stau una langa alta, sub un blat continuu — suprafata generoasa de sortat si impaturit rufe.",
+                "pros1": "Blat mare de lucru",
+                "pros2": "Acces usor la ambele",
+                "cons1": "Ocupa ~130 cm latime"
+              }
+            }
+          }
+        },
+        "piecesNeeded": {
+          "title": "Ce mobilier ai nevoie?",
+          "subtitle": "Alege corpurile pentru spalatorie.",
+          "options": {
+            "APPLIANCE_HOUSING": {
+              "label": "Dulap incastrare",
+              "description": "Imbraca electrocasnicele"
+            },
+            "STORAGE": {
+              "label": "Dulapuri depozitare",
+              "description": "Detergenti, cosuri, consumabile"
+            },
+            "COUNTERTOP": {
+              "label": "Blat de lucru",
+              "description": "Sortat si impaturit rufe"
+            },
+            "SINK_UNIT": {
+              "label": "Corp cu cuva",
+              "description": "Cuva tehnica pentru spalat manual"
+            }
+          }
+        },
+        "ventilation": {
+          "title": "Incaperea este ventilata?",
+          "subtitle": "Umiditatea din spalatorie conteaza la alegerea materialelor.",
+          "info": {
+            "title": "De ce conteaza ventilatia",
+            "body": "Masina de spalat si uscatorul elibereaza umiditate. Fara geam sau ventilator, aburul se aduna si afecteaza mobilierul — in acest caz recomandam MDF vopsit, mai rezistent la umezeala."
+          },
+          "options": {
+            "WINDOW": {
+              "label": "Geam",
+              "description": "Ventilatie naturala"
+            },
+            "FAN": {
+              "label": "Ventilator",
+              "description": "Ventilatie mecanica"
+            },
+            "NONE": {
+              "label": "Neventilata",
+              "description": "Fara geam sau ventilator"
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensiuni",
+          "subtitle": "Peretele principal si inaltimea tavanului.",
+          "slots": {
+            "runA": "Lungime perete principal"
+          }
+        },
+        "material": {
+          "title": "Ce material?",
+          "subtitle": "Mediu umed — vezi recomandarea."
+        },
+        "sketch": {
+          "title": "Ai o schita a spatiului?",
+          "subtitle": "Optional — pozitia racordurilor de apa si a prizelor ajuta mult."
+        }
+      },
+      "PANTRY": {
+        "wallsUsed": {
+          "title": "Pe cati pereti montam?",
+          "subtitle": "Configuratia rafturilor in debara.",
+          "info": {
+            "title": "Circulatia in debara",
+            "body": "Lasa minim 80 cm liberi intre rafturi ca sa te poti misca si sa vezi ce ai pe polite. Intr-o debara ingusta, rafturile pe un singur perete sunt alegerea corecta."
+          },
+          "options": {
+            "ONE_WALL": {
+              "label": "Un perete",
+              "description": "Rafturi pe o latura"
+            },
+            "L_SHAPE": {
+              "label": "In L",
+              "description": "Doua laturi"
+            },
+            "U_SHAPE": {
+              "label": "In U",
+              "description": "Trei laturi"
+            }
+          }
+        },
+        "storageStyle": {
+          "title": "Depozitare deschisa sau inchisa?",
+          "subtitle": "Rafturi la vedere, dulapuri cu usi, sau mixt.",
+          "options": {
+            "OPEN_SHELVES": {
+              "label": "Rafturi deschise",
+              "description": "Acces rapid, la vedere",
+              "info": {
+                "title": "Rafturi deschise",
+                "body": "Cea mai practica si ieftina varianta pentru debara: vezi tot dintr-o privire.",
+                "pros1": "Acces instant",
+                "pros2": "Cost minim",
+                "cons1": "Praful se aseaza pe obiecte",
+                "price": "1.200–3.500 lei"
+              }
+            },
+            "CLOSED_CABINETS": {
+              "label": "Dulapuri inchise",
+              "description": "Protejat de praf",
+              "info": {
+                "title": "Dulapuri cu usi",
+                "body": "Obiectele stau protejate de praf si totul arata ordonat, chiar si cand nu e.",
+                "pros1": "Protectie la praf",
+                "pros2": "Aspect ordonat",
+                "cons1": "Cost mai mare, acces mai lent",
+                "price": "2.500–6.000 lei"
+              }
+            },
+            "MIXED": {
+              "label": "Mixt",
+              "description": "Rafturi sus, dulapuri jos",
+              "info": {
+                "title": "Combinatie",
+                "body": "Dulapuri inchise jos pentru lucruri rar folosite, rafturi deschise sus pentru accesul zilnic — echilibrul practic.",
+                "pros1": "Flexibil",
+                "pros2": "Echilibru cost/protectie",
+                "cons1": "Putin mai scump decat rafturile simple",
+                "price": "2.000–5.000 lei"
+              }
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensiuni",
+          "subtitle": "Lungimea fiecarei laturi cu rafturi.",
+          "slots": {
+            "runA": "Lungime latura A",
+            "runB": "Lungime latura B",
+            "runC": "Lungime latura C"
+          }
+        },
+        "material": {
+          "title": "Ce material?",
+          "subtitle": "Debaraua e spatiu utilitar — PAL are cel mai bun raport calitate/pret aici."
+        },
+        "sketch": {
+          "title": "Ai o schita a debaralei?",
+          "subtitle": "Optional — dimensiunile peretilor si pozitia usii."
+        }
+      },
+      "BALCONY": {
+        "enclosed": {
+          "title": "Balconul este inchis?",
+          "subtitle": "Mobilierul de interior rezista doar in balcon inchis.",
+          "info": {
+            "title": "De ce conteaza inchiderea",
+            "body": "PAL-ul si MDF-ul sufera la umezeala, inghet si soare direct. Intr-un balcon inchis cu termopan se comporta ca in casa; intr-unul deschis recomandam lemn masiv tratat sau regandirea proiectului."
+          },
+          "options": {
+            "ENCLOSED": {
+              "label": "Inchis (termopan)",
+              "description": "Protejat de intemperii",
+              "info": {
+                "title": "Balcon inchis",
+                "body": "Mediul e apropiat de interior — orice material functioneaza, cu grija la soarele direct care decoloreaza fronturile in timp.",
+                "pros1": "Orice material functioneaza",
+                "pros2": "Depozitare tot anul",
+                "cons1": "Soarele direct decoloreaza fronturile"
+              }
+            },
+            "OPEN": {
+              "label": "Deschis",
+              "description": "Expus la intemperii",
+              "info": {
+                "title": "Balcon deschis",
+                "body": "Ploaie, inghet, soare — conditii dure pentru mobilier. Recomandam lemn masiv tratat pentru exterior si feronerie inox.",
+                "pros1": "Se poate mobila cu lemn tratat",
+                "pros2": "Aer liber",
+                "cons1": "PAL/MDF nu rezista aici"
+              }
+            }
+          }
+        },
+        "piecesNeeded": {
+          "title": "Ce piese ai nevoie?",
+          "subtitle": "Alege mobilierul pentru balcon.",
+          "options": {
+            "STORAGE_BENCH": {
+              "label": "Banca cu lada",
+              "description": "Sezut + depozitare"
+            },
+            "TALL_CABINET": {
+              "label": "Dulap inalt",
+              "description": "Scule, conserve, diverse"
+            },
+            "WORKTOP": {
+              "label": "Blat de lucru",
+              "description": "Birou sau masa de plante"
+            },
+            "SHELVES": {
+              "label": "Rafturi",
+              "description": "Depozitare deschisa"
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensiuni",
+          "subtitle": "Lungimea utila si adancimea libera a balconului.",
+          "slots": {
+            "balconyLength": "Lungime utila",
+            "balconyDepth": "Adancime libera"
+          }
+        },
+        "material": {
+          "title": "Ce material?",
+          "subtitle": "Vezi recomandarea in functie de tipul balconului."
+        },
+        "sketch": {
+          "title": "Ai o schita a balconului?",
+          "subtitle": "Optional — lungime, adancime si pozitia ferestrelor."
+        }
+      },
+      "PIECE_WARDROBE": {
+        "doorType": {
+          "title": "Ce usi are dulapul?",
+          "subtitle": "Sistemul de acces schimba pretul si spatiul necesar.",
+          "options": {
+            "SLIDING": {
+              "label": "Glisante",
+              "description": "Economisesc spatiu",
+              "info": {
+                "title": "Usi glisante",
+                "body": "Usile aluneca pe sine — nu au nevoie de spatiu de deschidere. Sinele de calitate fac diferenta pe termen lung.",
+                "pros1": "Zero spatiu de deschidere",
+                "pros2": "Aspect modern",
+                "cons1": "Vezi doar jumatate de dulap odata",
+                "price": "+800–2.000 lei"
+              }
+            },
+            "HINGED": {
+              "label": "Batante",
+              "description": "Clasice, acces total",
+              "info": {
+                "title": "Usi batante",
+                "body": "Usi pe balamale — acces complet si cost mai mic. Au nevoie de ~50 cm liberi in fata dulapului.",
+                "pros1": "Acces total la interior",
+                "pros2": "Cost mai mic",
+                "cons1": "Necesita spatiu de deschidere",
+                "price": "+300–900 lei"
+              }
+            }
+          }
+        },
+        "toCeiling": {
+          "title": "Pana in tavan (tip dressing)?",
+          "subtitle": "Dulapul urca pana la tavan, ca un dressing incorporat.",
+          "info": {
+            "title": "Dulap pana in tavan",
+            "body": "Aspect de mobilier incorporat, fara praf deasupra si cu depozitare sezoniera sus. Necesita masurarea inaltimii in mai multe puncte — tavanele rar sunt perfect drepte.",
+            "pros1": "Fara praf deasupra",
+            "pros2": "Depozitare maxima pe verticala",
+            "cons1": "Zona de sus accesibila doar cu scarita",
+            "price": "+10–15%"
+          }
+        },
+        "dimensions": {
+          "title": "Dimensiuni",
+          "subtitle": "Latimea dulapului si inaltimea.",
+          "slots": {
+            "width": "Latime dulap",
+            "height": "Inaltime dulap"
+          }
+        },
+        "interiorModules": {
+          "title": "Ce module interioare?",
+          "subtitle": "Alege minim un modul.",
+          "options": {
+            "HANGING_RODS": {
+              "label": "Bare de agatat",
+              "description": "Camasi, rochii, sacouri"
+            },
+            "SHELVES": {
+              "label": "Rafturi",
+              "description": "Haine impaturite, cutii"
+            },
+            "DRAWERS": {
+              "label": "Sertare",
+              "description": "Lenjerie, accesorii"
+            },
+            "SHOE_RACK": {
+              "label": "Suport pantofi",
+              "description": "Rafturi inclinate"
+            }
+          }
+        },
+        "material": {
+          "title": "Ce material?",
+          "subtitle": "Materialul corpului si al fronturilor."
+        },
+        "sketch": {
+          "title": "Ai o schita a peretelui?",
+          "subtitle": "Optional — latimea peretelui si obstacolele (prize, calorifer, usa)."
+        }
+      },
+      "PIECE_TV_UNIT": {
+        "style": {
+          "title": "Comoda joasa sau perete media?",
+          "subtitle": "De la un corp simplu la o compozitie pe tot peretele.",
+          "options": {
+            "LOW_UNIT": {
+              "label": "Comoda joasa",
+              "description": "Corp orizontal sub TV",
+              "info": {
+                "title": "Comoda TV joasa",
+                "body": "Corp orizontal cu usi si sertare — electronicele si media stau ascunse, TV-ul deasupra.",
+                "pros1": "Cost accesibil",
+                "pros2": "Usor de mutat ulterior",
+                "cons1": "Depozitare limitata",
+                "price": "1.500–4.000 lei"
+              }
+            },
+            "MEDIA_WALL": {
+              "label": "Perete media",
+              "description": "Panouri + corpuri pe tot peretele",
+              "info": {
+                "title": "Perete media complet",
+                "body": "Compozitie completa: panouri decorative, corpuri suspendate, nisa TV si de regula iluminare LED. Cablurile dispar in spatele panourilor.",
+                "pros1": "Aspect spectaculos",
+                "pros2": "Cabluri complet ascunse",
+                "cons1": "Cost si montaj semnificative",
+                "price": "6.000–15.000 lei"
+              }
+            }
+          }
+        },
+        "tvSetup": {
+          "title": "Unde sta TV-ul?",
+          "info": {
+            "title": "TV pe perete sau pe comoda",
+            "body": "Daca TV-ul se monteaza pe perete, firma pregateste traseul cablurilor si eventual o nisa. Daca sta pe comoda, conteaza adancimea blatului. Poti decide si mai tarziu, impreuna cu firma."
+          },
+          "options": {
+            "TV_ON_WALL": {
+              "label": "Pe perete"
+            },
+            "TV_ON_UNIT": {
+              "label": "Pe comoda"
+            },
+            "UNDECIDED": {
+              "label": "Nu m-am decis"
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensiuni",
+          "subtitle": "Latimea zonei TV.",
+          "slots": {
+            "width": "Latime"
+          }
+        },
+        "material": {
+          "title": "Ce material?",
+          "subtitle": "Materialul corpurilor si al panourilor."
+        },
+        "openingSystems": {
+          "title": "Sisteme de deschidere"
+        },
+        "sketch": {
+          "title": "Ai o schita a peretelui?",
+          "subtitle": "Optional — latimea peretelui si pozitia prizelor."
+        }
+      },
+      "PIECE_BOOKCASE": {
+        "style": {
+          "title": "Ce stil de biblioteca?",
+          "subtitle": "Deschisa, cu corpuri jos, sau cu usi de sticla.",
+          "options": {
+            "OPEN": {
+              "label": "Rafturi deschise",
+              "description": "Totul la vedere",
+              "info": {
+                "title": "Biblioteca deschisa",
+                "body": "Rafturi simple, acces instant la carti. Cere stergere de praf regulata — cartile sunt la vedere.",
+                "pros1": "Acces rapid",
+                "pros2": "Cost minim",
+                "cons1": "Praf pe carti",
+                "price": "1.500–4.000 lei"
+              }
+            },
+            "BASE_CABINETS": {
+              "label": "Corpuri jos + rafturi sus",
+              "description": "Depozitare inchisa la baza",
+              "info": {
+                "title": "Cu corpuri la baza",
+                "body": "Jos usi inchise pentru lucruri mai putin aratoase, sus rafturi deschise pentru carti si decoratiuni.",
+                "pros1": "Ascunde dezordinea jos",
+                "pros2": "Echilibru estetic",
+                "cons1": "Cost mediu",
+                "price": "2.500–5.500 lei"
+              }
+            },
+            "GLASS_DOORS": {
+              "label": "Vitrina cu sticla",
+              "description": "Protejat si elegant",
+              "info": {
+                "title": "Vitrina",
+                "body": "Usi cu sticla pe toata inaltimea — cartile si obiectele stau protejate de praf si raman vizibile.",
+                "pros1": "Zero praf pe carti",
+                "pros2": "Aspect elegant",
+                "cons1": "Cel mai scump; sticla cere atentie",
+                "price": "3.500–7.000 lei"
+              }
+            }
+          }
+        },
+        "toCeiling": {
+          "title": "Pana in tavan?",
+          "info": {
+            "title": "Biblioteca pana in tavan",
+            "body": "Perete intreg de carti — spectaculos si eficient. Randul de sus se acceseaza cu scarita."
+          }
+        },
+        "dimensions": {
+          "title": "Dimensiuni",
+          "subtitle": "Latimea si inaltimea bibliotecii.",
+          "slots": {
+            "width": "Latime",
+            "height": "Inaltime"
+          }
+        },
+        "material": {
+          "title": "Ce material?",
+          "subtitle": "Rafturile late au nevoie de material rigid."
+        },
+        "openingSystems": {
+          "title": "Sisteme de deschidere"
+        },
+        "sketch": {
+          "title": "Ai o schita a peretelui?",
+          "subtitle": "Optional — latimea peretelui si inaltimea tavanului."
+        }
+      },
+      "PIECE_DESK": {
+        "shape": {
+          "title": "Ce forma are biroul?",
+          "subtitle": "Drept pe un perete sau in L pe colt.",
+          "options": {
+            "STRAIGHT": {
+              "label": "Drept",
+              "description": "Pe un perete",
+              "info": {
+                "title": "Birou drept",
+                "body": "Blat pe un singur perete — compact. Pentru lucru confortabil: minim 120 cm latime, 60 cm adancime.",
+                "pros1": "Ocupa putin spatiu",
+                "pros2": "Cost mai mic",
+                "cons1": "Suprafata limitata"
+              }
+            },
+            "L_SHAPE": {
+              "label": "In L (colt)",
+              "description": "Doua laturi de lucru",
+              "info": {
+                "title": "Birou pe colt",
+                "body": "Doua zone de lucru si coltul camerei valorificat. Ideal cand lucrezi cu doua monitoare sau ai nevoie de zona libera de scris.",
+                "pros1": "Suprafata dubla",
+                "pros2": "Valorifica coltul",
+                "cons1": "Mai greu de repozitionat"
+              }
+            }
+          }
+        },
+        "cableManagement": {
+          "title": "Canal pentru cabluri?",
+          "info": {
+            "title": "Organizarea cablurilor",
+            "body": "Canal sub blat si decupaje discrete — biroul ramane curat. Spune-i firmei cate echipamente ai (monitoare, laptop, incarcatoare)."
+          }
+        },
+        "dimensions": {
+          "title": "Dimensiuni",
+          "subtitle": "Latimea blatului (si a doua latura daca e in L).",
+          "slots": {
+            "widthA": "Latime blat",
+            "widthB": "Latime latura B",
+            "depth": "Adancime blat"
+          }
+        },
+        "storage": {
+          "title": "Depozitare la birou?",
+          "subtitle": "Optional — corp de sertare sau etajera deasupra.",
+          "options": {
+            "DRAWER_UNIT": {
+              "label": "Corp de sertare",
+              "description": "Sub blat, fix sau mobil",
+              "info": {
+                "title": "Corp de sertare",
+                "body": "Trei-patru sertare sub blat, fix sau pe rotile. Locul documentelor si al marunțisurilor.",
+                "price": "+600–1.200 lei"
+              }
+            },
+            "SHELF_ABOVE": {
+              "label": "Etajera deasupra",
+              "description": "Rafturi deasupra blatului",
+              "info": {
+                "title": "Etajera",
+                "body": "Rafturi deasupra biroului pentru carti si dosare — folosesti peretele, nu blatul.",
+                "price": "+400–900 lei"
+              }
+            }
+          }
+        },
+        "material": {
+          "title": "Ce material?",
+          "subtitle": "Blatul de birou se zgarie primul — conteaza finisajul."
+        },
+        "sketch": {
+          "title": "Ai o schita a spatiului?",
+          "subtitle": "Optional — peretele de lucru, cu prize si fereastra."
+        }
+      },
+      "PIECE_BED": {
+        "bedSize": {
+          "title": "Ce dimensiune de saltea?",
+          "subtitle": "Patul se construieste in jurul saltelei.",
+          "info": {
+            "title": "Dimensiuni standard",
+            "body": "Standardele in Romania: 90x200 (o persoana), 140x200 (compact 2 persoane), 160x200 (matrimonial), 180x200 (king). Salteaua NU e inclusa."
+          },
+          "options": {
+            "S_90": {
+              "label": "90 × 200",
+              "description": "O persoana"
+            },
+            "M_140": {
+              "label": "140 × 200",
+              "description": "Compact, 2 persoane"
+            },
+            "Q_160": {
+              "label": "160 × 200",
+              "description": "Matrimonial standard"
+            },
+            "K_180": {
+              "label": "180 × 200",
+              "description": "King"
+            }
+          }
+        },
+        "upholstered": {
+          "title": "Pat tapitat?",
+          "info": {
+            "title": "Pat tapitat",
+            "body": "Cadru si tablie imbracate in stofa sau piele ecologica. Tesatura si culoarea se aleg cu firma."
+          }
+        },
+        "storage": {
+          "title": "Depozitare sub pat?",
+          "subtitle": "Lada rabatabila sau sertare laterale.",
+          "options": {
+            "NONE": {
+              "label": "Fara",
+              "description": "Structura simpla",
+              "info": {
+                "title": "Pat simplu",
+                "body": "Cadru clasic fara mecanisme — cel mai accesibil.",
+                "pros1": "Cost minim",
+                "pros2": "Usor de mutat",
+                "cons1": "Spatiul de sub pat ramane nefolosit",
+                "price": "inclus"
+              }
+            },
+            "LIFT_UP": {
+              "label": "Lada rabatabila",
+              "description": "Salteaua se ridica pe pistoane",
+              "info": {
+                "title": "Somiera rabatabila",
+                "body": "Salteaua se ridica pe pistoane cu gaz; dedesubt, lada pe toata suprafata. Cea mai mare depozitare ascunsa.",
+                "pros1": "Depozitare uriasa",
+                "pros2": "Nu cere spatiu lateral",
+                "cons1": "Mecanismul adauga cost",
+                "price": "+600–1.200 lei"
+              }
+            },
+            "DRAWERS": {
+              "label": "Sertare laterale",
+              "description": "Acces fara sa ridici salteaua",
+              "info": {
+                "title": "Sertare sub pat",
+                "body": "Doua-patru sertare pe laterale — acces rapid la lenjerie fara sa ridici nimic.",
+                "pros1": "Acces rapid",
+                "pros2": "Cost moderat",
+                "cons1": "Cere spatiu liber langa pat",
+                "price": "+400–900 lei"
+              }
+            }
+          }
+        },
+        "material": {
+          "title": "Ce material?",
+          "subtitle": "Materialul cadrului (la pat tapitat, structura interioara)."
+        },
+        "sketch": {
+          "title": "Ai o schita a camerei?",
+          "subtitle": "Optional — pozitia patului in camera."
+        }
+      },
+      "PIECE_DRESSER": {
+        "configuration": {
+          "title": "Cum e impartita comoda?",
+          "subtitle": "Sertare, usi, sau amandoua.",
+          "options": {
+            "DRAWERS_ONLY": {
+              "label": "Doar sertare",
+              "description": "3–6 sertare",
+              "info": {
+                "title": "Comoda cu sertare",
+                "body": "Clasica de dormitor — totul organizat pe nivele. Sertarele cu amortizare merita aici.",
+                "pros1": "Organizare excelenta",
+                "pros2": "Acces rapid",
+                "cons1": "Sertarele ridica pretul",
+                "price": "1.500–3.500 lei"
+              }
+            },
+            "MIXED": {
+              "label": "Sertare + usi",
+              "description": "Combinatie",
+              "info": {
+                "title": "Comoda mixta",
+                "body": "Sertare pe o parte, usi cu polite pe cealalta — flexibila pentru obiecte de forme diferite.",
+                "pros1": "Flexibila",
+                "pros2": "Pret echilibrat",
+                "cons1": "Compartimente mai mici",
+                "price": "1.300–3.000 lei"
+              }
+            },
+            "DOORS_ONLY": {
+              "label": "Doar usi",
+              "description": "Polite in spate",
+              "info": {
+                "title": "Comoda cu usi",
+                "body": "Usi cu polite interioare — cea mai accesibila varianta, buna pentru obiecte voluminoase.",
+                "pros1": "Cost minim",
+                "pros2": "Incap obiecte mari",
+                "cons1": "Organizare mai putin fina",
+                "price": "1.200–2.500 lei"
+              }
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensiuni",
+          "subtitle": "Latimea si inaltimea comodei.",
+          "slots": {
+            "width": "Latime",
+            "height": "Inaltime"
+          }
+        },
+        "material": {
+          "title": "Ce material?",
+          "subtitle": "Materialul corpului si al fronturilor."
+        },
+        "openingSystems": {
+          "title": "Sisteme de deschidere"
+        },
+        "sketch": {
+          "title": "Ai o schita?",
+          "subtitle": "Optional — peretele unde va sta comoda."
+        }
+      },
+      "PIECE_TABLE": {
+        "tableType": {
+          "title": "Ce fel de masa?",
+          "subtitle": "Destinatia decide dimensiunile si inaltimea.",
+          "options": {
+            "DINING": {
+              "label": "Masa dining",
+              "description": "Pentru servit masa"
+            },
+            "COFFEE": {
+              "label": "Masuta de cafea",
+              "description": "Joasa, langa canapea"
+            },
+            "CONSOLE": {
+              "label": "Consola",
+              "description": "Ingusta, decorativa"
+            }
+          }
+        },
+        "shape": {
+          "title": "Ce forma?",
+          "subtitle": "Dreptunghiulara, rotunda sau extensibila.",
+          "options": {
+            "RECTANGULAR": {
+              "label": "Dreptunghiulara",
+              "description": "Clasica",
+              "info": {
+                "title": "Masa dreptunghiulara",
+                "body": "Forma clasica — incape lipita de perete sau centrala, usor de asezat in orice camera.",
+                "pros1": "Eficienta cu spatiul",
+                "pros2": "Cea mai versatila",
+                "cons1": "Colturile in spatii mici",
+                "price": "2.000–5.000 lei"
+              }
+            },
+            "ROUND": {
+              "label": "Rotunda",
+              "description": "Fara colturi",
+              "info": {
+                "title": "Masa rotunda",
+                "body": "Prietenoasa in spatii mici si cu copii — fara colturi. La acelasi numar de locuri cere ceva mai mult spatiu in jur.",
+                "pros1": "Fara colturi",
+                "pros2": "Conversatie fireasca",
+                "cons1": "Cere spatiu liber in jur",
+                "price": "2.200–5.500 lei"
+              }
+            },
+            "EXTENDABLE": {
+              "label": "Extensibila",
+              "description": "Se mareste la nevoie",
+              "info": {
+                "title": "Masa extensibila",
+                "body": "Zi de zi compacta, la ocazii se extinde cu 40–80 cm. Mecanismul bun face diferenta — intreaba firma ce feronerie foloseste.",
+                "pros1": "Compacta zilnic, mare la nevoie",
+                "pros2": "Ideala la musafiri",
+                "cons1": "Mecanismul adauga cost",
+                "price": "+700–1.500 lei fata de fixa"
+              }
+            }
+          }
+        },
+        "seats": {
+          "title": "Cate persoane?",
+          "info": {
+            "title": "Locuri si dimensiuni",
+            "body": "Orientativ: 4 persoane → 120–140 cm; 6 persoane → 160–180 cm; 8+ → peste 200 cm. Lasa ~60 cm latime de loc per persoana."
+          },
+          "options": {
+            "FOUR": {
+              "label": "4"
+            },
+            "SIX": {
+              "label": "6"
+            },
+            "EIGHT_PLUS": {
+              "label": "8+"
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensiuni",
+          "subtitle": "Dimensiunile blatului.",
+          "slots": {
+            "length": "Lungime",
+            "width": "Latime",
+            "diameter": "Diametru"
+          }
+        },
+        "material": {
+          "title": "Ce material?",
+          "subtitle": "Blatul de masa munceste cel mai mult — lemnul masiv e favoritul aici."
+        },
+        "sketch": {
+          "title": "Ai o schita?",
+          "subtitle": "Optional — spatiul unde va sta masa."
+        }
+      },
+      "PIECE_SHOE_CABINET": {
+        "style": {
+          "title": "Ce tip de pantofar?",
+          "subtitle": "Mecanismul decide adancimea si capacitatea.",
+          "options": {
+            "SLIM_TILT": {
+              "label": "Slim rabatabil",
+              "description": "Adancime 17–25 cm",
+              "info": {
+                "title": "Pantofar slim",
+                "body": "Usi rabatabile cu suporturi inclinate — pantofii stau pe verticala. Perfect pe holuri inguste.",
+                "pros1": "Adancime minima",
+                "pros2": "Ideal pe hol ingust",
+                "cons1": "Capacitate mai mica; ghetele inalte nu incap",
+                "price": "900–2.200 lei"
+              }
+            },
+            "STANDARD": {
+              "label": "Standard cu rafturi",
+              "description": "Adancime ~35 cm",
+              "info": {
+                "title": "Pantofar clasic",
+                "body": "Rafturi orizontale — incap si ghete, si cutii. Cere ceva mai mult spatiu pe hol.",
+                "pros1": "Capacitate mare",
+                "pros2": "Incap si ghete inalte",
+                "cons1": "Adancime mai mare",
+                "price": "800–1.800 lei"
+              }
+            },
+            "WITH_SEAT": {
+              "label": "Cu bancuta",
+              "description": "Te incalti sezand",
+              "info": {
+                "title": "Pantofar cu bancuta",
+                "body": "Corp jos cu sezut (adesea tapitat) si depozitare dedesubt — te incalti confortabil.",
+                "pros1": "Confort la incaltat",
+                "pros2": "Doua functii intr-o piesa",
+                "cons1": "Capacitate mai mica de pantofi",
+                "price": "1.200–2.500 lei"
+              }
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensiuni",
+          "subtitle": "Latimea si inaltimea pantofarului.",
+          "slots": {
+            "width": "Latime",
+            "height": "Inaltime"
+          }
+        },
+        "material": {
+          "title": "Ce material?",
+          "subtitle": "Zona de trafic — fronturile rezistente conteaza."
+        },
+        "sketch": {
+          "title": "Ai o schita a holului?",
+          "subtitle": "Optional — spatiul disponibil pe hol."
+        }
+      },
+      "PIECE_NIGHTSTAND": {
+        "style": {
+          "title": "Ce stil de noptiera?",
+          "subtitle": "Cu sertare, raft deschis sau suspendata.",
+          "options": {
+            "DRAWERS": {
+              "label": "Cu sertare",
+              "description": "1–2 sertare",
+              "info": {
+                "title": "Noptiera cu sertare",
+                "body": "Clasica — lucrurile marunte stau ascunse. Sertarul cu amortizare nu trezeste pe nimeni noaptea.",
+                "pros1": "Depozitare inchisa",
+                "pros2": "Aspect ordonat",
+                "cons1": "Sertarele adauga cost",
+                "price": "600–1.200 lei / buc"
+              }
+            },
+            "OPEN_SHELF": {
+              "label": "Raft deschis",
+              "description": "Polita la vedere",
+              "info": {
+                "title": "Noptiera deschisa",
+                "body": "Polita simpla — cartea si telefonul la indemana. Cea mai accesibila varianta.",
+                "pros1": "Cost minim",
+                "pros2": "Acces instant",
+                "cons1": "Totul la vedere",
+                "price": "400–800 lei / buc"
+              }
+            },
+            "SUSPENDED": {
+              "label": "Suspendata",
+              "description": "Montata pe perete",
+              "info": {
+                "title": "Noptiera suspendata",
+                "body": "Pluteste pe perete — aspect aerisit si curatenie usoara pe dedesubt. Cere perete solid pentru montaj.",
+                "pros1": "Aspect modern, aerisit",
+                "pros2": "Curatenie usoara",
+                "cons1": "Montaj in perete obligatoriu",
+                "price": "500–1.000 lei / buc"
+              }
+            }
+          }
+        },
+        "count": {
+          "title": "Cate noptiere?",
+          "info": {
+            "title": "Una sau pereche",
+            "body": "Perechea arata echilibrat langa patul matrimonial; pentru pat de o persoana e suficienta una."
+          },
+          "options": {
+            "ONE": {
+              "label": "Una"
+            },
+            "TWO": {
+              "label": "Pereche (2)"
+            }
+          }
+        },
+        "dimensions": {
+          "title": "Dimensiuni",
+          "subtitle": "Latimea unei noptiere.",
+          "slots": {
+            "width": "Latime"
+          }
+        },
+        "material": {
+          "title": "Ce material?",
+          "subtitle": "De regula asortat cu patul sau dulapul."
+        },
+        "sketch": {
+          "title": "Ai o schita?",
+          "subtitle": "Optional — spatiul disponibil langa pat."
+        }
+      },
+      "PIECE_BENCH": {
+        "style": {
+          "title": "Ce tip de bancuta?",
+          "subtitle": "Cu lada, cu spatiu de pantofi, sau simpla.",
+          "options": {
+            "WITH_STORAGE": {
+              "label": "Cu lada",
+              "description": "Sezutul se ridica",
+              "info": {
+                "title": "Bancuta cu depozitare",
+                "body": "Sezutul se ridica si dedesubt ai o lada intreaga — paturi, incaltaminte de sezon, jucarii.",
+                "pros1": "Depozitare ascunsa",
+                "pros2": "Doua functii intr-o piesa",
+                "cons1": "Mecanismul adauga cost",
+                "price": "1.000–2.000 lei"
+              }
+            },
+            "WITH_SHOE_SPACE": {
+              "label": "Cu spatiu pantofi",
+              "description": "Raft deschis dedesubt",
+              "info": {
+                "title": "Bancuta cu raft de pantofi",
+                "body": "Raft deschis sub sezut — pantofii de zi cu zi la indemana, fara usi de deschis.",
+                "pros1": "Acces instant la pantofi",
+                "pros2": "Pret prietenos",
+                "cons1": "Pantofii raman la vedere",
+                "price": "800–1.600 lei"
+              }
+            },
+            "SIMPLE": {
+              "label": "Simpla",
+              "description": "Doar sezut",
+              "info": {
+                "title": "Bancuta simpla",
+                "body": "Piesa curata, minimala — doar sezutul. Merge la capatul patului sau pe hol.",
+                "pros1": "Cost minim",
+                "pros2": "Aspect minimalist",
+                "cons1": "Fara depozitare",
+                "price": "700–1.300 lei"
+              }
+            }
+          }
+        },
+        "upholsteredSeat": {
+          "title": "Sezut tapitat?",
+          "info": {
+            "title": "Sezut tapitat",
+            "body": "Perna fixa imbracata in stofa — confort la incaltat. Tesatura se alege cu firma."
+          }
+        },
+        "dimensions": {
+          "title": "Dimensiuni",
+          "subtitle": "Latimea bancutei.",
+          "slots": {
+            "width": "Latime"
+          }
+        },
+        "material": {
+          "title": "Ce material?",
+          "subtitle": "Structura bancutei."
+        },
+        "sketch": {
+          "title": "Ai o schita?",
+          "subtitle": "Optional — spatiul unde va sta bancuta."
         }
       }
     }

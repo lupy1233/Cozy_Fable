@@ -1,0 +1,151 @@
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUrl,
+  IsUUID,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
+import { InspirationColor, ItemSystem, Material, RoomType } from '@prisma/client';
+import { MAX_ATTACHMENT_BYTES } from '@marketplace/shared';
+
+// Meta unei poze de inspiratie (F6, item 3) — create/update din admin.
+// Imaginea vine separat: upload prin presign (attachment) sau URL extern.
+export class CreateInspirationPhotoDto {
+  @IsUUID()
+  companyId: string;
+
+  @IsString()
+  @MinLength(3)
+  @MaxLength(150)
+  title: string;
+
+  @IsEnum(RoomType)
+  roomType: RoomType;
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(InspirationColor, { each: true })
+  colors?: InspirationColor[];
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(Material, { each: true })
+  materials?: Material[];
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(ItemSystem, { each: true })
+  systems?: ItemSystem[];
+
+  @IsOptional()
+  @IsUrl()
+  @MaxLength(2000)
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  published?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  featured?: boolean;
+}
+
+export class UpdateInspirationPhotoDto {
+  @IsOptional()
+  @IsUUID()
+  companyId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(150)
+  title?: string;
+
+  @IsOptional()
+  @IsEnum(RoomType)
+  roomType?: RoomType;
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(InspirationColor, { each: true })
+  colors?: InspirationColor[];
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(Material, { each: true })
+  materials?: Material[];
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(ItemSystem, { each: true })
+  systems?: ItemSystem[];
+
+  @IsOptional()
+  @IsUrl()
+  @MaxLength(2000)
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  published?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  featured?: boolean;
+}
+
+// Interogarea publica: filtre CSV in query (ex. ?colors=WHITE,GREEN) — valorile
+// necunoscute sunt ignorate in service (whitelist pe enum-uri).
+export class ListInspirationQueryDto {
+  @IsOptional()
+  @IsString()
+  type?: string;
+
+  @IsOptional()
+  @IsString()
+  colors?: string;
+
+  @IsOptional()
+  @IsString()
+  materials?: string;
+
+  @IsOptional()
+  @IsString()
+  systems?: string;
+
+  @IsOptional()
+  @IsString()
+  ids?: string;
+}
+
+export class ConfirmInspirationImageDto {
+  @IsUUID()
+  attachmentId: string;
+}
+
+// doar imagini pentru galerie (subsetul de MIME din fluxul de atasamente)
+const IMAGE_MIME = ['image/jpeg', 'image/png', 'image/webp'] as const;
+
+export class PresignInspirationImageDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(255)
+  filename: string;
+
+  @IsIn([...IMAGE_MIME])
+  mimeType: (typeof IMAGE_MIME)[number];
+
+  @IsInt()
+  @Min(1)
+  @Max(MAX_ATTACHMENT_BYTES)
+  sizeBytes: number;
+}
