@@ -1,7 +1,13 @@
 # Deployment — MVP public pentru feedback
 
-Data: 2026-07-08. Target ales: **Railway** (toate serviciile intr-un singur proiect,
-suport Docker + volume + private networking, websockets, fara card pe trial).
+Data: 2026-07-08. Target: **Railway**, proiect `cozy-fable` (ID e31aa697-8f65-4a9a-81e0-1f6ce09a9903).
+
+## LIVE (deploy 2026-07-08, verificat e2e)
+
+- **Aplicatia**: https://backend-production-2813.up.railway.app (frontend + backend, un container)
+- **Mailpit** (emailurile beta, cu basic auth): https://mailpit-production-74ad.up.railway.app
+- **MinIO S3** (doar API presigned, nu se acceseaza direct): https://minio-production-9159.up.railway.app
+- Secrete/parole: variabilele serviciului `backend` in dashboardul Railway (inclusiv `DEMO_ADMIN_PASSWORD`).
 
 ## Arhitectura de deploy
 
@@ -9,16 +15,22 @@ suport Docker + volume + private networking, websockets, fara card pe trial).
 Browser
   │ https (same-origin)
   ▼
-[frontend]  Next.js standalone (Dockerfile) — proxy /api/v1 + /socket.io → backend
-  │ https (rewrite server-side)
-  ▼
-[backend]   NestJS + Prisma (Dockerfile, Chromium pt PDF) — migrate deploy la boot
+[backend service = UN container, Dockerfile.app]     ← limita 5 servicii pe planul free
+  ├─ Next.js standalone :$PORT — proxy /api/v1 + /socket.io → 127.0.0.1:3001
+  └─ NestJS + Prisma :3001 (Chromium pt PDF) — migrate deploy la boot (start-combined.sh)
   │ private networking
   ├── [Postgres]  (plugin Railway)
-  ├── [Redis]     (plugin Railway; REDIS_PASSWORD obligatoriu)
-  ├── [minio]     bitnami/minio + volum — S3 presigned URLs (domeniu public, port 9000)
-  └── [mailpit]   axllent/mailpit — sink SMTP beta (UI public pe 8025)
+  ├── [Redis]     (plugin Railway; REDIS_PASSWORD + family:0)
+  ├── [minio]     bitnamilegacy/minio + volum /bitnami/minio/data — presigned URLs pe domeniul public :9000
+  └── [mailpit]   axllent/mailpit — SMTP intern :1025; UI public :8025 cu MP_UI_AUTH
 ```
+
+Gotcha-uri Railway invatate la deploy (NU le redescoperi):
+- Planul free = max 5 servicii → frontend+backend combinate in `Dockerfile.app` (al 6-lea serviciu e refuzat cu "Free plan resource provision limit exceeded").
+- Railway injecteaza `PORT` (ex. 8080) in containere; domeniul tintea 3000 → 502. Fix: variabila explicita `PORT=3000` pe serviciu.
+- `bitnami/minio` nu se mai poate trage de pe Docker Hub (deploy FAILED fara loguri) → `bitnamilegacy/minio` + `RAILWAY_RUN_UID=0`(pt volum) + `MINIO_DEFAULT_BUCKETS=uploads`.
+- In Git Bash, caile `-m /bitnami/...` sunt stricate de MSYS path conversion → `MSYS_NO_PATHCONV=1`.
+- Dupa redeployul unui serviciu, DNS-ul privat propaga in ~1 min: SMTP "Connection timeout" tranzitoriu, se remediaza singur.
 
 Decizii cheie (de ce asa):
 - **Cookies `SameSite=Lax`** raman neschimbate: API-ul e proxied prin Next
