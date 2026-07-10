@@ -17,10 +17,12 @@ import { MobileNav } from './mobile-nav';
 // pe landing vede Login/Register si crede ca a fost deconectat.
 // CTA-ul "Creeaza o cerere" e actiunea centrala a platformei: vizibil mereu,
 // inclusiv pe mobil, dar ascuns pentru conturile de atelier/admin.
+// Ordinea nav (feedback PO item 13): Caietul de idei primul (marketing —
+// pagina care ramane in mintea clientilor), apoi ghidul, apoi partenerii.
 export const PUBLIC_LINKS = [
-  { href: '/partners', key: 'partners' },
   { href: '/inspiration', key: 'inspiration' },
   { href: '/sketch-guide', key: 'sketchGuide' },
+  { href: '/partners', key: 'partners' },
 ] as const;
 
 const mobileLinkCls =

@@ -60,6 +60,8 @@ quote_validity_default_days=14 · consultation_invite_expiry_days=7 · employee_
 
 - inspiration_photos (F6): company_id FK (atelierul care a facut piesa — doar mobilier real al partenerilor), title, room_type ENUM, colors[]/materials[]/systems[] (filtre), image_url SAU attachment_id (upload prin presign, servit cu presigned GET), published/featured BOOLEAN, deleted_at (soft delete — pozele pot fi referite de cereri); request_inspiration_photos (request_id, photo_id) — pozele alese de client ca inspiratie pe cerere (max 10)
 
+- inspiration_boards (P6 2026-07-11, feedback PO r2 item 8): colectiile de salvari ale utilizatorului (stil Pinterest) — id, user_id FK (cascade), name (UNIQUE per user), created_at, updated_at; inspiration_board_items (board_id, photo_id, created_at, PK compus, cascade ambele FK-uri) — salvarile; doar poze publicate/nesterse (validate cu assertSelectable). Fara PII proprii → hard delete.
+
 - contact_channel: EMAIL, PHONE
 
 - company_member.role: OWNER, MANAGER, EMPLOYEE_TRUSTED, EMPLOYEE_MANAGED

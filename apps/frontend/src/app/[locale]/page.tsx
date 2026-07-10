@@ -31,10 +31,11 @@ export default function LandingPage() {
     { value: t('metricSatisfaction'), label: t('metricSatisfactionLabel') },
   ];
 
+  // aceeasi ordine ca headerul public (item 13): Caietul de idei primul
   const publicLinks = [
-    { href: '/partners', label: tn('partners') },
     { href: '/inspiration', label: tn('inspiration') },
     { href: '/sketch-guide', label: tn('sketchGuide') },
+    { href: '/partners', label: tn('partners') },
   ] as const;
 
   return (

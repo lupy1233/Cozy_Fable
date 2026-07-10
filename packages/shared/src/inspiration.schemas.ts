@@ -45,3 +45,32 @@ export interface InspirationFilters {
   systems?: (typeof ITEM_SYSTEMS)[number][];
   ids?: string[];
 }
+
+// --- Colectii de salvari (item 8, stil Pinterest) ---
+
+export const MAX_BOARD_NAME_LENGTH = 60;
+
+export const inspirationBoardInputSchema = z.object({
+  name: z.string().trim().min(1, 'nameRequired').max(MAX_BOARD_NAME_LENGTH, 'nameTooLong'),
+});
+export type InspirationBoardInput = z.infer<typeof inspirationBoardInputSchema>;
+
+export interface InspirationBoardDto {
+  id: string;
+  name: string;
+  itemsCount: number;
+  // colaj de coperta: pana la 3 imagini servibile din colectie (cea mai noua prima)
+  coverUrls: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InspirationBoardDetailDto extends InspirationBoardDto {
+  photos: InspirationPhotoDto[];
+}
+
+// Toate salvarile utilizatorului (photoId → boardId) — starea "Salvat" pe pin-uri.
+export interface InspirationSaveDto {
+  photoId: string;
+  boardId: string;
+}

@@ -14,7 +14,20 @@ import {
   MinLength,
 } from 'class-validator';
 import { InspirationColor, ItemSystem, Material, RoomType } from '@prisma/client';
-import { MAX_ATTACHMENT_BYTES } from '@marketplace/shared';
+import { MAX_ATTACHMENT_BYTES, MAX_BOARD_NAME_LENGTH } from '@marketplace/shared';
+
+// Colectie de salvari (item 8): numele vine de la utilizator.
+export class BoardNameDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(MAX_BOARD_NAME_LENGTH)
+  name: string;
+}
+
+export class BoardItemDto {
+  @IsUUID()
+  photoId: string;
+}
 
 // Meta unei poze de inspiratie (F6, item 3) — create/update din admin.
 // Imaginea vine separat: upload prin presign (attachment) sau URL extern.

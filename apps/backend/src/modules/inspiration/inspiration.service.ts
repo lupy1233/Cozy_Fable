@@ -33,7 +33,7 @@ const ENTITY_TYPE = 'inspiration_photo';
 // o poza pastreaza cel mult cateva atasamente (inlocuiri); nu e flux de fisiere per cerere
 const MAX_IMAGE_ATTACHMENTS = 5;
 
-type PhotoWithCompany = InspirationPhoto & { company: { id: string; name: string } };
+export type PhotoWithCompany = InspirationPhoto & { company: { id: string; name: string } };
 
 // parseaza un CSV din query si pastreaza doar valorile din enum (whitelist)
 function parseCsv<T extends string>(raw: string | undefined, allowed: readonly T[]): T[] {
@@ -207,6 +207,12 @@ export class InspirationService {
   }
 
   // rezolva imaginile in batch: attachment SAFE → presigned GET; altfel imageUrl
+  // Reutilizat de colectiile de salvari (boards): aceleasi reguli de servire a
+  // imaginilor (presigned GET pentru upload-uri, URL extern altfel).
+  async photosToDtos(photos: PhotoWithCompany[]): Promise<InspirationPhotoDto[]> {
+    return this.toDtos(photos);
+  }
+
   private async toDtos(photos: PhotoWithCompany[]): Promise<InspirationPhotoDto[]> {
     const attachmentIds = photos.map((p) => p.attachmentId).filter((v): v is string => !!v);
     const attachments = attachmentIds.length

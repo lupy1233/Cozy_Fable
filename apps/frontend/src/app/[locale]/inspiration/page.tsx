@@ -1,20 +1,25 @@
 'use client';
 
 import { Suspense, useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { FolderHeart, Search, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import {
   INSPIRATION_COLORS,
   type InspirationColor,
+  type InspirationPhotoDto,
   type ItemSystem,
   type Material,
   type RoomType,
 } from '@marketplace/shared';
 import { Input } from '@/components/ui/input';
+import { useMe } from '@/hooks/use-auth';
 import { useInspiration } from '@/hooks/use-inspiration';
+import { useSavedRefs } from '@/hooks/use-inspiration-boards';
+import { Link, useRouter } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 import { PublicShell } from '../_components/public-shell';
+import { InspirationPin } from './_components/inspiration-pin';
 
 // Galeria de inspiratie (F6, item 3): mobilier REAL facut de atelierele
 // partenere, din DB (admin o alimenteaza). Filtre: tip camera, culoare,
@@ -93,6 +98,9 @@ function InspirationGallery() {
   const t = useTranslations('Inspiration');
   const tc = useTranslations('Configurator');
   const params = useSearchParams();
+  const router = useRouter();
+  const me = useMe();
+  const savedRefs = useSavedRefs();
 
   const raw = params.get('type') ?? '';
   const initialType = (LEGACY_TYPE[raw] ?? (TYPE_FILTERS.includes(raw as RoomType) ? raw : null)) as
@@ -103,6 +111,8 @@ function InspirationGallery() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [systems, setSystems] = useState<ItemSystem[]>([]);
   const [query, setQuery] = useState('');
+  // lightbox: pin-ul deschis pe mare (click pe imagine, ca pe Pinterest)
+  const [openPhoto, setOpenPhoto] = useState<InspirationPhotoDto | null>(null);
 
   const photos = useInspiration({
     roomType: type ?? undefined,
@@ -118,12 +128,28 @@ function InspirationGallery() {
     return list.filter((p) => norm(`${p.title} ${p.company.name}`).includes(q));
   }, [photos.data, query]);
 
+  // photoId → boardId (starea "Salvat" per pin)
+  const savedByPhoto = useMemo(
+    () => new Map((savedRefs.data ?? []).map((s) => [s.photoId, s.boardId])),
+    [savedRefs.data],
+  );
+  const authed = !!me.data;
+  const requireAuth = () => router.push('/login?redirect=/inspiration');
+
   return (
     <PublicShell>
       <div className="flex flex-col gap-7">
-        <div className="text-center">
+        <div className="relative text-center">
           <h1 className="page-title">{t('title')}</h1>
           <p className="mx-auto mt-2 max-w-xl text-muted-foreground">{t('subtitle')}</p>
+          {/* colectiile mele — vizibil oricui; neautentificat → login */}
+          <Link
+            href={authed ? '/inspiration/boards' : '/login?redirect=/inspiration/boards'}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border-2 bg-card px-3.5 py-1.5 text-sm text-muted-foreground transition-colors hover:border-walnut hover:text-walnut sm:absolute sm:right-0 sm:top-1 sm:mt-0"
+          >
+            <FolderHeart className="h-4 w-4" />
+            {t('myBoards')}
+          </Link>
         </div>
 
         <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-4">
@@ -192,29 +218,56 @@ function InspirationGallery() {
 
         <div className="columns-2 gap-4 sm:columns-3 lg:columns-4">
           {visible.map((photo, i) => (
-            <figure
+            <InspirationPin
               key={photo.id}
-              className="group relative mb-4 break-inside-avoid overflow-hidden rounded-lg border border-border bg-surface-2 shadow-sm"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={photo.imageUrl ?? ''}
-                alt={photo.title}
-                loading="lazy"
-                className={cn(
-                  'w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]',
-                  PIN_ASPECTS[i % PIN_ASPECTS.length],
-                )}
-              />
-              <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent p-3 pt-10 text-[13px] leading-snug text-white">
-                {photo.title}
-                <span className="mt-0.5 block text-[10px] uppercase tracking-[0.12em] text-white/75">
-                  {tc(`rooms.type.${photo.roomType}`)} · {t('byFirm', { name: photo.company.name })}
-                </span>
-              </figcaption>
-            </figure>
+              photo={photo}
+              aspectClass={PIN_ASPECTS[i % PIN_ASPECTS.length]}
+              savedBoardId={savedByPhoto.get(photo.id) ?? null}
+              authed={authed}
+              onRequireAuth={requireAuth}
+              onOpen={() => setOpenPhoto(photo)}
+            />
           ))}
         </div>
+
+        {/* lightbox simplu: imaginea pe mare + meta (click oriunde inchide) */}
+        {openPhoto && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setOpenPhoto(null)}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="relative max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-surface shadow-xl"
+            >
+              <button
+                type="button"
+                onClick={() => setOpenPhoto(null)}
+                aria-label={t('close')}
+                className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
+              >
+                <X className="h-4 w-4" />
+              </button>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={openPhoto.imageUrl ?? ''}
+                alt={openPhoto.title}
+                className="max-h-[70vh] w-full object-contain bg-black/5"
+              />
+              <div className="flex items-center justify-between gap-3 px-4 py-3">
+                <div>
+                  <p className="font-serif text-lg leading-tight">{openPhoto.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {tc(`rooms.type.${openPhoto.roomType}`)} ·{' '}
+                    {t('byFirm', { name: openPhoto.company.name })}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </PublicShell>
   );
