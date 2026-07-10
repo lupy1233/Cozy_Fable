@@ -271,7 +271,9 @@ export function StepRenderer(props: StepRendererProps) {
         </StepShell>
       );
     }
-    const YesIllu = BOOLEAN_ILLUSTRATIONS.yes;
+    // cardul "Da" arata conceptul intrebarii (ex. banda LED, tablie tapitata)
+    // cand exista un desen inregistrat; altfel bifa generica
+    const YesIllu = getIllustration(roomType, step.id, 'YES') ?? BOOLEAN_ILLUSTRATIONS.yes;
     const NoIllu = BOOLEAN_ILLUSTRATIONS.no;
     return (
       <StepShell step={step} onInfo={onInfo} error={error}>
