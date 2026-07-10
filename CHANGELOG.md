@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## Sprint P5 — 2026-07-11 — prezentare structurata a cererii + "Cererile mele" pe carduri (feedback PO r2: itemele 6, 12)
+- **`RoomSpecCard` + `RoomSpecNav`** (component nou partajat): camera se prezinta pe sectiuni scanabile in loc de lista plata Q→A — antet cu iconita camerei + gabarit (L×W×H), "chips" de configuratie (intrebare: raspuns, fara intrebarile de material — acelea sunt reprezentate de corpuri), sectiunea "Corpuri si materiale" (items derivate cu badge de material + sisteme + description), dimensiunile exacte, notele libere, fisierele camerei cu thumbnails. La 3+ camere apare bara sticky de navigare cu ancore per camera. Q→A complet ramane DOAR in pasul Review al wizard-ului.
+- **Aplicat pe ambele detalii**: `/marketplace/[id]` (firma) si `/requests/[id]` (client); fallback-ul legacy (cereri seed fara answers) arata curat doar corpurile.
+- **"Cererile mele" rescris pe carduri** in limbajul marketplace-ului: titlu serif + StatusBadge, chips de camere cu iconite (max 4 + "+n"), oras + varsta relativa, pulsul cererii (ateliere active / oferte primite, colorate cand exista), CTA contextual ("Deschide conversatiile" cand exista activitate), stare goala prietenoasa cu CTA de creare.
+- **`RequestListItemDto` imbogatit** (BE+shared): `roomTypes[]`, `activeClaims` (ACTIVE+OFFER_SENT), `quotesCount` (fara DRAFT) — un singur findMany cu include.
+- **`ROOM_ICONS` extras in `lib/room-icons.ts`** (partajat de cos, carduri si spec-card).
+- Verificat in preview ca radu.stanescu: lista pe carduri ("3 ateliere / nicio oferta", "Deschide conversatiile"), detaliul cu spec-card ("01 Dressing / 3 × 2.5 × 2.6 m / Corpuri si materiale: 3× Corp principal — PAL · Push"). Typecheck + lint verzi.
+
 ## Sprint P4 — 2026-07-11 — parcursul cererii per atelier + notificari reparate (feedback PO r2: itemele 4, 5)
 - **CAUZA item 4 gasita**: pagina clientului de oferte itera `quotes.map(...)` si randa chat-ul DOAR sub oferte → mesajele firmelor care au dat claim FARA oferta (exact scenariul owner.b) erau complet invizibile.
 - **Pagina "Oferte si conversatii" rescrisa** (`/requests/[id]/offers`): o sectiune per ATELIER care a preluat cererea — antet cu numele firmei, momentul preluarii si statusul parcursului (In discutie / Oferta primita / Oferta acceptata / Conversatie inchisa — inclusiv claim retras/anulat), preview ultimul mesaj, apoi oferta (daca exista) si chat-ul intotdeauna. Butonul de pe detaliul cererii devine "Vezi ofertele si conversatiile" si apare si post-acceptare (DELIVERED/COMPLETED/DISPUTED).

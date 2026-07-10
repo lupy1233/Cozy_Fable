@@ -9,7 +9,7 @@ import { useDeleteRequest, useRepostRequest, useRequest } from '@/hooks/use-requ
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/badge';
 import { AttachmentThumb } from '@/components/configurator/attachment-item';
-import { RoomAnswerSummary } from '@/components/configurator/room-answer-summary';
+import { RoomSpecCard, RoomSpecNav } from '@/components/configurator/room-spec-card';
 import { RequestInspirationStrip } from '@/components/configurator/request-inspiration-strip';
 
 export default function RequestDetailPage() {
@@ -89,37 +89,12 @@ export default function RequestDetailPage() {
         />
       </div>
 
-      {/* Camere */}
+      {/* Camere — prezentare structurata per camera (item 6) */}
       <div className="flex flex-col gap-3">
         <h2 className="font-serif text-xl">{t('sectionRooms')}</h2>
-        {r.rooms.map((room) => (
-          <div key={room.id} className="rounded-xl border border-border bg-surface p-4 shadow-sm">
-            <p className="text-sm font-medium">
-              {t(`roomType.${room.roomType}`)} · {room.lengthM}×{room.widthM}×{room.heightM} m
-            </p>
-            {room.answers ? (
-              // cerere creata prin configurator: rezumat Q→A
-              <div className="mt-2">
-                <RoomAnswerSummary
-                  roomType={room.roomType}
-                  answers={room.answers}
-                  flowVersion={room.flowVersion}
-                  attachments={r.attachments}
-                />
-              </div>
-            ) : (
-              // fallback legacy (seed/demo, fara answers): lista de items
-              <ul className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground">
-                {room.items.map((it) => (
-                  <li key={it.id}>
-                    {it.quantity}× {it.name} — {t(`material.${it.material}`)}
-                    {it.systems.length > 0 &&
-                      ` · ${it.systems.map((s) => t(`system.${s}`)).join(', ')}`}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+        <RoomSpecNav rooms={r.rooms} />
+        {r.rooms.map((room, i) => (
+          <RoomSpecCard key={room.id} room={room} index={i + 1} attachments={r.attachments} />
         ))}
       </div>
 

@@ -283,6 +283,11 @@ export interface RequestListItemDto {
   publishedAt: string | null;
   expiresAt: string | null;
   createdAt: string;
+  // continut pentru cardurile "Cererile mele" (item 12): camerele cererii,
+  // firmele active pe ea si ofertele primite
+  roomTypes: (typeof ROOM_TYPES)[number][];
+  activeClaims: number;
+  quotesCount: number;
 }
 
 // Raspuns la crearea unui draft anonim (tokenul e secretul de editare).

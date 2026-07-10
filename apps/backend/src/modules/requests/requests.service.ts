@@ -370,6 +370,11 @@ export class RequestsService {
     const rows = await this.prisma.request.findMany({
       where: { clientUserId: userId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
+      include: {
+        rooms: { select: { roomType: true } },
+        claims: { select: { status: true } },
+        quotes: { select: { status: true } },
+      },
     });
     return rows.map((r) => ({
       id: r.id,
@@ -383,6 +388,10 @@ export class RequestsService {
       publishedAt: r.publishedAt?.toISOString() ?? null,
       expiresAt: r.expiresAt?.toISOString() ?? null,
       createdAt: r.createdAt.toISOString(),
+      roomTypes: r.rooms.map((room) => room.roomType),
+      activeClaims: r.claims.filter((c) => c.status === 'ACTIVE' || c.status === 'OFFER_SENT')
+        .length,
+      quotesCount: r.quotes.filter((q) => q.status !== 'DRAFT').length,
     }));
   }
 
