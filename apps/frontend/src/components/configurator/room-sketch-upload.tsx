@@ -1,7 +1,7 @@
 'use client';
 
-import { MAX_ATTACHMENTS_PER_REQUEST } from '@marketplace/shared';
-import { FileCheck, FileClock, FileX, Info, X } from 'lucide-react';
+import { ATTACHMENT_ACCEPT, MAX_ATTACHMENTS_PER_REQUEST } from '@marketplace/shared';
+import { Info } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Alert } from '@/components/ui/alert';
 import { Dropzone } from '@/components/ui/dropzone';
@@ -11,14 +11,8 @@ import {
   useUploadAttachmentFor,
   type AttachmentTarget,
 } from '@/hooks/use-requests';
+import { AttachmentRow } from './attachment-item';
 import { SketchGuide } from './sketch-guide';
-
-const STATUS_ICON = {
-  SAFE: FileCheck,
-  BLOCKED: FileX,
-  PENDING_SCAN: FileClock,
-  PENDING_UPLOAD: FileClock,
-} as const;
 
 // Uploader-ul pasului "schita/proiect" al unei camere. Fisierele merg prin acelasi
 // flux presign/confirm ca pasul global de fisiere; raspunsul step-ului = lista de
@@ -79,7 +73,7 @@ export function RoomSketchUpload({
       {canUpload ? (
         <Dropzone
           onFiles={onFiles}
-          accept="image/jpeg,image/png,image/webp,application/pdf"
+          accept={ATTACHMENT_ACCEPT}
           label={t('uploads.dropLabel')}
           hint={t('sketchUpload.hint', { local: localRemaining, global: globalRemaining })}
         />
@@ -92,41 +86,16 @@ export function RoomSketchUpload({
 
       {mine.length > 0 && (
         <ul className="flex flex-col gap-1.5 text-sm">
-          {mine.map((a) => {
-            const Icon = STATUS_ICON[a.status] ?? FileClock;
-            return (
-              <li
-                key={a.id}
-                className="flex items-center justify-between rounded-md border border-border bg-surface-2 px-3 py-2"
-              >
-                <span className="flex items-center gap-2 text-muted-foreground">
-                  <Icon
-                    className={
-                      'h-4 w-4 ' +
-                      (a.status === 'SAFE'
-                        ? 'text-sage'
-                        : a.status === 'BLOCKED'
-                          ? 'text-crimson'
-                          : 'text-amber')
-                    }
-                  />
-                  {a.filename} · {(a.sizeBytes / 1024).toFixed(0)} KB ·{' '}
-                  {t(`uploads.status.${a.status}`)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    remove.mutate(a.id);
-                    onChange(value.filter((id) => id !== a.id));
-                  }}
-                  className="text-crimson"
-                  aria-label="remove"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </li>
-            );
-          })}
+          {mine.map((a) => (
+            <AttachmentRow
+              key={a.id}
+              attachment={a}
+              onRemove={() => {
+                remove.mutate(a.id);
+                onChange(value.filter((id) => id !== a.id));
+              }}
+            />
+          ))}
         </ul>
       )}
 

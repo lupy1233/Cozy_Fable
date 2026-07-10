@@ -672,13 +672,22 @@ export class RequestsService {
   private async assertRoomAttachments(requestId: string, ids: string[]): Promise<void> {
     if (ids.length === 0) return;
     const unique = [...new Set(ids)];
-    const found = await this.prisma.attachment.count({
+    const rows = await this.prisma.attachment.findMany({
       where: { id: { in: unique }, entityType: ENTITY_TYPE_REQUEST, entityId: requestId },
+      select: { status: true },
     });
-    if (found !== unique.length) {
+    if (rows.length !== unique.length) {
       throw new BadRequestException({
         code: ERROR_CODES.VALIDATION_ERROR,
         message: 'Sketch attachments do not belong to this request',
+      });
+    }
+    // un fisier respins la scanare nu poate pleca in marketplace — clientul il
+    // vede marcat cu eroare in wizard si il poate elimina (item 10)
+    if (rows.some((r) => r.status === 'BLOCKED')) {
+      throw new BadRequestException({
+        code: ERROR_CODES.FILE_SCAN_BLOCKED,
+        message: 'A blocked attachment is referenced by a room sketch',
       });
     }
   }

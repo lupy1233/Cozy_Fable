@@ -1001,6 +1001,7 @@
     "sketchGuide": {
       "title": "No project? Make a quick sketch",
       "subtitle": "Four simple steps — enough for firms to quote accurately.",
+      "fullGuide": "Full guide",
       "steps": {
         "measure": {
           "title": "Measure the walls",
@@ -1072,14 +1073,20 @@
       "title": "Add photos or plans",
       "subtitle": "Optional — photos of the space, sketches or your own project (max 10 files).",
       "dropLabel": "Drag files here or click to upload",
-      "dropHint": "JPG, PNG, WEBP or PDF, up to 10 MB",
+      "dropHint": "JPG, PNG, WEBP, PDF or ZIP, up to 10 MB",
       "uploading": "Uploading...",
+      "scanning": "checking...",
+      "blockedNotice": "File rejected by the check — upload another one",
+      "blockedShort": "Rejected",
       "status": {
         "PENDING_UPLOAD": "pending",
         "PENDING_SCAN": "scanning",
         "SAFE": "verified",
         "BLOCKED": "blocked"
       }
+    },
+    "summaryFiles": {
+      "count": "{n, plural, =1 {one attached file} other {# attached files}}"
     },
     "editTitle": "Edit your request",
     "editSubtitle": "Change the answers, files or details, then save. Edit limits apply (3 before a claim, 1 after).",
@@ -1129,6 +1136,7 @@
       "CONFIGURATOR_FLOW_VERSION_UNSUPPORTED": "The questionnaire was updated. Please redo the answers for the affected rooms.",
       "CONFIGURATOR_STATE_TOO_LARGE": "Configurator data is too large.",
       "GEOCODING_FAILED": "The address could not be located. Check the city and county.",
+      "FILE_SCAN_BLOCKED": "An attached file was rejected by the check. Remove it from the sketch step and try again.",
       "GENERIC": "Something went wrong. Please try again."
     },
     "validation": {
@@ -1152,7 +1160,7 @@
         "no": "No"
       },
       "slots": {
-        "ceilingHeight": "Ceiling height (H)"
+        "ceilingHeight": "Ceiling height"
       },
       "materials": {
         "PAL": {
@@ -1416,8 +1424,8 @@
             "runA": "Run A length",
             "runB": "Run B length",
             "runC": "Run C length",
-            "islandLength": "Island length (L)",
-            "islandDepth": "Island depth (D)"
+            "islandLength": "Island length",
+            "islandDepth": "Island depth"
           }
         },
         "cabinetZones": {

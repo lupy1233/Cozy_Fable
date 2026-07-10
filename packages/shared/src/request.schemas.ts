@@ -158,12 +158,27 @@ export const requestEditSchema = requestContentSchema;
 export type RequestEditInput = z.infer<typeof requestEditSchema>;
 
 // Upload presigned (mock): cerere URL + confirmare.
+// ZIP e permis explicit de invarianta 3.4 (untrusted, fara preview) — Windows
+// raporteaza adesea 'application/x-zip-compressed' in loc de 'application/zip'.
 export const ALLOWED_ATTACHMENT_MIME = [
   'image/jpeg',
   'image/png',
   'image/webp',
   'application/pdf',
+  'application/zip',
+  'application/x-zip-compressed',
 ] as const;
+
+// Valoarea pentru atributul accept al inputurilor de fisiere (FE).
+export const ATTACHMENT_ACCEPT = ALLOWED_ATTACHMENT_MIME.join(',');
+
+// Clasificare MIME pentru afisare (thumbnail vs iconita de tip).
+export function attachmentKind(mimeType: string): 'image' | 'pdf' | 'zip' | 'other' {
+  if (mimeType.startsWith('image/')) return 'image';
+  if (mimeType === 'application/pdf') return 'pdf';
+  if (mimeType === 'application/zip' || mimeType === 'application/x-zip-compressed') return 'zip';
+  return 'other';
+}
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024; // 10 MB
 export const MAX_ATTACHMENTS_PER_REQUEST = 10;
 

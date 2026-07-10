@@ -7,7 +7,12 @@ import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
 import { useMe } from '@/hooks/use-auth';
-import { useEditRequestById, usePublishDraft } from '@/hooks/use-requests';
+import {
+  useAttachmentsFor,
+  useEditRequestById,
+  usePublishDraft,
+  type AttachmentTarget,
+} from '@/hooks/use-requests';
 import { useRouter } from '@/i18n/routing';
 import { useConfiguratorStore } from '@/stores/configurator-store';
 import { RoomAnswerSummary } from './room-answer-summary';
@@ -15,6 +20,7 @@ import { RoomAnswerSummary } from './room-answer-summary';
 export function ReviewStep({
   token,
   editId,
+  uploadTarget,
   onBack,
   onEditRoom,
   onEditDetails,
@@ -23,6 +29,8 @@ export function ReviewStep({
   // mod creare: tokenul draftului; mod editare: id-ul cererii publicate
   token: string | null;
   editId?: string;
+  // sursa atasamentelor pentru preview-urile din sumar (item 10)
+  uploadTarget: AttachmentTarget;
   onBack: () => void;
   onEditRoom: (index: number) => void;
   onEditDetails: () => void;
@@ -37,6 +45,7 @@ export function ReviewStep({
   const rooms = useConfiguratorStore((s) => s.roomInstances);
   const details = useConfiguratorStore((s) => s.details);
   const inspirationPhotoIds = useConfiguratorStore((s) => s.inspirationPhotoIds);
+  const attachments = useAttachmentsFor(uploadTarget);
   const publishDraft = usePublishDraft(token ?? '');
   const editRequest = useEditRequestById(editId ?? '');
   const publish = isEdit ? editRequest : publishDraft;
@@ -146,6 +155,7 @@ export function ReviewStep({
             roomType={room.roomType}
             answers={room.answers}
             flowVersion={room.flowVersion}
+            attachments={attachments}
           />
         </section>
       ))}

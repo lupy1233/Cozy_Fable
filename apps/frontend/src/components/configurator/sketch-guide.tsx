@@ -1,32 +1,35 @@
 'use client';
 
+import { ArrowUpRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
 
-// Ghid vizual "cum faci o schita" — afisat cand clientul nu are proiect propriu.
-// Reutilizat de pagina publica /sketch-guide (Phase D).
+// Ghid vizual "cum faci o schita" — varianta compacta afisata in pasul de
+// upload al fiecarei camere. Rescris in limbajul plansei de atelier al paginii
+// publice /sketch-guide (feedback PO item 3): numerale romane, titluri serif,
+// hairline-uri, aceleasi texte (titlu/corp/sfat din SketchGuidePage) si
+// vignete redesenate, mai clare.
 
 const stroke = {
   fill: 'none',
   stroke: 'currentColor',
-  strokeWidth: 2.5,
+  strokeWidth: 2.25,
   strokeLinecap: 'round' as const,
   strokeLinejoin: 'round' as const,
 };
 
-// Redesenate (feedback PO F3): fara text in interiorul desenelor — cota din
-// StepMeasure se suprapunea cu peretele; compozitii mai aerisite, linii mai clare.
-
+// Vignete pe grila 120×90 — compozitii aerisite, fara text in desen.
 function StepMeasure() {
   return (
     <svg viewBox="0 0 120 90" {...stroke} aria-hidden="true">
-      {/* peretele masurat */}
-      <rect x="20" y="12" width="80" height="50" rx="2" opacity={0.4} strokeWidth={1.75} />
+      {/* peretele masurat, cu muchii de podea */}
+      <path d="M22 14h76v44H22z" opacity={0.35} strokeWidth={1.6} />
+      <path d="M22 58 14 70M98 58l8 12" opacity={0.35} strokeWidth={1.6} />
       {/* ruleta trasa de-a lungul peretelui */}
-      <rect x="14" y="70" width="14" height="12" rx="3" strokeWidth={2} />
-      <path d="M28 76h64" strokeWidth={2} />
-      <path d="M92 72v8" strokeWidth={2} />
-      {/* gradatiile ruletei */}
-      <path d="M40 76v-4M52 76v-4M64 76v-4M76 76v-4M88 76v-4" strokeWidth={1.5} opacity={0.7} />
+      <rect x="16" y="70" width="15" height="13" rx="3.5" strokeWidth={2} />
+      <path d="M31 76.5h60" strokeWidth={2} />
+      <path d="M91 72v9" strokeWidth={2} />
+      <path d="M43 76.5v-4M55 76.5v-4M67 76.5v-4M79 76.5v-4" strokeWidth={1.4} opacity={0.65} />
     </svg>
   );
 }
@@ -34,13 +37,13 @@ function StepMeasure() {
 function StepDraw() {
   return (
     <svg viewBox="0 0 120 90" {...stroke} aria-hidden="true">
-      {/* foaia de hartie */}
-      <rect x="16" y="12" width="66" height="66" rx="3" strokeWidth={1.75} opacity={0.4} />
+      {/* foaia de hartie usor rotita */}
+      <path d="M20 16l60-6 6 62-60 6z" opacity={0.35} strokeWidth={1.6} />
       {/* conturul camerei desenat pe foaie */}
-      <path d="M26 22v46h30M26 44h20M46 22v22" strokeWidth={2} />
-      {/* creionul, clar separat de plan */}
-      <path d="M92 30l14 14-26 26-16 4 4-16z" strokeWidth={2} strokeLinejoin="round" />
-      <path d="M88 34l10 10" strokeWidth={1.5} opacity={0.7} />
+      <path d="M32 26v40h28M32 46h18M50 26v20" strokeWidth={2} />
+      {/* creionul */}
+      <path d="M92 28l14 14-24 24-17 5 5-17z" strokeWidth={2} />
+      <path d="M88 32l10 10" strokeWidth={1.4} opacity={0.65} />
     </svg>
   );
 }
@@ -49,13 +52,14 @@ function StepMark() {
   return (
     <svg viewBox="0 0 120 90" {...stroke} aria-hidden="true">
       {/* conturul camerei */}
-      <rect x="18" y="12" width="84" height="66" rx="2" strokeWidth={1.75} opacity={0.4} />
-      {/* usa cu arc — coltul stanga-jos */}
-      <path d="M32 78v-22M32 56a22 22 0 0 1 22 22" strokeWidth={2} />
-      {/* fereastra — linie dubla pe latura de sus */}
-      <path d="M66 12h26M66 17h26" strokeWidth={2} />
-      {/* priza marcata cu X — pe peretele din dreapta, cu spatiu in jur */}
-      <path d="M88 46l8 8m0-8l-8 8" strokeWidth={2} />
+      <rect x="16" y="12" width="88" height="66" rx="2" opacity={0.35} strokeWidth={1.6} />
+      {/* usa cu arc */}
+      <path d="M30 78V56M30 56a22 22 0 0 1 22 22" strokeWidth={2} />
+      {/* fereastra — linie dubla */}
+      <path d="M64 12h28M64 17.5h28" strokeWidth={2} />
+      {/* priza marcata cu X + teava marcata cu cerc */}
+      <path d="M88 44l9 9m0-9l-9 9" strokeWidth={2} />
+      <circle cx="42" cy="34" r="5.5" strokeWidth={2} />
     </svg>
   );
 }
@@ -63,12 +67,11 @@ function StepMark() {
 function StepPhoto() {
   return (
     <svg viewBox="0 0 120 90" {...stroke} aria-hidden="true">
-      <rect x="22" y="26" width="76" height="50" rx="7" />
-      <path d="M45 26l7-9h16l7 9" />
-      <circle cx="60" cy="51" r="14" />
-      <circle cx="60" cy="51" r="5.5" strokeWidth={2} />
-      {/* blitul */}
-      <path d="M86 36h6" strokeWidth={2} />
+      <rect x="20" y="26" width="80" height="52" rx="8" />
+      <path d="M44 26l7-10h18l7 10" />
+      <circle cx="60" cy="52" r="15" />
+      <circle cx="60" cy="52" r="6" strokeWidth={2} />
+      <path d="M88 36h6" strokeWidth={2} />
     </svg>
   );
 }
@@ -80,26 +83,47 @@ const STEPS = [
   { key: 'photo', Visual: StepPhoto },
 ] as const;
 
-export function SketchGuide({ compact }: { compact?: boolean }) {
-  const t = useTranslations('Configurator');
+const ROMAN = ['I', 'II', 'III', 'IV'] as const;
+
+export function SketchGuide() {
+  // aceleasi texte ca pagina publica /sketch-guide — un singur continut editorial
+  const t = useTranslations('SketchGuidePage');
+  const tc = useTranslations('Configurator');
 
   return (
-    <div className={compact ? '' : 'rounded-xl border border-border-2 bg-surface-2 p-5'}>
-      <h4 className="font-serif text-lg">{t('sketchGuide.title')}</h4>
-      <p className="mt-1 text-sm text-muted-foreground">{t('sketchGuide.subtitle')}</p>
-      <ol className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="rounded-xl border border-border-2 bg-surface-2 p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h4 className="font-serif text-lg tracking-[-0.01em]">{tc('sketchGuide.title')}</h4>
+          <p className="mt-0.5 text-sm text-muted-foreground">{tc('sketchGuide.subtitle')}</p>
+        </div>
+        <Link
+          href="/sketch-guide"
+          target="_blank"
+          className="inline-flex shrink-0 items-center gap-1 text-sm text-walnut hover:underline"
+        >
+          {tc('sketchGuide.fullGuide')}
+          <ArrowUpRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+
+      <ol className="mt-4 grid gap-px overflow-hidden rounded-lg border border-border-2 bg-border-2 sm:grid-cols-2 lg:grid-cols-4">
         {STEPS.map(({ key, Visual }, i) => (
-          <li key={key} className="flex flex-col items-center rounded-lg border border-border-2 bg-surface p-3 text-center">
-            <span className="grid h-6 w-6 place-items-center rounded-full bg-walnut text-xs font-semibold text-background">
-              {i + 1}
-            </span>
-            <span className="mt-2 h-20 w-full text-walnut">
+          <li key={key} className="flex flex-col bg-surface p-4">
+            <div className="flex items-baseline gap-2">
+              <span className="font-serif text-2xl leading-none text-brass">{ROMAN[i]}.</span>
+              <span className="font-serif text-[15px]">{t(`steps.${key}.title`)}</span>
+            </div>
+            <span className="mx-auto mt-3 h-[72px] w-24 text-walnut">
               <Visual />
             </span>
-            <span className="mt-1 text-sm font-medium">{t(`sketchGuide.steps.${key}.title`)}</span>
-            <span className="mt-0.5 text-xs text-muted-foreground">
-              {t(`sketchGuide.steps.${key}.body`)}
-            </span>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              {t(`steps.${key}.body`)}
+            </p>
+            <p className="mt-2 flex items-baseline gap-1.5 text-[11px] text-muted-2">
+              <span aria-hidden className="text-brass">—</span>
+              {t(`steps.${key}.tip`)}
+            </p>
           </li>
         ))}
       </ol>

@@ -8,10 +8,10 @@ import {
   type InfoContentRef,
   type QuestionStep,
 } from '@marketplace/shared';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check, Copy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import type { AttachmentTarget } from '@/hooks/use-requests';
 import { useConfiguratorStore } from '@/stores/configurator-store';
@@ -74,8 +74,19 @@ export function RoomFlowRunner({
   const [info, setInfo] = useState<InfoContentRef | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
   const dir = useRef(1);
+  const topRef = useRef<HTMLDivElement>(null);
 
   const room = rooms[activeRoomIndex];
+  const roomKey = room?.localId ?? '';
+
+  // La schimbarea intrebarii/camerei, readu utilizatorul la titlul intrebarii —
+  // pe mobil scroll-ul ramanea jos, unde au fost optiunile (feedback PO item 7).
+  // scroll-mt pe container tine cont de headerul sticky.
+  useEffect(() => {
+    if (!roomKey) return;
+    topRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  }, [roomKey, activeStepIndex, reduce]);
+
   if (!room) {
     onExitToCart();
     return null;
@@ -145,7 +156,7 @@ export function RoomFlowRunner({
       : undefined;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div ref={topRef} className="flex scroll-mt-20 flex-col gap-6">
       {/* selector camere (chips) + progres */}
       <div className="flex flex-col gap-3">
         {rooms.length > 1 && (
@@ -205,40 +216,39 @@ export function RoomFlowRunner({
         </button>
       )}
 
-      {/* ecranul curent (1+ step-uri), animat */}
+      {/* Ecranul curent (1+ step-uri), animat DOAR la intrare. Fara exit +
+          AnimatePresence(wait): exit-ul depinde de rAF, iar intr-un tab ascuns
+          (mobil, schimbare de aplicatie) rAF e pauzat si ecranul urmator nu se
+          mai monta deloc — wizard blocat. */}
       <div className="min-h-[16rem]">
-        <AnimatePresence mode="wait" custom={dir.current}>
-          <motion.div
-            key={`${room.localId}:${screen[0]?.id}`}
-            custom={dir.current}
-            initial={{ opacity: 0, x: dir.current * offset }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: dir.current * -offset }}
-            transition={{ duration: reduce ? 0 : 0.22, ease: 'easeOut' }}
-            className="flex flex-col gap-8"
-          >
-            {screen.map((s, si) => (
-              <StepRenderer
-                key={s.id}
-                step={s}
-                answers={room.answers}
-                roomType={room.roomType}
-                inline={si > 0}
-                uploadContext={{ target: uploadTarget, hasOwnProject }}
-                onChange={(value) => {
-                  setErrors((prev) => {
-                    const next = { ...prev };
-                    delete next[s.id];
-                    return next;
-                  });
-                  setAnswer(room.localId, s.id, value);
-                }}
-                onInfo={openInfo}
-                error={errors[s.id]}
-              />
-            ))}
-          </motion.div>
-        </AnimatePresence>
+        <motion.div
+          key={`${room.localId}:${screen[0]?.id}`}
+          initial={{ opacity: 0, x: dir.current * offset }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: reduce ? 0 : 0.22, ease: 'easeOut' }}
+          className="flex flex-col gap-8"
+        >
+          {screen.map((s, si) => (
+            <StepRenderer
+              key={s.id}
+              step={s}
+              answers={room.answers}
+              roomType={room.roomType}
+              inline={si > 0}
+              uploadContext={{ target: uploadTarget, hasOwnProject }}
+              onChange={(value) => {
+                setErrors((prev) => {
+                  const next = { ...prev };
+                  delete next[s.id];
+                  return next;
+                });
+                setAnswer(room.localId, s.id, value);
+              }}
+              onInfo={openInfo}
+              error={errors[s.id]}
+            />
+          ))}
+        </motion.div>
       </div>
 
       <div className="flex items-center justify-between">

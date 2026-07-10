@@ -24,8 +24,8 @@ export interface PresignInput {
 
 // Atasamente generice (entity_type/entity_id). Sprint 4: entity_type='REQUEST'.
 // Invarianta 3.4: doar presigned URLs; fisierele nu trec prin Nest.
-// MVP: fara scanare AV reala — la confirm trecem direct PENDING_UPLOAD → SAFE
-// (statusul PENDING_SCAN/BLOCKED ramane pentru integrarea AV intr-un sprint viitor).
+// MVP: scan mock la confirm (fara AV real) — SAFE, sau BLOCKED daca numele
+// contine "malware" (invarianta 3.4). Clientul vede doar eroarea, nu statusul OK.
 @Injectable()
 export class UploadsService {
   constructor(
@@ -92,9 +92,11 @@ export class UploadsService {
       });
     }
 
+    // scan mock (invarianta 3.4): numele cu "malware" e respins, restul e SAFE
+    const blocked = attachment.filename.toLowerCase().includes('malware');
     const updated = await this.prisma.attachment.update({
       where: { id: attachmentId },
-      data: { status: 'SAFE' },
+      data: { status: blocked ? 'BLOCKED' : 'SAFE' },
     });
     return this.toDto(updated);
   }

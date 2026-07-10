@@ -1001,6 +1001,7 @@
     "sketchGuide": {
       "title": "Nu ai proiect? Fa o schita rapida",
       "subtitle": "Patru pasi simpli — suficient ca firmele sa oferteze precis.",
+      "fullGuide": "Ghidul complet",
       "steps": {
         "measure": {
           "title": "Masoara peretii",
@@ -1072,14 +1073,20 @@
       "title": "Adauga poze sau planuri",
       "subtitle": "Optional — imagini din spatiu, schite sau proiectul tau (maxim 10 fisiere).",
       "dropLabel": "Trage fisiere aici sau apasa pentru a incarca",
-      "dropHint": "JPG, PNG, WEBP sau PDF, pana la 10 MB",
+      "dropHint": "JPG, PNG, WEBP, PDF sau ZIP, pana la 10 MB",
       "uploading": "Se incarca...",
+      "scanning": "se verifica...",
+      "blockedNotice": "Fisier respins la verificare — incarca altul",
+      "blockedShort": "Respins",
       "status": {
         "PENDING_UPLOAD": "in asteptare",
         "PENDING_SCAN": "se scaneaza",
         "SAFE": "verificat",
         "BLOCKED": "blocat"
       }
+    },
+    "summaryFiles": {
+      "count": "{n, plural, =1 {un fisier atasat} other {# fisiere atasate}}"
     },
     "editTitle": "Editeaza cererea",
     "editSubtitle": "Modifica raspunsurile, fisierele sau detaliile, apoi salveaza. Se aplica limitele de editare (3 inainte de claim, 1 dupa).",
@@ -1129,6 +1136,7 @@
       "CONFIGURATOR_FLOW_VERSION_UNSUPPORTED": "Chestionarul a fost actualizat. Reia raspunsurile pentru camerele afectate.",
       "CONFIGURATOR_STATE_TOO_LARGE": "Datele configuratorului sunt prea mari.",
       "GEOCODING_FAILED": "Adresa nu a putut fi localizata. Verifica orasul si judetul.",
+      "FILE_SCAN_BLOCKED": "Un fisier atasat a fost respins la verificare. Elimina-l din pasul de schita si incearca din nou.",
       "GENERIC": "A aparut o eroare. Incearca din nou."
     },
     "validation": {
@@ -1152,7 +1160,7 @@
         "no": "Nu"
       },
       "slots": {
-        "ceilingHeight": "Inaltime tavan (H)"
+        "ceilingHeight": "Inaltime tavan"
       },
       "materials": {
         "PAL": {
@@ -1416,8 +1424,8 @@
             "runA": "Lungime latura A",
             "runB": "Lungime latura B",
             "runC": "Lungime latura C",
-            "islandLength": "Lungime insula (L)",
-            "islandDepth": "Adancime insula (D)"
+            "islandLength": "Lungime insula",
+            "islandDepth": "Adancime insula"
           }
         },
         "cabinetZones": {
@@ -1709,7 +1717,7 @@
             "runA": "Lungime latura A",
             "runB": "Lungime latura B",
             "runC": "Lungime latura C",
-            "wardrobeHeight": "Inaltime dressing (H)"
+            "wardrobeHeight": "Inaltime dressing"
           }
         },
         "interiorModules": {

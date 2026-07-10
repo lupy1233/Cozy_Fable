@@ -136,6 +136,12 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     store.getState().loadSnapshot(buildSnapshotFromRequest(editRequest.data));
   }, [editRequest.data, isEdit, store]);
 
+  // La schimbarea fazei (cos → intrebari → fisiere → detalii → review) pagina
+  // se intoarce sus — altfel pe mobil ramai cu scroll-ul fostei faze (item 7).
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [phase]);
+
   // Sync server debounced (doar creare): backup pentru resume de pe alt device.
   useEffect(() => {
     if (isEdit || !token) return;
@@ -229,6 +235,7 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
           <ReviewStep
             token={token}
             editId={editId}
+            uploadTarget={uploadTarget}
             onBack={() => setPhase('details')}
             onEditRoom={(i) => {
               setActiveRoom(i);

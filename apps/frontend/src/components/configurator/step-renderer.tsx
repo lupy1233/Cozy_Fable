@@ -24,8 +24,7 @@ import { ConfiguratorIcon } from '@/lib/configurator-icons';
 import type { AttachmentTarget } from '@/hooks/use-requests';
 import { useConfiguratorStore } from '@/stores/configurator-store';
 import { BOOLEAN_ILLUSTRATIONS, getIllustration } from './illustrations';
-import { KitchenDimensionsDiagram } from './kitchen-dimensions-diagram';
-import { WallRunsDiagram } from './wall-runs-diagram';
+import { getDimensionFigure } from './dimension-figures';
 import { PlayingCard } from './playing-card';
 import { RoomSketchUpload } from './room-sketch-upload';
 
@@ -97,19 +96,6 @@ function StepShell({
 
 // factorii de conversie pentru afisarea dimensiunilor (stocarea ramane in metri)
 const UNIT_FACTOR = { m: 1, cm: 100, mm: 1000 } as const;
-
-// cate laturi (A/B/C) coteaza schita generica, in functie de layout
-const DRESSING_RUN_COUNT: Record<string, number> = {
-  LINEAR: 1,
-  L_SHAPE: 2,
-  U_SHAPE: 3,
-  WALK_IN: 2,
-};
-const PANTRY_RUN_COUNT: Record<string, number> = {
-  ONE_WALL: 1,
-  L_SHAPE: 2,
-  U_SHAPE: 3,
-};
 
 const cnUnit = (active: boolean) =>
   'rounded-full px-2 py-0.5 uppercase tracking-[0.06em] transition-colors ' +
@@ -315,25 +301,29 @@ export function StepRenderer(props: StepRendererProps) {
     const factor = UNIT_FACTOR[dimensionUnit];
     // afisare fara artefacte float (0.30000000000000004 → 0.3)
     const fmtNum = (v: number) => Math.round(v * 10000) / 10000;
+    // plansa cu litere (A/B/C/H...) — valorile stau in legenda si pe campuri,
+    // nu in desen, ca sa ramana mereu lizibile (feedback PO item 11)
+    const figure =
+      step.id === 'dimensions'
+        ? getDimensionFigure(roomType, answers, slots.map((s) => s.id))
+        : null;
+    const letterOf = (slotId: string) => figure?.letters[slotId];
+    const legend = slots
+      .filter((s) => letterOf(s.id) && Number.isFinite(values[s.id]))
+      .map((s) => `${letterOf(s.id)} = ${fmtNum(values[s.id] * factor)} ${dimensionUnit}`);
     return (
       <StepShell step={step} onInfo={onInfo} error={error}>
-        {/* schita parametrica: literele corespund campurilor de mai jos */}
-        {roomType === 'KITCHEN' && step.id === 'dimensions' && (
-          <KitchenDimensionsDiagram answers={answers} />
-        )}
-        {roomType === 'DRESSING' && step.id === 'dimensions' && (
-          <WallRunsDiagram
-            answers={answers}
-            runs={DRESSING_RUN_COUNT[String(answers.layout)] ?? 1}
-            heightSlotId="wardrobeHeight"
-          />
-        )}
-        {roomType === 'PANTRY' && step.id === 'dimensions' && (
-          <WallRunsDiagram
-            answers={answers}
-            runs={PANTRY_RUN_COUNT[String(answers.wallsUsed)] ?? 1}
-            heightSlotId="ceilingHeight"
-          />
+        {figure && (
+          <figure className="rounded-xl border border-border-2 bg-surface-2 p-4">
+            {figure.node}
+            <figcaption className="mt-2 text-center text-xs text-muted-foreground">
+              {legend.length > 0 ? (
+                <span className="font-mono tabular-nums">{legend.join(' · ')}</span>
+              ) : (
+                t('diagram.caption')
+              )}
+            </figcaption>
+          </figure>
         )}
         {/* comutator unitate de masura — valorile raman in metri in answers */}
         <div className="flex justify-end">
@@ -357,8 +347,23 @@ export function StepRenderer(props: StepRendererProps) {
             const hasValue = Number.isFinite(metersVal);
             const outOfRange = hasValue && (metersVal < slot.min || metersVal > slot.max);
             const rangeText = `${fmtNum(slot.min * factor)}–${fmtNum(slot.max * factor)} ${dimensionUnit}`;
+            const letter = letterOf(slot.id);
             return (
-              <Field key={slot.id} label={t(slot.labelKey)}>
+              <Field
+                key={slot.id}
+                label={
+                  letter ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="grid h-5 w-5 place-items-center rounded-full border border-brass/60 font-mono text-[11px] font-bold text-brass">
+                        {letter}
+                      </span>
+                      {t(slot.labelKey)}
+                    </span>
+                  ) : (
+                    t(slot.labelKey)
+                  )
+                }
+              >
                 <div className="relative">
                   <Input
                     type="number"

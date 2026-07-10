@@ -1,6 +1,7 @@
 'use client';
 
-import { ArrowLeft, ArrowRight, FileCheck, FileClock, FileX, X } from 'lucide-react';
+import { ATTACHMENT_ACCEPT } from '@marketplace/shared';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Dropzone } from '@/components/ui/dropzone';
@@ -10,14 +11,8 @@ import {
   useUploadAttachmentFor,
   type AttachmentTarget,
 } from '@/hooks/use-requests';
+import { AttachmentRow } from './attachment-item';
 import { InspirationPicker } from './inspiration-picker';
-
-const STATUS_ICON = {
-  SAFE: FileCheck,
-  BLOCKED: FileX,
-  PENDING_SCAN: FileClock,
-  PENDING_UPLOAD: FileClock,
-} as const;
 
 export function UploadsStep({
   target,
@@ -46,7 +41,7 @@ export function UploadsStep({
 
       <Dropzone
         onFiles={onFiles}
-        accept="image/jpeg,image/png,image/webp,application/pdf"
+        accept={ATTACHMENT_ACCEPT}
         label={t('uploads.dropLabel')}
         hint={t('uploads.dropHint')}
       />
@@ -57,37 +52,9 @@ export function UploadsStep({
 
       {attachments.length > 0 && (
         <ul className="flex flex-col gap-1.5 text-sm">
-          {attachments.map((a) => {
-            const Icon = STATUS_ICON[a.status] ?? FileClock;
-            return (
-              <li
-                key={a.id}
-                className="flex items-center justify-between rounded-md border border-border bg-surface-2 px-3 py-2"
-              >
-                <span className="flex items-center gap-2 text-muted-foreground">
-                  <Icon
-                    className={
-                      'h-4 w-4 ' +
-                      (a.status === 'SAFE'
-                        ? 'text-sage'
-                        : a.status === 'BLOCKED'
-                          ? 'text-crimson'
-                          : 'text-amber')
-                    }
-                  />
-                  {a.filename} · {(a.sizeBytes / 1024).toFixed(0)} KB · {t(`uploads.status.${a.status}`)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => remove.mutate(a.id)}
-                  className="text-crimson"
-                  aria-label="remove"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </li>
-            );
-          })}
+          {attachments.map((a) => (
+            <AttachmentRow key={a.id} attachment={a} onRemove={() => remove.mutate(a.id)} />
+          ))}
         </ul>
       )}
 

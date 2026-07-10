@@ -8,6 +8,7 @@ import { ApiError } from '@/lib/api';
 import { useDeleteRequest, useRepostRequest, useRequest } from '@/hooks/use-requests';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/badge';
+import { AttachmentThumb } from '@/components/configurator/attachment-item';
 import { RoomAnswerSummary } from '@/components/configurator/room-answer-summary';
 import { RequestInspirationStrip } from '@/components/configurator/request-inspiration-strip';
 
@@ -96,6 +97,7 @@ export default function RequestDetailPage() {
                   roomType={room.roomType}
                   answers={room.answers}
                   flowVersion={room.flowVersion}
+                  attachments={r.attachments}
                 />
               </div>
             ) : (
@@ -114,24 +116,15 @@ export default function RequestDetailPage() {
         ))}
       </div>
 
-      {/* Atasamente */}
+      {/* Atasamente — statusul de scanare nu se afiseaza; doar eroarea (item 10) */}
       {r.attachments.length > 0 && (
         <div className="flex flex-col gap-2">
           <h2 className="font-serif text-xl">{t('sectionAttachments')}</h2>
-          <ul className="flex flex-col gap-1 text-sm">
+          <div className="flex flex-wrap gap-2">
             {r.attachments.map((a) => (
-              <li key={a.id}>
-                {a.downloadUrl ? (
-                  <a href={a.downloadUrl} className="text-walnut hover:underline" target="_blank" rel="noreferrer">
-                    {a.filename}
-                  </a>
-                ) : (
-                  a.filename
-                )}{' '}
-                · {a.status}
-              </li>
+              <AttachmentThumb key={a.id} attachment={a} />
             ))}
-          </ul>
+          </div>
         </div>
       )}
 
