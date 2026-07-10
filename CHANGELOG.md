@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Sprint P8 — 2026-07-11 — verificare integrala + TODO pentru acordul PO (feedback PO r2: item 15)
+- **Verificare integrala**: typecheck + lint + teste 45/45 verzi; build de productie frontend compilat cu 51/51 pagini generate (faza standalone-symlink pica doar local pe Windows fara drepturi de symlink — in Docker trece); e2e publicare pe flow v2 nou (Balcon: ALTUL cu text liber ajunge in item description, spec-card complet pe detaliu, coverage filtering corect — firma din Bucuresti nu vede cererea din Iasi); e2e mesaje/notificari si colectii re-verificate.
+- **`docs/09-po-review-todo.md`** (livrabilul item 15): 6 decizii care asteapta PO (D1 numele "Caietul de idei", D2 limita 10→25MB, D3 jest backend, D4 AV real, D5 re-seed notificari pe Railway, D6 cheia Google Places) + 8 idei de imbunatatire propuse (read-tracking conversatii, filtre cereri, lightbox cu save si navigare, mutare intre colectii, emailuri de notificare, paginare galerie, plansa hol, QA vizual pe mobil) — NIMIC din lista nu se implementeaza fara acordul explicit al PO.
+
 ## Sprint P7 — 2026-07-11 — audit complet consola admin (feedback PO r2: item 9)
 - **Audit e2e ca admin@demo.ro pe toate cele 13 endpoint-uri + 9 pagini**: Tablou de bord (KPI live: 15 revendicari active, 1 disputa, breakdown firme/cereri), Firme (lista 8 + detaliu cu semnale de risc; Aproba/Respinge prezente pe firmele PENDING), Dispute (Rezolva/Respinge pe disputa deschisa), Plati (stare goala corecta), Retrageri (stare goala corecta), Audit (paginare, 61 intrari), Setari (19 setari sistem + reguli penalizare + planuri + pachete credite + praguri, 52 de inputuri), Joburi (fara joburi esuate), Caietul de idei admin (11 poze, form cu 8 ateliere).
 - **Caile de scriere verificate live**: PUT /admin/settings/eur_ron_rate → 200, iar intrarea SETTING_UPDATED a aparut instant in Audit (interceptorul @Audit functioneaza); valoarea restaurata.
