@@ -2495,7 +2495,7 @@
           "subtitle": "Laundry humidity matters when choosing materials.",
           "info": {
             "title": "Why ventilation matters",
-            "body": "The washer and dryer release moisture. Without a window or fan, steam builds up and affects the furniture — in that case we recommend painted MDF, which handles humidity better."
+            "body": "The washer and dryer release moisture. Without a window or fan, steam builds up and affects the furniture — in that case we recommend foil-wrapped MDF, which handles humidity better."
           },
           "options": {
             "WINDOW": {
@@ -2522,6 +2522,18 @@
         "material": {
           "title": "What material?",
           "subtitle": "Humid environment — see the recommendation."
+        },
+        "materialApplianceHousing": {
+          "title": "Material for the appliance housing"
+        },
+        "materialStorage": {
+          "title": "Material for the storage cabinets"
+        },
+        "materialCountertop": {
+          "title": "Material for the worktop"
+        },
+        "materialSinkUnit": {
+          "title": "Material for the sink unit"
         },
         "sketch": {
           "title": "Do you have a sketch of the space?",
@@ -2606,6 +2618,12 @@
           "title": "What material?",
           "subtitle": "The pantry is a utility space — PAL offers the best value here."
         },
+        "materialShelves": {
+          "title": "Material for the open shelves"
+        },
+        "materialCabinets": {
+          "title": "Material for the closed cabinets"
+        },
         "sketch": {
           "title": "Do you have a pantry sketch?",
           "subtitle": "Optional — wall sizes and the door position."
@@ -2677,6 +2695,18 @@
         "material": {
           "title": "What material?",
           "subtitle": "See the recommendation based on the balcony type."
+        },
+        "materialStorageBench": {
+          "title": "Material for the storage bench"
+        },
+        "materialTallCabinet": {
+          "title": "Material for the tall cabinet"
+        },
+        "materialWorktop": {
+          "title": "Material for the worktop"
+        },
+        "materialShelves": {
+          "title": "Material for the shelves"
         },
         "sketch": {
           "title": "Do you have a balcony sketch?",

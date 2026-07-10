@@ -1,4 +1,12 @@
-import type { AnswerMap, Condition, MultiChoiceStep, QuestionStep, SingleChoiceStep, UploadStep } from '../../types';
+import type {
+  AnswerMap,
+  Condition,
+  MultiChoiceStep,
+  QuestionStep,
+  RoomFlow,
+  SingleChoiceStep,
+  UploadStep,
+} from '../../types';
 import {
   GENERAL_SYSTEMS,
   materialOptions,
@@ -63,4 +71,43 @@ export function pieceMaterialWithSystems(
 
 export function answerString(answers: AnswerMap, id: string, fallback: string): string {
   return typeof answers[id] === 'string' ? (answers[id] as string) : fallback;
+}
+
+// Deriva versiunea urmatoare a unui flow de piesa, aliniata la modelul
+// bucatariei v2 (item 1): garanteaza textul liber "alt material" (step
+// conditional dupa intrebarea de material, inserat DOAR daca lipseste) si
+// propaga textul clientului in description-ul itemelor derivate (v1 il colecta
+// la 3 piese dar il pierdea la derivare). Flow-ul v1 primit NU e mutat —
+// cererile publicate pe v1 raman valide (FROZEN).
+export function pieceFlowV2(flow: RoomFlow, version: number): RoomFlow {
+  const idx = flow.steps.findIndex((s) => s.id === 'material');
+  if (idx < 0) throw new Error(`Flow ${flow.roomType} has no 'material' step`);
+  const hasOther = flow.steps.some((s) => s.id === 'materialOther');
+  const steps = hasOther
+    ? [...flow.steps]
+    : [
+        ...flow.steps.slice(0, idx + 1),
+        otherMaterialStep('material', 'material'),
+        ...flow.steps.slice(idx + 1),
+      ];
+  return {
+    ...flow,
+    version,
+    steps,
+    deriveRoom: (answers) => {
+      const derived = flow.deriveRoom(answers);
+      const text = answers.materialOther;
+      if (answers.material !== 'ALTUL' || typeof text !== 'string' || !text.trim()) {
+        return derived;
+      }
+      const wanted = `Material dorit: ${text.trim()}`;
+      return {
+        ...derived,
+        items: derived.items.map((it) => ({
+          ...it,
+          description: it.description ? `${it.description}; ${wanted}` : wanted,
+        })),
+      };
+    },
+  };
 }

@@ -60,6 +60,24 @@ export function selectedPieces(answers: AnswerMap): string[] {
   return Array.isArray(answers.piecesNeeded) ? (answers.piecesNeeded as string[]) : [];
 }
 
+// Marcheaza un material cu badge "Recomandat" conditionat pe toate intrebarile
+// de material din steps (ex. MDF infoliat cand incaperea nu e ventilata,
+// lemn masiv cand balconul e deschis). Pur prezentational, nu schimba validarea.
+export function withRecommendedMaterial(
+  steps: QuestionStep[],
+  material: string,
+  cond: Condition,
+): QuestionStep[] {
+  return steps.map((s) =>
+    s.type === 'single-choice' && s.id.startsWith('material')
+      ? {
+          ...s,
+          options: s.options.map((o) => (o.value === material ? { ...o, recommendedIf: cond } : o)),
+        }
+      : s,
+  );
+}
+
 // Items derivate: fiecare piesa selectata cu materialul si sistemele EI.
 // Compatibilitate: daca un draft vechi are inca answers.openingSystems (comun
 // pe camera), acela e folosit ca fallback pentru piesele fara raspuns propriu.

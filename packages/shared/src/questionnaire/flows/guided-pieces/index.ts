@@ -11,3 +11,15 @@ export { pieceTableFlow } from './piece-table';
 export { pieceShoeCabinetFlow } from './piece-shoe-cabinet';
 export { pieceNightstandFlow } from './piece-nightstand';
 export { pieceBenchFlow } from './piece-bench';
+export {
+  pieceWardrobeFlowV2,
+  pieceTvUnitFlowV2,
+  pieceBookcaseFlowV2,
+  pieceDeskFlowV2,
+  pieceBedFlowV2,
+  pieceDresserFlowV2,
+  pieceTableFlowV2,
+  pieceShoeCabinetFlowV2,
+  pieceNightstandFlowV2,
+  pieceBenchFlowV2,
+} from './v2';

@@ -2495,7 +2495,7 @@
           "subtitle": "Umiditatea din spalatorie conteaza la alegerea materialelor.",
           "info": {
             "title": "De ce conteaza ventilatia",
-            "body": "Masina de spalat si uscatorul elibereaza umiditate. Fara geam sau ventilator, aburul se aduna si afecteaza mobilierul — in acest caz recomandam MDF vopsit, mai rezistent la umezeala."
+            "body": "Masina de spalat si uscatorul elibereaza umiditate. Fara geam sau ventilator, aburul se aduna si afecteaza mobilierul — in acest caz recomandam MDF infoliat, mai rezistent la umezeala."
           },
           "options": {
             "WINDOW": {
@@ -2522,6 +2522,18 @@
         "material": {
           "title": "Ce material?",
           "subtitle": "Mediu umed — vezi recomandarea."
+        },
+        "materialApplianceHousing": {
+          "title": "Material pentru dulapul de incastrare"
+        },
+        "materialStorage": {
+          "title": "Material pentru dulapurile de depozitare"
+        },
+        "materialCountertop": {
+          "title": "Material pentru blatul de lucru"
+        },
+        "materialSinkUnit": {
+          "title": "Material pentru corpul cu cuva"
         },
         "sketch": {
           "title": "Ai o schita a spatiului?",
@@ -2606,6 +2618,12 @@
           "title": "Ce material?",
           "subtitle": "Debaraua e spatiu utilitar — PAL are cel mai bun raport calitate/pret aici."
         },
+        "materialShelves": {
+          "title": "Material pentru rafturile deschise"
+        },
+        "materialCabinets": {
+          "title": "Material pentru dulapurile inchise"
+        },
         "sketch": {
           "title": "Ai o schita a debaralei?",
           "subtitle": "Optional — dimensiunile peretilor si pozitia usii."
@@ -2677,6 +2695,18 @@
         "material": {
           "title": "Ce material?",
           "subtitle": "Vezi recomandarea in functie de tipul balconului."
+        },
+        "materialStorageBench": {
+          "title": "Material pentru banca cu lada"
+        },
+        "materialTallCabinet": {
+          "title": "Material pentru dulapul inalt"
+        },
+        "materialWorktop": {
+          "title": "Material pentru blatul de lucru"
+        },
+        "materialShelves": {
+          "title": "Material pentru rafturi"
         },
         "sketch": {
           "title": "Ai o schita a balconului?",
