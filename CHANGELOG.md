@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## Sprint P7 — 2026-07-11 — audit complet consola admin (feedback PO r2: item 9)
+- **Audit e2e ca admin@demo.ro pe toate cele 13 endpoint-uri + 9 pagini**: Tablou de bord (KPI live: 15 revendicari active, 1 disputa, breakdown firme/cereri), Firme (lista 8 + detaliu cu semnale de risc; Aproba/Respinge prezente pe firmele PENDING), Dispute (Rezolva/Respinge pe disputa deschisa), Plati (stare goala corecta), Retrageri (stare goala corecta), Audit (paginare, 61 intrari), Setari (19 setari sistem + reguli penalizare + planuri + pachete credite + praguri, 52 de inputuri), Joburi (fara joburi esuate), Caietul de idei admin (11 poze, form cu 8 ateliere).
+- **Caile de scriere verificate live**: PUT /admin/settings/eur_ron_rate → 200, iar intrarea SETTING_UPDATED a aparut instant in Audit (interceptorul @Audit functioneaza); valoarea restaurata.
+- **Concluzie: nimic stricat de rework-uri** — zero erori de consola pe paginile admin, toate datele se incarca. Nu au fost necesare reparatii.
+- Ramase pe lista de decizii PO (P8): jest neinstalat in backend (scriptul `pnpm -F backend test` pica); limita 10MB/fisier in cod vs 25MB in invarianta 3.4.
+
 ## Sprint P6 — 2026-07-11 — "Caietul de idei" cu colectii stil Pinterest + navbar + romana implicita (feedback PO r2: itemele 8, 13, 14)
 - **DB (migratie `inspiration_boards`)**: tabelele `inspiration_boards` (id, user_id FK cascade, name UNIQUE per user, created/updated_at) si `inspiration_board_items` (board_id, photo_id, PK compus, cascade) — colectiile de salvari ale utilizatorului; fara PII proprii → hard delete. docs/04 actualizat.
 - **Backend `inspiration/boards`** (guard global JWT, orice rol): GET / (colectiile mele cu itemsCount + colaj coperta 3 imagini, servite cu aceleasi reguli presigned), GET /saved (toate salvarile — starea "Salvat" per pin), GET/:id (detaliu cu pozele), POST (creare; P2002 → `BOARD_NAME_TAKEN` nou in ERROR_CODES), PATCH/:id (redenumire), DELETE/:id, POST/:id/items (salvare idempotenta, doar poze publicate — assertSelectable; updatedAt reordoneaza colectia), DELETE/:id/items/:photoId.
