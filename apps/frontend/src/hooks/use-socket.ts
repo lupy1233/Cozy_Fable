@@ -37,12 +37,21 @@ export function useRealtimeSync(): void {
       qc.invalidateQueries({ queryKey: ['chat'] });
       qc.invalidateQueries({ queryKey: ['notifications'] });
     };
+    // claim nou / schimbare de status: parcursul cererii + marketplace se refac
+    const onRequestChange = () => {
+      qc.invalidateQueries({ queryKey: ['requests'] });
+      qc.invalidateQueries({ queryKey: ['marketplace'] });
+      qc.invalidateQueries({ queryKey: ['chat'] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
+    };
     const onAuthExpired = () => s.connect();
 
     s.on('message.created', onMessage);
     s.on('quote.created', onQuote);
     s.on('quote.updated', onQuote);
     s.on('quote.accepted', onQuote);
+    s.on('claim.created', onRequestChange);
+    s.on('request.status_changed', onRequestChange);
     s.on('auth_expired', onAuthExpired);
 
     return () => {
@@ -50,6 +59,8 @@ export function useRealtimeSync(): void {
       s.off('quote.created', onQuote);
       s.off('quote.updated', onQuote);
       s.off('quote.accepted', onQuote);
+      s.off('claim.created', onRequestChange);
+      s.off('request.status_changed', onRequestChange);
       s.off('auth_expired', onAuthExpired);
     };
   }, [qc]);

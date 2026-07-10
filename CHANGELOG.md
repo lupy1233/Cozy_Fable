@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## Sprint P4 — 2026-07-11 — parcursul cererii per atelier + notificari reparate (feedback PO r2: itemele 4, 5)
+- **CAUZA item 4 gasita**: pagina clientului de oferte itera `quotes.map(...)` si randa chat-ul DOAR sub oferte → mesajele firmelor care au dat claim FARA oferta (exact scenariul owner.b) erau complet invizibile.
+- **Pagina "Oferte si conversatii" rescrisa** (`/requests/[id]/offers`): o sectiune per ATELIER care a preluat cererea — antet cu numele firmei, momentul preluarii si statusul parcursului (In discutie / Oferta primita / Oferta acceptata / Conversatie inchisa — inclusiv claim retras/anulat), preview ultimul mesaj, apoi oferta (daca exista) si chat-ul intotdeauna. Butonul de pe detaliul cererii devine "Vezi ofertele si conversatiile" si apare si post-acceptare (DELIVERED/COMPLETED/DISPUTED).
+- **`ChatThreadDto` imbogatit** (BE+shared): `claimStatus` + `lastMessage {body, senderRole, createdAt}` (un singur include suplimentar, ultimul mesaj per thread).
+- **CAUZA item 5 gasita**: (a) seed-ul demo crea 20 de notificari NECITITE cu payload `{demo:true}` — pareau notificari reale duplicate si "nu se puteau citi" din UI; (b) notificarile reale nu aveau titlu, context sau link (doar tipul brut); (c) dropdown-ul nu se inchidea la click in afara.
+- **Notificari end-to-end**: payload-urile evenimentelor imbogatite cu context afisabil — `message.created` (+senderRole, requestId, requestTitle, companyName), `quote.created/updated/accepted` (+requestTitle, companyName), `claim.created` devine TINTIT (client + membrii firmei; inainte era doar broadcast si clientul nu afla niciodata ca un atelier i-a preluat cererea) cu acelasi context. Marketplace-ul celorlalte firme ramane sincronizat prin `request.status_changed` (broadcast, neatins).
+- **Clopotel rescris**: titlu per tip + linie de context "Atelier · Cerere", timp relativ, iconita per tip, click = marcheaza citit + navigheaza la resursa (client → /requests/{id}/offers; firma → /marketplace/claims), inchidere la click-in-afara/Escape, "Marcheaza toate citite", stare goala prietenoasa. `use-socket` invalideaza acum si pe `claim.created`/`request.status_changed`.
+- **Seed**: notificarile de decor se nasc CITITE (cele necitite vin doar din actiuni live); DB-ul local curatat la fel.
+- **Verificat e2e**: owner.b trimite mesaj pe thread-ul lui radu → notificare "Mesaj nou / B DesignWood · DRESSING Iasi" (unread=1), click → navigare la pagina de oferte + unread=0 server-side; pagina arata toate cele 3 ateliere cu "In discutie" si mesajul lui Florin B vizibil in chat. Typecheck/lint/teste 45/45 verzi.
+- Nota: `pnpm -F backend test` e configurat cu jest dar jest nu e instalat (gap pre-existent) — pe lista de decizii P8.
+
 ## Sprint P3 — 2026-07-11 — ilustratii dedicate pentru toate optiunile formularului (feedback PO r2: item 2)
 - **~75 de desene SVG noi**, in acelasi limbaj "schita de atelier" ca cele existente (viewBox 120×90, currentColor, stroke rotunjit), organizate in 3 fisiere noi:
   - `illustrations/materials-systems.tsx`: MDF infoliat (folia ridicata la colt), MDF vopsit (pensula), MDF furnir (foaia de furnir), "Altul" (eticheta cu creion); sisteme: maner clasic, profil Gola (sant sub blat), Aventos (front ridicat cu brat); blat HPL.

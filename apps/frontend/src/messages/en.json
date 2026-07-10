@@ -450,7 +450,7 @@
     "editsUsed": "Edits used",
     "expiresAt": "Expires",
     "view": "View",
-    "viewOffers": "View offers",
+    "viewOffers": "View offers & conversations",
     "empty": "No requests.",
     "field": {
       "title": "Title",
@@ -691,8 +691,19 @@
     "backToRequest": "Back to request",
     "offerSection": "Offer",
     "chatSection": "Chat",
-    "offersTitle": "Offers received",
+    "offersTitle": "Offers & conversations",
+    "offersSubtitle": "Your request's journey with every workshop that claimed it: discussions, offers, acceptance.",
     "noOffers": "No offers yet.",
+    "noThreads": "No workshop has claimed your request yet. You will get a notification when it happens.",
+    "noOfferYet": "{company} has not sent an offer yet — you can discuss the details in the conversation below.",
+    "claimedAt": "claimed the request {time}",
+    "lastMessageAt": "last message {time}",
+    "stage": {
+      "DISCUSSION": "In discussion",
+      "OFFER_SENT": "Offer received",
+      "ACCEPTED": "Offer accepted",
+      "CLOSED": "Conversation closed"
+    },
     "versionLabel": "Version {n}",
     "extraTag": "extra",
     "downloadPdf": "Download PDF",
@@ -951,7 +962,7 @@
         "status_changed": "Request status updated"
       },
       "claim": {
-        "created": "New claim",
+        "created": "Request claimed by a workshop",
         "withdrawn": "Claim withdrawn"
       }
     }

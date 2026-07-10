@@ -450,7 +450,7 @@
     "editsUsed": "Editări folosite",
     "expiresAt": "Expiră",
     "view": "Vezi",
-    "viewOffers": "Vezi ofertele",
+    "viewOffers": "Vezi ofertele si conversatiile",
     "empty": "Nicio cerere.",
     "field": {
       "title": "Titlu",
@@ -691,8 +691,19 @@
     "backToRequest": "Înapoi la cerere",
     "offerSection": "Ofertă",
     "chatSection": "Chat",
-    "offersTitle": "Oferte primite",
+    "offersTitle": "Oferte și conversații",
+    "offersSubtitle": "Parcursul cererii tale la fiecare atelier care a preluat-o: discuții, oferte, acceptare.",
     "noOffers": "Nicio ofertă încă.",
+    "noThreads": "Niciun atelier nu a preluat încă cererea. Vei primi o notificare când se întâmplă.",
+    "noOfferYet": "{company} nu a trimis încă o ofertă — poți discuta detaliile în conversația de mai jos.",
+    "claimedAt": "a preluat cererea {time}",
+    "lastMessageAt": "ultimul mesaj {time}",
+    "stage": {
+      "DISCUSSION": "În discuție",
+      "OFFER_SENT": "Ofertă primită",
+      "ACCEPTED": "Ofertă acceptată",
+      "CLOSED": "Conversație închisă"
+    },
     "versionLabel": "Versiunea {n}",
     "extraTag": "suplimentară",
     "downloadPdf": "Descarcă PDF",
@@ -951,7 +962,7 @@
         "status_changed": "Status cerere actualizat"
       },
       "claim": {
-        "created": "Revendicare nouă",
+        "created": "Cerere preluată de un atelier",
         "withdrawn": "Revendicare retrasă"
       }
     }

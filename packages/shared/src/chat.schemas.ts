@@ -36,5 +36,13 @@ export interface ChatThreadDto {
   // read-only daca: oferta altei firme acceptata (4.14) sau negociere incheiata online (D3).
   readOnly: boolean;
   negotiationEndedByCompany: boolean;
+  // starea claim-ului firmei (parcursul cererii per firma — item 4)
+  claimStatus: string;
+  // ultimul mesaj din conversatie (preview in lista clientului); null = fara mesaje
+  lastMessage: {
+    body: string | null;
+    senderRole: 'CLIENT' | 'COMPANY';
+    createdAt: string;
+  } | null;
   createdAt: string;
 }

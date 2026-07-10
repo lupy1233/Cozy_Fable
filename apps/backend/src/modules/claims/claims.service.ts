@@ -220,11 +220,36 @@ export class ClaimsService {
       if (res.slot.slaDeadlineAt) {
         await this.scheduleSlaBreach(createdId, res.slot.slaDeadlineAt);
       }
-      await this.eventBus.publish('claim.created', {
-        claimSlotId: createdId,
-        requestId: dto.requestId,
-        companyId: ctx.companyId,
+      // Notificare TINTITA (client + membrii firmei): clientul afla ca un atelier
+      // i-a preluat cererea — inceputul parcursului per firma (iteme 4+5).
+      // Broadcast-ul anterior nu persista nicio notificare.
+      const [display, members] = await Promise.all([
+        this.prisma.request.findUnique({
+          where: { id: dto.requestId },
+          select: { title: true, clientUserId: true },
+        }),
+        this.prisma.companyMember.findMany({
+          where: { companyId: ctx.companyId },
+          select: { userId: true },
+        }),
+      ]);
+      const company = await this.prisma.company.findUnique({
+        where: { id: ctx.companyId },
+        select: { name: true },
       });
+      const claimTargets = members.map((m) => m.userId);
+      if (display?.clientUserId) claimTargets.push(display.clientUserId);
+      await this.eventBus.publish(
+        'claim.created',
+        {
+          claimSlotId: createdId,
+          requestId: dto.requestId,
+          companyId: ctx.companyId,
+          requestTitle: display?.title ?? '',
+          companyName: company?.name ?? '',
+        },
+        claimTargets,
+      );
       await this.eventBus.publish('request.status_changed', { requestId: dto.requestId });
 
       return this.toDto(res.slot, chatThreadId);

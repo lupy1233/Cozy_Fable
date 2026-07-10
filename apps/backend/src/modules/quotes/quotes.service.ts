@@ -582,7 +582,20 @@ export class QuotesService {
     });
 
     const targets = await this.participantsForRequest(quote.requestId);
-    await this.eventBus.publish('quote.accepted', { quoteId: quote.id, requestId: quote.requestId }, targets);
+    const display = await this.prisma.quote.findUnique({
+      where: { id: quote.id },
+      include: { request: { select: { title: true } }, company: { select: { name: true } } },
+    });
+    await this.eventBus.publish(
+      'quote.accepted',
+      {
+        quoteId: quote.id,
+        requestId: quote.requestId,
+        requestTitle: display?.request.title ?? '',
+        companyName: display?.company.name ?? '',
+      },
+      targets,
+    );
     await this.eventBus.publish('request.status_changed', { requestId: quote.requestId });
     return this.getQuoteDto(quote.id);
   }
@@ -931,10 +944,23 @@ export class QuotesService {
   }
 
   private async emitQuote(event: 'quote.created' | 'quote.updated', quoteId: string): Promise<void> {
-    const quote = await this.prisma.quote.findUnique({ where: { id: quoteId } });
+    const quote = await this.prisma.quote.findUnique({
+      where: { id: quoteId },
+      include: { request: { select: { title: true } }, company: { select: { name: true } } },
+    });
     if (!quote) return;
     const targets = await this.participantsForQuote(quoteId);
-    await this.eventBus.publish(event, { quoteId, requestId: quote.requestId }, targets);
+    // context afisabil pentru notificari (titlu + deep-link, item 5)
+    await this.eventBus.publish(
+      event,
+      {
+        quoteId,
+        requestId: quote.requestId,
+        requestTitle: quote.request.title ?? '',
+        companyName: quote.company.name,
+      },
+      targets,
+    );
   }
 
   // ===== mapare DTO =====

@@ -23,7 +23,9 @@ interface ThreadContext {
   threadId: string;
   claimSlotId: string;
   requestId: string;
+  requestTitle: string;
   companyId: string;
+  companyName: string;
   clientUserId: string | null;
   readOnly: boolean;
   negotiationEndedByCompany: boolean;
@@ -50,7 +52,7 @@ export class ChatService {
   ): Promise<ThreadContext> {
     const thread = await this.prisma.chatThread.findUnique({
       where: { id: threadId },
-      include: { claimSlot: { include: { request: true } } },
+      include: { claimSlot: { include: { request: true, company: true } } },
     });
     if (!thread) {
       throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Thread not found' });
@@ -60,7 +62,9 @@ export class ChatService {
       threadId: thread.id,
       claimSlotId: slot.id,
       requestId: slot.requestId,
+      requestTitle: slot.request.title ?? '',
       companyId: slot.companyId,
+      companyName: slot.company.name,
       clientUserId: slot.request.clientUserId,
       readOnly: thread.readOnly,
       negotiationEndedByCompany: thread.negotiationEndedByCompany,
@@ -90,10 +94,16 @@ export class ChatService {
 
   // --- liste ---
 
+  // include comun: relatiile pentru DTO + ultimul mesaj (preview conversatie)
+  private readonly threadInclude = {
+    claimSlot: { include: { request: true, company: true } },
+    messages: { orderBy: { createdAt: 'desc' as const }, take: 1 },
+  };
+
   async listThreadsForClient(userId: string): Promise<ChatThreadDto[]> {
     const threads = await this.prisma.chatThread.findMany({
       where: { claimSlot: { request: { clientUserId: userId } } },
-      include: { claimSlot: { include: { request: true, company: true } } },
+      include: this.threadInclude,
       orderBy: { createdAt: 'desc' },
     });
     return threads.map((t) => this.toThreadDto(t));
@@ -102,7 +112,7 @@ export class ChatService {
   async listThreadsForCompany(companyId: string): Promise<ChatThreadDto[]> {
     const threads = await this.prisma.chatThread.findMany({
       where: { claimSlot: { companyId } },
-      include: { claimSlot: { include: { request: true, company: true } } },
+      include: this.threadInclude,
       orderBy: { createdAt: 'desc' },
     });
     return threads.map((t) => this.toThreadDto(t));
@@ -173,9 +183,19 @@ export class ChatService {
 
     const [dtoMsg] = await this.mapMessages([message], userId);
     const targets = await this.participantUserIds(ctx);
+    // payload cu context afisabil (titlul cererii + firma + rolul expeditorului):
+    // notificarile pot construi un titlu clar si un deep-link (item 5)
     await this.eventBus.publish(
       'message.created',
-      { threadId, messageId: message.id, senderUserId: userId },
+      {
+        threadId,
+        messageId: message.id,
+        senderUserId: userId,
+        senderRole: role,
+        requestId: ctx.requestId,
+        requestTitle: ctx.requestTitle,
+        companyName: ctx.companyName,
+      },
       targets,
     );
     return dtoMsg;
@@ -246,10 +266,13 @@ export class ChatService {
     claimSlot: {
       requestId: string;
       companyId: string;
-      request: { title: string | null };
+      status: string;
+      request: { title: string | null; clientUserId: string | null };
       company: { name: string };
     };
+    messages: { body: string | null; senderUserId: string; createdAt: Date }[];
   }): ChatThreadDto {
+    const last = t.messages[0];
     return {
       id: t.id,
       claimSlotId: t.claimSlotId,
@@ -259,6 +282,15 @@ export class ChatService {
       companyName: t.claimSlot.company.name,
       readOnly: t.readOnly,
       negotiationEndedByCompany: t.negotiationEndedByCompany,
+      claimStatus: t.claimSlot.status,
+      lastMessage: last
+        ? {
+            body: last.body,
+            senderRole:
+              last.senderUserId === t.claimSlot.request.clientUserId ? 'CLIENT' : 'COMPANY',
+            createdAt: last.createdAt.toISOString(),
+          }
+        : null,
       createdAt: t.createdAt.toISOString(),
     };
   }

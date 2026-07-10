@@ -289,13 +289,16 @@ async function main() {
   }
   await prisma.auditLog.createMany({ data: auditRows });
 
+  // Notificarile de decor sunt TOATE citite (feedback PO item 5): cele necitite
+  // din seed pareau notificari reale duplicate si nu puteau fi "citite" din UI.
+  // Notificarile necitite ale demo-ului vin din actiunile live (claim/mesaj/oferta).
   const notifUsers = [ana.id, mihai.id, elena.id, radu.id, A.ownerId, B.ownerId, C.ownerId];
   const notifTypes = ['quote.created', 'quote.updated', 'request.status_changed', 'message.created', 'claim.created'];
   const notifRows: Prisma.NotificationCreateManyInput[] = [];
   for (let i = 0; i < 30; i++) {
     notifRows.push({
       userId: notifUsers[i % notifUsers.length], type: notifTypes[i % notifTypes.length],
-      payload: { demo: true } as Prisma.InputJsonValue, readAt: i % 3 === 0 ? daysAgo(2) : null, createdAt: daysAgo(20 - (i % 20)),
+      payload: { demo: true } as Prisma.InputJsonValue, readAt: daysAgo(2), createdAt: daysAgo(20 - (i % 20)),
     });
   }
   await prisma.notification.createMany({ data: notifRows });

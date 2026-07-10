@@ -38,9 +38,16 @@ export default function RequestDetailPage() {
         ← {t('myRequests')}
       </Link>
 
-      {['CLAIMED_PARTIAL', 'CLAIMED_FULL', 'OFFERS_RECEIVED', 'NEGOTIATION', 'ACCEPTED'].includes(
-        r.status,
-      ) && (
+      {[
+        'CLAIMED_PARTIAL',
+        'CLAIMED_FULL',
+        'OFFERS_RECEIVED',
+        'NEGOTIATION',
+        'ACCEPTED',
+        'DELIVERED_BY_COMPANY',
+        'COMPLETED',
+        'DISPUTED',
+      ].includes(r.status) && (
         <Button asChild variant="walnut" className="self-start">
           <Link href={`/requests/${id}/offers`}>{t('viewOffers')}</Link>
         </Button>
