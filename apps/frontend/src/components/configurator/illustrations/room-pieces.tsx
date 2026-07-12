@@ -375,10 +375,12 @@ export function IlluDeskL({ className }: IllustrationProps) {
   );
 }
 export function IlluDeskU({ className }: IllustrationProps) {
+  // U real (feedback PO 2026-07-13): bara de sus + doua brate care coboara,
+  // cu scaunul in golul dintre ele — vechiul desen arata de fapt un T
   return (
     <Svg className={className}>
-      <path d="M22 18h76v20H76v18h-32V38H22z" transform="translate(0,4)" />
-      <circle cx="60" cy="70" r="8" strokeWidth={2.5} />
+      <path d="M22 22h76v42h-22V44H44v20H22z" />
+      <circle cx="60" cy="58" r="7" strokeWidth={2.5} />
     </Svg>
   );
 }

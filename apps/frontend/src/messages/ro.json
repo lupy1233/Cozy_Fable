@@ -1135,7 +1135,7 @@
     },
     "uploads": {
       "title": "Adauga poze sau planuri",
-      "subtitle": "Optional — imagini din spatiu, schite sau proiectul tau (maxim 10 fisiere).",
+      "subtitle": "Optional — imagini din spatiu, schite sau proiectul tau.",
       "dropLabel": "Trage fisiere aici sau apasa pentru a incarca",
       "dropHint": "JPG, PNG, WEBP, PDF sau ZIP, pana la 25 MB",
       "uploading": "Se incarca...",
@@ -1898,6 +1898,15 @@
                 "body": "Pantalonar extractibil, suporturi de curele si cravate, cosuri metalice. Se adauga usor la final, dar costa mai putin daca le planifici de la inceput.",
                 "price": "+200–600 lei / accesoriu"
               }
+            },
+            "LED_LIGHTING": {
+              "label": "Iluminare LED",
+              "description": "Banda LED cu senzor la deschidere",
+              "info": {
+                "title": "Iluminare LED",
+                "body": "Banda LED montata sub rafturi sau in lateral, de regula cu senzor de usa sau de miscare. Are nevoie de alimentare in apropiere — spune-i firmei unde e cea mai apropiata priza.",
+                "price": "+400–1.200 lei"
+              }
             }
           }
         },
@@ -2124,20 +2133,38 @@
         "materialWardrobe": {
           "title": "Material — dulap"
         },
+        "systemsWardrobe": {
+          "title": "Deschidere — dulap"
+        },
         "materialBed": {
           "title": "Material — pat"
+        },
+        "systemsBed": {
+          "title": "Deschidere — pat"
         },
         "materialNightstands": {
           "title": "Material — noptiere"
         },
+        "systemsNightstands": {
+          "title": "Deschidere — noptiere"
+        },
         "materialDresser": {
           "title": "Material — comoda"
+        },
+        "systemsDresser": {
+          "title": "Deschidere — comoda"
         },
         "materialTvUnit": {
           "title": "Material — comoda TV"
         },
+        "systemsTvUnit": {
+          "title": "Deschidere — comoda TV"
+        },
         "materialVanity": {
           "title": "Material — masuta toaleta"
+        },
+        "systemsVanity": {
+          "title": "Deschidere — masuta toaleta"
         },
         "sketch": {
           "title": "Ai o schita a camerei?",
@@ -2185,15 +2212,21 @@
         },
         "dimensions": {
           "title": "Dimensiuni",
-          "subtitle": "Latimea peretelui si inaltimea.",
+          "subtitle": "Latimea si inaltimea fiecarei piese.",
           "slots": {
             "wallWidth": "Latime perete",
             "tvUnitWidth": "Latime zona TV",
+            "tvUnitHeight": "Inaltime zona TV",
             "bookshelfWidth": "Latime biblioteca",
+            "bookshelfHeight": "Inaltime biblioteca",
             "displayWidth": "Latime vitrina",
+            "displayHeight": "Inaltime vitrina",
             "coffeeTableLength": "Lungime masuta",
+            "coffeeTableHeight": "Inaltime masuta",
             "shelvesTotal": "Lungime totala rafturi",
-            "otherWidth": "Latime piesa ta"
+            "shelvesHeight": "Inaltime rafturi",
+            "otherWidth": "Latime piesa ta",
+            "otherHeight": "Inaltime piesa ta"
           }
         },
         "notes": {
@@ -2249,24 +2282,54 @@
         "materialOtherPiece": {
           "title": "Material — piesa ta"
         },
+        "systemsOtherPiece": {
+          "title": "Deschidere — piesa ta"
+        },
         "materialTvUnit": {
           "title": "Material — zona TV"
+        },
+        "systemsTvUnit": {
+          "title": "Deschidere — zona TV"
         },
         "materialBookshelf": {
           "title": "Material — biblioteca"
         },
+        "systemsBookshelf": {
+          "title": "Deschidere — biblioteca"
+        },
         "materialDisplay": {
           "title": "Material — vitrina"
+        },
+        "systemsDisplay": {
+          "title": "Deschidere — vitrina"
         },
         "materialCoffeeTable": {
           "title": "Material — masuta"
         },
+        "systemsCoffeeTable": {
+          "title": "Deschidere — masuta"
+        },
         "materialShelves": {
           "title": "Material — rafturi"
+        },
+        "systemsShelves": {
+          "title": "Deschidere — rafturi"
         },
         "ledLighting": {
           "title": "Iluminare LED in mobilier?",
           "subtitle": "Banda LED in panouri sau corpuri.",
+          "info": {
+            "title": "Iluminare LED",
+            "body": "Banda LED calda in spatele panourilor TV sau in vitrine. Are nevoie de o priza in apropiere.",
+            "pros1": "Atmosfera calda seara",
+            "pros2": "Pune in valoare vitrina",
+            "cons1": "Necesita priza in apropiere",
+            "price": "+400–1.500 lei"
+          }
+        },
+        "ledPieces": {
+          "title": "La care corpuri vrei iluminare LED?",
+          "subtitle": "Bifeaza doar corpurile care primesc banda LED — poti sari peste.",
           "info": {
             "title": "Iluminare LED",
             "body": "Banda LED calda in spatele panourilor TV sau in vitrine. Are nevoie de o priza in apropiere.",
@@ -2379,14 +2442,26 @@
         "materialDesk": {
           "title": "Material — birou"
         },
+        "systemsDesk": {
+          "title": "Deschidere — birou"
+        },
         "materialBookshelf": {
           "title": "Material — biblioteca"
+        },
+        "systemsBookshelf": {
+          "title": "Deschidere — biblioteca"
         },
         "materialStorage": {
           "title": "Material — dulap"
         },
+        "systemsStorage": {
+          "title": "Deschidere — dulap"
+        },
         "materialShelves": {
           "title": "Material — rafturi"
+        },
+        "systemsShelves": {
+          "title": "Deschidere — rafturi"
         },
         "sketch": {
           "title": "Ai o schita a camerei?",
@@ -2545,17 +2620,32 @@
         "materialShoeCabinet": {
           "title": "Material — pantofar"
         },
+        "systemsShoeCabinet": {
+          "title": "Deschidere — pantofar"
+        },
         "materialCoatUnit": {
           "title": "Material — cuier"
+        },
+        "systemsCoatUnit": {
+          "title": "Deschidere — cuier"
         },
         "materialWardrobe": {
           "title": "Material — dulap"
         },
+        "systemsWardrobe": {
+          "title": "Deschidere — dulap"
+        },
         "materialBench": {
           "title": "Material — bancuta"
         },
+        "systemsBench": {
+          "title": "Deschidere — bancuta"
+        },
         "materialMirror": {
           "title": "Material — oglinda"
+        },
+        "systemsMirror": {
+          "title": "Deschidere — oglinda"
         },
         "openingSystems": {
           "title": "Sisteme de deschidere",
@@ -2664,14 +2754,23 @@
         "materialApplianceHousing": {
           "title": "Material pentru dulapul de incastrare"
         },
+        "systemsApplianceHousing": {
+          "title": "Deschidere pentru dulapul de incastrare"
+        },
         "materialStorage": {
           "title": "Material pentru dulapurile de depozitare"
+        },
+        "systemsStorage": {
+          "title": "Deschidere pentru dulapurile de depozitare"
         },
         "materialCountertop": {
           "title": "Material pentru blatul de lucru"
         },
         "materialSinkUnit": {
           "title": "Material pentru corpul cu cuva"
+        },
+        "systemsSinkUnit": {
+          "title": "Deschidere pentru corpul cu cuva"
         },
         "sketch": {
           "title": "Ai o schita a spatiului?",
@@ -2762,6 +2861,9 @@
         "materialCabinets": {
           "title": "Material pentru dulapurile inchise"
         },
+        "systemsCabinets": {
+          "title": "Deschidere pentru dulapurile inchise"
+        },
         "sketch": {
           "title": "Ai o schita a debaralei?",
           "subtitle": "Optional — dimensiunile peretilor si pozitia usii."
@@ -2837,8 +2939,14 @@
         "materialStorageBench": {
           "title": "Material pentru banca cu lada"
         },
+        "systemsStorageBench": {
+          "title": "Deschidere pentru banca cu lada"
+        },
         "materialTallCabinet": {
           "title": "Material pentru dulapul inalt"
+        },
+        "systemsTallCabinet": {
+          "title": "Deschidere pentru dulapul inalt"
         },
         "materialWorktop": {
           "title": "Material pentru blatul de lucru"

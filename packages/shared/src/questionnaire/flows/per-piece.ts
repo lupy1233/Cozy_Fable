@@ -12,10 +12,12 @@ import { GENERAL_SYSTEMS, materialOptions, OFFERED_MATERIALS, otherMaterialStep,
 import type { PieceDef } from './pieces-flow';
 
 // Generalizarea patternului "configurare per piesa" pentru flow-urile v2 si
-// camerele noi. Feedback PO F4: fiecare piesa are ECRANUL EI cu material +
-// sistem de deschidere impreuna (screenGroup 'piece:<VALUE>'), cu iconul
-// piesei in antet — "material si deschidere pentru prima piesa, apoi pentru
-// a doua", fara intrebari comune pe camera.
+// camerele noi. Feedback PO F4: fiecare piesa are intrebarile EI, cu iconul
+// piesei in antet — fara intrebari comune pe camera.
+// Feedback PO 2026-07-13 (docs/12 S2): materialul si sistemul de deschidere
+// sunt DOUA intrebari separate, pe ecrane separate (screenGroup
+// 'piece:<VALUE>' pentru material + "Altul", 'piece:<VALUE>:systems' pentru
+// deschidere), cu titlu per piesa la ambele.
 
 // Piesa cu intrebari dedicate de material si sisteme de deschidere.
 export interface PieceWithMaterialDef extends PieceDef {
@@ -23,9 +25,9 @@ export interface PieceWithMaterialDef extends PieceDef {
   systemsStepId: string;
 }
 
-// Ecranul de configurare al unei piese: material (carduri) + "alt material"
-// conditional (text) + sisteme de deschidere (pill-uri inline). Toate vizibile
-// doar daca piesa e selectata si toate pe acelasi ecran (screenGroup).
+// Intrebarile de configurare ale unei piese, vizibile doar daca piesa e
+// selectata: ecranul de material (carduri + "alt material" conditional pe
+// acelasi ecran) urmat de ecranul separat de sisteme de deschidere.
 export function pieceConfigSteps(flowKey: string, defs: PieceWithMaterialDef[]): QuestionStep[] {
   return defs.flatMap((d) => {
     const ifSelected: Condition = { questionId: 'piecesNeeded', in: [d.value] };
@@ -45,10 +47,11 @@ export function pieceConfigSteps(flowKey: string, defs: PieceWithMaterialDef[]):
     const systems: MultiChoiceStep = {
       id: d.systemsStepId,
       type: 'multi-choice',
-      titleKey: 'common.pieceSystems.title',
+      titleKey: `${flowKey}.${d.systemsStepId}.title`,
       subtitleKey: 'common.pieceSystems.subtitle',
+      icon: d.icon,
       visibleIf: ifSelected,
-      screenGroup: group,
+      screenGroup: `${group}:systems`,
       minSelected: 1,
       options: systemOptions(GENERAL_SYSTEMS),
     };

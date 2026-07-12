@@ -464,6 +464,24 @@ describe('buildPanels', () => {
     expect(deskPanels.some((p) => p.role === 'DESK_TOP')).toBe(true);
     expect(deskPanels.filter((p) => p.role === 'DRAWER_FRONT').length).toBe(3);
   });
+
+  it('doua casetiere nu incap la un birou ingust (docs/12 S6)', () => {
+    const wide = defaultPieceConfig('DESK'); // 1.4m — incap doua
+    wide.columns = [
+      { zones: [{ type: 'DRAWERS', count: 3 }] },
+      { zones: [{ type: 'DRAWERS', count: 3 }] },
+    ];
+    expect(canAddColumn('DESK', { ...wide, columns: wide.columns.slice(0, 1) })).toBe(true);
+    expect(pieceConfig3dSchema('DESK').safeParse(wide).success).toBe(true);
+
+    // sub pragul de genunchi (2 laterale + 2×42cm + 40cm): a doua dispare
+    const narrow = { ...wide, widthM: 1.1 };
+    expect(canAddColumn('DESK', { ...narrow, columns: narrow.columns.slice(0, 1) })).toBe(false);
+    expect(pieceConfig3dSchema('DESK').safeParse(narrow).success).toBe(false);
+    const normalized = normalizePieceConfig('DESK', narrow);
+    expect(normalized.columns.length).toBe(1);
+    expect(pieceConfig3dSchema('DESK').safeParse(normalized).success).toBe(true);
+  });
 });
 
 describe('buildZoneBoxes', () => {

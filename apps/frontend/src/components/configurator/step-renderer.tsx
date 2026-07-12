@@ -38,8 +38,9 @@ interface StepRendererProps {
   error?: string;
   // step secundar pe acelasi ecran (screenGroup): titlu mai mic, UI compact
   inline?: boolean;
-  // context pentru step-urile 'upload' (schita per camera)
-  uploadContext?: { target: AttachmentTarget; hasOwnProject: boolean };
+  // context pentru step-urile 'upload' (schita per camera); roomCount
+  // dimensioneaza capul global de fisiere al cererii
+  uploadContext?: { target: AttachmentTarget; hasOwnProject: boolean; roomCount: number };
   // context pentru step-urile 'configurator-3d': snapshotul PNG al scenei (R4)
   config3dContext?: { onSnapshot: (dataUrl: string | null) => void };
 }
@@ -307,11 +308,17 @@ export function StepRenderer(props: StepRendererProps) {
     const factor = UNIT_FACTOR[dimensionUnit];
     // afisare fara artefacte float (0.30000000000000004 → 0.3)
     const fmtNum = (v: number) => Math.round(v * 10000) / 10000;
-    // plansa cu litere (A/B/C/H...) — valorile stau in legenda si pe campuri,
-    // nu in desen, ca sa ramana mereu lizibile (feedback PO item 11)
+    // plansa cu litere (A/B/C/H...) — valorile completate apar si langa litere
+    // pe desen (feedback PO 2026-07-13), pe langa legenda si campuri
+    const valueLabels: Record<string, string> = {};
+    for (const s of slots) {
+      if (Number.isFinite(values[s.id])) {
+        valueLabels[s.id] = `${fmtNum(values[s.id] * factor)} ${dimensionUnit}`;
+      }
+    }
     const figure =
       step.id === 'dimensions'
-        ? getDimensionFigure(roomType, answers, slots.map((s) => s.id))
+        ? getDimensionFigure(roomType, answers, slots.map((s) => s.id), valueLabels)
         : null;
     const letterOf = (slotId: string) => figure?.letters[slotId];
     const legend = slots
@@ -466,6 +473,7 @@ export function StepRenderer(props: StepRendererProps) {
         {uploadContext ? (
           <RoomSketchUpload
             target={uploadContext.target}
+            roomCount={uploadContext.roomCount}
             hasOwnProject={uploadContext.hasOwnProject}
             value={ids}
             maxFiles={step.maxFiles}

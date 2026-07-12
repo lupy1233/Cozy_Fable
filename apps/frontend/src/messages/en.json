@@ -1135,7 +1135,7 @@
     },
     "uploads": {
       "title": "Add photos or plans",
-      "subtitle": "Optional — photos of the space, sketches or your own project (max 10 files).",
+      "subtitle": "Optional — photos of the space, sketches or your own project.",
       "dropLabel": "Drag files here or click to upload",
       "dropHint": "JPG, PNG, WEBP, PDF or ZIP, up to 25 MB",
       "uploading": "Uploading...",
@@ -1898,6 +1898,15 @@
                 "body": "Pull-out trouser rack, belt and tie holders, wire baskets. Easy to add later, but cheaper if planned from the start.",
                 "price": "+200–600 lei / accessory"
               }
+            },
+            "LED_LIGHTING": {
+              "label": "LED lighting",
+              "description": "LED strip with a door sensor",
+              "info": {
+                "title": "LED lighting",
+                "body": "LED strip under shelves or along the sides, usually with a door or motion sensor. Needs power nearby — tell the company where the closest outlet is.",
+                "price": "+400–1,200 lei"
+              }
             }
           }
         },
@@ -2124,20 +2133,38 @@
         "materialWardrobe": {
           "title": "Material — wardrobe"
         },
+        "systemsWardrobe": {
+          "title": "Opening — wardrobe"
+        },
         "materialBed": {
           "title": "Material — bed"
+        },
+        "systemsBed": {
+          "title": "Opening — bed"
         },
         "materialNightstands": {
           "title": "Material — nightstands"
         },
+        "systemsNightstands": {
+          "title": "Opening — nightstands"
+        },
         "materialDresser": {
           "title": "Material — dresser"
+        },
+        "systemsDresser": {
+          "title": "Opening — dresser"
         },
         "materialTvUnit": {
           "title": "Material — TV unit"
         },
+        "systemsTvUnit": {
+          "title": "Opening — TV unit"
+        },
         "materialVanity": {
           "title": "Material — vanity"
+        },
+        "systemsVanity": {
+          "title": "Opening — vanity"
         },
         "sketch": {
           "title": "Do you have a room sketch?",
@@ -2185,15 +2212,21 @@
         },
         "dimensions": {
           "title": "Dimensions",
-          "subtitle": "Wall width and height.",
+          "subtitle": "Width and height of each piece.",
           "slots": {
             "wallWidth": "Wall width",
             "tvUnitWidth": "TV area width",
+            "tvUnitHeight": "TV area height",
             "bookshelfWidth": "Bookcase width",
+            "bookshelfHeight": "Bookcase height",
             "displayWidth": "Display cabinet width",
+            "displayHeight": "Display cabinet height",
             "coffeeTableLength": "Coffee table length",
+            "coffeeTableHeight": "Coffee table height",
             "shelvesTotal": "Total shelf length",
-            "otherWidth": "Your piece's width"
+            "shelvesHeight": "Shelves height",
+            "otherWidth": "Your piece's width",
+            "otherHeight": "Your piece's height"
           }
         },
         "notes": {
@@ -2249,24 +2282,54 @@
         "materialOtherPiece": {
           "title": "Material — your piece"
         },
+        "systemsOtherPiece": {
+          "title": "Opening — your piece"
+        },
         "materialTvUnit": {
           "title": "Material — TV area"
+        },
+        "systemsTvUnit": {
+          "title": "Opening — TV area"
         },
         "materialBookshelf": {
           "title": "Material — bookcase"
         },
+        "systemsBookshelf": {
+          "title": "Opening — bookcase"
+        },
         "materialDisplay": {
           "title": "Material — display cabinet"
+        },
+        "systemsDisplay": {
+          "title": "Opening — display cabinet"
         },
         "materialCoffeeTable": {
           "title": "Material — coffee table"
         },
+        "systemsCoffeeTable": {
+          "title": "Opening — coffee table"
+        },
         "materialShelves": {
           "title": "Material — shelves"
+        },
+        "systemsShelves": {
+          "title": "Opening — shelves"
         },
         "ledLighting": {
           "title": "LED lighting in the furniture?",
           "subtitle": "LED strip in panels or units.",
+          "info": {
+            "title": "LED lighting",
+            "body": "Warm LED strip behind TV panels or inside display cabinets. Needs an outlet nearby.",
+            "pros1": "Warm evening atmosphere",
+            "pros2": "Shows off the display cabinet",
+            "cons1": "Needs an outlet nearby",
+            "price": "+400–1,500 lei"
+          }
+        },
+        "ledPieces": {
+          "title": "Which units get LED lighting?",
+          "subtitle": "Tick only the units that get an LED strip — you can skip this.",
           "info": {
             "title": "LED lighting",
             "body": "Warm LED strip behind TV panels or inside display cabinets. Needs an outlet nearby.",
@@ -2379,14 +2442,26 @@
         "materialDesk": {
           "title": "Material — desk"
         },
+        "systemsDesk": {
+          "title": "Opening — desk"
+        },
         "materialBookshelf": {
           "title": "Material — bookcase"
+        },
+        "systemsBookshelf": {
+          "title": "Opening — bookcase"
         },
         "materialStorage": {
           "title": "Material — storage"
         },
+        "systemsStorage": {
+          "title": "Opening — storage"
+        },
         "materialShelves": {
           "title": "Material — shelves"
+        },
+        "systemsShelves": {
+          "title": "Opening — shelves"
         },
         "sketch": {
           "title": "Do you have a room sketch?",
@@ -2545,17 +2620,32 @@
         "materialShoeCabinet": {
           "title": "Material — shoe cabinet"
         },
+        "systemsShoeCabinet": {
+          "title": "Opening — shoe cabinet"
+        },
         "materialCoatUnit": {
           "title": "Material — coat rack"
+        },
+        "systemsCoatUnit": {
+          "title": "Opening — coat rack"
         },
         "materialWardrobe": {
           "title": "Material — wardrobe"
         },
+        "systemsWardrobe": {
+          "title": "Opening — wardrobe"
+        },
         "materialBench": {
           "title": "Material — bench"
         },
+        "systemsBench": {
+          "title": "Opening — bench"
+        },
         "materialMirror": {
           "title": "Material — mirror"
+        },
+        "systemsMirror": {
+          "title": "Opening — mirror"
         },
         "openingSystems": {
           "title": "Opening systems",
@@ -2664,14 +2754,23 @@
         "materialApplianceHousing": {
           "title": "Material for the appliance housing"
         },
+        "systemsApplianceHousing": {
+          "title": "Opening for the appliance housing"
+        },
         "materialStorage": {
           "title": "Material for the storage cabinets"
+        },
+        "systemsStorage": {
+          "title": "Opening for the storage cabinets"
         },
         "materialCountertop": {
           "title": "Material for the worktop"
         },
         "materialSinkUnit": {
           "title": "Material for the sink unit"
+        },
+        "systemsSinkUnit": {
+          "title": "Opening for the sink unit"
         },
         "sketch": {
           "title": "Do you have a sketch of the space?",
@@ -2762,6 +2861,9 @@
         "materialCabinets": {
           "title": "Material for the closed cabinets"
         },
+        "systemsCabinets": {
+          "title": "Opening for the closed cabinets"
+        },
         "sketch": {
           "title": "Do you have a pantry sketch?",
           "subtitle": "Optional — wall sizes and the door position."
@@ -2837,8 +2939,14 @@
         "materialStorageBench": {
           "title": "Material for the storage bench"
         },
+        "systemsStorageBench": {
+          "title": "Opening for the storage bench"
+        },
         "materialTallCabinet": {
           "title": "Material for the tall cabinet"
+        },
+        "systemsTallCabinet": {
+          "title": "Opening for the tall cabinet"
         },
         "materialWorktop": {
           "title": "Material for the worktop"

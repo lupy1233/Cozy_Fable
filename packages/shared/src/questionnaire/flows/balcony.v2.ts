@@ -125,7 +125,7 @@ export const balconyFlowV2: RoomFlow = {
       titleKey: `${F}.sketch.title`,
       subtitleKey: `${F}.sketch.subtitle`,
       optional: true,
-      maxFiles: 3,
+      maxFiles: 7,
     },
   ],
   deriveRoom: (answers) => {

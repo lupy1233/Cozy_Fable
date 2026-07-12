@@ -181,7 +181,19 @@ export function attachmentKind(mimeType: string): 'image' | 'pdf' | 'zip' | 'oth
 }
 // 25 MB per fisier — aliniat la invarianta 3.4 (D2 aprobat PO, 2026-07-12)
 export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+// Bufferul de fisiere de la NIVEL DE CERERE (planuri/proiect general).
+// Limita reala e per camera (feedback PO 2026-07-13): 7 schite/referinte per
+// camera; capul absolut al cererii creste cu camerele adaugate.
 export const MAX_ATTACHMENTS_PER_REQUEST = 10;
+export const MAX_SKETCH_FILES_PER_ROOM = 7;
+// Cap absolut per cerere: buffer + schitele fiecarei camere + snapshotul 3D
+// (1 per camera, scris programatic la piesele cu configurator 3D).
+// roomCount e plafonat la MAX_REQUEST_ROOMS: pe drafturi vine din
+// configuratorState (JSON controlat de client) si nu are voie sa umfle capul.
+export function maxAttachmentsForRequest(roomCount: number): number {
+  const rooms = Math.min(Math.max(roomCount, 0), MAX_REQUEST_ROOMS);
+  return MAX_ATTACHMENTS_PER_REQUEST + (MAX_SKETCH_FILES_PER_ROOM + 1) * rooms;
+}
 
 export const presignUploadSchema = z.object({
   filename: z.string().trim().min(1).max(255),

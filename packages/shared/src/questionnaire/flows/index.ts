@@ -8,6 +8,7 @@ import { bedroomFlow } from './bedroom';
 import { bedroomFlowV2 } from './bedroom.v2';
 import { dressingFlow } from './dressing';
 import { dressingFlowV2 } from './dressing.v2';
+import { dressingFlowV3 } from './dressing.v3';
 import {
   pieceBedFlow,
   pieceBedFlowV2,
@@ -44,6 +45,7 @@ import { laundryFlow } from './laundry';
 import { laundryFlowV2 } from './laundry.v2';
 import { livingFlow } from './living';
 import { livingFlowV2 } from './living.v2';
+import { livingFlowV3 } from './living.v3';
 import { officeFlow } from './office';
 import { officeFlowV2 } from './office.v2';
 import { pantryFlow } from './pantry';
@@ -58,8 +60,16 @@ import { piecesFlow } from './pieces';
 // PIECES v1 ramane CURENT ca "Alta piesa" (formular liber, fallback).
 export const FLOW_REGISTRY: Record<RoomType, Record<number, RoomFlow>> = {
   KITCHEN: { [kitchenFlow.version]: kitchenFlow, [kitchenFlowV2.version]: kitchenFlowV2 },
-  DRESSING: { [dressingFlow.version]: dressingFlow, [dressingFlowV2.version]: dressingFlowV2 },
-  LIVING: { [livingFlow.version]: livingFlow, [livingFlowV2.version]: livingFlowV2 },
+  DRESSING: {
+    [dressingFlow.version]: dressingFlow,
+    [dressingFlowV2.version]: dressingFlowV2,
+    [dressingFlowV3.version]: dressingFlowV3,
+  },
+  LIVING: {
+    [livingFlow.version]: livingFlow,
+    [livingFlowV2.version]: livingFlowV2,
+    [livingFlowV3.version]: livingFlowV3,
+  },
   OFFICE: { [officeFlow.version]: officeFlow, [officeFlowV2.version]: officeFlowV2 },
   BEDROOM: { [bedroomFlow.version]: bedroomFlow, [bedroomFlowV2.version]: bedroomFlowV2 },
   BATHROOM: { [bathroomFlow.version]: bathroomFlow, [bathroomFlowV2.version]: bathroomFlowV2 },
@@ -120,8 +130,9 @@ export const FLOW_REGISTRY: Record<RoomType, Record<number, RoomFlow>> = {
 // Versiunea cu care pornesc camerele NOI in wizard.
 export const CURRENT_FLOW_VERSION: Record<RoomType, number> = {
   KITCHEN: kitchenFlowV2.version,
-  DRESSING: dressingFlowV2.version,
-  LIVING: livingFlowV2.version,
+  // dressing si living pornesc pe v3 (feedback PO 2026-07-13, docs/12 S3)
+  DRESSING: dressingFlowV3.version,
+  LIVING: livingFlowV3.version,
   OFFICE: officeFlowV2.version,
   BEDROOM: bedroomFlowV2.version,
   BATHROOM: bathroomFlowV2.version,
@@ -149,8 +160,10 @@ export {
   kitchenFlowV2,
   dressingFlow,
   dressingFlowV2,
+  dressingFlowV3,
   livingFlow,
   livingFlowV2,
+  livingFlowV3,
   officeFlow,
   officeFlowV2,
   bedroomFlow,

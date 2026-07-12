@@ -121,12 +121,14 @@ export const pantryFlowV2: RoomFlow = {
       visibleIf: { all: [ifCabinets, { questionId: 'materialCabinets', equals: 'ALTUL' }] },
     },
     {
+      // deschiderea = intrebare separata, pe ecranul ei (feedback PO 2026-07-13)
       id: 'systemsCabinets',
       type: 'multi-choice',
-      titleKey: 'common.pieceSystems.title',
+      titleKey: `${F}.systemsCabinets.title`,
       subtitleKey: 'common.pieceSystems.subtitle',
+      icon: 'door-closed',
       visibleIf: ifCabinets,
-      screenGroup: 'piece:CABINETS',
+      screenGroup: 'piece:CABINETS:systems',
       minSelected: 1,
       options: systemOptions(GENERAL_SYSTEMS),
     },
@@ -136,7 +138,7 @@ export const pantryFlowV2: RoomFlow = {
       titleKey: `${F}.sketch.title`,
       subtitleKey: `${F}.sketch.subtitle`,
       optional: true,
-      maxFiles: 3,
+      maxFiles: 7,
     },
   ],
   deriveRoom: (answers) => {

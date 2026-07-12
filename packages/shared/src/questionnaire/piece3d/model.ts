@@ -2,6 +2,7 @@ import {
   BACK_T,
   COLUMN_W_MAX,
   columnWidth,
+  deskMaxColumns,
   DESK_PEDESTAL_W,
   FRONT_GAP,
   PANEL_T,
@@ -442,7 +443,8 @@ export function canAddColumn(kind: Piece3dKind, config: PieceConfig3d): boolean 
   const rules = PIECE3D_RULES[kind];
   const n = config.columns.length;
   if (n >= rules.maxColumns) return false;
-  if (kind === 'DESK') return true;
+  // birou: a doua casetiera doar daca latimea lasa loc de genunchi intre ele
+  if (kind === 'DESK') return n + 1 <= deskMaxColumns(config.widthM);
   return columnWidth(config.widthM, n + 1) >= 0.22;
 }
 

@@ -11,7 +11,7 @@ Ruleaza peste diff-ul sprintului si raporteaza PASS/FAIL pe fiecare punct, cu fi
 2. Mutatii pe bani/claim/accept au Idempotency-Key suportat si testat.
 3. @Audit pe fiecare mutatie critica noua; niciun camp sensibil (parole, token-uri, continut mesaje) in audit sau loguri.
 4. Ownership checks: orice :id din ruta e verificat ca apartine firmei/clientului curent (nu doar ca exista).
-5. Fisiere: doar presigned URLs, status SAFE inainte de servire, limitele 25MB/10/5 respectate.
+5. Fisiere: doar presigned URLs, status SAFE inainte de servire, limitele respectate: 25MB/fisier, 7 schite/camera + cap dinamic per cerere `maxAttachmentsForRequest` (decizie PO 2026-07-13, docs/12 S4), 5/mesaj chat.
 6. Secrets doar in .env + validate in config.schema.ts; niciun secret in cod sau in seed.
 7. Raspunsuri de eroare folosesc formatul unic + cod din ERROR_CODES; fara stack traces sau detalii interne in productie.
 8. Cookies httpOnly Secure SameSite=Lax; nimic auth in localStorage; CORS doar pe originul declarat.

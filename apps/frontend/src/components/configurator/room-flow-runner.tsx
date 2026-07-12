@@ -237,7 +237,7 @@ export function RoomFlowRunner({
               answers={room.answers}
               roomType={room.roomType}
               inline={si > 0}
-              uploadContext={{ target: uploadTarget, hasOwnProject }}
+              uploadContext={{ target: uploadTarget, hasOwnProject, roomCount: rooms.length }}
               config3dContext={{ onSnapshot: (dataUrl) => setSnapshot3d(room.localId, dataUrl) }}
               onChange={(value) => {
                 setErrors((prev) => {

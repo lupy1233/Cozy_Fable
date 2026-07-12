@@ -5,6 +5,7 @@ import {
   type ClientDashboardStatsDto,
   contactPreferencesSchema,
   ERROR_CODES,
+  maxAttachmentsForRequest,
   type PresignUploadResultDto,
   type RequestDraftCreatedDto,
   type RequestDto,
@@ -504,7 +505,7 @@ export class RequestsService {
 
   async presignAttachment(token: string, dto: PresignAttachmentDto): Promise<PresignUploadResultDto> {
     const request = await this.requireAttachmentEditable(token);
-    return this.uploads.presign(ENTITY_TYPE_REQUEST, request.id, dto);
+    return this.uploads.presign(ENTITY_TYPE_REQUEST, request.id, dto, await this.attachmentCap(request));
   }
 
   async confirmAttachment(token: string, attachmentId: string): Promise<AttachmentDto> {
@@ -528,7 +529,7 @@ export class RequestsService {
   ): Promise<PresignUploadResultDto> {
     const request = await this.findOwnedRequest(userId, id);
     this.assertAttachmentEditableStatus(request);
-    return this.uploads.presign(ENTITY_TYPE_REQUEST, request.id, dto);
+    return this.uploads.presign(ENTITY_TYPE_REQUEST, request.id, dto, await this.attachmentCap(request));
   }
 
   async confirmAttachmentForClient(
@@ -548,6 +549,22 @@ export class RequestsService {
   }
 
   // ---- helpers ----
+
+  // Cap dinamic de atasamente per cerere: bufferul de la nivel de cerere +
+  // schitele si snapshotul 3D al fiecarei camere (feedback PO 2026-07-13:
+  // limita e 7 fisiere PER CAMERA, nu 10 per formular). In DRAFT camerele nu
+  // sunt materializate in request_rooms — traiesc in configuratorState
+  // (snapshotul wizard-ului), de unde citim doar numarul lor.
+  private async attachmentCap(request: RequestModel): Promise<number> {
+    const persisted = await this.prisma.requestRoom.count({ where: { requestId: request.id } });
+    const state = request.configuratorState;
+    const draft =
+      state && typeof state === 'object' && !Array.isArray(state) &&
+      Array.isArray((state as Record<string, unknown>).roomInstances)
+        ? ((state as Record<string, unknown>).roomInstances as unknown[]).length
+        : 0;
+    return maxAttachmentsForRequest(Math.max(persisted, draft));
+  }
 
   private async requireAttachmentEditable(token: string): Promise<RequestModel> {
     const request = await this.findByToken(token);

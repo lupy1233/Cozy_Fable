@@ -221,6 +221,15 @@ export const FRONT_GAP = 0.004;
 export const PLINTH_H = 0.06;
 // latimea casetierei de birou (coloanele DESK au latime fixa, nu impartire egala)
 export const DESK_PEDESTAL_W = 0.42;
+// spatiu minim pentru genunchi/scaun intre doua casetiere; sub el, a doua
+// casetiera s-ar suprapune cu prima (feedback PO 2026-07-13, docs/12 S6)
+export const DESK_KNEE_MIN = 0.4;
+
+// Cate casetiere incap la latimea curenta a biroului: doua doar daca raman
+// laterale + 2 casetiere + spatiul de genunchi.
+export function deskMaxColumns(widthM: number): number {
+  return widthM >= 2 * PANEL_T + 2 * DESK_PEDESTAL_W + DESK_KNEE_MIN - GEOM_EPS ? 2 : 1;
+}
 // limitele latimii unei coloane rezultate din impartire (docs/10: max ~90cm)
 export const COLUMN_W_MIN = 0.22;
 export const COLUMN_W_MAX = 1.0;
@@ -249,7 +258,11 @@ export function suggestedColumns(kind: Piece3dKind, widthM: number): number {
 export function clampColumns(kind: Piece3dKind, widthM: number, n: number): number {
   const rules = PIECE3D_RULES[kind];
   let v = Math.max(rules.minColumns || 1, Math.min(rules.maxColumns, Math.round(n)));
-  if (kind === 'DESK') return Math.max(rules.minColumns, Math.min(rules.maxColumns, Math.round(n)));
+  if (kind === 'DESK') {
+    // casetierele au latime fixa: la birouri inguste a doua nu mai incape
+    const max = Math.min(rules.maxColumns, deskMaxColumns(widthM));
+    return Math.max(rules.minColumns, Math.min(max, Math.round(n)));
+  }
   while (v > 1 && columnWidth(widthM, v) < COLUMN_W_MIN) v--;
   while (v < rules.maxColumns && columnWidth(widthM, v) > COLUMN_W_MAX) v++;
   return v;
@@ -525,6 +538,11 @@ export function pieceConfig3dSchema(kind: Piece3dKind): z.ZodType<PieceConfig3d>
       const bad = () =>
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'validation.answerInvalid' });
       const layout = resolvePieceLayout(kind, config as PieceConfig3d);
+      // casetierele biroului nu au voie sa se suprapuna (docs/12 S6)
+      if (kind === 'DESK' && config.columns.length > deskMaxColumns(config.widthM)) {
+        bad();
+        return;
+      }
       // latimile REZOLVATE trebuie sa fie realiste (docs/10 R2)
       if (kind !== 'DESK') {
         for (const column of layout) {

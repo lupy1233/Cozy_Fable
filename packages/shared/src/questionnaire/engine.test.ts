@@ -7,6 +7,7 @@ import {
   stepAnswerSchema,
   summarizeAnswers,
   validateRoomAnswers,
+  visibleOptions,
   visibleSteps,
 } from './engine';
 import { roomSizeBucket } from './mapping';
@@ -242,7 +243,8 @@ describe('deriveRoom pentru toate flow-urile → forma valida', () => {
       LIVING: {
         piecesNeeded: ['TV_UNIT'],
         tvStyle: 'ON_FLOOR',
-        dimensions: { tvUnitWidth: 3, ceilingHeight: 2.6 },
+        // v3 cere si inaltimea piesei, nu doar latimea
+        dimensions: { tvUnitWidth: 3, tvUnitHeight: 0.5, ceilingHeight: 2.6 },
         materialTvUnit: 'MDF_VOPSIT',
         systemsTvUnit: ['MANER'],
       },
@@ -393,13 +395,29 @@ describe('kitchen v2 — insula ca add-on, intrebari per zona', () => {
     expect(layout.options.every((o) => o.info?.priceHintKey === undefined)).toBe(true);
   });
 
-  it('hasIsland e intrebare de sine statatoare si obligatorie (feedback PO F3)', () => {
+  it('hasIsland e toggle optional pe acelasi ecran cu formele (feedback PO 2026-07-13)', () => {
     const flow = getFlow('KITCHEN');
     const layout = flow.steps.find((s) => s.id === 'layout');
     const island = flow.steps.find((s) => s.id === 'hasIsland');
-    expect(layout?.screenGroup).toBeUndefined();
-    expect(island?.screenGroup).toBeUndefined();
-    expect(island?.optional).toBeUndefined();
+    expect(layout?.screenGroup).toBe('layoutScreen');
+    expect(island?.screenGroup).toBe('layoutScreen');
+    // lipsa raspuns = fara insula; publish nu cere true/false explicit
+    expect(island?.optional).toBe(true);
+  });
+
+  it('intrebarile sunt grupate pe partea de mobilier: material apoi deschidere per zona', () => {
+    const flow = getFlow('KITCHEN');
+    const ids = flow.steps.map((s) => s.id);
+    const order = [
+      'frontMaterialBase',
+      'openingSystemsBase',
+      'frontMaterialWall',
+      'openingSystemsWall',
+      'frontMaterialIsland',
+      'openingSystemsIsland',
+    ].map((id) => ids.indexOf(id));
+    expect(order.every((idx) => idx >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
   it('sistemele per zona: jos/insula = maner/push/Gola, suspendate + Aventos', () => {
@@ -620,9 +638,10 @@ describe('collectScoreEntries — regresie fata de semantica SizingService', () 
 });
 
 describe('v2 pentru dressing/living/bedroom/office — versiuni si compatibilitate FROZEN', () => {
-  it('versiunea curenta este 2 (aliniere item 1); hallway ramane conform la 1', () => {
-    expect(CURRENT_FLOW_VERSION.DRESSING).toBe(2);
-    expect(CURRENT_FLOW_VERSION.LIVING).toBe(2);
+  it('versiunile curente; hallway ramane conform la 1', () => {
+    // dressing si living au avansat la v3 (feedback PO 2026-07-13, docs/12 S3)
+    expect(CURRENT_FLOW_VERSION.DRESSING).toBe(3);
+    expect(CURRENT_FLOW_VERSION.LIVING).toBe(3);
     expect(CURRENT_FLOW_VERSION.BEDROOM).toBe(2);
     expect(CURRENT_FLOW_VERSION.OFFICE).toBe(2);
     // hallway a fost scris de la inceput pe modelul per-piesa → ramane v1
@@ -676,11 +695,13 @@ describe('v2 pentru dressing/living/bedroom/office — versiuni si compatibilita
     expect(ids).toContain('materialDresser');
     expect(ids).not.toContain('materialBed');
     expect(ids).not.toContain('systemsBed');
-    // materialul si sistemele piesei impart acelasi ecran (screenGroup piece:X)
+    // materialul si sistemele piesei sunt intrebari SEPARATE, pe ecrane
+    // separate (feedback PO 2026-07-13, docs/12 S2)
     const matStep = flow.steps.find((s) => s.id === 'materialWardrobe');
     const sysStep = flow.steps.find((s) => s.id === 'systemsWardrobe');
     expect(matStep?.screenGroup).toBe('piece:WARDROBE');
-    expect(sysStep?.screenGroup).toBe('piece:WARDROBE');
+    expect(sysStep?.screenGroup).toBe('piece:WARDROBE:systems');
+    expect(sysStep?.titleKey).toBe('flows.BEDROOM.systemsWardrobe.title');
     // "Altul" deschide textul liber pe acelasi ecran
     const withOther: AnswerMap = { piecesNeeded: ['WARDROBE'], materialWardrobe: 'ALTUL' };
     expect(visibleSteps(flow, withOther).map((s) => s.id)).toContain('materialWardrobeOther');
@@ -887,5 +908,96 @@ describe('room-meta — ordinea fixa a intrebarilor', () => {
     ]);
     // nu muteaza inputul
     expect(list[0].tag).toBe('baie1');
+  });
+});
+
+describe('v3 dressing + living (feedback PO 2026-07-13, docs/12 S3)', () => {
+  it('dressing v3: LED e modul interior, intrebarea separata a disparut', () => {
+    const flow = getFlow('DRESSING');
+    expect(flow.version).toBe(3);
+    expect(flow.steps.find((s) => s.id === 'lighting')).toBeUndefined();
+    const modules = flow.steps.find((s) => s.id === 'interiorModules');
+    if (modules?.type !== 'multi-choice') throw new Error('missing interiorModules');
+    expect(modules.options.map((o) => o.value)).toContain('LED_LIGHTING');
+
+    const answers: AnswerMap = {
+      layout: 'LINEAR',
+      doorType: 'HINGED',
+      dimensions: { runA: 2.5, wardrobeHeight: 2.4 },
+      interiorModules: ['HANGING_RODS', 'LED_LIGHTING'],
+      material: 'PAL',
+    };
+    expect(validateRoomAnswers('DRESSING', answers, { partial: false })).toEqual({ ok: true });
+    const derived = flow.deriveRoom(answers);
+    expect(derived.items[0].description).toContain('iluminare LED');
+    // LED-ul nu apare de doua ori (nu e "mobilare", e anotare separata)
+    expect(derived.items[0].description).toContain('Interior: HANGING_RODS');
+    expect(derived.items[0].description?.match(/LED/g)?.length).toBe(1);
+
+    // raspunsurile v2 (cu lighting boolean) raman valide contra versiunii 2
+    const v2Answers: AnswerMap = { ...answers, interiorModules: ['HANGING_RODS'], lighting: true };
+    expect(validateRoomAnswers('DRESSING', v2Answers, { partial: false, version: 2 })).toEqual({
+      ok: true,
+    });
+    expect(validateRoomAnswers('DRESSING', v2Answers, { partial: false }).ok).toBe(false);
+  });
+
+  it('living v3: latime + inaltime per piesa selectata', () => {
+    const flow = getFlow('LIVING');
+    expect(flow.version).toBe(3);
+    const dimStep = flow.steps.find((s) => s.id === 'dimensions');
+    if (dimStep?.type !== 'dimension-group') throw new Error('missing dimensions');
+    const ids = dimStep
+      .slots({ piecesNeeded: ['TV_UNIT', 'BOOKSHELF'] })
+      .map((s) => s.id);
+    expect(ids).toEqual([
+      'tvUnitWidth',
+      'tvUnitHeight',
+      'bookshelfWidth',
+      'bookshelfHeight',
+      'ceilingHeight',
+    ]);
+    // inaltimile nu intra in metri liniari
+    const slots = dimStep.slots({ piecesNeeded: ['TV_UNIT'] });
+    expect(slots.find((s) => s.id === 'tvUnitHeight')?.countsTowardLinear).toBeUndefined();
+  });
+
+  it('living v3: LED per corp — doar corpurile selectate apar ca optiuni si anoteaza itemul lor', () => {
+    const flow = getFlow('LIVING');
+    const led = flow.steps.find((s) => s.id === 'ledPieces');
+    if (led?.type !== 'multi-choice') throw new Error('missing ledPieces');
+    expect(led.optional).toBe(true);
+    expect(flow.steps.find((s) => s.id === 'ledLighting')).toBeUndefined();
+
+    // fara piese eligibile (doar masuta) intrebarea nu e vizibila
+    expect(
+      visibleSteps(flow, { piecesNeeded: ['COFFEE_TABLE'] }).some((s) => s.id === 'ledPieces'),
+    ).toBe(false);
+    // optiunile urmeaza piesele selectate
+    const answers: AnswerMap = { piecesNeeded: ['TV_UNIT', 'BOOKSHELF', 'COFFEE_TABLE'] };
+    const opts = visibleOptions(led, answers).map((o) => o.value);
+    expect(opts).toEqual(['TV_UNIT', 'BOOKSHELF']);
+
+    const full: AnswerMap = {
+      piecesNeeded: ['TV_UNIT', 'BOOKSHELF'],
+      tvStyle: 'ON_FLOOR',
+      dimensions: {
+        tvUnitWidth: 2,
+        tvUnitHeight: 0.5,
+        bookshelfWidth: 1.2,
+        bookshelfHeight: 2.2,
+        ceilingHeight: 2.6,
+      },
+      materialTvUnit: 'PAL',
+      systemsTvUnit: ['PUSH'],
+      materialBookshelf: 'PAL',
+      systemsBookshelf: ['MANER'],
+      ledPieces: ['BOOKSHELF'],
+    };
+    expect(validateRoomAnswers('LIVING', full, { partial: false })).toEqual({ ok: true });
+    const derived = flow.deriveRoom(full);
+    const byName = Object.fromEntries(derived.items.map((it) => [it.name, it]));
+    expect(byName['Biblioteca'].description).toContain('Cu iluminare LED');
+    expect(byName['Comoda TV'].description ?? '').not.toContain('LED');
   });
 });

@@ -394,19 +394,21 @@ export default function Configurator3dStepUI({
           {t('config3d.removeZone')}
         </button>
       </div>
+      {/* optiunile indisponibile geometric se ASCUND, nu se dezactiveaza
+          (feedback PO 2026-07-13); cea selectata ramane mereu vizibila */}
       <div className="flex flex-wrap gap-1.5">
-        {rules.zoneTypes.map((type) => {
-          const blocked = type === 'DRAWERS' && !drawersAllowed && activeZoneData.type !== type;
-          return (
+        {rules.zoneTypes
+          .filter(
+            (type) => !(type === 'DRAWERS' && !drawersAllowed && activeZoneData.type !== type),
+          )
+          .map((type) => (
             <button
               key={type}
               type="button"
               aria-pressed={activeZoneData.type === type}
-              disabled={blocked}
-              title={blocked ? t('config3d.drawersTooHigh') : undefined}
               onClick={() => setZoneType(validActiveZone, type)}
               className={
-                'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ' +
+                'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ' +
                 (activeZoneData.type === type
                   ? 'border-walnut bg-walnut text-white'
                   : 'border-border-2 bg-surface hover:border-walnut/50')
@@ -414,35 +416,30 @@ export default function Configurator3dStepUI({
             >
               {t(`config3d.zoneTypes.${type}`)}
             </button>
-          );
-        })}
+          ))}
       </div>
       {/* interiorul zonelor usa/deschis: gol, polite sau bara de haine */}
       {activeZoneData.type !== 'DRAWERS' && (
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="mr-1 text-xs text-muted-foreground">{t('config3d.fillLabel')}</span>
-          {FILL_OPTIONS.map((fill) => {
-            const blocked =
-              fill === 'HANGING' && !hangingAllowed && activeZoneData.fill !== 'HANGING';
-            return (
-              <button
-                key={fillKey(fill)}
-                type="button"
-                aria-pressed={activeZoneData.fill === fill}
-                disabled={blocked}
-                title={blocked ? t('config3d.hangingNeeds') : undefined}
-                onClick={() => setZoneFill(validActiveZone, fill)}
-                className={
-                  'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ' +
-                  (activeZoneData.fill === fill
-                    ? 'border-walnut bg-walnut text-white'
-                    : 'border-border-2 bg-surface hover:border-walnut/50')
-                }
-              >
-                {t(`config3d.fills.${fillKey(fill)}`)}
-              </button>
-            );
-          })}
+          {FILL_OPTIONS.filter(
+            (fill) => !(fill === 'HANGING' && !hangingAllowed && activeZoneData.fill !== 'HANGING'),
+          ).map((fill) => (
+            <button
+              key={fillKey(fill)}
+              type="button"
+              aria-pressed={activeZoneData.fill === fill}
+              onClick={() => setZoneFill(validActiveZone, fill)}
+              className={
+                'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ' +
+                (activeZoneData.fill === fill
+                  ? 'border-walnut bg-walnut text-white'
+                  : 'border-border-2 bg-surface hover:border-walnut/50')
+              }
+            >
+              {t(`config3d.fills.${fillKey(fill)}`)}
+            </button>
+          ))}
         </div>
       )}
       {activeCountMax !== undefined && (
@@ -543,19 +540,23 @@ export default function Configurator3dStepUI({
 
   const columnsControl = (
     <div className="flex flex-wrap items-center gap-4">
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-medium">
-          {piece === 'DESK' ? t('config3d.pedestals') : t('config3d.columns')}
-        </span>
-        <Stepper
-          value={config.columns.length}
-          onDelta={(d) => setColumns(config.columns.length + d)}
-          canDec={canRemoveColumn(piece, config)}
-          canInc={canAddColumn(piece, config)}
-          decLabel={t('config3d.fewer')}
-          incLabel={t('config3d.more')}
-        />
-      </div>
+      {/* piesele cu o singura coloana posibila (noptiera) nu afiseaza deloc
+          controlul — nu doar dezactivat (feedback PO 2026-07-13) */}
+      {rules.maxColumns > 1 && (
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium">
+            {piece === 'DESK' ? t('config3d.pedestals') : t('config3d.columns')}
+          </span>
+          <Stepper
+            value={config.columns.length}
+            onDelta={(d) => setColumns(config.columns.length + d)}
+            canDec={canRemoveColumn(piece, config)}
+            canInc={canAddColumn(piece, config)}
+            decLabel={t('config3d.fewer')}
+            incLabel={t('config3d.more')}
+          />
+        </div>
+      )}
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium">{t('config3d.finish')}</span>
         <div className="flex gap-1.5">
@@ -656,15 +657,17 @@ export default function Configurator3dStepUI({
                         setZoneType({ col: ci, zone: zi }, e.target.value as Piece3dZoneType)
                       }
                     >
-                      {rules.zoneTypes.map((type) => (
-                        <option
-                          key={type}
-                          value={type}
-                          disabled={type === 'DRAWERS' && !zoneDrawersOk && zone.type !== type}
-                        >
-                          {t(`config3d.zoneTypes.${type}`)}
-                        </option>
-                      ))}
+                      {/* optiunile indisponibile geometric se ascund (PO 2026-07-13) */}
+                      {rules.zoneTypes
+                        .filter(
+                          (type) =>
+                            !(type === 'DRAWERS' && !zoneDrawersOk && zone.type !== type),
+                        )
+                        .map((type) => (
+                          <option key={type} value={type}>
+                            {t(`config3d.zoneTypes.${type}`)}
+                          </option>
+                        ))}
                     </Select>
                   </div>
                   {zone.type !== 'DRAWERS' && (
@@ -681,14 +684,11 @@ export default function Configurator3dStepUI({
                           )
                         }
                       >
-                        {FILL_OPTIONS.map((fill) => (
-                          <option
-                            key={fillKey(fill)}
-                            value={fillKey(fill)}
-                            disabled={
-                              fill === 'HANGING' && !zoneHangingOk && zone.fill !== 'HANGING'
-                            }
-                          >
+                        {FILL_OPTIONS.filter(
+                          (fill) =>
+                            !(fill === 'HANGING' && !zoneHangingOk && zone.fill !== 'HANGING'),
+                        ).map((fill) => (
+                          <option key={fillKey(fill)} value={fillKey(fill)}>
                             {t(`config3d.fills.${fillKey(fill)}`)}
                           </option>
                         ))}

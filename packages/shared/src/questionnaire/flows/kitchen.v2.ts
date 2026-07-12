@@ -26,11 +26,16 @@ import {
 // - layout NU mai afiseaza pret mediu (nu influenteaza direct pretul).
 // Punctajul per zona curge prin items-urile derivate (MATERIAL/SYSTEM per item).
 // Feedback PO 2026-07-08 (sprint F3):
-// - insula = intrebare de sine statatoare (carduri Da/Nu), nu toggle sub layout;
 // - materiale: setul nou (PAL / MDF infoliat / vopsit / furnir / lemn masiv) +
 //   "Altul" cu text liber pe acelasi ecran (otherMaterialStep);
 // - deschidere: jos/insula = maner/push/Gola, suspendate + Aventos;
 // - blat: PAL / HPL / cuart / granit.
+// Feedback PO 2026-07-13 (docs/12 S1, inlocuieste decizia F3 despre insula):
+// - insula = toggle-card OPTIONAL pe ACELASI ecran cu formele (screenGroup
+//   'layoutScreen'); forma ramane single-choice obligatoriu;
+// - intrebarile grupate pe partea de mobilier: material baza → deschidere baza
+//   → material suspendat → deschidere suspendat → material insula → deschidere
+//   insula (id-uri neschimbate, doar ordinea ecranelor).
 
 const F = 'flows.KITCHEN';
 
@@ -85,6 +90,7 @@ export const kitchenFlowV2: RoomFlow = {
       type: 'single-choice',
       titleKey: `${F}.layout.title`,
       subtitleKey: `${F}.layout.subtitle`,
+      screenGroup: 'layoutScreen',
       options: ['STRAIGHT', 'L_SHAPE', 'U_SHAPE'].map((value) => ({
         value,
         labelKey: `${F}.layout.options.${value}.label`,
@@ -105,7 +111,11 @@ export const kitchenFlowV2: RoomFlow = {
       type: 'boolean',
       titleKey: `${F}.hasIsland.title`,
       subtitleKey: `${F}.hasIsland.subtitle`,
-      // intrebare de sine statatoare cu carduri Da/Nu (feedback PO F3)
+      // toggle-card langa formele de bucatarie (feedback PO 2026-07-13);
+      // lipsa raspuns = fara insula (deriveRoom verifica === true)
+      screenGroup: 'layoutScreen',
+      icon: 'plus',
+      optional: true,
       info: {
         titleKey: `${F}.hasIsland.info.title`,
         bodyKey: `${F}.hasIsland.info.body`,
@@ -126,6 +136,14 @@ export const kitchenFlowV2: RoomFlow = {
     },
     otherMaterialStep('frontMaterialBase', 'frontBase'),
     {
+      id: 'openingSystemsBase',
+      type: 'multi-choice',
+      titleKey: `${F}.openingSystemsBase.title`,
+      subtitleKey: `${F}.openingSystemsBase.subtitle`,
+      minSelected: 1,
+      options: systemOptions(KITCHEN_SYSTEMS_BASE),
+    },
+    {
       id: 'frontMaterialWall',
       type: 'single-choice',
       titleKey: `${F}.frontMaterialWall.title`,
@@ -134,6 +152,14 @@ export const kitchenFlowV2: RoomFlow = {
       options: materialOptions(OFFERED_MATERIALS),
     },
     otherMaterialStep('frontMaterialWall', 'frontWall'),
+    {
+      id: 'openingSystemsWall',
+      type: 'multi-choice',
+      titleKey: `${F}.openingSystemsWall.title`,
+      subtitleKey: `${F}.openingSystemsWall.subtitle`,
+      minSelected: 1,
+      options: systemOptions(KITCHEN_SYSTEMS_WALL),
+    },
     {
       id: 'frontMaterialIsland',
       type: 'single-choice',
@@ -144,22 +170,6 @@ export const kitchenFlowV2: RoomFlow = {
       options: materialOptions(OFFERED_MATERIALS),
     },
     otherMaterialStep('frontMaterialIsland', 'frontIsland'),
-    {
-      id: 'openingSystemsBase',
-      type: 'multi-choice',
-      titleKey: `${F}.openingSystemsBase.title`,
-      subtitleKey: `${F}.openingSystemsBase.subtitle`,
-      minSelected: 1,
-      options: systemOptions(KITCHEN_SYSTEMS_BASE),
-    },
-    {
-      id: 'openingSystemsWall',
-      type: 'multi-choice',
-      titleKey: `${F}.openingSystemsWall.title`,
-      subtitleKey: `${F}.openingSystemsWall.subtitle`,
-      minSelected: 1,
-      options: systemOptions(KITCHEN_SYSTEMS_WALL),
-    },
     {
       id: 'openingSystemsIsland',
       type: 'multi-choice',
@@ -209,7 +219,7 @@ export const kitchenFlowV2: RoomFlow = {
       titleKey: `${F}.sketch.title`,
       subtitleKey: `${F}.sketch.subtitle`,
       optional: true,
-      maxFiles: 3,
+      maxFiles: 7,
     },
   ],
   deriveRoom: (answers) => {

@@ -52,7 +52,7 @@ export function pieceSketchStep(flowKey: string): UploadStep {
     titleKey: `${flowKey}.sketch.title`,
     subtitleKey: `${flowKey}.sketch.subtitle`,
     optional: true,
-    maxFiles: 3,
+    maxFiles: 7,
   };
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { ATTACHMENT_ACCEPT, MAX_ATTACHMENTS_PER_REQUEST } from '@marketplace/shared';
+import { ATTACHMENT_ACCEPT, maxAttachmentsForRequest } from '@marketplace/shared';
 import { Info } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Alert } from '@/components/ui/alert';
@@ -16,17 +16,21 @@ import { SketchGuide } from './sketch-guide';
 
 // Uploader-ul pasului "schita/proiect" al unei camere. Fisierele merg prin acelasi
 // flux presign/confirm ca pasul global de fisiere; raspunsul step-ului = lista de
-// attachment id-uri (verificata pe server la publish). Cap global: 10 fisiere/cerere.
+// attachment id-uri (verificata pe server la publish). Limita e PER CAMERA
+// (maxFiles=7, feedback PO 2026-07-13); capul global creste cu camerele.
 export function RoomSketchUpload({
   target,
   value,
   maxFiles,
+  roomCount,
   hasOwnProject,
   onChange,
 }: {
   target: AttachmentTarget;
   value: string[];
   maxFiles: number;
+  // numarul de camere din cerere — dimensioneaza capul global (oglinda BE)
+  roomCount: number;
   // clientul a bifat "am proiect pentru toata locuinta" → pasul se poate sari
   hasOwnProject: boolean;
   onChange: (ids: string[]) => void;
@@ -37,7 +41,7 @@ export function RoomSketchUpload({
   const remove = useRemoveAttachmentFor(target);
 
   const mine = allAttachments.filter((a) => value.includes(a.id));
-  const globalRemaining = MAX_ATTACHMENTS_PER_REQUEST - allAttachments.length;
+  const globalRemaining = maxAttachmentsForRequest(roomCount) - allAttachments.length;
   const localRemaining = maxFiles - mine.length;
   const canUpload = globalRemaining > 0 && localRemaining > 0;
 

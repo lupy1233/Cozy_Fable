@@ -207,7 +207,10 @@ const DRESSING_MAP: StepMap = {
     DRAWERS: IlluDresser,
     SHOE_RACK: IlluShoeRack,
     ACCESSORIES: IlluAccessories,
+    // v3: LED-ul e modul interior, nu intrebare separata
+    LED_LIGHTING: IlluClosetLighting,
   },
+  // v1/v2 (FROZEN): intrebarea separata de iluminare
   lighting: { YES: IlluClosetLighting },
 };
 
@@ -225,7 +228,15 @@ const LIVING_MAP: StepMap = {
     ON_FLOOR: IlluTvOnFloor,
     COMPLEX_UNIT: IlluTvComplexUnit,
   },
+  // v1/v2 (FROZEN): intrebarea comuna pe camera
   ledLighting: { YES: IlluLedLighting },
+  // v3: LED per corp — vizualul piesei pe fiecare optiune
+  ledPieces: {
+    TV_UNIT: IlluTvUnit,
+    BOOKSHELF: IlluBookshelf,
+    DISPLAY_CABINET: IlluDisplayCabinet,
+    WALL_SHELVES: IlluWallShelves,
+  },
 };
 
 const BEDROOM_MAP: StepMap = {
