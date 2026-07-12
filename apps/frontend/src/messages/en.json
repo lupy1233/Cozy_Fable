@@ -173,26 +173,14 @@
       "office": "Office"
     },
     "pins": {
-      "kitchen-bright": "Bright kitchen",
-      "kitchen-island": "Kitchen with island",
-      "kitchen-l": "L-shaped kitchen",
-      "living-green-sofa": "Living with a green sofa",
-      "reading-corner": "Reading corner",
-      "living-cat": "Sunday sofa",
-      "sofa-statement": "Statement sofa",
-      "living-boho": "Boho living",
-      "living-modern": "Modern living room",
-      "living-lounge": "Conversation corner",
-      "living-shelving": "Warm wood shelving",
-      "living-stairs": "Split-level living",
-      "bedroom-classic": "Classic bedroom",
-      "bedroom-minimal": "Minimalist bedroom",
-      "bedroom-hotel": "Hotel-style bedroom",
-      "dressing-vintage": "Vintage wardrobe",
-      "dressing-open": "Open dressing",
-      "dressing-shelves": "Open-shelf wardrobe",
-      "office-desk": "Home office",
-      "office-light": "Daylight home office"
+      "kitchen-black-gold": "Black kitchen with brass handles",
+      "kitchen-island-chevron": "White kitchen with island",
+      "living-stone-tv": "Stone and wood TV wall",
+      "living-bookcase-wall": "Full-wall bookcase",
+      "bedroom-petrol": "Bedroom with a teal bed",
+      "bedroom-wood-slats": "Bedroom with wood slats",
+      "dressing-walkin-oak": "Walk-in oak dressing",
+      "office-slats": "Home office with slat screen"
     }
   },
   "SketchGuidePage": {

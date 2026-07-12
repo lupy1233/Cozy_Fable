@@ -173,26 +173,14 @@
       "office": "Birou"
     },
     "pins": {
-      "kitchen-bright": "Bucătărie luminoasă",
-      "kitchen-island": "Bucătărie cu insulă",
-      "kitchen-l": "Bucătărie în formă de L",
-      "living-green-sofa": "Living cu canapea verde",
-      "reading-corner": "Colț de lectură",
-      "living-cat": "Canapea de duminică",
-      "sofa-statement": "Canapea statement",
-      "living-boho": "Living boho",
-      "living-modern": "Living modern",
-      "living-lounge": "Fotolii de conversație",
-      "living-shelving": "Bibliotecă din lemn cald",
-      "living-stairs": "Living pe două niveluri",
-      "bedroom-classic": "Dormitor clasic",
-      "bedroom-minimal": "Dormitor minimalist",
-      "bedroom-hotel": "Dormitor tip hotel",
-      "dressing-vintage": "Dulap vintage",
-      "dressing-open": "Dressing deschis",
-      "dressing-shelves": "Dulap cu rafturi deschise",
-      "office-desk": "Birou de acasă",
-      "office-light": "Birou cu lumină naturală"
+      "kitchen-black-gold": "Bucătărie neagră cu mânere aurii",
+      "kitchen-island-chevron": "Bucătărie albă cu insulă",
+      "living-stone-tv": "Perete TV cu piatră și lemn",
+      "living-bookcase-wall": "Bibliotecă pe tot peretele",
+      "bedroom-petrol": "Dormitor cu pat petrol",
+      "bedroom-wood-slats": "Dormitor cu șipci de lemn",
+      "dressing-walkin-oak": "Dressing walk-in din stejar",
+      "office-slats": "Birou cu paravan din șipci"
     }
   },
   "SketchGuidePage": {
