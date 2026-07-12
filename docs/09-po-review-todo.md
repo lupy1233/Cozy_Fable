@@ -38,7 +38,7 @@ asteapta acordul tau** — nimic de aici nu e implementat fara OK-ul tau explici
 | D3 | **Teste backend (jest neinstalat)** | ✅ LIVRAT (Q6) — jest instalat, 32 de teste pe credite/claim/upload/calendar/emailuri; `pnpm -F backend test` verde. Bonus: testele au prins si reparat un bug de ~1s in deadline-urile de sfarsit de zi (`BusinessCalendarService.tzOffsetMs`). |
 | D4 | **Scan AV real la fisiere** | ⏳ POST-MVP (conform propunerii aprobate) — ClamAV in container sau scanning S3, planificat dupa lansare. |
 | D5 | **Re-seed pe Railway** | ⏳ LA URMATORUL DEPLOY — ruleaza `UPDATE notifications SET read_at=now() WHERE payload::text LIKE '%"demo": true%' AND read_at IS NULL;` pe DB-ul Railway (sau re-seed curat). |
-| D6 | **Cheia Google Places** | ⏳ ASTEAPTA CHEIA GCP de la PO — se pune in env Railway, zero cod. |
+| D6 | **Cheia Google Places** | ✅ PRIMITA (2026-07-12) — configurata local in `apps/frontend/.env.local` (gitignorat) si se seteaza ca `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in env-ul frontend pe Railway (build-time). Recomandare: restrictioneaza cheia pe domeniu in consola GCP. |
 
 ## 3. IDEI de imbunatatire — **toate aprobate 2026-07-12; 1–7 LIVRATE (Q1–Q5)**
 

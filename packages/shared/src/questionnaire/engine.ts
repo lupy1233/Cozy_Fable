@@ -237,6 +237,9 @@ export function summarizeAnswers(
   for (const step of visibleSteps(flow, answers)) {
     const answer = answers[step.id];
     if (answer === undefined) continue;
+    // step-urile hidden sunt scrise programatic (ex. snapshot3d) — nu sunt
+    // raspunsuri ale utilizatorului si nu apar in rezumatul Q→A
+    if (step.hidden) continue;
 
     switch (step.type) {
       case 'single-choice': {
@@ -375,6 +378,8 @@ export function collectScoreEntries(
       }
     } else if (step.type === 'boolean' && answer === true && step.scoringWhenTrue) {
       entries.push(step.scoringWhenTrue);
+    } else if (step.type === 'configurator-3d' && step.scoreEntries && isPieceConfig3d(answer)) {
+      entries.push(...step.scoreEntries(answer));
     }
   }
 

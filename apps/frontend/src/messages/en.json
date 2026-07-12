@@ -2919,6 +2919,10 @@
         "sketch": {
           "title": "Do you have a wall sketch?",
           "subtitle": "Optional — wall width and obstacles (outlets, radiator, door)."
+        },
+        "config3d": {
+          "title": "Build your wardrobe in 3D",
+          "subtitle": "Choose the width, split the columns and decide each zone: hanging rod, shelves, drawers or doors."
         }
       },
       "PIECE_TV_UNIT": {
@@ -2987,6 +2991,10 @@
         "sketch": {
           "title": "Do you have a wall sketch?",
           "subtitle": "Optional — wall width and outlet positions."
+        },
+        "config3d": {
+          "title": "Build your TV unit in 3D",
+          "subtitle": "Adjust the dimensions and pick each zone: open, drawers or doors."
         }
       },
       "PIECE_BOOKCASE": {
@@ -3057,6 +3065,10 @@
         "sketch": {
           "title": "Do you have a wall sketch?",
           "subtitle": "Optional — wall width and ceiling height."
+        },
+        "config3d": {
+          "title": "Build your bookcase in 3D",
+          "subtitle": "Drag the sliders and click zones — the model updates live, and workshops receive your exact configuration."
         }
       },
       "PIECE_DESK": {
@@ -3135,6 +3147,10 @@
         "sketch": {
           "title": "Do you have a sketch of the space?",
           "subtitle": "Optional — the working wall, with outlets and the window."
+        },
+        "config3d": {
+          "title": "Build your desk in 3D",
+          "subtitle": "Choose the top and configure the pedestals with drawers or doors."
         }
       },
       "PIECE_BED": {
@@ -3283,6 +3299,10 @@
         "sketch": {
           "title": "Do you have a sketch?",
           "subtitle": "Optional — the wall where the dresser will sit."
+        },
+        "config3d": {
+          "title": "Build your dresser in 3D",
+          "subtitle": "Adjust the dimensions and split the body into drawers, doors or open zones."
         }
       },
       "PIECE_TABLE": {
@@ -3440,6 +3460,10 @@
         "sketch": {
           "title": "Do you have a hallway sketch?",
           "subtitle": "Optional — the available hallway space."
+        },
+        "config3d": {
+          "title": "Build your shoe cabinet in 3D",
+          "subtitle": "Choose the dimensions and the fronts: tilt-out, drawers or doors."
         }
       },
       "PIECE_NIGHTSTAND": {
@@ -3514,6 +3538,10 @@
         "sketch": {
           "title": "Do you have a sketch?",
           "subtitle": "Optional — the space next to the bed."
+        },
+        "config3d": {
+          "title": "Build your nightstand in 3D",
+          "subtitle": "Adjust the dimensions and pick the mix of drawers and open zones."
         }
       },
       "PIECE_BENCH": {

@@ -3,6 +3,7 @@
 import type { ConfiguratorContentInput, ContactPreferenceInput } from '@marketplace/shared';
 import { ArrowLeft, Check, Loader2, LogIn, Pencil, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
@@ -11,6 +12,7 @@ import {
   useAttachmentsFor,
   useEditRequestById,
   usePublishDraft,
+  useUploadAttachmentFor,
   type AttachmentTarget,
 } from '@/hooks/use-requests';
 import { useRouter } from '@/i18n/routing';
@@ -45,10 +47,15 @@ export function ReviewStep({
   const rooms = useConfiguratorStore((s) => s.roomInstances);
   const details = useConfiguratorStore((s) => s.details);
   const inspirationPhotoIds = useConfiguratorStore((s) => s.inspirationPhotoIds);
+  const snapshots3d = useConfiguratorStore((s) => s.snapshots3d);
+  const setAnswer = useConfiguratorStore((s) => s.setAnswer);
   const attachments = useAttachmentsFor(uploadTarget);
+  const uploadAttachment = useUploadAttachmentFor(uploadTarget);
   const publishDraft = usePublishDraft(token ?? '');
   const editRequest = useEditRequestById(editId ?? '');
   const publish = isEdit ? editRequest : publishDraft;
+  // urcarea snapshot-urilor 3D dinaintea publish-ului (R4)
+  const [preparing, setPreparing] = useState(false);
 
   // titlul nu mai e cerut: e generat automat pe server din camere + oras
   const detailsComplete = Boolean(
@@ -59,8 +66,35 @@ export function ReviewStep({
   );
   const allRoomsComplete = rooms.length > 0 && rooms.every((r) => r.completed);
 
-  const doPublish = () => {
-    if (!detailsComplete || !allRoomsComplete) return;
+  const doPublish = async () => {
+    if (!detailsComplete || !allRoomsComplete || preparing) return;
+
+    // D-3D-4 (aprobat): snapshotul PNG al pieselor configurate 3D urca AUTOMAT
+    // prin fluxul presigned existent (3.4) si intra in answers.snapshot3d.
+    // Best-effort: un esec de upload nu blocheaza publicarea (step optional).
+    const snapshotByRoom: Record<string, string[]> = {};
+    setPreparing(true);
+    try {
+      for (const room of rooms) {
+        const dataUrl = snapshots3d[room.localId];
+        if (room.answers.config3d === undefined || !dataUrl) continue;
+        try {
+          const blob = await (await fetch(dataUrl)).blob();
+          const file = new File([blob], `configurare-3d-${room.roomType.toLowerCase()}.png`, {
+            type: 'image/png',
+          });
+          const att = await uploadAttachment.mutateAsync(file);
+          snapshotByRoom[room.localId] = [att.id];
+          // pastreaza id-ul si in store — o re-publicare nu mai urca inca o data
+          setAnswer(room.localId, 'snapshot3d', [att.id]);
+        } catch {
+          // fara snapshot; cererea ramane valida
+        }
+      }
+    } finally {
+      setPreparing(false);
+    }
+
     const payload: ConfiguratorContentInput = {
       description: details.description ?? '',
       budgetRange: (details.budgetRange as ConfiguratorContentInput['budgetRange']) ?? 'UNDER_5K',
@@ -76,7 +110,9 @@ export function ReviewStep({
       rooms: rooms.map((r) => ({
         roomType: r.roomType,
         flowVersion: r.flowVersion,
-        answers: r.answers,
+        answers: snapshotByRoom[r.localId]
+          ? { ...r.answers, snapshot3d: snapshotByRoom[r.localId] }
+          : r.answers,
       })),
       contactPreferences: (details.contactPreferences ?? []) as ContactPreferenceInput[],
       inspirationPhotoIds,
@@ -88,7 +124,7 @@ export function ReviewStep({
 
   // Overlay-ul ramane vizibil si dupa succes (isSuccess), pana la redirect:
   // publish-ul face geocoding pe server si poate dura cateva secunde.
-  const publishing = publish.isPending || publish.isSuccess;
+  const publishing = preparing || publish.isPending || publish.isSuccess;
 
   return (
     <div className="flex flex-col gap-6">
@@ -185,8 +221,8 @@ export function ReviewStep({
             type="button"
             variant="walnut"
             size="lg"
-            disabled={!detailsComplete || !allRoomsComplete || publish.isPending}
-            onClick={doPublish}
+            disabled={!detailsComplete || !allRoomsComplete || publish.isPending || preparing}
+            onClick={() => void doPublish()}
           >
             <Send className="mr-1 h-4 w-4" />
             {isEdit ? t('review.saveEdit') : tr('publish')}

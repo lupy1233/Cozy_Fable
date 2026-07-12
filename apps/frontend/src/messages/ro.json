@@ -2919,6 +2919,10 @@
         "sketch": {
           "title": "Ai o schita a peretelui?",
           "subtitle": "Optional — latimea peretelui si obstacolele (prize, calorifer, usa)."
+        },
+        "config3d": {
+          "title": "Construiește-ți dulapul în 3D",
+          "subtitle": "Alege lățimea, împarte coloanele și decide fiecare zonă: bară de haine, polițe, sertare sau uși."
         }
       },
       "PIECE_TV_UNIT": {
@@ -2987,6 +2991,10 @@
         "sketch": {
           "title": "Ai o schita a peretelui?",
           "subtitle": "Optional — latimea peretelui si pozitia prizelor."
+        },
+        "config3d": {
+          "title": "Construiește-ți comoda TV în 3D",
+          "subtitle": "Ajustează dimensiunile și alege pentru fiecare zonă: deschis, sertare sau uși."
         }
       },
       "PIECE_BOOKCASE": {
@@ -3057,6 +3065,10 @@
         "sketch": {
           "title": "Ai o schita a peretelui?",
           "subtitle": "Optional — latimea peretelui si inaltimea tavanului."
+        },
+        "config3d": {
+          "title": "Construiește-ți biblioteca în 3D",
+          "subtitle": "Trage de glisoare și dă click pe zone — modelul se actualizează live, iar atelierele primesc exact configurația ta."
         }
       },
       "PIECE_DESK": {
@@ -3135,6 +3147,10 @@
         "sketch": {
           "title": "Ai o schita a spatiului?",
           "subtitle": "Optional — peretele de lucru, cu prize si fereastra."
+        },
+        "config3d": {
+          "title": "Construiește-ți biroul în 3D",
+          "subtitle": "Alege blatul și configurează casetierele cu sertare sau uși."
         }
       },
       "PIECE_BED": {
@@ -3283,6 +3299,10 @@
         "sketch": {
           "title": "Ai o schita?",
           "subtitle": "Optional — peretele unde va sta comoda."
+        },
+        "config3d": {
+          "title": "Construiește-ți comoda în 3D",
+          "subtitle": "Ajustează dimensiunile și împarte corpul în sertare, uși sau zone deschise."
         }
       },
       "PIECE_TABLE": {
@@ -3440,6 +3460,10 @@
         "sketch": {
           "title": "Ai o schita a holului?",
           "subtitle": "Optional — spatiul disponibil pe hol."
+        },
+        "config3d": {
+          "title": "Construiește-ți pantofarul în 3D",
+          "subtitle": "Alege dimensiunile și fronturile: rabatabile, sertare sau uși."
         }
       },
       "PIECE_NIGHTSTAND": {
@@ -3514,6 +3538,10 @@
         "sketch": {
           "title": "Ai o schita?",
           "subtitle": "Optional — spatiul disponibil langa pat."
+        },
+        "config3d": {
+          "title": "Construiește-ți noptiera în 3D",
+          "subtitle": "Ajustează dimensiunile și alege combinația de sertare și zone deschise."
         }
       },
       "PIECE_BENCH": {

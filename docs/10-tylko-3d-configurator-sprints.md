@@ -8,6 +8,15 @@ inputuri, ca in configuratorul Tylko.
 Acesta e planul de executie. NIMIC de aici nu e implementat inca — sprinturile
 R1–R6 se pornesc doar cu acordul tau, in ordinea de mai jos.
 
+> **UPDATE 2026-07-12 — PO a aprobat planul; R1–R5 sunt LIVRATE** (vezi
+> CHANGELOG, sprinturile R1+R2 si R3+R4+R5). Deciziile D-3D-1..4 executate pe
+> propunerile de mai jos, cu doua extensii: (a) configuratorul acopera din
+> prima TOATE cele 7 piese-carcasa (nu doar biblioteca+dulap — regulile per
+> piesa erau oricum necesare la R5); (b) pe langa cele 4 tipuri de zona au fost
+> adaugate HANGING (bara de haine, dulap) si TILT_OUT (fronturi rabatabile,
+> pantofar), altfel inlocuirea lui interiorModules pierdea informatie. R6
+> (compuneri, pret orientativ, AR) ramane la decizia PO, dupa feedback.
+
 ---
 
 ## 1. Cum functioneaza Tylko (ce copiem, pe scurt)

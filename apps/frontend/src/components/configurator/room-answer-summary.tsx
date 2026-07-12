@@ -9,6 +9,7 @@ import {
 } from '@marketplace/shared';
 import { useTranslations } from 'next-intl';
 import { AttachmentThumb } from './attachment-item';
+import { config3dChips } from './piece3d/config-chips';
 
 // Randare Q→A a raspunsurilor unei camere, partajata de pasul Review si de paginile
 // de detaliu (client + marketplace). Cheile de continut vin din flow config (i18n).
@@ -56,6 +57,7 @@ export function RoomAnswerSummary({
             {e.kind === 'dimensions' &&
               e.slots.map((s) => `${t(s.labelKey)}: ${s.value} m`).join(' · ')}
             {e.kind === 'number' && e.value}
+            {e.kind === 'config3d' && config3dChips(t, e.config).join(' · ')}
             {e.kind === 'text' && <span className="whitespace-pre-wrap">{e.value}</span>}
             {e.kind === 'pieces' && (
               <ul className="flex flex-col gap-0.5">

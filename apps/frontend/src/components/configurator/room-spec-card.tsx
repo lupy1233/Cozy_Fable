@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { ConfiguratorIcon } from '@/lib/configurator-icons';
 import { ROOM_ICONS } from '@/lib/room-icons';
 import { AttachmentThumb } from './attachment-item';
+import { config3dChips } from './piece3d/config-chips';
 
 // Prezentarea structurata a unei camere din cerere (feedback PO item 6) —
 // inlocuieste lista plata Q→A pe paginile de detaliu (marketplace + client).
@@ -48,6 +49,14 @@ export function RoomSpecCard({
   const chips = entries.filter(
     (e) => (e.kind === 'choice' || e.kind === 'boolean') && !MATERIAL_STEP.test(e.stepId),
   );
+  // piesa configurata 3D (docs/10 R4): chips derivate din config + snapshotul PNG
+  const config3d = entries.find(
+    (e): e is Extract<AnswerSummaryEntry, { kind: 'config3d' }> => e.kind === 'config3d',
+  );
+  const snapshotIds = (answers?.snapshot3d ?? []) as string[];
+  const snapshot = Array.isArray(snapshotIds)
+    ? (attachments ?? []).find((a) => snapshotIds.includes(a.id) && a.downloadUrl)
+    : undefined;
   const dims = entries.find((e): e is Extract<AnswerSummaryEntry, { kind: 'dimensions' }> => e.kind === 'dimensions');
   // textele de tip "alt material" sunt deja in description-ul itemelor derivate
   const notes = entries.filter(
@@ -98,6 +107,30 @@ export function RoomSpecCard({
       </div>
 
       <div className="flex flex-col gap-4 p-4">
+        {/* piesa configurata in 3D: snapshotul scenei + chips-urile config-ului */}
+        {config3d && (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+            {snapshot && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={snapshot.downloadUrl ?? undefined}
+                alt={t('config3d.snapshotAlt')}
+                className="w-full max-w-64 shrink-0 rounded-lg border border-border-2 bg-surface-2 object-cover"
+              />
+            )}
+            <div className="flex flex-wrap content-start gap-1.5">
+              {config3dChips(t, config3d.config).map((chip, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-baseline rounded-full border border-border-2 bg-surface-2 px-2.5 py-1 text-xs font-medium"
+                >
+                  {chip}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* configuratia aleasa — chips intrebare: raspuns */}
         {chips.length > 0 && (
           <div className="flex flex-wrap gap-1.5">

@@ -10,6 +10,7 @@ import {
   visibleSteps,
 } from './engine';
 import { roomSizeBucket } from './mapping';
+import { defaultPieceConfig } from './piece3d';
 import type { AnswerMap, ScoringRef } from './types';
 import { ROOM_TYPES, type RoomType } from '../enums';
 import { ROOM_KIND, ROOM_ORDER, sortByRoomOrder } from '../room-meta';
@@ -295,26 +296,23 @@ describe('deriveRoom pentru toate flow-urile → forma valida', () => {
         materialStorageBench: 'PAL',
         systemsStorageBench: ['MANER'],
       },
+      // piesele-carcasa sunt pe v3: config3d + material (+ ortogonalele cerute)
       PIECE_WARDROBE: {
+        config3d: defaultPieceConfig('WARDROBE'),
         doorType: 'HINGED',
-        dimensions: { width: 2, height: 2.4 },
-        interiorModules: ['HANGING_RODS'],
         material: 'PAL',
       },
       PIECE_TV_UNIT: {
-        style: 'LOW_UNIT',
+        config3d: defaultPieceConfig('TV_UNIT'),
         tvSetup: 'UNDECIDED',
-        dimensions: { width: 2 },
         material: 'PAL',
       },
       PIECE_BOOKCASE: {
-        style: 'OPEN',
-        dimensions: { width: 1.2, height: 2 },
+        config3d: defaultPieceConfig('BOOKCASE'),
         material: 'PAL',
       },
       PIECE_DESK: {
-        shape: 'STRAIGHT',
-        dimensions: { widthA: 1.4, depth: 0.6 },
+        config3d: defaultPieceConfig('DESK'),
         material: 'PAL',
       },
       PIECE_BED: {
@@ -323,8 +321,7 @@ describe('deriveRoom pentru toate flow-urile → forma valida', () => {
         material: 'PAL',
       },
       PIECE_DRESSER: {
-        configuration: 'DRAWERS_ONLY',
-        dimensions: { width: 1.2, height: 0.9 },
+        config3d: defaultPieceConfig('DRESSER'),
         material: 'PAL',
       },
       PIECE_TABLE: {
@@ -335,14 +332,12 @@ describe('deriveRoom pentru toate flow-urile → forma valida', () => {
         material: 'LEMN_MASIV',
       },
       PIECE_SHOE_CABINET: {
-        style: 'SLIM_TILT',
-        dimensions: { width: 0.9, height: 1.2 },
+        config3d: defaultPieceConfig('SHOE_CABINET'),
         material: 'PAL',
       },
       PIECE_NIGHTSTAND: {
-        style: 'DRAWERS',
+        config3d: defaultPieceConfig('NIGHTSTAND'),
         count: 'TWO',
-        dimensions: { width: 0.5 },
         material: 'PAL',
       },
       PIECE_BENCH: {
@@ -635,7 +630,8 @@ describe('v2 pentru dressing/living/bedroom/office — versiuni si compatibilita
     expect(CURRENT_FLOW_VERSION.PANTRY).toBe(2);
     expect(CURRENT_FLOW_VERSION.LAUNDRY).toBe(2);
     expect(CURRENT_FLOW_VERSION.BALCONY).toBe(2);
-    expect(CURRENT_FLOW_VERSION.PIECE_WARDROBE).toBe(2);
+    // piesele-carcasa au avansat la v3 (configurator 3D, docs/10)
+    expect(CURRENT_FLOW_VERSION.PIECE_WARDROBE).toBe(3);
     expect(CURRENT_FLOW_VERSION.PIECE_BENCH).toBe(2);
     // "Alta piesa" ramane pe flow-ul v1 neschimbat
     expect(CURRENT_FLOW_VERSION.PIECES).toBe(1);
@@ -823,7 +819,8 @@ describe('v2 pentru pantry/laundry/balcony + piese ghidate (item 1, aliniere buc
   });
 
   it('piesele care colectau deja "Altul" (tv-unit) propaga acum textul la derivare', () => {
-    const flow = getFlow('PIECE_TV_UNIT');
+    // v2 ramane FROZEN in registru (curenta e v3 — configurator 3D)
+    const flow = getFlow('PIECE_TV_UNIT', 2);
     expect(flow.version).toBe(2);
     const answers: AnswerMap = {
       style: 'LOW_UNIT',
@@ -832,7 +829,9 @@ describe('v2 pentru pantry/laundry/balcony + piese ghidate (item 1, aliniere buc
       material: 'ALTUL',
       materialOther: 'furnir nuc',
     };
-    expect(validateRoomAnswers('PIECE_TV_UNIT', answers, { partial: false })).toEqual({ ok: true });
+    expect(validateRoomAnswers('PIECE_TV_UNIT', answers, { partial: false, version: 2 })).toEqual({
+      ok: true,
+    });
     expect(flow.deriveRoom(answers).items[0].description ?? '').toContain('furnir nuc');
     // v1 FROZEN: acelasi flow la versiunea 1 exista in continuare in registru
     expect(getFlow('PIECE_TV_UNIT', 1).version).toBe(1);

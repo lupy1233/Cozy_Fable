@@ -23,3 +23,12 @@ export {
   pieceNightstandFlowV2,
   pieceBenchFlowV2,
 } from './v2';
+export {
+  pieceBookcaseFlowV3,
+  pieceWardrobeFlowV3,
+  pieceTvUnitFlowV3,
+  pieceShoeCabinetFlowV3,
+  pieceDresserFlowV3,
+  pieceNightstandFlowV3,
+  pieceDeskFlowV3,
+} from './v3';

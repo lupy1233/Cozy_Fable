@@ -123,8 +123,14 @@ export type PiecesStep = BaseStep & { type: 'pieces'; minPieces: number; maxPiec
 export type UploadStep = BaseStep & { type: 'upload'; maxFiles: number };
 // Configuratorul 3D de piesa (docs/10): raspunsul = PieceConfig3d serializabil,
 // validat cu pieceConfig3dSchema(piece) identic FE/BE. Limitele de gabarit si
-// tipurile de zona permise vin din PIECE3D_RULES[piece].
-export type Configurator3dStep = BaseStep & { type: 'configurator-3d'; piece: Piece3dKind };
+// tipurile de zona permise vin din PIECE3D_RULES[piece]. scoreEntries permite
+// scoring derivat din config (ex. WARDROBE_TO_CEILING la dulap pana in tavan) —
+// functie pura, ca slots la dimension-group.
+export type Configurator3dStep = BaseStep & {
+  type: 'configurator-3d';
+  piece: Piece3dKind;
+  scoreEntries?: (config: PieceConfig3d) => ScoreEntry[];
+};
 
 export type QuestionStep =
   | SingleChoiceStep
