@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { FolderHeart, Loader2, Search } from 'lucide-react';
+import { Check, ChevronDown, FolderHeart, Loader2, Search, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -49,6 +49,120 @@ const LEGACY_TYPE: Record<string, RoomType> = {
 
 const MATERIAL_FILTERS: Material[] = ['PAL', 'MDF_INFOLIAT', 'MDF_VOPSIT', 'MDF_FURNIR', 'LEMN_MASIV'];
 const SYSTEM_FILTERS: ItemSystem[] = ['MANER', 'PUSH', 'GOLA', 'AVENTOS', 'GLISANTE'];
+
+// esantioanele filtrului de culoare — paleta se CITESTE, nu se descifreaza
+const COLOR_SWATCH: Record<InspirationColor, string> = {
+  WHITE: '#f6f3ec',
+  BLACK: '#26221d',
+  GRAY: '#9a968e',
+  BEIGE: '#dbc9ab',
+  BROWN: '#7a5638',
+  NATURAL_WOOD: '#c49a66',
+  GREEN: '#7d9276',
+  BLUE: '#66809c',
+  RED: '#a84e3f',
+  YELLOW: '#d9a53b',
+  MULTICOLOR:
+    'conic-gradient(#a84e3f 0 25%, #d9a53b 25% 50%, #7d9276 50% 75%, #66809c 75% 100%)',
+};
+
+function Swatch({ color, className }: { color: InspirationColor; className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn('inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-black/10', className)}
+      style={{ background: COLOR_SWATCH[color] }}
+    />
+  );
+}
+
+// Chip-declansator + panou multi-select (consola de filtre a caietului de idei):
+// eticheta smallcaps, numarul selectiilor si un preview al alegerii pe chip.
+function FilterGroup({
+  label,
+  count,
+  preview,
+  open,
+  onToggle,
+  onClose,
+  children,
+}: {
+  label: string;
+  count: number;
+  preview?: React.ReactNode;
+  open: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className={cn(
+          'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors',
+          count > 0 || open
+            ? 'border-walnut/50 bg-walnut-soft/60 text-foreground'
+            : 'border-border-2 bg-surface text-muted-foreground hover:border-muted-2 hover:text-foreground',
+        )}
+      >
+        <span className="font-semibold uppercase tracking-[0.1em]">{label}</span>
+        {preview}
+        {count > 0 && (
+          <span className="grid h-4 min-w-4 place-items-center rounded-full bg-walnut px-1 text-[10px] font-semibold text-primary-foreground">
+            {count}
+          </span>
+        )}
+        <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <>
+          <button
+            type="button"
+            aria-label={label}
+            onClick={onClose}
+            className="fixed inset-0 z-10 cursor-default"
+            tabIndex={-1}
+          />
+          <div className="absolute left-0 z-20 mt-2 w-max max-w-[min(21rem,calc(100vw-2.5rem))] rounded-xl border border-border bg-surface p-2.5 shadow-lg">
+            {children}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// optiune de panou: bifa + eticheta (+ esantion la culori)
+function PanelOption({
+  active,
+  onClick,
+  swatch,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  swatch?: InspirationColor;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-colors',
+        active ? 'bg-walnut-soft/70 text-foreground' : 'text-muted-foreground hover:bg-surface-2 hover:text-foreground',
+      )}
+    >
+      {swatch && <Swatch color={swatch} />}
+      <span className="flex-1">{children}</span>
+      <Check className={cn('h-3.5 w-3.5 text-walnut', active ? 'opacity-100' : 'opacity-0')} />
+    </button>
+  );
+}
 
 const norm = (s: string) =>
   s
@@ -111,6 +225,8 @@ function InspirationGallery() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [systems, setSystems] = useState<ItemSystem[]>([]);
   const [query, setQuery] = useState('');
+  // panoul de filtre deschis din consola (unul singur odata)
+  const [openGroup, setOpenGroup] = useState<'color' | 'material' | 'system' | null>(null);
   // lightbox: indexul pin-ului deschis in lista vizibila (navigare ←/→)
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
@@ -169,20 +285,23 @@ function InspirationGallery() {
           </Link>
         </div>
 
-        <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-4">
-          <div className="relative w-full max-w-2xl">
+        {/* consola de filtre: cautare + camere + panouri compacte (culoare cu
+            esantioane, material, deschidere) — inlocuieste cele 4 randuri de
+            pill-uri centrate */}
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-3 rounded-2xl border border-border bg-card/80 p-4 shadow-sm">
+          <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-2" />
             <Input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('searchPlaceholder')}
-              className="h-11 rounded-full bg-card pl-9"
+              className="h-10 rounded-full bg-surface pl-9"
             />
           </div>
 
-          {/* tip camera */}
-          <div className="flex flex-wrap justify-center gap-2">
+          {/* tip camera — filtrul principal, un singur rand (scroll pe mobil) */}
+          <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 sm:flex-wrap sm:justify-center sm:overflow-visible">
             <FilterPill active={type === null} onClick={() => setType(null)}>
               {t('all')}
             </FilterPill>
@@ -193,38 +312,96 @@ function InspirationGallery() {
             ))}
           </div>
 
-          {/* culoare / material / deschidere (F6: filtre noi, multi-select) */}
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <span className="label">{t('filters.color')}</span>
-            {INSPIRATION_COLORS.map((c) => (
-              <FilterPill key={c} active={colors.includes(c)} onClick={() => setColors(toggle(colors, c))}>
-                {t(`colors.${c}`)}
-              </FilterPill>
-            ))}
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <span className="label">{t('filters.material')}</span>
-            {MATERIAL_FILTERS.map((m) => (
-              <FilterPill
-                key={m}
-                active={materials.includes(m)}
-                onClick={() => setMaterials(toggle(materials, m))}
+          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+            <FilterGroup
+              label={t('filters.color')}
+              count={colors.length}
+              open={openGroup === 'color'}
+              onToggle={() => setOpenGroup(openGroup === 'color' ? null : 'color')}
+              onClose={() => setOpenGroup(null)}
+              preview={
+                colors.length > 0 && (
+                  <span className="flex items-center -space-x-1">
+                    {colors.slice(0, 3).map((c) => (
+                      <Swatch key={c} color={c} className="ring-1 ring-surface" />
+                    ))}
+                  </span>
+                )
+              }
+            >
+              <div className="grid grid-cols-2 gap-0.5">
+                {INSPIRATION_COLORS.map((c) => (
+                  <PanelOption
+                    key={c}
+                    active={colors.includes(c)}
+                    onClick={() => setColors(toggle(colors, c))}
+                    swatch={c}
+                  >
+                    {t(`colors.${c}`)}
+                  </PanelOption>
+                ))}
+              </div>
+            </FilterGroup>
+
+            <FilterGroup
+              label={t('filters.material')}
+              count={materials.length}
+              open={openGroup === 'material'}
+              onToggle={() => setOpenGroup(openGroup === 'material' ? null : 'material')}
+              onClose={() => setOpenGroup(null)}
+            >
+              <div className="flex w-56 flex-col gap-0.5">
+                {MATERIAL_FILTERS.map((m) => (
+                  <PanelOption
+                    key={m}
+                    active={materials.includes(m)}
+                    onClick={() => setMaterials(toggle(materials, m))}
+                  >
+                    {tc(`common.materials.${m}.label`)}
+                  </PanelOption>
+                ))}
+              </div>
+            </FilterGroup>
+
+            <FilterGroup
+              label={t('filters.opening')}
+              count={systems.length}
+              open={openGroup === 'system'}
+              onToggle={() => setOpenGroup(openGroup === 'system' ? null : 'system')}
+              onClose={() => setOpenGroup(null)}
+            >
+              <div className="flex w-56 flex-col gap-0.5">
+                {SYSTEM_FILTERS.map((s) => (
+                  <PanelOption
+                    key={s}
+                    active={systems.includes(s)}
+                    onClick={() => setSystems(toggle(systems, s))}
+                  >
+                    {tc(`common.systems.${s}.label`)}
+                  </PanelOption>
+                ))}
+              </div>
+            </FilterGroup>
+
+            <span className="ml-auto text-xs text-muted-foreground">
+              {t('shownCount', { count: visible.length })}
+            </span>
+            {(type !== null || colors.length > 0 || materials.length > 0 || systems.length > 0) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setType(null);
+                  setColors([]);
+                  setMaterials([]);
+                  setSystems([]);
+                  setOpenGroup(null);
+                }}
+                className="inline-flex items-center gap-1 text-xs text-crimson underline-offset-2 hover:underline"
               >
-                {tc(`common.materials.${m}.label`)}
-              </FilterPill>
-            ))}
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <span className="label">{t('filters.opening')}</span>
-            {SYSTEM_FILTERS.map((s) => (
-              <FilterPill
-                key={s}
-                active={systems.includes(s)}
-                onClick={() => setSystems(toggle(systems, s))}
-              >
-                {tc(`common.systems.${s}.label`)}
-              </FilterPill>
-            ))}
+                <X className="h-3 w-3" />
+                {t('clearFilters')}
+              </button>
+            )}
           </div>
         </div>
 

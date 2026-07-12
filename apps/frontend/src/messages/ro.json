@@ -112,6 +112,9 @@
     "empty": "Nimic găsit pentru căutarea ta. Încearcă alt cuvânt sau alt filtru.",
     "openPinterest": "Vezi pe Pinterest",
     "byFirm": "de {name}",
+    "viewProject": "Vezi proiectul",
+    "clearFilters": "Șterge filtrele",
+    "shownCount": "{count, plural, one {o idee} few {# idei} other {# de idei}}",
     "requestSection": "Inspirație din galerie",
     "save": "Salvează",
     "saved": "Salvat",
@@ -410,7 +413,9 @@
       "company": "Atelierul care a făcut piesa",
       "roomType": "Tip mobilier",
       "imageUrl": "URL imagine (opțional)",
-      "imageUrlHint": "Poți lăsa gol și să încarci imaginea după creare."
+      "imageUrlHint": "Poți lăsa gol și să încarci imaginea după creare.",
+      "sourceUrl": "Link proiect (sursă)",
+      "sourceUrlHint": "Linkul proiectului din portofoliul atelierului — apare ca „Vezi proiectul”."
     },
     "addButton": "Adaugă în galerie",
     "empty": "Nicio poză încă. Adaugă prima mai sus.",

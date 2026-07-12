@@ -1,7 +1,7 @@
 'use client';
 
 import type { InspirationPhotoDto } from '@marketplace/shared';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ArrowUpRight, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
@@ -156,6 +156,18 @@ export function InspirationLightbox({
               <p className="text-xs text-muted-foreground">
                 {tc(`rooms.type.${photo.roomType}`)} · {t('byFirm', { name: photo.company.name })}
               </p>
+              {/* linkul proiectului-sursa din portofoliul atelierului */}
+              {photo.sourceUrl && (
+                <a
+                  href={photo.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-walnut/40 bg-walnut-soft/60 px-2.5 py-1 text-xs font-medium text-walnut transition-colors hover:border-walnut hover:bg-walnut-soft"
+                >
+                  {t('viewProject')}
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                </a>
+              )}
             </div>
             <SaveButton
               photoId={photo.id}

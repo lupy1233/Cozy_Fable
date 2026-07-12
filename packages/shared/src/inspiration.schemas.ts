@@ -17,6 +17,8 @@ export const inspirationPhotoInputSchema = z.object({
   materials: z.array(z.enum(MATERIALS)).max(MATERIALS.length).default([]),
   systems: z.array(z.enum(ITEM_SYSTEMS)).max(ITEM_SYSTEMS.length).default([]),
   imageUrl: z.string().trim().url('invalidUrl').max(2000).optional().or(z.literal('')),
+  // linkul proiectului-sursa din portofoliul atelierului ("Vezi proiectul")
+  sourceUrl: z.string().trim().url('invalidUrl').max(2000).optional().or(z.literal('')),
   published: z.boolean().optional(),
   featured: z.boolean().optional(),
 });
@@ -31,6 +33,8 @@ export interface InspirationPhotoDto {
   systems: (typeof ITEM_SYSTEMS)[number][];
   // URL servibil: presigned GET (5 min) pentru upload-uri, altfel URL-ul extern
   imageUrl: string | null;
+  // linkul proiectului-sursa (portofoliul atelierului), afisat ca "Vezi proiectul"
+  sourceUrl: string | null;
   company: { id: string; name: string };
   published: boolean;
   featured: boolean;

@@ -112,6 +112,9 @@
     "empty": "Nothing found for your search. Try another word or filter.",
     "openPinterest": "View on Pinterest",
     "byFirm": "by {name}",
+    "viewProject": "View project",
+    "clearFilters": "Clear filters",
+    "shownCount": "{count, plural, one {1 idea} other {# ideas}}",
     "requestSection": "Gallery inspiration",
     "save": "Save",
     "saved": "Saved",
@@ -410,7 +413,9 @@
       "company": "Workshop that made the piece",
       "roomType": "Furniture type",
       "imageUrl": "Image URL (optional)",
-      "imageUrlHint": "You can leave this empty and upload the image after creating."
+      "imageUrlHint": "You can leave this empty and upload the image after creating.",
+      "sourceUrl": "Project link (source)",
+      "sourceUrlHint": "Link to the project in the workshop's portfolio — shown as \"View project\"."
     },
     "addButton": "Add to gallery",
     "empty": "No photos yet. Add the first one above.",

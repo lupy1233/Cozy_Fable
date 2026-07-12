@@ -70,6 +70,12 @@ export class CreateInspirationPhotoDto {
   @MaxLength(2000)
   imageUrl?: string;
 
+  // linkul proiectului-sursa din portofoliul atelierului
+  @IsOptional()
+  @IsUrl()
+  @MaxLength(2000)
+  sourceUrl?: string;
+
   @IsOptional()
   @IsBoolean()
   published?: boolean;
@@ -113,6 +119,12 @@ export class UpdateInspirationPhotoDto {
   @IsUrl()
   @MaxLength(2000)
   imageUrl?: string;
+
+  // linkul proiectului-sursa din portofoliul atelierului
+  @IsOptional()
+  @IsUrl()
+  @MaxLength(2000)
+  sourceUrl?: string;
 
   @IsOptional()
   @IsBoolean()

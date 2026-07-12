@@ -1,6 +1,7 @@
 'use client';
 
 import type { InspirationPhotoDto } from '@marketplace/shared';
+import { ArrowUpRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -70,11 +71,27 @@ export function InspirationPin({
         />
       </div>
 
-      <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent p-3 pt-10 text-[13px] leading-snug text-white">
-        {photo.title}
-        <span className="mt-0.5 block text-[10px] uppercase tracking-[0.12em] text-white/75">
-          {tc(`rooms.type.${photo.roomType}`)} · {t('byFirm', { name: photo.company.name })}
+      <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-black/65 to-transparent p-3 pt-10 text-[13px] leading-snug text-white">
+        <span className="min-w-0">
+          {photo.title}
+          <span className="mt-0.5 block text-[10px] uppercase tracking-[0.12em] text-white/75">
+            {tc(`rooms.type.${photo.roomType}`)} · {t('byFirm', { name: photo.company.name })}
+          </span>
         </span>
+        {/* linkul proiectului-sursa — vizibil pe hover, nu deschide lightbox-ul */}
+        {photo.sourceUrl && (
+          <a
+            href={photo.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            title={t('viewProject')}
+            aria-label={t('viewProject')}
+            className="pointer-events-auto grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/20 text-white opacity-0 backdrop-blur-sm transition-all hover:bg-white hover:text-foreground group-hover:opacity-100"
+          >
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </a>
+        )}
       </figcaption>
     </figure>
   );

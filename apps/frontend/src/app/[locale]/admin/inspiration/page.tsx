@@ -73,6 +73,7 @@ export default function AdminInspirationPage() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [systems, setSystems] = useState<ItemSystem[]>([]);
   const [imageUrl, setImageUrl] = useState('');
+  const [sourceUrl, setSourceUrl] = useState('');
 
   useEffect(() => {
     if (me.isError) router.replace('/login');
@@ -92,12 +93,14 @@ export default function AdminInspirationPage() {
         materials,
         systems,
         imageUrl: imageUrl.trim() || undefined,
+        sourceUrl: sourceUrl.trim() || undefined,
         published: true,
       },
       {
         onSuccess: () => {
           setTitle('');
           setImageUrl('');
+          setSourceUrl('');
           setColors([]);
           setMaterials([]);
           setSystems([]);
@@ -138,6 +141,9 @@ export default function AdminInspirationPage() {
           </Field>
           <Field label={t('fields.imageUrl')} hint={t('fields.imageUrlHint')}>
             <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://…" />
+          </Field>
+          <Field label={t('fields.sourceUrl')} hint={t('fields.sourceUrlHint')}>
+            <Input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://…" />
           </Field>
         </div>
 
@@ -228,6 +234,16 @@ function PhotoCard({
           <p className="truncate text-xs text-muted-foreground">
             {photo.company.name} · {tc(`rooms.type.${photo.roomType}`)}
           </p>
+          {photo.sourceUrl && (
+            <a
+              href={photo.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block truncate text-xs text-walnut underline-offset-2 hover:underline"
+            >
+              {photo.sourceUrl}
+            </a>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <label className="flex items-center gap-1">

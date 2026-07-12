@@ -575,6 +575,8 @@ model InspirationPhoto {
   systems      ItemSystem[]
   imageUrl     String?            @map("image_url")
   attachmentId String?            @unique @map("attachment_id")
+  // linkul proiectului-sursa din portofoliul atelierului (R6 2026-07-12)
+  sourceUrl    String?            @map("source_url")
   published    Boolean            @default(false)
   featured     Boolean            @default(false)
   createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz()
