@@ -9,6 +9,7 @@ import {
   PIECE3D_RULES,
   pieceConfig3dSchema,
   pieceConfigTotals,
+  resolvePieceLayout,
   suggestedColumns,
   type PieceConfig3d,
 } from './config';
@@ -20,15 +21,31 @@ import {
   panelsWithinBounds,
 } from './model';
 
-// Biblioteca Tylko tipica: 2 coloane, polite + sertare + usa.
+// Biblioteca Tylko tipica (R5.3): 2 coloane — polite ca INTERIOR al zonelor
+// deschise, sertare si usa.
 function bookcaseConfig(): PieceConfig3d {
   return {
     widthM: 1.6,
     heightM: 2.0,
     depthM: 0.35,
     columns: [
-      { zones: [{ type: 'SHELVES', count: 3 }, { type: 'DRAWERS', count: 2 }] },
+      { zones: [{ type: 'OPEN', fill: 'SHELVES', count: 3 }, { type: 'DRAWERS', count: 2 }] },
       { zones: [{ type: 'OPEN' }, { type: 'DOOR' }] },
+    ],
+    finish: 'STEJAR',
+  };
+}
+
+// Dulap cu bara de haine (fill HANGING) — adancimea implicita 0.6 >= 0.55.
+function wardrobeConfig(): PieceConfig3d {
+  return {
+    widthM: 2.4,
+    heightM: 2.4,
+    depthM: 0.6,
+    columns: [
+      { zones: [{ type: 'OPEN', fill: 'HANGING' }, { type: 'DRAWERS', count: 2 }] },
+      { zones: [{ type: 'OPEN', fill: 'HANGING' }, { type: 'DRAWERS', count: 2 }] },
+      { zones: [{ type: 'DOOR', fill: 'SHELVES', count: 4 }] },
     ],
     finish: 'STEJAR',
   };
@@ -48,6 +65,14 @@ describe('defaultPieceConfig', () => {
     expect(config.widthM).toBe(PIECE3D_RULES.BOOKCASE.width.default);
     expect(config.columns.length).toBe(suggestedColumns('BOOKCASE', config.widthM));
   });
+
+  it('foloseste doar cele 3 tipuri active de zona (OPEN/DRAWERS/DOOR)', () => {
+    for (const kind of PIECE3D_KINDS) {
+      for (const type of PIECE3D_RULES[kind].zoneTypes) {
+        expect(['OPEN', 'DRAWERS', 'DOOR']).toContain(type);
+      }
+    }
+  });
 });
 
 describe('pieceConfig3dSchema', () => {
@@ -60,37 +85,127 @@ describe('pieceConfig3dSchema', () => {
     expect(pieceConfig3dSchema('BOOKCASE').safeParse(config).success).toBe(false);
   });
 
-  it('respinge tip de zona nepermis piesei (HANGING la biblioteca)', () => {
-    const config = bookcaseConfig();
-    config.columns[0].zones[0] = { type: 'HANGING' };
-    expect(pieceConfig3dSchema('BOOKCASE').safeParse(config).success).toBe(false);
+  it('respinge tipurile legacy (HANGING/SHELVES ca TIP de zona)', () => {
+    const hanging = bookcaseConfig();
+    hanging.columns[0].zones[0] = { type: 'HANGING' };
+    expect(pieceConfig3dSchema('BOOKCASE').safeParse(hanging).success).toBe(false);
+    const shelves = bookcaseConfig();
+    shelves.columns[0].zones[0] = { type: 'SHELVES', count: 3 };
+    expect(pieceConfig3dSchema('BOOKCASE').safeParse(shelves).success).toBe(false);
   });
 
-  it('cere count la SHELVES/DRAWERS si il interzice la OPEN', () => {
-    const noCount = bookcaseConfig();
-    delete noCount.columns[0].zones[0].count;
-    expect(pieceConfig3dSchema('BOOKCASE').safeParse(noCount).success).toBe(false);
+  it('cere count la DRAWERS si la fill SHELVES; il interzice la zonele goale', () => {
+    const noDrawerCount = bookcaseConfig();
+    delete noDrawerCount.columns[0].zones[1].count;
+    expect(pieceConfig3dSchema('BOOKCASE').safeParse(noDrawerCount).success).toBe(false);
+
+    const noShelfCount = bookcaseConfig();
+    delete noShelfCount.columns[0].zones[0].count;
+    expect(pieceConfig3dSchema('BOOKCASE').safeParse(noShelfCount).success).toBe(false);
 
     const openWithCount = bookcaseConfig();
     openWithCount.columns[1].zones[0] = { type: 'OPEN', count: 2 };
     expect(pieceConfig3dSchema('BOOKCASE').safeParse(openWithCount).success).toBe(false);
   });
 
-  it('DOOR accepta count OPTIONAL = politele interioare (max 8)', () => {
-    const plain = bookcaseConfig();
-    expect(pieceConfig3dSchema('BOOKCASE').safeParse(plain).success).toBe(true);
-
+  it('usa cu polite interioare = fill SHELVES (count obligatoriu, max 8)', () => {
     const withShelves = bookcaseConfig();
-    withShelves.columns[1].zones[1] = { type: 'DOOR', count: 3 };
+    withShelves.columns[1].zones[1] = { type: 'DOOR', fill: 'SHELVES', count: 3 };
     expect(pieceConfig3dSchema('BOOKCASE').safeParse(withShelves).success).toBe(true);
 
     const tooMany = bookcaseConfig();
-    tooMany.columns[1].zones[1] = { type: 'DOOR', count: 9 };
+    tooMany.columns[1].zones[1] = { type: 'DOOR', fill: 'SHELVES', count: 9 };
     expect(pieceConfig3dSchema('BOOKCASE').safeParse(tooMany).success).toBe(false);
+
+    // forma legacy (DOOR cu count fara fill) nu mai e acceptata la publish
+    const legacy = bookcaseConfig();
+    legacy.columns[1].zones[1] = { type: 'DOOR', count: 3 };
+    expect(pieceConfig3dSchema('BOOKCASE').safeParse(legacy).success).toBe(false);
+  });
+
+  it('bara de haine cere adancime >= 55cm si zona >= 80cm', () => {
+    expect(pieceConfig3dSchema('WARDROBE').safeParse(wardrobeConfig()).success).toBe(true);
+
+    const shallow = { ...wardrobeConfig(), depthM: 0.45 };
+    expect(pieceConfig3dSchema('WARDROBE').safeParse(shallow).success).toBe(false);
+
+    // 4 zone la 1.8m inaltime → ~41cm/zona < 80cm
+    const short: PieceConfig3d = {
+      ...wardrobeConfig(),
+      heightM: 1.8,
+      columns: [
+        {
+          zones: [
+            { type: 'OPEN', fill: 'HANGING' },
+            { type: 'OPEN' },
+            { type: 'OPEN' },
+            { type: 'OPEN' },
+          ],
+        },
+      ],
+    };
+    expect(pieceConfig3dSchema('WARDROBE').safeParse(short).success).toBe(false);
+  });
+
+  it('permite 2-3 bare suprapuse doar daca inaltimea zonei ajunge (80cm/bara)', () => {
+    const two: PieceConfig3d = {
+      ...wardrobeConfig(),
+      widthM: 0.8,
+      columns: [{ zones: [{ type: 'OPEN', fill: 'HANGING', count: 2 }] }],
+    };
+    // zona unica are ~2.30m → incap 2 bare
+    expect(pieceConfig3dSchema('WARDROBE').safeParse(two).success).toBe(true);
+    // 3 bare cer 240cm de zona — nu incap la 2.4m inaltime totala
+    const three: PieceConfig3d = {
+      ...two,
+      columns: [{ zones: [{ type: 'OPEN', fill: 'HANGING', count: 3 }] }],
+    };
+    expect(pieceConfig3dSchema('WARDROBE').safeParse(three).success).toBe(false);
+    const threeTall: PieceConfig3d = { ...three, heightM: 2.8 };
+    expect(pieceConfig3dSchema('WARDROBE').safeParse(threeTall).success).toBe(true);
+    // plafonul absolut e 3 bare
+    const four: PieceConfig3d = {
+      ...two,
+      heightM: 2.8,
+      columns: [{ zones: [{ type: 'OPEN', fill: 'HANGING', count: 4 }] }],
+    };
+    expect(pieceConfig3dSchema('WARDROBE').safeParse(four).success).toBe(false);
+  });
+
+  it('respinge sertarele cu marginea de sus peste 160cm', () => {
+    // dulap ingust cu o singura coloana (latimea coloanei ramane valida)
+    const high: PieceConfig3d = {
+      ...wardrobeConfig(),
+      widthM: 0.8,
+      columns: [{ zones: [{ type: 'DRAWERS', count: 2 }, { type: 'OPEN' }] }],
+    };
+    // zona de sus (sertare) urca pana la ~2.38m
+    expect(pieceConfig3dSchema('WARDROBE').safeParse(high).success).toBe(false);
+
+    const low: PieceConfig3d = {
+      ...wardrobeConfig(),
+      widthM: 0.8,
+      columns: [{ zones: [{ type: 'OPEN' }, { type: 'DRAWERS', count: 2 }] }],
+    };
+    expect(pieceConfig3dSchema('WARDROBE').safeParse(low).success).toBe(true);
+  });
+
+  it('valideaza blocajele: widthM/heightM in limitele geometrice', () => {
+    const badWidth = bookcaseConfig();
+    badWidth.columns[0].widthM = 0.1; // sub COLUMN_W_MIN
+    expect(pieceConfig3dSchema('BOOKCASE').safeParse(badWidth).success).toBe(false);
+
+    const badHeight = bookcaseConfig();
+    badHeight.columns[0].zones[0].heightM = 0.05; // sub ZONE_H_MIN
+    expect(pieceConfig3dSchema('BOOKCASE').safeParse(badHeight).success).toBe(false);
+
+    const ok = bookcaseConfig();
+    ok.columns[0].widthM = 0.5;
+    ok.columns[0].zones[0].heightM = 1.2;
+    expect(pieceConfig3dSchema('BOOKCASE').safeParse(ok).success).toBe(true);
   });
 
   it('respinge coloane care rezulta in latimi nerealiste', () => {
-    // 0.5m cu 2 coloane → ~22.4cm interior/coloana... sub COLUMN_W_MIN la 3 coloane
     const config: PieceConfig3d = {
       ...bookcaseConfig(),
       widthM: 0.5,
@@ -120,8 +235,53 @@ describe('suggestedColumns / clampColumns', () => {
   });
 
   it('nu permite coloane mai late de COLUMN_W_MAX', () => {
-    // 2.4m cu 1 coloana → 2.36m interior: clamp urca numarul
     expect(columnWidth(2.4, clampColumns('WARDROBE', 2.4, 1))).toBeLessThanOrEqual(1.0);
+  });
+});
+
+describe('resolvePieceLayout (R5.3: dimensiuni blocate)', () => {
+  it('fara blocaje imparte egal, identic cu columnWidth', () => {
+    const config = bookcaseConfig();
+    const layout = resolvePieceLayout('BOOKCASE', config);
+    const equal = columnWidth(config.widthM, 2);
+    expect(layout[0].width).toBeCloseTo(equal, 6);
+    expect(layout[1].width).toBeCloseTo(equal, 6);
+  });
+
+  it('coloana blocata isi tine latimea, restul se imparte egal', () => {
+    const config: PieceConfig3d = {
+      ...bookcaseConfig(),
+      columns: [
+        { widthM: 0.4, zones: [{ type: 'OPEN' }] },
+        { zones: [{ type: 'OPEN' }] },
+        { zones: [{ type: 'OPEN' }] },
+      ],
+    };
+    const layout = resolvePieceLayout('BOOKCASE', config);
+    expect(layout[0].width).toBeCloseTo(0.4, 6);
+    expect(layout[1].width).toBeCloseTo(layout[2].width, 6);
+    const total = layout.reduce((s, c) => s + c.width, 0);
+    expect(total).toBeCloseTo(config.widthM - 2 * 0.018 - 2 * 0.018, 6);
+  });
+
+  it('randul blocat isi tine inaltimea, iar suma acopera exact interiorul', () => {
+    const config = bookcaseConfig();
+    config.columns[0].zones[0].heightM = 0.4;
+    const layout = resolvePieceLayout('BOOKCASE', config);
+    const zones = layout[0].zones;
+    expect(zones[0].height).toBeCloseTo(0.4, 6);
+    // zonele sunt ordonate de sus in jos si nu se suprapun
+    expect(zones[0].bottom).toBeGreaterThan(zones[1].top - 1e-9);
+    expect(zones[1].bottom).toBeCloseTo(0.06 + 0.018, 6);
+  });
+
+  it('blocajele care nu mai incap sunt scalate, geometria ramane valida', () => {
+    const config = bookcaseConfig();
+    config.columns[0].zones[0].heightM = 5; // mai mult decat toata piesa
+    const layout = resolvePieceLayout('BOOKCASE', config);
+    const zones = layout[0].zones;
+    expect(zones[0].height).toBeLessThan(2);
+    expect(zones[1].height).toBeGreaterThanOrEqual(0.1 - 1e-9);
   });
 });
 
@@ -130,17 +290,77 @@ describe('normalizePieceConfig', () => {
     const config = { ...bookcaseConfig(), widthM: 2.4, columns: bookcaseConfig().columns };
     const normalized = normalizePieceConfig('BOOKCASE', config);
     expect(normalized.columns.length).toBe(3);
-    expect(normalized.columns[0].zones[0]).toEqual({ type: 'SHELVES', count: 3 });
-    expect(normalized.columns[2].zones[0].type).toBe('SHELVES');
+    expect(normalized.columns[0].zones[0]).toEqual({ type: 'OPEN', fill: 'SHELVES', count: 3 });
+    expect(normalized.columns[2].zones[0].fill).toBe('SHELVES');
+  });
+
+  it('migreaza formele legacy: SHELVES/HANGING/TILT_OUT/DOOR+count', () => {
+    const config = wardrobeConfig();
+    config.columns[0].zones = [{ type: 'SHELVES', count: 5 } as never];
+    config.columns[1].zones = [{ type: 'HANGING' } as never, { type: 'TILT_OUT', count: 2 } as never];
+    config.columns[2].zones = [{ type: 'DOOR', count: 3 } as never];
+    const normalized = normalizePieceConfig('WARDROBE', config);
+    expect(normalized.columns[0].zones[0]).toEqual({ type: 'OPEN', fill: 'SHELVES', count: 5 });
+    expect(normalized.columns[1].zones[0]).toEqual({ type: 'OPEN', fill: 'HANGING', count: 1 });
+    expect(normalized.columns[1].zones[1]).toEqual({ type: 'DRAWERS', count: 2 });
+    expect(normalized.columns[2].zones[0]).toEqual({ type: 'DOOR', fill: 'SHELVES', count: 3 });
+    expect(pieceConfig3dSchema('WARDROBE').safeParse(normalized).success).toBe(true);
   });
 
   it('corecteaza count-uri si tipuri nepermise', () => {
     const config = bookcaseConfig();
     config.columns[0].zones[0] = { type: 'HANGING', count: 99 } as never;
     const normalized = normalizePieceConfig('BOOKCASE', config);
+    // HANGING migrat la OPEN+fill, dar biblioteca are 35cm adancime < 55cm
+    // → bara dispare, ramane zona deschisa
+    expect(normalized.columns[0].zones[0]).toEqual({ type: 'OPEN' });
+    expect(pieceConfig3dSchema('BOOKCASE').safeParse(normalized).success).toBe(true);
+  });
+
+  it('bara de haine dispare cand adancimea scade sub 55cm', () => {
+    const config = { ...wardrobeConfig(), depthM: 0.4 };
+    const normalized = normalizePieceConfig('WARDROBE', config);
+    expect(normalized.columns[0].zones[0].fill).toBeUndefined();
+    expect(pieceConfig3dSchema('WARDROBE').safeParse(normalized).success).toBe(true);
+  });
+
+  it('reduce barele suprapuse cand zona nu le mai incape', () => {
+    const config: PieceConfig3d = {
+      ...wardrobeConfig(),
+      widthM: 0.8,
+      heightM: 1.8,
+      columns: [{ zones: [{ type: 'OPEN', fill: 'HANGING', count: 3 }] }],
+    };
+    const normalized = normalizePieceConfig('WARDROBE', config);
+    // zona unica are ~1.70m → incap doar 2 bare
+    expect(normalized.columns[0].zones[0]).toEqual({ type: 'OPEN', fill: 'HANGING', count: 2 });
+    expect(pieceConfig3dSchema('WARDROBE').safeParse(normalized).success).toBe(true);
+  });
+
+  it('sertarele urcate peste 160cm redevin zona deschisa', () => {
+    const config: PieceConfig3d = {
+      ...wardrobeConfig(),
+      columns: [{ zones: [{ type: 'DRAWERS', count: 3 }, { type: 'OPEN' }] }],
+    };
+    const normalized = normalizePieceConfig('WARDROBE', config);
     expect(normalized.columns[0].zones[0].type).toBe('OPEN');
-    const parsed = pieceConfig3dSchema('BOOKCASE').safeParse(normalized);
-    expect(parsed.success).toBe(true);
+    expect(normalized.columns[0].zones[0].count).toBeUndefined();
+    expect(pieceConfig3dSchema('WARDROBE').safeParse(normalized).success).toBe(true);
+  });
+
+  it('lasa mereu cel putin un rand si o coloana flexibile', () => {
+    const config: PieceConfig3d = {
+      ...bookcaseConfig(),
+      columns: [
+        { widthM: 0.5, zones: [{ type: 'OPEN', heightM: 0.5 }, { type: 'OPEN', heightM: 0.5 }] },
+        { widthM: 0.5, zones: [{ type: 'OPEN' }] },
+      ],
+    };
+    const normalized = normalizePieceConfig('BOOKCASE', config);
+    expect(normalized.columns[1].widthM).toBeUndefined();
+    const zones = normalized.columns[0].zones;
+    expect(zones[zones.length - 1].heightM).toBeUndefined();
+    expect(zones[0].heightM).toBeCloseTo(0.5, 6);
   });
 });
 
@@ -175,15 +395,54 @@ describe('buildPanels', () => {
     }
   });
 
+  it('coloana blocata muta despartitorul si pastreaza gabaritul', () => {
+    // 3 coloane, prima blocata la 40cm — celelalte doua raman in limite
+    const config: PieceConfig3d = {
+      ...bookcaseConfig(),
+      columns: [
+        { widthM: 0.4, zones: [{ type: 'OPEN' }] },
+        { zones: [{ type: 'OPEN' }] },
+        { zones: [{ type: 'OPEN' }] },
+      ],
+    };
+    const panels = buildPanels(config, 'BOOKCASE');
+    const dividers = panels.filter((p) => p.role === 'DIVIDER');
+    // primul despartitor: stanga interioara (-0.782) + 0.4 + T/2
+    expect(dividers[0]?.x).toBeCloseTo(-config.widthM / 2 + 0.018 + 0.4 + 0.009, 6);
+    expect(panelsWithinBounds(config, panels)).toBe(true);
+  });
+
   it('usa cu polite interioare: SHELF-uri in zona usii + balamale pe fronturi', () => {
     const config = bookcaseConfig();
-    config.columns[1].zones[1] = { type: 'DOOR', count: 2 };
+    config.columns[1].zones[1] = { type: 'DOOR', fill: 'SHELVES', count: 2 };
     const panels = buildPanels(config, 'BOOKCASE');
-    // 3 polite in zona SHELVES + 2 interioare in spatele usii
+    // 3 polite in zona deschisa + 2 interioare in spatele usii
     expect(panels.filter((p) => p.role === 'SHELF').length).toBe(5);
     const doors = panels.filter((p) => p.role === 'DOOR_FRONT');
     // coloana ~77cm → usa dubla, balamale stanga + dreapta
     expect(doors.map((d) => d.hinge).sort()).toEqual(['L', 'R']);
+  });
+
+  it('bara de haine (fill HANGING) primeste ROD, si in spatele usii', () => {
+    const wardrobe = defaultPieceConfig('WARDROBE');
+    expect(buildPanels(wardrobe, 'WARDROBE').some((p) => p.role === 'ROD')).toBe(true);
+
+    const doorHang = wardrobeConfig();
+    doorHang.columns[2].zones[0] = { type: 'DOOR', fill: 'HANGING' };
+    expect(buildPanels(doorHang, 'WARDROBE').some((p) => p.role === 'ROD')).toBe(true);
+  });
+
+  it('barele suprapuse produc ROD-uri la inaltimi diferite si intra in totaluri', () => {
+    const config: PieceConfig3d = {
+      ...wardrobeConfig(),
+      widthM: 0.8,
+      columns: [{ zones: [{ type: 'OPEN', fill: 'HANGING', count: 2 }] }],
+    };
+    const rods = buildPanels(config, 'WARDROBE').filter((p) => p.role === 'ROD');
+    expect(rods.length).toBe(2);
+    expect(Math.abs(rods[0].y - rods[1].y)).toBeGreaterThan(0.5);
+    expect(panelsWithinBounds(config, buildPanels(config, 'WARDROBE'))).toBe(true);
+    expect(pieceConfigTotals(config).hanging).toBe(2);
   });
 
   it('sertarele primesc fundal intunecat pentru rosturi (FRONT_BACKDROP)', () => {
@@ -195,14 +454,11 @@ describe('buildPanels', () => {
 
   it('politele din spatele usilor intra in totalul de polite', () => {
     const config = bookcaseConfig();
-    config.columns[1].zones[1] = { type: 'DOOR', count: 2 };
+    config.columns[1].zones[1] = { type: 'DOOR', fill: 'SHELVES', count: 2 };
     expect(pieceConfigTotals(config).shelves).toBe(5);
   });
 
-  it('dulapul cu HANGING primeste bara; biroul primeste blat si casetiera', () => {
-    const wardrobe = defaultPieceConfig('WARDROBE');
-    expect(buildPanels(wardrobe, 'WARDROBE').some((p) => p.role === 'ROD')).toBe(true);
-
+  it('biroul primeste blat si casetiera cu sertare', () => {
     const desk = defaultPieceConfig('DESK');
     const deskPanels = buildPanels(desk, 'DESK');
     expect(deskPanels.some((p) => p.role === 'DESK_TOP')).toBe(true);
@@ -226,9 +482,10 @@ describe('buildZoneBoxes', () => {
 
 describe('nextZoneType', () => {
   it('cicleaza doar prin tipurile permise piesei', () => {
-    expect(nextZoneType('BOOKCASE', 'OPEN')).toBe('SHELVES');
+    expect(nextZoneType('BOOKCASE', 'OPEN')).toBe('DRAWERS');
     expect(nextZoneType('BOOKCASE', 'DOOR')).toBe('OPEN');
-    expect(nextZoneType('WARDROBE', 'HANGING')).toBe('SHELVES');
+    // tip legacy necunoscut → primul tip permis
+    expect(nextZoneType('WARDROBE', 'HANGING')).toBe('OPEN');
   });
 });
 
@@ -243,6 +500,13 @@ describe('describePieceConfig / pieceConfigTotals', () => {
     expect(text).toContain('2 sertare');
     expect(text).toContain('2 usi');
     expect(text).toContain('finisaj stejar');
+  });
+
+  it('bara de haine din fill intra in totaluri', () => {
+    const totals = pieceConfigTotals(wardrobeConfig());
+    expect(totals.hanging).toBe(2);
+    expect(totals.drawers).toBe(4);
+    expect(totals.shelves).toBe(4);
   });
 });
 

@@ -18,7 +18,7 @@ function bookcaseAnswers(overrides: Partial<AnswerMap> = {}): AnswerMap {
     heightM: 2,
     depthM: 0.35,
     columns: [
-      { zones: [{ type: 'SHELVES', count: 3 }, { type: 'DRAWERS', count: 2 }] },
+      { zones: [{ type: 'OPEN', fill: 'SHELVES', count: 3 }, { type: 'DRAWERS', count: 2 }] },
       { zones: [{ type: 'OPEN' }, { type: 'DOOR' }] },
     ],
     finish: 'STEJAR',

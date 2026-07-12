@@ -18,6 +18,8 @@ export const FINISH_SPECS: Record<Piece3dFinish, FinishSpec> = {
   VERDE_SALVIE: { body: '#8a9c88', front: '#96a894', roughness: 0.65 },
 };
 
-// alama pentru bara de haine si highlight-ul zonelor (accentul design-system)
+// alama pentru bara de haine (accentul design-system)
 export const ROD_COLOR = '#b08d57';
-export const HIGHLIGHT_COLOR = '#b08d57';
+// selectia zonelor in 3D: teracota saturata — alama se pierdea pe stejar;
+// nuanta contrasteaza cu toate cele 5 finisaje si cu fundalul cald al scenei
+export const HIGHLIGHT_COLOR = '#e2662e';

@@ -11,7 +11,7 @@ import {
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Group } from 'three';
+import { BoxGeometry, EdgesGeometry, type Group } from 'three';
 import { FINISH_SPECS, HIGHLIGHT_COLOR, ROD_COLOR } from './finishes';
 
 // Scena 3D a piesei (R1 + fidelizare Tylko): carcasa parametrica generata din
@@ -276,27 +276,42 @@ function ZoneHotspot({
       document.body.style.cursor = '';
     };
   }, [hovered]);
+  // muchiile cutiei zonei — construite manual (nu prin JSX), deci dispose manual
+  const edges = useMemo(() => {
+    const geo = new BoxGeometry(box.w, box.h, box.d);
+    const e = new EdgesGeometry(geo);
+    geo.dispose();
+    return e;
+  }, [box.w, box.h, box.d]);
+  useEffect(() => () => edges.dispose(), [edges]);
   return (
-    <mesh
-      position={[box.x, box.y, box.z]}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick?.({ col: box.col, zone: box.zone });
-      }}
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        setHovered(true);
-      }}
-      onPointerOut={() => setHovered(false)}
-    >
-      <boxGeometry args={[box.w, box.h, box.d]} />
-      <meshBasicMaterial
-        color={HIGHLIGHT_COLOR}
-        transparent
-        opacity={active ? 0.22 : hovered ? 0.13 : 0}
-        depthWrite={false}
-      />
-    </mesh>
+    <group position={[box.x, box.y, box.z]}>
+      <mesh
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick?.({ col: box.col, zone: box.zone });
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setHovered(true);
+        }}
+        onPointerOut={() => setHovered(false)}
+      >
+        <boxGeometry args={[box.w, box.h, box.d]} />
+        <meshBasicMaterial
+          color={HIGHLIGHT_COLOR}
+          transparent
+          opacity={active ? 0.35 : hovered ? 0.15 : 0}
+          depthWrite={false}
+        />
+      </mesh>
+      {/* contur pe muchii, vizibil si prin fronturi — selectia se citeste clar */}
+      {active && (
+        <lineSegments geometry={edges} scale={[1.002, 1.002, 1.002]}>
+          <lineBasicMaterial color={HIGHLIGHT_COLOR} transparent depthTest={false} />
+        </lineSegments>
+      )}
+    </group>
   );
 }
 

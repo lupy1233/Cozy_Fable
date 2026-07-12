@@ -4,18 +4,25 @@ import {
   canAddColumn,
   canRemoveColumn,
   defaultPieceConfig,
+  DRAWERS_MAX_TOP,
+  GEOM_EPS,
+  HANGING_MIN_DEPTH,
+  HANGING_MIN_ZONE_H,
+  hangingCountFor,
   isPieceConfig3d,
   normalizePieceConfig,
   PIECE3D_FINISHES,
   PIECE3D_RULES,
-  ZONE_COUNT_MAX,
-  zoneCountRequired,
+  resolvePieceLayout,
+  zoneCountMax,
+  type Piece3dColumn,
   type Piece3dKind,
   type Piece3dZone,
+  type Piece3dZoneFill,
   type Piece3dZoneType,
   type PieceConfig3d,
 } from '@marketplace/shared';
-import { Box, Minus, Plus, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { Box, Lock, LockOpen, Minus, Plus, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -47,14 +54,15 @@ function hasWebGl(): boolean {
   }
 }
 
-// count implicit la schimbarea tipului unei zone
-const DEFAULT_COUNT: Partial<Record<Piece3dZoneType, number>> = {
-  SHELVES: 3,
-  DRAWERS: 2,
-  TILT_OUT: 3,
-};
+// count implicit la schimbarea tipului/interiorului unei zone
+const DEFAULT_DRAWERS = 2;
+const DEFAULT_SHELVES = 3;
 
 const cm = (v: number) => Math.round(v * 100);
+
+// optiunile de interior pentru zonele usa/deschis (undefined = gol)
+const FILL_OPTIONS: (Piece3dZoneFill | undefined)[] = [undefined, 'SHELVES', 'HANGING'];
+const fillKey = (fill: Piece3dZoneFill | undefined) => fill ?? 'NONE';
 
 function DimensionControl({
   label,
@@ -147,6 +155,64 @@ function Stepper({
   );
 }
 
+// Dimensiune editabila cu lacat (R5.3): valoarea afisata e cea REZOLVATA;
+// editarea o blocheaza implicit, lacatul o elibereaza (impartire egala).
+function LockableSize({
+  label,
+  valueCm,
+  locked,
+  onValueCm,
+  onToggleLock,
+  lockLabel,
+  unlockLabel,
+}: {
+  label: string;
+  valueCm: number;
+  locked: boolean;
+  onValueCm: (v: number) => void;
+  onToggleLock: () => void;
+  lockLabel: string;
+  unlockLabel: string;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <div className="relative w-20 shrink-0">
+        <Input
+          type="number"
+          inputMode="numeric"
+          min={1}
+          value={valueCm}
+          onChange={(e) => {
+            const v = Number(e.target.value);
+            if (Number.isFinite(v) && v > 0) onValueCm(v);
+          }}
+          aria-label={label}
+          className="h-8 pr-7 text-right text-sm"
+        />
+        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
+          cm
+        </span>
+      </div>
+      <button
+        type="button"
+        aria-pressed={locked}
+        title={locked ? unlockLabel : lockLabel}
+        aria-label={locked ? unlockLabel : lockLabel}
+        onClick={onToggleLock}
+        className={
+          'grid h-8 w-8 shrink-0 place-items-center rounded-md border transition-colors ' +
+          (locked
+            ? 'border-walnut/50 bg-walnut-soft text-walnut'
+            : 'border-border-2 text-muted-foreground hover:text-foreground')
+        }
+      >
+        {locked ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
+      </button>
+    </div>
+  );
+}
+
 export default function Configurator3dStepUI({
   piece,
   value,
@@ -191,6 +257,13 @@ export default function Configurator3dStepUI({
     return activeZone;
   }, [config, activeZone]);
 
+  // geometria rezolvata (latimi/inaltimi reale, cu blocaje) — pentru afisarea
+  // dimensiunilor si regulile bara de haine / sertare (R5.3)
+  const layout = useMemo(
+    () => (config ? resolvePieceLayout(piece, config) : null),
+    [piece, config],
+  );
+
   if (!config) return null;
 
   const setColumns = (n: number) => {
@@ -207,6 +280,7 @@ export default function Configurator3dStepUI({
     const columns = config.columns.map((column, ci) =>
       ci === ref.col
         ? {
+            ...column,
             zones: column.zones.map((zone, zi) =>
               zi === ref.zone ? ({ ...zone, ...patch } as Piece3dZone) : zone,
             ),
@@ -216,11 +290,29 @@ export default function Configurator3dStepUI({
     apply({ ...config, columns });
   };
 
+  const updateColumn = (col: number, patch: Partial<Piece3dColumn>) => {
+    const columns = config.columns.map((column, ci) =>
+      ci === col ? { ...column, ...patch } : column,
+    );
+    apply({ ...config, columns });
+  };
+
   const setZoneType = (ref: ZoneRef, type: Piece3dZoneType) => {
-    // count doar unde e obligatoriu; usa porneste FARA polite interioare
-    updateZone(ref, { type, count: zoneCountRequired(type) ? DEFAULT_COUNT[type] ?? 1 : undefined });
+    const zone = config.columns[ref.col].zones[ref.zone];
+    if (type === 'DRAWERS') {
+      // sertarele nu au interior; count = numarul de sertare
+      updateZone(ref, { type, fill: undefined, count: DEFAULT_DRAWERS });
+    } else {
+      // usa/deschis pastreaza interiorul existent (polite/bare) cu tot cu numar
+      updateZone(ref, {
+        type,
+        count: zone.fill
+          ? zone.count ?? (zone.fill === 'SHELVES' ? DEFAULT_SHELVES : 1)
+          : undefined,
+      });
+    }
     // zona care nu mai are fronturi nu poate ramane "deschisa"
-    if (type === 'OPEN' || type === 'SHELVES' || type === 'HANGING') {
+    if (type === 'OPEN') {
       setOpenZones((prev) => {
         const next = new Set(prev);
         next.delete(zoneKey(ref.col, ref.zone));
@@ -229,10 +321,20 @@ export default function Configurator3dStepUI({
     }
   };
 
+  const setZoneFill = (ref: ZoneRef, fill: Piece3dZoneFill | undefined) => {
+    updateZone(ref, {
+      fill,
+      count: fill === 'SHELVES' ? DEFAULT_SHELVES : fill === 'HANGING' ? 1 : undefined,
+    });
+  };
+
   const addZone = (col: number) => {
+    // zona noua porneste pe tipul implicit al piesei (sertarele cu count)
+    const type = rules.zoneTypes[0];
+    const fresh: Piece3dZone = type === 'DRAWERS' ? { type, count: DEFAULT_DRAWERS } : { type };
     const columns = config.columns.map((column, ci) =>
       ci === col && column.zones.length < rules.maxZonesPerColumn
-        ? { zones: [...column.zones, { type: rules.zoneTypes[0], count: DEFAULT_COUNT[rules.zoneTypes[0]] } as Piece3dZone] }
+        ? { ...column, zones: [...column.zones, fresh] }
         : column,
     );
     apply({ ...config, columns });
@@ -241,19 +343,40 @@ export default function Configurator3dStepUI({
 
   const removeZone = (ref: ZoneRef) => {
     const columns = config.columns.map((column, ci) =>
-      ci === ref.col ? { zones: column.zones.filter((_, zi) => zi !== ref.zone) } : column,
+      ci === ref.col
+        ? { ...column, zones: column.zones.filter((_, zi) => zi !== ref.zone) }
+        : column,
     );
     apply({ ...config, columns });
-    setActiveZone(null);
+    // selectia ramane pe coloana (zona vecina) — bara nu dispare la stergere
+    const remaining = columns[ref.col].zones.length;
+    setActiveZone(remaining > 0 ? { col: ref.col, zone: Math.min(ref.zone, remaining - 1) } : null);
     setOpenZones(new Set());
   };
 
   const activeZoneData = validActiveZone
     ? config.columns[validActiveZone.col].zones[validActiveZone.zone]
     : null;
-  const activeMax = activeZoneData ? ZONE_COUNT_MAX[activeZoneData.type] : undefined;
+  const activeMax = activeZoneData ? zoneCountMax(activeZoneData) : undefined;
+  const activeResolved =
+    validActiveZone && layout ? layout[validActiveZone.col]?.zones[validActiveZone.zone] : null;
+  const activeColWidth = validActiveZone && layout ? layout[validActiveZone.col]?.width : null;
+  // regulile geometrice (R5.3): sertare doar sub 160cm; bara cere 55cm
+  // adancime si o zona de 80cm inaltime
+  const drawersAllowed = activeResolved ? activeResolved.top <= DRAWERS_MAX_TOP + GEOM_EPS : true;
+  const hangingAllowed = activeResolved
+    ? config.depthM >= HANGING_MIN_DEPTH - GEOM_EPS &&
+      activeResolved.height >= HANGING_MIN_ZONE_H - GEOM_EPS
+    : false;
+  // barele suprapuse sunt limitate de inaltimea zonei (80cm/bara)
+  const activeCountMax =
+    activeZoneData && activeMax !== undefined
+      ? activeZoneData.fill === 'HANGING' && activeResolved
+        ? Math.max(1, Math.min(activeMax, hangingCountFor(activeResolved.height)))
+        : activeMax
+      : undefined;
 
-  const zoneToolbar = validActiveZone && activeZoneData && (
+  const zoneToolbar = validActiveZone && activeZoneData && activeResolved && (
     <div className="flex flex-col gap-2 rounded-xl border border-walnut/40 bg-walnut-soft/60 p-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-[0.08em] text-walnut">
@@ -272,57 +395,123 @@ export default function Configurator3dStepUI({
         </button>
       </div>
       <div className="flex flex-wrap gap-1.5">
-        {rules.zoneTypes.map((type) => (
-          <button
-            key={type}
-            type="button"
-            aria-pressed={activeZoneData.type === type}
-            onClick={() => setZoneType(validActiveZone, type)}
-            className={
-              'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ' +
-              (activeZoneData.type === type
-                ? 'border-walnut bg-walnut text-white'
-                : 'border-border-2 bg-surface hover:border-walnut/50')
-            }
-          >
-            {t(`config3d.zoneTypes.${type}`)}
-          </button>
-        ))}
+        {rules.zoneTypes.map((type) => {
+          const blocked = type === 'DRAWERS' && !drawersAllowed && activeZoneData.type !== type;
+          return (
+            <button
+              key={type}
+              type="button"
+              aria-pressed={activeZoneData.type === type}
+              disabled={blocked}
+              title={blocked ? t('config3d.drawersTooHigh') : undefined}
+              onClick={() => setZoneType(validActiveZone, type)}
+              className={
+                'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ' +
+                (activeZoneData.type === type
+                  ? 'border-walnut bg-walnut text-white'
+                  : 'border-border-2 bg-surface hover:border-walnut/50')
+              }
+            >
+              {t(`config3d.zoneTypes.${type}`)}
+            </button>
+          );
+        })}
       </div>
-      {activeMax !== undefined && zoneCountRequired(activeZoneData.type) && (
+      {/* interiorul zonelor usa/deschis: gol, polite sau bara de haine */}
+      {activeZoneData.type !== 'DRAWERS' && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-xs text-muted-foreground">{t('config3d.fillLabel')}</span>
+          {FILL_OPTIONS.map((fill) => {
+            const blocked =
+              fill === 'HANGING' && !hangingAllowed && activeZoneData.fill !== 'HANGING';
+            return (
+              <button
+                key={fillKey(fill)}
+                type="button"
+                aria-pressed={activeZoneData.fill === fill}
+                disabled={blocked}
+                title={blocked ? t('config3d.hangingNeeds') : undefined}
+                onClick={() => setZoneFill(validActiveZone, fill)}
+                className={
+                  'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ' +
+                  (activeZoneData.fill === fill
+                    ? 'border-walnut bg-walnut text-white'
+                    : 'border-border-2 bg-surface hover:border-walnut/50')
+                }
+              >
+                {t(`config3d.fills.${fillKey(fill)}`)}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {activeCountMax !== undefined && (
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground">{t('config3d.countLabel')}</span>
           <Stepper
             value={activeZoneData.count ?? 1}
             onDelta={(d) =>
               updateZone(validActiveZone, {
-                count: Math.max(1, Math.min(activeMax, (activeZoneData.count ?? 1) + d)),
+                count: Math.max(1, Math.min(activeCountMax, (activeZoneData.count ?? 1) + d)),
               })
             }
             canDec={(activeZoneData.count ?? 1) > 1}
-            canInc={(activeZoneData.count ?? 1) < activeMax}
+            canInc={(activeZoneData.count ?? 1) < activeCountMax}
             decLabel={t('config3d.fewer')}
             incLabel={t('config3d.more')}
           />
         </div>
       )}
-      {/* usa poate avea polite interioare (0 = usa goala) — se vad cand o deschizi */}
-      {activeMax !== undefined && activeZoneData.type === 'DOOR' && (
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground">{t('config3d.interiorShelves')}</span>
-          <Stepper
-            value={activeZoneData.count ?? 0}
-            onDelta={(d) => {
-              const next = Math.max(0, Math.min(activeMax, (activeZoneData.count ?? 0) + d));
-              updateZone(validActiveZone, { count: next === 0 ? undefined : next });
-            }}
-            canDec={(activeZoneData.count ?? 0) > 0}
-            canInc={(activeZoneData.count ?? 0) < activeMax}
-            decLabel={t('config3d.fewer')}
-            incLabel={t('config3d.more')}
+      {/* randurile (zonele) coloanei selectate: + adauga jos, − scoate de jos */}
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-muted-foreground">{t('config3d.rowsInColumn')}</span>
+        <Stepper
+          value={config.columns[validActiveZone.col].zones.length}
+          onDelta={(d) => {
+            const len = config.columns[validActiveZone.col].zones.length;
+            if (d === 1) addZone(validActiveZone.col);
+            else removeZone({ col: validActiveZone.col, zone: len - 1 });
+          }}
+          canDec={config.columns[validActiveZone.col].zones.length > 1}
+          canInc={config.columns[validActiveZone.col].zones.length < rules.maxZonesPerColumn}
+          decLabel={t('config3d.fewer')}
+          incLabel={t('config3d.more')}
+        />
+      </div>
+      {/* dimensiunile randului/coloanei selectate, cu blocare (R5.3) */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <LockableSize
+          label={t('config3d.rowHeight')}
+          valueCm={cm(activeResolved.height)}
+          locked={activeZoneData.heightM !== undefined}
+          onValueCm={(v) => updateZone(validActiveZone, { heightM: v / 100 })}
+          onToggleLock={() =>
+            updateZone(validActiveZone, {
+              heightM: activeZoneData.heightM === undefined ? activeResolved.height : undefined,
+            })
+          }
+          lockLabel={t('config3d.lockSize')}
+          unlockLabel={t('config3d.unlockSize')}
+        />
+        {piece !== 'DESK' && activeColWidth != null && (
+          <LockableSize
+            label={t('config3d.columnWidth')}
+            valueCm={cm(activeColWidth)}
+            locked={config.columns[validActiveZone.col].widthM !== undefined}
+            onValueCm={(v) => updateColumn(validActiveZone.col, { widthM: v / 100 })}
+            onToggleLock={() =>
+              updateColumn(validActiveZone.col, {
+                widthM:
+                  config.columns[validActiveZone.col].widthM === undefined
+                    ? activeColWidth
+                    : undefined,
+              })
+            }
+            lockLabel={t('config3d.lockSize')}
+            unlockLabel={t('config3d.unlockSize')}
           />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 
@@ -412,25 +601,55 @@ export default function Configurator3dStepUI({
       <div className="grid gap-3 md:grid-cols-2">
         {config.columns.map((column, ci) => (
           <div key={ci} className="flex flex-col gap-2 rounded-lg border border-border-2 bg-surface-2 p-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 {t('config3d.columnLabel', { n: ci + 1 })}
               </span>
-              <button
-                type="button"
-                onClick={() => addZone(ci)}
-                disabled={column.zones.length >= rules.maxZonesPerColumn}
-                className="flex items-center gap-1 text-xs text-walnut underline-offset-2 hover:underline disabled:opacity-30"
-              >
-                <Plus className="h-3 w-3" />
-                {t('config3d.addZone')}
-              </button>
+              <div className="flex items-center gap-3">
+                {piece !== 'DESK' && layout?.[ci] && (
+                  <LockableSize
+                    label={t('config3d.columnWidth')}
+                    valueCm={cm(layout[ci].width)}
+                    locked={column.widthM !== undefined}
+                    onValueCm={(v) => updateColumn(ci, { widthM: v / 100 })}
+                    onToggleLock={() =>
+                      updateColumn(ci, {
+                        widthM: column.widthM === undefined ? layout[ci].width : undefined,
+                      })
+                    }
+                    lockLabel={t('config3d.lockSize')}
+                    unlockLabel={t('config3d.unlockSize')}
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={() => addZone(ci)}
+                  disabled={column.zones.length >= rules.maxZonesPerColumn}
+                  className="flex items-center gap-1 text-xs text-walnut underline-offset-2 hover:underline disabled:opacity-30"
+                >
+                  <Plus className="h-3 w-3" />
+                  {t('config3d.addZone')}
+                </button>
+              </div>
             </div>
             {column.zones.map((zone, zi) => {
-              const max = ZONE_COUNT_MAX[zone.type];
+              const resolved = layout?.[ci]?.zones[zi];
+              const rawMax = zoneCountMax(zone);
+              // barele suprapuse sunt limitate de inaltimea zonei (80cm/bara)
+              const max =
+                rawMax !== undefined && zone.fill === 'HANGING' && resolved
+                  ? Math.max(1, Math.min(rawMax, hangingCountFor(resolved.height)))
+                  : rawMax;
+              const zoneDrawersOk = resolved
+                ? resolved.top <= DRAWERS_MAX_TOP + GEOM_EPS
+                : true;
+              const zoneHangingOk = resolved
+                ? config.depthM >= HANGING_MIN_DEPTH - GEOM_EPS &&
+                  resolved.height >= HANGING_MIN_ZONE_H - GEOM_EPS
+                : false;
               return (
-                <div key={zi} className="flex items-center gap-2">
-                  <div className="flex-1">
+                <div key={zi} className="flex flex-wrap items-center gap-2">
+                  <div className="min-w-28 flex-1">
                     <Select
                       value={zone.type}
                       onChange={(e) =>
@@ -438,17 +657,51 @@ export default function Configurator3dStepUI({
                       }
                     >
                       {rules.zoneTypes.map((type) => (
-                        <option key={type} value={type}>
+                        <option
+                          key={type}
+                          value={type}
+                          disabled={type === 'DRAWERS' && !zoneDrawersOk && zone.type !== type}
+                        >
                           {t(`config3d.zoneTypes.${type}`)}
                         </option>
                       ))}
                     </Select>
                   </div>
-                  {max !== undefined && zoneCountRequired(zone.type) && (
+                  {zone.type !== 'DRAWERS' && (
+                    <div className="min-w-28 flex-1">
+                      <Select
+                        value={fillKey(zone.fill)}
+                        aria-label={t('config3d.fillLabel')}
+                        onChange={(e) =>
+                          setZoneFill(
+                            { col: ci, zone: zi },
+                            e.target.value === 'NONE'
+                              ? undefined
+                              : (e.target.value as Piece3dZoneFill),
+                          )
+                        }
+                      >
+                        {FILL_OPTIONS.map((fill) => (
+                          <option
+                            key={fillKey(fill)}
+                            value={fillKey(fill)}
+                            disabled={
+                              fill === 'HANGING' && !zoneHangingOk && zone.fill !== 'HANGING'
+                            }
+                          >
+                            {t(`config3d.fills.${fillKey(fill)}`)}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                  )}
+                  {max !== undefined && (
                     <Input
                       type="number"
                       min={1}
                       max={max}
+                      title={t('config3d.countLabel')}
+                      aria-label={t('config3d.countLabel')}
                       value={zone.count ?? 1}
                       onChange={(e) =>
                         updateZone(
@@ -459,19 +712,20 @@ export default function Configurator3dStepUI({
                       className="w-16 text-right"
                     />
                   )}
-                  {max !== undefined && zone.type === 'DOOR' && (
-                    <Input
-                      type="number"
-                      min={0}
-                      max={max}
-                      title={t('config3d.interiorShelves')}
-                      aria-label={t('config3d.interiorShelves')}
-                      value={zone.count ?? 0}
-                      onChange={(e) => {
-                        const v = Math.max(0, Math.min(max, Number(e.target.value) || 0));
-                        updateZone({ col: ci, zone: zi }, { count: v === 0 ? undefined : v });
-                      }}
-                      className="w-16 text-right"
+                  {resolved && (
+                    <LockableSize
+                      label={t('config3d.rowHeight')}
+                      valueCm={cm(resolved.height)}
+                      locked={zone.heightM !== undefined}
+                      onValueCm={(v) => updateZone({ col: ci, zone: zi }, { heightM: v / 100 })}
+                      onToggleLock={() =>
+                        updateZone(
+                          { col: ci, zone: zi },
+                          { heightM: zone.heightM === undefined ? resolved.height : undefined },
+                        )
+                      }
+                      lockLabel={t('config3d.lockSize')}
+                      unlockLabel={t('config3d.unlockSize')}
                     />
                   )}
                   <button

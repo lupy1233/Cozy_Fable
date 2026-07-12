@@ -7,9 +7,11 @@ import {
   PANEL_T,
   PIECE3D_RULES,
   PLINTH_H,
+  resolvePieceLayout,
   type Piece3dKind,
   type Piece3dZoneType,
   type PieceConfig3d,
+  type ResolvedZone3d,
 } from './config';
 
 // Modelul parametric (docs/10 §2): mobila e GENERATA din config — carcasa din
@@ -77,26 +79,17 @@ interface ColumnLayout {
   top: number;
 }
 
-// Layout-ul unei zone in coloana ei (zonele sunt ordonate de sus in jos).
-function zoneSlices(layout: ColumnLayout, zoneCount: number): { top: number; bottom: number }[] {
-  const interior = layout.top - layout.bottom;
-  const zoneH = (interior - (zoneCount - 1) * T) / zoneCount;
-  return Array.from({ length: zoneCount }, (_, j) => {
-    const top = layout.top - j * (zoneH + T);
-    return { top, bottom: top - zoneH };
-  });
-}
-
 // Panourile din interiorul unei zone (fronturi/polite/bara) + separatoarele.
+// Pozitiile verticale vin din layout-ul REZOLVAT (R5.3: randuri blocate).
 function zonePanels(
   config: PieceConfig3d,
   layout: ColumnLayout,
+  slices: ResolvedZone3d[],
   colIndex: number,
   panels: Panel3d[],
 ): void {
   const column = config.columns[colIndex];
   const D = config.depthM;
-  const slices = zoneSlices(layout, column.zones.length);
   const innerD = D - BACK_T;
   const cx = layout.left + layout.width / 2;
 
@@ -170,8 +163,34 @@ function zonePanels(
       }
     };
 
+    // bare suprapuse (R5.4): zona se imparte in segmente egale, cate o bara
+    // sub varful fiecarui segment (80cm/bara garantati de validare/normalize)
+    const rods = (count: number) => {
+      const each = zoneH / count;
+      for (let s = 0; s < count; s++) {
+        panels.push({
+          role: 'ROD',
+          x: cx,
+          y: top - s * each - 0.08,
+          z: 0,
+          w: layout.width,
+          h: 0.028,
+          d: 0.028,
+          col: colIndex,
+          zone: j,
+        });
+      }
+    };
+
+    // continutul interior al zonelor OPEN/DOOR (R5.3): polite sau bare
+    const fillPanels = () => {
+      if (zone.fill === 'SHELVES') shelves(zone.count ?? 1);
+      else if (zone.fill === 'HANGING') rods(zone.count ?? 1);
+    };
+
     switch (zone.type) {
       case 'SHELVES':
+        // legacy pre-R5.3 (datele publicate raman randabile)
         shelves(zone.count ?? 1);
         break;
       case 'DRAWERS':
@@ -186,8 +205,8 @@ function zonePanels(
         break;
       }
       case 'DOOR': {
-        // politele interioare din spatele usii (count optional la DOOR)
-        if (zone.count) shelves(zone.count);
+        if (zone.fill) fillPanels();
+        else if (zone.count) shelves(zone.count); // legacy: DOOR cu count = polite
         // usa dubla peste ~65cm — acelasi prag ca pieceConfigTotals;
         // balamaua sta pe muchia exterioara, usa se deschide spre privitor
         if (layout.width > 0.65) {
@@ -201,19 +220,11 @@ function zonePanels(
         break;
       }
       case 'HANGING':
-        panels.push({
-          role: 'ROD',
-          x: cx,
-          y: top - 0.08,
-          z: 0,
-          w: layout.width,
-          h: 0.028,
-          d: 0.028,
-          col: colIndex,
-          zone: j,
-        });
+        // legacy pre-R5.3
+        rods(1);
         break;
       case 'OPEN':
+        fillPanels();
         break;
     }
   });
@@ -222,12 +233,12 @@ function zonePanels(
 function zoneBoxesFor(
   config: PieceConfig3d,
   layout: ColumnLayout,
+  slices: ResolvedZone3d[],
   colIndex: number,
   boxes: ZoneBox3d[],
 ): void {
   const column = config.columns[colIndex];
   const innerD = config.depthM - BACK_T;
-  const slices = zoneSlices(layout, column.zones.length);
   column.zones.forEach((zone, j) => {
     const { top, bottom } = slices[j];
     boxes.push({
@@ -245,20 +256,23 @@ function zoneBoxesFor(
   });
 }
 
-// Layout-urile coloanelor pentru piesele-carcasa (toate in afara de DESK).
-function carcassColumnLayouts(config: PieceConfig3d, kind: Piece3dKind): ColumnLayout[] {
+// Layout-urile coloanelor pentru piesele-carcasa (toate in afara de DESK) —
+// latimile vin din layout-ul rezolvat (coloane blocate + impartire egala).
+function carcassColumnLayouts(
+  config: PieceConfig3d,
+  kind: Piece3dKind,
+  widths: number[],
+): ColumnLayout[] {
   const rules = PIECE3D_RULES[kind];
   const plinth = rules.hasPlinth ? PLINTH_H : 0;
-  const n = config.columns.length;
-  const colW = columnWidth(config.widthM, n);
   const bottom = plinth + T;
   const top = config.heightM - T;
-  return Array.from({ length: n }, (_, i) => ({
-    left: -config.widthM / 2 + T + i * (colW + T),
-    width: colW,
-    bottom,
-    top,
-  }));
+  let left = -config.widthM / 2 + T;
+  return widths.map((width) => {
+    const layout = { left, width, bottom, top };
+    left += width + T;
+    return layout;
+  });
 }
 
 // Layout-urile casetierelor de birou (stanga, apoi dreapta).
@@ -276,7 +290,7 @@ function deskPedestalLayouts(config: PieceConfig3d): ColumnLayout[] {
   return layouts;
 }
 
-function deskPanels(config: PieceConfig3d): Panel3d[] {
+function deskPanels(config: PieceConfig3d, resolved: ResolvedZone3d[][]): Panel3d[] {
   const { widthM: W, heightM: H, depthM: D } = config;
   const panels: Panel3d[] = [];
   const sideH = H - T;
@@ -318,14 +332,19 @@ function deskPanels(config: PieceConfig3d): Panel3d[] {
       h: layout.top - layout.bottom,
       d: BACK_T,
     });
-    zonePanels(config, layout, i, panels);
+    zonePanels(config, layout, resolved[i] ?? [], i, panels);
   });
   return panels;
 }
 
 // Genereaza panourile piesei din config (docs/10: buildPanels(config) → Panel[]).
 export function buildPanels(config: PieceConfig3d, kind: Piece3dKind): Panel3d[] {
-  if (kind === 'DESK') return deskPanels(config);
+  const resolved = resolvePieceLayout(kind, config);
+  if (kind === 'DESK')
+    return deskPanels(
+      config,
+      resolved.map((c) => c.zones),
+    );
 
   const rules = PIECE3D_RULES[kind];
   const { widthM: W, heightM: H, depthM: D } = config;
@@ -359,7 +378,11 @@ export function buildPanels(config: PieceConfig3d, kind: Piece3dKind): Panel3d[]
     });
   }
 
-  const layouts = carcassColumnLayouts(config, kind);
+  const layouts = carcassColumnLayouts(
+    config,
+    kind,
+    resolved.map((c) => c.width),
+  );
   // despartitoare verticale intre coloane
   for (let i = 0; i < layouts.length - 1; i++) {
     panels.push({
@@ -372,16 +395,23 @@ export function buildPanels(config: PieceConfig3d, kind: Piece3dKind): Panel3d[]
       d: D - BACK_T,
     });
   }
-  layouts.forEach((layout, i) => zonePanels(config, layout, i, panels));
+  layouts.forEach((layout, i) => zonePanels(config, layout, resolved[i]?.zones ?? [], i, panels));
   return panels;
 }
 
 // Cutiile zonelor pentru interactiune (click/tap → schimba tipul zonei).
 export function buildZoneBoxes(config: PieceConfig3d, kind: Piece3dKind): ZoneBox3d[] {
   const boxes: ZoneBox3d[] = [];
+  const resolved = resolvePieceLayout(kind, config);
   const layouts =
-    kind === 'DESK' ? deskPedestalLayouts(config) : carcassColumnLayouts(config, kind);
-  layouts.forEach((layout, i) => zoneBoxesFor(config, layout, i, boxes));
+    kind === 'DESK'
+      ? deskPedestalLayouts(config)
+      : carcassColumnLayouts(
+          config,
+          kind,
+          resolved.map((c) => c.width),
+        );
+  layouts.forEach((layout, i) => zoneBoxesFor(config, layout, resolved[i]?.zones ?? [], i, boxes));
   return boxes;
 }
 
