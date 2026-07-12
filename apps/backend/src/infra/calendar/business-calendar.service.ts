@@ -98,7 +98,11 @@ export class BusinessCalendarService implements OnModuleInit {
     const parts = fmt.formatToParts(date);
     const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
     const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
-    return asUtc - date.getTime();
+    // formatToParts nu expune milisecundele — le scoatem si din referinta,
+    // altfel offsetul iese cu pana la 999ms mai mic si sfarsitul zilei
+    // aluneca DUPA miezul noptii (bug prins de teste, Q6)
+    const refMs = Math.floor(date.getTime() / 1000) * 1000;
+    return asUtc - refMs;
   }
 
   // Instant UTC pentru ora de perete 23:59:59.999 Bucuresti a unei date.

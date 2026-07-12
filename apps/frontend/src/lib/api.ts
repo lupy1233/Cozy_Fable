@@ -60,5 +60,10 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!res.ok) throw await parseError(res);
-  return res.json() as Promise<T>;
+  // endpoint-urile void (salvare pin, redenumire/stergere colectie) raspund cu
+  // body gol — res.json() ar arunca si mutatia ar parea esuata desi a reusit
+  // (bug PO: "Salvat" nu aparea pana la refresh)
+  if (res.status === 204) return undefined as T;
+  const text = await res.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }

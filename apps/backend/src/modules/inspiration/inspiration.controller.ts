@@ -8,6 +8,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { Audit } from '../audit/audit.decorator';
 import {
   BoardItemDto,
+  BoardMoveDto,
   BoardNameDto,
   ConfirmInspirationImageDto,
   CreateInspirationPhotoDto,
@@ -88,6 +89,17 @@ export class InspirationBoardsController {
     @Param('photoId') photoId: string,
   ) {
     return this.boards.removeItem(user.sub, id, photoId);
+  }
+
+  // muta pin-ul in alta colectie (idee 4 PO r2)
+  @Post(':id/items/:photoId/move')
+  moveItem(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id') id: string,
+    @Param('photoId') photoId: string,
+    @Body() dto: BoardMoveDto,
+  ) {
+    return this.boards.moveItem(user.sub, id, photoId, dto.targetBoardId);
   }
 }
 

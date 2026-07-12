@@ -38,6 +38,8 @@ export interface ChatThreadDto {
   negotiationEndedByCompany: boolean;
   // starea claim-ului firmei (parcursul cererii per firma — item 4)
   claimStatus: string;
+  // mesaje necitite de utilizatorul curent (idee 1 PO r2 — chat_thread_reads)
+  unreadCount: number;
   // ultimul mesaj din conversatie (preview in lista clientului); null = fara mesaje
   lastMessage: {
     body: string | null;

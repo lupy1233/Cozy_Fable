@@ -78,23 +78,76 @@ export function useDeleteBoard() {
   });
 }
 
+// Optimistic update pe starea "Salvat" (invarianta 3.6: onMutate/onError prin
+// TanStack) — butonul reactioneaza instant, serverul confirma prin onSettled.
+const SAVED_KEY = [...KEY, 'saved'] as const;
+
+function useOptimisticSaved() {
+  const qc = useQueryClient();
+  return {
+    async apply(update: (refs: InspirationSaveDto[]) => InspirationSaveDto[]) {
+      await qc.cancelQueries({ queryKey: SAVED_KEY });
+      const prev = qc.getQueryData<InspirationSaveDto[]>(SAVED_KEY);
+      qc.setQueryData<InspirationSaveDto[]>(SAVED_KEY, (old) => update(old ?? []));
+      return { prev };
+    },
+    rollback(ctx: { prev?: InspirationSaveDto[] } | undefined) {
+      if (ctx?.prev) qc.setQueryData(SAVED_KEY, ctx.prev);
+    },
+    settle() {
+      void qc.invalidateQueries({ queryKey: KEY });
+    },
+  };
+}
+
 export function useSavePhoto() {
-  const invalidate = useInvalidateBoards();
+  const opt = useOptimisticSaved();
   return useMutation({
     mutationFn: (v: { boardId: string; photoId: string }) =>
       api<void>(`/inspiration/boards/${v.boardId}/items`, {
         method: 'POST',
         body: JSON.stringify({ photoId: v.photoId }),
       }),
-    onSuccess: invalidate,
+    onMutate: (v) =>
+      opt.apply((refs) => [
+        ...refs.filter((r) => r.photoId !== v.photoId),
+        { photoId: v.photoId, boardId: v.boardId },
+      ]),
+    onError: (_e, _v, ctx) => opt.rollback(ctx),
+    onSettled: () => opt.settle(),
   });
 }
 
 export function useUnsavePhoto() {
-  const invalidate = useInvalidateBoards();
+  const opt = useOptimisticSaved();
   return useMutation({
     mutationFn: (v: { boardId: string; photoId: string }) =>
       api<void>(`/inspiration/boards/${v.boardId}/items/${v.photoId}`, { method: 'DELETE' }),
-    onSuccess: invalidate,
+    onMutate: (v) =>
+      opt.apply((refs) =>
+        refs.filter((r) => !(r.photoId === v.photoId && r.boardId === v.boardId)),
+      ),
+    onError: (_e, _v, ctx) => opt.rollback(ctx),
+    onSettled: () => opt.settle(),
+  });
+}
+
+// Muta pin-ul salvat in alta colectie (idee 4 PO r2) — un singur pas in loc de
+// scoate + salveaza.
+export function useMovePhoto() {
+  const opt = useOptimisticSaved();
+  return useMutation({
+    mutationFn: (v: { boardId: string; photoId: string; targetBoardId: string }) =>
+      api<void>(`/inspiration/boards/${v.boardId}/items/${v.photoId}/move`, {
+        method: 'POST',
+        body: JSON.stringify({ targetBoardId: v.targetBoardId }),
+      }),
+    onMutate: (v) =>
+      opt.apply((refs) => [
+        ...refs.filter((r) => r.photoId !== v.photoId),
+        { photoId: v.photoId, boardId: v.targetBoardId },
+      ]),
+    onError: (_e, _v, ctx) => opt.rollback(ctx),
+    onSettled: () => opt.settle(),
   });
 }

@@ -78,11 +78,14 @@ export class InspirationService {
       ...(ids.length ? { id: { in: ids } } : {}),
     };
 
+    // paginare (idee 6 PO r2): id-ul sparge egalitatea de createdAt ca paginile
+    // sa fie stabile; fara limit, capul vechi de 200 ramane (compatibilitate)
     const photos = await this.prisma.inspirationPhoto.findMany({
       where,
       include: { company: { select: { id: true, name: true } } },
-      orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
-      take: 200,
+      orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
+      take: query.limit ?? 200,
+      skip: query.offset ?? 0,
     });
     return this.toDtos(photos);
   }

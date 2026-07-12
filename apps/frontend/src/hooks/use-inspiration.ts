@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import type { InspirationFilters, InspirationPhotoDto } from '@marketplace/shared';
 import { api } from '@/lib/api';
 
@@ -31,4 +31,25 @@ export function useInspiration(filters: InspirationFilters = {}, enabled = true)
 // pozele alese pe o cerere (detaliu client / marketplace firma)
 export function useInspirationByIds(ids: string[]) {
   return useInspiration({ ids }, ids.length > 0);
+}
+
+export const INSPIRATION_PAGE_SIZE = 40;
+
+// Galeria principala cu infinite scroll (idee 6 PO r2): pagini de cate 40,
+// offset stabil (sortare cu id ca tiebreak pe server). Ultima pagina se
+// recunoaste dupa lungimea sub pageSize.
+export function useInfiniteInspiration(filters: InspirationFilters = {}) {
+  const qs = toQuery(filters);
+  const sep = qs ? '&' : '?';
+  return useInfiniteQuery({
+    queryKey: ['inspiration', 'infinite', qs],
+    queryFn: ({ pageParam }) =>
+      api<InspirationPhotoDto[]>(
+        `/inspiration${qs}${sep}limit=${INSPIRATION_PAGE_SIZE}&offset=${pageParam}`,
+      ),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, pages) =>
+      lastPage.length < INSPIRATION_PAGE_SIZE ? undefined : pages.length * INSPIRATION_PAGE_SIZE,
+    staleTime: 60_000,
+  });
 }

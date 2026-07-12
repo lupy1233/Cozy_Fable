@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import {
   ERROR_CODES,
   MAX_ATTACHMENTS_PER_MESSAGE,
@@ -106,16 +107,55 @@ export class ChatService {
       include: this.threadInclude,
       orderBy: { createdAt: 'desc' },
     });
-    return threads.map((t) => this.toThreadDto(t));
+    const unread = await this.unreadByThread(threads.map((t) => t.id), userId);
+    return threads.map((t) => this.toThreadDto(t, unread.get(t.id) ?? 0));
   }
 
-  async listThreadsForCompany(companyId: string): Promise<ChatThreadDto[]> {
+  async listThreadsForCompany(companyId: string, userId: string): Promise<ChatThreadDto[]> {
     const threads = await this.prisma.chatThread.findMany({
       where: { claimSlot: { companyId } },
       include: this.threadInclude,
       orderBy: { createdAt: 'desc' },
     });
-    return threads.map((t) => this.toThreadDto(t));
+    const unread = await this.unreadByThread(threads.map((t) => t.id), userId);
+    return threads.map((t) => this.toThreadDto(t, unread.get(t.id) ?? 0));
+  }
+
+  // Necitite per thread pentru utilizatorul curent (idee 1 PO r2): mesajele
+  // ALTORA mai noi decat chat_thread_reads.last_read_at (sau toate, fara rand).
+  // O singura interogare pentru toata lista.
+  private async unreadByThread(
+    threadIds: string[],
+    userId: string,
+  ): Promise<Map<string, number>> {
+    if (threadIds.length === 0) return new Map();
+    const rows = await this.prisma.$queryRaw<{ chat_thread_id: string; unread: number }[]>`
+      SELECT m.chat_thread_id, COUNT(*)::int AS unread
+      FROM messages m
+      LEFT JOIN chat_thread_reads r
+        ON r.chat_thread_id = m.chat_thread_id AND r.user_id = ${userId}
+      WHERE m.chat_thread_id IN (${Prisma.join(threadIds)})
+        AND m.sender_user_id <> ${userId}
+        AND (r.last_read_at IS NULL OR m.created_at > r.last_read_at)
+      GROUP BY m.chat_thread_id
+    `;
+    return new Map(rows.map((r) => [r.chat_thread_id, r.unread]));
+  }
+
+  // Marcheaza conversatia citita "pana acum" pentru utilizatorul curent.
+  async markThreadRead(
+    threadId: string,
+    userId: string,
+    role: 'CLIENT' | 'COMPANY',
+    companyId?: string,
+  ): Promise<void> {
+    await this.loadThreadForUser(threadId, userId, role, companyId);
+    const now = new Date();
+    await this.prisma.chatThreadRead.upsert({
+      where: { chatThreadId_userId: { chatThreadId: threadId, userId } },
+      create: { chatThreadId: threadId, userId, lastReadAt: now },
+      update: { lastReadAt: now },
+    });
   }
 
   async listMessages(
@@ -195,6 +235,8 @@ export class ChatService {
         requestId: ctx.requestId,
         requestTitle: ctx.requestTitle,
         companyName: ctx.companyName,
+        // emailul de "mesaj nou" merge doar la partea cealalta (Q4, idee 5)
+        clientUserId: ctx.clientUserId,
       },
       targets,
     );
@@ -257,21 +299,24 @@ export class ChatService {
     );
   }
 
-  private toThreadDto(t: {
-    id: string;
-    claimSlotId: string;
-    readOnly: boolean;
-    negotiationEndedByCompany: boolean;
-    createdAt: Date;
-    claimSlot: {
-      requestId: string;
-      companyId: string;
-      status: string;
-      request: { title: string | null; clientUserId: string | null };
-      company: { name: string };
-    };
-    messages: { body: string | null; senderUserId: string; createdAt: Date }[];
-  }): ChatThreadDto {
+  private toThreadDto(
+    t: {
+      id: string;
+      claimSlotId: string;
+      readOnly: boolean;
+      negotiationEndedByCompany: boolean;
+      createdAt: Date;
+      claimSlot: {
+        requestId: string;
+        companyId: string;
+        status: string;
+        request: { title: string | null; clientUserId: string | null };
+        company: { name: string };
+      };
+      messages: { body: string | null; senderUserId: string; createdAt: Date }[];
+    },
+    unreadCount = 0,
+  ): ChatThreadDto {
     const last = t.messages[0];
     return {
       id: t.id,
@@ -283,6 +328,7 @@ export class ChatService {
       readOnly: t.readOnly,
       negotiationEndedByCompany: t.negotiationEndedByCompany,
       claimStatus: t.claimSlot.status,
+      unreadCount,
       lastMessage: last
         ? {
             body: last.body,

@@ -34,3 +34,25 @@ export function useMarkAllRead() {
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 }
+
+// Preferinta de emailuri de notificare (Q4, idee 5) — opt-out global.
+export function useEmailPreference(enabled = true) {
+  return useQuery({
+    queryKey: [...KEY, 'email-preference'],
+    queryFn: () => api<{ enabled: boolean }>('/notifications/email-preference'),
+    enabled,
+    retry: false,
+  });
+}
+
+export function useSetEmailPreference() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (enabled: boolean) =>
+      api<{ enabled: boolean }>('/notifications/email-preference', {
+        method: 'PATCH',
+        body: JSON.stringify({ enabled }),
+      }),
+    onSuccess: (data) => qc.setQueryData([...KEY, 'email-preference'], data),
+  });
+}

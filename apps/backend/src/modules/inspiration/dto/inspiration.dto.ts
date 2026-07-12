@@ -13,6 +13,7 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { InspirationColor, ItemSystem, Material, RoomType } from '@prisma/client';
 import { MAX_ATTACHMENT_BYTES, MAX_BOARD_NAME_LENGTH } from '@marketplace/shared';
 
@@ -27,6 +28,12 @@ export class BoardNameDto {
 export class BoardItemDto {
   @IsUUID()
   photoId: string;
+}
+
+// Mutarea unui pin salvat in alta colectie (idee 4 PO r2).
+export class BoardMoveDto {
+  @IsUUID()
+  targetBoardId: string;
 }
 
 // Meta unei poze de inspiratie (F6, item 3) — create/update din admin.
@@ -138,6 +145,20 @@ export class ListInspirationQueryDto {
   @IsOptional()
   @IsString()
   ids?: string;
+
+  // paginare (idee 6 PO r2): fara parametri, comportamentul ramane cel vechi
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  offset?: number;
 }
 
 export class ConfirmInspirationImageDto {

@@ -1,8 +1,14 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
-import { useMessages, useSendMessage, useUploadChatAttachment, type ChatMode } from '@/hooks/use-chat';
+import { useEffect, useRef, useState } from 'react';
+import {
+  useMarkThreadRead,
+  useMessages,
+  useSendMessage,
+  useUploadChatAttachment,
+  type ChatMode,
+} from '@/hooks/use-chat';
 
 export function ChatPanel({
   threadId,
@@ -17,9 +23,36 @@ export function ChatPanel({
   const messages = useMessages(threadId, mode);
   const send = useSendMessage(threadId, mode);
   const upload = useUploadChatAttachment(threadId, mode);
+  const markRead = useMarkThreadRead(mode);
   const [text, setText] = useState('');
   const [attachmentIds, setAttachmentIds] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // conversatia e citita DOAR cand panoul intra in viewport (pagina de oferte
+  // arata mai multe chat-uri stivuite — cele nederulate raman necitite) si la
+  // fiecare mesaj nou sosit cat timp e vizibil (idee 1 PO r2)
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => setInView(e.isIntersecting), {
+      threshold: 0.25,
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  const messagesCount = messages.data?.length;
+  useEffect(() => {
+    if (!inView || messagesCount === undefined) return;
+    markRead.mutate(threadId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inView, threadId, messagesCount]);
+  // fallback: orice interactiune cu panoul inseamna ca e citit (IO poate lipsi
+  // sau intarzia in tab-uri ascunse)
+  const onAnyInteraction = () => {
+    if (!inView) setInView(true);
+  };
 
   const submit = async () => {
     if (!text.trim() && attachmentIds.length === 0) return;
@@ -37,7 +70,12 @@ export function ChatPanel({
   };
 
   return (
-    <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm">
+    <div
+      ref={rootRef}
+      onPointerDown={onAnyInteraction}
+      onFocusCapture={onAnyInteraction}
+      className="flex flex-col rounded-xl border border-border bg-surface shadow-sm"
+    >
       <div className="flex max-h-80 min-h-40 flex-col gap-2 overflow-y-auto p-4">
         {messages.isPending && <p className="text-sm text-muted-2">{t('loading')}</p>}
         {messages.isSuccess && messages.data.length === 0 && (

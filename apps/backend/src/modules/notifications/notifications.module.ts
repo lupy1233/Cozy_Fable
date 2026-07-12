@@ -4,12 +4,13 @@ import { AuthModule } from '../auth/auth.module';
 import { QUEUE_NOTIFICATIONS } from '../../infra/queues/queues.module';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
+import { NotificationEmailsService } from './notification-emails.service';
 import { NotificationsProcessor } from './notifications.processor';
 
 @Module({
   imports: [AuthModule, BullModule.registerQueue({ name: QUEUE_NOTIFICATIONS })],
   controllers: [NotificationsController],
-  providers: [NotificationsService, NotificationsProcessor],
+  providers: [NotificationsService, NotificationEmailsService, NotificationsProcessor],
   exports: [NotificationsService],
 })
 export class NotificationsModule {}

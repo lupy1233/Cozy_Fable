@@ -133,10 +133,17 @@
     "boardNotFound": "This collection does not exist or is not yours.",
     "boardEmpty": "This collection is empty — save ideas from the gallery.",
     "removePin": "Remove",
+    "movePin": "Move",
+    "moveTo": "Move to collection…",
+    "removeFromBoard": "Remove from collection",
+    "prevPin": "Previous idea",
+    "nextPin": "Next idea",
+    "similarPins": "Similar ideas",
     "deleteBoard": "Delete collection",
     "deleteBoardConfirm": "Delete “{name}”? Its saves will be lost.",
     "renameBoard": "Rename collection",
     "renameSave": "Save name",
+    "loadMore": "More ideas",
     "filters": {
       "color": "Colour",
       "material": "Material",
@@ -469,6 +476,14 @@
     "uploading": "Uploading...",
     "myRequests": "My requests",
     "myRequestsSubtitle": "Each request's rooms, active workshops and offers at a glance.",
+    "tabs": {
+      "ALL": "All",
+      "ACTIVE": "Active",
+      "IN_PROGRESS": "In progress",
+      "DONE": "Completed",
+      "EXPIRED": "Expired"
+    },
+    "tabEmpty": "No requests in this stage.",
     "status": "Status",
     "size": "Size",
     "credits": "credits",
@@ -690,7 +705,8 @@
       "when": "When",
       "stage": "Stage",
       "sla": "Offer deadline (SLA)",
-      "slaPaused": "paused"
+      "slaPaused": "paused",
+      "newMessages": "{n, plural, =1 {one new message} other {# new messages}}"
     },
     "apiErrors": {
       "CLAIM_NOT_ALLOWED": "This request can no longer be claimed.",
@@ -731,6 +747,8 @@
     "noOfferYet": "{company} has not sent an offer yet — you can discuss the details in the conversation below.",
     "claimedAt": "claimed the request {time}",
     "lastMessageAt": "last message {time}",
+    "unreadMessages": "{n, plural, =1 {one new message} other {# new messages}}",
+    "unreadDot": "Unread messages",
     "stage": {
       "DISCUSSION": "In discussion",
       "OFFER_SENT": "Offer received",
@@ -978,10 +996,19 @@
       "retry": "Retry"
     }
   },
+  "Unsubscribe": {
+    "title": "Email unsubscribe",
+    "working": "Unsubscribing…",
+    "done": "Done — we will no longer send you notification emails. In-app notifications stay active.",
+    "invalid": "This unsubscribe link is not valid or was already used.",
+    "reenableHint": "You can re-enable them anytime from the notification bell after signing in.",
+    "backHome": "Back to the homepage"
+  },
   "Notifications": {
     "title": "Notifications",
     "markAll": "Mark all read",
     "empty": "No notifications.",
+    "emailToggle": "Also send by email",
     "type": {
       "quote": {
         "created": "New offer",
@@ -1117,7 +1144,7 @@
       "title": "Add photos or plans",
       "subtitle": "Optional — photos of the space, sketches or your own project (max 10 files).",
       "dropLabel": "Drag files here or click to upload",
-      "dropHint": "JPG, PNG, WEBP, PDF or ZIP, up to 10 MB",
+      "dropHint": "JPG, PNG, WEBP, PDF or ZIP, up to 25 MB",
       "uploading": "Uploading...",
       "scanning": "checking...",
       "blockedNotice": "File rejected by the check — upload another one",

@@ -1,5 +1,11 @@
 # Verificare integrala site + TODO pentru acordul PO — 2026-07-11 (feedback r2, item 15)
 
+> **UPDATE 2026-07-12 — PO a aprobat TOT.** Executat in sprinturile Q1–Q6 (vezi
+> CHANGELOG): D1 pastrat, D2 (25MB), D3 (jest + 32 teste) si ideile 1–7 sunt
+> LIVRATE. D4 ramane post-MVP (conform propunerii aprobate), D5 se ruleaza la
+> urmatorul deploy pe Railway, D6 asteapta cheia GCP de la PO, ideea 8 (QA
+> vizual pe telefon) ramane la PO. Statusul per item e marcat mai jos.
+
 Toate cele 14 iteme de modificare au fost livrate in sprinturile P1–P7 (vezi CHANGELOG).
 Acest document e pasul 15: ce am verificat la final si **lista de idei/decizii care
 asteapta acordul tau** — nimic de aici nu e implementat fara OK-ul tau explicit.
@@ -23,41 +29,50 @@ asteapta acordul tau** — nimic de aici nu e implementat fara OK-ul tau explici
 - **Admin** (P7): 13 endpoint-uri + 9 pagini verificate; scrierile lasa urme in audit.
 - **Item 14 verificat**: `/` cu Accept-Language englez → 307 spre `/ro`.
 
-## 2. DECIZII care asteapta raspunsul tau
+## 2. DECIZII care asteapta raspunsul tau — **toate aprobate 2026-07-12**
 
-| # | Decizie | Contextul | Propunerea mea |
-|---|---------|-----------|----------------|
-| D1 | **Numele „Caietul de idei”** (EN „The Idea Book”) | Item 13 cerea un nume memorabil de marketing pentru fosta „Inspiratie”. E o cheie i18n — se schimba in 2 minute. Alternative: „Idei de acasa”, „Galeria de idei”, „Colectia Cozy”. | Pastram „Caietul de idei” — e in limbajul ATELIER al brandului (plansa, caiet, schita). |
-| D2 | **Limita fisiere 10MB vs 25MB** | Invarianta 3.4 zice 25MB/fisier; codul are 10MB (`MAX_ATTACHMENT_BYTES`) — divergenta pre-existenta. | Aliniez la 25MB (o constanta + un text i18n). |
-| D3 | **Teste backend (jest neinstalat)** | `pnpm -F backend test` pica din prima zi — scriptul exista, jest nu. | Instalez jest + 10–15 teste pe serviciile critice (claim, quotes, uploads). |
-| D4 | **Scan AV real la fisiere** | Acum e mock (BLOCKED doar daca numele contine „malware”), conform invariantei pentru MVP. Pentru clienti reali e nevoie de AV adevarat. | Post-MVP: ClamAV in container sau serviciu de scanning S3. |
-| D5 | **Re-seed pe Railway** | Notificarile de decor din seed-ul vechi raman necitite pe Railway (cauza „cerculetului” imposibil de curatat). Migratia noua ruleaza automat la deploy. | Dupa deploy: rulez `UPDATE notifications SET read_at=now() WHERE payload::text LIKE '%"demo": true%' AND read_at IS NULL;` (sau re-seed pe DB curat). |
-| D6 | **Cheia Google Places** | Ramasa deschisa din overhaul (memorie): fara `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, adresa e input simplu (functional, fara autocomplete). | Cand ai cheia GCP, o punem in env-ul Railway — zero cod. |
+| # | Decizie | Status |
+|---|---------|--------|
+| D1 | **Numele „Caietul de idei”** | ✅ APROBAT — numele ramane. Zero cod. |
+| D2 | **Limita fisiere 10MB vs 25MB** | ✅ LIVRAT (Q5) — `MAX_ATTACHMENT_BYTES` = 25MB + textele i18n; verificat: 20MB acceptat, 26MB respins. |
+| D3 | **Teste backend (jest neinstalat)** | ✅ LIVRAT (Q6) — jest instalat, 32 de teste pe credite/claim/upload/calendar/emailuri; `pnpm -F backend test` verde. Bonus: testele au prins si reparat un bug de ~1s in deadline-urile de sfarsit de zi (`BusinessCalendarService.tzOffsetMs`). |
+| D4 | **Scan AV real la fisiere** | ⏳ POST-MVP (conform propunerii aprobate) — ClamAV in container sau scanning S3, planificat dupa lansare. |
+| D5 | **Re-seed pe Railway** | ⏳ LA URMATORUL DEPLOY — ruleaza `UPDATE notifications SET read_at=now() WHERE payload::text LIKE '%"demo": true%' AND read_at IS NULL;` pe DB-ul Railway (sau re-seed curat). |
+| D6 | **Cheia Google Places** | ⏳ ASTEAPTA CHEIA GCP de la PO — se pune in env Railway, zero cod. |
 
-## 3. IDEI de imbunatatire gasite la verificare (cer acordul inainte sa le fac)
+## 3. IDEI de imbunatatire — **toate aprobate 2026-07-12; 1–7 LIVRATE (Q1–Q5)**
 
-1. **Necitite in conversatii** — chat-ul nu are read-tracking; conversatiile cu mesaje noi
-   nu se disting vizual. As adauga tabela `message_reads` (migratie mica) + bold/punct
-   pe conversatiile necitite in pagina „Oferte si conversatii”.
-2. **Filtre pe „Cererile mele”** — taburi Active / In lucru / Finalizate / Expirate cand
-   lista creste (acum toate cardurile sunt intr-o singura grila).
-3. **Lightbox mai Pinterest** — buton „Salveaza” si in lightbox + navigare ←/→ intre
-   pin-uri + pin-uri similare dedesubt (dupa aceleasi filtre).
-4. **Mutare intre colectii** — acum scoti pin-ul si il salvezi in alta colectie; un mic
-   meniu „Muta in…” pe pin-ul salvat ar scurta drumul.
-5. **Emailuri de notificare** — notificarile sunt doar in-app; Mailpit/SMTP e deja
-   configurat. As trimite email la: oferta noua, mesaj nou, cerere preluata (cu
-   preferinte de dezabonare simple).
-6. **Paginare in galerie** — cap-ul actual e 200 poze per interogare; infinite scroll
-   cand galeria reala creste.
-7. **Plansa de dimensiuni si la Hol** — holul are campuri per piesa (pantofar, cuier…),
-   fara desen; se poate face o vedere frontala compusa, dar vreau intai parerea ta
-   daca ajuta sau aglomereaza.
-8. **QA vizual pe telefonul tau** — screenshot-urile in panoul meu de preview au fost
-   indisponibile (limita de mediu); am verificat DOM-ul si logica, dar merita o trecere
-   vizuala rapida pe mobil peste: plansele de dimensiuni noi, ilustratiile din P3 si
-   butonul Salveaza pe touch (hover-ul devine tap — l-am facut vizibil si fara hover
-   la pin-ul salvat, dar confirma pe telefon).
+1. ✅ **Necitite in conversatii** (Q2) — tabela `chat_thread_reads` (un rand per
+   utilizator per conversatie, mai ieftin decat un rand per mesaj — acelasi rezultat)
+   + punct rosu si „N mesaje noi” pe sectiunile necitite din „Oferte si conversatii”
+   + badge pe tabelul de revendicari al firmei; conversatia devine citita cand chatul
+   e vizibil/atins.
+2. ✅ **Filtre pe „Cererile mele”** (Q3) — taburi Toate / Active / In lucru /
+   Finalizate / Expirate cu numaratori.
+3. ✅ **Lightbox mai Pinterest** (Q1) — buton Salveaza in lightbox, navigare ←/→
+   (butoane + tastatura), „Idei asemanatoare” dedesubt (aceeasi camera sau
+   materiale/culori comune, din lista filtrata).
+4. ✅ **Mutare intre colectii** (Q1) — endpoint atomic `POST …/items/:photoId/move`;
+   click pe „Salvat” deschide meniul „Muta in colectia… / Scoate din colectie”;
+   buton „Muta” si pe pagina colectiei.
+5. ✅ **Emailuri de notificare** (Q4) — email la oferta noua / mesaj nou / cerere
+   preluata, in limba contului, doar catre partea cealalta (nu si colegilor
+   expeditorului); link de dezabonare semnat HMAC (fara login) + toggle „Primeste
+   si pe email” in clopotel; `users.email_notifications_enabled`.
+6. ✅ **Paginare in galerie** (Q5) — infinite scroll cu pagini de 40 + buton
+   „Mai multe idei” fallback; API cu `limit/offset` si sortare stabila.
+7. ✅ **Plansa de dimensiuni si la Hol** (Q3) — vedere frontala compusa: piesele
+   selectate una langa alta cu litere A/B/C… legate de campuri + etalon H cand
+   exista piesa inalta.
+8. ⏳ **QA vizual pe telefonul tau** — ramane la PO: o trecere rapida pe mobil peste
+   plansele de dimensiuni (inclusiv Holul nou), ilustratiile din P3, butonul
+   Salveaza pe touch si lightbox-ul nou.
+
+**BONUS gasit si reparat la Q1 — bugul raportat de PO „salvarea din Pinterest nu
+apare pana la refresh”**: clientul API arunca eroare la orice raspuns cu body gol
+(`res.json()` pe 201 fara continut), deci mutatia parea esuata si cache-ul nu se
+invalida desi salvarea reusea in DB. Reparat in `lib/api.ts` + optimistic updates
+pe salvare/scoatere/mutare (butonul devine „Salvat” instant).
 
 ## 4. Note tehnice (nu cer acord — doar de stiut)
 

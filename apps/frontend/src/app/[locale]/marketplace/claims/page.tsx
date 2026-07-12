@@ -1,10 +1,12 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
 import { useMyClaims } from '@/hooks/use-marketplace';
+import { useThreads } from '@/hooks/use-chat';
+import { useRealtimeSync } from '@/hooks/use-socket';
 import { StatusBadge } from '@/components/ui/badge';
 import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/table';
 import { useRelativeTime } from '@/lib/relative-time';
@@ -17,7 +19,15 @@ export default function CompanyClaimsPage() {
   const router = useRouter();
   const me = useMe();
   const claims = useMyClaims();
+  const threads = useThreads('company');
   const relTime = useRelativeTime();
+  useRealtimeSync();
+
+  // mesaje necitite per claim (idee 1 PO r2) — thread-ul e legat de claim slot
+  const unreadByClaim = useMemo(
+    () => new Map((threads.data ?? []).map((th) => [th.claimSlotId, th.unreadCount])),
+    [threads.data],
+  );
 
   useEffect(() => {
     if (me.isError) router.replace('/login');
@@ -64,7 +74,17 @@ export default function CompanyClaimsPage() {
               {claims.data.map((c) => (
                 <TR key={c.id}>
                   <TD className="max-w-[220px]">
-                    <span className="block truncate font-medium">{c.requestTitle || '—'}</span>
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <span className="truncate">{c.requestTitle || '—'}</span>
+                      {(unreadByClaim.get(c.id) ?? 0) > 0 && (
+                        <span
+                          title={t('myClaims.newMessages', { n: unreadByClaim.get(c.id) })}
+                          className="grid h-4 min-w-4 shrink-0 place-items-center rounded-full bg-crimson px-1 text-[10px] font-bold leading-none text-white"
+                        >
+                          {unreadByClaim.get(c.id)}
+                        </span>
+                      )}
+                    </span>
                     <span className="text-xs text-muted-foreground">
                       {tr(`sizeValue.${c.projectSizeSnapshot}`)} · {c.claimCostCreditsSnapshot}{' '}
                       {t('credits')}

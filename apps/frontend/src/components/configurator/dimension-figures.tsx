@@ -369,6 +369,115 @@ export function FrontFigure({
   );
 }
 
+// Vedere frontala compusa pentru hol (idee 7 PO r2): piesele selectate stau
+// una langa alta pe aceeasi linie de podea, fiecare cu litera latimii ei;
+// etalonul H apare doar cand exista o piesa inalta (dulap/cuier).
+const HALLWAY_PIECES: {
+  slotId: string;
+  w: number;
+  draw: (x: number, w: number) => React.ReactNode;
+}[] = [
+  {
+    slotId: 'shoeCabinetWidth',
+    w: 58,
+    // pantofar: fronturi rabatabile
+    draw: (x, w) => (
+      <g key="shoe">
+        <rect x={x} y={124} width={w} height={120} fill="currentColor" fillOpacity={0.08} />
+        <line x1={x} y1={164} x2={x + w} y2={164} />
+        <line x1={x} y1={204} x2={x + w} y2={204} />
+        <path d={`M${x + w / 2 - 8} ${148} l8 -7 l8 7`} opacity={0.8} />
+      </g>
+    ),
+  },
+  {
+    slotId: 'coatUnitWidth',
+    w: 68,
+    // cuier: polita sus + carlige
+    draw: (x, w) => (
+      <g key="coat">
+        <rect x={x} y={54} width={w} height={190} fill="currentColor" fillOpacity={0.08} />
+        <line x1={x} y1={84} x2={x + w} y2={84} />
+        <circle cx={x + w / 3} cy={112} r={2.5} fill="currentColor" stroke="none" />
+        <path d={`M${x + w / 3} 112 v14 a5 5 0 0 0 8 4`} />
+        <circle cx={x + (w / 3) * 2} cy={112} r={2.5} fill="currentColor" stroke="none" />
+        <path d={`M${x + (w / 3) * 2} 112 v14 a5 5 0 0 0 8 4`} />
+      </g>
+    ),
+  },
+  {
+    slotId: 'wardrobeWidth',
+    w: 88,
+    // dulap: doua usi cu manere
+    draw: (x, w) => (
+      <g key="wardrobe">
+        <rect x={x} y={54} width={w} height={190} fill="currentColor" fillOpacity={0.08} />
+        <line x1={x + w / 2} y1={54} x2={x + w / 2} y2={244} />
+        <line x1={x + w / 2 - 9} y1={138} x2={x + w / 2 - 9} y2={160} strokeWidth={2.4} />
+        <line x1={x + w / 2 + 9} y1={138} x2={x + w / 2 + 9} y2={160} strokeWidth={2.4} />
+      </g>
+    ),
+  },
+  {
+    slotId: 'benchWidth',
+    w: 78,
+    // bancuta: sezut gros + lada
+    draw: (x, w) => (
+      <g key="bench">
+        <rect x={x} y={194} width={w} height={50} fill="currentColor" fillOpacity={0.08} />
+        <line x1={x - 6} y1={194} x2={x + w + 6} y2={194} strokeWidth={2.4} />
+        <line x1={x + w / 2} y1={194} x2={x + w / 2} y2={244} opacity={0.7} />
+      </g>
+    ),
+  },
+  {
+    slotId: 'mirrorWidth',
+    w: 44,
+    // oglinda: rama pe perete (nu atinge podeaua) + reflexie sugerata
+    draw: (x, w) => (
+      <g key="mirror">
+        <rect x={x} y={84} width={w} height={130} fill="currentColor" fillOpacity={0.05} />
+        <rect x={x + 5} y={89} width={w - 10} height={120} strokeWidth={1} opacity={0.7} />
+        <line x1={x + 12} y1={124} x2={x + w - 16} y2={100} strokeWidth={1} opacity={0.5} />
+      </g>
+    ),
+  },
+];
+
+export function HallwayFrontFigure({
+  slotIds,
+  letters,
+  withHeight,
+}: {
+  slotIds: string[];
+  letters: Record<string, string>;
+  withHeight: boolean;
+}) {
+  const pieces = HALLWAY_PIECES.filter((p) => slotIds.includes(p.slotId));
+  const gap = 6;
+  const total = pieces.reduce((s, p) => s + p.w, 0) + gap * Math.max(0, pieces.length - 1);
+  // centrat pe podeaua 40..400
+  let x = Math.max(40, 40 + (360 - total) / 2);
+  const placed = pieces.map((p) => {
+    const px = x;
+    x += p.w + gap;
+    return { ...p, x: px };
+  });
+  return (
+    <svg viewBox="0 0 470 280" className={SVG} aria-hidden="true">
+      {/* linia podelei */}
+      <line x1={40} y1={244} x2={400} y2={244} stroke="currentColor" strokeWidth={1.2} className="text-muted-2" />
+      <g className="text-walnut" stroke="currentColor" fill="none" strokeWidth={1.6}>
+        {placed.map((p) => p.draw(p.x, p.w))}
+      </g>
+      {placed.map((p) => (
+        <DimH key={p.slotId} x1={p.x} x2={p.x + p.w} y={266} letter={letters[p.slotId] ?? '?'} ext={-14} />
+      ))}
+      {withHeight && <HeightGauge x={424} />}
+    </svg>
+  );
+}
+
 // Vedere de sus pentru birou (drept / in L).
 export function DeskTopFigure({ lShape }: { lShape: boolean }) {
   return (
@@ -500,6 +609,21 @@ export function getDimensionFigure(
         node: <BalconyPlanFigure />,
         letters: { balconyLength: 'A', balconyDepth: 'B', ceilingHeight: 'H' },
       };
+    case 'HALLWAY': {
+      // litere in ordinea pieselor de pe plansa (doar cele selectate)
+      const widthSlots = HALLWAY_PIECES.map((p) => p.slotId).filter((id) => slotIds.includes(id));
+      if (widthSlots.length === 0) return null;
+      const letters: Record<string, string> = {};
+      widthSlots.forEach((id, i) => {
+        letters[id] = String.fromCharCode(65 + i); // A, B, C…
+      });
+      const withHeight = slotIds.includes('ceilingHeight');
+      if (withHeight) letters.ceilingHeight = 'H';
+      return {
+        node: <HallwayFrontFigure slotIds={slotIds} letters={letters} withHeight={withHeight} />,
+        letters,
+      };
+    }
     case 'PIECE_DESK': {
       const lShape = answers.shape === 'L_SHAPE';
       return {

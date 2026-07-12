@@ -2,13 +2,15 @@
 
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
-import { Bell, Check, FileText, Handshake, MessageSquare, RefreshCw } from 'lucide-react';
+import { Bell, Check, FileText, Handshake, Mail, MessageSquare, RefreshCw } from 'lucide-react';
 import { useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
 import {
+  useEmailPreference,
   useMarkAllRead,
   useMarkNotificationRead,
   useNotifications,
+  useSetEmailPreference,
   useUnreadCount,
 } from '@/hooks/use-notifications';
 import { useRealtimeSync } from '@/hooks/use-socket';
@@ -58,6 +60,8 @@ export function NotificationBell() {
   const list = useNotifications();
   const markRead = useMarkNotificationRead();
   const markAll = useMarkAllRead();
+  const emailPref = useEmailPreference(open);
+  const setEmailPref = useSetEmailPreference();
   const relTime = useRelativeTime();
   const rootRef = useRef<HTMLDivElement>(null);
   useRealtimeSync();
@@ -166,6 +170,22 @@ export function NotificationBell() {
               );
             })}
           </div>
+          {/* preferinta de emailuri (Q4, idee 5) */}
+          {emailPref.isSuccess && (
+            <label className="flex cursor-pointer items-center justify-between gap-2 border-t border-border px-3 py-2.5 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <Mail className="h-3.5 w-3.5" />
+                {t('emailToggle')}
+              </span>
+              <input
+                type="checkbox"
+                checked={emailPref.data.enabled}
+                disabled={setEmailPref.isPending}
+                onChange={(e) => setEmailPref.mutate(e.target.checked)}
+                className="h-4 w-4 accent-[hsl(var(--walnut))]"
+              />
+            </label>
+          )}
         </div>
       )}
     </div>

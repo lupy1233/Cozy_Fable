@@ -34,6 +34,12 @@ export class ChatController {
     return this.chat.listMessages(id, user.sub, 'CLIENT');
   }
 
+  // marcheaza conversatia citita (idee 1 PO r2)
+  @Post('threads/:id/read')
+  markRead(@CurrentUser() user: AccessTokenPayload, @Param('id', ParseUUIDPipe) id: string) {
+    return this.chat.markThreadRead(id, user.sub, 'CLIENT');
+  }
+
   @Post('threads/:id/messages')
   send(
     @CurrentUser() user: AccessTokenPayload,
@@ -71,8 +77,8 @@ export class CompanyChatController {
   constructor(private readonly chat: ChatService) {}
 
   @Get('threads')
-  listThreads(@CurrentCompany() ctx: CompanyContext) {
-    return this.chat.listThreadsForCompany(ctx.companyId);
+  listThreads(@CurrentCompany() ctx: CompanyContext, @CurrentUser() user: AccessTokenPayload) {
+    return this.chat.listThreadsForCompany(ctx.companyId, user.sub);
   }
 
   @Get('threads/:id/messages')
@@ -82,6 +88,16 @@ export class CompanyChatController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.chat.listMessages(id, user.sub, 'COMPANY', ctx.companyId);
+  }
+
+  // marcheaza conversatia citita (idee 1 PO r2)
+  @Post('threads/:id/read')
+  markRead(
+    @CurrentCompany() ctx: CompanyContext,
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.chat.markThreadRead(id, user.sub, 'COMPANY', ctx.companyId);
   }
 
   @Post('threads/:id/messages')

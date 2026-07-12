@@ -946,7 +946,10 @@ export class QuotesService {
   private async emitQuote(event: 'quote.created' | 'quote.updated', quoteId: string): Promise<void> {
     const quote = await this.prisma.quote.findUnique({
       where: { id: quoteId },
-      include: { request: { select: { title: true } }, company: { select: { name: true } } },
+      include: {
+        request: { select: { title: true, clientUserId: true } },
+        company: { select: { name: true } },
+      },
     });
     if (!quote) return;
     const targets = await this.participantsForQuote(quoteId);
@@ -958,6 +961,8 @@ export class QuotesService {
         requestId: quote.requestId,
         requestTitle: quote.request.title ?? '',
         companyName: quote.company.name,
+        // destinatarul emailului "oferta noua" (Q4, idee 5)
+        clientUserId: quote.request.clientUserId,
       },
       targets,
     );

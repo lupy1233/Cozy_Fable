@@ -133,10 +133,17 @@
     "boardNotFound": "Colecția nu există sau nu îți aparține.",
     "boardEmpty": "Colecția e goală — salvează idei din galerie.",
     "removePin": "Scoate",
+    "movePin": "Mută",
+    "moveTo": "Mută în colecția…",
+    "removeFromBoard": "Scoate din colecție",
+    "prevPin": "Ideea anterioară",
+    "nextPin": "Ideea următoare",
+    "similarPins": "Idei asemănătoare",
     "deleteBoard": "Șterge colecția",
     "deleteBoardConfirm": "Ștergi colecția „{name}”? Salvările din ea se pierd.",
     "renameBoard": "Redenumește colecția",
     "renameSave": "Salvează numele",
+    "loadMore": "Mai multe idei",
     "filters": {
       "color": "Culoare",
       "material": "Material",
@@ -469,6 +476,14 @@
     "uploading": "Se încarcă...",
     "myRequests": "Cererile mele",
     "myRequestsSubtitle": "Camerele, atelierele active și ofertele fiecărei cereri, dintr-o privire.",
+    "tabs": {
+      "ALL": "Toate",
+      "ACTIVE": "Active",
+      "IN_PROGRESS": "În lucru",
+      "DONE": "Finalizate",
+      "EXPIRED": "Expirate"
+    },
+    "tabEmpty": "Nicio cerere în acest stadiu.",
     "status": "Status",
     "size": "Dimensiune",
     "credits": "credite",
@@ -690,7 +705,8 @@
       "when": "Când",
       "stage": "Stadiu",
       "sla": "Termen ofertă (SLA)",
-      "slaPaused": "pauză"
+      "slaPaused": "pauză",
+      "newMessages": "{n, plural, =1 {un mesaj nou} other {# mesaje noi}}"
     },
     "apiErrors": {
       "CLAIM_NOT_ALLOWED": "Cererea nu mai poate fi revendicată.",
@@ -731,6 +747,8 @@
     "noOfferYet": "{company} nu a trimis încă o ofertă — poți discuta detaliile în conversația de mai jos.",
     "claimedAt": "a preluat cererea {time}",
     "lastMessageAt": "ultimul mesaj {time}",
+    "unreadMessages": "{n, plural, =1 {un mesaj nou} other {# mesaje noi}}",
+    "unreadDot": "Mesaje necitite",
     "stage": {
       "DISCUSSION": "În discuție",
       "OFFER_SENT": "Ofertă primită",
@@ -978,10 +996,19 @@
       "retry": "Reîncearcă"
     }
   },
+  "Unsubscribe": {
+    "title": "Dezabonare emailuri",
+    "working": "Te dezabonăm…",
+    "done": "Gata — nu îți mai trimitem emailuri de notificare. Notificările din aplicație rămân active.",
+    "invalid": "Linkul de dezabonare nu este valid sau a fost deja folosit.",
+    "reenableHint": "Le poți reactiva oricând din clopoțelul de notificări, după autentificare.",
+    "backHome": "Înapoi la prima pagină"
+  },
   "Notifications": {
     "title": "Notificări",
     "markAll": "Marchează toate citite",
     "empty": "Nicio notificare.",
+    "emailToggle": "Primește și pe email",
     "type": {
       "quote": {
         "created": "Ofertă nouă",
@@ -1117,7 +1144,7 @@
       "title": "Adauga poze sau planuri",
       "subtitle": "Optional — imagini din spatiu, schite sau proiectul tau (maxim 10 fisiere).",
       "dropLabel": "Trage fisiere aici sau apasa pentru a incarca",
-      "dropHint": "JPG, PNG, WEBP, PDF sau ZIP, pana la 10 MB",
+      "dropHint": "JPG, PNG, WEBP, PDF sau ZIP, pana la 25 MB",
       "uploading": "Se incarca...",
       "scanning": "se verifica...",
       "blockedNotice": "Fisier respins la verificare — incarca altul",

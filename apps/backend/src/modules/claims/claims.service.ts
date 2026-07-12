@@ -247,6 +247,8 @@ export class ClaimsService {
           companyId: ctx.companyId,
           requestTitle: display?.title ?? '',
           companyName: company?.name ?? '',
+          // destinatarul emailului "cererea ta a fost preluata" (Q4, idee 5)
+          clientUserId: display?.clientUserId ?? null,
         },
         claimTargets,
       );

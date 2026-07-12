@@ -1,24 +1,24 @@
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
-import { FolderHeart, Search, X } from 'lucide-react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { FolderHeart, Loader2, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import {
   INSPIRATION_COLORS,
   type InspirationColor,
-  type InspirationPhotoDto,
   type ItemSystem,
   type Material,
   type RoomType,
 } from '@marketplace/shared';
 import { Input } from '@/components/ui/input';
 import { useMe } from '@/hooks/use-auth';
-import { useInspiration } from '@/hooks/use-inspiration';
+import { useInfiniteInspiration } from '@/hooks/use-inspiration';
 import { useSavedRefs } from '@/hooks/use-inspiration-boards';
 import { Link, useRouter } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 import { PublicShell } from '../_components/public-shell';
+import { InspirationLightbox } from './_components/inspiration-lightbox';
 import { InspirationPin } from './_components/inspiration-pin';
 
 // Galeria de inspiratie (F6, item 3): mobilier REAL facut de atelierele
@@ -111,10 +111,11 @@ function InspirationGallery() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [systems, setSystems] = useState<ItemSystem[]>([]);
   const [query, setQuery] = useState('');
-  // lightbox: pin-ul deschis pe mare (click pe imagine, ca pe Pinterest)
-  const [openPhoto, setOpenPhoto] = useState<InspirationPhotoDto | null>(null);
+  // lightbox: indexul pin-ului deschis in lista vizibila (navigare ←/→)
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
-  const photos = useInspiration({
+  // infinite scroll (idee 6 PO r2): pagini de 40, incarcate la sentinel/buton
+  const photos = useInfiniteInspiration({
     roomType: type ?? undefined,
     colors,
     materials,
@@ -123,10 +124,26 @@ function InspirationGallery() {
 
   const visible = useMemo(() => {
     const q = norm(query.trim());
-    const list = photos.data ?? [];
+    const list = (photos.data?.pages ?? []).flat();
     if (!q) return list;
     return list.filter((p) => norm(`${p.title} ${p.company.name}`).includes(q));
   }, [photos.data, query]);
+
+  // sentinel: cand intra in viewport, incarca pagina urmatoare
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = photos;
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasNextPage) return;
+    const obs = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting && !isFetchingNextPage) void fetchNextPage();
+      },
+      { rootMargin: '600px' },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // photoId → boardId (starea "Salvat" per pin)
   const savedByPhoto = useMemo(
@@ -225,48 +242,37 @@ function InspirationGallery() {
               savedBoardId={savedByPhoto.get(photo.id) ?? null}
               authed={authed}
               onRequireAuth={requireAuth}
-              onOpen={() => setOpenPhoto(photo)}
+              onOpen={() => setOpenIndex(i)}
             />
           ))}
         </div>
 
-        {/* lightbox simplu: imaginea pe mare + meta (click oriunde inchide) */}
-        {openPhoto && (
-          <div
-            role="dialog"
-            aria-modal="true"
-            onClick={() => setOpenPhoto(null)}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="relative max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-surface shadow-xl"
+        {/* sentinel de infinite scroll + buton fallback (idee 6 PO r2) */}
+        {hasNextPage && (
+          <div ref={sentinelRef} className="flex justify-center py-4">
+            <button
+              type="button"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="inline-flex items-center gap-2 rounded-full border border-border-2 bg-card px-5 py-2 text-sm text-muted-foreground transition-colors hover:border-walnut hover:text-walnut disabled:opacity-60"
             >
-              <button
-                type="button"
-                onClick={() => setOpenPhoto(null)}
-                aria-label={t('close')}
-                className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
-              >
-                <X className="h-4 w-4" />
-              </button>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={openPhoto.imageUrl ?? ''}
-                alt={openPhoto.title}
-                className="max-h-[70vh] w-full object-contain bg-black/5"
-              />
-              <div className="flex items-center justify-between gap-3 px-4 py-3">
-                <div>
-                  <p className="font-serif text-lg leading-tight">{openPhoto.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {tc(`rooms.type.${openPhoto.roomType}`)} ·{' '}
-                    {t('byFirm', { name: openPhoto.company.name })}
-                  </p>
-                </div>
-              </div>
-            </div>
+              {isFetchingNextPage && <Loader2 className="h-4 w-4 animate-spin" />}
+              {t('loadMore')}
+            </button>
           </div>
+        )}
+
+        {/* lightbox Pinterest (idee 3 PO r2): salvare + navigare + similare */}
+        {openIndex !== null && (
+          <InspirationLightbox
+            photos={visible}
+            index={openIndex}
+            onClose={() => setOpenIndex(null)}
+            onNavigate={setOpenIndex}
+            savedByPhoto={savedByPhoto}
+            authed={authed}
+            onRequireAuth={requireAuth}
+          />
         )}
       </div>
     </PublicShell>

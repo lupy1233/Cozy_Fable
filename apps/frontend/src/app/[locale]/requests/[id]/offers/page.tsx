@@ -112,7 +112,16 @@ export default function RequestOffersPage() {
                   {i + 1}
                 </span>
                 <div>
-                  <h2 className="font-serif text-lg leading-tight">{thread.companyName}</h2>
+                  <h2 className="flex items-center gap-2 font-serif text-lg leading-tight">
+                    {thread.companyName}
+                    {/* punct de necitit (idee 1 PO r2) — dispare cand derulezi la chat */}
+                    {thread.unreadCount > 0 && (
+                      <span
+                        aria-label={t('unreadDot')}
+                        className="inline-block h-2.5 w-2.5 rounded-full bg-crimson"
+                      />
+                    )}
+                  </h2>
                   <p className="flex items-center gap-1 text-[11px] text-muted-2">
                     <Handshake className="h-3 w-3" />
                     {t('claimedAt', { time: relTime(thread.createdAt) })}
@@ -121,11 +130,18 @@ export default function RequestOffersPage() {
               </div>
               <div className="flex flex-col items-end gap-1">
                 <Badge tone={STAGE_TONE[stage]}>{t(`stage.${stage}`)}</Badge>
-                {thread.lastMessage && (
-                  <span className="flex items-center gap-1 text-[11px] text-muted-2">
+                {thread.unreadCount > 0 ? (
+                  <span className="flex items-center gap-1 text-[11px] font-semibold text-crimson">
                     <MessageSquare className="h-3 w-3" />
-                    {t('lastMessageAt', { time: relTime(thread.lastMessage.createdAt) })}
+                    {t('unreadMessages', { n: thread.unreadCount })}
                   </span>
+                ) : (
+                  thread.lastMessage && (
+                    <span className="flex items-center gap-1 text-[11px] text-muted-2">
+                      <MessageSquare className="h-3 w-3" />
+                      {t('lastMessageAt', { time: relTime(thread.lastMessage.createdAt) })}
+                    </span>
+                  )
                 )}
               </div>
             </div>

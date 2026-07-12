@@ -117,6 +117,31 @@ export class InspirationBoardsService {
     await this.prisma.inspirationBoardItem.deleteMany({ where: { boardId, photoId } });
   }
 
+  // Muta un pin dintr-o colectie in alta (idee 4 PO r2) — atomic, idempotent
+  // pe destinatie (upsert); ambele colectii trebuie sa fie ale utilizatorului.
+  async moveItem(
+    userId: string,
+    boardId: string,
+    photoId: string,
+    targetBoardId: string,
+  ): Promise<void> {
+    if (boardId === targetBoardId) return;
+    await this.requireOwned(userId, boardId);
+    await this.requireOwned(userId, targetBoardId);
+    await this.prisma.$transaction([
+      this.prisma.inspirationBoardItem.deleteMany({ where: { boardId, photoId } }),
+      this.prisma.inspirationBoardItem.upsert({
+        where: { boardId_photoId: { boardId: targetBoardId, photoId } },
+        create: { boardId: targetBoardId, photoId },
+        update: {},
+      }),
+      this.prisma.inspirationBoard.update({
+        where: { id: targetBoardId },
+        data: { updatedAt: new Date() },
+      }),
+    ]);
+  }
+
   // Toate salvarile utilizatorului — starea "Salvat" pe pin-urile galeriei.
   async savedRefs(userId: string): Promise<InspirationSaveDto[]> {
     const rows = await this.prisma.inspirationBoardItem.findMany({

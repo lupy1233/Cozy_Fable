@@ -1,8 +1,9 @@
 'use client';
 
+import type { RequestStatus } from '@marketplace/shared';
 import { ArrowRight, FileText, Handshake, MapPin, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
 import { useMyRequests } from '@/hooks/use-requests';
@@ -11,12 +12,35 @@ import { StatusBadge } from '@/components/ui/badge';
 import { ConfiguratorIcon } from '@/lib/configurator-icons';
 import { ROOM_ICONS } from '@/lib/room-icons';
 import { useRelativeTime } from '@/lib/relative-time';
+import { cn } from '@/lib/utils';
 
 // "Cererile mele" pe carduri vii (feedback PO item 12), in limbajul cardurilor
 // din marketplace: camere cu iconite, statusul, ateliere active + oferte, CTA
 // direct spre conversatii. Tabelul anterior era doar o lista plata.
+// Taburi de filtrare cand lista creste (idee 2 PO r2) — filtrare client-side,
+// lista vine oricum integral (fara paginare).
 
 const MAX_ROOM_CHIPS = 4;
+
+type RequestTab = 'ALL' | 'ACTIVE' | 'IN_PROGRESS' | 'DONE' | 'EXPIRED';
+
+const TABS: RequestTab[] = ['ALL', 'ACTIVE', 'IN_PROGRESS', 'DONE', 'EXPIRED'];
+
+const TAB_STATUSES: Record<Exclude<RequestTab, 'ALL'>, RequestStatus[]> = {
+  // in piata: ciorne + tot ce inca aduna ateliere/oferte
+  ACTIVE: [
+    'DRAFT',
+    'IN_MARKETPLACE',
+    'CLAIMED_PARTIAL',
+    'CLAIMED_FULL',
+    'OFFERS_RECEIVED',
+    'NEGOTIATION',
+  ],
+  // oferta acceptata → executie → livrare (inclusiv disputa deschisa)
+  IN_PROGRESS: ['ACCEPTED', 'IN_EXECUTION', 'DELIVERED_BY_COMPANY', 'DISPUTED'],
+  DONE: ['COMPLETED'],
+  EXPIRED: ['EXPIRED'],
+};
 
 export default function MyRequestsPage() {
   const t = useTranslations('Requests');
@@ -30,18 +54,26 @@ export default function MyRequestsPage() {
     if (me.isError) router.replace('/login');
   }, [me.isError, router]);
 
+  const [tab, setTab] = useState<RequestTab>('ALL');
+
+  const all = useMemo(() => list.data ?? [], [list.data]);
+  const countFor = (tb: RequestTab) =>
+    tb === 'ALL' ? all.length : all.filter((r) => TAB_STATUSES[tb].includes(r.status)).length;
+  const rows = useMemo(
+    () => (tab === 'ALL' ? all : all.filter((r) => TAB_STATUSES[tab].includes(r.status))),
+    [all, tab],
+  );
+
   if (me.isPending || list.isPending) {
     return <p className="py-20 text-center text-muted-foreground">{t('loading')}</p>;
   }
-
-  const rows = list.data ?? [];
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="page-title">{t('myRequests')}</h1>
-          {rows.length > 0 && (
+          {all.length > 0 && (
             <p className="mt-2 text-sm text-muted-foreground">{t('myRequestsSubtitle')}</p>
           )}
         </div>
@@ -50,7 +82,40 @@ export default function MyRequestsPage() {
         </Button>
       </div>
 
-      {rows.length === 0 && (
+      {/* taburi de filtrare dupa stadiu (idee 2 PO r2) */}
+      {all.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {TABS.map((tb) => {
+            const n = countFor(tb);
+            return (
+              <button
+                key={tb}
+                type="button"
+                onClick={() => setTab(tb)}
+                aria-pressed={tab === tb}
+                className={cn(
+                  'rounded-full border px-3.5 py-1.5 text-sm transition-colors',
+                  tab === tb
+                    ? 'border-walnut bg-walnut text-primary-foreground'
+                    : 'border-border-2 bg-card text-muted-foreground hover:border-muted-2 hover:text-foreground',
+                  n === 0 && tab !== tb && 'opacity-50',
+                )}
+              >
+                {t(`tabs.${tb}`)}
+                <span className="ml-1.5 font-mono text-xs opacity-75">{n}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {all.length > 0 && rows.length === 0 && (
+        <p className="rounded-xl border border-dashed border-border-2 bg-surface px-4 py-10 text-center text-sm text-muted-foreground">
+          {t('tabEmpty')}
+        </p>
+      )}
+
+      {all.length === 0 && (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border-2 bg-surface px-6 py-16 text-center">
           <span className="grid h-12 w-12 place-items-center rounded-full bg-walnut-soft text-walnut">
             <Plus className="h-6 w-6" />

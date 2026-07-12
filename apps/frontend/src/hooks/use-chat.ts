@@ -35,6 +35,17 @@ export function useMessages(threadId: string, mode: ChatMode) {
   });
 }
 
+// Marcheaza conversatia citita (idee 1 PO r2) — apelat de ChatPanel cand
+// mesajele sunt vizibile; invalidarea listei stinge punctul de necitit.
+export function useMarkThreadRead(mode: ChatMode) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (threadId: string) =>
+      api<void>(`${prefix(mode)}/threads/${threadId}/read`, { method: 'POST' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: THREADS_KEY(mode) }),
+  });
+}
+
 export function useSendMessage(threadId: string, mode: ChatMode) {
   const qc = useQueryClient();
   return useMutation({

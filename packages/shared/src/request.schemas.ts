@@ -179,7 +179,8 @@ export function attachmentKind(mimeType: string): 'image' | 'pdf' | 'zip' | 'oth
   if (mimeType === 'application/zip' || mimeType === 'application/x-zip-compressed') return 'zip';
   return 'other';
 }
-export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024; // 10 MB
+// 25 MB per fisier — aliniat la invarianta 3.4 (D2 aprobat PO, 2026-07-12)
+export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 export const MAX_ATTACHMENTS_PER_REQUEST = 10;
 
 export const presignUploadSchema = z.object({

@@ -62,6 +62,10 @@ quote_validity_default_days=14 · consultation_invite_expiry_days=7 · employee_
 
 - inspiration_boards (P6 2026-07-11, feedback PO r2 item 8): colectiile de salvari ale utilizatorului (stil Pinterest) — id, user_id FK (cascade), name (UNIQUE per user), created_at, updated_at; inspiration_board_items (board_id, photo_id, created_at, PK compus, cascade ambele FK-uri) — salvarile; doar poze publicate/nesterse (validate cu assertSelectable). Fara PII proprii → hard delete.
 
+- chat_thread_reads (Q2 2026-07-12, idee 1 PO r2): marcajul "citit pana la" per utilizator per conversatie — chat_thread_id FK (cascade), user_id FK (cascade), last_read_at TIMESTAMPTZ, PK compus (chat_thread_id, user_id), index user_id. Necitit = mesajele ALTORA cu created_at > last_read_at (sau toate, daca nu exista rand). Fara PII proprii → hard delete.
+
+- users.email_notifications_enabled BOOLEAN DEFAULT TRUE (Q4 2026-07-12, idee 5 PO r2): opt-out global pentru emailurile de notificare (oferta noua / mesaj nou / cerere preluata); notificarile in-app raman mereu active. Dezabonare din email prin link semnat HMAC (fara login) sau toggle in clopotel.
+
 - contact_channel: EMAIL, PHONE
 
 - company_member.role: OWNER, MANAGER, EMPLOYEE_TRUSTED, EMPLOYEE_MANAGED
