@@ -64,6 +64,7 @@ export function RoomFlowRunner({
   const activeStepIndex = useConfiguratorStore((s) => s.activeStepIndex);
   const hasOwnProject = useConfiguratorStore((s) => s.details.hasOwnProject === true);
   const setAnswer = useConfiguratorStore((s) => s.setAnswer);
+  const setSnapshot3d = useConfiguratorStore((s) => s.setSnapshot3d);
   const copyRoomAnswers = useConfiguratorStore((s) => s.copyRoomAnswers);
   const setStepIndex = useConfiguratorStore((s) => s.setStepIndex);
   const setActiveRoom = useConfiguratorStore((s) => s.setActiveRoom);
@@ -93,7 +94,8 @@ export function RoomFlowRunner({
   }
 
   const flow = getFlow(room.roomType, room.flowVersion);
-  const screens = groupScreens(visibleSteps(flow, room.answers));
+  // step-urile hidden (ex. snapshot3d, scris programatic) nu primesc ecran
+  const screens = groupScreens(visibleSteps(flow, room.answers).filter((s) => !s.hidden));
   const screenIndex = Math.min(activeStepIndex, screens.length - 1);
   const screen = screens[screenIndex];
 
@@ -236,6 +238,7 @@ export function RoomFlowRunner({
               roomType={room.roomType}
               inline={si > 0}
               uploadContext={{ target: uploadTarget, hasOwnProject }}
+              config3dContext={{ onSnapshot: (dataUrl) => setSnapshot3d(room.localId, dataUrl) }}
               onChange={(value) => {
                 setErrors((prev) => {
                   const next = { ...prev };

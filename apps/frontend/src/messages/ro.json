@@ -1194,6 +1194,53 @@
       "islandDepth": "D",
       "caption": "Schita se actualizeaza pe masura ce completezi — literele corespund campurilor de mai jos."
     },
+    "config3d": {
+      "mode3d": "Configurează în 3D",
+      "modeFields": "Câmpuri clasice",
+      "width": "Lățime",
+      "height": "Înălțime",
+      "depth": "Adâncime",
+      "columns": "Coloane",
+      "pedestals": "Casetiere",
+      "finish": "Finisaj (vizual)",
+      "reset": "De la capăt",
+      "hint": "Rotește modelul trăgând de el. Dă click pe o zonă ca să o selectezi, apoi încă un click ca să îi schimbi tipul.",
+      "zoneToolbarTitle": "Coloana {column} · zona {zone}",
+      "columnLabel": "Coloana {n}",
+      "addZone": "Adaugă zonă",
+      "removeZone": "Șterge zona",
+      "countLabel": "Număr",
+      "fewer": "Mai puține",
+      "more": "Mai multe",
+      "webglMissing": "Dispozitivul tău nu suportă vizualizarea 3D — configurează piesa prin câmpurile de mai jos; cererea rezultată este identică.",
+      "zoneTypes": {
+        "OPEN": "Deschis",
+        "SHELVES": "Polițe",
+        "DRAWERS": "Sertare",
+        "DOOR": "Ușă",
+        "HANGING": "Bară de haine",
+        "TILT_OUT": "Fronturi rabatabile"
+      },
+      "finishes": {
+        "ALB": "Alb",
+        "STEJAR": "Stejar",
+        "NUC": "Nuc",
+        "GRI": "Gri",
+        "VERDE_SALVIE": "Verde salvie"
+      },
+      "chips": {
+        "size": "{w} × {h} × {d} cm",
+        "columns": "{count, plural, one {1 coloană} other {# coloane}}",
+        "shelves": "{count, plural, one {1 poliță} few {# polițe} other {# de polițe}}",
+        "drawers": "{count, plural, one {1 sertar} other {# sertare}}",
+        "doors": "{count, plural, one {1 ușă} other {# uși}}",
+        "hanging": "{count, plural, one {1 bară de haine} other {# bare de haine}}",
+        "tiltOut": "{count, plural, one {1 front rabatabil} other {# fronturi rabatabile}}",
+        "open": "{count, plural, one {1 zonă deschisă} other {# zone deschise}}",
+        "finish": "Finisaj {finish}"
+      },
+      "snapshotAlt": "Vizualizarea 3D a piesei configurate"
+    },
     "copyFromPrevious": "Copiaza raspunsurile de la {room} anterioara",
     "pieces": {
       "name": "Denumire",

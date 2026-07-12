@@ -1194,6 +1194,53 @@
       "islandDepth": "D",
       "caption": "The sketch updates as you type — the letters match the fields below."
     },
+    "config3d": {
+      "mode3d": "Configure in 3D",
+      "modeFields": "Classic fields",
+      "width": "Width",
+      "height": "Height",
+      "depth": "Depth",
+      "columns": "Columns",
+      "pedestals": "Pedestals",
+      "finish": "Finish (visual)",
+      "reset": "Start over",
+      "hint": "Drag the model to rotate it. Click a zone to select it, then click again to change its type.",
+      "zoneToolbarTitle": "Column {column} · zone {zone}",
+      "columnLabel": "Column {n}",
+      "addZone": "Add zone",
+      "removeZone": "Remove zone",
+      "countLabel": "Count",
+      "fewer": "Fewer",
+      "more": "More",
+      "webglMissing": "Your device does not support the 3D view — configure the piece with the fields below; the resulting request is identical.",
+      "zoneTypes": {
+        "OPEN": "Open",
+        "SHELVES": "Shelves",
+        "DRAWERS": "Drawers",
+        "DOOR": "Door",
+        "HANGING": "Hanging rod",
+        "TILT_OUT": "Tilt-out fronts"
+      },
+      "finishes": {
+        "ALB": "White",
+        "STEJAR": "Oak",
+        "NUC": "Walnut",
+        "GRI": "Grey",
+        "VERDE_SALVIE": "Sage green"
+      },
+      "chips": {
+        "size": "{w} × {h} × {d} cm",
+        "columns": "{count, plural, one {1 column} other {# columns}}",
+        "shelves": "{count, plural, one {1 shelf} other {# shelves}}",
+        "drawers": "{count, plural, one {1 drawer} other {# drawers}}",
+        "doors": "{count, plural, one {1 door} other {# doors}}",
+        "hanging": "{count, plural, one {1 hanging rod} other {# hanging rods}}",
+        "tiltOut": "{count, plural, one {1 tilt-out front} other {# tilt-out fronts}}",
+        "open": "{count, plural, one {1 open zone} other {# open zones}}",
+        "finish": "{finish} finish"
+      },
+      "snapshotAlt": "3D preview of the configured piece"
+    },
     "copyFromPrevious": "Copy answers from the previous {room}",
     "pieces": {
       "name": "Name",

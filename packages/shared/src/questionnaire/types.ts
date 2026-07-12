@@ -1,5 +1,6 @@
 import type { RoomType } from '../enums';
 import type { RequestItemInput } from '../request.schemas';
+import type { Piece3dKind, PieceConfig3d } from './piece3d/config';
 
 // Motorul de chestionar al configuratorului de cereri.
 // Definitiile flow-urilor sunt typed TS config (decizie user, 2026-07-04) — NU DB.
@@ -11,12 +12,13 @@ export type AnswerPrimitive = string | number | boolean;
 
 // Raspunsul unui step: primitive (single-choice/boolean/number/text),
 // string[] (multi-choice), Record<slotId, metri> (dimension-group),
-// RequestItemInput[] (pieces).
+// RequestItemInput[] (pieces), PieceConfig3d (configurator-3d).
 export type AnswerValue =
   | AnswerPrimitive
   | string[]
   | Record<string, number>
-  | RequestItemInput[];
+  | RequestItemInput[]
+  | PieceConfig3d;
 
 export type AnswerMap = Record<string, AnswerValue>;
 
@@ -92,6 +94,10 @@ interface BaseStep {
   // sunt randate pe un singur ecran (ex. layout + insula la bucatarie).
   // Validarea ramane per-step; engine-ul nu il foloseste.
   screenGroup?: string;
+  // hidden=true: step-ul NU primeste ecran in wizard (frontend il sare), dar
+  // raspunsul lui ramane valid la publish — folosit de snapshotul PNG al
+  // configuratorului 3D (docs/10 R4), scris programatic, nu de utilizator.
+  hidden?: boolean;
 }
 
 export type SingleChoiceStep = BaseStep & { type: 'single-choice'; options: ChoiceOption[] };
@@ -115,6 +121,10 @@ export type PiecesStep = BaseStep & { type: 'pieces'; minPieces: number; maxPiec
 // (uuid) deja create prin fluxul presign/confirm; backend-ul verifica la publish
 // ca id-urile apartin cererii. Step-urile upload sunt intotdeauna optionale.
 export type UploadStep = BaseStep & { type: 'upload'; maxFiles: number };
+// Configuratorul 3D de piesa (docs/10): raspunsul = PieceConfig3d serializabil,
+// validat cu pieceConfig3dSchema(piece) identic FE/BE. Limitele de gabarit si
+// tipurile de zona permise vin din PIECE3D_RULES[piece].
+export type Configurator3dStep = BaseStep & { type: 'configurator-3d'; piece: Piece3dKind };
 
 export type QuestionStep =
   | SingleChoiceStep
@@ -124,7 +134,8 @@ export type QuestionStep =
   | NumberStep
   | TextStep
   | PiecesStep
-  | UploadStep;
+  | UploadStep
+  | Configurator3dStep;
 
 // Forma legacy derivata din answers — hraneste persistenta request_rooms/request_items
 // si scoringul existent. Derivarea ruleaza DOAR pe server (sursa de adevar) si pe
@@ -157,7 +168,14 @@ export type AnswerSummaryEntry =
   | { kind: 'number'; stepId: string; labelKey: string; value: number }
   | { kind: 'text'; stepId: string; labelKey: string; value: string }
   | { kind: 'pieces'; stepId: string; labelKey: string; pieces: RequestItemInput[] }
-  | { kind: 'files'; stepId: string; labelKey: string; count: number };
+  | { kind: 'files'; stepId: string; labelKey: string; count: number }
+  | {
+      kind: 'config3d';
+      stepId: string;
+      labelKey: string;
+      piece: Piece3dKind;
+      config: PieceConfig3d;
+    };
 
 export type ValidationIssue = { stepId: string; messageKey: string };
 export type ValidationResult = { ok: true } | { ok: false; errors: ValidationIssue[] };

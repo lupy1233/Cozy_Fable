@@ -63,6 +63,12 @@ export type DimensionUnit = 'm' | 'cm' | 'mm';
 interface ConfiguratorStore extends ConfiguratorSnapshot {
   token: string | null;
   dimensionUnit: DimensionUnit;
+  // PNG-urile scenei 3D per camera (localId → dataURL), capturate in timp ce
+  // canvas-ul e montat si urcate ca attachment la publish (docs/10 R4).
+  // DOAR in memorie: nu se persista in localStorage si nu intra in snapshotul
+  // trimis serverului — ar umfla ambele peste orice cap rezonabil.
+  snapshots3d: Record<string, string>;
+  setSnapshot3d: (localId: string, dataUrl: string | null) => void;
   setDimensionUnit: (unit: DimensionUnit) => void;
   setToken: (token: string) => void;
   setPhase: (phase: ConfiguratorPhase) => void;
@@ -159,8 +165,16 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
       token: null,
       // cm e unitatea naturala pentru mobilier; clientul poate comuta pe m/mm
       dimensionUnit: 'cm' as DimensionUnit,
+      snapshots3d: {},
       ...initialSnapshot,
 
+      setSnapshot3d: (localId, dataUrl) =>
+        set((s) => {
+          const next = { ...s.snapshots3d };
+          if (dataUrl) next[localId] = dataUrl;
+          else delete next[localId];
+          return { snapshots3d: next };
+        }),
       setDimensionUnit: (unit) => set({ dimensionUnit: unit }),
       setInspirationPhotos: (ids) =>
         set({ inspirationPhotoIds: [...new Set(ids)].slice(0, 10), updatedAt: Date.now() }),
@@ -194,10 +208,14 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
         }),
 
       removeRoom: (localId) =>
-        set((s) => ({
-          ...sortedRoomsPatch(s, s.roomInstances.filter((r) => r.localId !== localId)),
-          updatedAt: Date.now(),
-        })),
+        set((s) => {
+          const { [localId]: _removed, ...snapshots3d } = s.snapshots3d;
+          return {
+            ...sortedRoomsPatch(s, s.roomInstances.filter((r) => r.localId !== localId)),
+            snapshots3d,
+            updatedAt: Date.now(),
+          };
+        }),
 
       setActiveRoom: (index) => set({ activeRoomIndex: index, activeStepIndex: 0 }),
       setStepIndex: (index) => set({ activeStepIndex: index }),
@@ -270,7 +288,7 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
         };
       },
 
-      reset: () => set({ token: null, ...initialSnapshot, updatedAt: Date.now() }),
+      reset: () => set({ token: null, snapshots3d: {}, ...initialSnapshot, updatedAt: Date.now() }),
     }),
     {
       name: 'mm_configurator_v1',

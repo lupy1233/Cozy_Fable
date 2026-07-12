@@ -25,6 +25,7 @@ import type { AttachmentTarget } from '@/hooks/use-requests';
 import { useConfiguratorStore } from '@/stores/configurator-store';
 import { BOOLEAN_ILLUSTRATIONS, getIllustration } from './illustrations';
 import { getDimensionFigure } from './dimension-figures';
+import { Configurator3dStep } from './piece3d/dynamic';
 import { PlayingCard } from './playing-card';
 import { RoomSketchUpload } from './room-sketch-upload';
 
@@ -39,6 +40,8 @@ interface StepRendererProps {
   inline?: boolean;
   // context pentru step-urile 'upload' (schita per camera)
   uploadContext?: { target: AttachmentTarget; hasOwnProject: boolean };
+  // context pentru step-urile 'configurator-3d': snapshotul PNG al scenei (R4)
+  config3dContext?: { onSnapshot: (dataUrl: string | null) => void };
 }
 
 // Antet pas: titlu + subtitlu + buton Info la nivel de intrebare (optional).
@@ -102,7 +105,8 @@ const cnUnit = (active: boolean) =>
   (active ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground');
 
 export function StepRenderer(props: StepRendererProps) {
-  const { step, answers, roomType, onChange, onInfo, error, inline, uploadContext } = props;
+  const { step, answers, roomType, onChange, onInfo, error, inline, uploadContext, config3dContext } =
+    props;
   const t = useTranslations('Configurator');
   const dimensionUnit = useConfiguratorStore((s) => s.dimensionUnit);
   const setDimensionUnit = useConfiguratorStore((s) => s.setDimensionUnit);
@@ -438,6 +442,19 @@ export function StepRenderer(props: StepRendererProps) {
             onChange={(e) => onChange(e.target.value)}
           />
         )}
+      </StepShell>
+    );
+  }
+
+  if (step.type === 'configurator-3d') {
+    return (
+      <StepShell step={step} onInfo={onInfo} error={error} inline={inline}>
+        <Configurator3dStep
+          piece={step.piece}
+          value={value}
+          onChange={(config) => onChange(config)}
+          onSnapshot={config3dContext?.onSnapshot}
+        />
       </StepShell>
     );
   }

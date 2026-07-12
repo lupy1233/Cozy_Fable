@@ -3,6 +3,7 @@ import type { RoomType } from '../enums';
 import { requestItemSchema, type RequestItemInput } from '../request.schemas';
 import { CURRENT_FLOW_VERSION, FLOW_REGISTRY } from './flows';
 import { itemQuantityBucket, roomSizeBucket } from './mapping';
+import { isPieceConfig3d, pieceConfig3dSchema } from './piece3d/config';
 import type {
   AnswerMap,
   AnswerSummaryEntry,
@@ -123,6 +124,9 @@ export function stepAnswerSchema(step: QuestionStep, answers: AnswerMap): z.ZodT
         .array(z.string().uuid('validation.answerInvalid'))
         .max(step.maxFiles, 'validation.tooManyFiles')
         .refine((arr) => new Set(arr).size === arr.length, 'validation.answerInvalid');
+    case 'configurator-3d':
+      // config serializabil validat contra regulilor piesei (docs/10 R2)
+      return pieceConfig3dSchema(step.piece);
   }
 }
 
@@ -310,6 +314,18 @@ export function summarizeAnswers(
             stepId: step.id,
             labelKey: step.titleKey,
             count: answer.length,
+          });
+        }
+        break;
+      }
+      case 'configurator-3d': {
+        if (isPieceConfig3d(answer)) {
+          entries.push({
+            kind: 'config3d',
+            stepId: step.id,
+            labelKey: step.titleKey,
+            piece: step.piece,
+            config: answer,
           });
         }
         break;
