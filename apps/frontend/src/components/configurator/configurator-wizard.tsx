@@ -2,8 +2,18 @@
 
 import type { AnswerMap, RequestDto } from '@marketplace/shared';
 import { motion } from 'framer-motion';
+import { FilePlus2, History } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Stepper } from '@/components/ui/stepper';
 import {
   useCreateDraft,
@@ -114,6 +124,9 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
   const draft = useDraft(isEdit ? null : token);
   const patchDraft = usePatchDraft(token ?? '');
   const hydrated = useRef(false);
+  // dialogul "continui sau incepi din nou?" cand exista o cerere neterminata
+  const [resumePrompt, setResumePrompt] = useState(false);
+  const resumeChecked = useRef(false);
 
   // Resume (creare): daca nu exista stare locala dar serverul are configuratorState.
   useEffect(() => {
@@ -126,7 +139,37 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     if (!hasLocal && serverState && Array.isArray(serverState.roomInstances)) {
       store.getState().loadSnapshot(serverState);
     }
+    // dupa hidratare stim starea reala: daca exista progres, intreaba utilizatorul
+    // daca vrea sa continue de unde a ramas sau sa inceapa o cerere noua (cerinta PO)
+    if (!resumeChecked.current) {
+      resumeChecked.current = true;
+      const state = store.getState().snapshot();
+      const hasProgress =
+        state.roomInstances.length > 0 ||
+        Object.keys(state.details).length > 0 ||
+        state.phase !== 'cart';
+      if (hasProgress) setResumePrompt(true);
+    }
   }, [draft.data, isEdit, store]);
+
+  // "Incepe una noua": abandoneaza draftul curent (fara salvare) si creeaza altul.
+  const startFresh = () => {
+    setResumePrompt(false);
+    localStorage.removeItem(DRAFT_TOKEN_KEY);
+    store.getState().reset();
+    setToken(null);
+    createDraft
+      .mutateAsync({})
+      .then((res) => {
+        localStorage.setItem(DRAFT_TOKEN_KEY, res.draftToken);
+        setTokenInStore(res.draftToken);
+        setToken(res.draftToken);
+      })
+      .catch(() => {
+        // reintra pe fluxul de creare de la montare la urmatoarea vizita
+        created.current = false;
+      });
+  };
 
   // --- mod editare: reconstruim starea din cererea publicata ---
   const editRequest = useRequest(editId ?? '');
@@ -168,6 +211,26 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-8">
+      {/* cerere neterminata gasita: continua sau incepe din nou (fara salvare) */}
+      <Dialog open={resumePrompt} onOpenChange={setResumePrompt}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('resume.title')}</DialogTitle>
+            <DialogDescription>{t('resume.description')}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button type="button" variant="ghost" onClick={startFresh}>
+              <FilePlus2 className="mr-1.5 h-4 w-4" />
+              {t('resume.startFresh')}
+            </Button>
+            <Button type="button" variant="walnut" onClick={() => setResumePrompt(false)}>
+              <History className="mr-1.5 h-4 w-4" />
+              {t('resume.continue')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div>
         <p className="kicker">{t(isEdit ? 'editKicker' : 'kicker')}</p>
         <h1 className="page-title mt-1.5">{t(isEdit ? 'editTitle' : 'title')}</h1>

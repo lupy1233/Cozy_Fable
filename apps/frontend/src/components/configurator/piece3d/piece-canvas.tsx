@@ -8,10 +8,17 @@ import {
   type Panel3d,
   type ZoneBox3d,
 } from '@marketplace/shared';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { Group } from 'three';
 import { FINISH_SPECS, HIGHLIGHT_COLOR, ROD_COLOR } from './finishes';
+
+// Scena 3D a piesei (R1 + fidelizare Tylko): carcasa parametrica generata din
+// config, lumini soft, orbita limitata, dpr limitat si frameloop="demand".
+// Usile si sertarele sunt GRUPURI ANIMATE: click pe zona le deschide/inchide
+// (rotatie pe balama / culisare), ca sa se vada interiorul — inclusiv politele
+// din spatele usilor. Geometria vine exclusiv din shared.
 
 // tip minimal pentru controalele de orbita (evitam dependinta de three-stdlib,
 // care e doar dependinta tranzitiva a drei si nu e expusa de pnpm)
@@ -20,11 +27,9 @@ type ControlsLike = {
   update: () => void;
 } | null;
 
-// Scena 3D a piesei (R1): carcasa parametrica generata din config, lumini soft,
-// orbita limitata (nu vezi sub podea), dpr limitat si frameloop="demand" pentru
-// mobil. Componenta DOAR deseneaza panourile — geometria vine din shared.
-
 export type ZoneRef = { col: number; zone: number };
+
+export const zoneKey = (col: number, zone: number) => `${col}:${zone}`;
 
 // functie de snapshot expusa parintelui (R4): randeaza un cadru si intoarce PNG
 export type SnapshotFn = () => string | null;
@@ -33,10 +38,16 @@ interface PieceCanvasProps {
   kind: Piece3dKind;
   config: PieceConfig3d;
   activeZone?: ZoneRef | null;
+  // zonele cu fronturi deschise ("col:zone") — usa rotita / sertarul tras
+  openZones?: ReadonlySet<string>;
   onZoneClick?: (zone: ZoneRef) => void;
   onSnapshotReady?: (fn: SnapshotFn) => void;
   className?: string;
 }
+
+// culoarea cutiei sertarului (interior mesteacan deschis, ca la Tylko)
+const DRAWER_BOX_COLOR = '#d6cbb8';
+const BACKDROP_COLOR = '#262019';
 
 // Repozitioneaza camera cand se schimba gabaritul (nu si la schimbari de zone).
 function CameraRig({ config }: { config: PieceConfig3d }) {
@@ -87,20 +98,167 @@ function PanelMesh({ panel, finish }: { panel: Panel3d; finish: PieceConfig3d['f
       </mesh>
     );
   }
-  const isFront =
-    panel.role === 'DRAWER_FRONT' || panel.role === 'DOOR_FRONT' || panel.role === 'TILT_FRONT';
+  if (panel.role === 'FRONT_BACKDROP') {
+    // cavitatea din spatele fronturilor: aproape negru, mat — rosturile dintre
+    // fronturi se citesc ca linii inchise (luftul cerut de PO)
+    return (
+      <mesh position={[panel.x, panel.y, panel.z]}>
+        <boxGeometry args={[panel.w, panel.h, panel.d]} />
+        <meshStandardMaterial color={BACKDROP_COLOR} roughness={1} />
+      </mesh>
+    );
+  }
   return (
     <mesh position={[panel.x, panel.y, panel.z]} castShadow receiveShadow>
       <boxGeometry args={[panel.w, panel.h, panel.d]} />
-      <meshStandardMaterial
-        color={isFront ? spec.front : spec.body}
-        roughness={spec.roughness}
-      />
+      <meshStandardMaterial color={spec.body} roughness={spec.roughness} />
     </mesh>
   );
 }
 
-// Hit-target invizibil per zona: hover → tenta, click → schimba tipul (R2).
+// Cutia sertarului (fund + laterale + spate), atasata frontului: se vede cand
+// sertarul e tras. Dimensiuni relative la front; adancimea vine din carcasa.
+function DrawerBox({ w, h, boxD, frontD }: { w: number; h: number; boxD: number; frontD: number }) {
+  const t = 0.012;
+  const sideH = Math.max(0.05, h * 0.6);
+  const sideY = -h / 2 + sideH / 2 + 0.01;
+  const zMid = -frontD / 2 - boxD / 2;
+  return (
+    <group>
+      <mesh position={[0, -h / 2 + 0.016, zMid]}>
+        <boxGeometry args={[w - 0.02, t, boxD]} />
+        <meshStandardMaterial color={DRAWER_BOX_COLOR} roughness={0.9} />
+      </mesh>
+      <mesh position={[-w / 2 + 0.012, sideY, zMid]}>
+        <boxGeometry args={[t, sideH, boxD]} />
+        <meshStandardMaterial color={DRAWER_BOX_COLOR} roughness={0.9} />
+      </mesh>
+      <mesh position={[w / 2 - 0.012, sideY, zMid]}>
+        <boxGeometry args={[t, sideH, boxD]} />
+        <meshStandardMaterial color={DRAWER_BOX_COLOR} roughness={0.9} />
+      </mesh>
+      <mesh position={[0, sideY, -frontD / 2 - boxD + t / 2]}>
+        <boxGeometry args={[w - 0.02, sideH, t]} />
+        <meshStandardMaterial color={DRAWER_BOX_COLOR} roughness={0.9} />
+      </mesh>
+    </group>
+  );
+}
+
+// unghiul maxim al usii (~105°) si al frontului rabatabil (~38°)
+const DOOR_OPEN_RAD = 1.85;
+const TILT_OPEN_RAD = 0.66;
+
+// Aplica starea de deschidere pe grupul-pivot al unui front.
+function applyFrontTransform(group: Group | null, front: Panel3d, p: number, depthM: number) {
+  if (!group) return;
+  if (front.role === 'DOOR_FRONT') {
+    // balamaua pe muchia exterioara: L → unghi negativ, R → pozitiv
+    const sign = front.hinge === 'R' ? 1 : -1;
+    group.rotation.y = sign * p * DOOR_OPEN_RAD;
+  } else if (front.role === 'TILT_FRONT') {
+    // pivot pe muchia de jos, partea de sus cade spre privitor
+    group.rotation.x = p * TILT_OPEN_RAD;
+  } else {
+    // sertar: culiseaza spre privitor
+    group.position.z = front.z + p * depthM * 0.45;
+  }
+}
+
+// Fronturile unei zone, cu animatie de deschidere (lerp in useFrame; in
+// frameloop="demand" cerem cadre noi doar cat dureaza animatia).
+function AnimatedFronts({
+  fronts,
+  open,
+  depthM,
+  finish,
+}: {
+  fronts: Panel3d[];
+  open: boolean;
+  depthM: number;
+  finish: PieceConfig3d['finish'];
+}) {
+  const spec = FINISH_SPECS[finish];
+  const progress = useRef(0);
+  const groups = useRef<(Group | null)[]>([]);
+  const invalidate = useThree((s) => s.invalidate);
+
+  useFrame((_, delta) => {
+    const target = open ? 1 : 0;
+    const current = progress.current;
+    if (Math.abs(current - target) < 0.001) return;
+    const step = Math.min(Math.abs(target - current), delta * 3.4);
+    progress.current = current + Math.sign(target - current) * step;
+    fronts.forEach((f, i) => applyFrontTransform(groups.current[i], f, progress.current, depthM));
+    invalidate();
+  });
+
+  // la remontare (config schimbat) aplica starea curenta + porneste animatia
+  useEffect(() => {
+    fronts.forEach((f, i) => applyFrontTransform(groups.current[i], f, progress.current, depthM));
+    invalidate();
+  }, [fronts, depthM, open, invalidate]);
+
+  const boxD = Math.max(0.12, depthM - 0.06);
+
+  return (
+    <>
+      {fronts.map((f, i) => {
+        const material = <meshStandardMaterial color={spec.front} roughness={spec.roughness} />;
+        if (f.role === 'DOOR_FRONT') {
+          const sign = f.hinge === 'R' ? 1 : -1;
+          return (
+            <group
+              key={i}
+              ref={(el) => {
+                groups.current[i] = el;
+              }}
+              position={[f.x + (sign * f.w) / 2, f.y, f.z]}
+            >
+              <mesh position={[(-sign * f.w) / 2, 0, 0]} castShadow>
+                <boxGeometry args={[f.w, f.h, f.d]} />
+                {material}
+              </mesh>
+            </group>
+          );
+        }
+        if (f.role === 'TILT_FRONT') {
+          return (
+            <group
+              key={i}
+              ref={(el) => {
+                groups.current[i] = el;
+              }}
+              position={[f.x, f.y - f.h / 2, f.z]}
+            >
+              <mesh position={[0, f.h / 2, 0]} castShadow>
+                <boxGeometry args={[f.w, f.h, f.d]} />
+                {material}
+              </mesh>
+            </group>
+          );
+        }
+        return (
+          <group
+            key={i}
+            ref={(el) => {
+              groups.current[i] = el;
+            }}
+            position={[f.x, f.y, f.z]}
+          >
+            <mesh castShadow>
+              <boxGeometry args={[f.w, f.h, f.d]} />
+              {material}
+            </mesh>
+            <DrawerBox w={f.w} h={f.h} boxD={boxD} frontD={f.d} />
+          </group>
+        );
+      })}
+    </>
+  );
+}
+
+// Hit-target invizibil per zona: hover → tenta, click → selecteaza/deschide.
 function ZoneHotspot({
   box,
   active,
@@ -135,25 +293,52 @@ function ZoneHotspot({
       <meshBasicMaterial
         color={HIGHLIGHT_COLOR}
         transparent
-        opacity={active ? 0.28 : hovered ? 0.16 : 0}
+        opacity={active ? 0.22 : hovered ? 0.13 : 0}
         depthWrite={false}
       />
     </mesh>
   );
 }
 
-function PieceScene({ kind, config, activeZone, onZoneClick }: PieceCanvasProps) {
-  const panels = useMemo(() => buildPanels(config, kind), [config, kind]);
+const FRONT_ROLES = new Set(['DRAWER_FRONT', 'DOOR_FRONT', 'TILT_FRONT']);
+
+function PieceScene({ kind, config, activeZone, openZones, onZoneClick }: PieceCanvasProps) {
+  const { statics, frontZones } = useMemo(() => {
+    const all = buildPanels(config, kind);
+    const staticPanels: Panel3d[] = [];
+    const byZone = new Map<string, Panel3d[]>();
+    for (const p of all) {
+      if (FRONT_ROLES.has(p.role) && p.col !== undefined && p.zone !== undefined) {
+        const key = zoneKey(p.col, p.zone);
+        const list = byZone.get(key);
+        if (list) list.push(p);
+        else byZone.set(key, [p]);
+      } else {
+        staticPanels.push(p);
+      }
+    }
+    return { statics: staticPanels, frontZones: [...byZone.entries()] };
+  }, [config, kind]);
   const zones = useMemo(() => buildZoneBoxes(config, kind), [config, kind]);
+
   return (
     <group>
-      {panels.map((p, i) => (
+      {statics.map((p, i) => (
         <PanelMesh key={i} panel={p} finish={config.finish} />
+      ))}
+      {frontZones.map(([key, fronts]) => (
+        <AnimatedFronts
+          key={key}
+          fronts={fronts}
+          open={openZones?.has(key) ?? false}
+          depthM={config.depthM}
+          finish={config.finish}
+        />
       ))}
       {onZoneClick &&
         zones.map((b) => (
           <ZoneHotspot
-            key={`${b.col}:${b.zone}`}
+            key={zoneKey(b.col, b.zone)}
             box={b}
             active={activeZone?.col === b.col && activeZone?.zone === b.zone}
             onClick={onZoneClick}

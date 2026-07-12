@@ -9,6 +9,7 @@ import {
   PIECE3D_FINISHES,
   PIECE3D_RULES,
   ZONE_COUNT_MAX,
+  zoneCountRequired,
   type Piece3dKind,
   type Piece3dZone,
   type Piece3dZoneType,
@@ -22,7 +23,7 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { FINISH_SPECS } from './finishes';
-import { PieceCanvas, type SnapshotFn, type ZoneRef } from './piece-canvas';
+import { PieceCanvas, zoneKey, type SnapshotFn, type ZoneRef } from './piece-canvas';
 
 // Step-ul configurator-3d (R2/R3): model 3D live + controale directe.
 // D-3D-2 (aprobat): 3D si "campurile clasice" COEXISTA ca doua moduri de UI
@@ -157,6 +158,8 @@ export default function Configurator3dStepUI({
   const [webgl] = useState(() => hasWebGl());
   const [mode, setMode] = useState<'3d' | 'fields'>(webgl ? '3d' : 'fields');
   const [activeZone, setActiveZone] = useState<ZoneRef | null>(null);
+  // zonele cu usa/sertar deschise in scena ("col:zone")
+  const [openZones, setOpenZones] = useState<Set<string>>(new Set());
   const snapshotFn = useRef<SnapshotFn | null>(null);
 
   const config = isPieceConfig3d(value) ? value : null;
@@ -197,6 +200,7 @@ export default function Configurator3dStepUI({
     );
     apply({ ...config, columns });
     setActiveZone(null);
+    setOpenZones(new Set());
   };
 
   const updateZone = (ref: ZoneRef, patch: Partial<Piece3dZone>) => {
@@ -213,8 +217,16 @@ export default function Configurator3dStepUI({
   };
 
   const setZoneType = (ref: ZoneRef, type: Piece3dZoneType) => {
-    const max = ZONE_COUNT_MAX[type];
-    updateZone(ref, { type, count: max === undefined ? undefined : DEFAULT_COUNT[type] ?? 1 });
+    // count doar unde e obligatoriu; usa porneste FARA polite interioare
+    updateZone(ref, { type, count: zoneCountRequired(type) ? DEFAULT_COUNT[type] ?? 1 : undefined });
+    // zona care nu mai are fronturi nu poate ramane "deschisa"
+    if (type === 'OPEN' || type === 'SHELVES' || type === 'HANGING') {
+      setOpenZones((prev) => {
+        const next = new Set(prev);
+        next.delete(zoneKey(ref.col, ref.zone));
+        return next;
+      });
+    }
   };
 
   const addZone = (col: number) => {
@@ -233,6 +245,7 @@ export default function Configurator3dStepUI({
     );
     apply({ ...config, columns });
     setActiveZone(null);
+    setOpenZones(new Set());
   };
 
   const activeZoneData = validActiveZone
@@ -276,7 +289,7 @@ export default function Configurator3dStepUI({
           </button>
         ))}
       </div>
-      {activeMax !== undefined && (
+      {activeMax !== undefined && zoneCountRequired(activeZoneData.type) && (
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground">{t('config3d.countLabel')}</span>
           <Stepper
@@ -288,6 +301,23 @@ export default function Configurator3dStepUI({
             }
             canDec={(activeZoneData.count ?? 1) > 1}
             canInc={(activeZoneData.count ?? 1) < activeMax}
+            decLabel={t('config3d.fewer')}
+            incLabel={t('config3d.more')}
+          />
+        </div>
+      )}
+      {/* usa poate avea polite interioare (0 = usa goala) — se vad cand o deschizi */}
+      {activeMax !== undefined && activeZoneData.type === 'DOOR' && (
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground">{t('config3d.interiorShelves')}</span>
+          <Stepper
+            value={activeZoneData.count ?? 0}
+            onDelta={(d) => {
+              const next = Math.max(0, Math.min(activeMax, (activeZoneData.count ?? 0) + d));
+              updateZone(validActiveZone, { count: next === 0 ? undefined : next });
+            }}
+            canDec={(activeZoneData.count ?? 0) > 0}
+            canInc={(activeZoneData.count ?? 0) < activeMax}
             decLabel={t('config3d.fewer')}
             incLabel={t('config3d.more')}
           />
@@ -414,7 +444,7 @@ export default function Configurator3dStepUI({
                       ))}
                     </Select>
                   </div>
-                  {max !== undefined && (
+                  {max !== undefined && zoneCountRequired(zone.type) && (
                     <Input
                       type="number"
                       min={1}
@@ -426,6 +456,21 @@ export default function Configurator3dStepUI({
                           { count: Math.max(1, Math.min(max, Number(e.target.value) || 1)) },
                         )
                       }
+                      className="w-16 text-right"
+                    />
+                  )}
+                  {max !== undefined && zone.type === 'DOOR' && (
+                    <Input
+                      type="number"
+                      min={0}
+                      max={max}
+                      title={t('config3d.interiorShelves')}
+                      aria-label={t('config3d.interiorShelves')}
+                      value={zone.count ?? 0}
+                      onChange={(e) => {
+                        const v = Math.max(0, Math.min(max, Number(e.target.value) || 0));
+                        updateZone({ col: ci, zone: zi }, { count: v === 0 ? undefined : v });
+                      }}
                       className="w-16 text-right"
                     />
                   )}
@@ -488,15 +533,20 @@ export default function Configurator3dStepUI({
               kind={piece}
               config={config}
               activeZone={validActiveZone}
+              openZones={openZones}
               onZoneClick={(ref) => {
-                // click pe zona: o selecteaza; click pe zona deja activa cicleaza tipul
-                if (validActiveZone && validActiveZone.col === ref.col && validActiveZone.zone === ref.zone) {
-                  const current = config.columns[ref.col].zones[ref.zone];
-                  const allowed = rules.zoneTypes;
-                  const next = allowed[(allowed.indexOf(current.type) + 1) % allowed.length];
-                  setZoneType(ref, next);
-                } else {
-                  setActiveZone(ref);
+                // click pe zona: o selecteaza; daca are usa/sertare, le deschide
+                // sau le inchide (NU mai cicleaza tipul — tipul se alege din bara)
+                setActiveZone(ref);
+                const zone = config.columns[ref.col]?.zones[ref.zone];
+                if (zone && (zone.type === 'DOOR' || zone.type === 'DRAWERS' || zone.type === 'TILT_OUT')) {
+                  setOpenZones((prev) => {
+                    const key = zoneKey(ref.col, ref.zone);
+                    const next = new Set(prev);
+                    if (next.has(key)) next.delete(key);
+                    else next.add(key);
+                    return next;
+                  });
                 }
               }}
               onSnapshotReady={(fn) => {

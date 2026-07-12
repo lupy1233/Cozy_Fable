@@ -31,7 +31,10 @@ export type Panel3dRole =
   | 'DOOR_FRONT'
   | 'TILT_FRONT'
   | 'ROD'
-  | 'DESK_TOP';
+  | 'DESK_TOP'
+  // fundal intunecat in spatele fronturilor: rostul dintre fronturi (luftul)
+  // se citeste ca linie inchisa, stil Tylko
+  | 'FRONT_BACKDROP';
 
 export interface Panel3d {
   role: Panel3dRole;
@@ -46,6 +49,8 @@ export interface Panel3d {
   // pentru fronturi/polite: zona din care fac parte (highlight in UI)
   col?: number;
   zone?: number;
+  // DOOR_FRONT: latura balamalei — in jurul ei se roteste usa la deschidere
+  hinge?: 'L' | 'R';
 }
 
 // Cutia interioara a unei zone — hit-target pentru click/tap in 3D (R2).
@@ -113,7 +118,14 @@ function zonePanels(
       });
     }
 
-    const front = (role: Panel3dRole, y: number, h: number, x = cx, w?: number) =>
+    const front = (
+      role: Panel3dRole,
+      y: number,
+      h: number,
+      x = cx,
+      w?: number,
+      hinge?: 'L' | 'R',
+    ) =>
       panels.push({
         role,
         x,
@@ -124,44 +136,67 @@ function zonePanels(
         d: T,
         col: colIndex,
         zone: j,
+        ...(hinge ? { hinge } : {}),
       });
 
-    switch (zone.type) {
-      case 'SHELVES': {
-        const count = zone.count ?? 1;
-        for (let s = 1; s <= count; s++) {
-          panels.push({
-            role: 'SHELF',
-            x: cx,
-            y: bottom + (s * zoneH) / (count + 1),
-            z: BACK_T / 2,
-            w: layout.width,
-            h: T,
-            d: innerD - 0.01,
-            col: colIndex,
-            zone: j,
-          });
-        }
-        break;
+    // fundal intunecat in spatele fronturilor — luftul se citeste ca rost
+    const backdrop = () =>
+      panels.push({
+        role: 'FRONT_BACKDROP',
+        x: cx,
+        y: (top + bottom) / 2,
+        z: D / 2 - T - 0.004,
+        w: layout.width,
+        h: zoneH,
+        d: 0.002,
+        col: colIndex,
+        zone: j,
+      });
+
+    // polite orizontale distribuite egal in zona (si in spatele usilor)
+    const shelves = (count: number) => {
+      for (let s = 1; s <= count; s++) {
+        panels.push({
+          role: 'SHELF',
+          x: cx,
+          y: bottom + (s * zoneH) / (count + 1),
+          z: BACK_T / 2,
+          w: layout.width,
+          h: T,
+          d: innerD - 0.01,
+          col: colIndex,
+          zone: j,
+        });
       }
+    };
+
+    switch (zone.type) {
+      case 'SHELVES':
+        shelves(zone.count ?? 1);
+        break;
       case 'DRAWERS':
       case 'TILT_OUT': {
         const count = zone.count ?? 1;
         const role = zone.type === 'DRAWERS' ? 'DRAWER_FRONT' : 'TILT_FRONT';
         const each = zoneH / count;
+        backdrop();
         for (let s = 0; s < count; s++) {
           front(role, bottom + (s + 0.5) * each, each - 2 * FRONT_GAP);
         }
         break;
       }
       case 'DOOR': {
-        // usa dubla peste ~65cm — acelasi prag ca pieceConfigTotals
+        // politele interioare din spatele usii (count optional la DOOR)
+        if (zone.count) shelves(zone.count);
+        // usa dubla peste ~65cm — acelasi prag ca pieceConfigTotals;
+        // balamaua sta pe muchia exterioara, usa se deschide spre privitor
         if (layout.width > 0.65) {
           const leafW = (layout.width - 3 * FRONT_GAP) / 2;
-          front('DOOR_FRONT', (top + bottom) / 2, zoneH - 2 * FRONT_GAP, cx - leafW / 2 - FRONT_GAP / 2, leafW);
-          front('DOOR_FRONT', (top + bottom) / 2, zoneH - 2 * FRONT_GAP, cx + leafW / 2 + FRONT_GAP / 2, leafW);
+          const mid = (top + bottom) / 2;
+          front('DOOR_FRONT', mid, zoneH - 2 * FRONT_GAP, cx - leafW / 2 - FRONT_GAP / 2, leafW, 'L');
+          front('DOOR_FRONT', mid, zoneH - 2 * FRONT_GAP, cx + leafW / 2 + FRONT_GAP / 2, leafW, 'R');
         } else {
-          front('DOOR_FRONT', (top + bottom) / 2, zoneH - 2 * FRONT_GAP);
+          front('DOOR_FRONT', (top + bottom) / 2, zoneH - 2 * FRONT_GAP, cx, undefined, cx < 0 ? 'L' : 'R');
         }
         break;
       }

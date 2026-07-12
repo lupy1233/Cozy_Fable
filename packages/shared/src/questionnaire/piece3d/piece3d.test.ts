@@ -66,7 +66,7 @@ describe('pieceConfig3dSchema', () => {
     expect(pieceConfig3dSchema('BOOKCASE').safeParse(config).success).toBe(false);
   });
 
-  it('cere count la SHELVES/DRAWERS si il interzice la OPEN/DOOR', () => {
+  it('cere count la SHELVES/DRAWERS si il interzice la OPEN', () => {
     const noCount = bookcaseConfig();
     delete noCount.columns[0].zones[0].count;
     expect(pieceConfig3dSchema('BOOKCASE').safeParse(noCount).success).toBe(false);
@@ -74,6 +74,19 @@ describe('pieceConfig3dSchema', () => {
     const openWithCount = bookcaseConfig();
     openWithCount.columns[1].zones[0] = { type: 'OPEN', count: 2 };
     expect(pieceConfig3dSchema('BOOKCASE').safeParse(openWithCount).success).toBe(false);
+  });
+
+  it('DOOR accepta count OPTIONAL = politele interioare (max 8)', () => {
+    const plain = bookcaseConfig();
+    expect(pieceConfig3dSchema('BOOKCASE').safeParse(plain).success).toBe(true);
+
+    const withShelves = bookcaseConfig();
+    withShelves.columns[1].zones[1] = { type: 'DOOR', count: 3 };
+    expect(pieceConfig3dSchema('BOOKCASE').safeParse(withShelves).success).toBe(true);
+
+    const tooMany = bookcaseConfig();
+    tooMany.columns[1].zones[1] = { type: 'DOOR', count: 9 };
+    expect(pieceConfig3dSchema('BOOKCASE').safeParse(tooMany).success).toBe(false);
   });
 
   it('respinge coloane care rezulta in latimi nerealiste', () => {
@@ -160,6 +173,30 @@ describe('buildPanels', () => {
       expect(panels.length).toBeGreaterThan(3);
       expect(panelsWithinBounds(config, panels), kind).toBe(true);
     }
+  });
+
+  it('usa cu polite interioare: SHELF-uri in zona usii + balamale pe fronturi', () => {
+    const config = bookcaseConfig();
+    config.columns[1].zones[1] = { type: 'DOOR', count: 2 };
+    const panels = buildPanels(config, 'BOOKCASE');
+    // 3 polite in zona SHELVES + 2 interioare in spatele usii
+    expect(panels.filter((p) => p.role === 'SHELF').length).toBe(5);
+    const doors = panels.filter((p) => p.role === 'DOOR_FRONT');
+    // coloana ~77cm → usa dubla, balamale stanga + dreapta
+    expect(doors.map((d) => d.hinge).sort()).toEqual(['L', 'R']);
+  });
+
+  it('sertarele primesc fundal intunecat pentru rosturi (FRONT_BACKDROP)', () => {
+    const panels = buildPanels(bookcaseConfig(), 'BOOKCASE');
+    const backdrops = panels.filter((p) => p.role === 'FRONT_BACKDROP');
+    expect(backdrops.length).toBe(1);
+    expect(backdrops[0].col).toBe(0);
+  });
+
+  it('politele din spatele usilor intra in totalul de polite', () => {
+    const config = bookcaseConfig();
+    config.columns[1].zones[1] = { type: 'DOOR', count: 2 };
+    expect(pieceConfigTotals(config).shelves).toBe(5);
   });
 
   it('dulapul cu HANGING primeste bara; biroul primeste blat si casetiera', () => {

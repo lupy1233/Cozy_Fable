@@ -1194,6 +1194,12 @@
       "islandDepth": "D",
       "caption": "Schita se actualizeaza pe masura ce completezi — literele corespund campurilor de mai jos."
     },
+    "resume": {
+      "title": "Ai o cerere începută",
+      "description": "Am păstrat tot ce ai completat până acum. Vrei să continui de unde ai rămas sau să începi o cerere nouă? Dacă începi una nouă, progresul de până acum se pierde.",
+      "continue": "Continuă de unde am rămas",
+      "startFresh": "Începe o cerere nouă"
+    },
     "config3d": {
       "mode3d": "Configurează în 3D",
       "modeFields": "Câmpuri clasice",
@@ -1204,7 +1210,8 @@
       "pedestals": "Casetiere",
       "finish": "Finisaj (vizual)",
       "reset": "De la capăt",
-      "hint": "Rotește modelul trăgând de el. Dă click pe o zonă ca să o selectezi, apoi încă un click ca să îi schimbi tipul.",
+      "hint": "Rotește modelul trăgând de el. Dă click pe o zonă ca să o selectezi — ușile și sertarele se deschid ca să vezi interiorul; tipul zonei îl schimbi din bara de mai jos.",
+      "interiorShelves": "Polițe interioare",
       "zoneToolbarTitle": "Coloana {column} · zona {zone}",
       "columnLabel": "Coloana {n}",
       "addZone": "Adaugă zonă",

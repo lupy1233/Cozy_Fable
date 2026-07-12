@@ -35,15 +35,30 @@ export const PIECE3D_FINISHES = ['ALB', 'STEJAR', 'NUC', 'GRI', 'VERDE_SALVIE'] 
 export type Piece3dFinish = (typeof PIECE3D_FINISHES)[number];
 
 // Zonele cu numar reglabil de elemente si plafonul fiecareia.
+// La DOOR, count = politele INTERIOARE din spatele usii (optional, poate lipsi).
 export const ZONE_COUNT_MAX: Partial<Record<Piece3dZoneType, number>> = {
   SHELVES: 8,
   DRAWERS: 6,
   TILT_OUT: 4,
+  DOOR: 8,
 };
+
+// Tipurile la care count e OBLIGATORIU (cate elemente are zona); la DOOR e
+// optional (usa fara polite interioare e valida).
+export const ZONE_COUNT_REQUIRED: readonly Piece3dZoneType[] = [
+  'SHELVES',
+  'DRAWERS',
+  'TILT_OUT',
+];
+
+export function zoneCountRequired(type: Piece3dZoneType): boolean {
+  return ZONE_COUNT_REQUIRED.includes(type);
+}
 
 export interface Piece3dZone {
   type: Piece3dZoneType;
-  // doar pentru SHELVES/DRAWERS/TILT_OUT: numarul de polite/sertare/fronturi
+  // SHELVES/DRAWERS/TILT_OUT: numarul de polite/sertare/fronturi (obligatoriu);
+  // DOOR: numarul de polite interioare din spatele usii (optional)
   count?: number;
 }
 
@@ -175,7 +190,9 @@ export const PIECE3D_RULES: Record<Piece3dKind, Piece3dRules> = {
 // Grosimi si limite geometrice partajate de model + validare.
 export const PANEL_T = 0.018;
 export const BACK_T = 0.008;
-export const FRONT_GAP = 0.002;
+// luft vizibil intre fronturi (stil Tylko): 4mm la margini → ~8mm intre
+// doua fronturi vecine; rostul se citeste pe fundalul intunecat din spate
+export const FRONT_GAP = 0.004;
 export const PLINTH_H = 0.06;
 // latimea casetierei de birou (coloanele DESK au latime fixa, nu impartire egala)
 export const DESK_PEDESTAL_W = 0.42;
@@ -241,6 +258,8 @@ export function normalizePieceConfig(kind: Piece3dKind, config: PieceConfig3d): 
       const type = rules.zoneTypes.includes(z.type) ? z.type : rules.zoneTypes[0];
       const max = ZONE_COUNT_MAX[type];
       if (max === undefined) return { type };
+      // count optional (DOOR): lipsa sau 0 inseamna usa fara polite interioare
+      if (!zoneCountRequired(type) && (z.count === undefined || z.count < 1)) return { type };
       const count = Math.max(1, Math.min(max, Math.round(z.count ?? 1)));
       return { type, count };
     });
@@ -274,10 +293,15 @@ export function pieceConfig3dSchema(kind: Piece3dKind): z.ZodType<PieceConfig3d>
       }
       const max = ZONE_COUNT_MAX[zone.type];
       if (max === undefined) {
+        // OPEN/HANGING nu au elemente numarabile
         if (zone.count !== undefined) {
           ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'validation.answerInvalid' });
         }
-      } else if (zone.count === undefined || zone.count > max) {
+      } else if (zone.count === undefined) {
+        if (zoneCountRequired(zone.type)) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'validation.answerInvalid' });
+        }
+      } else if (zone.count > max) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'validation.answerInvalid' });
       }
     });
@@ -346,8 +370,10 @@ export function pieceConfigTotals(config: PieceConfig3d): Piece3dTotals {
           totals.drawers += zone.count ?? 1;
           break;
         case 'DOOR':
-          // usa dubla peste ~65cm de coloana (acelasi prag ca in model.ts)
+          // usa dubla peste ~65cm de coloana (acelasi prag ca in model.ts);
+          // politele interioare din spatele usii intra in totalul de polite
           totals.doors += columnWidth(config.widthM, config.columns.length) > 0.65 ? 2 : 1;
+          totals.shelves += zone.count ?? 0;
           break;
         case 'HANGING':
           totals.hanging += 1;
