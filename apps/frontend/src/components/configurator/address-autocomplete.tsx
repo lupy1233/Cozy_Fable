@@ -42,6 +42,24 @@ export interface AddressParts {
   city: string;
 }
 
+type AddressComponent = { long_name: string; types: string[] };
+
+// Google intoarce "Județul Ilfov" / "Comuna Chiajna" / "Oraș Voluntari" —
+// pastram doar numele, consistent cu "București" (care vine fara prefix).
+const cleanCounty = (raw: string) => raw.replace(/^jude[țt]ul\s+/i, '').trim();
+const cleanCity = (raw: string) => raw.replace(/^(ora[șs]|comuna|municipiul|municipiu)\s+/i, '').trim();
+
+function parseComponents(comps: AddressComponent[], fallbackText: string): AddressParts {
+  const get = (type: string) => comps.find((c) => c.types.includes(type))?.long_name ?? '';
+  const street = [get('route'), get('street_number')].filter(Boolean).join(' ');
+  return {
+    addressText: street || fallbackText,
+    // Bucuresti nu are judet in raspuns → folosim localitatea
+    county: cleanCounty(get('administrative_area_level_1') || get('locality')),
+    city: cleanCity(get('locality') || get('administrative_area_level_2')),
+  };
+}
+
 export function AddressAutocomplete({
   defaultValue,
   error,
@@ -63,8 +81,11 @@ export function AddressAutocomplete({
   const attached = useRef(false);
   // instanta Places, ca sa putem schimba restrictia de tara fara reatasare
   const autocompleteRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
+  // tara curenta, citita din listener (closure-ul e atasat o singura data)
+  const countryRef = useRef(country);
 
   useEffect(() => {
+    countryRef.current = country;
     if (!PLACES_KEY || !attached.current || !autocompleteRef.current) return;
     autocompleteRef.current.setComponentRestrictions({ country: country.toLowerCase() });
   }, [country]);
@@ -84,16 +105,31 @@ export function AddressAutocomplete({
         autocompleteRef.current = autocomplete;
         autocomplete.addListener('place_changed', () => {
           const place = autocomplete.getPlace();
-          const comps: { long_name: string; types: string[] }[] = place?.address_components ?? [];
-          const get = (type: string) => comps.find((c) => c.types.includes(type))?.long_name ?? '';
-          const street = [get('route'), get('street_number')].filter(Boolean).join(' ');
-          const parts: AddressParts = {
-            addressText: street || place?.formatted_address || inputRef.current?.value || '',
-            // Bucuresti nu are judet in raspuns → folosim localitatea
-            county: get('administrative_area_level_1') || get('locality'),
-            city: get('locality') || get('administrative_area_level_2'),
-          };
-          onResolved(parts);
+          const typed = inputRef.current?.value ?? '';
+          const comps: AddressComponent[] = place?.address_components ?? [];
+          if (comps.length > 0) {
+            onResolved(parseComponents(comps, place?.formatted_address || typed));
+            return;
+          }
+          // Enter apasat fara o sugestie evidentiata: place-ul vine doar cu
+          // "name", fara componente → judetul/orasul ar ramane goale si pasul
+          // s-ar bloca la validare (bug PO r3, raportat pe adrese din Ilfov).
+          // Geocodam textul tastat si completam campurile din primul rezultat.
+          const geocoder = new window.google.maps.Geocoder();
+          geocoder.geocode(
+            {
+              address: typed,
+              componentRestrictions: { country: countryRef.current.toLowerCase() },
+            },
+            (results: { address_components?: AddressComponent[]; formatted_address?: string }[] | null, status: string) => {
+              const first = results?.[0];
+              if (status === 'OK' && first?.address_components?.length) {
+                onResolved(parseComponents(first.address_components, first.formatted_address || typed));
+              } else {
+                onResolved({ addressText: typed, county: '', city: '' });
+              }
+            },
+          );
         });
       })
       .catch(() => {

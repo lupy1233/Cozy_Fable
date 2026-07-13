@@ -5,6 +5,7 @@ import {
   canRemoveColumn,
   defaultPieceConfig,
   DRAWERS_MAX_TOP,
+  drawersCountFor,
   GEOM_EPS,
   HANGING_MIN_DEPTH,
   HANGING_MIN_ZONE_H,
@@ -14,9 +15,13 @@ import {
   PIECE3D_FINISHES,
   PIECE3D_RULES,
   resolvePieceLayout,
+  shelvesCountFor,
+  SLIDING_COLUMNS_MAX,
+  SLIDING_COLUMNS_MIN,
   zoneCountMax,
   type Piece3dColumn,
   type Piece3dKind,
+  type Piece3dSlideDirection,
   type Piece3dZone,
   type Piece3dZoneFill,
   type Piece3dZoneType,
@@ -30,7 +35,7 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { FINISH_SPECS } from './finishes';
-import { PieceCanvas, zoneKey, type SnapshotFn, type ZoneRef } from './piece-canvas';
+import { PieceCanvas, slideKey, zoneKey, type SnapshotFn, type ZoneRef } from './piece-canvas';
 
 // Step-ul configurator-3d (R2/R3): model 3D live + controale directe.
 // D-3D-2 (aprobat): 3D si "campurile clasice" COEXISTA ca doua moduri de UI
@@ -151,6 +156,42 @@ function Stepper({
       >
         <Plus className="h-4 w-4" />
       </button>
+    </div>
+  );
+}
+
+// Pereche/grup de optiuni exclusive stil "pill" — acelasi limbaj vizual ca
+// pilulele de tip de zona (T1: maner/push, soclu/picioare, batante/glisante).
+function TogglePills({
+  label,
+  options,
+  value,
+  onSelect,
+}: {
+  label: string;
+  options: { value: string; label: string }[];
+  value: string;
+  onSelect: (value: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="mr-1 text-xs text-muted-foreground">{label}</span>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          aria-pressed={value === option.value}
+          onClick={() => onSelect(option.value)}
+          className={
+            'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ' +
+            (value === option.value
+              ? 'border-walnut bg-walnut text-white'
+              : 'border-border-2 bg-surface hover:border-walnut/50')
+          }
+        >
+          {option.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -311,14 +352,14 @@ export default function Configurator3dStepUI({
           : undefined,
       });
     }
-    // zona care nu mai are fronturi nu poate ramane "deschisa"
-    if (type === 'OPEN') {
-      setOpenZones((prev) => {
-        const next = new Set(prev);
-        next.delete(zoneKey(ref.col, ref.zone));
-        return next;
-      });
-    }
+    // starea "deschis" nu supravietuieste schimbarii tipului de fronturi:
+    // o usa lasata deschisa devenita sertar ar ramane blocata pe unghiul de usa
+    setOpenZones((prev) => {
+      if (!prev.has(zoneKey(ref.col, ref.zone))) return prev;
+      const next = new Set(prev);
+      next.delete(zoneKey(ref.col, ref.zone));
+      return next;
+    });
   };
 
   const setZoneFill = (ref: ZoneRef, fill: Piece3dZoneFill | undefined) => {
@@ -361,20 +402,32 @@ export default function Configurator3dStepUI({
   const activeResolved =
     validActiveZone && layout ? layout[validActiveZone.col]?.zones[validActiveZone.zone] : null;
   const activeColWidth = validActiveZone && layout ? layout[validActiveZone.col]?.width : null;
-  // regulile geometrice (R5.3): sertare doar sub 160cm; bara cere 55cm
-  // adancime si o zona de 80cm inaltime
-  const drawersAllowed = activeResolved ? activeResolved.top <= DRAWERS_MAX_TOP + GEOM_EPS : true;
+  // usile glisante (T1): activ doar pe dulap, la 2-3 coloane
+  const sliding = config.doorMode === 'SLIDING';
+  // regulile geometrice (R5.3 + T1): sertare doar sub 160cm SI cu minim
+  // 15cm/front; bara cere 55cm adancime si o zona de 80cm inaltime; politele
+  // cer minim 10cm de spatiu intre ele
+  const drawersAllowed = activeResolved
+    ? activeResolved.top <= DRAWERS_MAX_TOP + GEOM_EPS &&
+      drawersCountFor(activeResolved.height) >= 1
+    : true;
   const hangingAllowed = activeResolved
     ? config.depthM >= HANGING_MIN_DEPTH - GEOM_EPS &&
       activeResolved.height >= HANGING_MIN_ZONE_H - GEOM_EPS
     : false;
-  // barele suprapuse sunt limitate de inaltimea zonei (80cm/bara)
+  const shelvesAllowed = activeResolved ? shelvesCountFor(activeResolved.height) >= 1 : false;
+  // plafoanele de count urmeaza geometria rezolvata: bare (80cm/bara),
+  // sertare (15cm/front), polite (pas de 10cm)
   const activeCountMax =
-    activeZoneData && activeMax !== undefined
-      ? activeZoneData.fill === 'HANGING' && activeResolved
+    activeZoneData && activeMax !== undefined && activeResolved
+      ? activeZoneData.fill === 'HANGING'
         ? Math.max(1, Math.min(activeMax, hangingCountFor(activeResolved.height)))
-        : activeMax
-      : undefined;
+        : activeZoneData.type === 'DRAWERS'
+          ? Math.max(1, Math.min(activeMax, drawersCountFor(activeResolved.height)))
+          : activeZoneData.fill === 'SHELVES'
+            ? Math.max(1, Math.min(activeMax, shelvesCountFor(activeResolved.height)))
+            : activeMax
+      : activeMax;
 
   const zoneToolbar = validActiveZone && activeZoneData && activeResolved && (
     <div className="flex flex-col gap-2 rounded-xl border border-walnut/40 bg-walnut-soft/60 p-3">
@@ -395,12 +448,14 @@ export default function Configurator3dStepUI({
         </button>
       </div>
       {/* optiunile indisponibile geometric se ASCUND, nu se dezactiveaza
-          (feedback PO 2026-07-13); cea selectata ramane mereu vizibila */}
+          (feedback PO 2026-07-13); cea selectata ramane mereu vizibila;
+          T1: usa per zona nu exista in spatele usilor glisante */}
       <div className="flex flex-wrap gap-1.5">
         {rules.zoneTypes
           .filter(
             (type) => !(type === 'DRAWERS' && !drawersAllowed && activeZoneData.type !== type),
           )
+          .filter((type) => !(type === 'DOOR' && sliding))
           .map((type) => (
             <button
               key={type}
@@ -424,7 +479,12 @@ export default function Configurator3dStepUI({
           <span className="mr-1 text-xs text-muted-foreground">{t('config3d.fillLabel')}</span>
           {FILL_OPTIONS.filter(
             (fill) => !(fill === 'HANGING' && !hangingAllowed && activeZoneData.fill !== 'HANGING'),
-          ).map((fill) => (
+          )
+            .filter(
+              (fill) =>
+                !(fill === 'SHELVES' && !shelvesAllowed && activeZoneData.fill !== 'SHELVES'),
+            )
+            .map((fill) => (
             <button
               key={fillKey(fill)}
               type="button"
@@ -441,6 +501,21 @@ export default function Configurator3dStepUI({
             </button>
           ))}
         </div>
+      )}
+      {/* T1: directia usii glisante a coloanei — doar unde exista vecine pe
+          ambele parti (capetele gliseaza mereu spre interior) */}
+      {sliding && validActiveZone.col > 0 && validActiveZone.col < config.columns.length - 1 && (
+        <TogglePills
+          label={t('config3d.slideDirection')}
+          options={(['L', 'R'] as const).map((dir) => ({
+            value: dir,
+            label: t(`config3d.slideDirections.${dir}`),
+          }))}
+          value={config.columns[validActiveZone.col].slideTo ?? 'L'}
+          onSelect={(dir) =>
+            updateColumn(validActiveZone.col, { slideTo: dir as Piece3dSlideDirection })
+          }
+        />
       )}
       {activeCountMax !== undefined && (
         <div className="flex items-center gap-3">
@@ -559,8 +634,8 @@ export default function Configurator3dStepUI({
       )}
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium">{t('config3d.finish')}</span>
-        <div className="flex gap-1.5">
-          {PIECE3D_FINISHES.map((finish) => (
+        <div className="flex flex-wrap gap-1.5">
+          {PIECE3D_FINISHES.filter((finish) => finish !== 'CUSTOM').map((finish) => (
             <button
               key={finish}
               type="button"
@@ -576,6 +651,32 @@ export default function Configurator3dStepUI({
               style={{ backgroundColor: FINISH_SPECS[finish].body }}
             />
           ))}
+          {/* T1: orice culoare — swatch cu color picker nativ; alegerea seteaza
+              finisajul CUSTOM si pastreaza culoarea in config */}
+          <label
+            title={t('config3d.finishes.CUSTOM')}
+            className={
+              'relative h-7 w-7 cursor-pointer rounded-full border-2 transition-transform ' +
+              (config.finish === 'CUSTOM'
+                ? 'scale-110 border-walnut shadow-[0_0_0_2px_hsl(var(--walnut)/0.2)]'
+                : 'border-border-2 hover:scale-105')
+            }
+            style={{
+              background:
+                config.customColor ??
+                'conic-gradient(#e2662e, #d9b23c, #8a9c88, #42586c, #a26bb0, #e2662e)',
+            }}
+          >
+            <input
+              type="color"
+              value={config.customColor ?? '#b08d57'}
+              onChange={(e) =>
+                apply({ ...config, finish: 'CUSTOM', customColor: e.target.value })
+              }
+              aria-label={t('config3d.finishes.CUSTOM')}
+              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+            />
+          </label>
         </div>
       </div>
       <Button
@@ -586,6 +687,7 @@ export default function Configurator3dStepUI({
         onClick={() => {
           apply(defaultPieceConfig(piece));
           setActiveZone(null);
+          setOpenZones(new Set());
         }}
       >
         <RotateCcw className="mr-1 h-3.5 w-3.5" />
@@ -594,11 +696,61 @@ export default function Configurator3dStepUI({
     </div>
   );
 
+  // T1: optiunile de stil ale piesei — deschiderea fronturilor (toate
+  // piesele), soclu/picioare (comoda), usi batante/glisante (dulap)
+  const canSlide =
+    config.columns.length >= SLIDING_COLUMNS_MIN && config.columns.length <= SLIDING_COLUMNS_MAX;
+  const optionsControl = (
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+      <TogglePills
+        label={t('config3d.frontStyleLabel')}
+        options={(['PUSH', 'HANDLE'] as const).map((style) => ({
+          value: style,
+          label: t(`config3d.frontStyles.${style}`),
+        }))}
+        value={config.frontStyle ?? 'PUSH'}
+        onSelect={(style) =>
+          apply({ ...config, frontStyle: style as PieceConfig3d['frontStyle'] })
+        }
+      />
+      {rules.legsOption && (
+        <TogglePills
+          label={t('config3d.baseLabel')}
+          options={[
+            { value: 'PLINTH', label: t('config3d.basePlinth') },
+            { value: 'LEGS', label: t('config3d.baseLegs') },
+          ]}
+          value={config.legs ? 'LEGS' : 'PLINTH'}
+          onSelect={(base) => apply({ ...config, legs: base === 'LEGS' ? true : undefined })}
+        />
+      )}
+      {rules.slidingDoors && (sliding || canSlide) && (
+        <TogglePills
+          label={t('config3d.doorModeLabel')}
+          options={(['HINGED', 'SLIDING'] as const).map((mode) => ({
+            value: mode,
+            label: t(`config3d.doorModes.${mode}`),
+          }))}
+          value={sliding ? 'SLIDING' : 'HINGED'}
+          onSelect={(mode) => {
+            apply({ ...config, doorMode: mode === 'SLIDING' ? 'SLIDING' : undefined });
+            setOpenZones(new Set());
+          }}
+        />
+      )}
+      {/* la 1 sau 4+ coloane optiunea de glisare nu exista — explicam de ce */}
+      {rules.slidingDoors && !sliding && !canSlide && (
+        <p className="text-[11px] text-muted-foreground">{t('config3d.slidingNeeds')}</p>
+      )}
+    </div>
+  );
+
   // modul clasic: aceleasi date, editate prin campuri (fallback + preferinta)
   const fieldsMode = (
     <div className="flex flex-col gap-4">
       {dimensionControls}
       {columnsControl}
+      {optionsControl}
       <div className="grid gap-3 md:grid-cols-2">
         {config.columns.map((column, ci) => (
           <div key={ci} className="flex flex-col gap-2 rounded-lg border border-border-2 bg-surface-2 p-3">
@@ -633,21 +785,44 @@ export default function Configurator3dStepUI({
                 </button>
               </div>
             </div>
+            {/* T1: directia usii glisante — doar coloanele cu vecine pe ambele parti */}
+            {sliding && ci > 0 && ci < config.columns.length - 1 && (
+              <TogglePills
+                label={t('config3d.slideDirection')}
+                options={(['L', 'R'] as const).map((dir) => ({
+                  value: dir,
+                  label: t(`config3d.slideDirections.${dir}`),
+                }))}
+                value={column.slideTo ?? 'L'}
+                onSelect={(dir) =>
+                  updateColumn(ci, { slideTo: dir as Piece3dSlideDirection })
+                }
+              />
+            )}
             {column.zones.map((zone, zi) => {
               const resolved = layout?.[ci]?.zones[zi];
               const rawMax = zoneCountMax(zone);
-              // barele suprapuse sunt limitate de inaltimea zonei (80cm/bara)
+              // plafoane pe geometria rezolvata: bare (80cm/bara), sertare
+              // (15cm/front, T1), polite (pas de 10cm, T1)
               const max =
-                rawMax !== undefined && zone.fill === 'HANGING' && resolved
-                  ? Math.max(1, Math.min(rawMax, hangingCountFor(resolved.height)))
+                rawMax !== undefined && resolved
+                  ? zone.fill === 'HANGING'
+                    ? Math.max(1, Math.min(rawMax, hangingCountFor(resolved.height)))
+                    : zone.type === 'DRAWERS'
+                      ? Math.max(1, Math.min(rawMax, drawersCountFor(resolved.height)))
+                      : zone.fill === 'SHELVES'
+                        ? Math.max(1, Math.min(rawMax, shelvesCountFor(resolved.height)))
+                        : rawMax
                   : rawMax;
               const zoneDrawersOk = resolved
-                ? resolved.top <= DRAWERS_MAX_TOP + GEOM_EPS
+                ? resolved.top <= DRAWERS_MAX_TOP + GEOM_EPS &&
+                  drawersCountFor(resolved.height) >= 1
                 : true;
               const zoneHangingOk = resolved
                 ? config.depthM >= HANGING_MIN_DEPTH - GEOM_EPS &&
                   resolved.height >= HANGING_MIN_ZONE_H - GEOM_EPS
                 : false;
+              const zoneShelvesOk = resolved ? shelvesCountFor(resolved.height) >= 1 : false;
               return (
                 <div key={zi} className="flex flex-wrap items-center gap-2">
                   <div className="min-w-28 flex-1">
@@ -663,6 +838,7 @@ export default function Configurator3dStepUI({
                           (type) =>
                             !(type === 'DRAWERS' && !zoneDrawersOk && zone.type !== type),
                         )
+                        .filter((type) => !(type === 'DOOR' && sliding))
                         .map((type) => (
                           <option key={type} value={type}>
                             {t(`config3d.zoneTypes.${type}`)}
@@ -687,11 +863,16 @@ export default function Configurator3dStepUI({
                         {FILL_OPTIONS.filter(
                           (fill) =>
                             !(fill === 'HANGING' && !zoneHangingOk && zone.fill !== 'HANGING'),
-                        ).map((fill) => (
-                          <option key={fillKey(fill)} value={fillKey(fill)}>
-                            {t(`config3d.fills.${fillKey(fill)}`)}
-                          </option>
-                        ))}
+                        )
+                          .filter(
+                            (fill) =>
+                              !(fill === 'SHELVES' && !zoneShelvesOk && zone.fill !== 'SHELVES'),
+                          )
+                          .map((fill) => (
+                            <option key={fillKey(fill)} value={fillKey(fill)}>
+                              {t(`config3d.fills.${fillKey(fill)}`)}
+                            </option>
+                          ))}
                       </Select>
                     </div>
                   )}
@@ -793,6 +974,29 @@ export default function Configurator3dStepUI({
                 // sau le inchide (NU mai cicleaza tipul — tipul se alege din bara)
                 setActiveZone(ref);
                 const zone = config.columns[ref.col]?.zones[ref.zone];
+                if (sliding) {
+                  // T1: primul click gliseaza usa coloanei; cu usa deschisa,
+                  // click pe sertare le trage, click in alta parte o inchide
+                  setOpenZones((prev) => {
+                    const door = slideKey(ref.col);
+                    const next = new Set(prev);
+                    if (!next.has(door)) {
+                      next.add(door);
+                    } else if (zone?.type === 'DRAWERS') {
+                      const key = zoneKey(ref.col, ref.zone);
+                      if (next.has(key)) next.delete(key);
+                      else next.add(key);
+                    } else {
+                      // inchide usa si sertarele ramase deschise in coloana
+                      next.delete(door);
+                      for (const key of [...next]) {
+                        if (key.startsWith(`${ref.col}:`)) next.delete(key);
+                      }
+                    }
+                    return next;
+                  });
+                  return;
+                }
                 if (zone && (zone.type === 'DOOR' || zone.type === 'DRAWERS' || zone.type === 'TILT_OUT')) {
                   setOpenZones((prev) => {
                     const key = zoneKey(ref.col, ref.zone);
@@ -813,6 +1017,7 @@ export default function Configurator3dStepUI({
           {zoneToolbar}
           {dimensionControls}
           {columnsControl}
+          {optionsControl}
         </div>
       ) : (
         fieldsMode

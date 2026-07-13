@@ -118,7 +118,7 @@ function piece3dFlow(spec: Piece3dFlowSpec): RoomFlow {
           {
             name: item.name,
             material: (answers.material as Material) ?? 'PAL',
-            systems: item.systems,
+            systems: [...new Set([...item.systems, ...frontStyleSystems(config)])],
             description: derivedDescription(spec.kind, config, answers, item.extraDescription),
             quantity: item.quantity,
           },
@@ -131,6 +131,11 @@ function piece3dFlow(spec: Piece3dFlowSpec): RoomFlow {
 const openingSystems = (answers: AnswerMap): ItemSystem[] =>
   Array.isArray(answers.openingSystems) ? (answers.openingSystems as ItemSystem[]) : [];
 
+// T1: alegerea maner/push din configuratorul 3D intra in sistemele itemului
+// derivat (dedup cu openingSystems unde intrebarea separata exista).
+const frontStyleSystems = (config: PieceConfig3d | null): ItemSystem[] =>
+  config?.frontStyle === 'HANDLE' ? ['MANER'] : config?.frontStyle === 'PUSH' ? ['PUSH'] : [];
+
 export const pieceBookcaseFlowV3: RoomFlow = piece3dFlow({
   roomType: 'PIECE_BOOKCASE',
   kind: 'BOOKCASE',
@@ -142,8 +147,12 @@ export const pieceBookcaseFlowV3: RoomFlow = piece3dFlow({
   }),
 });
 
-// doorType (glisant/balamale) ramane intrebare separata — alege sistemul;
-// "pana in tavan" e implicat de inaltimea config-ului (≥2.5m), inclusiv scoring.
+// T1 (feedback PO 2026-07-13): alegerea glisant/batante s-a mutat IN
+// configuratorul 3D (config.doorMode, cu usi vizibile si directie de glisare).
+// Step-ul doorType devine ASCUNS + optional — ca snapshot3d: nu mai primeste
+// ecran, dar raspunsurile din drafturile/cererile vechi raman valide la
+// publish. Sistemul GLISANTE se deriva din config, cu fallback pe raspunsul
+// legacy; "pana in tavan" ramane implicat de inaltime (≥2.5m), inclusiv scoring.
 const WARDROBE_DOOR_SYSTEMS: Record<string, ItemSystem[]> = {
   SLIDING: ['GLISANTE'],
   HINGED: [],
@@ -156,6 +165,8 @@ export const pieceWardrobeFlowV3: RoomFlow = (() => {
     type: 'single-choice',
     titleKey: `${F}.doorType.title`,
     subtitleKey: `${F}.doorType.subtitle`,
+    optional: true,
+    hidden: true,
     options: ['SLIDING', 'HINGED'].map((value) => ({
       value,
       labelKey: `${F}.doorType.options.${value}.label`,
@@ -179,7 +190,10 @@ export const pieceWardrobeFlowV3: RoomFlow = (() => {
     derive: (config, answers) => ({
       name:
         config && config.heightM >= 2.5 ? 'Dulap pana in tavan (tip dressing)' : 'Dulap',
-      systems: WARDROBE_DOOR_SYSTEMS[answerString(answers, 'doorType', 'HINGED')] ?? [],
+      systems:
+        config?.doorMode === 'SLIDING'
+          ? ['GLISANTE']
+          : WARDROBE_DOOR_SYSTEMS[answerString(answers, 'doorType', 'HINGED')] ?? [],
       quantity: 1,
     }),
   });

@@ -1172,7 +1172,12 @@
       "subtitle": "Pick up to {max} photos of furniture made by our workshops — firms see exactly what you like.",
       "browse": "Browse the gallery",
       "dialogTitle": "Choose inspiration photos",
-      "selectedCount": "{count} of {max} selected"
+      "selectedCount": "{count} of {max} selected",
+      "tabGallery": "Gallery",
+      "tabBoards": "My collections",
+      "boardsEmpty": "You have no collections yet. Save photos in the Idea book and they will show up here.",
+      "boardCount": "{count, plural, one {# photo} other {# photos}}",
+      "backToBoards": "Collections"
     },
     "info": {
       "pros": "Pros",
@@ -1235,10 +1240,34 @@
       },
       "finishes": {
         "ALB": "White",
+        "CREM": "Cream",
         "STEJAR": "Oak",
         "NUC": "Walnut",
         "GRI": "Grey",
-        "VERDE_SALVIE": "Sage green"
+        "NEGRU": "Black",
+        "VERDE_SALVIE": "Sage green",
+        "ALBASTRU": "Blue",
+        "TERACOTA": "Terracotta",
+        "CUSTOM": "Custom colour"
+      },
+      "frontStyleLabel": "Front opening",
+      "frontStyles": {
+        "PUSH": "Push (no handle)",
+        "HANDLE": "With handle"
+      },
+      "baseLabel": "Base",
+      "basePlinth": "Plinth",
+      "baseLegs": "On legs",
+      "doorModeLabel": "Wardrobe doors",
+      "doorModes": {
+        "HINGED": "Hinged",
+        "SLIDING": "Sliding"
+      },
+      "slidingNeeds": "Sliding doors are available with 2–3 columns.",
+      "slideDirection": "Slide",
+      "slideDirections": {
+        "L": "To the left",
+        "R": "To the right"
       },
       "chips": {
         "size": "{w} × {h} × {d} cm",
@@ -1249,6 +1278,9 @@
         "hanging": "{count, plural, one {1 hanging rod} other {# hanging rods}}",
         "tiltOut": "{count, plural, one {1 tilt-out front} other {# tilt-out fronts}}",
         "open": "{count, plural, one {1 open zone} other {# open zones}}",
+        "sliding": "Sliding doors",
+        "legs": "On legs",
+        "handles": "Fronts with handles",
         "finish": "{finish} finish"
       },
       "snapshotAlt": "3D preview of the configured piece"

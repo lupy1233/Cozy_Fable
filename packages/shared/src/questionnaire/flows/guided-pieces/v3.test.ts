@@ -4,7 +4,7 @@ import {
   summarizeAnswers,
   validateRoomAnswers,
 } from '../../engine';
-import { defaultPieceConfig, type PieceConfig3d } from '../../piece3d';
+import { defaultPieceConfig, normalizePieceConfig, type PieceConfig3d } from '../../piece3d';
 import type { AnswerMap } from '../../types';
 import { CURRENT_FLOW_VERSION } from '../index';
 import { pieceBookcaseFlowV3, pieceNightstandFlowV3, pieceWardrobeFlowV3 } from './v3';
@@ -102,6 +102,22 @@ describe('deriveRoom pe v3', () => {
     });
     expect(derived.items[0].systems).toEqual(['GLISANTE']);
     expect(derived.items[0].name).toBe('Dulap pana in tavan (tip dressing)');
+  });
+
+  it('T1: glisant + maner din config3d, fara raspunsul doorType (step ascuns)', () => {
+    const config = normalizePieceConfig('WARDROBE', {
+      ...defaultPieceConfig('WARDROBE'),
+      doorMode: 'SLIDING',
+      frontStyle: 'HANDLE',
+    });
+    const answers: AnswerMap = { config3d: config, material: 'PAL' };
+    const derived = pieceWardrobeFlowV3.deriveRoom(answers);
+    expect(derived.items[0].systems).toContain('GLISANTE');
+    expect(derived.items[0].systems).toContain('MANER');
+    // publish complet fara doorType: step-ul e ascuns si optional acum
+    expect(
+      validateRoomAnswers('PIECE_WARDROBE', answers, { partial: false, version: 3 }).ok,
+    ).toBe(true);
   });
 
   it('noptierele pereche dubleaza cantitatea si metrii liniari', () => {

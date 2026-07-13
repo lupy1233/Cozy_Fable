@@ -36,8 +36,37 @@ export const PIECE3D_ZONE_FILLS = ['SHELVES', 'HANGING'] as const;
 export type Piece3dZoneFill = (typeof PIECE3D_ZONE_FILLS)[number];
 
 // Finisaje vizuale (culoare + rugozitate in frontend; fara texturi in MVP).
-export const PIECE3D_FINISHES = ['ALB', 'STEJAR', 'NUC', 'GRI', 'VERDE_SALVIE'] as const;
+// T1 (feedback PO 2026-07-13): paleta extinsa + CUSTOM = orice culoare hex
+// aleasa din color picker (stocata in `customColor`).
+export const PIECE3D_FINISHES = [
+  'ALB',
+  'CREM',
+  'STEJAR',
+  'NUC',
+  'GRI',
+  'NEGRU',
+  'VERDE_SALVIE',
+  'ALBASTRU',
+  'TERACOTA',
+  'CUSTOM',
+] as const;
 export type Piece3dFinish = (typeof PIECE3D_FINISHES)[number];
+
+// culoarea libera a finisajului CUSTOM — hex #rrggbb
+export const CUSTOM_COLOR_RE = /^#[0-9a-f]{6}$/i;
+
+// Deschiderea fronturilor (T1): push (implicit, fronturi plane ca azi) sau
+// maner vizibil in 3D (bara metalica pe sertare/usi).
+export const PIECE3D_FRONT_STYLES = ['PUSH', 'HANDLE'] as const;
+export type Piece3dFrontStyle = (typeof PIECE3D_FRONT_STYLES)[number];
+
+// Usile dulapului (T1): batante (fronturi per zona, ca azi) sau glisante —
+// cate o usa pe toata inaltimea per coloana, pe sine alternante.
+export const PIECE3D_DOOR_MODES = ['HINGED', 'SLIDING'] as const;
+export type Piece3dDoorMode = (typeof PIECE3D_DOOR_MODES)[number];
+
+// directia in care o usa glisanta se deschide (peste coloana vecina)
+export type Piece3dSlideDirection = 'L' | 'R';
 
 export const DRAWERS_COUNT_MAX = 6;
 export const SHELVES_COUNT_MAX = 8;
@@ -55,6 +84,33 @@ export const ZONE_H_MIN = 0.1;
 // toleranta comparatiilor geometrice (5mm) — partajata FE/BE
 export const GEOM_EPS = 0.005;
 
+// Reguli geometrice noi (cerinte PO T1, 2026-07-13):
+// - un front de sertar sub 15cm nu se poate apuca/monta
+// - intre polite (si fata de capetele zonei) raman minim 10cm utili
+export const DRAWER_H_MIN = 0.15;
+export const SHELF_GAP_MIN = 0.1;
+
+// Cate sertare incap intr-o zona de inaltimea data (15cm per front).
+export function drawersCountFor(zoneHeightM: number): number {
+  return Math.min(DRAWERS_COUNT_MAX, Math.floor((zoneHeightM + GEOM_EPS) / DRAWER_H_MIN));
+}
+
+// Cate polite incap intr-o zona: n polite impart zona in n+1 spatii egale
+// (model.ts), fiecare de minim 10cm; 0 = nu incape nicio polita.
+export function shelvesCountFor(zoneHeightM: number): number {
+  return Math.min(
+    SHELVES_COUNT_MAX,
+    Math.floor((zoneHeightM + GEOM_EPS) / SHELF_GAP_MIN) - 1,
+  );
+}
+
+// inaltimea picioarelor (T1: comoda "pe picioare" in loc de soclu)
+export const LEG_H = 0.12;
+
+// usile glisante exista doar la 2-3 coloane (cerinta PO T1)
+export const SLIDING_COLUMNS_MIN = 2;
+export const SLIDING_COLUMNS_MAX = 3;
+
 export interface Piece3dZone {
   type: Piece3dZoneType;
   // OPEN/DOOR: continutul interior — polite sau bara de haine (lipsa = gol)
@@ -71,6 +127,9 @@ export interface Piece3dColumn {
   zones: Piece3dZone[];
   // latime BLOCATA (m); lipsa = imparte egal spatiul ramas
   widthM?: number;
+  // doorMode SLIDING: directia in care gliseaza usa coloanei (peste vecina);
+  // lipsa = implicit spre interior (prima spre dreapta, restul spre stanga)
+  slideTo?: Piece3dSlideDirection;
 }
 
 export interface PieceConfig3d {
@@ -80,6 +139,15 @@ export interface PieceConfig3d {
   // coloanele de la stanga la dreapta; zonele unei coloane de sus in jos
   columns: Piece3dColumn[];
   finish: Piece3dFinish;
+  // culoarea finisajului CUSTOM (hex #rrggbb, din color picker); pastrata si
+  // cand se revine la un finisaj predefinit, ca picker-ul sa isi tina alegerea
+  customColor?: string;
+  // deschiderea fronturilor: lipsa = PUSH (fronturi plane, aspectul istoric)
+  frontStyle?: Piece3dFrontStyle;
+  // dulap: usi glisante pe toata fata (una per coloana); lipsa = batante
+  doorMode?: Piece3dDoorMode;
+  // comoda: pe picioare in loc de soclu; lipsa = soclu (aspectul istoric)
+  legs?: boolean;
 }
 
 // Plafonul de elemente numarabile ale unei zone; undefined = zona nu are
@@ -117,6 +185,10 @@ export interface Piece3dRules {
   // DESK: coloanele sunt casetiere sub blat (0 = birou doar pe picioare)
   minColumns: number;
   hasPlinth: boolean;
+  // T1: piesa poate sta pe picioare in loc de soclu (comoda)
+  legsOption?: boolean;
+  // T1: piesa poate avea usi glisante pe fata (dulap)
+  slidingDoors?: boolean;
   // numele itemului derivat (RO, ca in flow-urile existente)
   itemName: string;
   // coloanele implicite ale unei piese noi (functie de nr. de coloane sugerat)
@@ -147,6 +219,7 @@ export const PIECE3D_RULES: Record<Piece3dKind, Piece3dRules> = {
     maxColumns: 8,
     minColumns: 1,
     hasPlinth: true,
+    slidingDoors: true,
     itemName: 'Dulap',
     defaultColumn: () => col({ type: 'OPEN', fill: 'HANGING' }, { type: 'DRAWERS', count: 2 }),
   },
@@ -183,6 +256,7 @@ export const PIECE3D_RULES: Record<Piece3dKind, Piece3dRules> = {
     maxColumns: 4,
     minColumns: 1,
     hasPlinth: true,
+    legsOption: true,
     itemName: 'Comoda',
     defaultColumn: () => col({ type: 'DRAWERS', count: 3 }),
   },
@@ -233,6 +307,18 @@ export function deskMaxColumns(widthM: number): number {
 // limitele latimii unei coloane rezultate din impartire (docs/10: max ~90cm)
 export const COLUMN_W_MIN = 0.22;
 export const COLUMN_W_MAX = 1.0;
+
+// Inaltimea bazei piesei (distantier birou / picioare / soclu) — sub ea nu
+// exista interior. Sursa unica pentru resolver (config.ts) si model (model.ts).
+export function pieceBaseHeight(
+  kind: Piece3dKind,
+  config: Pick<PieceConfig3d, 'legs'>,
+): number {
+  if (kind === 'DESK') return 0.02;
+  const rules = PIECE3D_RULES[kind];
+  if (config.legs === true && rules.legsOption) return LEG_H;
+  return rules.hasPlinth ? PLINTH_H : 0;
+}
 
 // Latimea interioara disponibila coloanelor.
 export function interiorWidth(widthM: number): number {
@@ -342,9 +428,8 @@ export function resolveColumnWidths(kind: Piece3dKind, config: PieceConfig3d): n
 // rand (top/bottom absolute, podeaua la y=0) — sursa unica pentru model,
 // validare si UI (afisarea dimensiunilor + regulile bara/sertare).
 export function resolvePieceLayout(kind: Piece3dKind, config: PieceConfig3d): ResolvedColumn3d[] {
-  const rules = PIECE3D_RULES[kind];
   const widths = resolveColumnWidths(kind, config);
-  const bottom = (kind === 'DESK' ? 0.02 : rules.hasPlinth ? PLINTH_H : 0) + PANEL_T;
+  const bottom = pieceBaseHeight(kind, config) + PANEL_T;
   const top = config.heightM - PANEL_T;
   return config.columns.map((column, i) => {
     const nz = column.zones.length;
@@ -389,7 +474,17 @@ export function normalizePieceConfig(kind: Piece3dKind, config: PieceConfig3d): 
   const widthM = clampDim(config.widthM, rules.width);
   const heightM = clampDim(config.heightM, rules.height);
   const depthM = clampDim(config.depthM, rules.depth);
-  const n = clampColumns(kind, widthM, config.columns.length || 1);
+  // T1: biroul are voie la 0 casetiere (minColumns 0) — vechiul `|| 1` il
+  // forta inapoi la una; restul pieselor raman la minim o coloana
+  const n = clampColumns(kind, widthM, config.columns.length);
+
+  // usile glisante raman valabile doar pe dulap si doar la 2-3 coloane;
+  // altfel config-ul revine tacit la batante (doorMode lipsa)
+  const sliding =
+    rules.slidingDoors === true &&
+    config.doorMode === 'SLIDING' &&
+    n >= SLIDING_COLUMNS_MIN &&
+    n <= SLIDING_COLUMNS_MAX;
 
   // migreaza zonele salvate inainte de R5.3 la forma type+fill
   const migrate = (z: Piece3dZone): Piece3dZone => {
@@ -405,7 +500,10 @@ export function normalizePieceConfig(kind: Piece3dKind, config: PieceConfig3d): 
     if (!existing) return rules.defaultColumn();
     const zones = existing.zones.slice(0, rules.maxZonesPerColumn).map((raw) => {
       const m = migrate(raw);
-      const type = rules.zoneTypes.includes(m.type) ? m.type : rules.zoneTypes[0];
+      let type = rules.zoneTypes.includes(m.type) ? m.type : rules.zoneTypes[0];
+      // in spatele usilor glisante nu mai exista fronturi per zona: usa
+      // devine zona deschisa, interiorul (polite/bara) se pastreaza
+      if (sliding && type === 'DOOR') type = 'OPEN';
       const zone: Piece3dZone = { type };
       if ((type === 'OPEN' || type === 'DOOR') && m.fill && PIECE3D_ZONE_FILLS.includes(m.fill)) {
         zone.fill = m.fill;
@@ -421,6 +519,13 @@ export function normalizePieceConfig(kind: Piece3dKind, config: PieceConfig3d): 
     if (kind !== 'DESK' && typeof existing.widthM === 'number' && Number.isFinite(existing.widthM)) {
       column.widthM = round3(Math.max(COLUMN_W_MIN, Math.min(COLUMN_W_MAX, existing.widthM)));
     }
+    // directia de glisare: pastrata doar unde exista o coloana vecina in acea
+    // parte (capetele gliseaza doar spre interior)
+    if (sliding && (existing.slideTo === 'L' || existing.slideTo === 'R')) {
+      if ((existing.slideTo === 'L' && i > 0) || (existing.slideTo === 'R' && i < n - 1)) {
+        column.slideTo = existing.slideTo;
+      }
+    }
     return column;
   });
 
@@ -435,17 +540,35 @@ export function normalizePieceConfig(kind: Piece3dKind, config: PieceConfig3d): 
     }
   }
 
+  // finisajul: CUSTOM cere o culoare hex valida, altfel revine la stejar;
+  // culoarea aleasa se pastreaza si cand finisajul curent e predefinit
+  const customColor =
+    typeof config.customColor === 'string' && CUSTOM_COLOR_RE.test(config.customColor)
+      ? config.customColor.toLowerCase()
+      : undefined;
+  let finish: Piece3dFinish = PIECE3D_FINISHES.includes(config.finish)
+    ? config.finish
+    : 'STEJAR';
+  if (finish === 'CUSTOM' && !customColor) finish = 'STEJAR';
+
   const next: PieceConfig3d = {
     widthM,
     heightM,
     depthM,
     columns,
-    finish: PIECE3D_FINISHES.includes(config.finish) ? config.finish : 'STEJAR',
+    finish,
   };
+  if (customColor) next.customColor = customColor;
+  if (config.frontStyle && PIECE3D_FRONT_STYLES.includes(config.frontStyle)) {
+    next.frontStyle = config.frontStyle;
+  }
+  if (sliding) next.doorMode = 'SLIDING';
+  if (config.legs === true && rules.legsOption) next.legs = true;
 
   // regulile geometrice se CORECTEAZA aici (nu se respinge): barele care nu
   // mai incap (55cm adancime, 80cm/bara) se reduc sau dispar, sertarele
-  // urcate peste 160cm redevin zona deschisa
+  // urcate peste 160cm redevin zona deschisa; T1: sertarele sub 15cm/front
+  // se reduc (sau zona redevine deschisa), politele sub 10cm de spatiu scad
   const layout = resolvePieceLayout(kind, next);
   columns.forEach((column, ci) =>
     column.zones.forEach((zone, zi) => {
@@ -460,9 +583,23 @@ export function normalizePieceConfig(kind: Piece3dKind, config: PieceConfig3d): 
           zone.count = maxRods;
         }
       }
-      if (zone.type === 'DRAWERS' && r.top > DRAWERS_MAX_TOP + GEOM_EPS) {
-        zone.type = 'OPEN';
-        delete zone.count;
+      if (zone.fill === 'SHELVES') {
+        const maxShelves = shelvesCountFor(r.height);
+        if (maxShelves < 1) {
+          delete zone.fill;
+          delete zone.count;
+        } else if ((zone.count ?? 1) > maxShelves) {
+          zone.count = maxShelves;
+        }
+      }
+      if (zone.type === 'DRAWERS') {
+        const maxDrawers = drawersCountFor(r.height);
+        if (r.top > DRAWERS_MAX_TOP + GEOM_EPS || maxDrawers < 1) {
+          zone.type = 'OPEN';
+          delete zone.count;
+        } else if ((zone.count ?? 1) > maxDrawers) {
+          zone.count = maxDrawers;
+        }
       }
     }),
   );
@@ -511,6 +648,9 @@ export function pieceConfig3dSchema(kind: Piece3dKind): z.ZodType<PieceConfig3d>
     .object({
       zones: z.array(zoneSchema).min(1).max(rules.maxZonesPerColumn),
       widthM: z.number().min(COLUMN_W_MIN).max(COLUMN_W_MAX).optional(),
+      slideTo: z
+        .enum(['L', 'R'], { errorMap: () => ({ message: 'validation.answerInvalid' }) })
+        .optional(),
     })
     .strict();
 
@@ -532,6 +672,23 @@ export function pieceConfig3dSchema(kind: Piece3dKind): z.ZodType<PieceConfig3d>
       finish: z.enum(PIECE3D_FINISHES, {
         errorMap: () => ({ message: 'validation.answerInvalid' }),
       }),
+      customColor: z
+        .string()
+        .regex(CUSTOM_COLOR_RE, 'validation.answerInvalid')
+        .optional(),
+      frontStyle: z
+        .enum(PIECE3D_FRONT_STYLES, {
+          errorMap: () => ({ message: 'validation.answerInvalid' }),
+        })
+        .optional(),
+      doorMode: z
+        .enum(PIECE3D_DOOR_MODES, {
+          errorMap: () => ({ message: 'validation.answerInvalid' }),
+        })
+        .optional(),
+      legs: z
+        .boolean({ errorMap: () => ({ message: 'validation.answerInvalid' }) })
+        .optional(),
     })
     .strict('validation.unknownAnswer')
     .superRefine((config, ctx) => {
@@ -543,6 +700,49 @@ export function pieceConfig3dSchema(kind: Piece3dKind): z.ZodType<PieceConfig3d>
         bad();
         return;
       }
+      // T1: finisajul CUSTOM cere culoarea din picker
+      if (config.finish === 'CUSTOM' && config.customColor === undefined) {
+        bad();
+        return;
+      }
+      // T1: picioare doar la piesele cu optiunea (comoda)
+      if (config.legs !== undefined && !rules.legsOption) {
+        bad();
+        return;
+      }
+      // T1: usi glisante doar la piesele cu optiunea (dulap), doar 2-3 coloane
+      const sliding = config.doorMode === 'SLIDING';
+      if (config.doorMode !== undefined && !rules.slidingDoors) {
+        bad();
+        return;
+      }
+      if (
+        sliding &&
+        (config.columns.length < SLIDING_COLUMNS_MIN ||
+          config.columns.length > SLIDING_COLUMNS_MAX)
+      ) {
+        bad();
+        return;
+      }
+      for (let ci = 0; ci < config.columns.length; ci++) {
+        const column = config.columns[ci];
+        // directia de glisare exista doar pe usi glisante, doar spre o vecina
+        if (column.slideTo !== undefined) {
+          if (
+            !sliding ||
+            (column.slideTo === 'L' && ci === 0) ||
+            (column.slideTo === 'R' && ci === config.columns.length - 1)
+          ) {
+            bad();
+            return;
+          }
+        }
+        // fronturile-usa per zona nu exista in spatele usilor glisante
+        if (sliding && column.zones.some((zone) => zone.type === 'DOOR')) {
+          bad();
+          return;
+        }
+      }
       // latimile REZOLVATE trebuie sa fie realiste (docs/10 R2)
       if (kind !== 'DESK') {
         for (const column of layout) {
@@ -552,13 +752,29 @@ export function pieceConfig3dSchema(kind: Piece3dKind): z.ZodType<PieceConfig3d>
           }
         }
       }
-      // regulile geometrice bara/sertare pe geometria rezolvata
+      // regulile geometrice bara/sertare/polite pe geometria rezolvata
       for (let ci = 0; ci < config.columns.length; ci++) {
         const zones = config.columns[ci].zones;
         for (let zi = 0; zi < zones.length; zi++) {
           const r = layout[ci]?.zones[zi];
           if (!r) continue;
           if (zones[zi].type === 'DRAWERS' && r.top > DRAWERS_MAX_TOP + GEOM_EPS) {
+            bad();
+            return;
+          }
+          // T1: fiecare front de sertar are minim 15cm inaltime
+          if (
+            zones[zi].type === 'DRAWERS' &&
+            r.height < (zones[zi].count ?? 1) * DRAWER_H_MIN - GEOM_EPS
+          ) {
+            bad();
+            return;
+          }
+          // T1: politele pastreaza minim 10cm de spatiu intre ele
+          if (
+            zones[zi].fill === 'SHELVES' &&
+            r.height < ((zones[zi].count ?? 1) + 1) * SHELF_GAP_MIN - GEOM_EPS
+          ) {
             bad();
             return;
           }
@@ -604,6 +820,8 @@ export function pieceConfigTotals(config: PieceConfig3d): Piece3dTotals {
     COLUMN_W_MIN,
     COLUMN_W_MAX,
   );
+  // usile glisante (T1): cate o usa pe toata fata fiecarei coloane
+  if (config.doorMode === 'SLIDING') totals.doors += nCols;
   config.columns.forEach((column, ci) => {
     for (const zone of column.zones) {
       // continutul interior (R5.3) — plus formele legacy inca nemigrate
@@ -639,10 +857,15 @@ export function pieceConfigTotals(config: PieceConfig3d): Piece3dTotals {
 
 const FINISH_LABEL_RO: Record<Piece3dFinish, string> = {
   ALB: 'alb',
+  CREM: 'crem',
   STEJAR: 'stejar',
   NUC: 'nuc',
   GRI: 'gri',
+  NEGRU: 'negru',
   VERDE_SALVIE: 'verde salvie',
+  ALBASTRU: 'albastru',
+  TERACOTA: 'teracota',
+  CUSTOM: 'personalizat',
 };
 
 const cm = (v: number) => Math.round(v * 100);
@@ -669,11 +892,27 @@ export function describePieceConfig(kind: Piece3dKind, config: PieceConfig3d): s
       totals.tiltOut === 1 ? '1 front rabatabil' : `${totals.tiltOut} fronturi rabatabile`,
     );
   }
-  if (totals.doors > 0) parts.push(totals.doors === 1 ? '1 usa' : `${totals.doors} usi`);
+  if (totals.doors > 0) {
+    const sliding = config.doorMode === 'SLIDING';
+    parts.push(
+      totals.doors === 1
+        ? sliding
+          ? '1 usa glisanta'
+          : '1 usa'
+        : `${totals.doors} usi${sliding ? ' glisante' : ''}`,
+    );
+  }
   if (totals.open > 0) {
     parts.push(totals.open === 1 ? '1 zona deschisa' : `${totals.open} zone deschise`);
   }
-  parts.push(`finisaj ${FINISH_LABEL_RO[config.finish]}`);
+  if (config.legs) parts.push('pe picioare');
+  if (config.frontStyle === 'HANDLE') parts.push('fronturi cu maner');
+  else if (config.frontStyle === 'PUSH') parts.push('deschidere push');
+  parts.push(
+    config.finish === 'CUSTOM' && config.customColor
+      ? `finisaj personalizat (${config.customColor})`
+      : `finisaj ${FINISH_LABEL_RO[config.finish]}`,
+  );
   return parts.join(', ');
 }
 

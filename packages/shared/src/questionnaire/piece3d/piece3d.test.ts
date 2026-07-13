@@ -17,6 +17,7 @@ import {
   buildPanels,
   buildZoneBoxes,
   canAddColumn,
+  canRemoveColumn,
   nextZoneType,
   panelsWithinBounds,
 } from './model';
@@ -534,5 +535,194 @@ describe('canAddColumn', () => {
     expect(canAddColumn('NIGHTSTAND', narrow)).toBe(false);
     const wide = { ...defaultPieceConfig('WARDROBE'), widthM: 4 };
     expect(canAddColumn('WARDROBE', normalizePieceConfig('WARDROBE', wide))).toBe(true);
+  });
+});
+
+// Sprint T1 (feedback PO 2026-07-13): birou fara casetiere, culori + CUSTOM,
+// comoda pe picioare, maner/push, usi glisante, reguli sertar 15cm / polite 10cm.
+describe('T1: birou fara casetiere', () => {
+  it('normalize pastreaza 0 casetiere, schema si modelul le accepta', () => {
+    const desk = defaultPieceConfig('DESK');
+    expect(canRemoveColumn('DESK', desk)).toBe(true);
+    const none = normalizePieceConfig('DESK', { ...desk, columns: [] });
+    expect(none.columns.length).toBe(0);
+    expect(pieceConfig3dSchema('DESK').safeParse(none).success).toBe(true);
+    // blatul si picioarele biroului se genereaza si fara casetiere
+    const panels = buildPanels(none, 'DESK');
+    expect(panels.some((p) => p.role === 'DESK_TOP')).toBe(true);
+    expect(panels.some((p) => p.role === 'DRAWER_FRONT')).toBe(false);
+    expect(describePieceConfig('DESK', none)).not.toContain('coloan');
+  });
+});
+
+describe('T1: reguli sertar >=15cm si polite la >=10cm', () => {
+  it('sertarele peste plafonul de 15cm/front se reduc si se resping', () => {
+    // comoda 90cm: zona unica ~80cm → maxim 5 sertare de 15cm
+    const config: PieceConfig3d = {
+      widthM: 1.2,
+      heightM: 0.9,
+      depthM: 0.45,
+      columns: [{ zones: [{ type: 'DRAWERS', count: 6 }] }],
+      finish: 'STEJAR',
+    };
+    expect(pieceConfig3dSchema('DRESSER').safeParse(config).success).toBe(false);
+    const normalized = normalizePieceConfig('DRESSER', config);
+    expect(normalized.columns[0].zones[0].count).toBe(5);
+    expect(pieceConfig3dSchema('DRESSER').safeParse(normalized).success).toBe(true);
+  });
+
+  it('o zona DRAWERS prea scunda redevine deschisa', () => {
+    // rand blocat la 12cm — nu incape niciun sertar de 15cm
+    const config: PieceConfig3d = {
+      widthM: 1.2,
+      heightM: 0.9,
+      depthM: 0.45,
+      columns: [{ zones: [{ type: 'DRAWERS', count: 1, heightM: 0.12 }, { type: 'OPEN' }] }],
+      finish: 'STEJAR',
+    };
+    expect(pieceConfig3dSchema('DRESSER').safeParse(config).success).toBe(false);
+    const normalized = normalizePieceConfig('DRESSER', config);
+    expect(normalized.columns[0].zones[0].type).toBe('OPEN');
+    expect(normalized.columns[0].zones[0].count).toBeUndefined();
+    expect(pieceConfig3dSchema('DRESSER').safeParse(normalized).success).toBe(true);
+  });
+
+  it('politele care strica pasul de 10cm se reduc si se resping', () => {
+    // zona blocata la 50cm: 6 polite → pas ~7cm; maxim valid = 4 polite
+    const config = bookcaseConfig();
+    config.columns[0].zones[0] = { type: 'OPEN', fill: 'SHELVES', count: 6, heightM: 0.5 };
+    expect(pieceConfig3dSchema('BOOKCASE').safeParse(config).success).toBe(false);
+    const normalized = normalizePieceConfig('BOOKCASE', config);
+    expect(normalized.columns[0].zones[0].count).toBe(4);
+    expect(pieceConfig3dSchema('BOOKCASE').safeParse(normalized).success).toBe(true);
+  });
+});
+
+describe('T1: usi glisante la dulap', () => {
+  it('doar dulapul, doar la 2-3 coloane; zonele DOOR devin deschise', () => {
+    const config = normalizePieceConfig('WARDROBE', { ...wardrobeConfig(), doorMode: 'SLIDING' });
+    expect(config.doorMode).toBe('SLIDING');
+    // usa per zona a disparut, interiorul (politele) s-a pastrat
+    expect(config.columns[2].zones[0]).toEqual({ type: 'OPEN', fill: 'SHELVES', count: 4 });
+    expect(pieceConfig3dSchema('WARDROBE').safeParse(config).success).toBe(true);
+
+    // o usa glisanta per coloana, pe doua sine alternante, in fata carcasei
+    const doors = buildPanels(config, 'WARDROBE').filter((p) => p.role === 'SLIDING_FRONT');
+    expect(doors.length).toBe(3);
+    expect(doors[0].slide).toBe('R');
+    expect(doors[2].slide).toBe('L');
+    expect(new Set(doors.map((d) => d.z)).size).toBe(2);
+    expect(doors.every((d) => d.z > config.depthM / 2)).toBe(true);
+
+    // schema: glisant pe 1 coloana sau pe alta piesa → respins
+    const one: PieceConfig3d = {
+      widthM: 0.8,
+      heightM: 2.4,
+      depthM: 0.6,
+      columns: [{ zones: [{ type: 'OPEN' }] }],
+      finish: 'STEJAR',
+      doorMode: 'SLIDING',
+    };
+    expect(pieceConfig3dSchema('WARDROBE').safeParse(one).success).toBe(false);
+    const bookcase = { ...bookcaseConfig(), doorMode: 'HINGED' } as PieceConfig3d;
+    expect(pieceConfig3dSchema('BOOKCASE').safeParse(bookcase).success).toBe(false);
+    // schema: zona DOOR in spatele usilor glisante → respinsa
+    const withDoor = { ...config, columns: config.columns.map((c) => ({ ...c })) };
+    withDoor.columns[1] = { zones: [{ type: 'DOOR' }] };
+    expect(pieceConfig3dSchema('WARDROBE').safeParse(withDoor).success).toBe(false);
+
+    // coloanele raman in intervalul 2-3 cat timp glisarea e activa
+    expect(canAddColumn('WARDROBE', config)).toBe(false);
+    const two = normalizePieceConfig('WARDROBE', {
+      ...config,
+      widthM: 1.6,
+      columns: config.columns.slice(0, 2),
+    });
+    expect(canRemoveColumn('WARDROBE', two)).toBe(false);
+    expect(describePieceConfig('WARDROBE', config)).toContain('usi glisante');
+  });
+
+  it('directia de glisare: capetele doar spre interior, mijlocul la alegere', () => {
+    const base = normalizePieceConfig('WARDROBE', { ...wardrobeConfig(), doorMode: 'SLIDING' });
+    const withDir = normalizePieceConfig('WARDROBE', {
+      ...base,
+      columns: base.columns.map((c, i) => ({ ...c, slideTo: i === 0 ? 'L' : 'R' })) as never,
+    });
+    // prima usa nu poate glisa spre stanga, ultima nu poate spre dreapta
+    expect(withDir.columns[0].slideTo).toBeUndefined();
+    expect(withDir.columns[1].slideTo).toBe('R');
+    expect(withDir.columns[2].slideTo).toBeUndefined();
+    expect(pieceConfig3dSchema('WARDROBE').safeParse(withDir).success).toBe(true);
+
+    // usa din mijloc gliseaza spre dreapta (dx pozitiv, peste vecina)
+    const doors = buildPanels(withDir, 'WARDROBE').filter((p) => p.role === 'SLIDING_FRONT');
+    expect(doors[1].slideDx ?? 0).toBeGreaterThan(0);
+
+    // schema: directie de glisare pe usi batante → respinsa
+    const hinged = wardrobeConfig();
+    hinged.columns[1] = { ...hinged.columns[1], slideTo: 'L' };
+    expect(pieceConfig3dSchema('WARDROBE').safeParse(hinged).success).toBe(false);
+  });
+});
+
+describe('T1: comoda pe picioare', () => {
+  it('4 picioare in loc de soclu; interiorul urca peste picioare', () => {
+    const dresser = defaultPieceConfig('DRESSER');
+    const withLegs = normalizePieceConfig('DRESSER', { ...dresser, legs: true });
+    expect(withLegs.legs).toBe(true);
+    expect(pieceConfig3dSchema('DRESSER').safeParse(withLegs).success).toBe(true);
+
+    const panels = buildPanels(withLegs, 'DRESSER');
+    expect(panels.filter((p) => p.role === 'LEG').length).toBe(4);
+    expect(panels.some((p) => p.role === 'PLINTH')).toBe(false);
+    expect(panelsWithinBounds(withLegs, panels)).toBe(true);
+    // interiorul incepe deasupra picioarelor de 12cm
+    const layout = resolvePieceLayout('DRESSER', withLegs);
+    const lastZone = layout[0].zones[layout[0].zones.length - 1];
+    expect(lastZone.bottom).toBeCloseTo(0.12 + 0.018, 6);
+    expect(describePieceConfig('DRESSER', withLegs)).toContain('pe picioare');
+
+    // pe alte piese picioarele sunt respinse la publish si curatate la normalize
+    const bad = { ...bookcaseConfig(), legs: true } as PieceConfig3d;
+    expect(pieceConfig3dSchema('BOOKCASE').safeParse(bad).success).toBe(false);
+    expect(normalizePieceConfig('BOOKCASE', bad).legs).toBeUndefined();
+  });
+});
+
+describe('T1: finisaje extinse + culoare CUSTOM + maner/push', () => {
+  it('CUSTOM cere hex valid; culoarea invalida revine la stejar', () => {
+    const custom = normalizePieceConfig('BOOKCASE', {
+      ...bookcaseConfig(),
+      finish: 'CUSTOM',
+      customColor: '#A1B2C3',
+    });
+    expect(custom.finish).toBe('CUSTOM');
+    expect(custom.customColor).toBe('#a1b2c3');
+    expect(pieceConfig3dSchema('BOOKCASE').safeParse(custom).success).toBe(true);
+    expect(describePieceConfig('BOOKCASE', custom)).toContain('finisaj personalizat (#a1b2c3)');
+
+    // CUSTOM fara culoare → respins la publish, corectat la normalize
+    const noColor = { ...bookcaseConfig(), finish: 'CUSTOM' } as PieceConfig3d;
+    expect(pieceConfig3dSchema('BOOKCASE').safeParse(noColor).success).toBe(false);
+    const fallback = normalizePieceConfig('BOOKCASE', {
+      ...bookcaseConfig(),
+      finish: 'CUSTOM',
+      customColor: 'rosu',
+    });
+    expect(fallback.finish).toBe('STEJAR');
+    expect(fallback.customColor).toBeUndefined();
+  });
+
+  it('finisajele noi si frontStyle trec de schema si intra in descriere', () => {
+    const config = normalizePieceConfig('DRESSER', {
+      ...defaultPieceConfig('DRESSER'),
+      finish: 'TERACOTA',
+      frontStyle: 'HANDLE',
+    });
+    expect(config.frontStyle).toBe('HANDLE');
+    expect(pieceConfig3dSchema('DRESSER').safeParse(config).success).toBe(true);
+    const text = describePieceConfig('DRESSER', config);
+    expect(text).toContain('fronturi cu maner');
+    expect(text).toContain('finisaj teracota');
   });
 });

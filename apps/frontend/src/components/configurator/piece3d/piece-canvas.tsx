@@ -12,13 +12,15 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BoxGeometry, EdgesGeometry, type Group } from 'three';
-import { FINISH_SPECS, HIGHLIGHT_COLOR, ROD_COLOR } from './finishes';
+import { finishSpecFor, HIGHLIGHT_COLOR, ROD_COLOR, type FinishSpec } from './finishes';
 
 // Scena 3D a piesei (R1 + fidelizare Tylko): carcasa parametrica generata din
 // config, lumini soft, orbita limitata, dpr limitat si frameloop="demand".
 // Usile si sertarele sunt GRUPURI ANIMATE: click pe zona le deschide/inchide
 // (rotatie pe balama / culisare), ca sa se vada interiorul — inclusiv politele
-// din spatele usilor. Geometria vine exclusiv din shared.
+// din spatele usilor. T1: usile glisante culiseaza lateral peste coloana
+// vecina, manerele (frontStyle HANDLE) sunt bare de alama pe fronturi.
+// Geometria vine exclusiv din shared.
 
 // tip minimal pentru controalele de orbita (evitam dependinta de three-stdlib,
 // care e doar dependinta tranzitiva a drei si nu e expusa de pnpm)
@@ -30,6 +32,8 @@ type ControlsLike = {
 export type ZoneRef = { col: number; zone: number };
 
 export const zoneKey = (col: number, zone: number) => `${col}:${zone}`;
+// cheia de "deschis" a unei usi glisante — per coloana, nu per zona
+export const slideKey = (col: number) => `slide:${col}`;
 
 // functie de snapshot expusa parintelui (R4): randeaza un cadru si intoarce PNG
 export type SnapshotFn = () => string | null;
@@ -88,13 +92,21 @@ function SnapshotBridge({ onReady }: { onReady?: (fn: SnapshotFn) => void }) {
   return null;
 }
 
-function PanelMesh({ panel, finish }: { panel: Panel3d; finish: PieceConfig3d['finish'] }) {
-  const spec = FINISH_SPECS[finish];
+function PanelMesh({ panel, spec }: { panel: Panel3d; spec: FinishSpec }) {
   if (panel.role === 'ROD') {
     return (
       <mesh position={[panel.x, panel.y, panel.z]} rotation={[0, 0, Math.PI / 2]} castShadow>
         <cylinderGeometry args={[0.013, 0.013, panel.w, 16]} />
         <meshStandardMaterial color={ROD_COLOR} roughness={0.35} metalness={0.7} />
+      </mesh>
+    );
+  }
+  if (panel.role === 'LEG') {
+    // picior conic (T1: comoda "pe picioare"), in culoarea corpului
+    return (
+      <mesh position={[panel.x, panel.y, panel.z]} castShadow>
+        <cylinderGeometry args={[0.014, 0.01, panel.h, 12]} />
+        <meshStandardMaterial color={spec.body} roughness={spec.roughness} />
       </mesh>
     );
   }
@@ -152,6 +164,9 @@ const TILT_OPEN_RAD = 0.66;
 // Aplica starea de deschidere pe grupul-pivot al unui front.
 function applyFrontTransform(group: Group | null, front: Panel3d, p: number, depthM: number) {
   if (!group) return;
+  // rotatia se reseteaza mereu: daca grupul e refolosit dupa o schimbare de rol
+  // (usa deschisa -> sertar), unghiul de usa ar ramane aplicat pe noul front
+  group.rotation.set(0, 0, 0);
   if (front.role === 'DOOR_FRONT') {
     // balamaua pe muchia exterioara: L → unghi negativ, R → pozitiv
     const sign = front.hinge === 'R' ? 1 : -1;
@@ -159,10 +174,35 @@ function applyFrontTransform(group: Group | null, front: Panel3d, p: number, dep
   } else if (front.role === 'TILT_FRONT') {
     // pivot pe muchia de jos, partea de sus cade spre privitor
     group.rotation.x = p * TILT_OPEN_RAD;
+  } else if (front.role === 'SLIDING_FRONT') {
+    // usa glisanta: culiseaza lateral peste coloana vecina (T1)
+    group.position.x = front.x + p * (front.slideDx ?? 0);
   } else {
     // sertar: culiseaza spre privitor
     group.position.z = front.z + p * depthM * 0.45;
   }
+}
+
+// Maner de alama (T1, frontStyle HANDLE): bara cilindrica pe fata frontului.
+function FrontHandle({
+  x,
+  y,
+  z,
+  length,
+  vertical,
+}: {
+  x: number;
+  y: number;
+  z: number;
+  length: number;
+  vertical?: boolean;
+}) {
+  return (
+    <mesh position={[x, y, z]} rotation={vertical ? [0, 0, 0] : [0, 0, Math.PI / 2]}>
+      <cylinderGeometry args={[0.008, 0.008, length, 10]} />
+      <meshStandardMaterial color={ROD_COLOR} roughness={0.35} metalness={0.7} />
+    </mesh>
+  );
 }
 
 // Fronturile unei zone, cu animatie de deschidere (lerp in useFrame; in
@@ -171,14 +211,15 @@ function AnimatedFronts({
   fronts,
   open,
   depthM,
-  finish,
+  spec,
+  withHandles,
 }: {
   fronts: Panel3d[];
   open: boolean;
   depthM: number;
-  finish: PieceConfig3d['finish'];
+  spec: FinishSpec;
+  withHandles: boolean;
 }) {
-  const spec = FINISH_SPECS[finish];
   const progress = useRef(0);
   const groups = useRef<(Group | null)[]>([]);
   const invalidate = useThree((s) => s.invalidate);
@@ -209,7 +250,7 @@ function AnimatedFronts({
           const sign = f.hinge === 'R' ? 1 : -1;
           return (
             <group
-              key={i}
+              key={`${f.role}-${i}`}
               ref={(el) => {
                 groups.current[i] = el;
               }}
@@ -219,13 +260,23 @@ function AnimatedFronts({
                 <boxGeometry args={[f.w, f.h, f.d]} />
                 {material}
               </mesh>
+              {/* maner vertical langa muchia de deschidere (opusa balamalei) */}
+              {withHandles && (
+                <FrontHandle
+                  x={-sign * (f.w - 0.05)}
+                  y={0}
+                  z={f.d / 2 + 0.012}
+                  length={Math.min(0.32, f.h * 0.45)}
+                  vertical
+                />
+              )}
             </group>
           );
         }
         if (f.role === 'TILT_FRONT') {
           return (
             <group
-              key={i}
+              key={`${f.role}-${i}`}
               ref={(el) => {
                 groups.current[i] = el;
               }}
@@ -235,12 +286,47 @@ function AnimatedFronts({
                 <boxGeometry args={[f.w, f.h, f.d]} />
                 {material}
               </mesh>
+              {withHandles && (
+                <FrontHandle
+                  x={0}
+                  y={f.h - 0.05}
+                  z={f.d / 2 + 0.012}
+                  length={Math.min(0.26, f.w * 0.4)}
+                />
+              )}
+            </group>
+          );
+        }
+        if (f.role === 'SLIDING_FRONT') {
+          // usa glisanta: fara DrawerBox; manerul sta pe muchia opusa glisarii
+          const sign = (f.slideDx ?? 0) >= 0 ? 1 : -1;
+          return (
+            <group
+              key={`${f.role}-${i}`}
+              ref={(el) => {
+                groups.current[i] = el;
+              }}
+              position={[f.x, f.y, f.z]}
+            >
+              <mesh castShadow>
+                <boxGeometry args={[f.w, f.h, f.d]} />
+                {material}
+              </mesh>
+              {withHandles && (
+                <FrontHandle
+                  x={-sign * (f.w / 2 - 0.06)}
+                  y={0}
+                  z={f.d / 2 + 0.012}
+                  length={Math.min(0.5, f.h * 0.35)}
+                  vertical
+                />
+              )}
             </group>
           );
         }
         return (
           <group
-            key={i}
+            key={`${f.role}-${i}`}
             ref={(el) => {
               groups.current[i] = el;
             }}
@@ -250,6 +336,14 @@ function AnimatedFronts({
               <boxGeometry args={[f.w, f.h, f.d]} />
               {material}
             </mesh>
+            {withHandles && (
+              <FrontHandle
+                x={0}
+                y={Math.max(0, f.h / 2 - 0.045)}
+                z={f.d / 2 + 0.012}
+                length={Math.min(0.28, f.w * 0.45)}
+              />
+            )}
             <DrawerBox w={f.w} h={f.h} boxD={boxD} frontD={f.d} />
           </group>
         );
@@ -315,7 +409,7 @@ function ZoneHotspot({
   );
 }
 
-const FRONT_ROLES = new Set(['DRAWER_FRONT', 'DOOR_FRONT', 'TILT_FRONT']);
+const FRONT_ROLES = new Set(['DRAWER_FRONT', 'DOOR_FRONT', 'TILT_FRONT', 'SLIDING_FRONT']);
 
 function PieceScene({ kind, config, activeZone, openZones, onZoneClick }: PieceCanvasProps) {
   const { statics, frontZones } = useMemo(() => {
@@ -323,8 +417,15 @@ function PieceScene({ kind, config, activeZone, openZones, onZoneClick }: PieceC
     const staticPanels: Panel3d[] = [];
     const byZone = new Map<string, Panel3d[]>();
     for (const p of all) {
-      if (FRONT_ROLES.has(p.role) && p.col !== undefined && p.zone !== undefined) {
-        const key = zoneKey(p.col, p.zone);
+      // usile glisante apartin coloanei (nu unei zone); fronturile per zona
+      // se grupeaza ca pana acum, dupa "col:zone"
+      const key =
+        p.role === 'SLIDING_FRONT' && p.col !== undefined
+          ? slideKey(p.col)
+          : FRONT_ROLES.has(p.role) && p.col !== undefined && p.zone !== undefined
+            ? zoneKey(p.col, p.zone)
+            : null;
+      if (key !== null) {
         const list = byZone.get(key);
         if (list) list.push(p);
         else byZone.set(key, [p]);
@@ -335,11 +436,16 @@ function PieceScene({ kind, config, activeZone, openZones, onZoneClick }: PieceC
     return { statics: staticPanels, frontZones: [...byZone.entries()] };
   }, [config, kind]);
   const zones = useMemo(() => buildZoneBoxes(config, kind), [config, kind]);
+  const spec = useMemo(
+    () => finishSpecFor(config.finish, config.customColor),
+    [config.finish, config.customColor],
+  );
+  const withHandles = config.frontStyle === 'HANDLE';
 
   return (
     <group>
       {statics.map((p, i) => (
-        <PanelMesh key={i} panel={p} finish={config.finish} />
+        <PanelMesh key={i} panel={p} spec={spec} />
       ))}
       {frontZones.map(([key, fronts]) => (
         <AnimatedFronts
@@ -347,7 +453,8 @@ function PieceScene({ kind, config, activeZone, openZones, onZoneClick }: PieceC
           fronts={fronts}
           open={openZones?.has(key) ?? false}
           depthM={config.depthM}
-          finish={config.finish}
+          spec={spec}
+          withHandles={withHandles}
         />
       ))}
       {onZoneClick &&

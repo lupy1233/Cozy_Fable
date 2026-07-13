@@ -17,6 +17,7 @@ import {
 } from '@/hooks/use-requests';
 import { useRouter } from '@/i18n/routing';
 import { useConfiguratorStore } from '@/stores/configurator-store';
+import { InspirationPicker } from './inspiration-picker';
 import { RoomAnswerSummary } from './room-answer-summary';
 
 export function ReviewStep({
@@ -195,6 +196,9 @@ export function ReviewStep({
           />
         </section>
       ))}
+
+      {/* Pozele de inspiratie alese — vizibile (si editabile) inainte de publish (R7) */}
+      <InspirationPicker />
 
       {apiErr && (
         <Alert tone="crimson">

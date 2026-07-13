@@ -23,6 +23,18 @@ export function config3dChips(t: Translate, config: PieceConfig3d): string[] {
   if (totals.tiltOut > 0) chips.push(t('config3d.chips.tiltOut', { count: totals.tiltOut }));
   if (totals.doors > 0) chips.push(t('config3d.chips.doors', { count: totals.doors }));
   if (totals.open > 0) chips.push(t('config3d.chips.open', { count: totals.open }));
-  chips.push(t('config3d.chips.finish', { finish: t(`config3d.finishes.${config.finish}`) }));
+  // T1: starile ne-implicite devin chips (glisant, picioare, manere)
+  if (config.doorMode === 'SLIDING') chips.push(t('config3d.chips.sliding'));
+  if (config.legs) chips.push(t('config3d.chips.legs'));
+  if (config.frontStyle === 'HANDLE') chips.push(t('config3d.chips.handles'));
+  const finishLabel = t(`config3d.finishes.${config.finish}`);
+  chips.push(
+    t('config3d.chips.finish', {
+      finish:
+        config.finish === 'CUSTOM' && config.customColor
+          ? `${finishLabel} (${config.customColor})`
+          : finishLabel,
+    }),
+  );
   return chips;
 }
