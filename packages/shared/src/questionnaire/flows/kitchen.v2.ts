@@ -116,6 +116,8 @@ export const kitchenFlowV2: RoomFlow = {
       screenGroup: 'layoutScreen',
       icon: 'plus',
       optional: true,
+      // U1 (feedback PO r4): cardul-bifa arata ca un card de forma, cu eticheta
+      cardLabelKey: `${F}.hasIsland.cardLabel`,
       info: {
         titleKey: `${F}.hasIsland.info.title`,
         bodyKey: `${F}.hasIsland.info.body`,

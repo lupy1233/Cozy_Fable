@@ -4,6 +4,7 @@ import type { InspirationPhotoDto } from '@marketplace/shared';
 import { ArrowUpRight, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { SaveButton } from './save-button';
 
@@ -47,6 +48,16 @@ export function InspirationLightbox({
     return () => document.removeEventListener('keydown', onKey);
   }, [index, hasPrev, hasNext, onClose, onNavigate]);
 
+  // pagina din spate nu deruleaza cat e lightbox-ul deschis — pozitia din
+  // galerie ramane exact unde era la inchidere (U3, PO r4)
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
   // idei asemanatoare: aceeasi camera sau materiale/culori comune, din lista
   // deja filtrata (docs/09: "dupa aceleasi filtre")
   const similar = useMemo(() => {
@@ -67,7 +78,9 @@ export function InspirationLightbox({
 
   if (!photo) return null;
 
-  return (
+  // portal pe <body>: overlay-ul fixed nu mai depinde de stramosii paginii
+  // (un transform pe <main> il ancora la inceputul documentului — U3, PO r4)
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -204,6 +217,7 @@ export function InspirationLightbox({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

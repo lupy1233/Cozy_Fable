@@ -14,3 +14,14 @@ export const Configurator3dStep = dynamic(() => import('./configurator3d-step'),
     </div>
   ),
 });
+
+// Viewerul READ-ONLY al piesei (U4): deschis la cerere din detaliul cererii
+// (marketplace firma + client) — overlay cu spinner cat se incarca chunk-ul.
+export const PieceViewer3dDialog = dynamic(() => import('./piece-viewer'), {
+  ssr: false,
+  loading: () => (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-sm">
+      <Loader2 className="h-6 w-6 animate-spin text-white" />
+    </div>
+  ),
+});

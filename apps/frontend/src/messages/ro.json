@@ -1208,7 +1208,7 @@
       "pedestals": "Casetiere",
       "finish": "Finisaj (vizual)",
       "reset": "De la capăt",
-      "hint": "Rotește modelul trăgând de el. Dă click pe o zonă ca să o selectezi — ușile și sertarele se deschid ca să vezi interiorul; tipul, interiorul (polițe sau bară de haine), rândurile și dimensiunile le schimbi din bara de mai jos. Lacătul ține un rând sau o coloană la dimensiune fixă.",
+      "hint": "Rotește modelul trăgând de el. Dă click pe o zonă ca să o selectezi — ușile și sertarele se deschid ca să vezi interiorul; tipul, interiorul (polițe sau bară de haine), rândurile și dimensiunile le schimbi din panoul de comenzi. Lacătul ține un rând sau o coloană la dimensiune fixă.",
       "rowsInColumn": "Rânduri în coloană",
       "fillLabel": "Interior",
       "fills": {
@@ -1230,6 +1230,15 @@
       "fewer": "Mai puține",
       "more": "Mai multe",
       "webglMissing": "Dispozitivul tău nu suportă vizualizarea 3D — configurează piesa prin câmpurile de mai jos; cererea rezultată este identică.",
+      "zoneTypeLabel": "Tip zonă",
+      "viewer": {
+        "open": "Vezi corpul în 3D",
+        "title": "Corpul configurat de client",
+        "readOnly": "Doar vizualizare — poți deschide ușile și sertarele, dar nu poți modifica corpul.",
+        "hint": "Rotește modelul trăgând de el. Dă click pe o zonă ca să o deschizi și să îi citești dimensiunile.",
+        "close": "Închide",
+        "webglMissing": "Dispozitivul tău nu suportă vizualizarea 3D — dimensiunile corpului rămân în rezumatul cererii."
+      },
       "zoneTypes": {
         "OPEN": "Deschis",
         "SHELVES": "Polițe",
@@ -1569,6 +1578,7 @@
         "hasIsland": {
           "title": "Vrei si o insula?",
           "subtitle": "Insula adauga blat, depozitare si un loc de servire.",
+          "cardLabel": "Insulă",
           "info": {
             "title": "Insula de bucatarie",
             "body": "Un corp independent in mijloc — necesita spatiu de trecere de minim 1.2 m pe fiecare latura.",

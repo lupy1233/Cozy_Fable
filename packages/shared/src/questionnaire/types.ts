@@ -107,7 +107,14 @@ export type MultiChoiceStep = BaseStep & {
   minSelected?: number;
   maxSelected?: number;
 };
-export type BooleanStep = BaseStep & { type: 'boolean'; scoringWhenTrue?: ScoringRef };
+// cardLabelKey: pur prezentational — eticheta cardului cand step-ul boolean se
+// randeaza ca toggle-card in stilul cardurilor de optiune (ex. insula pe
+// ecranul formelor de bucatarie). Lipsa → frontend-ul cade pe Da/Nu.
+export type BooleanStep = BaseStep & {
+  type: 'boolean';
+  scoringWhenTrue?: ScoringRef;
+  cardLabelKey?: string;
+};
 // Sloturile sunt FUNCTIE de raspunsurile anterioare (genuin dinamice) — permis
 // pentru ca definitia e cod TS partajat FE/BE, nu config DB.
 export type DimensionGroupStep = BaseStep & {

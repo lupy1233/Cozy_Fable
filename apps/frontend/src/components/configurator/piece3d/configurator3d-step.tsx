@@ -27,11 +27,19 @@ import {
   type Piece3dZoneType,
   type PieceConfig3d,
 } from '@marketplace/shared';
-import { Box, Lock, LockOpen, Minus, Plus, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import {
+  Box,
+  Lock,
+  LockOpen,
+  Minus,
+  MousePointerClick,
+  Plus,
+  RotateCcw,
+  SlidersHorizontal,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { FINISH_SPECS } from './finishes';
@@ -82,8 +90,16 @@ function DimensionControl({
   valueM: number;
   onValueM: (v: number) => void;
 }) {
+  // intervalul permis sta LANGA eticheta (nu sub slider) — economiseste un rand
+  // per dimensiune, ca panoul lateral din modul 3D sa incapa pe ecran (U2)
   return (
-    <Field label={label}>
+    <div>
+      <div className="mb-1 flex items-baseline justify-between gap-2">
+        <span className="text-sm font-medium">{label}</span>
+        <span className="text-[11px] text-muted-foreground">
+          {cm(min)}–{cm(max)} cm
+        </span>
+      </div>
       <div className="flex items-center gap-3">
         <input
           type="range"
@@ -113,10 +129,7 @@ function DimensionControl({
           </span>
         </div>
       </div>
-      <p className="mt-1 text-[11px] text-muted-foreground">
-        {cm(min)}–{cm(max)} cm
-      </p>
-    </Field>
+    </div>
   );
 }
 
@@ -587,8 +600,10 @@ export default function Configurator3dStepUI({
     </div>
   );
 
+  // in modul 3D sliderele stau unul sub altul in panoul lateral (lg);
+  // in modul cu campuri raman 3 pe rand ca inainte
   const dimensionControls = (
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div className={mode === '3d' ? 'grid gap-3 sm:grid-cols-3 lg:grid-cols-1' : 'grid gap-3 sm:grid-cols-3'}>
       <DimensionControl
         label={t('config3d.width')}
         min={rules.width.min}
@@ -962,8 +977,11 @@ export default function Configurator3dStepUI({
       {!webgl && <p className="text-sm text-muted-foreground">{t('config3d.webglMissing')}</p>}
 
       {mode === '3d' ? (
-        <div className="flex flex-col gap-4">
-          <div className="overflow-hidden rounded-xl border border-border-2">
+        // U2 (feedback PO r4): pe desktop scena sta sticky in stanga si toate
+        // comenzile intr-o coloana in dreapta — panoul zonei selectate apare
+        // LANGA model, nu sub el, ca totul sa incapa pe un singur ecran.
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_330px] lg:gap-5">
+          <div className="overflow-hidden rounded-xl border border-border-2 lg:sticky lg:top-20">
             <PieceCanvas
               kind={piece}
               config={config}
@@ -1010,14 +1028,25 @@ export default function Configurator3dStepUI({
               onSnapshotReady={(fn) => {
                 snapshotFn.current = fn;
               }}
-              className="h-[320px] w-full sm:h-[420px]"
+              className="h-[320px] w-full sm:h-[420px] lg:h-[500px]"
             />
           </div>
-          <p className="text-xs text-muted-foreground">{t('config3d.hint')}</p>
-          {zoneToolbar}
-          {dimensionControls}
-          {columnsControl}
-          {optionsControl}
+          <div className="flex min-w-0 flex-col gap-3">
+            {/* zona selectata sau indrumarea de interactiune (acelasi slot) */}
+            {zoneToolbar || (
+              <div className="flex items-start gap-2.5 rounded-xl border border-dashed border-border-2 bg-surface-2/50 p-3 text-xs leading-relaxed text-muted-foreground">
+                <MousePointerClick className="mt-0.5 h-4 w-4 shrink-0 text-walnut" />
+                <span>{t('config3d.hint')}</span>
+              </div>
+            )}
+            <div className="rounded-xl border border-border-2 bg-surface p-3">
+              {dimensionControls}
+            </div>
+            <div className="flex flex-col gap-3 rounded-xl border border-border-2 bg-surface p-3">
+              {columnsControl}
+              {optionsControl}
+            </div>
+          </div>
         </div>
       ) : (
         fieldsMode

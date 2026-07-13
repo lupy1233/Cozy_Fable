@@ -234,45 +234,32 @@ export function StepRenderer(props: StepRendererProps) {
   }
 
   if (step.type === 'boolean') {
-    // inline (add-on pe acelasi ecran, ex. insula): un singur card-comutator
+    // inline (add-on pe acelasi ecran, ex. insula): acelasi card "carte de joc"
+    // ca optiunile intrebarii principale, dar cu bifa de checkbox (U1, PO r4) —
+    // aliniat in aceeasi grila ca sa citeasca drept "inca un cartonas"
     if (inline) {
       const Illu = getIllustration(roomType, step.id, 'YES');
       const on = value === true;
       return (
         <StepShell step={step} onInfo={onInfo} error={error} inline>
-          <button
-            type="button"
-            onClick={() => onChange(!on)}
-            aria-pressed={on}
-            className={
-              'flex w-full items-center gap-4 rounded-xl border p-3.5 text-left shadow-sm transition-colors ' +
-              (on
-                ? 'border-walnut bg-walnut-soft shadow-[0_0_0_3px_hsl(var(--walnut)/0.14)]'
-                : 'border-border-2 bg-surface hover:border-muted-2')
-            }
-          >
-            {Illu && (
-              <span className={'h-14 w-20 shrink-0 ' + (on ? 'text-walnut' : 'text-muted-foreground')}>
-                <Illu className="h-full w-full" />
-              </span>
-            )}
-            <span className="flex-1 text-sm font-medium">
-              {t(on ? 'common.boolean.yes' : 'common.boolean.no')}
-            </span>
-            <span
-              className={
-                'relative h-6 w-11 shrink-0 rounded-full transition-colors ' +
-                (on ? 'bg-walnut' : 'bg-border-2')
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <PlayingCard
+              multi
+              selected={on}
+              onSelect={() => onChange(!on)}
+              title={t(step.cardLabelKey ?? 'common.boolean.yes')}
+              visual={
+                Illu ? (
+                  <Illu />
+                ) : (
+                  <span className="grid h-full w-full place-items-center [&_svg]:h-12 [&_svg]:w-12">
+                    <ConfiguratorIcon name={step.icon ?? 'package'} />
+                  </span>
+                )
               }
-            >
-              <span
-                className={
-                  'absolute top-0.5 h-5 w-5 rounded-full bg-background shadow transition-all ' +
-                  (on ? 'left-[22px]' : 'left-0.5')
-                }
-              />
-            </span>
-          </button>
+              info={step.info}
+            />
+          </div>
         </StepShell>
       );
     }

@@ -117,7 +117,10 @@ const config: Config = {
         },
       },
       animation: {
-        pageIn: 'pageIn 420ms cubic-bezier(0.22, 0.61, 0.36, 1) both',
+        // FARA fill-mode "both": pastra transform-ul pe element si dupa animatie,
+        // iar un stramos cu transform devine containing block pentru position:fixed
+        // — lightbox-urile se ancorau la inceputul documentului (U3, PO r4)
+        pageIn: 'pageIn 420ms cubic-bezier(0.22, 0.61, 0.36, 1)',
       },
     },
   },

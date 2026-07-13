@@ -8,13 +8,15 @@ import {
   type RequestItemDto,
   type RequestRoomDto,
 } from '@marketplace/shared';
-import { Layers, MoveDiagonal, NotebookPen, Paperclip } from 'lucide-react';
+import { Layers, MoveDiagonal, NotebookPen, Paperclip, Rotate3d } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { ConfiguratorIcon } from '@/lib/configurator-icons';
 import { ROOM_ICONS } from '@/lib/room-icons';
 import { AttachmentThumb } from './attachment-item';
 import { config3dChips } from './piece3d/config-chips';
+import { PieceViewer3dDialog } from './piece3d/dynamic';
 
 // Prezentarea structurata a unei camere din cerere (feedback PO item 6) —
 // inlocuieste lista plata Q→A pe paginile de detaliu (marketplace + client).
@@ -40,6 +42,8 @@ export function RoomSpecCard({
 }) {
   const t = useTranslations('Configurator');
   const tr = useTranslations('Requests');
+  // viewerul 3D read-only al piesei configurate de client (U4, PO r4)
+  const [viewer3d, setViewer3d] = useState(false);
 
   const answers = (room.answers ?? null) as AnswerMap | null;
   const entries: AnswerSummaryEntry[] = answers
@@ -107,27 +111,45 @@ export function RoomSpecCard({
       </div>
 
       <div className="flex flex-col gap-4 p-4">
-        {/* piesa configurata in 3D: snapshotul scenei + chips-urile config-ului */}
+        {/* piesa configurata in 3D: snapshotul scenei + chips-urile config-ului
+            + viewerul interactiv read-only (U4) */}
         {config3d && (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-            {snapshot && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={snapshot.downloadUrl ?? undefined}
-                alt={t('config3d.snapshotAlt')}
-                className="w-full max-w-64 shrink-0 rounded-lg border border-border-2 bg-surface-2 object-cover"
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+              {snapshot && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={snapshot.downloadUrl ?? undefined}
+                  alt={t('config3d.snapshotAlt')}
+                  className="w-full max-w-64 shrink-0 rounded-lg border border-border-2 bg-surface-2 object-cover"
+                />
+              )}
+              <div className="flex flex-wrap content-start gap-1.5">
+                {config3dChips(t, config3d.config).map((chip, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-baseline rounded-full border border-border-2 bg-surface-2 px-2.5 py-1 text-xs font-medium"
+                  >
+                    {chip}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setViewer3d(true)}
+              className="inline-flex items-center gap-1.5 self-start rounded-full border border-walnut/40 bg-walnut-soft/60 px-3 py-1.5 text-xs font-medium text-walnut transition-colors hover:border-walnut hover:bg-walnut-soft"
+            >
+              <Rotate3d className="h-3.5 w-3.5" />
+              {t('config3d.viewer.open')}
+            </button>
+            {viewer3d && (
+              <PieceViewer3dDialog
+                piece={config3d.piece}
+                config={config3d.config}
+                onClose={() => setViewer3d(false)}
               />
             )}
-            <div className="flex flex-wrap content-start gap-1.5">
-              {config3dChips(t, config3d.config).map((chip, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-baseline rounded-full border border-border-2 bg-surface-2 px-2.5 py-1 text-xs font-medium"
-                >
-                  {chip}
-                </span>
-              ))}
-            </div>
           </div>
         )}
 
