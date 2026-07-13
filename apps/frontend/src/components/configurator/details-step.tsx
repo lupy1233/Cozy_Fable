@@ -14,6 +14,7 @@ import {
   CalendarClock,
   CalendarRange,
   Infinity as InfinityIcon,
+  Lock,
   Plus,
   Sparkles,
   X,
@@ -117,17 +118,22 @@ export function DetailsStep({
   // numele localizate ale tarilor, din motorul Intl al browserului
   const regionNames = new Intl.DisplayNames([locale], { type: 'region' });
 
-  // emailul contului devine contactul implicit (F5, item 20) — doar daca
-  // clientul nu a completat deja ceva
+  // emailul contului e BLOCAT ca prima cale de comunicare (PO r5) — randul 0
+  // devine mereu emailul contului (read-only, fara stergere); ce a completat
+  // clientul in plus ramane pe randurile urmatoare
+  const accountEmail = me.data?.email ?? null;
   useEffect(() => {
-    const email = me.data?.email;
-    if (!email) return;
-    const first = contactValues?.[0];
-    if (contactValues?.length === 1 && first?.channel === 'EMAIL' && !first.value) {
-      setValue('contactPreferences.0.value', email, { shouldValidate: false });
-    }
+    if (!accountEmail) return;
+    const current = contactValues ?? [];
+    const isAccount = (c?: { channel: string; value: string }) =>
+      c?.channel === 'EMAIL' && c.value.trim().toLowerCase() === accountEmail.toLowerCase();
+    if (current.length > 0 && isAccount(current[0])) return;
+    const rest = current.filter((c) => !isAccount(c) && !(c.channel === 'EMAIL' && !c.value));
+    contacts.replace(
+      [{ channel: 'EMAIL' as const, value: accountEmail }, ...rest].slice(0, 4),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [me.data?.email]);
+  }, [accountEmail]);
 
   // cand soseste estimarea: initializeaza valoarea pe baza (sau clameaza una
   // salvata care a iesit din interval dupa editarea camerelor)
@@ -289,22 +295,44 @@ export function DetailsStep({
         <div className="flex flex-col gap-3">
           {contacts.fields.map((c, ci) => {
             const channel = contactValues?.[ci]?.channel ?? 'EMAIL';
+            // randul 0 = emailul contului, blocat (PO r5): fara schimbare de
+            // canal, fara editare, fara stergere
+            const locked = ci === 0 && !!accountEmail;
             return (
               <div key={c.id} className="grid grid-cols-[1fr_2fr_auto] items-start gap-3">
                 <Field label={t('field.contactChannel')}>
-                  <Select {...register(`contactPreferences.${ci}.channel` as const)}>
-                    {CONTACT_CHANNELS.map((ch) => (
-                      <option key={ch} value={ch}>
-                        {t(`contactChannel.${ch}`)}
-                      </option>
-                    ))}
-                  </Select>
+                  {locked ? (
+                    <div className="flex h-10 items-center gap-1.5 rounded-md border border-border-2 bg-surface-2 px-3 text-sm text-muted-foreground">
+                      <Lock className="h-3.5 w-3.5" />
+                      {t('contactChannel.EMAIL')}
+                    </div>
+                  ) : (
+                    <Select
+                      {...register(`contactPreferences.${ci}.channel` as const, {
+                        // schimbarea canalului goleste valoarea (PO r5): emailul
+                        // nu ramane in campul de telefon si invers
+                        onChange: () =>
+                          setValue(`contactPreferences.${ci}.value`, '', {
+                            shouldValidate: false,
+                          }),
+                      })}
+                    >
+                      {CONTACT_CHANNELS.map((ch) => (
+                        <option key={ch} value={ch}>
+                          {t(`contactChannel.${ch}`)}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
                 </Field>
                 <Field
-                  label={t('field.contactValue')}
+                  label={locked ? t('field.accountEmail') : t('field.contactValue')}
+                  hint={locked ? t('accountEmailLockedHint') : undefined}
                   error={vmsg(errors.contactPreferences?.[ci]?.value?.message)}
                 >
-                  {channel === 'PHONE' ? (
+                  {locked ? (
+                    <Input type="email" value={accountEmail ?? ''} disabled readOnly />
+                  ) : channel === 'PHONE' ? (
                     <PhoneInput
                       value={contactValues?.[ci]?.value ?? ''}
                       onChange={(v) =>
@@ -315,7 +343,7 @@ export function DetailsStep({
                     <Input type="email" {...register(`contactPreferences.${ci}.value` as const)} />
                   )}
                 </Field>
-                {contacts.fields.length > 1 && (
+                {!locked && contacts.fields.length > 1 && (
                   <Button
                     type="button"
                     variant="ghost"

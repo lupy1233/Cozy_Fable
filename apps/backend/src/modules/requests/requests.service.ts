@@ -207,13 +207,16 @@ export class RequestsService {
 
     // valideaza raspunsurile + deriva camere/items/scoring (sursa de adevar server)
     const processed = this.configurator.processRooms(dto.rooms);
-    this.assertContactFormats(dto.contactPreferences);
+    // emailul contului e mereu prima cale de comunicare (PO r5) — FE il blocheaza,
+    // serverul il garanteaza (prepend + dedupe) inainte de validarea formatelor
+    const contacts = await this.withAccountEmail(userId, dto.contactPreferences);
+    this.assertContactFormats(contacts);
     await this.inspiration.assertSelectable(dto.inspirationPhotoIds ?? []);
     await this.assertRoomAttachments(
       request.id,
       this.configurator.collectUploadAttachmentIds(processed.rooms),
     );
-    const geo = await this.geo.geocode(dto.addressText, dto.city, dto.county);
+    const geo = await this.geo.geocode(dto.addressText, dto.city, dto.county, dto.country);
     const sizing = await this.sizing.compute({
       scoreEntries: processed.scoreEntries,
       budgetRange: dto.budgetRange,
@@ -244,7 +247,7 @@ export class RequestsService {
         },
       });
       await this.writeRooms(tx, request.id, processed.rooms);
-      await this.writeContactPreferences(tx, request.id, dto.contactPreferences);
+      await this.writeContactPreferences(tx, request.id, contacts);
       await this.writeInspirationPhotos(tx, request.id, dto.inspirationPhotoIds);
       await this.writeVersion(tx, request.id, dto);
     });
@@ -276,7 +279,8 @@ export class RequestsService {
     const editCounters = this.assertEditableAndCount(request);
 
     const processed = this.configurator.processRooms(dto.rooms);
-    this.assertContactFormats(dto.contactPreferences);
+    const contacts = await this.withAccountEmail(request.clientUserId, dto.contactPreferences);
+    this.assertContactFormats(contacts);
     await this.inspiration.assertSelectable(dto.inspirationPhotoIds ?? []);
     await this.assertRoomAttachments(
       request.id,
@@ -285,9 +289,10 @@ export class RequestsService {
     const addressChanged =
       request.addressText !== dto.addressText ||
       request.city !== dto.city ||
-      request.county !== dto.county;
+      request.county !== dto.county ||
+      request.country !== (dto.country ?? 'RO');
     const geo = addressChanged
-      ? await this.geo.geocode(dto.addressText, dto.city, dto.county)
+      ? await this.geo.geocode(dto.addressText, dto.city, dto.county, dto.country)
       : { lat: request.lat, lng: request.lng };
     const sizing = await this.sizing.compute({
       scoreEntries: processed.scoreEntries,
@@ -311,7 +316,7 @@ export class RequestsService {
         },
       });
       await this.writeRooms(tx, request.id, processed.rooms);
-      await this.writeContactPreferences(tx, request.id, dto.contactPreferences);
+      await this.writeContactPreferences(tx, request.id, contacts);
       await this.writeInspirationPhotos(tx, request.id, dto.inspirationPhotoIds);
       await this.writeVersion(tx, request.id, dto);
     });
@@ -716,6 +721,28 @@ export class RequestsService {
         message: 'A blocked attachment is referenced by a room sketch',
       });
     }
+  }
+
+  // Emailul contului e intotdeauna prima cale de comunicare (PO r5, 2026-07-13):
+  // orice varianta a lui trimisa de client se scoate (dedupe case-insensitive),
+  // apoi se pune pe pozitia 0. Restul contactelor (email secundar / telefoane)
+  // raman in ordinea trimisa; capurile (max 4, max 2 per canal) se valideaza
+  // dupa, in assertContactFormats.
+  private async withAccountEmail(
+    userId: string | null,
+    contacts: CreateRequestContentDto['contactPreferences'],
+  ): Promise<CreateRequestContentDto['contactPreferences']> {
+    if (!userId) return contacts;
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+    const email = user?.email?.trim();
+    if (!email) return contacts;
+    const rest = (contacts ?? []).filter(
+      (c) => !(c.channel === 'EMAIL' && c.value.trim().toLowerCase() === email.toLowerCase()),
+    );
+    return [{ channel: 'EMAIL', value: email }, ...rest];
   }
 
   // Formatul valorilor de contact (email valid / telefon RO) — aceeasi schema

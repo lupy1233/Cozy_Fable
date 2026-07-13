@@ -14,10 +14,11 @@ const CITY: Record<string, { lat: number; lng: number; county: string }> = {
   Iasi: { lat: 47.1585, lng: 27.6014, county: 'Iasi' },
   Brasov: { lat: 45.658, lng: 25.6012, county: 'Brasov' },
 };
+// PO r5: cost = scorul de baza (1 credit = 1.000 lei din bugetul minim estimat)
 const SIZE = {
-  SMALL: { size: 'SMALL' as const, score: 10, cost: 1 },
-  MEDIUM: { size: 'MEDIUM' as const, score: 20, cost: 2 },
-  LARGE: { size: 'LARGE' as const, score: 35, cost: 4 },
+  SMALL: { size: 'SMALL' as const, score: 10, cost: 10 },
+  MEDIUM: { size: 'MEDIUM' as const, score: 20, cost: 20 },
+  LARGE: { size: 'LARGE' as const, score: 35, cost: 35 },
 };
 const daysAgo = (d: number) => new Date(Date.now() - d * 86400000);
 const daysAhead = (d: number) => new Date(Date.now() + d * 86400000);
@@ -65,14 +66,15 @@ async function main() {
     ownerName: string; ownerEmail: string;
   }
   const companySpecs: CompanySpec[] = [
-    { name: 'A Mobila Premium', city: 'Bucuresti', status: 'APPROVED', plan: 'GOLD', credits: 12, ownerName: 'Andrei A', ownerEmail: 'owner.a@demo.ro' },
-    { name: 'B DesignWood', city: 'Bucuresti', status: 'APPROVED', plan: 'PLATINUM', credits: 25, coverage: 100, ownerName: 'Florin B', ownerEmail: 'owner.b@demo.ro' },
-    { name: 'C CasaMea', city: 'Cluj', status: 'APPROVED', plan: 'SILVER', credits: 3, penaltyPoints: 3, ownerName: 'Calin C', ownerEmail: 'owner.c@demo.ro' },
+    // PO r5 (2026-07-13): toate firmele demo pornesc cu 200 de credite
+    { name: 'A Mobila Premium', city: 'Bucuresti', status: 'APPROVED', plan: 'GOLD', credits: 200, ownerName: 'Andrei A', ownerEmail: 'owner.a@demo.ro' },
+    { name: 'B DesignWood', city: 'Bucuresti', status: 'APPROVED', plan: 'PLATINUM', credits: 200, coverage: 100, ownerName: 'Florin B', ownerEmail: 'owner.b@demo.ro' },
+    { name: 'C CasaMea', city: 'Cluj', status: 'APPROVED', plan: 'SILVER', credits: 200, penaltyPoints: 3, ownerName: 'Calin C', ownerEmail: 'owner.c@demo.ro' },
     { name: 'D Atelier Bucov', city: 'Bucuresti', status: 'PENDING_VERIFICATION', ownerName: 'Doru D', ownerEmail: 'owner.d@demo.ro' },
     { name: 'E Lemn & Stil', city: 'Brasov', status: 'PENDING_VERIFICATION', riskFlags: ['LOW_RATING', 'INSUFFICIENT_REVIEWS', 'NO_PORTFOLIO'], ownerName: 'Emil E', ownerEmail: 'owner.e@demo.ro' },
     { name: 'F FastFurniture', city: 'Iasi', status: 'REJECTED', rejectedDaysAgo: 30, ownerName: 'Fane F', ownerEmail: 'owner.f@demo.ro' },
-    { name: 'G MobMaster', city: 'Timisoara', status: 'SUSPENDED', plan: 'GOLD', credits: 5, suspendedMonths: 6, penaltyPoints: 12, ownerName: 'Gelu G', ownerEmail: 'owner.g@demo.ro' },
-    { name: 'H VintageHaus', city: 'Bucuresti', status: 'APPROVED', plan: 'GOLD', subExpired: true, credits: 8, ownerName: 'Horia H', ownerEmail: 'owner.h@demo.ro' },
+    { name: 'G MobMaster', city: 'Timisoara', status: 'SUSPENDED', plan: 'GOLD', credits: 200, suspendedMonths: 6, penaltyPoints: 12, ownerName: 'Gelu G', ownerEmail: 'owner.g@demo.ro' },
+    { name: 'H VintageHaus', city: 'Bucuresti', status: 'APPROVED', plan: 'GOLD', subExpired: true, credits: 200, ownerName: 'Horia H', ownerEmail: 'owner.h@demo.ro' },
   ];
 
   const companies: Record<string, { id: string; ownerId: string }> = {};

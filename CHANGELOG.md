@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## Sprinturi V1–V4 — 2026-07-13 — feedback PO runda 5 (docs/15): cost credite = buget minim / 1.000, 200 credite demo, email cont blocat ca prim contact, geocodare robusta
+- **V1 Cost cerere in credite**: 1 credit = 1.000 lei din bugetul MINIM estimat (ex. 33.000 → 33 credite, minim 1) — `creditCostFromBaseScore` + `CREDIT_VALUE_RON` in shared; `SizingService` separa scorul de baza (camerele — identic cu `minRon/1.000` din `/requests/estimate`) de scorul total (+ buget + design platit) care ramane DOAR pentru marimea S/M/L (SLA). Costul de pe praguri nu se mai foloseste: input scos din Admin → Praguri, inlocuit cu nota formulei; coloana ramane legacy in DB.
+- **V2 Credite demo**: toate firmele demo pornesc cu 200 de credite (`seed-demo.ts`); costurile demo aliniate (cost = scor: 10/20/35). One-off pentru mediul seedat: `pnpm -F backend seed:demo-credits` (wallets → 200, `credit_cost = GREATEST(1, size_score)` pe cererile publicate; snapshot-urile claim-urilor raman istorice).
+- **V3 Email cont = cale de comunicare blocata**: primul contact e emailul contului — read-only cu lacat, fara stergere, hint explicativ (`details-step.tsx`); serverul il garanteaza la publish/edit prin `withAccountEmail` (dedupe + prepend, inainte de validarea capurilor). Bugfix: schimbarea canalului Email ↔ Telefon goleste valoarea (emailul nu mai ramane in campul de telefon). Se pot adauga max 1 email extra + 2 telefoane (capurile existente).
+- **V4 Geocodare robusta** (`geo.service.ts`): adresa curatata de bl./sc./ap./et., judet fara prefixul „Judetul"/„jud.", cautare in trepte adresa+oras+judet → oras+judet → oras (pauza 1,1s, rate-limit Nominatim), tara din cerere (ISO2, era hardcodata Romania) inclusiv in cheia de cache si in `addressChanged` la edit. `GEOCODING_FAILED` doar daca TOATE treptele esueaza — „Adresa nu a putut fi localizata" dispare pentru orase/judete valide.
+- Fara migrari DB. Fisiere: shared `request.schemas.ts`; backend `sizing.service.ts`, `requests.service.ts`, `geo.service.ts`, `seed.ts`, `seed-demo.ts`, `update-demo-credits.ts` (nou), `package.json`; frontend `details-step.tsx`, `admin/settings/page.tsx`, `ro.json`, `en.json`.
+
+### Checklist acceptare V1–V4
+- [ ] Cerere cu buget minim estimat 33.000 lei costa 33 de credite la claim (si scade exact atat din wallet).
+- [ ] Cerere minuscula costa minim 1 credit; Admin → Praguri fara input „cost", cu nota formulei.
+- [ ] Firmele demo au 200 de credite (seed nou sau `seed:demo-credits` pe mediul existent).
+- [ ] Primul contact = emailul contului (lacat, fara stergere); schimbarea canalului pe randurile libere goleste campul.
+- [ ] Adresa „Str. X nr. 3, bl. C2, sc. 1, ap. 7" + „Judetul Ilfov" se publica fara „Adresa nu a putut fi localizata".
+
 ## Sprinturi U1–U4 — 2026-07-13 — feedback PO runda 4 (docs/14): insula card-bifa, layout 3D pe un ecran, fix lightbox portofoliu, preview 3D read-only pentru firme
 - **U1 Insula = playing-card cu bifa**: pe ecranul formelor de bucatarie, insula nu mai e buton lat cu switch, ci acelasi card „carte de joc" ca formele (ilustratie, flip Info cu pros/cons/pret), cu indicator patrat de CHECKBOX care se bifeaza/debifeaza la click; camp nou pur prezentational `cardLabelKey` pe `BooleanStep` (shared) + eticheta „Insulă"/„Island" (i18n).
 - **U2 Controalele 3D pe un singur ecran** (`configurator3d-step.tsx`, /frontend-design): pe desktop scena 3D sta STICKY in stanga (500px) si toate comenzile intr-un rail de 330px in dreapta — panoul zonei selectate apare LANGA model (primul slot), nu sub el; fara zona selectata, slotul arata indrumarea de interactiune. Compactari: intervalul dimensiunilor langa eticheta (nu sub slider), coloane+finisaj+optiuni intr-un singur card, slidere verticale in rail. Mobil ramane stivuit; modul „campuri clasice" neatins.

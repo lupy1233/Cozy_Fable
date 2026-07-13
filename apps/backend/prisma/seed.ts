@@ -88,6 +88,9 @@ const SIZING_CONFIG: { key: string; option: string; weight: number }[] = [
   { key: 'BUDGET', option: 'UNDISCLOSED', weight: 0 },
 ];
 
+// PO r5 (2026-07-13): creditCost de pe praguri NU se mai foloseste la costul
+// cererii (1 credit = 1.000 lei din bugetul minim estimat, vezi SizingService).
+// Pragurile raman doar pentru clasificarea S/M/L (SLA, filtre marketplace).
 const THRESHOLDS: {
   size: 'SMALL' | 'MEDIUM' | 'LARGE';
   minScore: number;

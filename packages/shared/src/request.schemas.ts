@@ -28,6 +28,17 @@ export const BUDGET_RON_PER_POINT = 1000;
 export const BUDGET_RANGE_FACTOR = 3;
 export const MAX_BUDGET_RON = 10_000_000;
 
+// Costul cererii in credite (feedback PO r5, 2026-07-13): 1 credit = 1000 RON
+// din bugetul MINIM estimat (ex. minim 33.000 lei → 33 credite). Baza e scorul
+// camerelor (fara ponderea bucketului de buget si fara design platit — acelea
+// raman doar pentru clasificarea S/M/L si SLA). Minim 1 credit per cerere.
+export const CREDIT_VALUE_RON = 1000;
+
+export function creditCostFromBaseScore(baseScore: number): number {
+  const minBudgetRon = Math.max(0, baseScore) * BUDGET_RON_PER_POINT;
+  return Math.max(1, Math.ceil(minBudgetRon / CREDIT_VALUE_RON));
+}
+
 export function budgetRangeFromRon(ron: number): 'UNDER_5K' | 'FROM_5K_TO_15K' | 'OVER_15K' {
   if (ron < 5000) return 'UNDER_5K';
   if (ron <= 15000) return 'FROM_5K_TO_15K';

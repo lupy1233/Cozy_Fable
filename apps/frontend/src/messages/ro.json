@@ -513,9 +513,11 @@
       "contactChannel": "Canal",
       "contactValue": "Valoare",
       "contactPriority": "Prioritate",
+      "accountEmail": "Emailul contului",
       "message": "Mesaj pentru firme",
       "country": "Țară"
     },
+    "accountEmailLockedHint": "Emailul contului este mereu inclus ca și cale de comunicare. Poți adăuga în plus alte adrese de email sau numere de telefon.",
     "autoTitleLabel": "Titlu (generat automat)",
     "messageHint": "Opțional — orice altceva ar trebui să știe firmele.",
     "countryRomania": "România",
@@ -981,6 +983,7 @@
       "plans": "Planuri abonament",
       "packages": "Pachete credite",
       "thresholds": "Praguri mărime proiect",
+      "creditCostNote": "Costul cererii nu se mai setează pe prag: 1 credit = 1.000 lei din bugetul minim estimat (minim 1 credit). Pragurile decid doar mărimea S/M/L (SLA).",
       "save": "Salvează"
     },
     "jobs": {

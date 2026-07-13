@@ -48,6 +48,9 @@ export default function AdminSettingsPage() {
       </Section>
 
       <Section title={t('settings.thresholds')}>
+        {/* costul nu se mai seteaza pe prag (PO r5): 1 credit = 1.000 lei din
+            bugetul minim estimat; pragurile decid doar marimea S/M/L (SLA) */}
+        <p className="text-xs text-muted-foreground">{t('settings.creditCostNote')}</p>
         {thresholds.data?.map((th) => <ThresholdRow key={th.id} th={th} />)}
       </Section>
     </div>
@@ -139,15 +142,13 @@ function PackageRow({ p }: { p: AdminCreditPackage }) {
 function ThresholdRow({ th }: { th: AdminThreshold }) {
   const [min, setMin] = useState(th.minScore);
   const [max, setMax] = useState(th.maxScore ?? 0);
-  const [cost, setCost] = useState(th.creditCost);
   const m = useUpdateThreshold();
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
       <span className="w-24 shrink-0 font-medium">{th.size}</span>
       <label className="text-xs">min <input type="number" value={min} onChange={(e) => setMin(Number(e.target.value))} className={`${inp} w-16`} /></label>
       <label className="text-xs">max <input type="number" value={max} onChange={(e) => setMax(Number(e.target.value))} className={`${inp} w-16`} /></label>
-      <label className="text-xs">cost <input type="number" value={cost} onChange={(e) => setCost(Number(e.target.value))} className={`${inp} w-16`} /></label>
-      <SaveBtn pending={m.isPending} onClick={() => m.mutate({ id: th.id, minScore: min, maxScore: max, creditCost: cost })} />
+      <SaveBtn pending={m.isPending} onClick={() => m.mutate({ id: th.id, minScore: min, maxScore: max })} />
     </div>
   );
 }

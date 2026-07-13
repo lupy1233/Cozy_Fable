@@ -513,9 +513,11 @@
       "contactChannel": "Channel",
       "contactValue": "Value",
       "contactPriority": "Priority",
+      "accountEmail": "Account email",
       "message": "Message for firms",
       "country": "Country"
     },
+    "accountEmailLockedHint": "Your account email is always included as a communication channel. You can add extra email addresses or phone numbers.",
     "autoTitleLabel": "Title (generated automatically)",
     "messageHint": "Optional — anything else firms should know.",
     "countryRomania": "Romania",
@@ -981,6 +983,7 @@
       "plans": "Subscription plans",
       "packages": "Credit packages",
       "thresholds": "Project size thresholds",
+      "creditCostNote": "Request cost is no longer set per threshold: 1 credit = 1,000 RON of the minimum estimated budget (at least 1 credit). Thresholds only decide the S/M/L size (SLA).",
       "save": "Save"
     },
     "jobs": {
