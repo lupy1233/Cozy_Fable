@@ -103,7 +103,8 @@ export class RequestsService {
     const request = await this.prisma.request.findUnique({
       where: { draftTokenHash: this.hashToken(token) },
     });
-    if (!request) {
+    // o cerere stearsa (soft delete / ciorna aruncata) nu mai e accesibila prin token
+    if (!request || request.deletedAt) {
       throw new NotFoundException({
         code: ERROR_CODES.DRAFT_TOKEN_INVALID,
         message: 'Draft token invalid',
@@ -147,6 +148,24 @@ export class RequestsService {
   async getDraft(token: string): Promise<RequestDto> {
     const request = await this.findByToken(token);
     return this.toDto(request.id);
+  }
+
+  // "Incepe o cerere noua" (PO r5): ciorna abandonata se arunca, nu ramane in DB
+  // la nesfarsit. Soft delete, doar pe status DRAFT — dupa asta tokenul nu mai
+  // rezolva nimic (findByToken respinge cererile sterse).
+  async discardDraft(token: string): Promise<{ ok: true }> {
+    const request = await this.findByToken(token);
+    if (request.status !== 'DRAFT') {
+      throw new BadRequestException({
+        code: ERROR_CODES.REQUEST_NOT_EDITABLE,
+        message: 'Only drafts can be discarded',
+      });
+    }
+    await this.prisma.request.update({
+      where: { id: request.id },
+      data: { deletedAt: new Date() },
+    });
+    return { ok: true };
   }
 
   async patchDraft(token: string, dto: PatchDraftDto): Promise<RequestDto> {
@@ -372,9 +391,12 @@ export class RequestsService {
 
   // ---- liste client autenticat ----
 
+  // Ciornele NU apar in "Cererile mele" (PO r5): sunt goale, fara actiuni, si se
+  // acumuleaza la fiecare "Incepe o cerere noua". Reluarea unei ciorne se face
+  // din configurator (dialogul de resume, token in localStorage), nu din lista.
   async listForClient(userId: string): Promise<RequestListItemDto[]> {
     const rows = await this.prisma.request.findMany({
-      where: { clientUserId: userId, deletedAt: null },
+      where: { clientUserId: userId, deletedAt: null, status: { not: 'DRAFT' } },
       orderBy: { createdAt: 'desc' },
       include: {
         rooms: { select: { roomType: true } },
@@ -418,9 +440,13 @@ export class RequestsService {
     return request;
   }
 
-  // Statistici agregate pentru dashboardul clientului.
+  // Statistici agregate pentru dashboardul clientului (fara ciorne, ca lista).
   async dashboardStatsForClient(userId: string): Promise<ClientDashboardStatsDto> {
-    const where = { clientUserId: userId, deletedAt: null };
+    const where = {
+      clientUserId: userId,
+      deletedAt: null,
+      status: { not: 'DRAFT' as RequestStatus },
+    };
     const [total, grouped, offersReceived, activeClaims, recent] = await Promise.all([
       this.prisma.request.count({ where }),
       this.prisma.request.groupBy({ by: ['status'], where, _count: { _all: true } }),

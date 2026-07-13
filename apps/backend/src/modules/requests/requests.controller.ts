@@ -57,6 +57,14 @@ export class RequestsController {
     return this.requests.patchDraft(token, dto);
   }
 
+  // "Incepe o cerere noua": ciorna abandonata se arunca (soft delete). Tokenul
+  // e secretul de acces, ca la patch — fara el nu poti sterge nimic.
+  @Public()
+  @Delete('drafts/:token')
+  discardDraft(@Param('token') token: string) {
+    return this.requests.discardDraft(token);
+  }
+
   // Publicarea necesita autentificare (decizie: "fill as guest, login to publish").
   // Ruta ramane sub OptionalJwtAuthGuard ca sa putem returna o eroare clara daca
   // utilizatorul nu e logat; serviciul leaga draftul anonim de contul care publica.

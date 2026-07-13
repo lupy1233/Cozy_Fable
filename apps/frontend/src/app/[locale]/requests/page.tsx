@@ -27,9 +27,8 @@ type RequestTab = 'ALL' | 'ACTIVE' | 'IN_PROGRESS' | 'DONE' | 'EXPIRED';
 const TABS: RequestTab[] = ['ALL', 'ACTIVE', 'IN_PROGRESS', 'DONE', 'EXPIRED'];
 
 const TAB_STATUSES: Record<Exclude<RequestTab, 'ALL'>, RequestStatus[]> = {
-  // in piata: ciorne + tot ce inca aduna ateliere/oferte
+  // in piata: tot ce inca aduna ateliere/oferte (ciornele nu mai vin din API — PO r5)
   ACTIVE: [
-    'DRAFT',
     'IN_MARKETPLACE',
     'CLAIMED_PARTIAL',
     'CLAIMED_FULL',

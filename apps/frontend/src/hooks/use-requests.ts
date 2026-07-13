@@ -64,6 +64,17 @@ export function usePatchDraft(token: string) {
   });
 }
 
+// "Incepe o cerere noua": arunca ciorna abandonata de pe server (soft delete),
+// ca sa nu se acumuleze cereri goale in cont (PO r5).
+export function useDiscardDraft() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (token: string) =>
+      api<{ ok: true }>(`/requests/drafts/${token}`, { method: 'DELETE' }),
+    onSuccess: (_data, token) => qc.removeQueries({ queryKey: draftKey(token) }),
+  });
+}
+
 export function usePublishDraft(token: string) {
   const qc = useQueryClient();
   return useMutation({

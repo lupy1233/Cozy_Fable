@@ -17,6 +17,7 @@ import {
 import { Stepper } from '@/components/ui/stepper';
 import {
   useCreateDraft,
+  useDiscardDraft,
   useDraft,
   usePatchDraft,
   useRequest,
@@ -123,6 +124,7 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
 
   const draft = useDraft(isEdit ? null : token);
   const patchDraft = usePatchDraft(token ?? '');
+  const discardDraft = useDiscardDraft();
   const hydrated = useRef(false);
   // dialogul "continui sau incepi din nou?" cand exista o cerere neterminata
   const [resumePrompt, setResumePrompt] = useState(false);
@@ -152,12 +154,17 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     }
   }, [draft.data, isEdit, store]);
 
-  // "Incepe una noua": abandoneaza draftul curent (fara salvare) si creeaza altul.
+  // "Incepe una noua": arunca draftul curent de pe server (altfel s-ar aduna
+  // ciorne goale in cont — PO r5) si creeaza altul.
   const startFresh = () => {
     setResumePrompt(false);
+    const oldToken = token ?? localStorage.getItem(DRAFT_TOKEN_KEY);
     localStorage.removeItem(DRAFT_TOKEN_KEY);
     store.getState().reset();
     setToken(null);
+    // best-effort: un esec de stergere nu blocheaza cererea noua (ciorna ramane
+    // doar invizibila — listele de client exclud oricum status DRAFT)
+    if (oldToken) discardDraft.mutate(oldToken);
     createDraft
       .mutateAsync({})
       .then((res) => {
