@@ -90,6 +90,17 @@ function DimensionControl({
   valueM: number;
   onValueM: (v: number) => void;
 }) {
+  // draft local pentru campul numeric: valoarea afisata NU se leaga direct de
+  // valueM cat timp userul editeaza — altfel clamp-ul din normalizePieceConfig
+  // se aplica la fiecare tasta si "sare" inapoi la minim inainte sa apuce sa
+  // scrie a doua cifra (ex: sterge 50, vrea 25, dar 2 < min => revine la min)
+  const [draft, setDraft] = useState<string | null>(null);
+  const commit = (raw: string) => {
+    const v = Number(raw);
+    // camp golit / text invalid → ramane valoarea veche (nu sare la minim)
+    if (raw.trim() !== '' && Number.isFinite(v) && v > 0) onValueM(v / 100);
+    setDraft(null);
+  };
   // intervalul permis sta LANGA eticheta (nu sub slider) — economiseste un rand
   // per dimensiune, ca panoul lateral din modul 3D sa incapa pe ecran (U2)
   return (
@@ -115,12 +126,12 @@ function DimensionControl({
           <Input
             type="number"
             inputMode="numeric"
-            min={cm(min)}
-            max={cm(max)}
-            value={cm(valueM)}
-            onChange={(e) => {
-              const raw = Number(e.target.value);
-              if (Number.isFinite(raw)) onValueM(raw / 100);
+            value={draft ?? cm(valueM)}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={(e) => commit(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') e.currentTarget.blur();
+              else if (e.key === 'Escape') setDraft(null);
             }}
             className="pr-9 text-right"
           />
@@ -228,6 +239,15 @@ function LockableSize({
   lockLabel: string;
   unlockLabel: string;
 }) {
+  // valueCm e valoarea REZOLVATA (dupa clamp la minimul de 10/15cm etc.) —
+  // draft local ca sa nu "sara" inapoi la minim la fiecare tasta stearsa,
+  // inainte ca userul sa apuce sa scrie noua valoare (vezi DimensionControl)
+  const [draft, setDraft] = useState<string | null>(null);
+  const commit = (raw: string) => {
+    const v = Number(raw);
+    if (Number.isFinite(v) && v > 0) onValueCm(v);
+    setDraft(null);
+  };
   return (
     <div className="flex items-center gap-1.5">
       <span className="text-xs text-muted-foreground">{label}</span>
@@ -235,11 +255,12 @@ function LockableSize({
         <Input
           type="number"
           inputMode="numeric"
-          min={1}
-          value={valueCm}
-          onChange={(e) => {
-            const v = Number(e.target.value);
-            if (Number.isFinite(v) && v > 0) onValueCm(v);
+          value={draft ?? valueCm}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={(e) => commit(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.currentTarget.blur();
+            else if (e.key === 'Escape') setDraft(null);
           }}
           aria-label={label}
           className="h-8 pr-7 text-right text-sm"
@@ -264,6 +285,45 @@ function LockableSize({
         {locked ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
       </button>
     </div>
+  );
+}
+
+// Numarul de sertare/polite din modul "campuri clasice": acelasi tipar draft —
+// clamp-ul la [1, max] se aplica DOAR la commit (blur/Enter), nu la fiecare tasta.
+function ZoneCountInput({
+  max,
+  value,
+  onValue,
+  label,
+}: {
+  max: number;
+  value: number;
+  onValue: (v: number) => void;
+  label: string;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const commit = (raw: string) => {
+    const v = Number(raw);
+    if (raw.trim() !== '' && Number.isFinite(v) && v > 0) {
+      onValue(Math.max(1, Math.min(max, Math.round(v))));
+    }
+    setDraft(null);
+  };
+  return (
+    <Input
+      type="number"
+      inputMode="numeric"
+      title={label}
+      aria-label={label}
+      value={draft ?? value}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={(e) => commit(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur();
+        else if (e.key === 'Escape') setDraft(null);
+      }}
+      className="w-16 text-right"
+    />
   );
 }
 
@@ -892,20 +952,11 @@ export default function Configurator3dStepUI({
                     </div>
                   )}
                   {max !== undefined && (
-                    <Input
-                      type="number"
-                      min={1}
+                    <ZoneCountInput
                       max={max}
-                      title={t('config3d.countLabel')}
-                      aria-label={t('config3d.countLabel')}
                       value={zone.count ?? 1}
-                      onChange={(e) =>
-                        updateZone(
-                          { col: ci, zone: zi },
-                          { count: Math.max(1, Math.min(max, Number(e.target.value) || 1)) },
-                        )
-                      }
-                      className="w-16 text-right"
+                      label={t('config3d.countLabel')}
+                      onValue={(v) => updateZone({ col: ci, zone: zi }, { count: v })}
                     />
                   )}
                   {resolved && (
