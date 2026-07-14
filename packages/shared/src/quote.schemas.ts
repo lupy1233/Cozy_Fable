@@ -5,6 +5,11 @@ import {
   QUOTE_CHANGE_REQUEST_STATUSES,
   QUOTE_STATUSES,
 } from './enums';
+import type {
+  AttachmentDto,
+  ContactPreferenceDto,
+  RequestRoomDto,
+} from './request.schemas';
 
 // Sprint 6 — ofertare structurata (4.13 / D3 / D4 / D-v6-7 / D-v6-8 / D-v6-11 / D-v6-12).
 
@@ -171,8 +176,42 @@ export interface ConsultationInviteDto {
   createdAt: string;
 }
 
+// Detaliul complet al cererii pentru firma cu claim (PO r6): continutul
+// proiectului (camere cu answers pentru spec-carduri + viewer 3D, atasamente
+// presigned inclusiv snapshotul PNG al pieselor 3D, adresa completa).
+export interface ClaimRequestDetailDto {
+  description: string;
+  budgetRange: string;
+  budgetEstimateRon: number | null;
+  deadlineBucket: string | null;
+  hasOwnProject: boolean;
+  addressText: string;
+  city: string;
+  county: string;
+  country: string;
+  rooms: RequestRoomDto[];
+  attachments: AttachmentDto[];
+  inspirationPhotoIds: string[];
+}
+
+// Datele de contact ale clientului, vizibile firmei DUPA claim (decizie PO r6:
+// numele + caile de comunicare alese in cerere; inlocuieste gatingul granular 4.2).
+export interface ClaimClientDto {
+  name: string;
+  contacts: ContactPreferenceDto[];
+}
+
+// Cine a preluat / cine lucreaza (4.9) + termenul de atribuire (1h).
+export interface ClaimAssignmentDto {
+  claimedBy: { userId: string; name: string } | null;
+  assignedTo: { userId: string; name: string } | null;
+  assignDeadlineAt: string | null;
+}
+
 // Context pentru pagina firmei pe un claim: oferta curenta (daca exista) + date necesare
 // formularului de oferta (includes_paid_design) + thread-ul de chat.
+// PO r6: workspace-ul post-claim primeste TOT contextul dintr-un singur apel —
+// detaliul cererii, contactul clientului si atribuirea.
 export interface ClaimQuoteContextDto {
   claimSlotId: string;
   requestId: string;
@@ -186,6 +225,10 @@ export interface ClaimQuoteContextDto {
   // camerele cererii, pentru formularul de pret per camera (F7, item 22)
   rooms: { id: string; roomType: string }[];
   quote: QuoteDto | null;
+  detail: ClaimRequestDetailDto;
+  // null cand slotul nu mai e ocupant (anulat/retras) — contactul nu se mai arata
+  client: ClaimClientDto | null;
+  assignment: ClaimAssignmentDto;
 }
 
 export interface QuoteDto {

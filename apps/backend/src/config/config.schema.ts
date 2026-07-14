@@ -49,6 +49,16 @@ export const configSchema = z.object({
     .string()
     .min(1)
     .default('marketplace-mobilier/1.0 (contact: dev@marketplace.local)'),
+
+  // Criptare la stocare pentru corpul mesajelor de chat (PO r6): AES-256-GCM,
+  // cheia = 64 caractere hex (openssl rand -hex 32). Lipsa cheii = mesajele se
+  // stocheaza in clar (dev); mesajele vechi in clar raman citibile (dual-read).
+  // NU este end-to-end: serverul detine cheia — adminul poate accesa chatul in
+  // dispute (regula 4.18), iar conversatiile raman recuperabile.
+  MESSAGE_ENCRYPTION_KEY: z
+    .string()
+    .regex(/^[0-9a-fA-F]{64}$/, 'MESSAGE_ENCRYPTION_KEY must be 64 hex chars (32 bytes)')
+    .optional(),
 });
 
 export type AppConfig = z.infer<typeof configSchema>;

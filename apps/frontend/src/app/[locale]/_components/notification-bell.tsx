@@ -45,7 +45,8 @@ function hrefFor(type: string, payload: Payload, role: string | undefined): stri
     return `/requests/${requestId}/offers`;
   }
   if (role === 'COMPANY_USER') {
-    // conversatiile si ofertele firmei traiesc pe pagina de claims
+    // mesajele (client sau echipa) duc in mesagerie; restul pe pagina de claims
+    if (type === 'message.created') return '/marketplace/messages';
     return '/marketplace/claims';
   }
   return null;

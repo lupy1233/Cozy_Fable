@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## Sprinturi W1–W5 — 2026-07-15 — feedback PO runda 6 (docs/16): fisa de lucru a firmei post-claim, atribuire angajat, contact client, mesagerie + chat de echipa, criptare mesaje
+- **W1 Context post-claim complet**: `GET /quotes/by-claim/:id` intoarce detaliul cererii (camere cu answers, atasamente presigned inclusiv snapshotul PNG 3D, adresa completa), contactul clientului (nume + email/telefon — DOAR cat timp slotul e ocupant; anulat → null) si atribuirea (claimedBy/assignedTo/termen 1h). `MarketplaceDetailDto` + `attachments` (snapshotul 3D si schitele se vad si pre-claim — continut de proiect, nu contact).
+- **W2 Fisa de lucru (redesign /design)**: pagina claim-ului rescrisa — bara de lucru cu ATRIBUIRE (select membri pentru owner/manager, avertisment + termen auto-anulare cand e neatribuit), SLA si buget; dreapta: cardul clientului (mailto/tel + adresa), oferta, chat, clarificari/retragere; stanga: mesajul clientului, camerele cu snapshot + viewer 3D, fisierele generale, inspiratia. Dupa „Revendica" aterizezi direct in fisa (inainte: portofel).
+- **W3 Mesagerie firma** (`/marketplace/messages`, link nou in nav): master-detail cu lista conversatiilor (preview, necitite, doar-citire) si conversatia aleasa + link spre fisa de lucru; notificarile de mesaj duc aici.
+- **W4 Chat intern de firma**: migrare `chat_team_threads` (`chat_threads.thread_type` CLAIM/TEAM, `claim_slot_id` nullable, `company_id` UNIQUE) — un thread de echipa per firma, creat la prima accesare (`GET /company/chat/team`), mesaje pe rutele existente cu autorizare generalizata (client → 403, alta firma → 403, verificat); realtime doar catre membri, fara emailuri; tab „Echipa firmei" in mesagerie.
+- **W5 Criptare mesaje AT-REST (decizie: NU e2e)**: toate corpurile de mesaje se stocheaza AES-256-GCM (`enc.v1.<iv>.<cipher+tag>`, cheia `MESSAGE_ENCRYPTION_KEY` validata la boot; dual-read pentru mesajele vechi in clar; 7 teste unit). E2e real ar rupe regula 4.18 (adminul intra in chat la dispute) si ar pierde conversatiile la schimbarea device-ului — argumentat in docs/16 §W5. PROD: seteaza `MESSAGE_ENCRYPTION_KEY` inainte de deploy.
+- Verificat in preview cu conturile demo: context complet pe claim activ, atribuire Gina B prin select (server + UI), mesageria cu ambele taburi, mesaj de echipa vizibil membrilor si 403 pentru client/alta firma, `messages.body` = `enc.v1.…` in DB si clar in API. Typecheck + jest 39/39 verzi.
+
+### Checklist acceptare W1–W5
+- [ ] Revendica o cerere → fisa de lucru cu select de atribuire; atribuie unui angajat; regulile 4.9 dau erori clare.
+- [ ] Numele + contactele clientului apar dupa claim si dispar la retragere.
+- [ ] Snapshotul 3D al piesei apare firmei in detaliu si in fisa de lucru.
+- [ ] „Mesaje" in nav: conversatiile cu clientii + tab „Echipa firmei" izolat de clienti.
+- [ ] `messages.body` criptat in DB (enc.v1), mesajele lizibile in aplicatie, cele vechi neatinse.
+
 ## Sprinturi V1–V4 — 2026-07-13 — feedback PO runda 5 (docs/15): cost credite = buget minim / 1.000, 200 credite demo, email cont blocat ca prim contact, geocodare robusta
 - **V1 Cost cerere in credite**: 1 credit = 1.000 lei din bugetul MINIM estimat (ex. 33.000 → 33 credite, minim 1) — `creditCostFromBaseScore` + `CREDIT_VALUE_RON` in shared; `SizingService` separa scorul de baza (camerele — identic cu `minRon/1.000` din `/requests/estimate`) de scorul total (+ buget + design platit) care ramane DOAR pentru marimea S/M/L (SLA). Costul de pe praguri nu se mai foloseste: input scos din Admin → Praguri, inlocuit cu nota formulei; coloana ramane legacy in DB.
 - **V2 Credite demo**: toate firmele demo pornesc cu 200 de credite (`seed-demo.ts`); costurile demo aliniate (cost = scor: 10/20/35). One-off pentru mediul seedat: `pnpm -F backend seed:demo-credits` (wallets → 200, `credit_cost = GREATEST(1, size_score)` pe cererile publicate; snapshot-urile claim-urilor raman istorice).

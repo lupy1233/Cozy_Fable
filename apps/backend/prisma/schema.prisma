@@ -385,6 +385,8 @@ model Company {
   quotes              Quote[]
   consultationInvites PhysicalConsultationInvite[]
   penaltyEvents       PenaltyEvent[]
+  // chatul intern al firmei (PO r6) — un singur thread TEAM per firma
+  teamThread          ChatThread?
   reviews             Review[]
   billingOrders       MockBillingOrder[]
   inspirationPhotos   InspirationPhoto[]
@@ -868,15 +870,29 @@ model ClaimSlot {
 
 // docs/04 §4.14 — thread chat auto-creat la claim. last_client_message_at e folosit
 // de validarea CLIENT_UNRESPONSIVE_48H (4.15, Sprint 7).
-model ChatThread {
-  id                        String    @id @default(uuid())
-  claimSlotId               String    @unique @map("claim_slot_id")
-  negotiationEndedByCompany Boolean   @default(false) @map("negotiation_ended_by_company")
-  readOnly                  Boolean   @default(false) @map("read_only")
-  lastClientMessageAt       DateTime? @map("last_client_message_at") @db.Timestamptz()
-  createdAt                 DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+// PO r6: thread-ul devine generic — CLAIM (client ↔ firma, legat de claim_slot,
+// comportamentul istoric) sau TEAM (chatul intern al firmei: un thread per
+// firma, toti membrii, fara client). Mesajele/citirile/upload-urile raman comune.
+enum ChatThreadType {
+  CLAIM
+  TEAM
 
-  claimSlot ClaimSlot @relation(fields: [claimSlotId], references: [id], onDelete: Cascade)
+  @@map("chat_thread_type")
+}
+
+model ChatThread {
+  id                        String         @id @default(uuid())
+  threadType                ChatThreadType @default(CLAIM) @map("thread_type")
+  claimSlotId               String?        @unique @map("claim_slot_id")
+  // setat DOAR pe threadurile TEAM (cel de CLAIM isi ia firma din claim_slot)
+  companyId                 String?        @unique @map("company_id")
+  negotiationEndedByCompany Boolean        @default(false) @map("negotiation_ended_by_company")
+  readOnly                  Boolean        @default(false) @map("read_only")
+  lastClientMessageAt       DateTime?      @map("last_client_message_at") @db.Timestamptz()
+  createdAt                 DateTime       @default(now()) @map("created_at") @db.Timestamptz()
+
+  claimSlot ClaimSlot? @relation(fields: [claimSlotId], references: [id], onDelete: Cascade)
+  company   Company?   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   messages  Message[]
   reads     ChatThreadRead[]
 

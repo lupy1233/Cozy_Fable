@@ -59,7 +59,11 @@ export function useAssignClaim() {
         method: 'POST',
         body: JSON.stringify({ assignToUserId: input.assignToUserId }),
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: MY_CLAIMS_KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: MY_CLAIMS_KEY });
+      // workspace-ul claim-ului (PO r6) isi ia atribuirea din contextul quotes
+      qc.invalidateQueries({ queryKey: ['quotes'] });
+    },
   });
 }
 

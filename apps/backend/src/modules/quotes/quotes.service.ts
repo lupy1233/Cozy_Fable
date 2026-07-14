@@ -41,6 +41,7 @@ import { QUEUE_CONSULTATION_EXPIRY, QUEUE_QUOTE_VALIDITY } from '../../infra/que
 import type { CompanyContext } from '../../common/company-context/company-context';
 import { UploadsService, type PresignInput } from '../uploads/uploads.service';
 import { CreditsService } from '../billing/credits.service';
+import { OCCUPYING_CLAIM_STATUSES } from '../claims/claims.constants';
 import {
   DEFAULT_CONSULTATION_DAYS,
   DEFAULT_EUR_RON_RATE,
@@ -617,19 +618,24 @@ export class QuotesService {
 
   // ===== citiri =====
   // Context complet pentru pagina firmei pe un claim (oferta curenta + date formular).
+  // PO r6: workspace-ul firmei post-claim primeste tot contextul dintr-un apel —
+  // detaliul cererii (camere cu answers pentru spec-carduri/viewer 3D, atasamente
+  // presigned inclusiv snapshotul PNG, adresa completa), contactul clientului
+  // (DOAR cat timp slotul e ocupant — 4.2 rework r6) si atribuirea (4.9).
   async getClaimContext(ctx: CompanyContext, claimSlotId: string): Promise<ClaimQuoteContextDto> {
     const slot = await this.prisma.claimSlot.findUnique({
       where: { id: claimSlotId },
       include: {
         request: {
-          select: {
-            title: true,
-            includesPaidDesign: true,
-            // camerele pentru formularul de pret per camera (F7, item 22)
-            rooms: { select: { id: true, roomType: true, createdAt: true } },
+          include: {
+            rooms: { include: { items: true }, orderBy: { createdAt: 'asc' } },
+            contactPreferences: true,
+            inspirationPhotos: { select: { photoId: true } },
           },
         },
         chatThread: true,
+        claimedBy: { select: { id: true, name: true } },
+        assignedTo: { select: { id: true, name: true } },
       },
     });
     if (!slot || slot.companyId !== ctx.companyId) {
@@ -639,17 +645,79 @@ export class QuotesService {
       where: { claimSlotId, status: { not: 'WITHDRAWN' } },
       orderBy: { createdAt: 'desc' },
     });
+    const req = slot.request;
+    const [attachments, clientUser] = await Promise.all([
+      this.uploads.listForEntity('REQUEST', slot.requestId),
+      req.clientUserId
+        ? this.prisma.user.findUnique({
+            where: { id: req.clientUserId },
+            select: { name: true },
+          })
+        : null,
+    ]);
+    // contactul se arata doar cat timp firma e efectiv pe cerere
+    const occupying = OCCUPYING_CLAIM_STATUSES.includes(slot.status);
+    const rooms = sortByRoomOrder(req.rooms);
     return {
       claimSlotId,
       requestId: slot.requestId,
-      requestTitle: slot.request.title ?? '',
-      includesPaidDesign: slot.request.includesPaidDesign,
+      requestTitle: req.title ?? '',
+      includesPaidDesign: req.includesPaidDesign,
       threadId: slot.chatThread?.id ?? null,
       claimStatus: slot.status,
       slaDeadlineAt: slot.slaDeadlineAt?.toISOString() ?? null,
       slaPaused: slot.slaPausedAt !== null,
-      rooms: sortByRoomOrder(slot.request.rooms).map((r) => ({ id: r.id, roomType: r.roomType })),
+      rooms: rooms.map((r) => ({ id: r.id, roomType: r.roomType })),
       quote: open ? await this.getQuoteDto(open.id) : null,
+      detail: {
+        description: req.description ?? '',
+        budgetRange: req.budgetRange ?? 'UNDISCLOSED',
+        budgetEstimateRon: req.budgetEstimateRon,
+        deadlineBucket: req.deadlineBucket,
+        hasOwnProject: req.hasOwnProject,
+        addressText: occupying ? (req.addressText ?? '') : '',
+        city: req.city ?? '',
+        county: req.county ?? '',
+        country: req.country,
+        rooms: rooms.map((r) => ({
+          id: r.id,
+          roomType: r.roomType,
+          lengthM: r.lengthM,
+          widthM: r.widthM,
+          heightM: r.heightM,
+          answers: (r.answers ?? null) as Record<string, unknown> | null,
+          flowVersion: r.flowVersion,
+          items: r.items.map((it) => ({
+            id: it.id,
+            name: it.name,
+            material: it.material,
+            systems: it.systems,
+            description: it.description,
+            quantity: it.quantity,
+          })),
+        })),
+        attachments,
+        inspirationPhotoIds: req.inspirationPhotos.map((p) => p.photoId),
+      },
+      client: occupying
+        ? {
+            name: clientUser?.name ?? '',
+            contacts: req.contactPreferences.map((c) => ({
+              id: c.id,
+              channel: c.channel,
+              value: c.value,
+            })),
+          }
+        : null,
+      assignment: {
+        claimedBy: slot.claimedBy
+          ? { userId: slot.claimedBy.id, name: slot.claimedBy.name }
+          : null,
+        assignedTo: slot.assignedTo
+          ? { userId: slot.assignedTo.id, name: slot.assignedTo.name }
+          : null,
+        assignDeadlineAt: slot.assignDeadlineAt?.toISOString() ?? null,
+      },
     };
   }
 

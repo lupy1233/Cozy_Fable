@@ -8,7 +8,7 @@ import {
   SUBSCRIPTION_PLAN_TIERS,
   SUBSCRIPTION_STATUSES,
 } from './enums';
-import type { RequestRoomDto } from './request.schemas';
+import type { AttachmentDto, RequestRoomDto } from './request.schemas';
 
 // Sprint 5 — marketplace (listare cereri pentru firme) + claim + portofel credite.
 
@@ -57,6 +57,9 @@ export interface MarketplaceDetailDto extends MarketplaceItemDto {
   rooms: RequestRoomDto[];
   // pozele de inspiratie alese de client (F6); detaliile din GET /inspiration?ids=
   inspirationPhotoIds: string[];
+  // atasamentele cererii cu URL-uri presigned (PO r6): schitele per camera si
+  // snapshotul PNG al pieselor 3D — continut de proiect, nu date de contact (4.2)
+  attachments: AttachmentDto[];
 }
 
 export interface ClaimSlotDto {

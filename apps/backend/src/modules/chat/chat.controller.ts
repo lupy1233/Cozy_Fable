@@ -81,6 +81,13 @@ export class CompanyChatController {
     return this.chat.listThreadsForCompany(ctx.companyId, user.sub);
   }
 
+  // Chatul intern al firmei (PO r6): intoarce threadul TEAM (creat la prima
+  // accesare); mesajele merg pe rutele threads/:id existente.
+  @Get('team')
+  teamThread(@CurrentCompany() ctx: CompanyContext, @CurrentUser() user: AccessTokenPayload) {
+    return this.chat.getTeamThread(ctx.companyId, user.sub);
+  }
+
   @Get('threads/:id/messages')
   listMessages(
     @CurrentCompany() ctx: CompanyContext,

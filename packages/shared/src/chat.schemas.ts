@@ -48,3 +48,11 @@ export interface ChatThreadDto {
   } | null;
   createdAt: string;
 }
+
+// Chatul intern al firmei (PO r6): un singur thread TEAM per firma, creat la
+// prima accesare; mesajele/citirile folosesc aceleasi endpoint-uri ca threadurile
+// de claim (GET/POST /company/chat/threads/:id/...).
+export interface TeamThreadDto {
+  id: string;
+  unreadCount: number;
+}

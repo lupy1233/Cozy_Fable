@@ -13,18 +13,23 @@ import {
   type MessageDto,
   type PresignUploadResultDto,
   type SendMessageInput,
+  type TeamThreadDto,
 } from '@marketplace/shared';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { EventBusService } from '../../infra/event-bus/event-bus.service';
 import { UploadsService, type PresignInput } from '../uploads/uploads.service';
+import { MessageCryptoService } from './message-crypto.service';
 
 const ATTACHMENT_ENTITY = 'MESSAGE';
 
+// Context comun pentru ambele tipuri de thread (PO r6): CLAIM (client ↔ firma,
+// campurile cererii setate) si TEAM (chat intern de firma — fara cerere/client).
 interface ThreadContext {
   threadId: string;
-  claimSlotId: string;
-  requestId: string;
-  requestTitle: string;
+  threadType: 'CLAIM' | 'TEAM';
+  claimSlotId: string | null;
+  requestId: string | null;
+  requestTitle: string | null;
   companyId: string;
   companyName: string;
   clientUserId: string | null;
@@ -40,11 +45,13 @@ export class ChatService {
     private readonly prisma: PrismaService,
     private readonly uploads: UploadsService,
     private readonly eventBus: EventBusService,
+    private readonly crypto: MessageCryptoService,
   ) {}
 
   // --- autorizare participant ---
 
-  // Client: detine cererea. Firma: e membru al firmei care a dat claim-ul.
+  // Client: detine cererea (doar threaduri CLAIM). Firma: e membru al firmei
+  // care a dat claim-ul, respectiv al firmei threadului TEAM.
   private async loadThreadForUser(
     threadId: string,
     userId: string,
@@ -53,14 +60,41 @@ export class ChatService {
   ): Promise<ThreadContext> {
     const thread = await this.prisma.chatThread.findUnique({
       where: { id: threadId },
-      include: { claimSlot: { include: { request: true, company: true } } },
+      include: {
+        claimSlot: { include: { request: true, company: true } },
+        company: { select: { name: true } },
+      },
     });
     if (!thread) {
       throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Thread not found' });
     }
+
+    if (thread.threadType === 'TEAM') {
+      // chatul intern: DOAR membrii firmei; clientii nu au ce cauta aici
+      if (role !== 'COMPANY' || !companyId || thread.companyId !== companyId) {
+        throw new ForbiddenException({ code: ERROR_CODES.FORBIDDEN, message: 'Not your thread' });
+      }
+      return {
+        threadId: thread.id,
+        threadType: 'TEAM',
+        claimSlotId: null,
+        requestId: null,
+        requestTitle: null,
+        companyId: thread.companyId,
+        companyName: thread.company?.name ?? '',
+        clientUserId: null,
+        readOnly: thread.readOnly,
+        negotiationEndedByCompany: false,
+      };
+    }
+
     const slot = thread.claimSlot;
+    if (!slot) {
+      throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Thread not found' });
+    }
     const ctx: ThreadContext = {
       threadId: thread.id,
+      threadType: 'CLAIM',
       claimSlotId: slot.id,
       requestId: slot.requestId,
       requestTitle: slot.request.title ?? '',
@@ -103,22 +137,34 @@ export class ChatService {
 
   async listThreadsForClient(userId: string): Promise<ChatThreadDto[]> {
     const threads = await this.prisma.chatThread.findMany({
-      where: { claimSlot: { request: { clientUserId: userId } } },
+      where: { threadType: 'CLAIM', claimSlot: { request: { clientUserId: userId } } },
       include: this.threadInclude,
       orderBy: { createdAt: 'desc' },
     });
     const unread = await this.unreadByThread(threads.map((t) => t.id), userId);
-    return threads.map((t) => this.toThreadDto(t, unread.get(t.id) ?? 0));
+    return this.toThreadDtos(threads, unread);
   }
 
   async listThreadsForCompany(companyId: string, userId: string): Promise<ChatThreadDto[]> {
     const threads = await this.prisma.chatThread.findMany({
-      where: { claimSlot: { companyId } },
+      where: { threadType: 'CLAIM', claimSlot: { companyId } },
       include: this.threadInclude,
       orderBy: { createdAt: 'desc' },
     });
     const unread = await this.unreadByThread(threads.map((t) => t.id), userId);
-    return threads.map((t) => this.toThreadDto(t, unread.get(t.id) ?? 0));
+    return this.toThreadDtos(threads, unread);
+  }
+
+  // Chatul intern al firmei (PO r6): un singur thread TEAM per firma, creat
+  // la prima accesare (upsert pe company_id unique — sigur la accese paralele).
+  async getTeamThread(companyId: string, userId: string): Promise<TeamThreadDto> {
+    const thread = await this.prisma.chatThread.upsert({
+      where: { companyId },
+      update: {},
+      create: { companyId, threadType: 'TEAM' },
+    });
+    const unread = await this.unreadByThread([thread.id], userId);
+    return { id: thread.id, unreadCount: unread.get(thread.id) ?? 0 };
   }
 
   // Necitite per thread pentru utilizatorul curent (idee 1 PO r2): mesajele
@@ -204,8 +250,9 @@ export class ChatService {
     }
 
     const message = await this.prisma.$transaction(async (tx) => {
+      // corpul se cripteaza la stocare (PO r6) — DTO-ul intoarce mereu clarul
       const created = await tx.message.create({
-        data: { chatThreadId: threadId, senderUserId: userId, body },
+        data: { chatThreadId: threadId, senderUserId: userId, body: this.crypto.encrypt(body) },
       });
       if (attachmentIds.length > 0) {
         // muta atasamentele din bucket-ul thread-ului pe mesajul nou.
@@ -224,7 +271,9 @@ export class ChatService {
     const [dtoMsg] = await this.mapMessages([message], userId);
     const targets = await this.participantUserIds(ctx);
     // payload cu context afisabil (titlul cererii + firma + rolul expeditorului):
-    // notificarile pot construi un titlu clar si un deep-link (item 5)
+    // notificarile pot construi un titlu clar si un deep-link (item 5).
+    // TEAM: fara cerere/client → emailul de "mesaj nou" nu pleaca (clientUserId
+    // null), notificarile in-app merg la ceilalti membri.
     await this.eventBus.publish(
       'message.created',
       {
@@ -235,6 +284,7 @@ export class ChatService {
         requestId: ctx.requestId,
         requestTitle: ctx.requestTitle,
         companyName: ctx.companyName,
+        teamChat: ctx.threadType === 'TEAM',
         // emailul de "mesaj nou" merge doar la partea cealalta (Q4, idee 5)
         clientUserId: ctx.clientUserId,
       },
@@ -292,17 +342,20 @@ export class ChatService {
         senderUserId: m.senderUserId,
         senderName: nameById.get(m.senderUserId) ?? 'Utilizator',
         isMine: m.senderUserId === viewerUserId,
-        body: m.body,
+        // stocat criptat (PO r6); mesajele istorice in clar trec neatinse
+        body: this.crypto.decrypt(m.body),
         attachments: await this.uploads.listForEntity(ATTACHMENT_ENTITY, m.id),
         createdAt: m.createdAt.toISOString(),
       })),
     );
   }
 
-  private toThreadDto(
-    t: {
+  // listele expun DOAR threadurile CLAIM (where-ul filtreaza threadType);
+  // guard-ul pe claimSlot exista pentru tipul Prisma (nullable dupa PO r6)
+  private toThreadDtos(
+    threads: Array<{
       id: string;
-      claimSlotId: string;
+      claimSlotId: string | null;
       readOnly: boolean;
       negotiationEndedByCompany: boolean;
       createdAt: Date;
@@ -312,32 +365,39 @@ export class ChatService {
         status: string;
         request: { title: string | null; clientUserId: string | null };
         company: { name: string };
-      };
+      } | null;
       messages: { body: string | null; senderUserId: string; createdAt: Date }[];
-    },
-    unreadCount = 0,
-  ): ChatThreadDto {
-    const last = t.messages[0];
-    return {
-      id: t.id,
-      claimSlotId: t.claimSlotId,
-      requestId: t.claimSlot.requestId,
-      requestTitle: t.claimSlot.request.title ?? '',
-      companyId: t.claimSlot.companyId,
-      companyName: t.claimSlot.company.name,
-      readOnly: t.readOnly,
-      negotiationEndedByCompany: t.negotiationEndedByCompany,
-      claimStatus: t.claimSlot.status,
-      unreadCount,
-      lastMessage: last
-        ? {
-            body: last.body,
-            senderRole:
-              last.senderUserId === t.claimSlot.request.clientUserId ? 'CLIENT' : 'COMPANY',
-            createdAt: last.createdAt.toISOString(),
-          }
-        : null,
-      createdAt: t.createdAt.toISOString(),
-    };
+    }>,
+    unread: Map<string, number>,
+  ): ChatThreadDto[] {
+    return threads.flatMap((t) => {
+      const slot = t.claimSlot;
+      if (!slot || !t.claimSlotId) return [];
+      const last = t.messages[0];
+      return [
+        {
+          id: t.id,
+          claimSlotId: t.claimSlotId,
+          requestId: slot.requestId,
+          requestTitle: slot.request.title ?? '',
+          companyId: slot.companyId,
+          companyName: slot.company.name,
+          readOnly: t.readOnly,
+          negotiationEndedByCompany: t.negotiationEndedByCompany,
+          claimStatus: slot.status,
+          unreadCount: unread.get(t.id) ?? 0,
+          lastMessage: last
+            ? {
+                body: this.crypto.decrypt(last.body),
+                senderRole: (last.senderUserId === slot.request.clientUserId
+                  ? 'CLIENT'
+                  : 'COMPANY') as 'CLIENT' | 'COMPANY',
+                createdAt: last.createdAt.toISOString(),
+              }
+            : null,
+          createdAt: t.createdAt.toISOString(),
+        },
+      ];
+    });
   }
 }

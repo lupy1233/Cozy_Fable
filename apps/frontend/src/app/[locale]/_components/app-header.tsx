@@ -25,6 +25,7 @@ const NAV_BY_ROLE: Record<string, { href: string; key: string }[]> = {
     { href: '/company', key: 'company' },
     { href: '/marketplace', key: 'marketplace' },
     { href: '/marketplace/claims', key: 'claims' },
+    { href: '/marketplace/messages', key: 'messages' },
     { href: '/marketplace/wallet', key: 'wallet' },
   ],
   ADMIN: [{ href: '/admin', key: 'admin' }],

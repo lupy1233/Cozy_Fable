@@ -69,12 +69,13 @@ export default function MarketplaceDetailPage() {
       </div>
 
       {/* Camere (fara date de contact pre-claim, invarianta 4.2) — prezentare
-          structurata per camera, cu navigare cand sunt multe (item 6) */}
+          structurata per camera, cu navigare cand sunt multe (item 6).
+          Atasamentele (PO r6) aduc schitele + snapshotul PNG al pieselor 3D. */}
       <div className="flex flex-col gap-3">
         <h2 className="font-serif text-xl">{t('sectionRooms')}</h2>
         <RoomSpecNav rooms={r.rooms} />
         {r.rooms.map((room, i) => (
-          <RoomSpecCard key={room.id} room={room} index={i + 1} />
+          <RoomSpecCard key={room.id} room={room} index={i + 1} attachments={r.attachments} />
         ))}
       </div>
 
@@ -124,7 +125,9 @@ function ClaimPanel({ request }: { request: MarketplaceDetailDto }) {
           onClick={() =>
             claim.mutate(
               { requestId: request.id },
-              { onSuccess: () => router.push('/marketplace/wallet') },
+              // dupa revendicare aterizezi direct in fisa de lucru (PO r6):
+              // acolo atribui cererea unui angajat si vezi contactul clientului
+              { onSuccess: (slot) => router.push(`/marketplace/claims/${slot.id}`) },
             )
           }
           disabled={claim.isPending || full || insufficient}

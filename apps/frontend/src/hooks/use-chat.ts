@@ -8,6 +8,7 @@ import type {
   PresignUploadInput,
   PresignUploadResultDto,
   SendMessageInput,
+  TeamThreadDto,
 } from '@marketplace/shared';
 import { api } from '@/lib/api';
 
@@ -22,6 +23,17 @@ export function useThreads(mode: ChatMode) {
   return useQuery({
     queryKey: THREADS_KEY(mode),
     queryFn: () => api<ChatThreadDto[]>(`${prefix(mode)}/threads`),
+    retry: false,
+  });
+}
+
+// Chatul intern al firmei (PO r6): threadul TEAM e creat de server la prima
+// accesare; mesajele folosesc aceleasi hooks cu mode='company'.
+export function useTeamThread(enabled = true) {
+  return useQuery({
+    queryKey: ['chat', 'team'],
+    queryFn: () => api<TeamThreadDto>('/company/chat/team'),
+    enabled,
     retry: false,
   });
 }

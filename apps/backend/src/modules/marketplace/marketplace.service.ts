@@ -8,6 +8,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { SettingsService } from '../../common/settings/settings.service';
+import { UploadsService } from '../uploads/uploads.service';
 import { CLAIMABLE_STATUSES, OCCUPYING_CLAIM_STATUSES } from '../claims/claims.constants';
 
 // Statusuri ca literal SQL (constante de cod, fara input user).
@@ -37,6 +38,7 @@ export class MarketplaceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly settings: SettingsService,
+    private readonly uploads: UploadsService,
   ) {}
 
   // Listare cereri eligibile pentru firma (4.8/4.10/4.11):
@@ -70,14 +72,20 @@ export class MarketplaceService {
       include: { items: true },
       orderBy: { createdAt: 'asc' },
     });
-    const inspiration = await this.prisma.requestInspirationPhoto.findMany({
-      where: { requestId },
-      select: { photoId: true },
-    });
+    const [inspiration, attachments] = await Promise.all([
+      this.prisma.requestInspirationPhoto.findMany({
+        where: { requestId },
+        select: { photoId: true },
+      }),
+      // atasamentele cererii (PO r6): schitele per camera + snapshotul PNG al
+      // pieselor 3D — continut de proiect (nu date de contact), presigned (3.4)
+      this.uploads.listForEntity('REQUEST', requestId),
+    ]);
     return {
       ...this.toItem(row),
       deadlineBucket: row.desired_deadline_bucket,
       inspirationPhotoIds: inspiration.map((p) => p.photoId),
+      attachments,
       // createdAt identic in tranzactia de publish → ordinea canonica = ROOM_ORDER
       rooms: sortByRoomOrder(rooms).map((room) => ({
         id: room.id,
