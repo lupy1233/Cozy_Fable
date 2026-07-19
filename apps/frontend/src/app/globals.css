@@ -199,8 +199,11 @@
   }
 
   /* reveal la scroll: elementele cu data-reveal urca si apar in cascada,
-     delay per element prin --rd (ms); parintele primeste .in-view */
-  [data-reveal] {
+     delay per element prin --rd (ms); parintele primeste .in-view.
+     A1: starea ASCUNSA se aplica DOAR sub .reveal-armed — clasa e pusa de JS
+     dupa hidratare. Fara JS / cu hidratare esuata, continutul ramane vizibil
+     (nimic nu sta permanent la opacity 0). */
+  .reveal-armed [data-reveal] {
     opacity: 0;
     transform: translateY(16px);
     transition:
@@ -208,9 +211,30 @@
       transform 700ms cubic-bezier(0.22, 0.61, 0.36, 1);
     transition-delay: calc(var(--rd, 0) * 1ms);
   }
-  .in-view [data-reveal] {
+  .reveal-armed.in-view [data-reveal] {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* A4: glisarea pozelor in lightbox — intrare directionala; fara fill-mode,
+   starea finala e cea naturala (vizibila chiar daca animatia nu ruleaza) */
+.lightbox-slide-left {
+  animation: lightboxSlideLeft 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.lightbox-slide-right {
+  animation: lightboxSlideRight 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+@keyframes lightboxSlideLeft {
+  from {
+    opacity: 0.35;
+    transform: translateX(56px);
+  }
+}
+@keyframes lightboxSlideRight {
+  from {
+    opacity: 0.35;
+    transform: translateX(-56px);
   }
 }
 
@@ -233,5 +257,23 @@
     animation-duration: 0.01ms !important;
     animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
+  /* A1: stari FINALE explicite — nu depindem de rularea animatiilor
+     (unele browsere/extensii le anuleaza de tot in loc sa le scurteze,
+     iar `forwards` nu s-ar mai aplica → continut blocat la opacity 0) */
+  .plan-draw [data-draw] {
+    animation: none !important;
+    stroke-dasharray: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+  .plan-draw [data-fade] {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
   }
 }

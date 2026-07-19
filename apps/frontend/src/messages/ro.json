@@ -94,7 +94,9 @@
     "register": "Înregistrare",
     "forCompanies": "Pentru firme",
     "logout": "Deconectare",
-    "menu": "Meniu"
+    "menu": "Meniu",
+    "terms": "Termeni și Condiții",
+    "privacy": "Politica de Confidențialitate"
   },
   "Partners": {
     "title": "Atelierele partenere",
@@ -1216,7 +1218,8 @@
       "tabBoards": "Colecțiile mele",
       "boardsEmpty": "Nu ai încă nicio colecție. Salvează poze în Caietul de idei și le regăsești aici.",
       "boardCount": "{count, plural, one {# poză} few {# poze} other {# de poze}}",
-      "backToBoards": "Colecții"
+      "backToBoards": "Colecții",
+      "confirm": "Continuă"
     },
     "info": {
       "pros": "Avantaje",
@@ -3809,6 +3812,87 @@
         "sketch": {
           "title": "Ai o schita?",
           "subtitle": "Optional — spatiul unde va sta bancuta."
+        }
+      }
+    }
+  },
+  "Legal": {
+    "lastUpdated": "Ultima actualizare: iulie 2026",
+    "terms": {
+      "title": "Termeni și Condiții",
+      "sections": {
+        "intro": {
+          "h": "1. Cine suntem și ce este CozyHome",
+          "b": "Platforma CozyHome (denumită în continuare „Platforma”) este operată de [DENUMIRE LEGALĂ FIRMĂ], CUI [CUI], cu sediul în [ADRESĂ] (denumită în continuare „Operatorul”, „noi”).\n\nCozyHome este un marketplace care pune în legătură persoane care doresc mobilier la comandă („Clienți”) cu ateliere și firme de mobilier partenere („Ateliere”). Platforma facilitează publicarea cererilor, preluarea lor de către Ateliere, comunicarea și transmiterea ofertelor; contractul de execuție a mobilierului se încheie direct între Client și Atelier, iar Operatorul nu este parte a acestuia."
+        },
+        "accounts": {
+          "h": "2. Conturi și utilizarea Platformei",
+          "b": "Pentru publicarea unei cereri sau pentru transmiterea de oferte este necesar un cont. Ești responsabil pentru confidențialitatea datelor de autentificare și pentru toate acțiunile efectuate din contul tău.\n\nTe obligi să furnizezi informații reale și complete, să nu publici conținut ilegal, înșelător sau ofensator și să nu folosești Platforma pentru a ocoli scopul ei (de exemplu, colectarea de date ale altor utilizatori sau publicitate nesolicitată). Ne rezervăm dreptul de a suspenda sau închide conturile care încalcă acești termeni."
+        },
+        "flow": {
+          "h": "3. Cereri, revendicări și oferte",
+          "b": "Clientul publică o cerere cu detaliile proiectului; un număr limitat de Ateliere o pot prelua și pot transmite oferte. Datele de contact ale Clientului devin vizibile doar Atelierelor care au preluat cererea.\n\nOfertele transmise de Ateliere sunt propuneri comerciale ale acestora. Prețurile, termenele, garanțiile și orice alte condiții aparțin exclusiv Atelierului care le emite. Estimările de buget afișate de Platformă sunt orientative și nu constituie oferte."
+        },
+        "credits": {
+          "h": "4. Credite și abonamente pentru Ateliere",
+          "b": "Accesul Atelierelor la cereri funcționează pe bază de abonament și credite. Creditele consumate pentru preluarea unei cereri nu se restituie decât în cazurile prevăzute explicit în regulile Platformei (de exemplu, anularea cererii de către Client sau retrageri în condițiile acceptate).\n\nTarifele și pachetele sunt afișate în Platformă și pot fi modificate; modificările nu afectează creditele deja achiziționate."
+        },
+        "liability": {
+          "h": "5. Răspundere",
+          "b": "Operatorul depune eforturi rezonabile pentru funcționarea continuă a Platformei, dar nu garantează lipsa erorilor sau disponibilitatea neîntreruptă.\n\nOperatorul nu răspunde pentru executarea, calitatea, livrarea sau garanția mobilierului contractat între Client și Atelier și nici pentru conținutul publicat de utilizatori. Eventualele dispute dintre Client și Atelier se soluționează între aceștia; Platforma poate interveni ca mediator în limitele funcționalităților de dispută existente."
+        },
+        "ip": {
+          "h": "6. Proprietate intelectuală",
+          "b": "Platforma, marca CozyHome, designul și conținutul propriu sunt protejate de drepturi de proprietate intelectuală și nu pot fi folosite fără acordul nostru scris.\n\nPrin încărcarea de conținut (fotografii, schițe, descrieri), utilizatorii acordă Operatorului o licență neexclusivă de a-l afișa în Platformă în scopul funcționării serviciului. Atelierele garantează că au drepturile necesare asupra fotografiilor din portofoliu."
+        },
+        "changes": {
+          "h": "7. Modificarea termenilor",
+          "b": "Putem actualiza acești termeni pentru a reflecta schimbări legislative sau de funcționalitate. Versiunea curentă este publicată permanent pe această pagină, iar modificările semnificative vor fi anunțate în Platformă. Continuarea utilizării după publicare înseamnă acceptarea termenilor actualizați."
+        },
+        "law": {
+          "h": "8. Legea aplicabilă și contact",
+          "b": "Acești termeni sunt guvernați de legea română. Eventualele litigii se soluționează pe cale amiabilă, iar în lipsa unui acord, de instanțele competente din România.\n\nPentru orice întrebări legate de acești termeni ne poți scrie la [EMAIL CONTACT]."
+        }
+      }
+    },
+    "privacy": {
+      "title": "Politica de Confidențialitate",
+      "sections": {
+        "intro": {
+          "h": "1. Operatorul datelor",
+          "b": "Datele tale personale sunt prelucrate de [DENUMIRE LEGALĂ FIRMĂ], CUI [CUI], cu sediul în [ADRESĂ] („Operatorul”), în conformitate cu Regulamentul (UE) 2016/679 (GDPR).\n\nNe poți contacta pentru orice subiect legat de protecția datelor la [EMAIL CONTACT]."
+        },
+        "data": {
+          "h": "2. Ce date colectăm și de ce",
+          "b": "Colectăm și stocăm următoarele categorii de date:\n\n• Date de cont: nume, adresă de email, parolă (stocată criptat), preferință de limbă — pentru crearea și administrarea contului.\n• Date din cereri: descrierea proiectului, adresa de livrare/montaj, orașul și județul, căile de contact alese (email, telefon) — pentru publicarea cererii și, după preluare, pentru a fi transmise Atelierelor care o lucrează.\n• Date ale Atelierelor: denumire, CUI, adrese, echipă — pentru verificarea și afișarea firmei în Platformă.\n• Conținutul conversațiilor purtate în Platformă (stocat criptat) și fișierele încărcate — pentru funcționarea mesageriei și a ofertelor.\n• Date tehnice și de utilizare: adresa IP, tipul dispozitivului, paginile accesate și acțiunile efectuate în Platformă.\n\nTemeiurile prelucrării sunt executarea contractului (furnizarea serviciului), interesul legitim (siguranța și îmbunătățirea Platformei) și, unde legea o cere, consimțământul tău."
+        },
+        "usage": {
+          "h": "3. Date de utilizare și îmbunătățirea produsului",
+          "b": "Analizăm modul în care este folosită Platforma (pagini vizitate, funcționalități folosite, erori întâmpinate) pentru a înțelege ce funcționează și ce trebuie îmbunătățit. Aceste analize folosesc pe cât posibil date agregate sau pseudonimizate și nu urmăresc crearea de profiluri individuale în alte scopuri decât îmbunătățirea produsului și securitatea serviciului."
+        },
+        "marketing": {
+          "h": "4. Marketing și publicitate",
+          "b": "Cu consimțământul tău, îți putem trimite comunicări comerciale despre Platformă (noutăți, funcționalități, oferte) și putem folosi date de utilizare pentru campanii de marketing și publicitate mai relevante.\n\nÎți poți retrage consimțământul oricând, cu efect imediat: din setările contului, prin linkul de dezabonare prezent în fiecare email sau scriindu-ne la [EMAIL CONTACT]. Retragerea consimțământului nu afectează folosirea normală a Platformei."
+        },
+        "sharing": {
+          "h": "5. Cui transmitem datele",
+          "b": "Datele din cereri (inclusiv numele și căile de contact) sunt transmise exclusiv Atelierelor care au preluat cererea ta, în scopul contactării și ofertării.\n\nFolosim furnizori de infrastructură (găzduire, stocare fișiere, trimitere emailuri) care prelucrează datele în numele nostru, pe bază de contracte conforme GDPR. Nu vindem datele tale personale către terți."
+        },
+        "rights": {
+          "h": "6. Drepturile tale conform GDPR",
+          "b": "Ai dreptul de acces la datele tale, dreptul la rectificare, dreptul la ștergere („dreptul de a fi uitat”), dreptul la restricționarea prelucrării, dreptul la portabilitate, dreptul de opoziție (inclusiv față de marketing) și dreptul de a nu face obiectul unei decizii bazate exclusiv pe prelucrare automată.\n\nPentru exercitarea acestor drepturi, scrie-ne la [EMAIL CONTACT]; răspundem în cel mult o lună. Dacă apreciezi că prelucrarea încalcă legea, ai dreptul să depui o plângere la Autoritatea Națională de Supraveghere a Prelucrării Datelor cu Caracter Personal (ANSPDCP, www.dataprotection.ro)."
+        },
+        "retention": {
+          "h": "7. Cât timp păstrăm datele",
+          "b": "Păstrăm datele contului cât timp contul este activ. La ștergerea contului, datele personale sunt șterse sau anonimizate într-un termen rezonabil, cu excepția datelor pe care legea ne obligă să le păstrăm (de exemplu, documente financiar-contabile) și a datelor strict necesare apărării unor drepturi în justiție.\n\nDatele tehnice de utilizare sunt păstrate pe perioade limitate, proporționale cu scopul pentru care au fost colectate."
+        },
+        "cookies": {
+          "h": "8. Cookie-uri",
+          "b": "Platforma folosește cookie-uri strict necesare funcționării: autentificarea sesiunii (cookie-uri httpOnly) și memorarea limbii alese (RO/EN).\n\nNu folosim în prezent cookie-uri de publicitate de la terți. Dacă vom introduce cookie-uri neesențiale (de exemplu, pentru analiză sau marketing), îți vom cere consimțământul în prealabil, iar această secțiune va fi actualizată."
+        },
+        "contact": {
+          "h": "9. Contact",
+          "b": "Pentru orice întrebare despre această politică sau despre datele tale: [DENUMIRE LEGALĂ FIRMĂ], [ADRESĂ], email [EMAIL CONTACT]."
         }
       }
     }

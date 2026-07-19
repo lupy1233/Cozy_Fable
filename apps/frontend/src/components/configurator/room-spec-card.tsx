@@ -121,7 +121,11 @@ export function RoomSpecCard({
                 <img
                   src={snapshot.downloadUrl ?? undefined}
                   alt={t('config3d.snapshotAlt')}
-                  className="w-full max-w-64 shrink-0 rounded-lg border border-border-2 bg-surface-2 object-cover"
+                  loading="lazy"
+                  // A3: aspect fix → spatiul e rezervat inainte sa se incarce
+                  // PNG-ul (fara salturi de layout); contain, nu cover — scena
+                  // 3D nu se decupeaza
+                  className="aspect-[4/3] w-full max-w-64 shrink-0 rounded-lg border border-border-2 bg-surface-2 object-contain"
                 />
               )}
               <div className="flex flex-wrap content-start gap-1.5">

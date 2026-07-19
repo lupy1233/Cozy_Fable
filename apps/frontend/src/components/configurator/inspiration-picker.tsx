@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowLeft, Check, FolderHeart, Images, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, FolderHeart, Images, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { InspirationPhotoDto, RoomType } from '@marketplace/shared';
 import { Button } from '@/components/ui/button';
@@ -280,6 +280,18 @@ export function InspirationPicker() {
               <PhotoGrid photos={boardDetail.data?.photos ?? []} selected={selected} onToggle={toggle} />
             </>
           )}
+
+          {/* B1: bara lipicioasa de confirmare — ramane vizibila oricat ai
+              derula prin poze; inchide dialogul cu selectia facuta */}
+          <div className="sticky bottom-0 z-10 -mx-6 -mb-6 mt-4 flex items-center justify-between gap-3 border-t border-border bg-surface px-6 py-3">
+            <span className="text-xs text-muted-foreground">
+              {t('inspirationPicker.selectedCount', { count: selected.length, max: MAX_SELECTED })}
+            </span>
+            <Button type="button" variant="walnut" onClick={() => setOpen(false)}>
+              {t('inspirationPicker.confirm')}
+              <ArrowRight className="ml-1.5 h-4 w-4" />
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

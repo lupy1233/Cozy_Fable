@@ -325,13 +325,22 @@ export function DetailsStep({
                     </Select>
                   )}
                 </Field>
+                {/* B2: eticheta "Valoare" nu se mai afiseaza (redundanta) —
+                    spacer invizibil ca inputul sa ramana aliniat cu "Canal";
+                    textul ramane pe aria-label pentru cititoarele de ecran */}
                 <Field
-                  label={locked ? t('field.accountEmail') : t('field.contactValue')}
+                  label={
+                    locked ? t('field.accountEmail') : <span aria-hidden>&#8203;</span>
+                  }
                   hint={locked ? t('accountEmailLockedHint') : undefined}
                   error={vmsg(errors.contactPreferences?.[ci]?.value?.message)}
                 >
+                  {/* key per varianta: inputul controlat (blocat) si cel
+                      inregistrat RHF nu impart acelasi nod DOM — altfel React
+                      avertizeaza "uncontrolled -> controlled" cand soseste
+                      sesiunea si randul 0 se blocheaza */}
                   {locked ? (
-                    <Input type="email" value={accountEmail ?? ''} disabled readOnly />
+                    <Input key="locked" type="email" value={accountEmail ?? ''} disabled readOnly />
                   ) : channel === 'PHONE' ? (
                     <PhoneInput
                       value={contactValues?.[ci]?.value ?? ''}
@@ -340,7 +349,12 @@ export function DetailsStep({
                       }
                     />
                   ) : (
-                    <Input type="email" {...register(`contactPreferences.${ci}.value` as const)} />
+                    <Input
+                      key="free"
+                      type="email"
+                      aria-label={t('field.contactValue')}
+                      {...register(`contactPreferences.${ci}.value` as const)}
+                    />
                   )}
                 </Field>
                 {!locked && contacts.fields.length > 1 && (

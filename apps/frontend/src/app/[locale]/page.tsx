@@ -7,6 +7,7 @@ import { HeroSheets } from './_components/hero-sheets';
 import { PartnersCarousel } from './_components/partners-carousel';
 import { ProcessSection } from './_components/process-section';
 import { PublicHeader } from './_components/public-header';
+import { SiteFooter } from './_components/site-footer';
 
 // Landing "ATELIER" — Cozy Home: ton premium cald. Piesa centrala — trei
 // schite 3D (axonometrii) care se traseaza singure, comutabile din placute
@@ -18,7 +19,6 @@ const PIN_ASPECTS = ['aspect-[3/4]', 'aspect-square', 'aspect-[4/5]'] as const;
 
 export default function LandingPage() {
   const t = useTranslations('Landing');
-  const tn = useTranslations('Nav');
   const ti = useTranslations('Inspiration');
 
   const landingPins = LANDING_PIN_IDS.map(
@@ -30,13 +30,6 @@ export default function LandingPage() {
     { value: t('metricProjects'), label: t('metricProjectsLabel') },
     { value: t('metricSatisfaction'), label: t('metricSatisfactionLabel') },
   ];
-
-  // aceeasi ordine ca headerul public (item 13): Caietul de idei primul
-  const publicLinks = [
-    { href: '/inspiration', label: tn('inspiration') },
-    { href: '/sketch-guide', label: tn('sketchGuide') },
-    { href: '/partners', label: tn('partners') },
-  ] as const;
 
   return (
     <div className="min-h-screen">
@@ -153,18 +146,8 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-7 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <span className="label">© 2026 Cozy Home — {t('footerTagline')}</span>
-          <nav className="flex gap-6">
-            {publicLinks.map((l) => (
-              <Link key={l.href} href={l.href} className="label transition-colors hover:text-foreground">
-                {l.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-      </footer>
+      {/* C2: footer minimal — branding + linkurile legale */}
+      <SiteFooter />
     </div>
   );
 }

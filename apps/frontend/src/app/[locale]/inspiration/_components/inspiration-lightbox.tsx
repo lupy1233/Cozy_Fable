@@ -3,10 +3,13 @@
 import type { InspirationPhotoDto } from '@marketplace/shared';
 import { ArrowUpRight, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { SaveButton } from './save-button';
+
+// Pragul de la care un gest orizontal conteaza ca "swipe la poza urmatoare".
+const SWIPE_THRESHOLD_PX = 60;
 
 const SIMILAR_COUNT = 8;
 
@@ -38,15 +41,63 @@ export function InspirationLightbox({
   const hasPrev = index > 0;
   const hasNext = index < photos.length - 1;
 
+  // A4/B4: directia glisarii (pentru animatia de intrare) + starea gestului
+  // touch (deplasarea curenta a imaginii sub deget).
+  const [dir, setDir] = useState<1 | -1>(1);
+  const [dragX, setDragX] = useState<number | null>(null);
+  const touch = useRef<{ x: number; y: number; horizontal: boolean | null } | null>(null);
+
+  const go = (delta: 1 | -1) => {
+    if (delta === 1 && !hasNext) return;
+    if (delta === -1 && !hasPrev) return;
+    setDir(delta);
+    setDragX(null);
+    onNavigate(index + delta);
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowLeft' && hasPrev) onNavigate(index - 1);
-      if (e.key === 'ArrowRight' && hasNext) onNavigate(index + 1);
+      if (e.key === 'ArrowLeft' && hasPrev) go(-1);
+      if (e.key === 'ArrowRight' && hasNext) go(1);
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, hasPrev, hasNext, onClose, onNavigate]);
+
+  // Gestul de swipe: urmarim degetul pe orizontala (vertical ramane scroll-ul
+  // cardului); la ridicare, peste prag → poza vecina, altfel revine pe loc.
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t0 = e.touches[0];
+    touch.current = { x: t0.clientX, y: t0.clientY, horizontal: null };
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    const st = touch.current;
+    if (!st) return;
+    const t0 = e.touches[0];
+    const dx = t0.clientX - st.x;
+    const dy = t0.clientY - st.y;
+    if (st.horizontal === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+      st.horizontal = Math.abs(dx) > Math.abs(dy);
+    }
+    if (st.horizontal) {
+      // rezistenta la capete: fara vecin, imaginea se misca doar putin
+      const capped = (dx > 0 && !hasPrev) || (dx < 0 && !hasNext) ? dx / 4 : dx;
+      setDragX(capped);
+    }
+  };
+  const onTouchEnd = () => {
+    const st = touch.current;
+    touch.current = null;
+    if (!st || !st.horizontal || dragX === null) {
+      setDragX(null);
+      return;
+    }
+    if (dragX <= -SWIPE_THRESHOLD_PX && hasNext) go(1);
+    else if (dragX >= SWIPE_THRESHOLD_PX && hasPrev) go(-1);
+    else setDragX(null);
+  };
 
   // pagina din spate nu deruleaza cat e lightbox-ul deschis — pozitia din
   // galerie ramane exact unde era la inchidere (U3, PO r4)
@@ -93,7 +144,7 @@ export function InspirationLightbox({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            onNavigate(index - 1);
+            go(-1);
           }}
           aria-label={t('prevPin')}
           className="absolute left-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-foreground shadow-md transition-colors hover:bg-white sm:grid"
@@ -106,7 +157,7 @@ export function InspirationLightbox({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            onNavigate(index + 1);
+            go(1);
           }}
           aria-label={t('nextPin')}
           className="absolute right-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-foreground shadow-md transition-colors hover:bg-white sm:grid"
@@ -129,18 +180,51 @@ export function InspirationLightbox({
         </button>
 
         <div className="min-h-0 overflow-y-auto">
-          <div className="relative">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={photo.imageUrl ?? ''}
-              alt={photo.title}
-              className="max-h-[62vh] w-full bg-black/5 object-contain"
-            />
+          {/* A3/A4: scena are INALTIME FIXA (nu max-h) — cardul nu-si mai
+              schimba dimensiunea intre poze si nici la incarcarea imaginii;
+              swipe pe touch (B4), cu urmarirea degetului */}
+          <div
+            className="relative h-[48vh] touch-pan-y overflow-hidden bg-black/5 sm:h-[62vh]"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+          >
+            {/* key pe poza → remount → animatia de intrare ruleaza directional;
+                fara fill-mode: daca animatia nu ruleaza, imaginea e vizibila */}
+            <div
+              key={photo.id}
+              className={cn(
+                'h-full w-full',
+                dragX === null && (dir === 1 ? 'lightbox-slide-left' : 'lightbox-slide-right'),
+              )}
+              style={
+                dragX !== null
+                  ? { transform: `translateX(${dragX}px)`, transition: 'none' }
+                  : { transition: 'transform 220ms ease-out' }
+              }
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photo.imageUrl ?? ''}
+                alt={photo.title}
+                className="h-full w-full object-contain"
+                draggable={false}
+              />
+            </div>
+            {/* preincarca vecinii: glisarea nu mai "sare" pe alb la navigare */}
+            {hasPrev && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={photos[index - 1].imageUrl ?? ''} alt="" aria-hidden className="hidden" />
+            )}
+            {hasNext && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={photos[index + 1].imageUrl ?? ''} alt="" aria-hidden className="hidden" />
+            )}
             {/* navigare pe mobil: sageti mici peste imagine */}
             <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-between px-2 sm:hidden">
               <button
                 type="button"
-                onClick={() => hasPrev && onNavigate(index - 1)}
+                onClick={() => go(-1)}
                 aria-label={t('prevPin')}
                 className={cn(
                   'grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white',
@@ -151,7 +235,7 @@ export function InspirationLightbox({
               </button>
               <button
                 type="button"
-                onClick={() => hasNext && onNavigate(index + 1)}
+                onClick={() => go(1)}
                 aria-label={t('nextPin')}
                 className={cn(
                   'grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white',
@@ -200,7 +284,11 @@ export function InspirationLightbox({
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => onNavigate(i)}
+                    onClick={() => {
+                      setDir(i > index ? 1 : -1);
+                      setDragX(null);
+                      onNavigate(i);
+                    }}
                     className="group relative overflow-hidden rounded-lg border border-border"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}

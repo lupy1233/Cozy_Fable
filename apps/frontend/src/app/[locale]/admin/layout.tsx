@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Link } from '@/i18n/routing';
 import { CozyHomeMark } from '@/components/brand/logo';
+import { useMe } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '../_components/notification-bell';
 import { LangSwitch } from '../_components/lang-switch';
@@ -24,6 +25,7 @@ const NAV = [
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const t = useTranslations('Admin');
   const pathname = usePathname();
+  const me = useMe();
 
   return (
     <div className="grid min-h-screen grid-cols-[260px_1fr]">
@@ -77,7 +79,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-surface/80 px-8 py-3 backdrop-blur-md backdrop-saturate-150">
           <div className="ml-auto flex items-center gap-2.5">
             <LangSwitch />
-            <NotificationBell />
+            {/* B6: clopotelul doar pentru sesiuni active */}
+            {me.data && <NotificationBell />}
           </div>
         </div>
         <div className="min-w-0 flex-1 p-8">{children}</div>

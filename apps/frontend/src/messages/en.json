@@ -94,7 +94,9 @@
     "register": "Sign up",
     "forCompanies": "For companies",
     "logout": "Log out",
-    "menu": "Menu"
+    "menu": "Menu",
+    "terms": "Terms & Conditions",
+    "privacy": "Privacy Policy"
   },
   "Partners": {
     "title": "Our partner workshops",
@@ -1216,7 +1218,8 @@
       "tabBoards": "My collections",
       "boardsEmpty": "You have no collections yet. Save photos in the Idea book and they will show up here.",
       "boardCount": "{count, plural, one {# photo} other {# photos}}",
-      "backToBoards": "Collections"
+      "backToBoards": "Collections",
+      "confirm": "Next"
     },
     "info": {
       "pros": "Pros",
@@ -3809,6 +3812,87 @@
         "sketch": {
           "title": "Do you have a sketch?",
           "subtitle": "Optional — the space where the bench will sit."
+        }
+      }
+    }
+  },
+  "Legal": {
+    "lastUpdated": "Last updated: July 2026",
+    "terms": {
+      "title": "Terms & Conditions",
+      "sections": {
+        "intro": {
+          "h": "1. Who we are and what CozyHome is",
+          "b": "The CozyHome platform (the “Platform”) is operated by [DENUMIRE LEGALĂ FIRMĂ], tax ID [CUI], registered office at [ADRESĂ] (the “Operator”, “we”).\n\nCozyHome is a marketplace connecting people who want custom furniture (“Clients”) with partner furniture workshops (“Workshops”). The Platform facilitates publishing requests, claiming them, messaging and sending offers; the furniture contract is concluded directly between the Client and the Workshop, and the Operator is not a party to it."
+        },
+        "accounts": {
+          "h": "2. Accounts and use of the Platform",
+          "b": "An account is required to publish a request or send offers. You are responsible for keeping your credentials confidential and for all activity in your account.\n\nYou agree to provide accurate information, not to publish unlawful, misleading or offensive content, and not to use the Platform against its purpose (for example harvesting other users' data or unsolicited advertising). We may suspend or close accounts that breach these terms."
+        },
+        "flow": {
+          "h": "3. Requests, claims and offers",
+          "b": "The Client publishes a request with project details; a limited number of Workshops can claim it and send offers. The Client's contact details become visible only to Workshops that claimed the request.\n\nOffers are commercial proposals of the Workshops. Prices, deadlines, warranties and any other conditions belong exclusively to the issuing Workshop. Budget estimates shown by the Platform are indicative and do not constitute offers."
+        },
+        "credits": {
+          "h": "4. Credits and subscriptions for Workshops",
+          "b": "Workshops access requests based on a subscription and credits. Credits spent claiming a request are not refunded except in the cases explicitly covered by the Platform rules (for example the Client cancelling the request, or withdrawals under accepted conditions).\n\nPricing and packages are shown in the Platform and may change; changes do not affect credits already purchased."
+        },
+        "liability": {
+          "h": "5. Liability",
+          "b": "The Operator makes reasonable efforts to keep the Platform running but does not guarantee error-free or uninterrupted availability.\n\nThe Operator is not liable for the execution, quality, delivery or warranty of furniture contracted between Client and Workshop, nor for user-generated content. Disputes between Client and Workshop are resolved between them; the Platform may mediate within its existing dispute features."
+        },
+        "ip": {
+          "h": "6. Intellectual property",
+          "b": "The Platform, the CozyHome brand, its design and own content are protected by intellectual property rights and may not be used without our written consent.\n\nBy uploading content (photos, sketches, descriptions), users grant the Operator a non-exclusive licence to display it in the Platform for the purpose of running the service. Workshops warrant they hold the necessary rights over portfolio photos."
+        },
+        "changes": {
+          "h": "7. Changes to these terms",
+          "b": "We may update these terms to reflect legal or functional changes. The current version is always published on this page, and significant changes will be announced in the Platform. Continued use after publication means acceptance of the updated terms."
+        },
+        "law": {
+          "h": "8. Governing law and contact",
+          "b": "These terms are governed by Romanian law. Disputes are settled amicably or, failing that, by the competent courts in Romania.\n\nFor any questions about these terms write to [EMAIL CONTACT]."
+        }
+      }
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "sections": {
+        "intro": {
+          "h": "1. Data controller",
+          "b": "Your personal data is processed by [DENUMIRE LEGALĂ FIRMĂ], tax ID [CUI], registered office at [ADRESĂ] (the “Controller”), in accordance with Regulation (EU) 2016/679 (GDPR).\n\nYou can contact us about anything related to data protection at [EMAIL CONTACT]."
+        },
+        "data": {
+          "h": "2. What data we collect and why",
+          "b": "We collect and store the following categories of data:\n\n• Account data: name, email address, password (stored encrypted), language preference — to create and manage your account.\n• Request data: project description, delivery/installation address, city and county, chosen contact channels (email, phone) — to publish the request and, once claimed, to share with the Workshops working on it.\n• Workshop data: company name, tax ID, addresses, team — to verify and display the company in the Platform.\n• The content of conversations held in the Platform (stored encrypted) and uploaded files — to run messaging and offers.\n• Technical and usage data: IP address, device type, pages visited and actions performed in the Platform.\n\nThe legal bases are contract performance (providing the service), legitimate interest (security and improving the Platform) and, where required by law, your consent."
+        },
+        "usage": {
+          "h": "3. Usage data and product improvement",
+          "b": "We analyse how the Platform is used (pages visited, features used, errors encountered) to understand what works and what needs improvement. These analyses use aggregated or pseudonymised data wherever possible and are not aimed at building individual profiles for purposes other than product improvement and service security."
+        },
+        "marketing": {
+          "h": "4. Marketing and advertising",
+          "b": "With your consent, we may send you commercial communications about the Platform (news, features, offers) and may use usage data for more relevant marketing and advertising campaigns.\n\nYou can withdraw your consent at any time, with immediate effect: from your account settings, via the unsubscribe link present in every email, or by writing to [EMAIL CONTACT]. Withdrawing consent does not affect your normal use of the Platform."
+        },
+        "sharing": {
+          "h": "5. Who we share data with",
+          "b": "Request data (including your name and contact channels) is shared exclusively with the Workshops that claimed your request, so they can contact you and send offers.\n\nWe use infrastructure providers (hosting, file storage, email delivery) that process data on our behalf under GDPR-compliant contracts. We do not sell your personal data to third parties."
+        },
+        "rights": {
+          "h": "6. Your rights under the GDPR",
+          "b": "You have the right of access to your data, the right to rectification, the right to erasure (“right to be forgotten”), the right to restrict processing, the right to data portability, the right to object (including to marketing) and the right not to be subject to a decision based solely on automated processing.\n\nTo exercise these rights, write to [EMAIL CONTACT]; we reply within one month at the latest. If you consider that the processing breaches the law, you have the right to lodge a complaint with the Romanian supervisory authority (ANSPDCP, www.dataprotection.ro)."
+        },
+        "retention": {
+          "h": "7. How long we keep data",
+          "b": "We keep account data for as long as the account is active. When the account is deleted, personal data is deleted or anonymised within a reasonable period, except for data we are legally required to keep (for example accounting records) and data strictly necessary to defend legal claims.\n\nTechnical usage data is kept for limited periods, proportionate to the purpose it was collected for."
+        },
+        "cookies": {
+          "h": "8. Cookies",
+          "b": "The Platform uses strictly necessary cookies: session authentication (httpOnly cookies) and remembering your chosen language (RO/EN).\n\nWe currently use no third-party advertising cookies. If we introduce non-essential cookies (for example for analytics or marketing), we will ask for your consent beforehand and update this section."
+        },
+        "contact": {
+          "h": "9. Contact",
+          "b": "For any question about this policy or your data: [DENUMIRE LEGALĂ FIRMĂ], [ADRESĂ], email [EMAIL CONTACT]."
         }
       }
     }

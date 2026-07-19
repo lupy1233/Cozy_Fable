@@ -75,26 +75,39 @@ const VIGNETTES = [VignetteSketch, VignetteClaim, VignetteDecide] as const;
 export function ProcessSection() {
   const t = useTranslations('Landing');
   const ref = useRef<HTMLElement>(null);
-  const [inView, setInView] = useState(false);
+  // A1: 'idle' = starea SSR/fara JS — continut VIZIBIL, nimic ascuns.
+  // Abia dupa hidratare (si doar daca utilizatorul nu prefera miscare redusa,
+  // iar IntersectionObserver exista) trecem in 'armed' (ascuns, in asteptarea
+  // scroll-ului), apoi 'in-view' declanseaza cascada. Daca observerul nu
+  // declanseaza (race/viewport ciudat), un timeout de siguranta arata tot.
+  const [phase, setPhase] = useState<'idle' | 'armed' | 'in-view'>('idle');
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (typeof IntersectionObserver === 'undefined') {
-      setInView(true);
-      return;
+    if (
+      typeof IntersectionObserver === 'undefined' ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return; // ramane 'idle': static si complet vizibil
     }
+    setPhase('armed');
     const io = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) {
-          setInView(true);
+          setPhase('in-view');
           io.disconnect();
         }
       },
-      { threshold: 0.2 },
+      { threshold: 0.15 },
     );
     io.observe(el);
-    return () => io.disconnect();
+    // plasa de siguranta: orice s-ar intampla cu observerul, continutul apare
+    const failsafe = window.setTimeout(() => setPhase('in-view'), 4000);
+    return () => {
+      io.disconnect();
+      window.clearTimeout(failsafe);
+    };
   }, []);
 
   const steps = [
@@ -104,7 +117,17 @@ export function ProcessSection() {
   ];
 
   return (
-    <section ref={ref} className={cn('plan-draw py-14', inView ? 'in-view' : 'plan-paused')}>
+    <section
+      ref={ref}
+      className={cn(
+        'py-14',
+        // 'idle' (SSR / reduced-motion / fara IO): FARA clase de animatie —
+        // schitele si textul sunt desenate gata si vizibile
+        phase !== 'idle' && 'plan-draw reveal-armed',
+        phase === 'armed' && 'plan-paused',
+        phase === 'in-view' && 'in-view',
+      )}
+    >
       <div className="mb-10" data-reveal>
         <span className="kicker">{t('processKicker')}</span>
         <h2 className="serif mt-2 text-3xl sm:text-4xl">{t('howTitle')}</h2>

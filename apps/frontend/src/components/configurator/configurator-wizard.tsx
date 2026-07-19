@@ -226,7 +226,8 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
             <DialogDescription>{t('resume.description')}</DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-col gap-2 sm:flex-row">
-            <Button type="button" variant="ghost" onClick={startFresh}>
+            {/* B5: contur vizibil — varianta ghost se pierdea pe fundal */}
+            <Button type="button" variant="outline" onClick={startFresh}>
               <FilePlus2 className="mr-1.5 h-4 w-4" />
               {t('resume.startFresh')}
             </Button>

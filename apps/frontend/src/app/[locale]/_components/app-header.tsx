@@ -91,7 +91,9 @@ export function AppHeader() {
             </span>
           )}
           <LangSwitch />
-          <NotificationBell />
+          {/* B6: clopotelul DOAR pentru sesiuni active — vizitatorii nelogati
+              nu au notificari (si nici API-ul nu i-ar servi) */}
+          {me.data && <NotificationBell />}
           {me.data && (
             <Button
               variant="outline"

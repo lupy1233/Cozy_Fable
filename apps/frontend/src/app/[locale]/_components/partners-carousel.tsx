@@ -85,7 +85,11 @@ export function PartnersCarousel() {
         onTouchEnd={() => (paused.current = false)}
         onFocus={() => (paused.current = true)}
         onBlur={() => (paused.current = false)}
-        className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        // A2: snap-proximity (nu mandatory) — capatul de scroll ramane pozitie
+        // valida de repaus, altfel snap-ul tragea inapoi la ultimul snap-point
+        // si taia ultimul card pe unele latimi de viewport; scroll-px aliniaza
+        // snap-urile cu bleed-ul orizontal (-mx/px)
+        className="-mx-4 flex snap-x snap-proximity scroll-px-4 gap-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:scroll-px-6 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {partners.isPending &&
           [0, 1, 2].map((i) => (
