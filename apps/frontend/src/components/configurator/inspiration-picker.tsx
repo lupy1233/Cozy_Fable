@@ -148,142 +148,144 @@ export function InspirationPicker() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{t('inspirationPicker.dialogTitle')}</DialogTitle>
-          </DialogHeader>
+        {/* B1: dialogul e o coloana cu inaltime maxima fixa — doar zona cu
+            poze deruleaza, iar bara de confirmare e footer adevarat, mereu
+            asezata pe marginea de jos (fara sticky + margini negative) */}
+        <DialogContent className="flex max-h-[85vh] max-w-3xl flex-col overflow-hidden p-0">
+          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-6">
+            <DialogHeader className="mb-0">
+              <DialogTitle>{t('inspirationPicker.dialogTitle')}</DialogTitle>
+            </DialogHeader>
 
-          {/* taburi: galeria publica / colectiile mele (doar logat) */}
-          {authed && (
-            <div className="flex gap-1 rounded-lg border border-border-2 bg-surface p-1 text-sm">
-              {(['gallery', 'boards'] as PickerTab[]).map((tb) => (
-                <button
-                  key={tb}
-                  type="button"
-                  onClick={() => {
-                    setTab(tb);
-                    setBoardId(null);
-                  }}
-                  className={cn(
-                    'flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 transition-colors',
-                    tab === tb ? 'bg-walnut-soft font-medium text-walnut' : 'text-muted-foreground',
-                  )}
-                >
-                  {tb === 'gallery' ? (
-                    <Images className="h-4 w-4" />
-                  ) : (
-                    <FolderHeart className="h-4 w-4" />
-                  )}
-                  {t(`inspirationPicker.${tb === 'gallery' ? 'tabGallery' : 'tabBoards'}`)}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <p className="text-xs text-muted-foreground">
-            {t('inspirationPicker.selectedCount', { count: selected.length, max: MAX_SELECTED })}
-          </p>
-
-          {tab === 'gallery' && (
-            <>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setType(null)}
-                  className={cn(
-                    'rounded-full border px-3 py-1 text-sm',
-                    type === null ? 'border-walnut bg-walnut-soft text-walnut' : 'border-border-2 text-muted-foreground',
-                  )}
-                >
-                  {ti('all')}
-                </button>
-                {TYPE_FILTERS.map((rt) => (
+            {/* taburi: galeria publica / colectiile mele (doar logat) */}
+            {authed && (
+              <div className="flex gap-1 rounded-lg border border-border-2 bg-surface p-1 text-sm">
+                {(['gallery', 'boards'] as PickerTab[]).map((tb) => (
                   <button
-                    key={rt}
+                    key={tb}
                     type="button"
-                    onClick={() => setType(type === rt ? null : rt)}
+                    onClick={() => {
+                      setTab(tb);
+                      setBoardId(null);
+                    }}
                     className={cn(
-                      'rounded-full border px-3 py-1 text-sm',
-                      type === rt ? 'border-walnut bg-walnut-soft text-walnut' : 'border-border-2 text-muted-foreground',
+                      'flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 transition-colors',
+                      tab === tb ? 'bg-walnut-soft font-medium text-walnut' : 'text-muted-foreground',
                     )}
                   >
-                    {tc(`rooms.type.${rt}`)}
+                    {tb === 'gallery' ? (
+                      <Images className="h-4 w-4" />
+                    ) : (
+                      <FolderHeart className="h-4 w-4" />
+                    )}
+                    {t(`inspirationPicker.${tb === 'gallery' ? 'tabGallery' : 'tabBoards'}`)}
                   </button>
                 ))}
               </div>
+            )}
 
-              {gallery.isPending && <p className="py-10 text-center text-muted-foreground">…</p>}
-              {!gallery.isPending && (gallery.data ?? []).length === 0 && (
-                <p className="py-10 text-center text-muted-foreground">{ti('empty')}</p>
-              )}
-              <PhotoGrid photos={gallery.data ?? []} selected={selected} onToggle={toggle} />
-            </>
-          )}
-
-          {tab === 'boards' && !boardId && (
-            <>
-              {boards.isPending && <p className="py-10 text-center text-muted-foreground">…</p>}
-              {!boards.isPending && (boards.data ?? []).length === 0 && (
-                <p className="py-10 text-center text-muted-foreground">
-                  {t('inspirationPicker.boardsEmpty')}
-                </p>
-              )}
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {(boards.data ?? []).map((b) => (
+            {tab === 'gallery' && (
+              <>
+                <div className="flex flex-wrap gap-2">
                   <button
-                    key={b.id}
                     type="button"
-                    onClick={() => setBoardId(b.id)}
-                    className="group overflow-hidden rounded-lg border border-border-2 text-left transition-colors hover:border-walnut"
+                    onClick={() => setType(null)}
+                    className={cn(
+                      'rounded-full border px-3 py-1 text-sm',
+                      type === null ? 'border-walnut bg-walnut-soft text-walnut' : 'border-border-2 text-muted-foreground',
+                    )}
                   >
-                    <div className="grid aspect-[4/3] w-full grid-cols-3 gap-0.5 bg-surface-2">
-                      {b.coverUrls.length === 0 && (
-                        <span className="col-span-3 grid place-items-center text-muted-foreground">
-                          <FolderHeart className="h-6 w-6" />
-                        </span>
-                      )}
-                      {b.coverUrls.slice(0, 3).map((url, i) => (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          key={i}
-                          src={url}
-                          alt=""
-                          className={cn('h-full w-full object-cover', i === 0 && b.coverUrls.length === 1 && 'col-span-3')}
-                        />
-                      ))}
-                    </div>
-                    <span className="block truncate px-2 py-1.5 text-xs font-medium">
-                      {b.name}
-                      <span className="block text-[10px] font-normal text-muted-foreground">
-                        {t('inspirationPicker.boardCount', { count: b.itemsCount })}
-                      </span>
-                    </span>
+                    {ti('all')}
                   </button>
-                ))}
-              </div>
-            </>
-          )}
+                  {TYPE_FILTERS.map((rt) => (
+                    <button
+                      key={rt}
+                      type="button"
+                      onClick={() => setType(type === rt ? null : rt)}
+                      className={cn(
+                        'rounded-full border px-3 py-1 text-sm',
+                        type === rt ? 'border-walnut bg-walnut-soft text-walnut' : 'border-border-2 text-muted-foreground',
+                      )}
+                    >
+                      {tc(`rooms.type.${rt}`)}
+                    </button>
+                  ))}
+                </div>
 
-          {tab === 'boards' && boardId && (
-            <>
-              <div className="flex items-center gap-2">
-                <Button type="button" variant="ghost" size="sm" onClick={() => setBoardId(null)}>
-                  <ArrowLeft className="mr-1 h-4 w-4" />
-                  {t('inspirationPicker.backToBoards')}
-                </Button>
-                <span className="font-serif">{boardDetail.data?.name ?? ''}</span>
-              </div>
-              {boardDetail.isPending && <p className="py-10 text-center text-muted-foreground">…</p>}
-              {!boardDetail.isPending && (boardDetail.data?.photos ?? []).length === 0 && (
-                <p className="py-10 text-center text-muted-foreground">{ti('empty')}</p>
-              )}
-              <PhotoGrid photos={boardDetail.data?.photos ?? []} selected={selected} onToggle={toggle} />
-            </>
-          )}
+                {gallery.isPending && <p className="py-10 text-center text-muted-foreground">…</p>}
+                {!gallery.isPending && (gallery.data ?? []).length === 0 && (
+                  <p className="py-10 text-center text-muted-foreground">{ti('empty')}</p>
+                )}
+                <PhotoGrid photos={gallery.data ?? []} selected={selected} onToggle={toggle} />
+              </>
+            )}
 
-          {/* B1: bara lipicioasa de confirmare — ramane vizibila oricat ai
-              derula prin poze; inchide dialogul cu selectia facuta */}
-          <div className="sticky bottom-0 z-10 -mx-6 -mb-6 mt-4 flex items-center justify-between gap-3 border-t border-border bg-surface px-6 py-3">
+            {tab === 'boards' && !boardId && (
+              <>
+                {boards.isPending && <p className="py-10 text-center text-muted-foreground">…</p>}
+                {!boards.isPending && (boards.data ?? []).length === 0 && (
+                  <p className="py-10 text-center text-muted-foreground">
+                    {t('inspirationPicker.boardsEmpty')}
+                  </p>
+                )}
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {(boards.data ?? []).map((b) => (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => setBoardId(b.id)}
+                      className="group overflow-hidden rounded-lg border border-border-2 text-left transition-colors hover:border-walnut"
+                    >
+                      <div className="grid aspect-[4/3] w-full grid-cols-3 gap-0.5 bg-surface-2">
+                        {b.coverUrls.length === 0 && (
+                          <span className="col-span-3 grid place-items-center text-muted-foreground">
+                            <FolderHeart className="h-6 w-6" />
+                          </span>
+                        )}
+                        {b.coverUrls.slice(0, 3).map((url, i) => (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            key={i}
+                            src={url}
+                            alt=""
+                            className={cn('h-full w-full object-cover', i === 0 && b.coverUrls.length === 1 && 'col-span-3')}
+                          />
+                        ))}
+                      </div>
+                      <span className="block truncate px-2 py-1.5 text-xs font-medium">
+                        {b.name}
+                        <span className="block text-[10px] font-normal text-muted-foreground">
+                          {t('inspirationPicker.boardCount', { count: b.itemsCount })}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {tab === 'boards' && boardId && (
+              <>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setBoardId(null)}>
+                    <ArrowLeft className="mr-1 h-4 w-4" />
+                    {t('inspirationPicker.backToBoards')}
+                  </Button>
+                  <span className="font-serif">{boardDetail.data?.name ?? ''}</span>
+                </div>
+                {boardDetail.isPending && <p className="py-10 text-center text-muted-foreground">…</p>}
+                {!boardDetail.isPending && (boardDetail.data?.photos ?? []).length === 0 && (
+                  <p className="py-10 text-center text-muted-foreground">{ti('empty')}</p>
+                )}
+                <PhotoGrid photos={boardDetail.data?.photos ?? []} selected={selected} onToggle={toggle} />
+              </>
+            )}
+
+          </div>
+
+          {/* footerul de confirmare: contorul selectiei + Continua, mereu
+              vizibile sub zona derulanta; inchide dialogul cu selectia facuta */}
+          <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border bg-surface px-6 py-3">
             <span className="text-xs text-muted-foreground">
               {t('inspirationPicker.selectedCount', { count: selected.length, max: MAX_SELECTED })}
             </span>

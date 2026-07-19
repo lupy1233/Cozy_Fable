@@ -12,6 +12,7 @@ import {
   type RoomType,
 } from '@marketplace/shared';
 import { Input } from '@/components/ui/input';
+import { MasonryColumns } from '@/components/ui/masonry-columns';
 import { useMe } from '@/hooks/use-auth';
 import { useInfiniteInspiration } from '@/hooks/use-inspiration';
 import { useSavedRefs } from '@/hooks/use-inspiration-boards';
@@ -26,6 +27,8 @@ import { InspirationPin } from './_components/inspiration-pin';
 // material, sistem de deschidere; fiecare poza isi arata atelierul.
 
 const PIN_ASPECTS = ['aspect-[3/4]', 'aspect-square', 'aspect-[4/5]'] as const;
+// raporturile h/w ale acelorasi aspecte — echilibrarea coloanelor masonry
+const PIN_RATIOS = [4 / 3, 1, 5 / 4] as const;
 
 // tipurile afisate ca filtre (subsetul cu continut probabil in galerie)
 const TYPE_FILTERS: RoomType[] = [
@@ -410,8 +413,13 @@ function InspirationGallery() {
           <p className="py-16 text-center text-muted-foreground">{t('empty')}</p>
         )}
 
-        <div className="columns-2 gap-4 sm:columns-3 lg:columns-4">
-          {visible.map((photo, i) => (
+        {/* masonry stabil: itemii raman pe coloana lor cand se incarca pagini
+            noi din infinite scroll — fara layout shift (CSS columns re-aseza tot) */}
+        <MasonryColumns
+          items={visible}
+          columns={{ base: 2, sm: 3, lg: 4 }}
+          estimateHeight={(_, i) => PIN_RATIOS[i % PIN_RATIOS.length]}
+          renderItem={(photo, i) => (
             <InspirationPin
               key={photo.id}
               photo={photo}
@@ -421,8 +429,8 @@ function InspirationGallery() {
               onRequireAuth={requireAuth}
               onOpen={() => setOpenIndex(i)}
             />
-          ))}
-        </div>
+          )}
+        />
 
         {/* sentinel de infinite scroll + buton fallback (idee 6 PO r2) */}
         {hasNextPage && (

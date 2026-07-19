@@ -12,7 +12,9 @@ import { MobileNav } from './mobile-nav';
 
 // Header comun al paginilor publice (landing, parteneri, inspiratie, ghid):
 // logo → landing, linkuri publice, login/register sau "Contul meu" daca e
-// sesiune activa. Client island: landing-ul ramane server component, dar
+// sesiune activa. Sticky cu blur (ca AppHeader): navigatia ramane la
+// indemana oricat de jos derulezi, fara drumuri inapoi in capul paginii.
+// Client island: landing-ul ramane server component, dar
 // headerul citeste sesiunea (useMe) — altfel utilizatorul logat care revine
 // pe landing vede Login/Register si crede ca a fost deconectat.
 // CTA-ul "Creeaza o cerere" e actiunea centrala a platformei: vizibil mereu,
@@ -36,77 +38,80 @@ export function PublicHeader() {
   const showCta = !me.data || me.data.role === 'CLIENT';
 
   return (
-    <header className="relative mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-      <div className="flex items-center gap-6">
-        <Link href="/">
-          <CozyHomeLogo />
-        </Link>
-        <nav className="hidden items-center gap-1 sm:flex">
-          {PUBLIC_LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={cn(
-                'rounded-md px-3 py-1.5 text-sm transition-colors',
-                pathname.endsWith(l.href)
-                  ? 'bg-walnut-soft font-medium text-walnut-deep'
-                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
-              )}
-            >
-              {tn(l.key)}
-            </Link>
-          ))}
+    // headerul (pozitionat) e ancora panoului MobileNav (absolute top-full)
+    <header className="sticky top-0 z-30 border-b border-border bg-surface/80 backdrop-blur-md backdrop-saturate-150">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+        <div className="flex items-center gap-6">
+          <Link href="/">
+            <CozyHomeLogo />
+          </Link>
+          <nav className="hidden items-center gap-1 sm:flex">
+            {PUBLIC_LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className={cn(
+                  'rounded-md px-3 py-1.5 text-sm transition-colors',
+                  pathname.endsWith(l.href)
+                    ? 'bg-walnut-soft font-medium text-walnut-deep'
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+                )}
+              >
+                {tn(l.key)}
+              </Link>
+            ))}
+          </nav>
+        </div>
+        <nav className="flex items-center gap-2 text-sm">
+          <span className="hidden sm:inline-flex">
+            <LangSwitch />
+          </span>
+          {showCta && (
+            <Button asChild variant="walnut" size="sm">
+              <Link href="/requests/new">{tn('createRequest')}</Link>
+            </Button>
+          )}
+          {me.data ? (
+            <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
+              <Link href="/dashboard">{tn('dashboard')}</Link>
+            </Button>
+          ) : (
+            <>
+              <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+                <Link href="/login">{tn('login')}</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
+                <Link href="/register">{tn('register')}</Link>
+              </Button>
+            </>
+          )}
+          <MobileNav
+            className="sm:hidden"
+            links={PUBLIC_LINKS.map((l) => ({ href: l.href, label: tn(l.key) }))}
+            footer={
+              <div className="flex flex-col gap-0.5">
+                {me.data ? (
+                  <Link href="/dashboard" className={mobileLinkCls}>
+                    {tn('dashboard')}
+                  </Link>
+                ) : (
+                  <>
+                    <Link href="/login" className={mobileLinkCls}>
+                      {tn('login')}
+                    </Link>
+                    <Link href="/register" className={mobileLinkCls}>
+                      {tn('register')}
+                    </Link>
+                  </>
+                )}
+                <div className="px-3 pb-1 pt-2.5">
+                  <LangSwitch />
+                </div>
+              </div>
+            }
+          />
         </nav>
       </div>
-      <nav className="flex items-center gap-2 text-sm">
-        <span className="hidden sm:inline-flex">
-          <LangSwitch />
-        </span>
-        {showCta && (
-          <Button asChild variant="walnut" size="sm">
-            <Link href="/requests/new">{tn('createRequest')}</Link>
-          </Button>
-        )}
-        {me.data ? (
-          <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
-            <Link href="/dashboard">{tn('dashboard')}</Link>
-          </Button>
-        ) : (
-          <>
-            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-              <Link href="/login">{tn('login')}</Link>
-            </Button>
-            <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
-              <Link href="/register">{tn('register')}</Link>
-            </Button>
-          </>
-        )}
-        <MobileNav
-          className="sm:hidden"
-          links={PUBLIC_LINKS.map((l) => ({ href: l.href, label: tn(l.key) }))}
-          footer={
-            <div className="flex flex-col gap-0.5">
-              {me.data ? (
-                <Link href="/dashboard" className={mobileLinkCls}>
-                  {tn('dashboard')}
-                </Link>
-              ) : (
-                <>
-                  <Link href="/login" className={mobileLinkCls}>
-                    {tn('login')}
-                  </Link>
-                  <Link href="/register" className={mobileLinkCls}>
-                    {tn('register')}
-                  </Link>
-                </>
-              )}
-              <div className="px-3 pb-1 pt-2.5">
-                <LangSwitch />
-              </div>
-            </div>
-          }
-        />
-      </nav>
     </header>
   );
 }

@@ -7,14 +7,21 @@ import { Link } from '@/i18n/routing';
 import { usePartners } from '@/hooks/use-company';
 import { mockPartnerMeta } from '@/lib/mock-partner-meta';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 // Carusel cu atelierele partenere pe landing: monograma, rating Google
 // (mock deterministe pana la integrarea reala), specializare si oras.
-// Ruleaza singur (un card la ~4s, revine la inceput la capat); se opreste
-// cat timp utilizatorul e cu mouse-ul/degetul pe el. Sagetile raman ca
-// control manual, iar pe mobil se face swipe.
+// Sectiunea sta pe un panou cald (surface-2) care o delimiteaza clar de
+// restul landingului. Cardurile au latimi calculate sa umple exact panoul
+// (1 + "peek" pe mobil, 2 pe tableta, 3 pe desktop) — nu mai raman carduri
+// taiate la marginea viewportului. Avansul (auto la ~5s, sageti, swipe) se
+// face pe rand intreg; se opreste cat timp utilizatorul e pe el.
 
-const AUTO_ADVANCE_MS = 4000;
+const AUTO_ADVANCE_MS = 5000;
+const GAP = 16; // gap-4 dintre carduri, in px — folosit la pasul de derulare
+
+// suma latimilor + gap-urile = latimea panoului, deci randul se inchide curat
+const CARD_W = 'w-[85%] sm:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-2rem)/3)]';
 
 export function PartnersCarousel() {
   const t = useTranslations('Landing');
@@ -22,11 +29,16 @@ export function PartnersCarousel() {
   const track = useRef<HTMLDivElement>(null);
   const paused = useRef(false);
 
-  const scrollBy = (dir: 1 | -1) => {
+  // deruleaza un rand intreg (cate carduri incap in viewportul trackului)
+  const scrollByPage = (dir: 1 | -1) => {
     const el = track.current;
     if (!el) return;
     const card = el.querySelector<HTMLElement>('[data-card]');
-    el.scrollBy({ left: dir * ((card?.offsetWidth ?? 320) + 16), behavior: 'smooth' });
+    const step = (card?.offsetWidth ?? 320) + GAP;
+    const cs = getComputedStyle(el);
+    const content = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const perView = Math.max(1, Math.round((content + GAP) / step));
+    el.scrollBy({ left: dir * step * perView, behavior: 'smooth' });
   };
 
   const itemCount = partners.data?.length ?? 0;
@@ -39,7 +51,7 @@ export function PartnersCarousel() {
       if (!el || paused.current || document.hidden) return;
       const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8;
       if (atEnd) el.scrollTo({ left: 0, behavior: 'smooth' });
-      else scrollBy(1);
+      else scrollByPage(1);
     }, AUTO_ADVANCE_MS);
     return () => clearInterval(id);
   }, [itemCount]);
@@ -50,7 +62,7 @@ export function PartnersCarousel() {
   const items = partners.data ?? [];
 
   return (
-    <section className="py-14">
+    <section className="my-14 rounded-2xl border border-border bg-surface-2/70 px-4 py-10 sm:px-8 sm:py-12">
       <div className="mb-8 flex items-end justify-between gap-4">
         <div>
           <span className="kicker">{t('partnersKicker')}</span>
@@ -62,7 +74,7 @@ export function PartnersCarousel() {
             variant="outline"
             size="icon-sm"
             aria-label={t('carouselPrev')}
-            onClick={() => scrollBy(-1)}
+            onClick={() => scrollByPage(-1)}
           >
             <ChevronLeft />
           </Button>
@@ -70,7 +82,7 @@ export function PartnersCarousel() {
             variant="outline"
             size="icon-sm"
             aria-label={t('carouselNext')}
-            onClick={() => scrollBy(1)}
+            onClick={() => scrollByPage(1)}
           >
             <ChevronRight />
           </Button>
@@ -86,17 +98,16 @@ export function PartnersCarousel() {
         onFocus={() => (paused.current = true)}
         onBlur={() => (paused.current = false)}
         // A2: snap-proximity (nu mandatory) — capatul de scroll ramane pozitie
-        // valida de repaus, altfel snap-ul tragea inapoi la ultimul snap-point
-        // si taia ultimul card pe unele latimi de viewport; scroll-px aliniaza
-        // snap-urile cu bleed-ul orizontal (-mx/px)
-        className="-mx-4 flex snap-x snap-proximity scroll-px-4 gap-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:scroll-px-6 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        // valida de repaus; scroll-px aliniaza snap-urile cu bleed-ul
+        // orizontal (-mx/px, pana la marginile panoului)
+        className="-mx-4 flex snap-x snap-proximity scroll-px-4 gap-4 overflow-x-auto px-4 pb-1 sm:-mx-8 sm:scroll-px-8 sm:px-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {partners.isPending &&
           [0, 1, 2].map((i) => (
             <div
               key={i}
               data-card
-              className="h-[180px] w-[320px] shrink-0 animate-pulse rounded-xl border border-border bg-surface-2"
+              className={cn('h-[190px] shrink-0 animate-pulse rounded-xl border border-border bg-card', CARD_W)}
             />
           ))}
         {items.map((p) => {
@@ -106,7 +117,10 @@ export function PartnersCarousel() {
             <div
               key={p.id}
               data-card
-              className="flex w-[320px] shrink-0 snap-start flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-sheet"
+              className={cn(
+                'flex min-h-[190px] shrink-0 snap-start flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-sheet',
+                CARD_W,
+              )}
             >
               <div className="flex items-start justify-between gap-3">
                 {/* monograma firmei */}
@@ -124,7 +138,10 @@ export function PartnersCarousel() {
                   </span>
                 </span>
               </div>
-              <h3 className="mt-3 font-serif text-xl">{p.name}</h3>
+              {/* numele pe un singur rand — cardurile pastreaza aceeasi structura */}
+              <h3 className="mt-3 truncate font-serif text-xl" title={p.name}>
+                {p.name}
+              </h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 {t(`partnerSpecialty.${meta.specialtyKey}`)}
               </p>
@@ -135,11 +152,15 @@ export function PartnersCarousel() {
             </div>
           );
         })}
-        {/* cardul de final: catre pagina completa de parteneri */}
+        {/* cardul de final: catre pagina completa de parteneri — aceeasi
+            latime ca restul, ca randul sa ramana aliniat */}
         <Link
           href="/partners"
           data-card
-          className="grid w-[220px] shrink-0 snap-start place-items-center rounded-xl border border-dashed border-border-2 text-sm text-muted-foreground transition-colors hover:border-walnut hover:text-walnut"
+          className={cn(
+            'grid min-h-[190px] shrink-0 snap-start place-items-center rounded-xl border border-dashed border-border-2 text-sm text-muted-foreground transition-colors hover:border-walnut hover:text-walnut',
+            CARD_W,
+          )}
         >
           {t('partnersAll')} →
         </Link>

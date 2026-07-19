@@ -17,6 +17,19 @@ import { SiteFooter } from './_components/site-footer';
 // ritmul masonry: inaltimi variate, ciclice
 const PIN_ASPECTS = ['aspect-[3/4]', 'aspect-square', 'aspect-[4/5]'] as const;
 
+// Delimitator de sectiune: hairline cu romb de alama (motivul de pe firul
+// procesului). Impreuna cu panourile (carusel pe surface-2, banda espresso),
+// fiecare granita dintre sectiuni e acum marcata explicit.
+function SectionRule() {
+  return (
+    <div aria-hidden className="flex items-center gap-3">
+      <span className="h-px flex-1 bg-border" />
+      <span className="h-1.5 w-1.5 rotate-45 bg-brass/70" />
+      <span className="h-px flex-1 bg-border" />
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const t = useTranslations('Landing');
   const ti = useTranslations('Inspiration');
@@ -113,10 +126,13 @@ export default function LandingPage() {
           </div>
         </section>
 
+        <SectionRule />
+
         {/* Proces: trei acte animate la scroll (fir de alama + vignete) */}
         <ProcessSection />
 
-        {/* Atelierele partenere: carusel cu rating si specializare */}
+        {/* Atelierele partenere: carusel cu rating si specializare, pe panou
+            propriu (surface-2) care il desparte de sectiunile "albe" */}
         <PartnersCarousel />
 
         {/* Banda ateliere: espresso cu lumina calda de alama */}

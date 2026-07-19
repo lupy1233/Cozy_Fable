@@ -34,7 +34,8 @@ export function InspirationPin({
   const saved = Boolean(savedBoardId);
 
   return (
-    <figure className="group relative mb-4 break-inside-avoid overflow-hidden rounded-2xl border border-border bg-surface-2 shadow-sm">
+    // spatierea verticala o da coloana masonry (gap-4), nu pin-ul
+    <figure className="group relative overflow-hidden rounded-2xl border border-border bg-surface-2 shadow-sm">
       <button type="button" onClick={onOpen} className="block w-full cursor-zoom-in">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

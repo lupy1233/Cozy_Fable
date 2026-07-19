@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## Polish UI — 2026-07-19 — feedback PO runda 7: toggle limba, carusel parteneri, delimitari landing, masonry stabil, footer picker, navbar sticky
+- **X1 Toggle limba dintr-un click** (`lang-switch.tsx`): pastila ro|en e acum UN singur buton — click oriunde pe ea comuta pe cealalta limba (nu mai trebuie tintita eticheta exacta); aria-label in limba-tinta („Switch to English" / „Schimbă în română"), cookie-ul NEXT_LOCALE ramane ca inainte.
+- **X2 Carusel parteneri aliniat** (`partners-carousel.tsx`, /frontend-design): cardurile au latimi calculate sa umple exact randul — 1 card + peek pe mobil (85%), 2 pe tableta, 3 pe desktop (`calc((100%-gap)/n)`); toate au aceeasi inaltime (min-h 190px, nume pe un rand cu truncate), cardul „toate atelierele" la aceeasi dimensiune, avansul (auto ~5s / sageti / swipe) se face pe RANDUL intreg, nu card cu card. Verificat in preview: 3×335px pe rand din 1038px, 2×312px pe tableta, 85% pe mobil, perView calculat corect.
+- **X3 Delimitari clare intre sectiunile landingului** (`page.tsx`): caruselul partenerilor sta pe panou propriu (rounded-2xl, surface-2/70, bordura) care il desparte de sectiunile albe; intre Inspiratie si Proces — `SectionRule`, hairline cu romb de alama (motivul de pe firul procesului). Ritmul: hero/metrice pe hairline → inspiratie → rule → proces → panou cald → banda espresso.
+- **X4 Layout shift caiet de idei REZOLVAT** (`masonry-columns.tsx` NOU + `inspiration/page.tsx`): CSS `columns` re-echilibra TOATE pozele la fiecare pagina noua din infinite scroll (cardurile sareau intre coloane). Inlocuit cu masonry distribuit in JS: fiecare pin merge greedy pe coloana cea mai scurta (dupa raportul h/w), iar atribuirea depinde DOAR de pinii dinaintea lui — paginile noi nu mai muta nimic din ce e pe ecran. Verificat: 40 pinuri, 0 mutari la re-masurare; coloane echilibrate (3221–3417px).
+- **X5 Footer corect in pickerul de inspiratie** (`inspiration-picker.tsx`): dialogul e coloana flex cu inaltime maxima — zona cu poze deruleaza, iar bara „Continuă" + contorul selectiei e footer adevarat (border-t, mereu lipit de marginea de jos), nu sticky cu margini negative care se aseza peste colturile rotunjite; contorul dublat de sus a disparut.
+- **X6 Navbar sticky pe paginile publice** (`public-header.tsx`): headerul public (landing, caiet de idei, parteneri, ghid) e sticky cu blur, ca AppHeader — navigatia si CTA raman la indemana oricat derulezi. Panoul MobileNav se ancoreaza la headerul sticky (full width).
+- Fara migrari DB, fara backend, fara chei i18n noi. Typecheck + lint verzi; verificat in preview prin DOM/JS (screenshot-urile raman blocate de WebGL-ul din hero in pane — limitare cunoscuta). Pickerul (X5) verificat structural (pattern-ul standard de dialog flex), de re-verificat vizual la primul walkthrough.
+
+### Checklist acceptare polish
+- [ ] Click oriunde pe pastila ro|en schimba limba (si din meniul mobil).
+- [ ] Caruselul arata 3 carduri egale pe desktop, avanseaza cu randul, fara card taiat la margine.
+- [ ] Landingul are granite vizibile intre sectiuni (panou carusel + rule cu romb).
+- [ ] Caietul de idei nu mai sare cand se incarca pagini noi de poze.
+- [ ] In pickerul din formular, bara „Continuă" sta fixa jos, aliniata cu dialogul.
+- [ ] Headerul ramane vizibil la scroll pe landing/caiet de idei/parteneri.
+
 ## Sprinturi W1–W5 — 2026-07-15 — feedback PO runda 6 (docs/16): fisa de lucru a firmei post-claim, atribuire angajat, contact client, mesagerie + chat de echipa, criptare mesaje
 - **W1 Context post-claim complet**: `GET /quotes/by-claim/:id` intoarce detaliul cererii (camere cu answers, atasamente presigned inclusiv snapshotul PNG 3D, adresa completa), contactul clientului (nume + email/telefon — DOAR cat timp slotul e ocupant; anulat → null) si atribuirea (claimedBy/assignedTo/termen 1h). `MarketplaceDetailDto` + `attachments` (snapshotul 3D si schitele se vad si pre-claim — continut de proiect, nu contact).
 - **W2 Fisa de lucru (redesign /design)**: pagina claim-ului rescrisa — bara de lucru cu ATRIBUIRE (select membri pentru owner/manager, avertisment + termen auto-anulare cand e neatribuit), SLA si buget; dreapta: cardul clientului (mailto/tel + adresa), oferta, chat, clarificari/retragere; stanga: mesajul clientului, camerele cu snapshot + viewer 3D, fisierele generale, inspiratia. Dupa „Revendica" aterizezi direct in fisa (inainte: portofel).
