@@ -23,6 +23,7 @@ import {
   useRequest,
   type AttachmentTarget,
 } from '@/hooks/use-requests';
+import { ApiError } from '@/lib/api';
 import { useRouter } from '@/i18n/routing';
 import {
   useConfiguratorStore,
@@ -76,6 +77,15 @@ function buildSnapshotFromRequest(dto: RequestDto): ConfiguratorSnapshot {
     inspirationPhotoIds: dto.inspirationPhotoIds ?? [],
     updatedAt: Date.now(),
   };
+}
+
+// exista progres de reluat? (camere adaugate, detalii completate sau pas inceput)
+function snapshotHasProgress(state: ConfiguratorSnapshot): boolean {
+  return (
+    state.roomInstances.length > 0 ||
+    Object.keys(state.details).length > 0 ||
+    state.phase !== 'cart'
+  );
 }
 
 export function ConfiguratorWizard({ editId }: { editId?: string }) {
@@ -145,14 +155,36 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     // daca vrea sa continue de unde a ramas sau sa inceapa o cerere noua (cerinta PO)
     if (!resumeChecked.current) {
       resumeChecked.current = true;
-      const state = store.getState().snapshot();
-      const hasProgress =
-        state.roomInstances.length > 0 ||
-        Object.keys(state.details).length > 0 ||
-        state.phase !== 'cart';
-      if (hasProgress) setResumePrompt(true);
+      if (snapshotHasProgress(store.getState().snapshot())) setResumePrompt(true);
     }
   }, [draft.data, isEdit, store]);
+
+  // Token mort: ciorna a fost aruncata ("Incepe o cerere noua" pe alt tab) sau
+  // baza a fost resetata → GET-ul da 404, dar starea locala persistata exista
+  // in continuare. Fara tratare, utilizatorul relua TACUT o ciorna-fantoma
+  // (patch/publish esuau pe tokenul mort) si dialogul de reluare nu mai aparea.
+  // Aruncam tokenul vechi, cerem o ciorna noua (sync-ul debounced ii trimite
+  // apoi progresul local) si punem aceeasi intrebare continua/de-la-zero.
+  useEffect(() => {
+    if (isEdit || hydrated.current) return;
+    if (!(draft.error instanceof ApiError) || draft.error.status !== 404) return;
+    hydrated.current = true;
+    localStorage.removeItem(DRAFT_TOKEN_KEY);
+    createDraft
+      .mutateAsync({})
+      .then((res) => {
+        localStorage.setItem(DRAFT_TOKEN_KEY, res.draftToken);
+        setTokenInStore(res.draftToken);
+        setToken(res.draftToken);
+      })
+      .catch(() => {
+        created.current = false;
+      });
+    if (!resumeChecked.current) {
+      resumeChecked.current = true;
+      if (snapshotHasProgress(store.getState().snapshot())) setResumePrompt(true);
+    }
+  }, [draft.error, isEdit, createDraft, setTokenInStore, store]);
 
   // "Incepe una noua": arunca draftul curent de pe server (altfel s-ar aduna
   // ciorne goale in cont — PO r5) si creeaza altul.
