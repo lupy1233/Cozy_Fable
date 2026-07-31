@@ -63,11 +63,14 @@ function PieceMini({ piece }: { piece: PieceKind }) {
   }
   return (
     <svg viewBox="0 0 44 44" fill="none" className="h-11 w-auto" aria-hidden {...common}>
-      <rect x="6" y="20" width="32" height="12" rx="1.5" />
-      <line x1="22" y1="21" x2="22" y2="31" strokeWidth={1.5} />
-      <line x1="10" y1="32" x2="8" y2="37" strokeLinecap="round" />
-      <line x1="34" y1="32" x2="36" y2="37" strokeLinecap="round" />
-      <rect x="13" y="6" width="18" height="11" rx="1" strokeWidth={1.5} opacity={0.45} />
+      <rect x="6" y="24" width="32" height="11" rx="1.5" />
+      <line x1="22" y1="25" x2="22" y2="34" strokeWidth={1.5} />
+      <line x1="10" y1="35" x2="8" y2="40" strokeLinecap="round" />
+      <line x1="34" y1="35" x2="36" y2="40" strokeLinecap="round" />
+      {/* ecranul plin, pe blat */}
+      <rect x="12" y="7" width="20" height="13" rx="1" fill="currentColor" strokeWidth={1.5} />
+      <line x1="22" y1="20" x2="22" y2="23" strokeWidth={1.5} />
+      <line x1="17" y1="23" x2="27" y2="23" strokeWidth={1.75} strokeLinecap="round" />
     </svg>
   );
 }
@@ -333,28 +336,6 @@ export function ProcessBand() {
       </div>
 
       <div className="relative">
-        {/* firul de alama care leaga statiile — se deseneaza la scroll si
-            rasare prin spatiile dintre celule (celulele sunt opace) */}
-        <svg
-          aria-hidden
-          className="pointer-events-none absolute inset-0 hidden h-full w-full md:block"
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          fill="none"
-        >
-          <path
-            d="M 4 2 C 30 -2 52 16 63 10 C 80 2 98 12 95 30 C 92 44 62 44 42 49 C 24 53 6 46 4 62 C 2 76 18 86 40 87 C 62 88 82 82 96 94"
-            stroke="hsl(var(--brass) / 0.55)"
-            strokeWidth="1.25"
-            vectorEffect="non-scaling-stroke"
-            pathLength={1}
-            data-draw
-            style={d(200)}
-          />
-        </svg>
-        <span aria-hidden data-fade style={d(300)} className="absolute -left-1 -top-1 hidden h-1.5 w-1.5 rotate-45 bg-brass md:block" />
-        <span aria-hidden data-fade style={d(1400)} className="absolute -bottom-1 right-0 hidden h-1.5 w-1.5 rotate-45 bg-brass md:block" />
-
         <div className="grid gap-4 md:grid-cols-12">
           {cells.map(({ no, key, span, moment }, i) => (
             <div
@@ -375,6 +356,39 @@ export function ProcessBand() {
             </div>
           ))}
         </div>
+
+        {/* firul de alama care leaga statiile — DEASUPRA celulelor, ca pe un
+            panou de atelier: un traseu CONTINUU ancorat in numerele 1→2→3→4,
+            prins cu ace de alama la capete; se deseneaza la intrarea in viewport */}
+        <svg
+          aria-hidden
+          className="pointer-events-none absolute inset-0 hidden h-full w-full md:block"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          fill="none"
+        >
+          <path
+            d="M 4.5 9 C 18 15 40 3 61 8.5 C 80 13 97 15 96 27 C 95 41 55 39 30 45 C 12 49 2.5 47 3.5 58 C 4.5 66 24 64 45 57.5"
+            stroke="hsl(var(--brass) / 0.45)"
+            strokeWidth="1.25"
+            vectorEffect="non-scaling-stroke"
+            pathLength={1}
+            data-draw
+            style={d(300)}
+          />
+        </svg>
+        <span
+          aria-hidden
+          data-fade
+          style={{ ...d(400), left: '4.5%', top: '9%' }}
+          className="absolute hidden h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-brass md:block"
+        />
+        <span
+          aria-hidden
+          data-fade
+          style={{ ...d(1500), left: '45%', top: '57.5%' }}
+          className="absolute hidden h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-brass md:block"
+        />
       </div>
     </section>
   );

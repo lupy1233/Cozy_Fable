@@ -25,7 +25,6 @@ type Material = DemoMaterial;
 
 const ink = 'hsl(var(--foreground))';
 const brass = 'hsl(var(--brass))';
-const faint = 'hsl(var(--muted-2))';
 
 const MATERIAL_FILL: Record<Material, string> = {
   WHITE: 'hsl(var(--card))',
@@ -80,13 +79,6 @@ function Sketch({
         fill="hsl(var(--foreground) / 0.06)"
         style={tr}
       />
-      {/* televizorul abia schitat, deasupra comodei */}
-      {piece === 'TV' && (
-        <g stroke={faint} strokeWidth={1.5} style={tr}>
-          <rect x={x0 + frontW / 2 - 34} y={y0 - 52} width={68} height={40} rx={2} />
-          <line x1={x0 + frontW / 2 - 10} y1={y0 - 12} x2={x0 + frontW / 2 + 10} y2={y0 - 12} />
-        </g>
-      )}
       {/* corpul in axonometrie */}
       <path d={dSide} stroke={ink} strokeWidth={2.5} strokeLinejoin="round" fill={fill} style={tr} />
       <path d={dTop} stroke={ink} strokeWidth={2.5} strokeLinejoin="round" fill={fill} style={tr} />
@@ -227,6 +219,22 @@ function Sketch({
           <g stroke={ink} strokeWidth={2.25} strokeLinecap="round" style={tr}>
             <line x1={x0 + 10} x2={x0 + 6} y1={baseY} y2={baseY + 10} />
             <line x1={x0 + frontW - 10} x2={x0 + frontW - 6} y1={baseY} y2={baseY + 10} />
+          </g>
+          {/* televizorul ASEZAT pe blat (PO r12): dupa corp, ca sa stea peste el;
+              centrat pe fata de sus (deplasat cu jumatate din adancime) */}
+          <g style={tr}>
+            {(() => {
+              const tvCx = x0 + frontW / 2 + depth / 2;
+              const topY = y0 - depth * 0.35;
+              return (
+                <>
+                  <line x1={tvCx - 11} x2={tvCx + 11} y1={topY} y2={topY} stroke={ink} strokeWidth={2.5} strokeLinecap="round" />
+                  <line x1={tvCx} x2={tvCx} y1={topY} y2={topY - 8} stroke={ink} strokeWidth={2.5} />
+                  <rect x={tvCx - 36} y={topY - 52} width={72} height={44} rx={2.5} fill="hsl(var(--foreground) / 0.88)" stroke={ink} strokeWidth={2} />
+                  <line x1={tvCx - 26} y1={topY - 44} x2={tvCx - 10} y2={topY - 28} stroke="hsl(var(--card) / 0.25)" strokeWidth={3} strokeLinecap="round" />
+                </>
+              );
+            })()}
           </g>
         </>
       )}
