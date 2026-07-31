@@ -1163,6 +1163,13 @@
       "toDetails": "Spre date generale",
       "toReview": "Spre sumar"
     },
+    "anchors": {
+      "kitchenZones": {
+        "BASE_UNITS": "Corpuri de baza",
+        "WALL_UNITS": "Corpuri suspendate",
+        "ISLAND_UNITS": "Insula"
+      }
+    },
     "start": {
       "title": "Cum pornim cererea?",
       "subtitle": "Alege varianta care ti se potriveste — o luam pe drumul cel mai scurt.",

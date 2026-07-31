@@ -1163,6 +1163,13 @@
       "toDetails": "To general info",
       "toReview": "To summary"
     },
+    "anchors": {
+      "kitchenZones": {
+        "BASE_UNITS": "Base units",
+        "WALL_UNITS": "Wall units",
+        "ISLAND_UNITS": "Island"
+      }
+    },
     "start": {
       "title": "How should we start?",
       "subtitle": "Pick the option that fits you — we'll take the shortest path.",

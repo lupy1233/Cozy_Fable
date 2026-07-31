@@ -1,7 +1,7 @@
 'use client';
 
 import { useReducedMotion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Link } from '@/i18n/routing';
@@ -114,11 +114,40 @@ function Sketch({
             ))}
           {variant === 'GLISANTE' && (
             <>
+              {/* panourile din spate, abia schitate */}
               {Array.from({ length: cols - 1 }).map((_, i) => (
-                <line key={i} x1={x0 + colW * (i + 1)} x2={x0 + colW * (i + 1)} y1={y0 + 4} y2={y0 + h - 4} stroke={ink} strokeWidth={1.25} opacity={0.35} style={tr} />
+                <line key={i} x1={x0 + colW * (i + 1)} x2={x0 + colW * (i + 1)} y1={y0 + 4} y2={y0 + h - 4} stroke={ink} strokeWidth={1.25} opacity={0.3} style={tr} />
               ))}
-              <rect x={x0 - 4} y={y0 - 4} width={colW + 4} height={h + 8} stroke={ink} strokeWidth={2.5} strokeLinejoin="round" fill={fill} style={tr} />
-              <line x1={x0 - 6} x2={x0 + frontW + 6} y1={y0 - 8} y2={y0 - 8} stroke={brass} strokeWidth={3} strokeLinecap="round" style={tr} />
+              {/* sina sus (alama) + ghidajul discret de jos */}
+              <line x1={x0 - 5} x2={x0 + frontW + 5} y1={y0 - 8} y2={y0 - 8} stroke={brass} strokeWidth={3} strokeLinecap="round" style={tr} />
+              <line x1={x0 - 3} x2={x0 + frontW + 3} y1={y0 + h + 4} y2={y0 + h + 4} stroke={ink} strokeWidth={1.25} opacity={0.4} style={tr} />
+              {/* panoul frontal: pe mijloc, peste rosturi, agatat de sina */}
+              <rect
+                x={x0 + (frontW - colW) / 2 - 4}
+                y={y0 - 3}
+                width={colW + 8}
+                height={h + 8}
+                stroke={ink}
+                strokeWidth={2.5}
+                strokeLinejoin="round"
+                fill={fill}
+                style={tr}
+              />
+              <g stroke={ink} strokeWidth={1.75} style={tr}>
+                <line x1={x0 + (frontW - colW) / 2 + 4} x2={x0 + (frontW - colW) / 2 + 4} y1={y0 - 8} y2={y0 - 3} />
+                <line x1={x0 + (frontW + colW) / 2 - 4} x2={x0 + (frontW + colW) / 2 - 4} y1={y0 - 8} y2={y0 - 3} />
+              </g>
+              {/* manerul-santulet vertical al panoului frontal */}
+              <line
+                x1={x0 + (frontW + colW) / 2 - 10}
+                x2={x0 + (frontW + colW) / 2 - 10}
+                y1={y0 + h / 2 - 11}
+                y2={y0 + h / 2 + 11}
+                stroke={brass}
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                style={tr}
+              />
             </>
           )}
           {variant === 'MANER' &&
@@ -135,33 +164,50 @@ function Sketch({
         </>
       )}
 
-      {/* ----- biblioteca: rafturi deschise, optional usi jos ----- */}
-      {piece === 'BOOKCASE' && (
-        <>
-          {Array.from({ length: cols - 1 }).map((_, i) => (
-            <line key={`v${i}`} x1={x0 + colW * (i + 1)} x2={x0 + colW * (i + 1)} y1={y0 + 3} y2={y0 + h - 3} stroke={ink} strokeWidth={1.5} style={tr} />
-          ))}
-          {[1, 2, 3].map((i) => (
-            <line key={`h${i}`} x1={x0 + 3} x2={x0 + frontW - 3} y1={y0 + (h / 4) * i} y2={y0 + (h / 4) * i} stroke={ink} strokeWidth={1.5} style={tr} />
-          ))}
-          {/* cateva carti, ca sa se citeasca "biblioteca" */}
-          <g stroke={brass} strokeWidth={2.5} strokeLinecap="round" opacity={0.75} style={tr}>
-            <line x1={x0 + 10} x2={x0 + 10} y1={y0 + h / 4 - 12} y2={y0 + h / 4} />
-            <line x1={x0 + 15} x2={x0 + 15} y1={y0 + h / 4 - 10} y2={y0 + h / 4} />
-            <line x1={x0 + colW + 12} x2={x0 + colW + 12} y1={y0 + h / 2 - 11} y2={y0 + h / 2} />
-            <line x1={x0 + colW + 17} x2={x0 + colW + 17} y1={y0 + h / 2 - 9} y2={y0 + h / 2} />
-          </g>
-          {variant === 'DOORS' && (
-            <g style={tr}>
-              <rect x={x0 + 2} y={y0 + (h / 4) * 3 + 2} width={frontW - 4} height={h / 4 - 4} stroke={ink} strokeWidth={1.75} fill={fill} />
+      {/* ----- biblioteca: rafturi deschise sus, optional corp inchis jos ----- */}
+      {piece === 'BOOKCASE' &&
+        (() => {
+          // zona deschisa: intreaga inaltime, sau 2/3 cand jos sunt usi
+          const openH = variant === 'DOORS' ? h * 0.66 : h;
+          const shelfYs = [openH / 3, (openH / 3) * 2].map((v) => y0 + v);
+          const doorY = y0 + openH;
+          return (
+            <>
               {Array.from({ length: cols - 1 }).map((_, i) => (
-                <line key={i} x1={x0 + colW * (i + 1)} x2={x0 + colW * (i + 1)} y1={y0 + (h / 4) * 3 + 4} y2={y0 + h - 4} stroke={ink} strokeWidth={1.25} />
+                <line key={`v${i}`} x1={x0 + colW * (i + 1)} x2={x0 + colW * (i + 1)} y1={y0 + 3} y2={doorY - (variant === 'DOORS' ? 0 : 3)} stroke={ink} strokeWidth={1.5} style={tr} />
               ))}
-              <line x1={x0 + frontW / 2 - 8} x2={x0 + frontW / 2 + 8} y1={y0 + (h / 4) * 3 + 8} y2={y0 + (h / 4) * 3 + 8} stroke={brass} strokeWidth={2.5} strokeLinecap="round" />
-            </g>
-          )}
-        </>
-      )}
+              {shelfYs.map((y, i) => (
+                <line key={`h${i}`} x1={x0 + 3} x2={x0 + frontW - 3} y1={y} y2={y} stroke={ink} strokeWidth={1.5} style={tr} />
+              ))}
+              {/* cateva carti, ca sa se citeasca "biblioteca" */}
+              <g stroke={brass} strokeWidth={2.5} strokeLinecap="round" opacity={0.75} style={tr}>
+                <line x1={x0 + 10} x2={x0 + 10} y1={shelfYs[0] - 12} y2={shelfYs[0]} />
+                <line x1={x0 + 15} x2={x0 + 15} y1={shelfYs[0] - 10} y2={shelfYs[0]} />
+                <line x1={x0 + colW + 12} x2={x0 + colW + 12} y1={shelfYs[1] - 11} y2={shelfYs[1]} />
+                <line x1={x0 + colW + 17} x2={x0 + colW + 17} y1={shelfYs[1] - 9} y2={shelfYs[1]} />
+              </g>
+              {variant === 'DOORS' && (
+                <g style={tr}>
+                  {/* corpul inchis: exact intre ultimul raft si baza */}
+                  <rect x={x0} y={doorY} width={frontW} height={h - openH} stroke={ink} strokeWidth={2} fill={fill} />
+                  {Array.from({ length: cols - 1 }).map((_, i) => (
+                    <line key={i} x1={x0 + colW * (i + 1)} x2={x0 + colW * (i + 1)} y1={doorY + 3} y2={y0 + h - 3} stroke={ink} strokeWidth={1.25} />
+                  ))}
+                  {/* cate un buton de alama pe fiecare usa, langa rost */}
+                  {Array.from({ length: cols }).map((_, i) => (
+                    <circle
+                      key={`k${i}`}
+                      cx={x0 + colW * i + (i < cols / 2 ? colW - 7 : 7)}
+                      cy={doorY + (h - openH) / 2}
+                      r={2}
+                      fill={brass}
+                    />
+                  ))}
+                </g>
+              )}
+            </>
+          );
+        })()}
 
       {/* ----- comoda TV: fronturi, picioare conice ----- */}
       {piece === 'TV' && (
@@ -232,6 +278,89 @@ function OptionChip({
   );
 }
 
+// Cardul de raspuns in miniatura — acelasi limbaj ca in formularul real
+// (PO r11: demo-ul trebuie sa ARATE formularul, nu doar sa-l pomeneasca):
+// bifa radio, vizual (redare foto / mostra de culoare / schita), eticheta.
+function OptionCard({
+  label,
+  selected,
+  onClick,
+  img,
+  swatch,
+  shelves,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+  img?: string;
+  swatch?: string;
+  shelves?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={cn(
+        'relative flex flex-col items-center rounded-lg border p-2 pt-3.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-walnut',
+        selected
+          ? 'border-walnut bg-walnut-soft shadow-[0_0_0_2px_hsl(var(--walnut)/0.14)]'
+          : 'border-border-2 bg-surface hover:border-walnut/50',
+      )}
+    >
+      <span
+        className={cn(
+          'absolute left-1.5 top-1.5 grid h-3.5 w-3.5 place-items-center rounded-full border-[1.5px]',
+          selected ? 'border-walnut bg-walnut' : 'border-border-2 bg-surface',
+        )}
+      >
+        {selected && <Check className="h-2 w-2 text-background" strokeWidth={4} />}
+      </span>
+      {img && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={img} alt="" className="h-9 w-full object-contain" />
+      )}
+      {swatch && (
+        <span className="my-1 h-7 w-11 rounded-md border border-ink/10 shadow-inner" style={{ background: swatch }} />
+      )}
+      {shelves && (
+        <svg viewBox="0 0 44 36" fill="none" className="h-9 w-auto text-muted-foreground" aria-hidden
+          stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <rect x="4" y="3" width="36" height="30" rx="1.5" />
+          <line x1="6" y1="13" x2="38" y2="13" />
+          <line x1="6" y1="23" x2="38" y2="23" />
+          <line x1="12" y1="8" x2="12" y2="13" stroke="hsl(var(--brass))" />
+          <line x1="16" y1="9" x2="16" y2="13" stroke="hsl(var(--brass))" />
+        </svg>
+      )}
+      <span className="mt-1 text-center text-[10.5px] font-medium leading-tight">{label}</span>
+    </button>
+  );
+}
+
+// eticheta numerotata a intrebarii — ecoul numerotarii din formular
+function QLabel({ no, text }: { no: string; text: string }) {
+  return (
+    <p className="label mb-1.5">
+      <span className="font-mono text-brass-2">{no}</span> · {text}
+    </p>
+  );
+}
+
+// vizualul cardului per material / varianta de deschidere
+const MATERIAL_CARD: Record<Material, { img?: string; swatch?: string }> = {
+  WHITE: { img: '/illustrations/mdf-vopsit.png' },
+  WOOD: { img: '/illustrations/mdf-furnir.png' },
+  SAGE: { swatch: 'hsl(var(--sage) / 0.55)' },
+};
+const VARIANT_CARD: Record<string, { img?: string; shelves?: boolean }> = {
+  MANER: { img: '/illustrations/maner.png' },
+  PUSH: { img: '/illustrations/push.png' },
+  GLISANTE: { img: '/illustrations/glisante.png' },
+  DOORS: { img: '/illustrations/maner.png' },
+  OPEN: { shelves: true },
+};
+
 export function HeroDemo() {
   const t = useTranslations('LandingV2');
   const reduce = useReducedMotion();
@@ -287,7 +416,7 @@ export function HeroDemo() {
 
         {/* piesa de joaca — prima alegere, pe toata latimea */}
         <div className="border-b border-ink/10 px-4 pb-3 pt-3.5 sm:px-5">
-          <p className="label mb-1.5">{t('demo.qPiece')}</p>
+          <QLabel no="01" text={t('demo.qPiece')} />
           <div className="flex flex-wrap gap-1.5">
             {(['WARDROBE', 'BOOKCASE', 'TV'] as const).map((p) => (
               <OptionChip key={p} label={pieceLabel[p]} selected={piece === p} onClick={() => pickPiece(p)} />
@@ -295,16 +424,16 @@ export function HeroDemo() {
           </div>
         </div>
 
-        <div className="grid gap-1 p-4 sm:grid-cols-[1.05fr_0.95fr] sm:gap-4 sm:p-5 sm:pt-4">
+        <div className="grid gap-1 p-4 sm:grid-cols-[1fr_1fr] sm:gap-4 sm:p-5 sm:pt-4">
           {/* schita vie */}
-          <div className="h-48 sm:h-full sm:min-h-[14rem]">
+          <div className="h-48 sm:h-full sm:min-h-[15rem]">
             <Sketch piece={piece} wide={wide} material={material} variant={variant} animate={!reduce} />
           </div>
 
-          {/* intrebarile — chips in limbajul cardurilor de raspuns */}
-          <div className="flex flex-col gap-3.5">
+          {/* intrebarile — cardurile de raspuns ale formularului, in miniatura */}
+          <div className="flex flex-col gap-3">
             <div>
-              <p className="label mb-1.5">{t('demo.qSize')}</p>
+              <QLabel no="02" text={t('demo.qSize')} />
               <div className="flex flex-wrap gap-1.5">
                 {conf.widths.map((cm, i) => (
                   <OptionChip key={cm} label={`${cm} cm`} selected={wide === (i === 1)} onClick={() => setWide(i === 1)} />
@@ -312,20 +441,33 @@ export function HeroDemo() {
               </div>
             </div>
             <div>
-              <p className="label mb-1.5">{t('demo.qMaterial')}</p>
-              <div className="flex flex-wrap gap-1.5">
+              <QLabel no="03" text={t('demo.qMaterial')} />
+              <div className="grid grid-cols-3 gap-1.5">
                 {(['WHITE', 'WOOD', 'SAGE'] as const).map((m) => (
-                  <OptionChip key={m} label={matLabel[m]} selected={material === m} onClick={() => setMaterial(m)} />
+                  <OptionCard
+                    key={m}
+                    label={matLabel[m]}
+                    selected={material === m}
+                    onClick={() => setMaterial(m)}
+                    {...MATERIAL_CARD[m]}
+                  />
                 ))}
               </div>
             </div>
             <div>
-              <p className="label mb-1.5">
-                {piece === 'BOOKCASE' ? t('demo.qBottom') : t('demo.qOpening')}
-              </p>
-              <div className="flex flex-wrap gap-1.5">
+              <QLabel
+                no="04"
+                text={piece === 'BOOKCASE' ? t('demo.qBottom') : t('demo.qOpening')}
+              />
+              <div className="grid grid-cols-3 gap-1.5">
                 {conf.variants.map((v) => (
-                  <OptionChip key={v} label={variantLabel[v]} selected={variant === v} onClick={() => setVariant(v)} />
+                  <OptionCard
+                    key={v}
+                    label={variantLabel[v]}
+                    selected={variant === v}
+                    onClick={() => setVariant(v)}
+                    {...VARIANT_CARD[v]}
+                  />
                 ))}
               </div>
             </div>

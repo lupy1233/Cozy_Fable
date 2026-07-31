@@ -24,7 +24,7 @@ import { ConfiguratorIcon } from '@/lib/configurator-icons';
 import type { AttachmentTarget } from '@/hooks/use-requests';
 import { useConfiguratorStore } from '@/stores/configurator-store';
 import { BOOLEAN_ILLUSTRATIONS, getIllustration } from './illustrations';
-import { getQuestionAnchor } from './illustrations/question-anchor';
+import { getQuestionTargets, QuestionTargetStrip } from './illustrations/question-anchor';
 import { getDimensionFigure } from './dimension-figures';
 import { Configurator3dStep } from './piece3d/dynamic';
 import { PlayingCard } from './playing-card';
@@ -34,6 +34,9 @@ interface StepRendererProps {
   step: QuestionStep;
   answers: AnswerMap;
   roomType: RoomType;
+  // versiunea flow-ului camerei — etichetele din banda-tinta se iau din
+  // definitia originala, nu din versiunea curenta
+  flowVersion?: number;
   onChange: (value: AnswerValue) => void;
   onInfo: (info: InfoContentRef) => void;
   error?: string;
@@ -50,6 +53,8 @@ interface StepRendererProps {
 function StepShell({
   step,
   roomType,
+  answers,
+  flowVersion,
   onInfo,
   error,
   inline,
@@ -57,26 +62,23 @@ function StepShell({
 }: {
   step: QuestionStep;
   roomType: RoomType;
+  answers: AnswerMap;
+  flowVersion?: number;
   onInfo: (info: InfoContentRef) => void;
   error?: string;
   inline?: boolean;
   children: React.ReactNode;
 }) {
   const t = useTranslations('Configurator');
-  // ancora vizuala (PO r10): ilustratia corpului vizat de intrebarea de
-  // material/deschidere — mai explicita decat iconul lucide generic
-  const Anchor = getQuestionAnchor(roomType, step);
+  // banda-tinta (PO r10/r11): toate corpurile camerei, cu highlight pe cel
+  // vizat de intrebarea de material/deschidere
+  const targets = inline ? null : getQuestionTargets(roomType, step, answers, flowVersion);
   return (
     <div className="flex flex-col gap-4">
       <div>
         <div className="flex items-center gap-3">
-          {Anchor && !inline && (
-            <span className="grid h-14 w-[74px] shrink-0 place-items-center rounded-lg border border-walnut/20 bg-walnut-soft px-2 py-1.5 text-walnut [&_svg]:h-full [&_svg]:w-full">
-              <Anchor />
-            </span>
-          )}
           {/* vizualul piesei la care se refera intrebarea (feedback PO F4) */}
-          {!Anchor && step.icon && !inline && (
+          {!targets && step.icon && !inline && (
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-walnut-soft text-walnut [&_svg]:h-6 [&_svg]:w-6">
               <ConfiguratorIcon name={step.icon} />
             </span>
@@ -103,6 +105,7 @@ function StepShell({
           <p className="mt-1 text-sm text-muted-foreground">{t(step.subtitleKey)}</p>
         )}
       </div>
+      {targets && <QuestionTargetStrip data={targets} />}
       {children}
       {error && <p className="text-sm text-crimson">{t(error)}</p>}
     </div>
@@ -117,8 +120,18 @@ const cnUnit = (active: boolean) =>
   (active ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground');
 
 export function StepRenderer(props: StepRendererProps) {
-  const { step, answers, roomType, onChange, onInfo, error, inline, uploadContext, config3dContext } =
-    props;
+  const {
+    step,
+    answers,
+    roomType,
+    flowVersion,
+    onChange,
+    onInfo,
+    error,
+    inline,
+    uploadContext,
+    config3dContext,
+  } = props;
   const t = useTranslations('Configurator');
   const dimensionUnit = useConfiguratorStore((s) => s.dimensionUnit);
   const setDimensionUnit = useConfiguratorStore((s) => s.setDimensionUnit);
@@ -205,7 +218,7 @@ export function StepRenderer(props: StepRendererProps) {
     const options = visibleOptions(step, answers);
     if (compactChoice) {
       return (
-        <StepShell roomType={roomType} step={step} onInfo={onInfo} error={error} inline={inline}>
+        <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} inline={inline}>
           <div className="flex flex-wrap gap-2">
             {options.map((opt) => optionPill(opt, value === opt.value, () => onChange(opt.value)))}
           </div>
@@ -213,7 +226,7 @@ export function StepRenderer(props: StepRendererProps) {
       );
     }
     return (
-      <StepShell roomType={roomType} step={step} onInfo={onInfo} error={error}>
+      <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {options.map((opt) => optionCard(opt, value === opt.value, false, () => onChange(opt.value)))}
         </div>
@@ -228,7 +241,7 @@ export function StepRenderer(props: StepRendererProps) {
       onChange(selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v]);
     if (inline) {
       return (
-        <StepShell roomType={roomType} step={step} onInfo={onInfo} error={error} inline>
+        <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} inline>
           <div className="flex flex-wrap gap-2">
             {options.map((opt) => optionPill(opt, selected.includes(opt.value), () => toggle(opt.value)))}
           </div>
@@ -236,7 +249,7 @@ export function StepRenderer(props: StepRendererProps) {
       );
     }
     return (
-      <StepShell roomType={roomType} step={step} onInfo={onInfo} error={error}>
+      <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {options.map((opt) => optionCard(opt, selected.includes(opt.value), true, () => toggle(opt.value)))}
         </div>
@@ -252,7 +265,7 @@ export function StepRenderer(props: StepRendererProps) {
       const Illu = getIllustration(roomType, step.id, 'YES');
       const on = value === true;
       return (
-        <StepShell roomType={roomType} step={step} onInfo={onInfo} error={error} inline>
+        <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} inline>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <PlayingCard
               multi
@@ -279,7 +292,7 @@ export function StepRenderer(props: StepRendererProps) {
     const YesIllu = getIllustration(roomType, step.id, 'YES') ?? BOOLEAN_ILLUSTRATIONS.yes;
     const NoIllu = BOOLEAN_ILLUSTRATIONS.no;
     return (
-      <StepShell roomType={roomType} step={step} onInfo={onInfo} error={error}>
+      <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error}>
         <div className="grid gap-4 sm:grid-cols-2">
           <PlayingCard
             selected={value === true}
@@ -323,7 +336,7 @@ export function StepRenderer(props: StepRendererProps) {
       .filter((s) => letterOf(s.id) && Number.isFinite(values[s.id]))
       .map((s) => `${letterOf(s.id)} = ${fmtNum(values[s.id] * factor)} ${dimensionUnit}`);
     return (
-      <StepShell roomType={roomType} step={step} onInfo={onInfo} error={error}>
+      <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error}>
         {figure && (
           <figure className="rounded-xl border border-border-2 bg-surface-2 p-4">
             {figure.node}
@@ -415,7 +428,7 @@ export function StepRenderer(props: StepRendererProps) {
 
   if (step.type === 'number') {
     return (
-      <StepShell roomType={roomType} step={step} onInfo={onInfo} error={error} inline={inline}>
+      <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} inline={inline}>
         <Input
           type="number"
           inputMode="decimal"
@@ -432,7 +445,7 @@ export function StepRenderer(props: StepRendererProps) {
 
   if (step.type === 'text') {
     return (
-      <StepShell roomType={roomType} step={step} onInfo={onInfo} error={error} inline={inline}>
+      <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} inline={inline}>
         {step.multiline ? (
           <Textarea
             rows={4}
@@ -453,7 +466,7 @@ export function StepRenderer(props: StepRendererProps) {
 
   if (step.type === 'configurator-3d') {
     return (
-      <StepShell roomType={roomType} step={step} onInfo={onInfo} error={error} inline={inline}>
+      <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} inline={inline}>
         <Configurator3dStep
           piece={step.piece}
           value={value}
@@ -467,7 +480,7 @@ export function StepRenderer(props: StepRendererProps) {
   if (step.type === 'upload') {
     const ids = Array.isArray(value) ? (value as string[]) : [];
     return (
-      <StepShell roomType={roomType} step={step} onInfo={onInfo} error={error} inline={inline}>
+      <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} inline={inline}>
         {uploadContext ? (
           <RoomSketchUpload
             target={uploadContext.target}
@@ -491,7 +504,7 @@ export function StepRenderer(props: StepRendererProps) {
     update(pieces.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
 
   return (
-    <StepShell roomType={roomType} step={step} onInfo={onInfo} error={error}>
+    <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error}>
       <div className="flex flex-col gap-3">
         {pieces.map((piece, i) => (
           <div key={i} className="flex flex-col gap-2 rounded-lg border border-border-2 bg-surface-2 p-3">
