@@ -3,18 +3,25 @@
 import { useReducedMotion } from 'framer-motion';
 import { ArrowRight, Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
 import { Link } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
+import {
+  DEMO_PIECES,
+  MATERIAL_CARD,
+  VARIANT_CARD,
+  useDemoStore,
+  type DemoMaterial,
+  type PieceKind,
+} from './demo-state';
 
 // Semnatura landing-ului v2 (PO r9-r10): un mini-configurator FUNCTIONAL in
 // hero, cu TREI piese de joaca (dulap / biblioteca / comoda TV) — intrebarile
 // se adapteaza piesei, exact ca in produs. Desen SVG pur cu tranzitii CSS pe
 // geometrie (fara framer): primul paint e mereu complet, browserele moderne
-// anima lin.
+// anima lin. Starea sta in demo-state, partajata cu statia 1 din "Drumul
+// cererii" (PO r12).
 
-type PieceKind = 'WARDROBE' | 'BOOKCASE' | 'TV';
-type Material = 'WHITE' | 'WOOD' | 'SAGE';
+type Material = DemoMaterial;
 
 const ink = 'hsl(var(--foreground))';
 const brass = 'hsl(var(--brass))';
@@ -26,15 +33,7 @@ const MATERIAL_FILL: Record<Material, string> = {
   SAGE: 'hsl(var(--sage) / 0.38)',
 };
 
-// configuratia fiecarei piese: doua latimi reale + variantele intrebarii a 3-a
-const PIECES: Record<
-  PieceKind,
-  { widths: [number, number]; variants: readonly string[] }
-> = {
-  WARDROBE: { widths: [160, 240], variants: ['MANER', 'PUSH', 'GLISANTE'] },
-  BOOKCASE: { widths: [120, 180], variants: ['OPEN', 'DOORS'] },
-  TV: { widths: [160, 220], variants: ['MANER', 'PUSH'] },
-};
+const PIECES = DEMO_PIECES;
 
 function Sketch({
   piece,
@@ -347,27 +346,17 @@ function QLabel({ no, text }: { no: string; text: string }) {
   );
 }
 
-// vizualul cardului per material / varianta de deschidere
-const MATERIAL_CARD: Record<Material, { img?: string; swatch?: string }> = {
-  WHITE: { img: '/illustrations/mdf-vopsit.png' },
-  WOOD: { img: '/illustrations/mdf-furnir.png' },
-  SAGE: { swatch: 'hsl(var(--sage) / 0.55)' },
-};
-const VARIANT_CARD: Record<string, { img?: string; shelves?: boolean }> = {
-  MANER: { img: '/illustrations/maner.png' },
-  PUSH: { img: '/illustrations/push.png' },
-  GLISANTE: { img: '/illustrations/glisante.png' },
-  DOORS: { img: '/illustrations/maner.png' },
-  OPEN: { shelves: true },
-};
-
 export function HeroDemo() {
   const t = useTranslations('LandingV2');
   const reduce = useReducedMotion();
-  const [piece, setPiece] = useState<PieceKind>('WARDROBE');
-  const [wide, setWide] = useState(false);
-  const [material, setMaterial] = useState<Material>('WHITE');
-  const [variant, setVariant] = useState<string>('MANER');
+  const piece = useDemoStore((s) => s.piece);
+  const wide = useDemoStore((s) => s.wide);
+  const material = useDemoStore((s) => s.material);
+  const variant = useDemoStore((s) => s.variant);
+  const pickPiece = useDemoStore((s) => s.pickPiece);
+  const setWide = useDemoStore((s) => s.setWide);
+  const setMaterial = useDemoStore((s) => s.setMaterial);
+  const setVariant = useDemoStore((s) => s.setVariant);
 
   const pieceLabel: Record<PieceKind, string> = {
     WARDROBE: t('demo.pieceWardrobe'),
@@ -388,12 +377,6 @@ export function HeroDemo() {
   };
 
   const conf = PIECES[piece];
-  const pickPiece = (p: PieceKind) => {
-    setPiece(p);
-    // varianta curenta poate sa nu existe la piesa noua → prima valida
-    if (!PIECES[p].variants.includes(variant)) setVariant(PIECES[p].variants[0]);
-  };
-
   const spec = `${pieceLabel[piece]} ${conf.widths[wide ? 1 : 0]} cm · ${matLabel[material]} · ${variantLabel[variant]}`;
 
   return (
