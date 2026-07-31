@@ -7,18 +7,18 @@ import { useState } from 'react';
 import { Link } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
-// Semnatura landing-ului v2 (PO r9): un mini-configurator FUNCTIONAL in hero.
-// Trei intrebari pe cartonase (limbajul chestionarului real) redeseneaza live
-// un dulap in axonometrie — demonstratia produsului, nu o promisiune despre el.
-// Desenul e SVG pur cu tranzitii CSS pe geometrie (fara framer): primul paint
-// e mereu complet (SSR, tab in fundal), iar browserele moderne anima lin.
+// Semnatura landing-ului v2 (PO r9-r10): un mini-configurator FUNCTIONAL in
+// hero, cu TREI piese de joaca (dulap / biblioteca / comoda TV) — intrebarile
+// se adapteaza piesei, exact ca in produs. Desen SVG pur cu tranzitii CSS pe
+// geometrie (fara framer): primul paint e mereu complet, browserele moderne
+// anima lin.
 
-type Doors = 2 | 3;
+type PieceKind = 'WARDROBE' | 'BOOKCASE' | 'TV';
 type Material = 'WHITE' | 'WOOD' | 'SAGE';
-type Opening = 'MANER' | 'PUSH' | 'GLISANTE';
 
 const ink = 'hsl(var(--foreground))';
 const brass = 'hsl(var(--brass))';
+const faint = 'hsl(var(--muted-2))';
 
 const MATERIAL_FILL: Record<Material, string> = {
   WHITE: 'hsl(var(--card))',
@@ -26,170 +26,181 @@ const MATERIAL_FILL: Record<Material, string> = {
   SAGE: 'hsl(var(--sage) / 0.38)',
 };
 
-// latimea reala pe care o afiseaza cota (cm) — se schimba cu numarul de usi
-const WIDTH_CM: Record<Doors, number> = { 2: 160, 3: 240 };
+// configuratia fiecarei piese: doua latimi reale + variantele intrebarii a 3-a
+const PIECES: Record<
+  PieceKind,
+  { widths: [number, number]; variants: readonly string[] }
+> = {
+  WARDROBE: { widths: [160, 240], variants: ['MANER', 'PUSH', 'GLISANTE'] },
+  BOOKCASE: { widths: [120, 180], variants: ['OPEN', 'DOORS'] },
+  TV: { widths: [160, 220], variants: ['MANER', 'PUSH'] },
+};
 
-function WardrobeSketch({
-  doors,
+function Sketch({
+  piece,
+  wide,
   material,
-  opening,
+  variant,
   animate,
 }: {
-  doors: Doors;
+  piece: PieceKind;
+  wide: boolean;
   material: Material;
-  opening: Opening;
+  variant: string;
   animate: boolean;
 }) {
-  // geometrie: fata dulapului creste cu numarul de usi; adancimea e fixa;
-  // ansamblul ramane centrat in viewBox indiferent de latime
-  const frontW = doors === 2 ? 104 : 148;
-  const depth = 26;
-  const x0 = (240 - frontW - depth) / 2;
-  const y0 = 52;
-  const h = 118;
-  const doorW = frontW / doors;
   const fill = MATERIAL_FILL[material];
-  // geometria (x/y/width/height/d/rx) e proprietate CSS in browserele moderne —
-  // tranzitia o anima; unde nu e suportata, schimbarea e instanta (tot corecta)
   const tr = animate
     ? ({ transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)' } as const)
     : undefined;
 
+  // gabarite pe piesa: dulapul e inalt, biblioteca medie, comoda joasa si lata
+  const frontW = piece === 'WARDROBE' ? (wide ? 148 : 104) : piece === 'BOOKCASE' ? (wide ? 132 : 96) : wide ? 168 : 128;
+  const h = piece === 'WARDROBE' ? 118 : piece === 'BOOKCASE' ? 104 : 46;
+  const depth = piece === 'TV' ? 22 : 26;
+  const x0 = (240 - frontW - depth) / 2;
+  const baseY = 170; // toate piesele stau pe aceeasi "podea"
+  const y0 = baseY - h;
+  const cm = PIECES[piece].widths[wide ? 1 : 0];
+
   const dSide = `M ${x0 + frontW} ${y0} l ${depth} -${depth * 0.7} v ${h} l -${depth} ${depth * 0.7} Z`;
   const dTop = `M ${x0} ${y0} l ${depth} -${depth * 0.7} h ${frontW} l -${depth} ${depth * 0.7} Z`;
+
+  // impartirea fetei: usi la dulap, module la biblioteca, fronturi la comoda
+  const cols = piece === 'WARDROBE' ? (wide ? 3 : 2) : piece === 'BOOKCASE' ? (wide ? 3 : 2) : wide ? 3 : 2;
+  const colW = frontW / cols;
 
   return (
     <svg viewBox="0 0 240 200" className="h-full w-full" aria-hidden fill="none">
       {/* umbra de asezare */}
       <ellipse
         cx={x0 + frontW / 2 + depth / 2}
-        cy={y0 + h + 8}
+        cy={baseY + 8}
         rx={frontW / 2 + depth}
         ry={7}
         fill="hsl(var(--foreground) / 0.06)"
         style={tr}
       />
-      {/* lateral dreapta + capac (axonometrie) */}
+      {/* televizorul abia schitat, deasupra comodei */}
+      {piece === 'TV' && (
+        <g stroke={faint} strokeWidth={1.5} style={tr}>
+          <rect x={x0 + frontW / 2 - 34} y={y0 - 52} width={68} height={40} rx={2} />
+          <line x1={x0 + frontW / 2 - 10} y1={y0 - 12} x2={x0 + frontW / 2 + 10} y2={y0 - 12} />
+        </g>
+      )}
+      {/* corpul in axonometrie */}
       <path d={dSide} stroke={ink} strokeWidth={2.5} strokeLinejoin="round" fill={fill} style={tr} />
       <path d={dTop} stroke={ink} strokeWidth={2.5} strokeLinejoin="round" fill={fill} style={tr} />
-      {/* fata */}
-      <rect
-        x={x0}
-        y={y0}
-        width={frontW}
-        height={h}
-        stroke={ink}
-        strokeWidth={2.5}
-        strokeLinejoin="round"
-        fill={fill}
-        style={tr}
-      />
+      <rect x={x0} y={y0} width={frontW} height={h} stroke={ink} strokeWidth={2.5} strokeLinejoin="round" fill={fill} style={tr} />
       {/* fibra lemnului, doar pe furnir */}
       {material === 'WOOD' &&
-        Array.from({ length: doors * 2 }).map((_, i) => (
+        Array.from({ length: cols * 2 }).map((_, i) => (
           <path
             key={i}
-            d={`M ${x0 + 10 + (i * (frontW - 20)) / (doors * 2 - 1)} ${y0 + 10} q 4 ${h / 3} 0 ${h - 20}`}
+            d={`M ${x0 + 10 + (i * (frontW - 20)) / (cols * 2 - 1)} ${y0 + 8} q 4 ${h / 3} 0 ${h - 16}`}
             stroke="hsl(28 35% 55% / 0.5)"
             strokeWidth={1.25}
             strokeLinecap="round"
             style={tr}
           />
         ))}
-      {/* rosturile usilor (balamale/push) */}
-      {opening !== 'GLISANTE' &&
-        Array.from({ length: doors - 1 }).map((_, i) => (
-          <line
-            key={i}
-            x1={x0 + doorW * (i + 1)}
-            x2={x0 + doorW * (i + 1)}
-            y1={y0 + 4}
-            y2={y0 + h - 4}
-            stroke={ink}
-            strokeWidth={1.75}
-            style={tr}
-          />
-        ))}
-      {/* glisante: panourile din spate abia schitate, cel din fata pe sina lui */}
-      {opening === 'GLISANTE' && (
+
+      {/* ----- dulap ----- */}
+      {piece === 'WARDROBE' && (
         <>
-          {Array.from({ length: doors - 1 }).map((_, i) => (
-            <line
-              key={i}
-              x1={x0 + doorW * (i + 1)}
-              x2={x0 + doorW * (i + 1)}
-              y1={y0 + 4}
-              y2={y0 + h - 4}
-              stroke={ink}
-              strokeWidth={1.25}
-              opacity={0.35}
-              style={tr}
-            />
-          ))}
-          <rect
-            x={x0 - 4}
-            y={y0 - 4}
-            width={doorW + 4}
-            height={h + 8}
-            stroke={ink}
-            strokeWidth={2.5}
-            strokeLinejoin="round"
-            fill={fill}
-            style={tr}
-          />
-          <line
-            x1={x0 - 6}
-            x2={x0 + frontW + 6}
-            y1={y0 - 8}
-            y2={y0 - 8}
-            stroke={brass}
-            strokeWidth={3}
-            strokeLinecap="round"
-            style={tr}
-          />
+          {variant !== 'GLISANTE' &&
+            Array.from({ length: cols - 1 }).map((_, i) => (
+              <line key={i} x1={x0 + colW * (i + 1)} x2={x0 + colW * (i + 1)} y1={y0 + 4} y2={y0 + h - 4} stroke={ink} strokeWidth={1.75} style={tr} />
+            ))}
+          {variant === 'GLISANTE' && (
+            <>
+              {Array.from({ length: cols - 1 }).map((_, i) => (
+                <line key={i} x1={x0 + colW * (i + 1)} x2={x0 + colW * (i + 1)} y1={y0 + 4} y2={y0 + h - 4} stroke={ink} strokeWidth={1.25} opacity={0.35} style={tr} />
+              ))}
+              <rect x={x0 - 4} y={y0 - 4} width={colW + 4} height={h + 8} stroke={ink} strokeWidth={2.5} strokeLinejoin="round" fill={fill} style={tr} />
+              <line x1={x0 - 6} x2={x0 + frontW + 6} y1={y0 - 8} y2={y0 - 8} stroke={brass} strokeWidth={3} strokeLinecap="round" style={tr} />
+            </>
+          )}
+          {variant === 'MANER' &&
+            Array.from({ length: cols }).map((_, i) => {
+              const cx = x0 + colW * i + (i < cols / 2 ? colW - 9 : 9);
+              return <line key={i} x1={cx} x2={cx} y1={y0 + h / 2 - 12} y2={y0 + h / 2 + 12} stroke={brass} strokeWidth={3.5} strokeLinecap="round" style={tr} />;
+            })}
+          {variant === 'PUSH' && (
+            <g style={tr}>
+              <circle cx={x0 + frontW - colW / 2} cy={y0 + h / 2} r={7} stroke={brass} strokeWidth={1.75} />
+              <circle cx={x0 + frontW - colW / 2} cy={y0 + h / 2} r={13} stroke={brass} strokeWidth={1.25} opacity={0.45} />
+            </g>
+          )}
         </>
       )}
-      {/* sistemul de deschidere */}
-      {opening === 'MANER' &&
-        Array.from({ length: doors }).map((_, i) => {
-          // manerele stau langa rostul usii, in oglinda
-          const cx = x0 + doorW * i + (i < doors / 2 ? doorW - 9 : 9);
-          return (
-            <line
-              key={i}
-              x1={cx}
-              x2={cx}
-              y1={y0 + h / 2 - 12}
-              y2={y0 + h / 2 + 12}
-              stroke={brass}
-              strokeWidth={3.5}
-              strokeLinecap="round"
-              style={tr}
-            />
-          );
-        })}
-      {opening === 'PUSH' && (
-        // fara feronerie: doar unda discreta a apasarii pe usa din dreapta
-        <g style={tr}>
-          <circle cx={x0 + frontW - doorW / 2} cy={y0 + h / 2} r={7} stroke={brass} strokeWidth={1.75} />
-          <circle cx={x0 + frontW - doorW / 2} cy={y0 + h / 2} r={13} stroke={brass} strokeWidth={1.25} opacity={0.45} />
-        </g>
+
+      {/* ----- biblioteca: rafturi deschise, optional usi jos ----- */}
+      {piece === 'BOOKCASE' && (
+        <>
+          {Array.from({ length: cols - 1 }).map((_, i) => (
+            <line key={`v${i}`} x1={x0 + colW * (i + 1)} x2={x0 + colW * (i + 1)} y1={y0 + 3} y2={y0 + h - 3} stroke={ink} strokeWidth={1.5} style={tr} />
+          ))}
+          {[1, 2, 3].map((i) => (
+            <line key={`h${i}`} x1={x0 + 3} x2={x0 + frontW - 3} y1={y0 + (h / 4) * i} y2={y0 + (h / 4) * i} stroke={ink} strokeWidth={1.5} style={tr} />
+          ))}
+          {/* cateva carti, ca sa se citeasca "biblioteca" */}
+          <g stroke={brass} strokeWidth={2.5} strokeLinecap="round" opacity={0.75} style={tr}>
+            <line x1={x0 + 10} x2={x0 + 10} y1={y0 + h / 4 - 12} y2={y0 + h / 4} />
+            <line x1={x0 + 15} x2={x0 + 15} y1={y0 + h / 4 - 10} y2={y0 + h / 4} />
+            <line x1={x0 + colW + 12} x2={x0 + colW + 12} y1={y0 + h / 2 - 11} y2={y0 + h / 2} />
+            <line x1={x0 + colW + 17} x2={x0 + colW + 17} y1={y0 + h / 2 - 9} y2={y0 + h / 2} />
+          </g>
+          {variant === 'DOORS' && (
+            <g style={tr}>
+              <rect x={x0 + 2} y={y0 + (h / 4) * 3 + 2} width={frontW - 4} height={h / 4 - 4} stroke={ink} strokeWidth={1.75} fill={fill} />
+              {Array.from({ length: cols - 1 }).map((_, i) => (
+                <line key={i} x1={x0 + colW * (i + 1)} x2={x0 + colW * (i + 1)} y1={y0 + (h / 4) * 3 + 4} y2={y0 + h - 4} stroke={ink} strokeWidth={1.25} />
+              ))}
+              <line x1={x0 + frontW / 2 - 8} x2={x0 + frontW / 2 + 8} y1={y0 + (h / 4) * 3 + 8} y2={y0 + (h / 4) * 3 + 8} stroke={brass} strokeWidth={2.5} strokeLinecap="round" />
+            </g>
+          )}
+        </>
       )}
+
+      {/* ----- comoda TV: fronturi, picioare conice ----- */}
+      {piece === 'TV' && (
+        <>
+          {Array.from({ length: cols - 1 }).map((_, i) => (
+            <line key={i} x1={x0 + colW * (i + 1)} x2={x0 + colW * (i + 1)} y1={y0 + 4} y2={y0 + h - 4} stroke={ink} strokeWidth={1.5} style={tr} />
+          ))}
+          {variant === 'MANER' &&
+            Array.from({ length: cols }).map((_, i) => (
+              <line key={i} x1={x0 + colW * i + colW / 2 - 9} x2={x0 + colW * i + colW / 2 + 9} y1={y0 + 12} y2={y0 + 12} stroke={brass} strokeWidth={3} strokeLinecap="round" style={tr} />
+            ))}
+          {variant === 'PUSH' && (
+            <g style={tr}>
+              <circle cx={x0 + frontW - colW / 2} cy={y0 + h / 2} r={6} stroke={brass} strokeWidth={1.75} />
+              <circle cx={x0 + frontW - colW / 2} cy={y0 + h / 2} r={11} stroke={brass} strokeWidth={1.25} opacity={0.45} />
+            </g>
+          )}
+          <g stroke={ink} strokeWidth={2.25} strokeLinecap="round" style={tr}>
+            <line x1={x0 + 10} x2={x0 + 6} y1={baseY} y2={baseY + 10} />
+            <line x1={x0 + frontW - 10} x2={x0 + frontW - 6} y1={baseY} y2={baseY + 10} />
+          </g>
+        </>
+      )}
+
       {/* cota de alama: latimea reala, ca pe plansele din formular */}
       <g stroke={brass} strokeWidth={1.25}>
-        <line x1={x0} y1={y0 + h + 18} x2={x0 + frontW} y2={y0 + h + 18} style={tr} />
-        <line x1={x0} y1={y0 + h + 13} x2={x0} y2={y0 + h + 23} style={tr} />
-        <line x1={x0 + frontW} x2={x0 + frontW} y1={y0 + h + 13} y2={y0 + h + 23} style={tr} />
+        <line x1={x0} y1={baseY + 18} x2={x0 + frontW} y2={baseY + 18} style={tr} />
+        <line x1={x0} y1={baseY + 13} x2={x0} y2={baseY + 23} style={tr} />
+        <line x1={x0 + frontW} x2={x0 + frontW} y1={baseY + 13} y2={baseY + 23} style={tr} />
       </g>
       <text
         x={x0 + frontW / 2}
-        y={y0 + h + 34}
+        y={baseY + 34}
         textAnchor="middle"
         fontSize="11"
         fill={brass}
         style={{ fontFamily: 'var(--font-mono, monospace)', ...tr }}
       >
-        {WIDTH_CM[doors]} cm
+        {cm} cm
       </text>
     </svg>
   );
@@ -224,16 +235,37 @@ function OptionChip({
 export function HeroDemo() {
   const t = useTranslations('LandingV2');
   const reduce = useReducedMotion();
-  const [doors, setDoors] = useState<Doors>(2);
+  const [piece, setPiece] = useState<PieceKind>('WARDROBE');
+  const [wide, setWide] = useState(false);
   const [material, setMaterial] = useState<Material>('WHITE');
-  const [opening, setOpening] = useState<Opening>('MANER');
+  const [variant, setVariant] = useState<string>('MANER');
 
-  const matLabel = { WHITE: t('demo.matWhite'), WOOD: t('demo.matWood'), SAGE: t('demo.matSage') };
-  const openLabel = {
+  const pieceLabel: Record<PieceKind, string> = {
+    WARDROBE: t('demo.pieceWardrobe'),
+    BOOKCASE: t('demo.pieceBookcase'),
+    TV: t('demo.pieceTv'),
+  };
+  const matLabel: Record<Material, string> = {
+    WHITE: t('demo.matWhite'),
+    WOOD: t('demo.matWood'),
+    SAGE: t('demo.matSage'),
+  };
+  const variantLabel: Record<string, string> = {
     MANER: t('demo.openHandle'),
     PUSH: t('demo.openPush'),
     GLISANTE: t('demo.openSliding'),
+    OPEN: t('demo.openShelves'),
+    DOORS: t('demo.doorsBelow'),
   };
+
+  const conf = PIECES[piece];
+  const pickPiece = (p: PieceKind) => {
+    setPiece(p);
+    // varianta curenta poate sa nu existe la piesa noua → prima valida
+    if (!PIECES[p].variants.includes(variant)) setVariant(PIECES[p].variants[0]);
+  };
+
+  const spec = `${pieceLabel[piece]} ${conf.widths[wide ? 1 : 0]} cm · ${matLabel[material]} · ${variantLabel[variant]}`;
 
   return (
     <div className="relative">
@@ -253,19 +285,30 @@ export function HeroDemo() {
           </span>
         </div>
 
-        <div className="grid gap-1 p-4 sm:grid-cols-[1.05fr_0.95fr] sm:gap-4 sm:p-5">
+        {/* piesa de joaca — prima alegere, pe toata latimea */}
+        <div className="border-b border-ink/10 px-4 pb-3 pt-3.5 sm:px-5">
+          <p className="label mb-1.5">{t('demo.qPiece')}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {(['WARDROBE', 'BOOKCASE', 'TV'] as const).map((p) => (
+              <OptionChip key={p} label={pieceLabel[p]} selected={piece === p} onClick={() => pickPiece(p)} />
+            ))}
+          </div>
+        </div>
+
+        <div className="grid gap-1 p-4 sm:grid-cols-[1.05fr_0.95fr] sm:gap-4 sm:p-5 sm:pt-4">
           {/* schita vie */}
-          <div className="h-48 sm:h-full sm:min-h-[15rem]">
-            <WardrobeSketch doors={doors} material={material} opening={opening} animate={!reduce} />
+          <div className="h-48 sm:h-full sm:min-h-[14rem]">
+            <Sketch piece={piece} wide={wide} material={material} variant={variant} animate={!reduce} />
           </div>
 
           {/* intrebarile — chips in limbajul cardurilor de raspuns */}
           <div className="flex flex-col gap-3.5">
             <div>
-              <p className="label mb-1.5">{t('demo.qDoors')}</p>
+              <p className="label mb-1.5">{t('demo.qSize')}</p>
               <div className="flex flex-wrap gap-1.5">
-                <OptionChip label={t('demo.doors2')} selected={doors === 2} onClick={() => setDoors(2)} />
-                <OptionChip label={t('demo.doors3')} selected={doors === 3} onClick={() => setDoors(3)} />
+                {conf.widths.map((cm, i) => (
+                  <OptionChip key={cm} label={`${cm} cm`} selected={wide === (i === 1)} onClick={() => setWide(i === 1)} />
+                ))}
               </div>
             </div>
             <div>
@@ -277,10 +320,12 @@ export function HeroDemo() {
               </div>
             </div>
             <div>
-              <p className="label mb-1.5">{t('demo.qOpening')}</p>
+              <p className="label mb-1.5">
+                {piece === 'BOOKCASE' ? t('demo.qBottom') : t('demo.qOpening')}
+              </p>
               <div className="flex flex-wrap gap-1.5">
-                {(['MANER', 'PUSH', 'GLISANTE'] as const).map((o) => (
-                  <OptionChip key={o} label={openLabel[o]} selected={opening === o} onClick={() => setOpening(o)} />
+                {conf.variants.map((v) => (
+                  <OptionChip key={v} label={variantLabel[v]} selected={variant === v} onClick={() => setVariant(v)} />
                 ))}
               </div>
             </div>
@@ -292,7 +337,7 @@ export function HeroDemo() {
           <div className="min-w-0">
             <p className="label">{t('demo.specLabel')}</p>
             <p aria-live="polite" className="truncate font-serif text-[15px]">
-              {t('demo.spec', { doors })} · {matLabel[material]} · {openLabel[opening]}
+              {spec}
             </p>
           </div>
           <Link
