@@ -4,20 +4,25 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
         default:
           'bg-primary text-primary-foreground shadow hover:bg-primary/90 active:translate-y-px',
-        // "walnut" = accentul de brand (istoric); acum albastru-plan
+        // "walnut" = accentul de brand (istoric); acum albastru-plan.
+        // Umbra colorata + lift la hover: actiunea principala iese in fata
+        // fara sa schimbe paleta (feedback PO 2026-07-31, "butoane mai vizibile").
         walnut:
-          'bg-walnut text-primary-foreground shadow-sm hover:bg-walnut-deep active:translate-y-px',
+          'bg-walnut text-primary-foreground shadow-md shadow-walnut/30 hover:bg-walnut-deep hover:shadow-lg hover:shadow-walnut/35 hover:-translate-y-px active:translate-y-px active:shadow-sm',
         destructive:
           'bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 active:translate-y-px',
         outline:
           'border border-border-2 bg-surface shadow-sm hover:border-muted-2 hover:bg-secondary hover:shadow-sheet active:translate-y-px active:shadow-none',
-        secondary: 'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80',
+        // contur vizibil: butoanele secundare (+/-, actiuni de rand) nu se mai
+        // topesc in fundal (feedback PO 2026-07-31)
+        secondary:
+          'border border-border-2 bg-secondary text-secondary-foreground shadow-sm hover:border-walnut/50 hover:bg-secondary/80 hover:text-walnut',
         ghost: 'hover:bg-accent hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
       },

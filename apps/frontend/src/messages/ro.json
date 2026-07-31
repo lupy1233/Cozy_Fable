@@ -1,4 +1,55 @@
 {
+  "LandingV2": {
+    "previewBadge": "Previzualizare · v2",
+    "kicker": "Platformă pentru mobilier la comandă",
+    "title": "De la idee la mobilier montat, pe un singur fir.",
+    "subtitle": "Cozy Home leagă oamenii care vor mobilă la comandă de atelierele care o pot face: cereri clare, oferte comparabile și toată discuția într-un singur loc.",
+    "ctaPrimary": "Începe o cerere",
+    "ctaSecondary": "Vezi cum funcționează",
+    "scrollCue": "Derulează",
+    "storyKicker": "Cum funcționează",
+    "storyTitle": "Patru pași, un singur fir",
+    "storySub": "Fiecare cerere trece prin același drum limpede — de la prima întrebare până la montaj.",
+    "s1": {
+      "phase": "Pasul 01 — Cererea",
+      "title": "Descrii ce vrei, vizual",
+      "body": "Alegi camerele sau piesele, răspunzi la întrebări pe carduri ilustrate și poți configura piesa direct în 3D. Nu știi exact ce vrei? Publici cererea cu proiectare plătită și atelierul face proiectul cu tine.",
+      "cardQuestion": "Cum se deschid ușile?",
+      "cardA": "Mâner clasic",
+      "cardB": "Push-to-open",
+      "cardC": "Uși glisante"
+    },
+    "s2": {
+      "phase": "Pasul 02 — Atelierele",
+      "title": "Atelierele verificate o revendică",
+      "body": "Cererea ta ajunge doar la ateliere verificate. Cel mult trei o pot prelua, iar fiecare plătește credite ca să o vadă — primești interes real, nu spam.",
+      "slotsLabel": "locuri de revendicare",
+      "slotFree": "liber"
+    },
+    "s3": {
+      "phase": "Pasul 03 — Ofertele",
+      "title": "Compari oferte, nu promisiuni",
+      "body": "Fiecare atelier îți trimite oferta lui și discutați în chat, cu tot istoricul păstrat. Compari prețuri, termene și portofolii unul lângă altul."
+    },
+    "s4": {
+      "phase": "Pasul 04 — Mobilierul",
+      "title": "Alegi și primești mobila",
+      "body": "Accepți oferta potrivită, atelierul execută și montează, iar recenzia ta rămâne pentru următorii clienți."
+    },
+    "purposeKicker": "De ce există",
+    "purposeTitle": "Scopul platformei",
+    "purposeSub": "Mobila la comandă se cumpără azi prin telefoane, recomandări și mesaje pierdute. Cozy Home pune tot procesul pe un singur fir, corect pentru ambele părți.",
+    "p1Title": "Pentru clienți",
+    "p1Body": "Un singur formular în loc de zeci de telefoane. Publicarea cererii e gratuită, iar ofertele vin doar de la ateliere verificate.",
+    "p2Title": "Pentru ateliere",
+    "p2Body": "Cereri calificate, cu camere, materiale, dimensiuni și buget — nu lead-uri vagi, plătite degeaba.",
+    "p3Title": "Direct, fără intermediar",
+    "p3Body": "Prețul și contractul le stabilești direct cu atelierul. Platforma ține doar procesul limpede.",
+    "bandTitle": "Pregătit să începi?",
+    "bandBody": "Publică prima cerere în câteva minute — sau înscrie-ți atelierul și primește cereri calificate.",
+    "bandCtaClient": "Începe o cerere",
+    "bandCtaCompany": "Pentru ateliere"
+  },
   "Landing": {
     "title": "De la schița ta, la atelierul potrivit.",
     "subtitle": "Descrii mobilierul pe cotele tale, iar ateliere verificate concurează cu oferte structurate. Tu compari reviziile și alegi.",
@@ -456,6 +507,8 @@
     "sectionAddress": "Adresă",
     "sectionRooms": "Camere",
     "sectionContact": "Preferințe de contact",
+    "designHelpIncluded": "Proiectare cu plată inclusă",
+    "designHelpIncludedHint": "Atelierul care preia cererea face proiectul tehnic împreună cu tine; costul proiectării se stabilește cu atelierul.",
     "sectionAttachments": "Atașamente",
     "addRoom": "Adaugă cameră",
     "removeRoom": "Șterge camera",
@@ -1085,9 +1138,29 @@
       "toDetails": "Spre date generale",
       "toReview": "Spre sumar"
     },
+    "start": {
+      "title": "Cum pornim cererea?",
+      "subtitle": "Alege varianta care ti se potriveste — o luam pe drumul cel mai scurt.",
+      "OWN_PROJECT": {
+        "title": "Am deja un proiect",
+        "desc": "Ai proiect tehnic sau schite gata facute. Treci prin acelasi formular, dar fara intrebarile de dimensiuni si fara schitele de mana — incarci proiectul la pasul Fisiere."
+      },
+      "STANDARD": {
+        "title": "Stiu ce vreau, dar nu am proiect",
+        "desc": "Formularul complet, pas cu pas: camere, intrebari ghidate, dimensiuni si schite optionale."
+      },
+      "DESIGN_HELP": {
+        "title": "Nu stiu exact ce vreau — am nevoie de ajutor",
+        "badge": "Proiectare platita",
+        "desc": "Alegi doar camerele si publici cererea cu Proiectare platita: atelierul care o preia face proiectul impreuna cu tine, contra cost."
+      }
+    },
     "cart": {
       "title": "Ce camere vrei sa mobilezi?",
       "subtitle": "Adauga cate camere ai nevoie; poti pune si mai multe de acelasi tip.",
+      "designHelpSubtitle": "Alege camerele sau piesele pentru care vrei mobilier — proiectarea o face atelierul, impreuna cu tine.",
+      "basketTitle": "Cosul cererii tale",
+      "basketEmpty": "Nimic adaugat inca — alege camere sau piese de mai jos.",
       "totalRooms": "{count, plural, =0 {Nicio camera} =1 {O camera} other {# camere}}",
       "hasOwnProject": "Am deja un proiect pentru toata locuinta",
       "hasOwnProjectHint": "Il incarci o singura data la pasul Fisiere si poti sari peste pasii de schita per camera.",
@@ -1202,6 +1275,8 @@
       "edit": "Editeaza",
       "detailsIncomplete": "Completeaza datele generale inainte de publicare.",
       "roomIncomplete": "incompleta",
+      "designHelpBanner": "Cerere cu Proiectare platita: publici camerele si detaliile generale, iar atelierul care preia cererea face proiectarea impreuna cu tine.",
+      "designHelpRoomNote": "Detaliile acestei camere se stabilesc impreuna cu proiectantul, dupa publicare.",
       "loginToPublish": "Autentifica-te pentru a publica",
       "loginToPublishHint": "Cererea ta e completa. Autentifica-te sau creeaza un cont pentru a o trimite in marketplace — raspunsurile se pastreaza.",
       "publishing": "Publicam cererea ta...",

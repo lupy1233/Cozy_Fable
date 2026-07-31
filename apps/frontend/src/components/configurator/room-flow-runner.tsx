@@ -94,8 +94,17 @@ export function RoomFlowRunner({
   }
 
   const flow = getFlow(room.roomType, room.flowVersion);
-  // step-urile hidden (ex. snapshot3d, scris programatic) nu primesc ecran
-  const screens = groupScreens(visibleSteps(flow, room.answers).filter((s) => !s.hidden));
+  // step-urile hidden (ex. snapshot3d, scris programatic) nu primesc ecran;
+  // cu proiect propriu (PO 2026-07-31) sar si pasii de dimensiuni + schite —
+  // proiectul incarcat la pasul Fisiere e sursa de adevar, validarea de publish
+  // ii trateaza ca optionali (ownProject in engine)
+  const screens = groupScreens(
+    visibleSteps(flow, room.answers).filter(
+      (s) =>
+        !s.hidden &&
+        !(hasOwnProject && (s.type === 'dimension-group' || s.type === 'upload')),
+    ),
+  );
   const screenIndex = Math.min(activeStepIndex, screens.length - 1);
   const screen = screens[screenIndex];
 
@@ -259,7 +268,7 @@ export function RoomFlowRunner({
           <ArrowLeft className="mr-1 h-4 w-4" />
           {t('nav.back')}
         </Button>
-        <Button type="button" variant="walnut" onClick={goNext}>
+        <Button type="button" variant="walnut" size="lg" onClick={goNext}>
           {isLastScreen && isLastRoom ? t('nav.toDetails') : t('nav.next')}
           <ArrowRight className="ml-1 h-4 w-4" />
         </Button>

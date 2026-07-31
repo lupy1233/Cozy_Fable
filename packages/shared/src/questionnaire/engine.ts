@@ -133,12 +133,15 @@ export function stepAnswerSchema(step: QuestionStep, answers: AnswerMap): z.ZodT
 // Valideaza answers-ul unei camere contra flow-ului ei.
 // partial=true (draft): step-urile fara raspuns sunt OK; cele cu raspuns se valideaza.
 // partial=false (publish): step-urile vizibile ne-optionale trebuie sa aiba raspuns.
-// In ambele moduri: chei necunoscute sau raspunsuri pentru step-uri invizibile → eroare
+// ownProject=true (PO 2026-07-31): clientul are deja proiect tehnic — step-urile
+// de dimensiuni (dimension-group) nu mai sunt obligatorii la publish; cele
+// raspunse raman validate. (Step-urile upload sunt oricum optionale.)
+// In toate modurile: chei necunoscute sau raspunsuri pentru step-uri invizibile → eroare
 // (inchide clasa de atac "answers fabricate").
 export function validateRoomAnswers(
   roomType: RoomType,
   answers: AnswerMap,
-  opts: { partial: boolean; version?: number },
+  opts: { partial: boolean; version?: number; ownProject?: boolean },
 ): ValidationResult {
   const flow = getFlow(roomType, opts.version);
   const errors: ValidationIssue[] = [];
@@ -158,7 +161,8 @@ export function validateRoomAnswers(
       continue;
     }
     if (!answered) {
-      if (!opts.partial && !step.optional) {
+      const skippable = opts.ownProject === true && step.type === 'dimension-group';
+      if (!opts.partial && !step.optional && !skippable) {
         errors.push({ stepId: step.id, messageKey: 'validation.answerRequired' });
       }
       continue;

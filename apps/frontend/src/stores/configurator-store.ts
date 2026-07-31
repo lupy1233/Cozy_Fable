@@ -12,6 +12,12 @@ import { persist } from 'zustand/middleware';
 
 export type ConfiguratorPhase = 'cart' | 'rooms' | 'details' | 'uploads' | 'review';
 
+// Modul de pornire ales in dialogul "cum incepem?" (PO 2026-07-31):
+// - OWN_PROJECT: are proiect tehnic → acelasi formular, fara pasii de dimensiuni/schite
+// - STANDARD: stie ce vrea, fara proiect → formularul complet
+// - DESIGN_HELP: nu stie ce vrea → alege doar camerele, publica cu Proiectare platita
+export type StartMode = 'OWN_PROJECT' | 'STANDARD' | 'DESIGN_HELP';
+
 export interface RoomInstance {
   localId: string;
   roomType: RoomType;
@@ -47,6 +53,8 @@ export interface DetailsValues {
 // Snapshot serializabil trimis la server (configuratorState) si rehidratat la resume.
 export interface ConfiguratorSnapshot {
   phase: ConfiguratorPhase;
+  // null = dialogul de pornire nu a fost inca raspuns (snapshot-uri vechi → null)
+  startMode: StartMode | null;
   roomInstances: RoomInstance[];
   activeRoomIndex: number;
   activeStepIndex: number;
@@ -72,6 +80,7 @@ interface ConfiguratorStore extends ConfiguratorSnapshot {
   setDimensionUnit: (unit: DimensionUnit) => void;
   setToken: (token: string) => void;
   setPhase: (phase: ConfiguratorPhase) => void;
+  setStartMode: (mode: StartMode | null) => void;
   addRoom: (roomType: RoomType) => void;
   removeLastOfType: (roomType: RoomType) => void;
   removeRoom: (localId: string) => void;
@@ -108,6 +117,7 @@ function normalizeSnapshot(snapshot: Partial<ConfiguratorSnapshot>): Partial<Con
   const remapped = activeId ? roomInstances.findIndex((r) => r.localId === activeId) : -1;
   return {
     ...snapshot,
+    startMode: snapshot.startMode ?? null,
     roomInstances,
     activeRoomIndex: remapped >= 0 ? remapped : 0,
     details: normalizeDetails(snapshot.details),
@@ -151,6 +161,7 @@ function normalizeDetails(details: Partial<DetailsValues> | undefined): Partial<
 
 const initialSnapshot: ConfiguratorSnapshot = {
   phase: 'cart',
+  startMode: null,
   roomInstances: [],
   activeRoomIndex: 0,
   activeStepIndex: 0,
@@ -180,6 +191,7 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
         set({ inspirationPhotoIds: [...new Set(ids)].slice(0, 10), updatedAt: Date.now() }),
       setToken: (token) => set({ token }),
       setPhase: (phase) => set({ phase, updatedAt: Date.now() }),
+      setStartMode: (mode) => set({ startMode: mode, updatedAt: Date.now() }),
 
       // insertia pastreaza ordinea canonica ROOM_ORDER (nu ordinea adaugarii in cos)
       addRoom: (roomType) =>
@@ -279,6 +291,7 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
         const s = get();
         return {
           phase: s.phase,
+          startMode: s.startMode,
           roomInstances: s.roomInstances,
           activeRoomIndex: s.activeRoomIndex,
           activeStepIndex: s.activeStepIndex,
@@ -304,6 +317,7 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
       // nu persista tokenul in acelasi blob cu datele — el sta separat (vezi wizard)
       partialize: (s) => ({
         phase: s.phase,
+        startMode: s.startMode,
         roomInstances: s.roomInstances,
         activeRoomIndex: s.activeRoomIndex,
         activeStepIndex: s.activeStepIndex,

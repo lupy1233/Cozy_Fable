@@ -173,6 +173,40 @@ describe('validateRoomAnswers', () => {
     expect(res.ok).toBe(false);
   });
 
+  it('ownProject: dimensiunile lipsa nu blocheaza publish-ul, restul raman obligatorii', () => {
+    const answers = kitchenLIslandAnswers();
+    delete answers.dimensions;
+    // fara ownProject, publish-ul pica pe dimensions
+    const strict = validateRoomAnswers('KITCHEN', answers, { partial: false, version: 1 });
+    expect(strict.ok).toBe(false);
+    // cu ownProject (proiect tehnic propriu), dimensiunile devin optionale
+    expect(
+      validateRoomAnswers('KITCHEN', answers, { partial: false, version: 1, ownProject: true }),
+    ).toEqual({ ok: true });
+
+    // alte step-uri obligatorii raman cerute si cu ownProject
+    delete answers.layout;
+    const res = validateRoomAnswers('KITCHEN', answers, {
+      partial: false,
+      version: 1,
+      ownProject: true,
+    });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.errors.some((e) => e.stepId === 'layout')).toBe(true);
+  });
+
+  it('ownProject: dimensiunile raspunse se valideaza in continuare', () => {
+    const answers = kitchenLIslandAnswers();
+    (answers.dimensions as Record<string, number>).runA = 999;
+    const res = validateRoomAnswers('KITCHEN', answers, {
+      partial: false,
+      version: 1,
+      ownProject: true,
+    });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.errors.some((e) => e.stepId === 'dimensions')).toBe(true);
+  });
+
   it('respinge o dimensiune in afara intervalului', () => {
     const answers = kitchenLIslandAnswers();
     (answers.dimensions as Record<string, number>).runA = 999;

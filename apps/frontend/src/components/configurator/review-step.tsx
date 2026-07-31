@@ -47,6 +47,7 @@ export function ReviewStep({
   const isEdit = Boolean(editId);
   const rooms = useConfiguratorStore((s) => s.roomInstances);
   const details = useConfiguratorStore((s) => s.details);
+  const designHelp = useConfiguratorStore((s) => s.startMode === 'DESIGN_HELP');
   const inspirationPhotoIds = useConfiguratorStore((s) => s.inspirationPhotoIds);
   const snapshots3d = useConfiguratorStore((s) => s.snapshots3d);
   const setAnswer = useConfiguratorStore((s) => s.setAnswer);
@@ -65,7 +66,9 @@ export function ReviewStep({
       details.city &&
       (details.contactPreferences?.length ?? 0) > 0,
   );
-  const allRoomsComplete = rooms.length > 0 && rooms.every((r) => r.completed);
+  // "am nevoie de ajutor": camerele nu au chestionar — e suficient sa existe
+  const allRoomsComplete =
+    rooms.length > 0 && (designHelp || rooms.every((r) => r.completed));
 
   const doPublish = async () => {
     if (!detailsComplete || !allRoomsComplete || preparing) return;
@@ -171,29 +174,39 @@ export function ReviewStep({
         )}
       </section>
 
+      {/* brief de proiectare: banner cu ce urmeaza dupa publicare */}
+      {designHelp && <Alert tone="info">{t('review.designHelpBanner')}</Alert>}
+
       {/* Camere */}
       {rooms.map((room, i) => (
         <section key={room.localId} className="rounded-xl border border-border bg-surface p-5 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="flex items-center gap-2 font-serif text-lg">
               {t(`rooms.type.${room.roomType}`)}
-              {room.completed ? (
+              {(room.completed || designHelp) ? (
                 <Check className="h-4 w-4 text-sage" />
               ) : (
                 <span className="text-xs font-normal text-amber">{t('review.roomIncomplete')}</span>
               )}
             </h3>
-            <Button type="button" variant="ghost" size="sm" onClick={() => onEditRoom(i)}>
-              <Pencil className="mr-1 h-3.5 w-3.5" />
-              {t('review.edit')}
-            </Button>
+            {/* fara chestionar per camera pe fluxul de proiectare — nimic de editat */}
+            {!designHelp && (
+              <Button type="button" variant="ghost" size="sm" onClick={() => onEditRoom(i)}>
+                <Pencil className="mr-1 h-3.5 w-3.5" />
+                {t('review.edit')}
+              </Button>
+            )}
           </div>
-          <RoomAnswerSummary
-            roomType={room.roomType}
-            answers={room.answers}
-            flowVersion={room.flowVersion}
-            attachments={attachments}
-          />
+          {designHelp ? (
+            <p className="text-sm text-muted-foreground">{t('review.designHelpRoomNote')}</p>
+          ) : (
+            <RoomAnswerSummary
+              roomType={room.roomType}
+              answers={room.answers}
+              flowVersion={room.flowVersion}
+              attachments={attachments}
+            />
+          )}
         </section>
       ))}
 

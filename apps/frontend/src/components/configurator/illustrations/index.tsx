@@ -3,17 +3,20 @@
 // Rezolvare: harta per camera (roomType.stepId.optionValue) → harta comuna per
 // valoare (materiale/sisteme, valabile in orice camera) → null (fallback icon lucide).
 import type { RoomType } from '@marketplace/shared';
+import { IlluNo, IlluYes, type IllustrationProps } from './common';
 import {
-  IlluButonPresiune,
-  IlluGlisante,
-  IlluLemnMasiv,
-  IlluMdf,
-  IlluNo,
-  IlluPal,
-  IlluPush,
-  IlluYes,
-  type IllustrationProps,
-} from './common';
+  PhotoAltMaterial,
+  PhotoAventos,
+  PhotoGlisante,
+  PhotoGola,
+  PhotoLemnMasiv,
+  PhotoManer,
+  PhotoMdfFurnir,
+  PhotoMdfInfoliat,
+  PhotoMdfVopsit,
+  PhotoPal,
+  PhotoPush,
+} from './photo';
 import {
   IlluFan,
   IlluMirrorCabinet,
@@ -43,16 +46,7 @@ import {
   IlluTallPantry,
   IlluWallUnits,
 } from './kitchen';
-import {
-  IlluAltMaterial,
-  IlluAventos,
-  IlluCountertopHpl,
-  IlluGola,
-  IlluManer,
-  IlluMdfFurnir,
-  IlluMdfInfoliat,
-  IlluMdfVopsit,
-} from './materials-systems';
+import { IlluCountertopHpl } from './materials-systems';
 import {
   IlluAccessories,
   IlluApplianceHousing,
@@ -478,20 +472,22 @@ const ROOM_MAPS: Partial<Record<RoomType, StepMap>> = {
 };
 
 // Valori comune in orice camera/step (materiale si sisteme de deschidere).
+// Redari foto 3D (PO 2026-07-31); MDF generic si BUTON_PRESIUNE apar doar in
+// flow-urile legacy v1 si refolosesc redarea cea mai apropiata.
 const COMMON_BY_VALUE: Record<string, Illustration> = {
-  PAL: IlluPal,
-  MDF: IlluMdf,
-  MDF_INFOLIAT: IlluMdfInfoliat,
-  MDF_VOPSIT: IlluMdfVopsit,
-  MDF_FURNIR: IlluMdfFurnir,
-  LEMN_MASIV: IlluLemnMasiv,
-  ALTUL: IlluAltMaterial,
-  PUSH: IlluPush,
-  GLISANTE: IlluGlisante,
-  BUTON_PRESIUNE: IlluButonPresiune,
-  MANER: IlluManer,
-  GOLA: IlluGola,
-  AVENTOS: IlluAventos,
+  PAL: PhotoPal,
+  MDF: PhotoMdfVopsit,
+  MDF_INFOLIAT: PhotoMdfInfoliat,
+  MDF_VOPSIT: PhotoMdfVopsit,
+  MDF_FURNIR: PhotoMdfFurnir,
+  LEMN_MASIV: PhotoLemnMasiv,
+  ALTUL: PhotoAltMaterial,
+  PUSH: PhotoPush,
+  GLISANTE: PhotoGlisante,
+  BUTON_PRESIUNE: PhotoPush,
+  MANER: PhotoManer,
+  GOLA: PhotoGola,
+  AVENTOS: PhotoAventos,
 };
 
 export function getIllustration(

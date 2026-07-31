@@ -30,11 +30,22 @@ export interface ProcessedRooms {
 // Valideaza raspunsurile configuratorului contra flow-urilor din @marketplace/shared
 // si deriva forma legacy (rooms/items/dims) + scoringul. Sursa de adevar server:
 // clientul nu trimite niciodata dims/items/scoruri, doar answers brute.
+// Moduri de relaxare a validarii stricte de publish (PO 2026-07-31):
+// - ownProject: clientul are proiect tehnic → dimensiunile nu mai sunt obligatorii
+//   (proiectul atasat la pasul Fisiere e sursa de adevar pentru firme).
+// - designBrief: cerere cu "Proiectare platita" pornita pe fluxul "am nevoie de
+//   ajutor" → camerele pot ramane fara raspunsuri (brief minimal); ce e raspuns
+//   ramane validat strict, cheile necunoscute raman respinse.
+export interface ProcessRoomsOptions {
+  ownProject?: boolean;
+  designBrief?: boolean;
+}
+
 @Injectable()
 export class ConfiguratorService {
   // partial=false: validare stricta de publicare (toate step-urile obligatorii vizibile
   // trebuie raspunse). Arunca BadRequest cu detalii per camera/step la esec.
-  processRooms(rooms: ConfiguratorRoomInputDto[]): ProcessedRooms {
+  processRooms(rooms: ConfiguratorRoomInputDto[], opts: ProcessRoomsOptions = {}): ProcessedRooms {
     const processed: ProcessedRoom[] = [];
 
     rooms.forEach((room, roomIndex) => {
@@ -51,7 +62,8 @@ export class ConfiguratorService {
 
       const answers = room.answers as AnswerMap;
       const validation = validateRoomAnswers(room.roomType, answers, {
-        partial: false,
+        partial: opts.designBrief === true,
+        ownProject: opts.ownProject === true,
         version: room.flowVersion,
       });
       if (!validation.ok) {

@@ -8,7 +8,7 @@ import {
   type RoomType,
 } from '@marketplace/shared';
 import { motion } from 'framer-motion';
-import { Minus, Plus } from 'lucide-react';
+import { Minus, Plus, ShoppingBasket, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -99,6 +99,9 @@ export function RoomCartStep({ onContinue }: { onContinue: () => void }) {
   const hasOwnProject = useConfiguratorStore((s) => s.details.hasOwnProject === true);
   const setDetails = useConfiguratorStore((s) => s.setDetails);
 
+  const startMode = useConfiguratorStore((s) => s.startMode);
+  const designHelp = startMode === 'DESIGN_HELP';
+
   const [tab, setTab] = useState<'rooms' | 'pieces'>('rooms');
 
   const countOf = (rt: RoomType) => rooms.filter((r) => r.roomType === rt).length;
@@ -109,7 +112,9 @@ export function RoomCartStep({ onContinue }: { onContinue: () => void }) {
     <div className="flex flex-col gap-6">
       <div>
         <h2 className="font-serif text-2xl tracking-[-0.01em]">{t('cart.title')}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{t('cart.subtitle')}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {designHelp ? t('cart.designHelpSubtitle') : t('cart.subtitle')}
+        </p>
       </div>
 
       <Tabs
@@ -121,6 +126,46 @@ export function RoomCartStep({ onContinue }: { onContinue: () => void }) {
           { value: 'pieces', label: t('cart.tabPieces') },
         ]}
       />
+
+      {/* cosul cererii: vizibil pe ambele taburi — pe tabul de piese vezi si
+          camerele deja adaugate (feedback PO 2026-07-31) */}
+      <div className="rounded-xl border border-border-2 bg-surface-2/60 px-4 py-3.5">
+        <div className="mb-2 flex items-center gap-2">
+          <ShoppingBasket className="h-4 w-4 text-walnut" />
+          <span className="text-sm font-medium">{t('cart.basketTitle')}</span>
+          <span className="ml-auto font-mono text-[11px] tabular-nums text-muted-foreground">
+            {t('cart.totalRooms', { count: total })}
+          </span>
+        </div>
+        {total === 0 ? (
+          <p className="text-sm text-muted-foreground">{t('cart.basketEmpty')}</p>
+        ) : (
+          <ul className="flex flex-wrap gap-2">
+            {[...rooms.reduce((acc, r) => acc.set(r.roomType, (acc.get(r.roomType) ?? 0) + 1), new Map<RoomType, number>())].map(
+              ([rt, n]) => (
+                <motion.li
+                  key={rt}
+                  layout
+                  initial={{ scale: 0.85, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="flex items-center gap-1.5 rounded-full border border-walnut/40 bg-walnut-soft py-1 pl-3 pr-1.5 text-sm text-walnut"
+                >
+                  {n > 1 && <span className="font-mono text-xs tabular-nums">{n}&thinsp;×</span>}
+                  {t(`rooms.type.${rt}`)}
+                  <button
+                    type="button"
+                    aria-label={t('cart.removeOne', { type: t(`rooms.type.${rt}`) })}
+                    onClick={() => removeLastOfType(rt)}
+                    className="grid h-5 w-5 place-items-center rounded-full text-walnut/70 transition-colors hover:bg-walnut/15 hover:text-walnut"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </motion.li>
+              ),
+            )}
+          </ul>
+        )}
+      </div>
 
       {tab === 'rooms' && (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -192,28 +237,31 @@ export function RoomCartStep({ onContinue }: { onContinue: () => void }) {
         </div>
       )}
 
-      {/* proiect pentru toata locuinta → pasii de schita per camera se pot sari */}
-      <label className="flex items-start gap-2 rounded-lg border border-border-2 bg-surface-2 p-3 text-sm">
-        <input
-          type="checkbox"
-          className="mt-0.5 accent-walnut"
-          checked={hasOwnProject}
-          onChange={(e) => setDetails({ hasOwnProject: e.target.checked })}
-        />
-        <span>
-          <span className="font-medium">{t('cart.hasOwnProject')}</span>
-          <span className="mt-0.5 block text-xs text-muted-foreground">
-            {t('cart.hasOwnProjectHint')}
+      {/* proiect pentru toata locuinta → pasii de dimensiuni/schita se sar;
+          irelevant pe fluxul "am nevoie de ajutor" (proiectarea o face atelierul) */}
+      {!designHelp && (
+        <label className="flex items-start gap-2 rounded-lg border border-border-2 bg-surface-2 p-3 text-sm">
+          <input
+            type="checkbox"
+            className="mt-0.5 accent-walnut"
+            checked={hasOwnProject}
+            onChange={(e) => setDetails({ hasOwnProject: e.target.checked })}
+          />
+          <span>
+            <span className="font-medium">{t('cart.hasOwnProject')}</span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              {t('cart.hasOwnProjectHint')}
+            </span>
           </span>
-        </span>
-      </label>
+        </label>
+      )}
 
       <div className="flex items-center justify-between">
         <span className="text-sm text-muted-foreground">
           {t('cart.totalRooms', { count: total })}
         </span>
-        <Button type="button" variant="walnut" size="lg" disabled={total === 0} onClick={onContinue}>
-          {t('nav.startQuestions')}
+        <Button type="button" variant="walnut" size="xl" disabled={total === 0} onClick={onContinue}>
+          {designHelp ? t('nav.continue') : t('nav.startQuestions')}
         </Button>
       </div>
     </div>

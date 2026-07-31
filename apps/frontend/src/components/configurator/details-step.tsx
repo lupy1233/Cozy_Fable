@@ -73,6 +73,7 @@ export function DetailsStep({
   const stored = useConfiguratorStore((s) => s.details);
   const rooms = useConfiguratorStore((s) => s.roomInstances);
   const setDetails = useConfiguratorStore((s) => s.setDetails);
+  const designHelp = useConfiguratorStore((s) => s.startMode === 'DESIGN_HELP');
 
   // estimarea de buget din scorul camerelor completate (F5, item 18)
   const estimate = useBudgetEstimate(rooms.filter((r) => r.completed));
@@ -228,10 +229,22 @@ export function DetailsStep({
         </div>
       </Field>
 
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" className="accent-walnut" {...register('includesPaidDesign')} />
-        {t('field.includesPaidDesign')}
-      </label>
+      {designHelp ? (
+        // fluxul "am nevoie de ajutor": Proiectarea platita e parte din cerere,
+        // nu optiune — banner informativ in locul checkbox-ului
+        <div className="flex items-start gap-2 rounded-lg border border-brass/40 bg-brass/10 px-3 py-2.5 text-sm">
+          <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brass-2" />
+          <div>
+            <p className="font-medium">{t('designHelpIncluded')}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t('designHelpIncludedHint')}</p>
+          </div>
+        </div>
+      ) : (
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" className="accent-walnut" {...register('includesPaidDesign')} />
+          {t('field.includesPaidDesign')}
+        </label>
+      )}
 
       <div className="border-t border-border-2 pt-5">
         <h3 className="mb-3 font-serif text-xl">{t('sectionAddress')}</h3>
@@ -379,7 +392,7 @@ export function DetailsStep({
           <ArrowLeft className="mr-1 h-4 w-4" />
           {tc('nav.back')}
         </Button>
-        <Button type="submit" variant="walnut">
+        <Button type="submit" variant="walnut" size="lg">
           {tc('nav.toReview')}
           <ArrowRight className="ml-1 h-4 w-4" />
         </Button>

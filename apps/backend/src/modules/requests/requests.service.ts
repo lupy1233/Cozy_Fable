@@ -225,7 +225,10 @@ export class RequestsService {
     }
 
     // valideaza raspunsurile + deriva camere/items/scoring (sursa de adevar server)
-    const processed = this.configurator.processRooms(dto.rooms);
+    const processed = this.configurator.processRooms(dto.rooms, {
+      ownProject: dto.hasOwnProject,
+      designBrief: dto.includesPaidDesign,
+    });
     // emailul contului e mereu prima cale de comunicare (PO r5) — FE il blocheaza,
     // serverul il garanteaza (prepend + dedupe) inainte de validarea formatelor
     const contacts = await this.withAccountEmail(userId, dto.contactPreferences);
@@ -297,7 +300,10 @@ export class RequestsService {
   private async editRequest(request: RequestModel, dto: CreateRequestContentDto): Promise<RequestDto> {
     const editCounters = this.assertEditableAndCount(request);
 
-    const processed = this.configurator.processRooms(dto.rooms);
+    const processed = this.configurator.processRooms(dto.rooms, {
+      ownProject: dto.hasOwnProject,
+      designBrief: dto.includesPaidDesign,
+    });
     const contacts = await this.withAccountEmail(request.clientUserId, dto.contactPreferences);
     this.assertContactFormats(contacts);
     await this.inspiration.assertSelectable(dto.inspirationPhotoIds ?? []);
@@ -670,7 +676,9 @@ export class RequestsService {
     minRon: number;
     maxRon: number;
   }> {
-    const processed = this.configurator.processRooms(rooms);
+    // designBrief=true (validare partiala): estimarea e informativa, nu punctul
+    // de publish — camerele fara dimensiuni (proiect propriu) nu o blocheaza
+    const processed = this.configurator.processRooms(rooms, { designBrief: true });
     const sizing = await this.sizing.compute({
       scoreEntries: processed.scoreEntries,
       budgetRange: 'UNDISCLOSED',

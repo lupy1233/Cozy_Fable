@@ -1,4 +1,55 @@
 {
+  "LandingV2": {
+    "previewBadge": "Preview · v2",
+    "kicker": "Custom furniture platform",
+    "title": "From idea to installed furniture, on a single thread.",
+    "subtitle": "Cozy Home connects people who want custom furniture with the workshops that can build it: clear requests, comparable offers and the whole conversation in one place.",
+    "ctaPrimary": "Start a request",
+    "ctaSecondary": "See how it works",
+    "scrollCue": "Scroll",
+    "storyKicker": "How it works",
+    "storyTitle": "Four steps, one thread",
+    "storySub": "Every request follows the same clear path — from the first question to installation.",
+    "s1": {
+      "phase": "Step 01 — The request",
+      "title": "Describe what you want, visually",
+      "body": "Pick the rooms or pieces, answer questions on illustrated cards and configure your piece directly in 3D. Not sure what you want? Publish with paid design and the workshop builds the project with you.",
+      "cardQuestion": "How should the doors open?",
+      "cardA": "Classic handle",
+      "cardB": "Push-to-open",
+      "cardC": "Sliding doors"
+    },
+    "s2": {
+      "phase": "Step 02 — The workshops",
+      "title": "Verified workshops claim it",
+      "body": "Your request reaches verified workshops only. At most three can take it, and each pays credits to see it — you get real interest, not spam.",
+      "slotsLabel": "claim slots",
+      "slotFree": "open"
+    },
+    "s3": {
+      "phase": "Step 03 — The offers",
+      "title": "Compare offers, not promises",
+      "body": "Each workshop sends its own offer and you talk in chat, with the whole history kept. Compare prices, timelines and portfolios side by side."
+    },
+    "s4": {
+      "phase": "Step 04 — The furniture",
+      "title": "Choose and receive your furniture",
+      "body": "You accept the right offer, the workshop builds and installs, and your review stays for the next clients."
+    },
+    "purposeKicker": "Why it exists",
+    "purposeTitle": "What the platform is for",
+    "purposeSub": "Custom furniture is still bought through phone calls, referrals and lost messages. Cozy Home puts the whole process on a single thread, fair for both sides.",
+    "p1Title": "For clients",
+    "p1Body": "One form instead of dozens of phone calls. Publishing a request is free, and offers come only from verified workshops.",
+    "p2Title": "For workshops",
+    "p2Body": "Qualified requests, with rooms, materials, dimensions and budget — not vague leads paid for nothing.",
+    "p3Title": "Direct, no middleman",
+    "p3Body": "Price and contract are agreed directly with the workshop. The platform just keeps the process clear.",
+    "bandTitle": "Ready to start?",
+    "bandBody": "Publish your first request in minutes — or register your workshop and receive qualified requests.",
+    "bandCtaClient": "Start a request",
+    "bandCtaCompany": "For workshops"
+  },
   "Landing": {
     "title": "From your sketch to the right workshop.",
     "subtitle": "Describe your furniture with its exact dimensions, and verified workshops compete with structured offers. You compare revisions and choose.",
@@ -456,6 +507,8 @@
     "sectionAddress": "Address",
     "sectionRooms": "Rooms",
     "sectionContact": "Contact preferences",
+    "designHelpIncluded": "Paid design included",
+    "designHelpIncludedHint": "The workshop that claims your request builds the technical project together with you; the design fee is agreed with the workshop.",
     "sectionAttachments": "Attachments",
     "addRoom": "Add room",
     "removeRoom": "Remove room",
@@ -1085,9 +1138,29 @@
       "toDetails": "To general info",
       "toReview": "To summary"
     },
+    "start": {
+      "title": "How should we start?",
+      "subtitle": "Pick the option that fits you — we'll take the shortest path.",
+      "OWN_PROJECT": {
+        "title": "I already have a project",
+        "desc": "You have a technical project or finished sketches. Same form, but without the dimension questions and hand sketches — you upload the project at the Files step."
+      },
+      "STANDARD": {
+        "title": "I know what I want, but have no project",
+        "desc": "The full form, step by step: rooms, guided questions, dimensions and optional sketches."
+      },
+      "DESIGN_HELP": {
+        "title": "I'm not sure what I want — I need help",
+        "badge": "Paid design",
+        "desc": "You only pick the rooms and publish the request with Paid design: the workshop that claims it builds the project together with you, for a fee."
+      }
+    },
     "cart": {
       "title": "Which rooms do you want furnished?",
       "subtitle": "Add as many rooms as you need; you can add several of the same type.",
+      "designHelpSubtitle": "Pick the rooms or pieces you want furniture for — the workshop handles the design together with you.",
+      "basketTitle": "Your request cart",
+      "basketEmpty": "Nothing added yet — pick rooms or pieces below.",
       "totalRooms": "{count, plural, =0 {No rooms} =1 {One room} other {# rooms}}",
       "hasOwnProject": "I already have a project for the whole home",
       "hasOwnProjectHint": "You'll upload it once at the Files step and can skip the per-room sketch steps.",
@@ -1202,6 +1275,8 @@
       "edit": "Edit",
       "detailsIncomplete": "Complete the general info before publishing.",
       "roomIncomplete": "incomplete",
+      "designHelpBanner": "Paid design request: you publish the rooms and general details, and the workshop that claims it designs the project together with you.",
+      "designHelpRoomNote": "This room's details will be defined together with the designer after publishing.",
       "loginToPublish": "Log in to publish",
       "loginToPublishHint": "Your request is complete. Log in or create an account to send it to the marketplace — your answers are kept.",
       "publishing": "Publishing your request...",
