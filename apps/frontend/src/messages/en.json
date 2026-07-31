@@ -1,50 +1,66 @@
 {
   "LandingV2": {
     "previewBadge": "Preview · v2",
-    "kicker": "Custom furniture platform",
-    "title": "From idea to installed furniture, on a single thread.",
-    "subtitle": "Cozy Home connects people who want custom furniture with the workshops that can build it: clear requests, comparable offers and the whole conversation in one place.",
+    "eyebrow": "Custom furniture platform",
+    "title": "Say what you want. Workshops compete for you.",
+    "subtitle": "You configure the request visually — rooms, materials, dimensions — and verified workshops send comparable offers. You just choose.",
     "ctaPrimary": "Start a request",
-    "ctaSecondary": "See how it works",
-    "scrollCue": "Scroll",
-    "storyKicker": "How it works",
-    "storyTitle": "Four steps, one thread",
-    "storySub": "Every request follows the same clear path — from the first question to installation.",
-    "s1": {
-      "phase": "Step 01 — The request",
-      "title": "Describe what you want, visually",
-      "body": "Pick the rooms or pieces, answer questions on illustrated cards and configure your piece directly in 3D. Not sure what you want? Publish with paid design and the workshop builds the project with you.",
-      "cardQuestion": "How should the doors open?",
-      "cardA": "Classic handle",
-      "cardB": "Push-to-open",
-      "cardC": "Sliding doors"
+    "ctaSecondary": "See the request's journey",
+    "proof1": "Free for clients",
+    "proof2": "Verified workshops",
+    "proof3": "At most 3 offers per request",
+    "demo": {
+      "kicker": "Try the configurator",
+      "qDoors": "How wide?",
+      "doors2": "2 doors",
+      "doors3": "3 doors",
+      "qMaterial": "Which finish?",
+      "matWhite": "Matte white",
+      "matWood": "Oak veneer",
+      "matSage": "Sage green",
+      "qOpening": "How does it open?",
+      "openHandle": "Handles",
+      "openPush": "Push-to-open",
+      "openSliding": "Sliding doors",
+      "specLabel": "Your request would read",
+      "spec": "Wardrobe with {doors} doors",
+      "cta": "Configure for real"
     },
-    "s2": {
-      "phase": "Step 02 — The workshops",
-      "title": "Verified workshops claim it",
-      "body": "Your request reaches verified workshops only. At most three can take it, and each pays credits to see it — you get real interest, not spam.",
-      "slotsLabel": "claim slots",
-      "slotFree": "open"
+    "processKicker": "The request's journey",
+    "processTitle": "Four stations, one thread",
+    "processSub": "From the first sketch to installation, everything stays in one place — nothing over the phone, nothing lost.",
+    "p1": {
+      "phase": "The request",
+      "title": "You describe it visually",
+      "body": "Illustrated cards, dimensions on drawing sheets, pieces configured in 3D. No project? The workshop builds it with you."
     },
-    "s3": {
-      "phase": "Step 03 — The offers",
-      "title": "Compare offers, not promises",
-      "body": "Each workshop sends its own offer and you talk in chat, with the whole history kept. Compare prices, timelines and portfolios side by side."
+    "p2": {
+      "phase": "The claim",
+      "title": "Workshops take it on",
+      "body": "At most three verified workshops pay credits to see your request — real interest, not spam."
     },
-    "s4": {
-      "phase": "Step 04 — The furniture",
-      "title": "Choose and receive your furniture",
-      "body": "You accept the right offer, the workshop builds and installs, and your review stays for the next clients."
+    "p3": {
+      "phase": "The offers",
+      "title": "Compare in black and white",
+      "body": "Structured offers and a chat with each workshop, with the history kept. You agree the price directly."
     },
-    "purposeKicker": "Why it exists",
-    "purposeTitle": "What the platform is for",
-    "purposeSub": "Custom furniture is still bought through phone calls, referrals and lost messages. Cozy Home puts the whole process on a single thread, fair for both sides.",
-    "p1Title": "For clients",
-    "p1Body": "One form instead of dozens of phone calls. Publishing a request is free, and offers come only from verified workshops.",
-    "p2Title": "For workshops",
-    "p2Body": "Qualified requests, with rooms, materials, dimensions and budget — not vague leads paid for nothing.",
-    "p3Title": "Direct, no middleman",
-    "p3Body": "Price and contract are agreed directly with the workshop. The platform just keeps the process clear.",
+    "p4": {
+      "phase": "The installation",
+      "title": "Your furniture, your measurements",
+      "body": "You accept the offer, the workshop builds and installs, and your review stays for the next clients."
+    },
+    "forKicker": "Who it's for",
+    "forTitle": "Two sides, the same workbench",
+    "forClientsTitle": "You're a client",
+    "client1": "Publish your request free, in minutes",
+    "client2": "Offers come only from verified workshops",
+    "client3": "Compare prices, timelines and portfolios in one place",
+    "clientCta": "Start a request",
+    "forWorkshopsTitle": "You run a workshop",
+    "ws1": "Sized requests, with clear materials and budget",
+    "ws2": "Pay credits only for the projects you claim",
+    "ws3": "Offers, chat and teamwork — inside the platform",
+    "wsCta": "Register your workshop",
     "bandTitle": "Ready to start?",
     "bandBody": "Publish your first request in minutes — or register your workshop and receive qualified requests.",
     "bandCtaClient": "Start a request",
@@ -1124,6 +1140,7 @@
       "phaseLabel": "Phase {current}/{total}"
     },
     "phases": {
+      "start": "Start",
       "cart": "Rooms",
       "rooms": "Room details",
       "details": "General info",
@@ -1141,6 +1158,7 @@
     "start": {
       "title": "How should we start?",
       "subtitle": "Pick the option that fits you — we'll take the shortest path.",
+      "pick": "Choose",
       "OWN_PROJECT": {
         "title": "I already have a project",
         "desc": "You have a technical project or finished sketches. Same form, but without the dimension questions and hand sketches — you upload the project at the Files step."

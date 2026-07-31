@@ -1,16 +1,18 @@
 import type { Metadata } from 'next';
 import { useTranslations } from 'next-intl';
-import { ArrowDown } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { PublicHeader } from '../_components/public-header';
 import { SiteFooter } from '../_components/site-footer';
-import { ScrollStory } from './_components/scroll-story';
+import { HeroDemo } from './_components/hero-demo';
+import { ProcessBand } from './_components/process-band';
 
-// Landing v2 (PO 2026-07-31) — pagina de lucru, accesibila DOAR pe link direct:
-// nu e legata din niciun meniu si e exclusa de la indexare. Piesa centrala e
-// povestea "cum functioneaza" derulata la scroll (scroll-story.tsx). Cand PO o
-// aproba, continutul ei inlocuieste landing-ul din [locale]/page.tsx.
+// Landing v2 (PO r9) — pagina de lucru, accesibila DOAR pe link direct:
+// nu e legata din niciun meniu si e exclusa de la indexare. Semnatura paginii
+// e mini-configuratorul FUNCTIONAL din hero (hero-demo.tsx): produsul insusi,
+// nu o poveste despre el. Cand PO o aproba, continutul inlocuieste
+// landing-ul din [locale]/page.tsx.
 export const metadata: Metadata = {
   title: 'Cozy Home — landing v2 (previzualizare)',
   robots: { index: false, follow: false },
@@ -29,73 +31,134 @@ function SectionRule() {
 export default function LandingV2Page() {
   const t = useTranslations('LandingV2');
 
-  const purpose = [
-    { title: t('p1Title'), body: t('p1Body') },
-    { title: t('p2Title'), body: t('p2Body') },
-    { title: t('p3Title'), body: t('p3Body') },
-  ];
+  const proofs = [t('proof1'), t('proof2'), t('proof3')];
+  const clients = [t('client1'), t('client2'), t('client3')];
+  const workshops = [t('ws1'), t('ws2'), t('ws3')];
 
   return (
     <div className="min-h-screen">
       <PublicHeader />
 
       <main className="mx-auto max-w-6xl px-4 sm:px-6">
-        {/* Hero: o singura afirmatie mare + invitatia de a derula povestea */}
-        <section className="flex min-h-[78vh] flex-col items-center justify-center py-16 text-center">
-          <span className="mb-4 rounded-full border border-brass/40 bg-brass/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-brass-2">
+        {/* Hero: teza in stanga, produsul functional in dreapta */}
+        <section className="relative py-10 lg:py-14">
+          {/* nota interna de lucru — in colt, nu in fluxul continutului */}
+          <span className="absolute right-0 top-3 rounded-full border border-brass/40 bg-brass/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-brass-2">
             {t('previewBadge')}
           </span>
-          <span className="kicker">{t('kicker')}</span>
-          <h1 className="page-title mt-3 max-w-3xl text-balance">{t('title')}</h1>
-          <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-            {t('subtitle')}
-          </p>
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-            <Button asChild variant="walnut" size="xl">
-              <Link href="/requests/new">{t('ctaPrimary')}</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <a href="#cum-functioneaza">{t('ctaSecondary')}</a>
-            </Button>
+          <div className="grid items-center gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:gap-14">
+            <div className="flex flex-col items-start gap-4">
+              <span className="kicker">{t('eyebrow')}</span>
+              <h1 className="page-title max-w-xl">{t('title')}</h1>
+              <p className="max-w-lg text-[15px] leading-relaxed text-muted-foreground">
+                {t('subtitle')}
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <Button asChild variant="walnut" size="xl">
+                  <Link href="/requests/new">{t('ctaPrimary')}</Link>
+                </Button>
+                <Button asChild variant="outline" size="lg">
+                  <a href="#proces">{t('ctaSecondary')}</a>
+                </Button>
+              </div>
+              {/* promisiunile concrete, pe hairline — nu metrice umflate */}
+              <ul className="mt-3 flex flex-col gap-1.5 border-t border-border pt-3.5 sm:flex-row sm:flex-wrap sm:gap-x-6">
+                {proofs.map((p) => (
+                  <li key={p} className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+                    <Check className="h-3.5 w-3.5 shrink-0 text-sage" />
+                    {p}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <HeroDemo />
           </div>
-          <a
-            href="#cum-functioneaza"
-            className="group mt-14 flex flex-col items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <span className="label">{t('scrollCue')}</span>
-            <ArrowDown className="h-4 w-4 animate-bounce" />
-          </a>
         </section>
 
         <SectionRule />
 
-        {/* Piesa centrala: cum decurge aplicatia, pas cu pas, la scroll */}
-        <ScrollStory />
+        {/* Drumul cererii: patru statii pe firul de alama */}
+        <ProcessBand />
 
         <SectionRule />
 
-        {/* Scopul platformei */}
-        <section className="py-14">
-          <div className="mx-auto max-w-2xl text-center">
-            <span className="kicker">{t('purposeKicker')}</span>
-            <h2 className="serif mt-2 text-3xl sm:text-4xl">{t('purposeTitle')}</h2>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
-              {t('purposeSub')}
-            </p>
+        {/* Pentru cine: doua panouri concrete, cu drumul fiecaruia */}
+        <section className="py-12">
+          <div className="mb-8">
+            <span className="kicker">{t('forKicker')}</span>
+            <h2 className="serif mt-2 text-3xl sm:text-4xl">{t('forTitle')}</h2>
           </div>
-          <div className="mt-10 grid gap-4 sm:grid-cols-3">
-            {purpose.map((p, i) => (
-              <div key={p.title} className="rounded-xl border border-border bg-surface p-6 shadow-sm">
-                <span className="font-serif text-2xl text-brass">{['I.', 'II.', 'III.'][i]}</span>
-                <h3 className="mt-2 font-serif text-xl">{p.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{p.body}</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            {[
+              {
+                title: t('forClientsTitle'),
+                items: clients,
+                cta: t('clientCta'),
+                href: '/requests/new',
+                tone: 'client' as const,
+              },
+              {
+                title: t('forWorkshopsTitle'),
+                items: workshops,
+                cta: t('wsCta'),
+                href: '/register?role=company',
+                tone: 'workshop' as const,
+              },
+            ].map((panel) => (
+              <div
+                key={panel.title}
+                className={
+                  'flex flex-col rounded-xl border p-6 shadow-sm ' +
+                  (panel.tone === 'client'
+                    ? 'border-border bg-surface'
+                    : 'border-brass/30 bg-surface-2/60')
+                }
+              >
+                <div className="flex items-center gap-3">
+                  {/* glife in limbajul atelierului: foaia de cerere / casuta cu fum */}
+                  {panel.tone === 'client' ? (
+                    <svg viewBox="0 0 40 40" fill="none" className="h-9 w-9 text-walnut" aria-hidden
+                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="8" y="6" width="24" height="28" rx="2" />
+                      <path d="M14 14h12M14 20h12M14 26h7" opacity={0.55} strokeWidth="1.75" />
+                      <path d="M31 25l5 5-7 2 2-7z" fill="hsl(var(--card))" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 40 40" fill="none" className="h-9 w-9 text-brass-2" aria-hidden
+                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M7 33V19l13-9 13 9v14z" />
+                      <path d="M16 33v-8h8v8" strokeWidth="1.75" />
+                      <path d="M27 12V8h3v6" strokeWidth="1.75" />
+                      <path d="M29 6c-1.4-1.5 1.4-2.8 0-4.3" strokeWidth="1.25" opacity={0.7} />
+                    </svg>
+                  )}
+                  <h3 className="font-serif text-xl">{panel.title}</h3>
+                </div>
+                <ul className="mt-4 flex flex-col gap-2.5">
+                  {panel.items.map((item) => (
+                    <li key={item} className="flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-sage" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-5 border-t border-border-2 pt-4">
+                  <Link
+                    href={panel.href}
+                    className="group inline-flex items-center gap-1 text-[13.5px] font-medium text-walnut hover:text-walnut-deep"
+                  >
+                    {panel.cta}
+                    <span aria-hidden className="transition-transform group-hover:translate-x-0.5">→</span>
+                  </Link>
+                </div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Banda finala: espresso cu lumina de alama, ca pe landing-ul curent */}
-        <section className="relative my-16 overflow-hidden rounded-xl bg-gradient-to-br from-foreground to-ink-2 px-8 py-14 text-background shadow-lg sm:px-12">
+        {/* Banda finala: espresso cu lumina de alama */}
+        <section className="relative mb-14 mt-2 overflow-hidden rounded-xl bg-gradient-to-br from-foreground to-ink-2 px-8 py-12 text-background shadow-lg sm:px-12">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0"

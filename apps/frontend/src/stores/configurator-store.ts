@@ -10,7 +10,9 @@ import { persist } from 'zustand/middleware';
 // pasului curent; TanStack se ocupa de mutatiile server (createDraft/patch/publish).
 // Persistat in localStorage → refresh-ul reia exact acelasi pas/raspunsuri.
 
-export type ConfiguratorPhase = 'cart' | 'rooms' | 'details' | 'uploads' | 'review';
+// 'start' (PO r9): primul pas al wizard-ului — alegerea modului de pornire
+// pe cartonase, nu dialog peste pagina.
+export type ConfiguratorPhase = 'start' | 'cart' | 'rooms' | 'details' | 'uploads' | 'review';
 
 // Modul de pornire ales in dialogul "cum incepem?" (PO 2026-07-31):
 // - OWN_PROJECT: are proiect tehnic → acelasi formular, fara pasii de dimensiuni/schite
@@ -115,12 +117,21 @@ function normalizeSnapshot(snapshot: Partial<ConfiguratorSnapshot>): Partial<Con
   const activeId = original[snapshot.activeRoomIndex ?? 0]?.localId;
   const roomInstances = normalizeInstances(original);
   const remapped = activeId ? roomInstances.findIndex((r) => r.localId === activeId) : -1;
+  // snapshot-uri dinainte de pasul "Cum pornim?": progres fara mod ales →
+  // STANDARD (comportamentul de atunci); fara progres si fara mod → pasul start
+  const details = normalizeDetails(snapshot.details);
+  const hasProgress =
+    roomInstances.length > 0 ||
+    Object.keys(details).length > 0 ||
+    (snapshot.phase !== undefined && snapshot.phase !== 'cart' && snapshot.phase !== 'start');
+  const startMode = snapshot.startMode ?? (hasProgress ? 'STANDARD' : null);
   return {
     ...snapshot,
-    startMode: snapshot.startMode ?? null,
+    startMode,
+    phase: startMode == null ? 'start' : (snapshot.phase ?? 'start'),
     roomInstances,
     activeRoomIndex: remapped >= 0 ? remapped : 0,
-    details: normalizeDetails(snapshot.details),
+    details,
     inspirationPhotoIds: Array.isArray(snapshot.inspirationPhotoIds)
       ? snapshot.inspirationPhotoIds
       : [],
@@ -160,7 +171,7 @@ function normalizeDetails(details: Partial<DetailsValues> | undefined): Partial<
 }
 
 const initialSnapshot: ConfiguratorSnapshot = {
-  phase: 'cart',
+  phase: 'start',
   startMode: null,
   roomInstances: [],
   activeRoomIndex: 0,
@@ -305,8 +316,9 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
     }),
     {
       name: 'mm_configurator_v1',
-      // v3 (2026-07): ordinea canonica ROOM_ORDER + remap activeRoomIndex
-      version: 3,
+      // v4 (2026-07-31): faza 'start' + startMode; snapshot-urile vechi cu progres
+      // devin STANDARD, cele goale intra pe pasul de pornire
+      version: 4,
       // snapshot-uri persistate inainte de versionarea flow-urilor → flowVersion 1;
       // detaliile vechi (titlu, prioritati contact, termen-data) sunt normalizate;
       // draft-urile in curs sunt resortate pe ordinea canonica (camera activa pastrata)

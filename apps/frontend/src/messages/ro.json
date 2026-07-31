@@ -1,50 +1,66 @@
 {
   "LandingV2": {
     "previewBadge": "Previzualizare · v2",
-    "kicker": "Platformă pentru mobilier la comandă",
-    "title": "De la idee la mobilier montat, pe un singur fir.",
-    "subtitle": "Cozy Home leagă oamenii care vor mobilă la comandă de atelierele care o pot face: cereri clare, oferte comparabile și toată discuția într-un singur loc.",
+    "eyebrow": "Platformă pentru mobilier la comandă",
+    "title": "Spui ce vrei. Atelierele concurează pentru tine.",
+    "subtitle": "Configurezi vizual cererea — camere, materiale, dimensiuni — iar ateliere verificate trimit oferte comparabile. Tu doar alegi.",
     "ctaPrimary": "Începe o cerere",
-    "ctaSecondary": "Vezi cum funcționează",
-    "scrollCue": "Derulează",
-    "storyKicker": "Cum funcționează",
-    "storyTitle": "Patru pași, un singur fir",
-    "storySub": "Fiecare cerere trece prin același drum limpede — de la prima întrebare până la montaj.",
-    "s1": {
-      "phase": "Pasul 01 — Cererea",
-      "title": "Descrii ce vrei, vizual",
-      "body": "Alegi camerele sau piesele, răspunzi la întrebări pe carduri ilustrate și poți configura piesa direct în 3D. Nu știi exact ce vrei? Publici cererea cu proiectare plătită și atelierul face proiectul cu tine.",
-      "cardQuestion": "Cum se deschid ușile?",
-      "cardA": "Mâner clasic",
-      "cardB": "Push-to-open",
-      "cardC": "Uși glisante"
+    "ctaSecondary": "Vezi drumul cererii",
+    "proof1": "Gratuit pentru clienți",
+    "proof2": "Ateliere verificate",
+    "proof3": "Cel mult 3 oferte per cerere",
+    "demo": {
+      "kicker": "Probează configuratorul",
+      "qDoors": "Cât de lat?",
+      "doors2": "2 uși",
+      "doors3": "3 uși",
+      "qMaterial": "Ce finisaj?",
+      "matWhite": "Alb mat",
+      "matWood": "Furnir stejar",
+      "matSage": "Verde salvie",
+      "qOpening": "Cum se deschide?",
+      "openHandle": "Mânere",
+      "openPush": "Push-to-open",
+      "openSliding": "Uși glisante",
+      "specLabel": "Cererea ta ar suna așa",
+      "spec": "Dulap cu {doors} uși",
+      "cta": "Configurează pe bune"
     },
-    "s2": {
-      "phase": "Pasul 02 — Atelierele",
-      "title": "Atelierele verificate o revendică",
-      "body": "Cererea ta ajunge doar la ateliere verificate. Cel mult trei o pot prelua, iar fiecare plătește credite ca să o vadă — primești interes real, nu spam.",
-      "slotsLabel": "locuri de revendicare",
-      "slotFree": "liber"
+    "processKicker": "Drumul cererii",
+    "processTitle": "Patru stații, un singur fir",
+    "processSub": "De la prima schiță până la montaj, totul rămâne în același loc — nimic la telefon, nimic pierdut.",
+    "p1": {
+      "phase": "Cererea",
+      "title": "O descrii vizual",
+      "body": "Carduri ilustrate, dimensiuni pe planșe, piese configurate în 3D. Fără proiect? Atelierul îl face cu tine."
     },
-    "s3": {
-      "phase": "Pasul 03 — Ofertele",
-      "title": "Compari oferte, nu promisiuni",
-      "body": "Fiecare atelier îți trimite oferta lui și discutați în chat, cu tot istoricul păstrat. Compari prețuri, termene și portofolii unul lângă altul."
+    "p2": {
+      "phase": "Revendicarea",
+      "title": "Atelierele o preiau",
+      "body": "Cel mult trei ateliere verificate plătesc credite ca să-ți vadă cererea — interes real, nu spam."
     },
-    "s4": {
-      "phase": "Pasul 04 — Mobilierul",
-      "title": "Alegi și primești mobila",
-      "body": "Accepți oferta potrivită, atelierul execută și montează, iar recenzia ta rămâne pentru următorii clienți."
+    "p3": {
+      "phase": "Ofertele",
+      "title": "Compari negru pe alb",
+      "body": "Oferte structurate și chat cu fiecare atelier, cu istoricul păstrat. Prețul îl stabilești direct."
     },
-    "purposeKicker": "De ce există",
-    "purposeTitle": "Scopul platformei",
-    "purposeSub": "Mobila la comandă se cumpără azi prin telefoane, recomandări și mesaje pierdute. Cozy Home pune tot procesul pe un singur fir, corect pentru ambele părți.",
-    "p1Title": "Pentru clienți",
-    "p1Body": "Un singur formular în loc de zeci de telefoane. Publicarea cererii e gratuită, iar ofertele vin doar de la ateliere verificate.",
-    "p2Title": "Pentru ateliere",
-    "p2Body": "Cereri calificate, cu camere, materiale, dimensiuni și buget — nu lead-uri vagi, plătite degeaba.",
-    "p3Title": "Direct, fără intermediar",
-    "p3Body": "Prețul și contractul le stabilești direct cu atelierul. Platforma ține doar procesul limpede.",
+    "p4": {
+      "phase": "Montajul",
+      "title": "Mobila ta, pe cotele tale",
+      "body": "Accepți oferta, atelierul execută și montează, iar recenzia ta rămâne pentru următorii."
+    },
+    "forKicker": "Pentru cine",
+    "forTitle": "Două părți, aceeași masă de lucru",
+    "forClientsTitle": "Ești client",
+    "client1": "Publici cererea gratuit, în câteva minute",
+    "client2": "Primești oferte doar de la ateliere verificate",
+    "client3": "Compari prețuri, termene și portofolii în același loc",
+    "clientCta": "Începe o cerere",
+    "forWorkshopsTitle": "Conduci un atelier",
+    "ws1": "Cereri dimensionate, cu materiale și buget clar",
+    "ws2": "Plătești credite doar pe proiectele pe care le revendici",
+    "ws3": "Ofertare, chat și lucrul în echipă — în platformă",
+    "wsCta": "Înscrie-ți atelierul",
     "bandTitle": "Pregătit să începi?",
     "bandBody": "Publică prima cerere în câteva minute — sau înscrie-ți atelierul și primește cereri calificate.",
     "bandCtaClient": "Începe o cerere",
@@ -1124,6 +1140,7 @@
       "phaseLabel": "Faza {current}/{total}"
     },
     "phases": {
+      "start": "Pornire",
       "cart": "Camere",
       "rooms": "Detalii camere",
       "details": "Date generale",
@@ -1141,6 +1158,7 @@
     "start": {
       "title": "Cum pornim cererea?",
       "subtitle": "Alege varianta care ti se potriveste — o luam pe drumul cel mai scurt.",
+      "pick": "Alege",
       "OWN_PROJECT": {
         "title": "Am deja un proiect",
         "desc": "Ai proiect tehnic sau schite gata facute. Treci prin acelasi formular, dar fara intrebarile de dimensiuni si fara schitele de mana — incarci proiectul la pasul Fisiere."

@@ -8,7 +8,7 @@ import {
   type RoomType,
 } from '@marketplace/shared';
 import { motion } from 'framer-motion';
-import { Minus, Plus, ShoppingBasket, X } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, ShoppingBasket, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -91,7 +91,14 @@ function CartTile({
   );
 }
 
-export function RoomCartStep({ onContinue }: { onContinue: () => void }) {
+export function RoomCartStep({
+  onBack,
+  onContinue,
+}: {
+  // inapoi la pasul "Cum pornim?" (PO r9)
+  onBack: () => void;
+  onContinue: () => void;
+}) {
   const t = useTranslations('Configurator');
   const rooms = useConfiguratorStore((s) => s.roomInstances);
   const addRoom = useConfiguratorStore((s) => s.addRoom);
@@ -256,13 +263,19 @@ export function RoomCartStep({ onContinue }: { onContinue: () => void }) {
         </label>
       )}
 
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">
-          {t('cart.totalRooms', { count: total })}
-        </span>
-        <Button type="button" variant="walnut" size="xl" disabled={total === 0} onClick={onContinue}>
-          {designHelp ? t('nav.continue') : t('nav.startQuestions')}
+      <div className="flex items-center justify-between gap-3">
+        <Button type="button" variant="ghost" onClick={onBack}>
+          <ArrowLeft className="mr-1 h-4 w-4" />
+          {t('nav.back')}
         </Button>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-muted-foreground">
+            {t('cart.totalRooms', { count: total })}
+          </span>
+          <Button type="button" variant="walnut" size="xl" disabled={total === 0} onClick={onContinue}>
+            {designHelp ? t('nav.continue') : t('nav.startQuestions')}
+          </Button>
+        </div>
       </div>
     </div>
   );

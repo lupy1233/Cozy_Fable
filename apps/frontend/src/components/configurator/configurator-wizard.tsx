@@ -36,16 +36,17 @@ import { DetailsStep } from './details-step';
 import { ReviewStep } from './review-step';
 import { RoomCartStep } from './room-cart-step';
 import { RoomFlowRunner } from './room-flow-runner';
-import { StartModeDialog } from './start-mode-dialog';
+import { StartModeStep } from './start-mode-step';
 import { UploadsStep } from './uploads-step';
 
 const DRAFT_TOKEN_KEY = 'mm_draft_token';
+// 'start' (PO r9) = alegerea modului pe cartonase, ca pas de sine statator;
 // fisierele (planuri/poze) vin INAINTE de detaliile generale (decizie PO, overhaul 2026-07)
-const PHASE_ORDER: ConfiguratorPhase[] = ['cart', 'rooms', 'uploads', 'details', 'review'];
+const PHASE_ORDER: ConfiguratorPhase[] = ['start', 'cart', 'rooms', 'uploads', 'details', 'review'];
 // "am nevoie de ajutor" (PO 2026-07-31): fara chestionar per camera — alegi
 // camerele, atasezi eventual poze, completezi detaliile si publici cu
 // Proiectare platita; proiectarea o face atelierul care preia cererea.
-const DESIGN_HELP_PHASE_ORDER: ConfiguratorPhase[] = ['cart', 'uploads', 'details', 'review'];
+const DESIGN_HELP_PHASE_ORDER: ConfiguratorPhase[] = ['start', 'cart', 'uploads', 'details', 'review'];
 
 // Reconstruieste snapshot-ul wizard-ului dintr-o cerere publicata (edit mode).
 // configuratorState e null dupa publish → sursa de adevar sunt answers per camera.
@@ -96,11 +97,12 @@ function buildSnapshotFromRequest(dto: RequestDto): ConfiguratorSnapshot {
 }
 
 // exista progres de reluat? (camere adaugate, detalii completate sau pas inceput)
+// 'start' si 'cart' sunt fazele de inceput — singure nu inseamna progres
 function snapshotHasProgress(state: ConfiguratorSnapshot): boolean {
   return (
     state.roomInstances.length > 0 ||
     Object.keys(state.details).length > 0 ||
-    state.phase !== 'cart'
+    (state.phase !== 'cart' && state.phase !== 'start')
   );
 }
 
@@ -159,8 +161,6 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
   // dialogul "continui sau incepi din nou?" cand exista o cerere neterminata
   const [resumePrompt, setResumePrompt] = useState(false);
   const resumeChecked = useRef(false);
-  // dialogul "cum incepem?" (3 optiuni) la o cerere pornita de la zero
-  const [startPrompt, setStartPrompt] = useState(false);
 
   // Resume (creare): daca nu exista stare locala dar serverul are configuratorState.
   useEffect(() => {
@@ -174,12 +174,10 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
       store.getState().loadSnapshot(serverState);
     }
     // dupa hidratare stim starea reala: daca exista progres, intreaba utilizatorul
-    // daca vrea sa continue de unde a ramas sau sa inceapa o cerere noua (cerinta PO);
-    // fara progres si fara mod ales → dialogul de pornire cu 3 optiuni
+    // daca vrea sa continue de unde a ramas sau sa inceapa o cerere noua (cerinta PO)
     if (!resumeChecked.current) {
       resumeChecked.current = true;
       if (snapshotHasProgress(store.getState().snapshot())) setResumePrompt(true);
-      else if (store.getState().startMode == null) setStartPrompt(true);
     }
   }, [draft.data, isEdit, store]);
 
@@ -207,7 +205,6 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     if (!resumeChecked.current) {
       resumeChecked.current = true;
       if (snapshotHasProgress(store.getState().snapshot())) setResumePrompt(true);
-      else if (store.getState().startMode == null) setStartPrompt(true);
     }
   }, [draft.error, isEdit, createDraft, setTokenInStore, store]);
 
@@ -217,10 +214,9 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     setResumePrompt(false);
     const oldToken = token ?? localStorage.getItem(DRAFT_TOKEN_KEY);
     localStorage.removeItem(DRAFT_TOKEN_KEY);
+    // reset-ul readuce wizard-ul pe pasul "Cum pornim?"
     store.getState().reset();
     setToken(null);
-    // cerere de la zero → intrebam din nou cum vrea sa porneasca
-    setStartPrompt(true);
     // best-effort: un esec de stergere nu blocheaza cererea noua (ciorna ramane
     // doar invizibila — listele de client exclud oricum status DRAFT)
     if (oldToken) discardDraft.mutate(oldToken);
@@ -257,6 +253,12 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     if (designHelp && phase === 'rooms') setPhase('uploads');
   }, [designHelp, phase, setPhase]);
 
+  // fara mod ales nu exista decat pasul de pornire (plasa de siguranta pentru
+  // snapshot-uri vechi/incoerente)
+  useEffect(() => {
+    if (startMode == null && phase !== 'start') setPhase('start');
+  }, [startMode, phase, setPhase]);
+
   // Sync server debounced (doar creare): backup pentru resume de pe alt device.
   useEffect(() => {
     if (isEdit || !token) return;
@@ -278,12 +280,14 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     ? { kind: 'request', id: editId! }
     : { kind: 'draft', token: token! };
 
-  // alegerea din dialogul de pornire seteaza modul + detaliile derivate
+  // alegerea de pe pasul de pornire: seteaza modul, sincronizeaza detaliile
+  // derivate si avanseaza la cos
   const pickStartMode = (mode: StartMode) => {
     setStartMode(mode);
     if (mode === 'OWN_PROJECT') setDetails({ hasOwnProject: true });
-    if (mode === 'DESIGN_HELP') setDetails({ includesPaidDesign: true });
-    setStartPrompt(false);
+    if (mode === 'STANDARD') setDetails({ hasOwnProject: false, includesPaidDesign: false });
+    if (mode === 'DESIGN_HELP') setDetails({ hasOwnProject: false, includesPaidDesign: true });
+    setPhase('cart');
   };
 
   const phaseOrder = designHelp ? DESIGN_HELP_PHASE_ORDER : PHASE_ORDER;
@@ -292,18 +296,6 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-8">
-      {/* cerere noua: cum vrei sa pornesti? (3 optiuni, PO 2026-07-31) —
-          inchiderea fara alegere = formularul complet (STANDARD) */}
-      <StartModeDialog
-        open={startPrompt}
-        onOpenChange={(open) => {
-          if (!open) {
-            if (store.getState().startMode == null) setStartMode('STANDARD');
-            setStartPrompt(false);
-          }
-        }}
-        onPick={pickStartMode}
-      />
       {/* cerere neterminata gasita: continua sau incepe din nou (fara salvare) */}
       <Dialog open={resumePrompt} onOpenChange={setResumePrompt}>
         <DialogContent>
@@ -363,8 +355,12 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
             transition={{ duration: 0.2, ease: 'easeOut' }}
             className="p-6 sm:p-7"
           >
+        {phase === 'start' && (
+          <StartModeStep value={startMode} onPick={pickStartMode} />
+        )}
         {phase === 'cart' && (
           <RoomCartStep
+            onBack={() => setPhase('start')}
             onContinue={() => {
               // "am nevoie de ajutor": fara chestionar per camera — direct la fisiere
               if (designHelp) {
