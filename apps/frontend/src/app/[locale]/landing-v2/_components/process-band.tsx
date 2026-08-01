@@ -304,17 +304,37 @@ export function ProcessBand() {
   // 'idle' (SSR / reduced-motion) arata direct starea finala, fara animatie
   const on = phase !== 'armed';
 
-  const cells: {
+  type Cell = {
     no: string;
     key: 'p1' | 'p2' | 'p3' | 'p4';
-    span: string;
+    grow: string;
     moment: React.ReactNode;
-  }[] = [
-    { no: '1', key: 'p1', span: 'md:col-span-7', moment: <MomentRequest t={t} /> },
-    { no: '2', key: 'p2', span: 'md:col-span-5', moment: <MomentClaim t={t} on={on} /> },
-    { no: '3', key: 'p3', span: 'md:col-span-5', moment: <MomentOffers t={t} on={on} /> },
-    { no: '4', key: 'p4', span: 'md:col-span-7', moment: <MomentInstall t={t} on={on} /> },
+  };
+  // doua randuri inegale (7/5, apoi 5/7) — ritm de mozaic fara monotonie
+  const rows: Cell[][] = [
+    [
+      { no: '1', key: 'p1', grow: 'md:flex-[7]', moment: <MomentRequest t={t} /> },
+      { no: '2', key: 'p2', grow: 'md:flex-[5]', moment: <MomentClaim t={t} on={on} /> },
+    ],
+    [
+      { no: '3', key: 'p3', grow: 'md:flex-[5]', moment: <MomentOffers t={t} on={on} /> },
+      { no: '4', key: 'p4', grow: 'md:flex-[7]', moment: <MomentInstall t={t} on={on} /> },
+    ],
   ];
+
+  // "Un singur fir" spus in limbajul mobilierului: statiile se IMBINA ca
+  // panourile — cep de alama in rostul dintre celulele unui rand, iar trecerea
+  // intre randuri e chiar motivul de delimitare al paginii (hairline + romb).
+  // Fiecare segment umple exact golul lui: nu atinge textul si nu se rupe.
+  const Joint = ({ delay }: { delay: number }) => (
+    <div aria-hidden className="hidden w-9 shrink-0 flex-col justify-center md:flex">
+      <div className="flex items-center" data-fade style={d(delay)}>
+        <span className="h-px flex-1 bg-brass/60" />
+        <span className="h-1.5 w-1.5 shrink-0 rotate-45 bg-brass" />
+        <span className="h-px flex-1 bg-brass/60" />
+      </div>
+    </div>
+  );
 
   return (
     <section
@@ -335,60 +355,43 @@ export function ProcessBand() {
         <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">{t('processSub')}</p>
       </div>
 
-      <div className="relative">
-        <div className="grid gap-4 md:grid-cols-12">
-          {cells.map(({ no, key, span, moment }, i) => (
-            <div
-              key={key}
-              data-reveal
-              style={rd(i * 140)}
-              className={cn(
-                'flex flex-col gap-4 rounded-xl border border-border bg-surface p-5 shadow-sm sm:p-6',
-                span,
-              )}
-            >
-              <CellHeader no={no} phase={t(`${key}.phase`)} />
-              <div className="flex min-h-[6.5rem] flex-1 items-center">{moment}</div>
-              <div>
-                <h3 className="font-serif text-[19px] leading-snug">{t(`${key}.title`)}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{t(`${key}.body`)}</p>
+      <div className="flex flex-col gap-4 md:gap-3">
+        {rows.map((row, r) => (
+          <div key={r} className="contents">
+            {r > 0 && (
+              // trecerea firului la randul urmator: hairline cu romburi de alama
+              <div aria-hidden data-fade style={d(800)} className="hidden items-center md:flex">
+                <span className="ml-8 h-px w-10 bg-brass/60" />
+                <span className="h-1.5 w-1.5 shrink-0 rotate-45 bg-brass" />
+                <span className="h-px flex-1 bg-brass/40" />
+                <span className="h-1.5 w-1.5 shrink-0 rotate-45 bg-brass" />
+                <span className="mr-8 h-px w-10 bg-brass/60" />
               </div>
+            )}
+            <div className="flex flex-col gap-4 md:flex-row md:items-stretch md:gap-0">
+              {row.map(({ no, key, grow, moment }, i) => (
+                <div key={key} className="contents">
+                  {i > 0 && <Joint delay={500 + r * 500} />}
+                  <div
+                    data-reveal
+                    style={rd((r * 2 + i) * 140)}
+                    className={cn(
+                      'flex flex-col gap-4 rounded-xl border border-border bg-surface p-5 shadow-sm sm:p-6',
+                      grow,
+                    )}
+                  >
+                    <CellHeader no={no} phase={t(`${key}.phase`)} />
+                    <div className="flex min-h-[6.5rem] flex-1 items-center">{moment}</div>
+                    <div>
+                      <h3 className="font-serif text-[19px] leading-snug">{t(`${key}.title`)}</h3>
+                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{t(`${key}.body`)}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-
-        {/* firul de alama care leaga statiile — DEASUPRA celulelor, ca pe un
-            panou de atelier: un traseu CONTINUU ancorat in numerele 1→2→3→4,
-            prins cu ace de alama la capete; se deseneaza la intrarea in viewport */}
-        <svg
-          aria-hidden
-          className="pointer-events-none absolute inset-0 hidden h-full w-full md:block"
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          fill="none"
-        >
-          <path
-            d="M 4.5 9 C 18 15 40 3 61 8.5 C 80 13 97 15 96 27 C 95 41 55 39 30 45 C 12 49 2.5 47 3.5 58 C 4.5 66 24 64 45 57.5"
-            stroke="hsl(var(--brass) / 0.45)"
-            strokeWidth="1.25"
-            vectorEffect="non-scaling-stroke"
-            pathLength={1}
-            data-draw
-            style={d(300)}
-          />
-        </svg>
-        <span
-          aria-hidden
-          data-fade
-          style={{ ...d(400), left: '4.5%', top: '9%' }}
-          className="absolute hidden h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-brass md:block"
-        />
-        <span
-          aria-hidden
-          data-fade
-          style={{ ...d(1500), left: '45%', top: '57.5%' }}
-          className="absolute hidden h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-brass md:block"
-        />
+          </div>
+        ))}
       </div>
     </section>
   );
