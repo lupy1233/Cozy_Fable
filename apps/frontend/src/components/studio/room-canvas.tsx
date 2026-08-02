@@ -4,7 +4,8 @@ import { buildPanels, type Panel3d } from '@marketplace/shared';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BufferGeometry, Float32BufferAttribute, Vector3, type Mesh } from 'three';
+import { BufferGeometry, Float32BufferAttribute, Vector3, type Group } from 'three';
+import type { Camera } from 'three';
 import {
   finishSpecFor,
   HIGHLIGHT_COLOR,
@@ -13,23 +14,32 @@ import {
 } from '../configurator/piece3d/finishes';
 import { floorColorOf, wallColorOf } from './palette';
 import {
+  OPENING_SPECS,
   overlappingPlacements,
   placementHalfExtents,
+  useActiveScene,
   useStudioStore,
+  type StudioOpening,
   type StudioPiece,
   type StudioPlacement,
+  type StudioRoom,
+  type StudioWall,
 } from '@/stores/studio-store';
 
 // Scena camerei din Studio 3D (stil Sims building): podea cu grila, pereti
-// care se ascund cand ajung intre camera si privitor, piesele generate din
-// acelasi model parametric ca in configurator (buildPanels). Interactiune:
-// click = selectie, drag = mutare cu snap pe grila, piesele suprapuse se
-// evidentiaza cu rosu. Randare frameloop="demand", ca in PieceCanvas.
+// care se ascund cand ajung intre camera si privitor, usi si ferestre taiate
+// in pereti (segmente + toc + foaie/geam), piesele generate din acelasi model
+// parametric ca in configurator (buildPanels). Interactiune: click = selectie,
+// drag = mutare (piesele pe podea, golurile de-a lungul peretelui lor), totul
+// cu snap de 1cm. Randare frameloop="demand", ca in PieceCanvas.
 
 const WALL_T = 0.09;
 const FLOOR_T = 0.12;
 const BACKDROP_COLOR = '#262019';
 const OVERLAP_COLOR = '#c2452d';
+const DOOR_LEAF_COLOR = '#8a6544';
+const GLASS_COLOR = '#bcd3dc';
+const FRAME_COLOR = '#efe9df';
 
 type ControlsLike = {
   target: { set: (x: number, y: number, z: number) => void };
@@ -142,7 +152,7 @@ function PlacedPiece({ placement, piece, selected, overlapping, onPointerDown }:
   );
 }
 
-// Grila podelei: linii la 0.5m, generate exact pe dimensiunile camerei.
+// Grila podelei: linii la 0.5m — reper vizual; snap-ul real e la 1cm.
 function FloorGrid({ w, d }: { w: number; d: number }) {
   const geometry = useMemo(() => {
     const pts: number[] = [];
@@ -165,55 +175,253 @@ function FloorGrid({ w, d }: { w: number; d: number }) {
   );
 }
 
-// Peretii camerei: 4 cutii; cei ajunsi intre camera si privitor devin
-// invizibili (normala exterioara indreptata spre camera), ca in The Sims.
-// Fara handlere de evenimente: peretii ascunsi nu intercepteaza raycast-ul.
-function Walls({ w, d, h, color }: { w: number; d: number; h: number; color: string }) {
-  const refs = useRef<(Mesh | null)[]>([]);
-  const camPos = useRef(new Vector3());
-  const walls = useMemo(
-    () =>
-      [
-        { x: 0, z: -d / 2 - WALL_T / 2, nx: 0, nz: -1, len: w + 2 * WALL_T, rot: 0 },
-        { x: 0, z: d / 2 + WALL_T / 2, nx: 0, nz: 1, len: w + 2 * WALL_T, rot: 0 },
-        { x: -w / 2 - WALL_T / 2, z: 0, nx: -1, nz: 0, len: d, rot: Math.PI / 2 },
-        { x: w / 2 + WALL_T / 2, z: 0, nx: 1, nz: 0, len: d, rot: Math.PI / 2 },
-      ] as const,
-    [w, d],
-  );
+// Geometria unui perete in coordonate LOCALE: peretele sta de-a lungul axei X,
+// fata interioara spre +z. `sign` converteste offsetul din lume in local.
+interface WallSpec {
+  wall: StudioWall;
+  pos: [number, number, number];
+  rotY: number;
+  // lungimea randata (N/S acopera si colturile), lungimea utila si semnul
+  renderLen: number;
+  sign: 1 | -1;
+  nx: number;
+  nz: number;
+}
 
-  useFrame(({ camera }) => {
-    camera.getWorldPosition(camPos.current);
-    walls.forEach((wall, i) => {
-      const mesh = refs.current[i];
-      if (!mesh) return;
-      const toCam = (camPos.current.x - wall.x) * wall.nx + (camPos.current.z - wall.z) * wall.nz;
-      mesh.visible = toCam < 0;
-    });
-  });
+function wallSpecs(room: StudioRoom): WallSpec[] {
+  const { widthM: w, depthM: d } = room;
+  return [
+    { wall: 'N', pos: [0, 0, -d / 2 - WALL_T / 2], rotY: 0, renderLen: w + 2 * WALL_T, sign: 1, nx: 0, nz: -1 },
+    { wall: 'S', pos: [0, 0, d / 2 + WALL_T / 2], rotY: Math.PI, renderLen: w + 2 * WALL_T, sign: -1, nx: 0, nz: 1 },
+    { wall: 'E', pos: [w / 2 + WALL_T / 2, 0, 0], rotY: -Math.PI / 2, renderLen: d, sign: 1, nx: 1, nz: 0 },
+    { wall: 'W', pos: [-w / 2 - WALL_T / 2, 0, 0], rotY: Math.PI / 2, renderLen: d, sign: -1, nx: -1, nz: 0 },
+  ];
+}
+
+interface OpeningHandlers {
+  selectedOpeningId: string | null;
+  onOpeningPointerDown: (e: ThreeEvent<PointerEvent>, opening: StudioOpening) => void;
+}
+
+// Un gol in perete (coordonate locale): tocul, foaia de usa / geamul si
+// hit-target-ul invizibil pentru selectie + drag de-a lungul peretelui.
+function OpeningMeshes({
+  opening,
+  cx,
+  selected,
+  onPointerDown,
+}: {
+  opening: StudioOpening;
+  cx: number;
+  selected: boolean;
+  onPointerDown: (e: ThreeEvent<PointerEvent>, opening: StudioOpening) => void;
+}) {
+  const { w, h, sill } = OPENING_SPECS[opening.kind];
+  const top = sill + h;
+  const isDoor = opening.kind === 'DOOR' || opening.kind === 'DOOR_DOUBLE';
+  const [hovered, setHovered] = useState(false);
+  useEffect(() => {
+    if (!hovered) return;
+    document.body.style.cursor = 'grab';
+    return () => {
+      document.body.style.cursor = '';
+    };
+  }, [hovered]);
+
+  const frameColor = selected ? HIGHLIGHT_COLOR : FRAME_COLOR;
+  const bar = 0.06;
+  const frameZ = WALL_T / 2 + 0.012;
 
   return (
-    <group>
-      {walls.map((wall, i) => (
-        <mesh
-          key={i}
-          ref={(el) => {
-            refs.current[i] = el;
-          }}
-          position={[wall.x, h / 2, wall.z]}
-          rotation={[0, wall.rot, 0]}
-          receiveShadow
-        >
-          <boxGeometry args={[wall.len, h, WALL_T]} />
-          <meshStandardMaterial color={color} roughness={0.9} />
+    <group
+      position={[cx, 0, 0]}
+      onPointerDown={(e) => onPointerDown(e, opening)}
+      onClick={(e) => e.stopPropagation()}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        setHovered(true);
+      }}
+      onPointerOut={() => setHovered(false)}
+    >
+      {/* hit-target pe tot golul (opacitate 0 — visible:false ar opri raycastul) */}
+      <mesh position={[0, sill + h / 2, 0]}>
+        <boxGeometry args={[w, h, WALL_T + 0.05]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+
+      {/* tocul: bara de sus + laterale (+ jos la ferestre), pe fata interioara */}
+      <mesh position={[0, top + bar / 2, frameZ]}>
+        <boxGeometry args={[w + 2 * bar, bar, 0.03]} />
+        <meshStandardMaterial color={frameColor} roughness={0.7} />
+      </mesh>
+      <mesh position={[-(w + bar) / 2, sill + h / 2 + (isDoor ? bar / 2 : 0), frameZ]}>
+        <boxGeometry args={[bar, h + (isDoor ? bar : 2 * bar), 0.03]} />
+        <meshStandardMaterial color={frameColor} roughness={0.7} />
+      </mesh>
+      <mesh position={[(w + bar) / 2, sill + h / 2 + (isDoor ? bar / 2 : 0), frameZ]}>
+        <boxGeometry args={[bar, h + (isDoor ? bar : 2 * bar), 0.03]} />
+        <meshStandardMaterial color={frameColor} roughness={0.7} />
+      </mesh>
+      {!isDoor && (
+        <mesh position={[0, sill - bar / 2, frameZ]}>
+          <boxGeometry args={[w + 2 * bar, bar, 0.03]} />
+          <meshStandardMaterial color={frameColor} roughness={0.7} />
         </mesh>
-      ))}
+      )}
+
+      {isDoor ? (
+        <group>
+          {/* foaia usii, usor retrasa in gol; usa dubla are doua foi */}
+          {(opening.kind === 'DOOR_DOUBLE' ? [-1, 1] : [0]).map((side) => {
+            const leafW = opening.kind === 'DOOR_DOUBLE' ? w / 2 - 0.02 : w - 0.03;
+            const lx = opening.kind === 'DOOR_DOUBLE' ? (side * (leafW + 0.02)) / 2 : 0;
+            return (
+              <mesh key={side} position={[lx, h / 2 - 0.01, 0.004]} castShadow>
+                <boxGeometry args={[leafW, h - 0.02, 0.04]} />
+                <meshStandardMaterial color={DOOR_LEAF_COLOR} roughness={0.6} />
+              </mesh>
+            );
+          })}
+          {/* clanta de alama */}
+          <mesh
+            position={[opening.kind === 'DOOR_DOUBLE' ? -0.08 : w / 2 - 0.09, 1.02, WALL_T / 2 + 0.02]}
+            rotation={[0, 0, Math.PI / 2]}
+          >
+            <cylinderGeometry args={[0.011, 0.011, 0.13, 10]} />
+            <meshStandardMaterial color={ROD_COLOR} roughness={0.35} metalness={0.7} />
+          </mesh>
+        </group>
+      ) : (
+        <group>
+          {/* geamul translucid + montant central la fereastra lata */}
+          <mesh position={[0, sill + h / 2, 0]}>
+            <boxGeometry args={[w - 0.04, h - 0.04, 0.015]} />
+            <meshStandardMaterial
+              color={GLASS_COLOR}
+              transparent
+              opacity={0.35}
+              roughness={0.15}
+              depthWrite={false}
+            />
+          </mesh>
+          {opening.kind === 'WINDOW_WIDE' && (
+            <mesh position={[0, sill + h / 2, 0.012]}>
+              <boxGeometry args={[0.05, h - 0.02, 0.03]} />
+              <meshStandardMaterial color={FRAME_COLOR} roughness={0.7} />
+            </mesh>
+          )}
+        </group>
+      )}
     </group>
   );
 }
 
-// Repozitioneaza camera cand se schimba gabaritul camerei de joc.
-function CameraRig({ w, d }: { w: number; d: number }) {
+// Peretii camerei: segmente pline in jurul golurilor (fara CSG — buiandrug
+// deasupra, parapet sub ferestre); cei ajunsi intre camera si privitor devin
+// invizibili (normala exterioara spre camera), ca in The Sims. Segmentele nu
+// au handlere — peretii ascunsi nu intercepteaza raycast-ul spre piese.
+function Walls({
+  room,
+  openings,
+  color,
+  handlers,
+}: {
+  room: StudioRoom;
+  openings: StudioOpening[];
+  color: string;
+  handlers: OpeningHandlers;
+}) {
+  const refs = useRef<Partial<Record<StudioWall, Group | null>>>({});
+  const camPos = useRef(new Vector3());
+  const specs = useMemo(() => wallSpecs(room), [room]);
+  const H = room.wallHeightM;
+
+  useFrame(({ camera }) => {
+    camera.getWorldPosition(camPos.current);
+    const dbg: Record<string, unknown> = { cam: camPos.current.toArray() };
+    for (const spec of specs) {
+      const group = refs.current[spec.wall];
+      if (!group) continue;
+      const toCam =
+        (camPos.current.x - spec.pos[0]) * spec.nx + (camPos.current.z - spec.pos[2]) * spec.nz;
+      group.visible = toCam < 0;
+      dbg[spec.wall] = group.visible;
+    }
+    (window as unknown as Record<string, unknown>).__wallsDbg = dbg;
+  });
+
+  return (
+    <group>
+      {specs.map((spec) => {
+        const wallOpenings = openings
+          .filter((o) => o.wall === spec.wall)
+          .map((o) => ({ opening: o, cx: spec.sign * o.offset, ...OPENING_SPECS[o.kind] }))
+          .sort((a, b) => a.cx - b.cx);
+
+        // segmentele pline pe verticala intreaga, intre goluri
+        const half = spec.renderLen / 2;
+        const segments: { x: number; w: number }[] = [];
+        let cursor = -half;
+        for (const { cx, w } of wallOpenings) {
+          const left = cx - w / 2;
+          if (left - cursor > 0.005) {
+            segments.push({ x: (cursor + left) / 2, w: left - cursor });
+          }
+          cursor = cx + w / 2;
+        }
+        if (half - cursor > 0.005) segments.push({ x: (cursor + half) / 2, w: half - cursor });
+
+        return (
+          <group
+            key={spec.wall}
+            position={spec.pos}
+            rotation={[0, spec.rotY, 0]}
+            ref={(el) => {
+              refs.current[spec.wall] = el;
+            }}
+          >
+            {segments.map((seg, i) => (
+              <mesh key={i} position={[seg.x, H / 2, 0]} receiveShadow>
+                <boxGeometry args={[seg.w, H, WALL_T]} />
+                <meshStandardMaterial color={color} roughness={0.9} />
+              </mesh>
+            ))}
+            {wallOpenings.map(({ opening, cx, w, h, sill }) => {
+              const top = sill + h;
+              return (
+                <group key={opening.id}>
+                  {/* buiandrugul de deasupra golului */}
+                  {H - top > 0.02 && (
+                    <mesh position={[cx, top + (H - top) / 2, 0]} receiveShadow>
+                      <boxGeometry args={[w, H - top, WALL_T]} />
+                      <meshStandardMaterial color={color} roughness={0.9} />
+                    </mesh>
+                  )}
+                  {/* parapetul de sub fereastra */}
+                  {sill > 0.02 && (
+                    <mesh position={[cx, sill / 2, 0]} receiveShadow>
+                      <boxGeometry args={[w, sill, WALL_T]} />
+                      <meshStandardMaterial color={color} roughness={0.9} />
+                    </mesh>
+                  )}
+                  <OpeningMeshes
+                    opening={opening}
+                    cx={cx}
+                    selected={handlers.selectedOpeningId === opening.id}
+                    onPointerDown={handlers.onOpeningPointerDown}
+                  />
+                </group>
+              );
+            })}
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
+// Repozitioneaza camera cand se schimba gabaritul camerei de joc sau scena.
+function CameraRig({ w, d, sceneId }: { w: number; d: number; sceneId: string }) {
   const camera = useThree((s) => s.camera);
   const controls = useThree((s) => s.controls) as unknown as ControlsLike;
   const invalidate = useThree((s) => s.invalidate);
@@ -226,37 +434,83 @@ function CameraRig({ w, d }: { w: number; d: number }) {
       controls.update();
     }
     invalidate();
-  }, [camera, controls, invalidate, w, d]);
+  }, [camera, controls, invalidate, w, d, sceneId]);
   return null;
 }
 
-interface DragState {
-  id: string;
-  dx: number;
-  dz: number;
+type DragState =
+  | { type: 'piece'; id: string; dx: number; dz: number }
+  | { type: 'opening'; id: string; wall: StudioWall; delta: number };
+
+// valoarea de-a lungul peretelui (axa LUMII) in punctul dat
+function alongWall(wall: StudioWall, x: number, z: number): number {
+  return wall === 'N' || wall === 'S' ? x : z;
 }
 
-function StudioScene({ onDraggingChange }: { onDraggingChange: (v: boolean) => void }) {
-  const room = useStudioStore((s) => s.room);
-  const pieces = useStudioStore((s) => s.pieces);
-  const placements = useStudioStore((s) => s.placements);
-  const selectedId = useStudioStore((s) => s.selectedId);
-  const setSelected = useStudioStore((s) => s.setSelected);
-  const movePlacement = useStudioStore((s) => s.movePlacement);
-  const invalidate = useThree((s) => s.invalidate);
+// raza din camera prin pozitia cursorului (independenta de raycastul R3F)
+function pointerRay(
+  camera: Camera,
+  el: HTMLCanvasElement,
+  clientX: number,
+  clientY: number,
+): { origin: Vector3; direction: Vector3 } {
+  const rect = el.getBoundingClientRect();
+  const ndcX = ((clientX - rect.left) / rect.width) * 2 - 1;
+  const ndcY = -((clientY - rect.top) / rect.height) * 2 + 1;
+  const target = new Vector3(ndcX, ndcY, 0.5).unproject(camera);
+  const origin = new Vector3();
+  camera.getWorldPosition(origin);
+  return { origin, direction: target.sub(origin).normalize() };
+}
 
+// intersectia razei cu planul interior al peretelui → pozitia pe axa lui
+function rayToWall(
+  ray: { origin: Vector3; direction: Vector3 },
+  wall: StudioWall,
+  room: StudioRoom,
+): number | null {
+  const o = ray.origin;
+  const dir = ray.direction;
+  if (wall === 'N' || wall === 'S') {
+    const planeZ = wall === 'N' ? -room.depthM / 2 : room.depthM / 2;
+    if (Math.abs(dir.z) < 1e-6) return null;
+    const t = (planeZ - o.z) / dir.z;
+    if (t <= 0) return null;
+    return o.x + t * dir.x;
+  }
+  const planeX = wall === 'E' ? room.widthM / 2 : -room.widthM / 2;
+  if (Math.abs(dir.x) < 1e-6) return null;
+  const t = (planeX - o.x) / dir.x;
+  if (t <= 0) return null;
+  return o.z + t * dir.z;
+}
+
+function StudioSceneView({ onDraggingChange }: { onDraggingChange: (v: boolean) => void }) {
+  const scene = useActiveScene();
+  const pieces = useStudioStore((s) => s.pieces);
+  const selectedId = useStudioStore((s) => s.selectedId);
+  const selectedOpeningId = useStudioStore((s) => s.selectedOpeningId);
+  const setSelected = useStudioStore((s) => s.setSelected);
+  const setSelectedOpening = useStudioStore((s) => s.setSelectedOpening);
+  const movePlacement = useStudioStore((s) => s.movePlacement);
+  const moveOpening = useStudioStore((s) => s.moveOpening);
+  const invalidate = useThree((s) => s.invalidate);
+  const camera = useThree((s) => s.camera);
+  const gl = useThree((s) => s.gl);
+
+  const room = scene.room;
   const [dragging, setDragging] = useState<DragState | null>(null);
   const dragRef = useRef<DragState | null>(null);
 
   const overlapping = useMemo(
-    () => overlappingPlacements(placements, pieces),
-    [placements, pieces],
+    () => overlappingPlacements(scene.placements, pieces),
+    [scene.placements, pieces],
   );
 
   // orice schimbare de continut cere un cadru nou (frameloop demand)
   useEffect(() => {
     invalidate();
-  }, [room, pieces, placements, selectedId, dragging, invalidate]);
+  }, [scene, pieces, selectedId, selectedOpeningId, dragging, invalidate]);
 
   const endDrag = () => {
     if (!dragRef.current) return;
@@ -265,34 +519,71 @@ function StudioScene({ onDraggingChange }: { onDraggingChange: (v: boolean) => v
     onDraggingChange(false);
     document.body.style.cursor = '';
   };
-  // pointerup poate cadea in afara canvasului — inchidem dragul global
+
+  // Dragul asculta pointermove DIRECT pe fereastra (DOM), cu raza construita
+  // manual din camera: livrarea nu mai depinde de raycastul R3F, pe care un
+  // stopPropagation din onPointerOver al altei piese il poate opri la mijloc
+  // de gest. Pointerup pe fereastra inchide dragul oriunde ar cadea.
   useEffect(() => {
     if (!dragging) return;
-    window.addEventListener('pointerup', endDrag);
-    return () => window.removeEventListener('pointerup', endDrag);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dragging]);
-
-  const onPiecePointerDown = (e: ThreeEvent<PointerEvent>, placement: StudioPlacement) => {
-    // doar butonul principal / atingerea trage piese (dreapta ramane orbitei)
-    if (e.button !== undefined && e.button !== 0) return;
-    e.stopPropagation();
-    setSelected(placement.id);
-    const state: DragState = {
-      id: placement.id,
-      dx: placement.x - e.point.x,
-      dz: placement.z - e.point.z,
+    const onMove = (ev: PointerEvent) => {
+      const drag = dragRef.current;
+      if (!drag) return;
+      const ray = pointerRay(camera, gl.domElement, ev.clientX, ev.clientY);
+      if (drag.type === 'piece') {
+        if (Math.abs(ray.direction.y) < 1e-6) return;
+        const t = -ray.origin.y / ray.direction.y;
+        if (t <= 0) return;
+        movePlacement(
+          drag.id,
+          ray.origin.x + t * ray.direction.x + drag.dx,
+          ray.origin.z + t * ray.direction.z + drag.dz,
+        );
+      } else {
+        const along = rayToWall(ray, drag.wall, room);
+        if (along === null) return;
+        moveOpening(drag.id, along + drag.delta);
+      }
     };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', endDrag);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', endDrag);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragging, camera, gl, room]);
+
+  const startDrag = (state: DragState) => {
     dragRef.current = state;
     setDragging(state);
     onDraggingChange(true);
     document.body.style.cursor = 'grabbing';
   };
 
-  const onDragMove = (e: ThreeEvent<PointerEvent>) => {
-    const drag = dragRef.current;
-    if (!drag) return;
-    movePlacement(drag.id, e.point.x + drag.dx, e.point.z + drag.dz);
+  const onPiecePointerDown = (e: ThreeEvent<PointerEvent>, placement: StudioPlacement) => {
+    // doar butonul principal / atingerea trage piese (dreapta ramane orbitei)
+    if (e.button !== undefined && e.button !== 0) return;
+    e.stopPropagation();
+    setSelected(placement.id);
+    startDrag({
+      type: 'piece',
+      id: placement.id,
+      dx: placement.x - e.point.x,
+      dz: placement.z - e.point.z,
+    });
+  };
+
+  const onOpeningPointerDown = (e: ThreeEvent<PointerEvent>, opening: StudioOpening) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    e.stopPropagation();
+    setSelectedOpening(opening.id);
+    startDrag({
+      type: 'opening',
+      id: opening.id,
+      wall: opening.wall,
+      delta: opening.offset - alongWall(opening.wall, e.point.x, e.point.z),
+    });
   };
 
   return (
@@ -304,7 +595,10 @@ function StudioScene({ onDraggingChange }: { onDraggingChange: (v: boolean) => v
         receiveShadow
         onClick={(e) => {
           e.stopPropagation();
-          if (e.delta <= 4) setSelected(null);
+          if (e.delta <= 4) {
+            setSelected(null);
+            setSelectedOpening(null);
+          }
         }}
       >
         <boxGeometry args={[room.widthM + 2 * WALL_T, FLOOR_T, room.depthM + 2 * WALL_T]} />
@@ -312,27 +606,13 @@ function StudioScene({ onDraggingChange }: { onDraggingChange: (v: boolean) => v
       </mesh>
       <FloorGrid w={room.widthM} d={room.depthM} />
       <Walls
-        w={room.widthM}
-        d={room.depthM}
-        h={room.wallHeightM}
+        room={room}
+        openings={scene.openings}
         color={wallColorOf(room.wallColor)}
+        handlers={{ selectedOpeningId, onOpeningPointerDown }}
       />
 
-      {/* planul de drag: MEREU montat (mutarea porneste chiar din pointerdown,
-          inainte ca React sa apuce sa redeseneze), dar activ doar cat exista
-          un drag in curs; opacitate 0 (visible:false ar scoate mesh-ul din
-          raycast) */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, 0.001, 0]}
-        onPointerMove={onDragMove}
-        onPointerUp={endDrag}
-      >
-        <planeGeometry args={[80, 80]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-      </mesh>
-
-      {placements.map((p) => {
+      {scene.placements.map((p) => {
         const piece = pieces[p.pieceId];
         if (!piece) return null;
         return (
@@ -351,10 +631,10 @@ function StudioScene({ onDraggingChange }: { onDraggingChange: (v: boolean) => v
 }
 
 export default function RoomCanvas({ className }: { className?: string }) {
-  const room = useStudioStore((s) => s.room);
-  const maxDim = Math.max(room.widthM, room.depthM);
-  // cat timp se trage o piesa, orbita camerei sta pe loc (OrbitControls
-  // asculta direct pe elementul canvas — stopPropagation din scena nu ajunge)
+  const scene = useActiveScene();
+  const maxDim = Math.max(scene.room.widthM, scene.room.depthM);
+  // cat timp se trage ceva, orbita camerei sta pe loc (OrbitControls asculta
+  // direct pe elementul canvas — stopPropagation din scena nu ajunge la el)
   const [dragging, setDragging] = useState(false);
   return (
     <div className={className}>
@@ -362,7 +642,7 @@ export default function RoomCanvas({ className }: { className?: string }) {
         shadows
         dpr={[1, 1.75]}
         frameloop="demand"
-        camera={{ fov: 36, near: 0.05, far: 120 }}
+        camera={{ fov: 36, near: 0.05, far: 200 }}
         gl={{ antialias: true }}
       >
         <color attach="background" args={['#f7f3ec']} />
@@ -379,7 +659,7 @@ export default function RoomCanvas({ className }: { className?: string }) {
           shadow-camera-bottom={-7}
         />
         <directionalLight position={[-5, 5, -4]} intensity={0.35} />
-        <StudioScene onDraggingChange={setDragging} />
+        <StudioSceneView onDraggingChange={setDragging} />
         <OrbitControls
           makeDefault
           enabled={!dragging}
@@ -389,7 +669,7 @@ export default function RoomCanvas({ className }: { className?: string }) {
           minPolarAngle={0.1}
           maxPolarAngle={Math.PI / 2 - 0.08}
         />
-        <CameraRig w={room.widthM} d={room.depthM} />
+        <CameraRig w={scene.room.widthM} d={scene.room.depthM} sceneId={scene.id} />
       </Canvas>
     </div>
   );
