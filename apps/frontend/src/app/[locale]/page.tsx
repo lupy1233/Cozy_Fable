@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { INSPIRATION_PINS, LANDING_PIN_IDS } from '@/lib/inspiration';
 import { cn } from '@/lib/utils';
 import { HeroDemo } from './_components/hero-demo';
+import { PartnersCarousel } from './_components/partners-carousel';
 import { ProcessBand } from './_components/process-band';
 import { PublicHeader } from './_components/public-header';
 import { SiteFooter } from './_components/site-footer';
@@ -202,6 +203,10 @@ export default function LandingPage() {
             ))}
           </div>
         </section>
+
+        {/* Dovada sociala: atelierele partenere, pe panoul lor cald (readus
+            din landing-ul v1 la cererea PO) */}
+        <PartnersCarousel />
 
         {/* Banda finala: espresso cu lumina de alama */}
         <section className="relative mb-14 mt-2 overflow-hidden rounded-xl bg-gradient-to-br from-foreground to-ink-2 px-8 py-12 text-background shadow-lg sm:px-12">
