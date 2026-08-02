@@ -233,6 +233,7 @@
     "duplicateScene": "Duplică camera",
     "sceneCopyName": "{name} (copie)",
     "resizeBlocked": "Nu încape acolo — se lovește de un vecin sau de tavan.",
+    "dragToPlace": "Trage-mă în cameră sau apasă +",
     "myDrafts": "Drafturile mele",
     "draftNameLabel": "Numele draftului",
     "draftNamePlaceholder": "ex. Apartamentul nostru",

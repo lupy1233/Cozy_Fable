@@ -8,35 +8,23 @@ import {
   type RoomType,
 } from '@marketplace/shared';
 import {
-  AppWindow,
-  Archive,
   ArrowLeftRight,
-  BookOpen,
   Copy,
-  DoorClosed,
-  DoorOpen,
   FolderOpen,
-  Footprints,
-  Lamp,
   Loader2,
-  Monitor,
   Pencil,
-  Plug,
   Plus,
-  RectangleHorizontal,
   Redo2,
   RotateCw,
   Save,
   Send,
-  Shirt,
   Trash2,
-  Tv,
   Undo2,
   X,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useRouter } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
@@ -51,7 +39,6 @@ import {
   useStudioDrafts,
 } from '@/hooks/use-studio-drafts';
 import { Configurator3dStep } from '@/components/configurator/piece3d/dynamic';
-import { finishSpecFor } from '@/components/configurator/piece3d/finishes';
 import { useConfiguratorStore } from '@/stores/configurator-store';
 import {
   OPENING_DIM_LIMITS,
@@ -61,12 +48,14 @@ import {
   STUDIO_ROOM_LIMITS,
   useActiveScene,
   useStudioStore,
+  type StudioDropPayload,
   type StudioOpening,
   type StudioOpeningKind,
   type StudioPiece,
 } from '@/stores/studio-store';
 import { cn } from '@/lib/utils';
 import { FLOOR_COLORS, WALL_COLORS } from './palette';
+import { OpeningPreview, PiecePreview } from './previews';
 
 // Studio 3D — "modul Sims" al platformei: joc de amenajare SEPARAT de
 // formular. Biblioteca de piese (create cu acelasi configurator 3D ca in
@@ -92,24 +81,6 @@ const KIND_TO_ROOM: Record<Piece3dKind, RoomType> = {
   DRESSER: 'PIECE_DRESSER',
   NIGHTSTAND: 'PIECE_NIGHTSTAND',
   DESK: 'PIECE_DESK',
-};
-
-const KIND_ICONS: Record<Piece3dKind, ComponentType<{ className?: string }>> = {
-  BOOKCASE: BookOpen,
-  WARDROBE: Shirt,
-  TV_UNIT: Tv,
-  SHOE_CABINET: Footprints,
-  DRESSER: Archive,
-  NIGHTSTAND: Lamp,
-  DESK: Monitor,
-};
-
-const OPENING_ICONS: Record<StudioOpeningKind, ComponentType<{ className?: string }>> = {
-  DOOR: DoorOpen,
-  DOOR_DOUBLE: DoorClosed,
-  WINDOW: AppWindow,
-  WINDOW_WIDE: RectangleHorizontal,
-  OUTLET: Plug,
 };
 
 const cm = (v: number) => Math.round(v * 100);
@@ -180,23 +151,26 @@ function PieceEditorDialog({
           {editor.kind == null ? (
             <div className="flex flex-col gap-3">
               <p className="text-sm text-muted-foreground">{t('pickKind')}</p>
+              {/* cartonasele variantelor: elevatia reala a configului implicit,
+                  desenata din modelul parametric — nu iconite generice */}
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {PIECE3D_KINDS.map((kind) => {
-                  const Icon = KIND_ICONS[kind];
-                  return (
-                    <button
-                      key={kind}
-                      type="button"
-                      onClick={() =>
-                        onChange({ kind, config: defaultPieceConfig(kind), name: t(`kinds.${kind}`) })
-                      }
-                      className="flex flex-col items-center gap-2 rounded-xl border border-border-2 bg-surface-2/60 px-3 py-4 transition-colors hover:border-walnut/50 hover:bg-walnut-soft/50"
-                    >
-                      <Icon className="h-6 w-6 text-walnut" />
-                      <span className="text-sm font-medium">{t(`kinds.${kind}`)}</span>
-                    </button>
-                  );
-                })}
+                {PIECE3D_KINDS.map((kind) => (
+                  <button
+                    key={kind}
+                    type="button"
+                    onClick={() =>
+                      onChange({ kind, config: defaultPieceConfig(kind), name: t(`kinds.${kind}`) })
+                    }
+                    className="flex flex-col items-center gap-2 rounded-xl border border-border-2 bg-surface-2/60 px-3 py-4 transition-colors hover:border-walnut/50 hover:bg-walnut-soft/50"
+                  >
+                    <PiecePreview
+                      kind={kind}
+                      config={defaultPieceConfig(kind)}
+                      className="h-16 w-full"
+                    />
+                    <span className="text-sm font-medium">{t(`kinds.${kind}`)}</span>
+                  </button>
+                ))}
               </div>
             </div>
           ) : (
@@ -243,22 +217,25 @@ function LibraryRow({
   onPlace,
   onEdit,
   onDelete,
+  onGrab,
 }: {
   piece: StudioPiece;
   onPlace: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  // ridicarea piesei de pe rand (drag & drop spre camera, feedback PO r4)
+  onGrab: (e: React.PointerEvent) => void;
 }) {
   const t = useTranslations('Studio');
-  const Icon = KIND_ICONS[piece.kind];
-  const spec = finishSpecFor(piece.config.finish, piece.config.customColor);
   return (
-    <li className="flex items-center gap-2.5 rounded-xl border border-border-2 bg-surface px-3 py-2.5">
-      <span
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-lg"
-        style={{ backgroundColor: `${spec.body}33` }}
-      >
-        <Icon className="h-5 w-5 text-walnut" />
+    <li
+      title={t('dragToPlace')}
+      onPointerDown={onGrab}
+      className="flex cursor-grab select-none items-center gap-2.5 rounded-xl border border-border-2 bg-surface px-3 py-2.5 transition-colors hover:border-walnut/40"
+    >
+      {/* plansa piesei: elevatia reala, in finisajul ei */}
+      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border border-border-2/60 bg-surface-2/70 p-1">
+        <PiecePreview kind={piece.kind} config={piece.config} className="h-full w-full" />
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium leading-tight">{piece.name}</p>
@@ -851,6 +828,61 @@ export function StudioPage() {
     toast.error(t('resizeBlocked'));
   };
 
+  // drag & drop din paleta (feedback PO r4): ridici o piesa sau un gol si il
+  // lasi in camera; ghost-ul = un cartonas-plansa prins cu ac de alama, in
+  // limbajul planselor de pe landing. Payload-ul sta in store, drop-ul il
+  // face canvas-ul (are camera); pagina deseneaza doar ghost-ul.
+  const [ghost, setGhost] = useState<{
+    x: number;
+    y: number;
+    label: string;
+    payload: StudioDropPayload;
+  } | null>(null);
+  const dragStartRef = useRef<{
+    x: number;
+    y: number;
+    label: string;
+    payload: StudioDropPayload;
+    active: boolean;
+  } | null>(null);
+
+  const beginPaletteDrag = (e: React.PointerEvent, payload: StudioDropPayload, label: string) => {
+    if (e.button !== 0) return;
+    // butoanele de actiune ale randului raman butoane, nu manere de drag
+    if ((e.target as HTMLElement).closest('button') && payload.type === 'piece') return;
+    dragStartRef.current = { x: e.clientX, y: e.clientY, payload, label, active: false };
+  };
+
+  useEffect(() => {
+    const onMove = (ev: PointerEvent) => {
+      const d = dragStartRef.current;
+      if (!d) return;
+      if (!d.active) {
+        // pragul de 6px desparte click-ul obisnuit de ridicare
+        if (Math.hypot(ev.clientX - d.x, ev.clientY - d.y) < 6) return;
+        d.active = true;
+        useStudioStore.getState().setDropPayload(d.payload);
+        document.body.style.cursor = 'grabbing';
+      }
+      setGhost({ x: ev.clientX, y: ev.clientY, label: d.label, payload: d.payload });
+    };
+    const onUp = () => {
+      const d = dragStartRef.current;
+      dragStartRef.current = null;
+      if (d?.active) {
+        document.body.style.cursor = '';
+        setGhost(null);
+        // payload-ul e consumat (sau curatat) de canvas la acelasi pointerup
+      }
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+  }, []);
+
   const pieceList = Object.values(pieces).sort((a, b) => b.updatedAt - a.updatedAt);
   const selected = scene.placements.find((p) => p.id === selectedId) ?? null;
   const selectedPiece = selected ? (pieces[selected.pieceId] ?? null) : null;
@@ -1012,6 +1044,9 @@ export function StudioPage() {
                   onPlace={() => placePiece(piece.id)}
                   onEdit={() => openEditPiece(piece)}
                   onDelete={() => onDeletePiece(piece)}
+                  onGrab={(e) =>
+                    beginPaletteDrag(e, { type: 'piece', pieceId: piece.id }, piece.name)
+                  }
                 />
               ))}
             </ul>
@@ -1205,21 +1240,23 @@ export function StudioPage() {
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium">{t('openingsLabel')}</span>
               <div className="flex items-center gap-1">
-                {STUDIO_OPENING_KINDS.map((kind) => {
-                  const Icon = OPENING_ICONS[kind];
-                  return (
-                    <button
-                      key={kind}
-                      type="button"
-                      title={t(`openings.${kind}`)}
-                      aria-label={t(`openings.${kind}`)}
-                      onClick={() => onAddOpening(kind)}
-                      className="grid h-7 w-7 place-items-center rounded-md border border-border-2 bg-surface text-muted-foreground transition-colors hover:border-walnut/50 hover:text-walnut"
-                    >
-                      <Icon className="h-4 w-4" />
-                    </button>
-                  );
-                })}
+                {/* elevatiile variantelor: click = asezare automata,
+                    tragere = asezare exact pe peretele tinta */}
+                {STUDIO_OPENING_KINDS.map((kind) => (
+                  <button
+                    key={kind}
+                    type="button"
+                    title={t(`openings.${kind}`)}
+                    aria-label={t(`openings.${kind}`)}
+                    onPointerDown={(e) =>
+                      beginPaletteDrag(e, { type: 'opening', kind }, t(`openings.${kind}`))
+                    }
+                    onClick={() => onAddOpening(kind)}
+                    className="grid h-10 w-11 cursor-grab place-items-center rounded-md border border-border-2 bg-surface p-1 transition-colors hover:border-walnut/50"
+                  >
+                    <OpeningPreview kind={kind} className="h-full w-full" />
+                  </button>
+                ))}
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -1319,6 +1356,31 @@ export function StudioPage() {
           onClose={() => setConfirmState(null)}
         />
       )}
+
+      {/* ghost-ul de drag: cartonas-plansa "ridicat" de pe masa, prins cu ac
+          de alama (rombul de pe landing) — urmareste cursorul */}
+      {ghost &&
+        createPortal(
+          <div
+            className="pointer-events-none fixed z-[70]"
+            style={{ left: ghost.x + 14, top: ghost.y + 10 }}
+          >
+            <div className="relative flex -rotate-2 items-center gap-2 rounded-lg border border-border-2 bg-surface/95 py-1.5 pl-2 pr-3 shadow-lg backdrop-blur">
+              <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-[#b08d57]" />
+              {ghost.payload.type === 'piece' && pieces[ghost.payload.pieceId] ? (
+                <PiecePreview
+                  kind={pieces[ghost.payload.pieceId].kind}
+                  config={pieces[ghost.payload.pieceId].config}
+                  className="h-9 w-9"
+                />
+              ) : ghost.payload.type === 'opening' ? (
+                <OpeningPreview kind={ghost.payload.kind} className="h-9 w-9" />
+              ) : null}
+              <span className="max-w-[130px] truncate text-xs font-medium">{ghost.label}</span>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

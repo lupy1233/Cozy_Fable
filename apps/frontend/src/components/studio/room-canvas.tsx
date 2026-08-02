@@ -19,6 +19,7 @@ import {
   placementHalfExtents,
   useActiveScene,
   useStudioStore,
+  wallLength,
   type StudioOpening,
   type StudioPiece,
   type StudioPlacement,
@@ -737,6 +738,71 @@ function StudioSceneView({ onDraggingChange }: { onDraggingChange: (v: boolean) 
       dz: placement.z - e.point.z,
     });
   };
+
+  // Drop-ul din paleta (feedback PO r4): pagina pune payload-ul in store la
+  // ridicare; aici, la eliberarea pointerului peste canvas, construim raza din
+  // camera si asezam piesa pe podea / golul pe peretele lovit de raza.
+  useEffect(() => {
+    const onDrop = (ev: PointerEvent) => {
+      const store = useStudioStore.getState();
+      const payload = store.dropPayload;
+      if (!payload) return;
+      store.setDropPayload(null);
+      const el = gl.domElement;
+      const rect = el.getBoundingClientRect();
+      if (
+        ev.clientX < rect.left ||
+        ev.clientX > rect.right ||
+        ev.clientY < rect.top ||
+        ev.clientY > rect.bottom
+      ) {
+        return;
+      }
+      const ray = pointerRay(camera, el, ev.clientX, ev.clientY);
+      const currentRoom = (
+        store.scenes.find((sc) => sc.id === store.activeSceneId) ?? store.scenes[0]
+      ).room;
+      if (payload.type === 'piece') {
+        if (Math.abs(ray.direction.y) < 1e-6) return;
+        const t = -ray.origin.y / ray.direction.y;
+        if (t <= 0) return;
+        store.placePieceAt(
+          payload.pieceId,
+          ray.origin.x + t * ray.direction.x,
+          ray.origin.z + t * ray.direction.z,
+        );
+        return;
+      }
+      // golul cade pe peretele VIZIBIL lovit de raza (fata interioara spre
+      // camera), cel mai apropiat; daca raza nu prinde niciun perete, pe cel
+      // din spate — addOpeningAt isi cauta singur loc daca punctul e ocupat
+      let best: { wall: StudioWall; offset: number; t: number } | null = null;
+      for (const spec of wallSpecs(currentRoom)) {
+        const toCam =
+          (ray.origin.x - spec.pos[0]) * spec.nx + (ray.origin.z - spec.pos[2]) * spec.nz;
+        if (toCam >= 0) continue; // perete ascuns (intre camera si scena)
+        const horizontal = spec.wall === 'N' || spec.wall === 'S';
+        const denom = horizontal ? ray.direction.z : ray.direction.x;
+        if (Math.abs(denom) < 1e-6) continue;
+        const plane = horizontal
+          ? (spec.wall === 'N' ? -1 : 1) * (currentRoom.depthM / 2)
+          : (spec.wall === 'E' ? 1 : -1) * (currentRoom.widthM / 2);
+        const t = (plane - (horizontal ? ray.origin.z : ray.origin.x)) / denom;
+        if (t <= 0) continue;
+        const y = ray.origin.y + t * ray.direction.y;
+        if (y < -0.3 || y > currentRoom.wallHeightM + 0.4) continue;
+        const along = horizontal
+          ? ray.origin.x + t * ray.direction.x
+          : ray.origin.z + t * ray.direction.z;
+        if (Math.abs(along) > wallLength(currentRoom, spec.wall) / 2 + 0.3) continue;
+        if (!best || t < best.t) best = { wall: spec.wall, offset: along, t };
+      }
+      if (best) store.addOpeningAt(payload.kind, best.wall, best.offset);
+      else store.addOpening(payload.kind);
+    };
+    window.addEventListener('pointerup', onDrop);
+    return () => window.removeEventListener('pointerup', onDrop);
+  }, [camera, gl]);
 
   const onOpeningPointerDown = (e: ThreeEvent<PointerEvent>, opening: StudioOpening) => {
     if (e.button !== undefined && e.button !== 0) return;

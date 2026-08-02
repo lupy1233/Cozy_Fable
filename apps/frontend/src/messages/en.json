@@ -233,6 +233,7 @@
     "duplicateScene": "Duplicate room",
     "sceneCopyName": "{name} (copy)",
     "resizeBlocked": "It doesn't fit there — it hits a neighbour or the ceiling.",
+    "dragToPlace": "Drag me into the room or press +",
     "myDrafts": "My drafts",
     "draftNameLabel": "Draft name",
     "draftNamePlaceholder": "e.g. Our apartment",

@@ -286,6 +286,9 @@ interface StudioStore {
   // deci pastrarea referintelor e sigura
   history: StudioDraftData[];
   future: StudioDraftData[];
+  // drag & drop din paleta in camera (nepersistat): pagina seteaza payload-ul
+  // la ridicare, canvas-ul il consuma la eliberare
+  dropPayload: StudioDropPayload | null;
   // draftul din cont incarcat/salvat ultima data — tinta "Actualizeaza";
   // persistat, ca butonul sa supravietuiasca refresh-ului (feedback PO r2)
   accountDraft: { id: string; name: string } | null;
@@ -306,6 +309,8 @@ interface StudioStore {
   setActiveScene: (id: string) => void;
 
   placePiece: (pieceId: string) => void;
+  // asezare EXACT unde a fost lasata piesa la drag & drop (clamp + snap)
+  placePieceAt: (pieceId: string, x: number, z: number) => void;
   movePlacement: (id: string, x: number, z: number) => void;
   rotatePlacement: (id: string) => void;
   duplicatePlacement: (id: string) => void;
@@ -313,6 +318,9 @@ interface StudioStore {
   clearPlacements: () => void;
 
   addOpening: (kind: StudioOpeningKind) => boolean;
+  // gol lasat cu drag & drop pe un perete anume, cat mai aproape de punctul
+  // de drop; daca acolo nu incape, cade pe primul loc liber al peretelui
+  addOpeningAt: (kind: StudioOpeningKind, wall: StudioWall, offset: number) => boolean;
   moveOpening: (id: string, offset: number) => void;
   // dimensiuni proprii pe gol; false = schimbarea nu incape (vecin/tavan)
   resizeOpening: (id: string, patch: { w?: number; h?: number; sill?: number }) => boolean;
@@ -330,10 +338,16 @@ interface StudioStore {
   redo: () => void;
 
   setAccountDraft: (draft: { id: string; name: string } | null) => void;
+  setDropPayload: (payload: StudioDropPayload | null) => void;
 
   snapshot: () => StudioDraftData;
   loadSnapshot: (snapshot: StudioDraftData) => void;
 }
+
+// ce se afla "in mana" in timpul unui drag din paleta spre camera
+export type StudioDropPayload =
+  | { type: 'piece'; pieceId: string }
+  | { type: 'opening'; kind: StudioOpeningKind };
 
 // continutul curent ca snapshot (referinte — starea e imutabila)
 function currentData(s: Pick<StudioStore, 'pieces' | 'scenes' | 'activeSceneId'>): StudioDraftData {
@@ -368,6 +382,7 @@ export const useStudioStore = create<StudioStore>()(
         history: [],
         future: [],
         accountDraft: null,
+        dropPayload: null,
 
         savePiece: ({ id, name, kind, config }) => {
           const piece: StudioPiece = {
@@ -496,6 +511,30 @@ export const useStudioStore = create<StudioStore>()(
             };
           }),
 
+        placePieceAt: (pieceId, x, z) =>
+          set((s) => {
+            const piece = s.pieces[pieceId];
+            const active = s.scenes.find((sc) => sc.id === s.activeSceneId);
+            if (!piece || !active) return s;
+            const spot = clampToRoom(active.room, piece.config, 0, snapToGrid(x), snapToGrid(z));
+            const placement: StudioPlacement = {
+              id: newId('pl'),
+              pieceId,
+              x: spot.x,
+              z: spot.z,
+              rotation: 0,
+            };
+            return {
+              scenes: patchActive(s, (scene) => ({
+                ...scene,
+                placements: [...scene.placements, placement],
+              })),
+              selectedId: placement.id,
+              selectedOpeningId: null,
+              ...remember(s),
+            };
+          }),
+
         movePlacement: (id, x, z) =>
           set((s) => ({
             scenes: patchActive(s, (scene) => {
@@ -585,6 +624,43 @@ export const useStudioStore = create<StudioStore>()(
             if (!spot) return s;
             added = true;
             const opening: StudioOpening = { id: newId('op'), kind, ...spot };
+            return {
+              scenes: patchActive(s, (scene) => ({
+                ...scene,
+                openings: [...scene.openings, opening],
+              })),
+              selectedOpeningId: opening.id,
+              selectedId: null,
+              ...remember(s),
+            };
+          });
+          return added;
+        },
+
+        addOpeningAt: (kind, wall, offset) => {
+          let added = false;
+          set((s) => {
+            const active = s.scenes.find((sc) => sc.id === s.activeSceneId);
+            if (!active) return s;
+            const probe: StudioOpening = { id: newId('op'), kind, wall, offset: snapToGrid(offset) };
+            const size = openingSize(probe);
+            let spot: { wall: StudioWall; offset: number } | null = null;
+            if (openingMaxOffset(active.room, wall, size.w) >= 0) {
+              const clamped = clampOpeningOffset(active.room, active.openings, probe, probe.offset);
+              const overlapping = active.openings.some((o) => {
+                if (o.wall !== wall || !verticalOverlap(probe, o)) return false;
+                return Math.abs(o.offset - clamped) < (size.w + openingSize(o).w) / 2 + OPENING_GAP - 1e-6;
+              });
+              if (!overlapping) spot = { wall, offset: clamped };
+            }
+            // punctul exact e ocupat → primul loc liber pe ACELASI perete,
+            // apoi oriunde in camera
+            spot ??=
+              findOpeningSpot(active.room, active.openings, probe, [wall]) ??
+              findOpeningSpot(active.room, active.openings, probe);
+            if (!spot) return s;
+            added = true;
+            const opening: StudioOpening = { ...probe, ...spot };
             return {
               scenes: patchActive(s, (scene) => ({
                 ...scene,
@@ -740,6 +816,7 @@ export const useStudioStore = create<StudioStore>()(
           }),
 
         setAccountDraft: (draft) => set({ accountDraft: draft }),
+        setDropPayload: (payload) => set({ dropPayload: payload }),
 
         snapshot: () => {
           const s = get();
