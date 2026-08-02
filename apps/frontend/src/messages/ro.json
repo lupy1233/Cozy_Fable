@@ -223,6 +223,13 @@
     "outletHeight": "Cotă podea",
     "undo": "Anulează",
     "redo": "Refă",
+    "roomViewer": {
+      "title": "Camera 3D a clientului",
+      "readOnly": "Doar vizualizare — aranjamentul exact trimis de client",
+      "open": "Vezi camera 3D",
+      "hint": "Rotește camera liber. Dă click pe o piesă ca să îi deschizi configurația și dimensiunile.",
+      "webglMissing": "Dispozitivul nu poate afișa scena 3D."
+    },
     "duplicateScene": "Duplică camera",
     "sceneCopyName": "{name} (copie)",
     "resizeBlocked": "Nu încape acolo — se lovește de un vecin sau de tavan.",

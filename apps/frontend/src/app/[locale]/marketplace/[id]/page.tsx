@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RoomSpecCard, RoomSpecNav } from '@/components/configurator/room-spec-card';
 import { RequestInspirationStrip } from '@/components/configurator/request-inspiration-strip';
+import { StudioScenesButton } from '@/components/studio/scene-button';
 import { useRelativeTime } from '@/lib/relative-time';
 
 export default function MarketplaceDetailPage() {
@@ -73,6 +74,8 @@ export default function MarketplaceDetailPage() {
           Atasamentele (PO r6) aduc schitele + snapshotul PNG al pieselor 3D. */}
       <div className="flex flex-col gap-3">
         <h2 className="font-serif text-xl">{t('sectionRooms')}</h2>
+        {/* camera 3D din Studio (feedback PO r3): amplasarea exacta, read-only */}
+        <StudioScenesButton scenes={r.studioScenes} />
         <RoomSpecNav rooms={r.rooms} />
         {r.rooms.map((room, i) => (
           <RoomSpecCard key={room.id} room={room} index={i + 1} attachments={r.attachments} />

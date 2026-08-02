@@ -5,11 +5,15 @@ import {
   type ClientDashboardStatsDto,
   contactPreferencesSchema,
   ERROR_CODES,
+  MAX_STUDIO_DRAFT_BYTES,
   maxAttachmentsForRequest,
   type PresignUploadResultDto,
+  REQUEST_STUDIO_SCENES_MAX,
   type RequestDraftCreatedDto,
   type RequestDto,
   type RequestListItemDto,
+  requestStudioSceneDataSchema,
+  type RequestStudioSceneData,
   sortByRoomOrder,
 } from '@marketplace/shared';
 import { ConfiguratorService, type ProcessedRoom } from './configurator.service';
@@ -248,6 +252,11 @@ export class RequestsService {
     const now = new Date();
     const expiresAt = this.calendar.addWorkingDays(now, EXPIRATION_WORKING_DAYS);
 
+    // camerele 3D din Studio (feedback PO r3): traiesc in configuratorState pe
+    // draft si se materializeaza la publish; intrarile invalide se arunca
+    // tacut — jocul de amenajare nu are voie sa blocheze publicarea
+    const studioScenes = this.extractStudioScenes(request.configuratorState);
+
     await this.prisma.$transaction(async (tx) => {
       await tx.request.update({
         where: { id: request.id },
@@ -271,6 +280,7 @@ export class RequestsService {
       await this.writeRooms(tx, request.id, processed.rooms);
       await this.writeContactPreferences(tx, request.id, contacts);
       await this.writeInspirationPhotos(tx, request.id, dto.inspirationPhotoIds);
+      await this.writeStudioScenes(tx, request.id, studioScenes);
       await this.writeVersion(tx, request.id, dto);
     });
 
@@ -887,6 +897,41 @@ export class RequestsService {
     );
   }
 
+  // Camerele 3D valide din starea wizard-ului (fiecare validata cu schema
+  // partajata + plafon de marime); orice altceva se ignora fara eroare.
+  private extractStudioScenes(state: unknown): RequestStudioSceneData[] {
+    if (!state || typeof state !== 'object' || Array.isArray(state)) return [];
+    const raw = (state as Record<string, unknown>).studioScenes;
+    if (!Array.isArray(raw)) return [];
+    const out: RequestStudioSceneData[] = [];
+    for (const entry of raw.slice(0, REQUEST_STUDIO_SCENES_MAX)) {
+      try {
+        if (JSON.stringify(entry).length > MAX_STUDIO_DRAFT_BYTES) continue;
+      } catch {
+        continue;
+      }
+      const parsed = requestStudioSceneDataSchema.safeParse(entry);
+      if (parsed.success) out.push(parsed.data);
+    }
+    return out;
+  }
+
+  private async writeStudioScenes(
+    tx: Prisma.TransactionClient,
+    requestId: string,
+    scenes: RequestStudioSceneData[],
+  ): Promise<void> {
+    await tx.requestStudioScene.deleteMany({ where: { requestId } });
+    if (scenes.length === 0) return;
+    await tx.requestStudioScene.createMany({
+      data: scenes.map((data) => ({
+        requestId,
+        name: data.scene.name,
+        data: data as unknown as Prisma.InputJsonValue,
+      })),
+    });
+  }
+
   private async toDto(id: string): Promise<RequestDto> {
     const request = await this.prisma.request.findUniqueOrThrow({
       where: { id },
@@ -894,6 +939,7 @@ export class RequestsService {
         rooms: { include: { items: true }, orderBy: { createdAt: 'asc' } },
         contactPreferences: true,
         inspirationPhotos: { select: { photoId: true } },
+        studioScenes: { orderBy: { createdAt: 'asc' } },
       },
     });
     const attachments = await this.uploads.listForEntity(ENTITY_TYPE_REQUEST, id);
@@ -950,6 +996,11 @@ export class RequestsService {
       })),
       attachments,
       inspirationPhotoIds: request.inspirationPhotos.map((p) => p.photoId),
+      studioScenes: request.studioScenes.map((s) => ({
+        id: s.id,
+        name: s.name,
+        data: s.data as unknown as RequestStudioSceneData,
+      })),
     };
   }
 }

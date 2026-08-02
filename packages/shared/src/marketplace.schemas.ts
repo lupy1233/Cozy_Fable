@@ -9,6 +9,7 @@ import {
   SUBSCRIPTION_STATUSES,
 } from './enums';
 import type { AttachmentDto, RequestRoomDto } from './request.schemas';
+import type { RequestStudioSceneDto } from './studio.schemas';
 
 // Sprint 5 — marketplace (listare cereri pentru firme) + claim + portofel credite.
 
@@ -60,6 +61,8 @@ export interface MarketplaceDetailDto extends MarketplaceItemDto {
   // atasamentele cererii cu URL-uri presigned (PO r6): schitele per camera si
   // snapshotul PNG al pieselor 3D — continut de proiect, nu date de contact (4.2)
   attachments: AttachmentDto[];
+  // camerele 3D din Studio atasate la publish (feedback PO r3) — read-only
+  studioScenes?: RequestStudioSceneDto[];
 }
 
 export interface ClaimSlotDto {

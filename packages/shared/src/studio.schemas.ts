@@ -276,3 +276,39 @@ export interface StudioDraftSummaryDto {
 export interface StudioDraftDetailDto extends StudioDraftSummaryDto {
   data: StudioDraftData;
 }
+
+// --- Camera 3D atasata unei CERERI (feedback PO r3): clientul trimite scena
+// din studio impreuna cu piesele, firmele o vad read-only in detaliul cererii
+// (click pe piesa → viewerul de dimensiuni). O scena + doar piesele folosite.
+
+export const REQUEST_STUDIO_SCENES_MAX = 6;
+
+export interface RequestStudioSceneData {
+  scene: StudioScene;
+  pieces: Record<string, StudioPiece>;
+}
+
+export const requestStudioSceneDataSchema: z.ZodType<RequestStudioSceneData> = z
+  .object({
+    scene: studioSceneSchema,
+    pieces: z.record(studioPieceSchema),
+  })
+  .strict()
+  .superRefine((data, ctx) => {
+    if (Object.keys(data.pieces).length > STUDIO_MAX_PIECES) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'too many pieces', path: ['pieces'] });
+    }
+    if (data.scene.placements.some((p) => !data.pieces[p.pieceId])) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'placement references missing piece',
+        path: ['scene', 'placements'],
+      });
+    }
+  }) as unknown as z.ZodType<RequestStudioSceneData>;
+
+export interface RequestStudioSceneDto {
+  id: string;
+  name: string;
+  data: RequestStudioSceneData;
+}

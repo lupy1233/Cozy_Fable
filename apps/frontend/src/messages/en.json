@@ -223,6 +223,13 @@
     "outletHeight": "Floor height",
     "undo": "Undo",
     "redo": "Redo",
+    "roomViewer": {
+      "title": "The client's 3D room",
+      "readOnly": "View only — the exact arrangement the client sent",
+      "open": "View the 3D room",
+      "hint": "Orbit freely. Click a piece to open its configuration and dimensions.",
+      "webglMissing": "This device cannot display the 3D scene."
+    },
     "duplicateScene": "Duplicate room",
     "sceneCopyName": "{name} (copy)",
     "resizeBlocked": "It doesn't fit there — it hits a neighbour or the ceiling.",

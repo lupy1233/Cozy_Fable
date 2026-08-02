@@ -22,6 +22,7 @@ import {
   type QuoteDto,
   type QuoteVersionDto,
   type RequestQuoteChangeInput,
+  type RequestStudioSceneData,
   type ReviseQuoteInput,
   type RespondConsultationInviteInput,
   sortByRoomOrder,
@@ -631,6 +632,7 @@ export class QuotesService {
             rooms: { include: { items: true }, orderBy: { createdAt: 'asc' } },
             contactPreferences: true,
             inspirationPhotos: { select: { photoId: true } },
+            studioScenes: { orderBy: { createdAt: 'asc' } },
           },
         },
         chatThread: true,
@@ -698,6 +700,13 @@ export class QuotesService {
         })),
         attachments,
         inspirationPhotoIds: req.inspirationPhotos.map((p) => p.photoId),
+        // camerele 3D din Studio (feedback PO r3) — aceeasi vedere read-only
+        // ca in marketplace, disponibila si in fisa de lucru post-claim
+        studioScenes: req.studioScenes.map((s) => ({
+          id: s.id,
+          name: s.name,
+          data: s.data as unknown as RequestStudioSceneData,
+        })),
       },
       client: occupying
         ? {

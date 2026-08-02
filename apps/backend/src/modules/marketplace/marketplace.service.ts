@@ -3,6 +3,7 @@ import {
   ERROR_CODES,
   type MarketplaceDetailDto,
   type MarketplaceItemDto,
+  type RequestStudioSceneData,
   sortByRoomOrder,
 } from '@marketplace/shared';
 import { Prisma } from '@prisma/client';
@@ -72,7 +73,7 @@ export class MarketplaceService {
       include: { items: true },
       orderBy: { createdAt: 'asc' },
     });
-    const [inspiration, attachments] = await Promise.all([
+    const [inspiration, attachments, studioScenes] = await Promise.all([
       this.prisma.requestInspirationPhoto.findMany({
         where: { requestId },
         select: { photoId: true },
@@ -80,12 +81,22 @@ export class MarketplaceService {
       // atasamentele cererii (PO r6): schitele per camera + snapshotul PNG al
       // pieselor 3D — continut de proiect (nu date de contact), presigned (3.4)
       this.uploads.listForEntity('REQUEST', requestId),
+      // camerele 3D din Studio (feedback PO r3): firma vede amplasarea read-only
+      this.prisma.requestStudioScene.findMany({
+        where: { requestId },
+        orderBy: { createdAt: 'asc' },
+      }),
     ]);
     return {
       ...this.toItem(row),
       deadlineBucket: row.desired_deadline_bucket,
       inspirationPhotoIds: inspiration.map((p) => p.photoId),
       attachments,
+      studioScenes: studioScenes.map((s) => ({
+        id: s.id,
+        name: s.name,
+        data: s.data as unknown as RequestStudioSceneData,
+      })),
       // createdAt identic in tranzactia de publish → ordinea canonica = ROOM_ORDER
       rooms: sortByRoomOrder(rooms).map((room) => ({
         id: room.id,

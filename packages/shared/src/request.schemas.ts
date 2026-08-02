@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { RequestStudioSceneDto } from './studio.schemas';
 import {
   ATTACHMENT_STATUSES,
   BUDGET_RANGES,
@@ -294,6 +295,8 @@ export interface RequestDto {
   inspirationPhotoIds: string[];
   // stare wizard salvata pe draft (resume de pe alt device); null dupa publish
   configuratorState: unknown | null;
+  // camerele 3D din Studio atasate la publish (feedback PO r3) — read-only
+  studioScenes?: RequestStudioSceneDto[];
 }
 
 export interface RequestListItemDto {

@@ -33,8 +33,9 @@ import {
 // drag = mutare (piesele pe podea, golurile de-a lungul peretelui lor), totul
 // cu snap de 1cm. Randare frameloop="demand", ca in PieceCanvas.
 
-const WALL_T = 0.09;
-const FLOOR_T = 0.12;
+// exportate si pentru viewerul read-only al cererii (room-viewer.tsx)
+export const WALL_T = 0.09;
+export const FLOOR_T = 0.12;
 const BACKDROP_COLOR = '#262019';
 const OVERLAP_COLOR = '#c2452d';
 const DOOR_LEAF_COLOR = '#8a6544';
@@ -126,7 +127,7 @@ function StaticHandle({ panel }: { panel: Panel3d }) {
 
 const HANDLE_ROLES = new Set(['DRAWER_FRONT', 'DOOR_FRONT', 'TILT_FRONT', 'SLIDING_FRONT']);
 
-function PieceMeshes({ piece }: { piece: StudioPiece }) {
+export function PieceMeshes({ piece }: { piece: StudioPiece }) {
   const panels = useMemo(() => buildPanels(piece.config, piece.kind), [piece.config, piece.kind]);
   const spec = useMemo(
     () => finishSpecFor(piece.config.finish, piece.config.customColor),
@@ -267,7 +268,7 @@ function DragDimensions({
 }
 
 // Grila podelei: linii la 0.5m — reper vizual; snap-ul real e la 1cm.
-function FloorGrid({ w, d }: { w: number; d: number }) {
+export function FloorGrid({ w, d }: { w: number; d: number }) {
   const geometry = useMemo(() => {
     const pts: number[] = [];
     const step = 0.5;
@@ -316,6 +317,11 @@ interface OpeningHandlers {
   selectedOpeningId: string | null;
   onOpeningPointerDown: (e: ThreeEvent<PointerEvent>, opening: StudioOpening) => void;
 }
+
+const NOOP_OPENING_HANDLERS: OpeningHandlers = {
+  selectedOpeningId: null,
+  onOpeningPointerDown: () => undefined,
+};
 
 // Un gol in perete (coordonate locale): tocul, foaia de usa / geamul si
 // hit-target-ul invizibil pentru selectie + drag de-a lungul peretelui.
@@ -474,16 +480,17 @@ function OpeningMeshes({
 // deasupra, parapet sub ferestre); cei ajunsi intre camera si privitor devin
 // invizibili (normala exterioara spre camera), ca in The Sims. Segmentele nu
 // au handlere — peretii ascunsi nu intercepteaza raycast-ul spre piese.
-function Walls({
+export function Walls({
   room,
   openings,
   color,
-  handlers,
+  handlers = NOOP_OPENING_HANDLERS,
 }: {
   room: StudioRoom;
   openings: StudioOpening[];
   color: string;
-  handlers: OpeningHandlers;
+  // lipsa = mod viewer (read-only): golurile nu se selecteaza si nu se trag
+  handlers?: OpeningHandlers;
 }) {
   const refs = useRef<Partial<Record<StudioWall, Group | null>>>({});
   const camPos = useRef(new Vector3());

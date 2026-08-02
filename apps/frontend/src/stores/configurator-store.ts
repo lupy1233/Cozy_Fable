@@ -1,7 +1,13 @@
 'use client';
 
-import type { AnswerMap, AnswerValue, RoomType } from '@marketplace/shared';
-import { CURRENT_FLOW_VERSION, getFlow, pruneAnswers, sortByRoomOrder } from '@marketplace/shared';
+import type { AnswerMap, AnswerValue, RequestStudioSceneData, RoomType } from '@marketplace/shared';
+import {
+  CURRENT_FLOW_VERSION,
+  getFlow,
+  pruneAnswers,
+  REQUEST_STUDIO_SCENES_MAX,
+  sortByRoomOrder,
+} from '@marketplace/shared';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -63,6 +69,9 @@ export interface ConfiguratorSnapshot {
   details: Partial<DetailsValues>;
   // pozele din galerie alese ca inspiratie (F6, item 3)
   inspirationPhotoIds: string[];
+  // camerele 3D trimise din Studio (feedback PO r3): calatoresc cu draftul in
+  // configuratorState si se materializeaza pe cerere la publish (server)
+  studioScenes?: RequestStudioSceneData[];
   updatedAt: number;
 }
 
@@ -87,6 +96,9 @@ interface ConfiguratorStore extends ConfiguratorSnapshot {
   // Studio 3D: adauga o camera-piesa cu raspunsuri precompletate (config3d);
   // restul pasilor (material, schita) raman de parcurs in wizard
   addRoomWithAnswers: (roomType: RoomType, answers: AnswerMap) => void;
+  // Studio 3D: ataseaza camera (scena + piesele folosite) cererii in lucru;
+  // aceeasi scena retrimisa se inlocuieste, nu se dubleaza
+  attachStudioScene: (data: RequestStudioSceneData) => void;
   removeLastOfType: (roomType: RoomType) => void;
   removeRoom: (localId: string) => void;
   setActiveRoom: (index: number) => void;
@@ -242,6 +254,17 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
           };
         }),
 
+      attachStudioScene: (data) =>
+        set((s) => {
+          const existing = (s.studioScenes ?? []).filter(
+            (entry) => entry.scene.id !== data.scene.id,
+          );
+          return {
+            studioScenes: [...existing, data].slice(-REQUEST_STUDIO_SCENES_MAX),
+            updatedAt: Date.now(),
+          };
+        }),
+
       removeLastOfType: (roomType) =>
         set((s) => {
           const idx = [...s.roomInstances].map((r) => r.roomType).lastIndexOf(roomType);
@@ -330,11 +353,21 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
           activeStepIndex: s.activeStepIndex,
           details: s.details,
           inspirationPhotoIds: s.inspirationPhotoIds,
+          ...(s.studioScenes && s.studioScenes.length > 0
+            ? { studioScenes: s.studioScenes }
+            : {}),
           updatedAt: s.updatedAt,
         };
       },
 
-      reset: () => set({ token: null, snapshots3d: {}, ...initialSnapshot, updatedAt: Date.now() }),
+      reset: () =>
+        set({
+          token: null,
+          snapshots3d: {},
+          ...initialSnapshot,
+          studioScenes: undefined,
+          updatedAt: Date.now(),
+        }),
     }),
     {
       name: 'mm_configurator_v1',
@@ -357,6 +390,7 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
         activeStepIndex: s.activeStepIndex,
         details: s.details,
         inspirationPhotoIds: s.inspirationPhotoIds,
+        studioScenes: s.studioScenes,
         updatedAt: s.updatedAt,
         dimensionUnit: s.dimensionUnit,
       }),

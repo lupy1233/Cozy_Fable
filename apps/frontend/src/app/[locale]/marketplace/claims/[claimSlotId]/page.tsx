@@ -25,6 +25,7 @@ import { useRelativeTime } from '@/lib/relative-time';
 import { AttachmentThumb } from '@/components/configurator/attachment-item';
 import { RequestInspirationStrip } from '@/components/configurator/request-inspiration-strip';
 import { RoomSpecCard, RoomSpecNav } from '@/components/configurator/room-spec-card';
+import { StudioScenesButton } from '@/components/studio/scene-button';
 import { StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
@@ -114,6 +115,8 @@ export default function CompanyClaimPage() {
 
           <section className="flex flex-col gap-3">
             <h2 className="font-serif text-xl">{t('workspace.roomsSection')}</h2>
+            {/* camera 3D din Studio (feedback PO r3) — amplasarea clientului */}
+            <StudioScenesButton scenes={c.detail.studioScenes} />
             <RoomSpecNav rooms={c.detail.rooms} />
             {c.detail.rooms.map((room, i) => (
               <RoomSpecCard

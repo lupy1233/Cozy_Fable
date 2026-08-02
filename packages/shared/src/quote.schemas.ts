@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { RequestStudioSceneDto } from './studio.schemas';
 import {
   CONSULTATION_INVITE_STATUSES,
   CURRENCIES,
@@ -192,6 +193,8 @@ export interface ClaimRequestDetailDto {
   rooms: RequestRoomDto[];
   attachments: AttachmentDto[];
   inspirationPhotoIds: string[];
+  // camerele 3D din Studio atasate la publish (feedback PO r3) — read-only
+  studioScenes?: RequestStudioSceneDto[];
 }
 
 // Datele de contact ale clientului, vizibile firmei DUPA claim (decizie PO r6:

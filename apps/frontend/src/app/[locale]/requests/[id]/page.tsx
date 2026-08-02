@@ -11,6 +11,7 @@ import { StatusBadge } from '@/components/ui/badge';
 import { AttachmentThumb } from '@/components/configurator/attachment-item';
 import { RoomSpecCard, RoomSpecNav } from '@/components/configurator/room-spec-card';
 import { RequestInspirationStrip } from '@/components/configurator/request-inspiration-strip';
+import { StudioScenesButton } from '@/components/studio/scene-button';
 
 export default function RequestDetailPage() {
   const t = useTranslations('Requests');
@@ -92,6 +93,8 @@ export default function RequestDetailPage() {
       {/* Camere — prezentare structurata per camera (item 6) */}
       <div className="flex flex-col gap-3">
         <h2 className="font-serif text-xl">{t('sectionRooms')}</h2>
+        {/* camera 3D din Studio (feedback PO r3) — cum a aranjat-o clientul */}
+        <StudioScenesButton scenes={r.studioScenes} />
         <RoomSpecNav rooms={r.rooms} />
         {r.rooms.map((room, i) => (
           <RoomSpecCard key={room.id} room={room} index={i + 1} attachments={r.attachments} />

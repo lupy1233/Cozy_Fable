@@ -942,12 +942,17 @@ export function StudioPage() {
     const cfg = useConfiguratorStore.getState();
     if (cfg.startMode == null) cfg.setStartMode('STANDARD');
     let count = 0;
+    const scenePieces: Record<string, StudioPiece> = {};
     for (const placement of scene.placements) {
       const piece = pieces[placement.pieceId];
       if (!piece) continue;
       cfg.addRoomWithAnswers(KIND_TO_ROOM[piece.kind], { config3d: piece.config });
+      scenePieces[piece.id] = piece;
       count++;
     }
+    // camera insasi calatoreste cu cererea (feedback PO r3): firmele o vad
+    // read-only in detaliu, cu click pe piesa → viewerul de dimensiuni
+    cfg.attachStudioScene({ scene, pieces: scenePieces });
     useConfiguratorStore.getState().setPhase('cart');
     toast.success(t('toastSent', { count }));
     router.push('/requests/new');
