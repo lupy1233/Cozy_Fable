@@ -13,4 +13,5 @@ export * from './billing.schemas';
 export * from './notification.schemas';
 export * from './admin.schemas';
 export * from './inspiration.schemas';
+export * from './studio.schemas';
 export * from './questionnaire';

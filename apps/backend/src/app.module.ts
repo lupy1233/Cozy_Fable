@@ -22,6 +22,7 @@ import { ClaimsModule } from './modules/claims/claims.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 import { HealthModule } from './modules/health/health.module';
 import { InspirationModule } from './modules/inspiration/inspiration.module';
+import { StudioModule } from './modules/studio/studio.module';
 import { MarketplaceModule } from './modules/marketplace/marketplace.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PenaltiesModule } from './modules/penalties/penalties.module';
@@ -67,6 +68,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
     NotificationsModule,
     AdminModule,
     InspirationModule,
+    StudioModule,
     HealthModule,
   ],
 })

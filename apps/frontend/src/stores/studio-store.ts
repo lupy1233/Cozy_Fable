@@ -2,86 +2,46 @@
 
 import {
   normalizePieceConfig,
+  OPENING_SPECS,
+  STUDIO_MAX_SCENES,
+  STUDIO_OPENING_KINDS,
+  STUDIO_ROOM_LIMITS,
+  STUDIO_WALLS,
   type Piece3dKind,
   type PieceConfig3d,
+  type StudioDraftData,
+  type StudioOpening,
+  type StudioOpeningKind,
+  type StudioPiece,
+  type StudioPlacement,
+  type StudioRoom,
+  type StudioRotation,
+  type StudioScene,
+  type StudioWall,
 } from '@marketplace/shared';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 // Studio 3D ("modul Sims") — joc SEPARAT de formular: biblioteca de piese
 // create in configuratorul 3D + camere (scene) in care piesele se aseaza
-// liber, cu usi si ferestre pe pereti. Totul e draft local (localStorage);
-// piesele pot fi trimise in cerere prin configurator-store.addRoomWithAnswers,
-// iar intregul studio poate fi salvat in cont (drafturi pe server).
+// liber, cu usi si ferestre pe pereti. Modelul de date + validarea stau in
+// packages/shared (studio.schemas); aici e doar starea de joc (zustand,
+// persistata local). Piesele pot fi trimise in cerere prin
+// configurator-store.addRoomWithAnswers, iar intregul studio se poate salva
+// in cont ca draft (hooks/use-studio-drafts).
 
-export interface StudioPiece {
-  id: string;
-  name: string;
-  kind: Piece3dKind;
-  config: PieceConfig3d;
-  updatedAt: number;
-}
-
-// rotatia in jurul axei Y, doar multipli de 90° (asezare pe grila, stil Sims)
-export type StudioRotation = 0 | 90 | 180 | 270;
-
-export interface StudioPlacement {
-  id: string;
-  pieceId: string;
-  // centrul piesei in metri; originea camerei in centrul podelei
-  x: number;
-  z: number;
-  rotation: StudioRotation;
-}
-
-// peretii camerei: N = spate (-z), S = fata (+z), W = stanga (-x), E = dreapta (+x)
-export const STUDIO_WALLS = ['N', 'E', 'S', 'W'] as const;
-export type StudioWall = (typeof STUDIO_WALLS)[number];
-
-export const STUDIO_OPENING_KINDS = ['DOOR', 'DOOR_DOUBLE', 'WINDOW', 'WINDOW_WIDE'] as const;
-export type StudioOpeningKind = (typeof STUDIO_OPENING_KINDS)[number];
-
-// gabaritele variantelor de goluri (latime × inaltime, parapetul ferestrei)
-export const OPENING_SPECS: Record<StudioOpeningKind, { w: number; h: number; sill: number }> = {
-  DOOR: { w: 0.9, h: 2.05, sill: 0 },
-  DOOR_DOUBLE: { w: 1.5, h: 2.05, sill: 0 },
-  WINDOW: { w: 1.2, h: 1.3, sill: 0.9 },
-  WINDOW_WIDE: { w: 2.0, h: 1.4, sill: 0.8 },
+// re-export: componentele studio importa modelul prin store, nu direct din shared
+export { OPENING_SPECS, STUDIO_MAX_SCENES, STUDIO_OPENING_KINDS, STUDIO_ROOM_LIMITS, STUDIO_WALLS };
+export type {
+  StudioOpening,
+  StudioOpeningKind,
+  StudioPiece,
+  StudioPlacement,
+  StudioRoom,
+  StudioRotation,
+  StudioScene,
+  StudioWall,
 };
-
-export interface StudioOpening {
-  id: string;
-  wall: StudioWall;
-  kind: StudioOpeningKind;
-  // centrul golului de-a lungul peretelui, in metri fata de mijlocul peretelui,
-  // pe axa LUMII (x pentru N/S, z pentru E/W)
-  offset: number;
-}
-
-export interface StudioRoom {
-  widthM: number;
-  depthM: number;
-  wallHeightM: number;
-  // id-uri din paletele WALL_COLORS/FLOOR_COLORS (components/studio/palette)
-  wallColor: string;
-  floorColor: string;
-}
-
-// o scena = o camera a "apartamentului": gabarit + piese asezate + goluri
-export interface StudioScene {
-  id: string;
-  name: string;
-  room: StudioRoom;
-  placements: StudioPlacement[];
-  openings: StudioOpening[];
-}
-
-export const STUDIO_ROOM_LIMITS = {
-  width: { min: 2, max: 8 },
-  depth: { min: 2, max: 8 },
-} as const;
-
-export const STUDIO_MAX_SCENES = 12;
 
 // pasul de asezare pe podea: 1cm (cerinta PO — miscare fina, nu pe dale)
 export const STUDIO_SNAP = 0.01;
@@ -282,14 +242,6 @@ function fitSceneToRoom(scene: StudioScene, pieces: Record<string, StudioPiece>)
   return { ...scene, placements, openings };
 }
 
-// Serializabil pentru drafturile din cont (fara selectii).
-export interface StudioSnapshot {
-  version: 2;
-  pieces: Record<string, StudioPiece>;
-  scenes: StudioScene[];
-  activeSceneId: string;
-}
-
 interface StudioStore {
   pieces: Record<string, StudioPiece>;
   scenes: StudioScene[];
@@ -327,8 +279,8 @@ interface StudioStore {
   setSelected: (id: string | null) => void;
   setSelectedOpening: (id: string | null) => void;
 
-  snapshot: () => StudioSnapshot;
-  loadSnapshot: (snapshot: StudioSnapshot) => void;
+  snapshot: () => StudioDraftData;
+  loadSnapshot: (snapshot: StudioDraftData) => void;
 }
 
 // Patch pe scena activa — toate mutatiile de continut trec pe aici.
@@ -630,13 +582,23 @@ export const useStudioStore = create<StudioStore>()(
 
         loadSnapshot: (snapshot) =>
           set(() => {
-            const scenes =
+            // apararea la incarcare: configurile trec prin normalize (regulile
+            // geometrice curente), iar scenele prin fit (clamp in camera)
+            const pieces: Record<string, StudioPiece> = {};
+            for (const piece of Object.values(snapshot.pieces)) {
+              pieces[piece.id] = {
+                ...piece,
+                config: normalizePieceConfig(piece.kind, piece.config),
+              };
+            }
+            const rawScenes =
               snapshot.scenes.length > 0 ? snapshot.scenes : [newScene('Camera 1')];
+            const scenes = rawScenes.map((scene) => fitSceneToRoom(scene, pieces));
             const activeSceneId = scenes.some((sc) => sc.id === snapshot.activeSceneId)
               ? snapshot.activeSceneId
               : scenes[0].id;
             return {
-              pieces: snapshot.pieces,
+              pieces,
               scenes,
               activeSceneId,
               selectedId: null,

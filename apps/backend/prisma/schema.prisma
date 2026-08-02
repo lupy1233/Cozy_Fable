@@ -349,6 +349,7 @@ model User {
   claimsAssigned     ClaimSlot[]        @relation("ClaimAssignedTo")
   inspirationBoards  InspirationBoard[]
   chatThreadReads    ChatThreadRead[]
+  studioDrafts       StudioDraft[]
 
   @@map("users")
 }
@@ -610,6 +611,26 @@ model RequestInspirationPhoto {
 // Colectiile de salvari ale utilizatorului (item 8, stil Pinterest): un board
 // are nume + salvari; salvarile refera pozele publicate din galerie. Fara PII
 // dincolo de FK-ul de user → hard delete cu cascade (doar referinte).
+// Studio 3D (mod Sims, cerinta PO 2026-08-02): drafturile salvate in cont —
+// snapshotul complet al studioului (biblioteca de piese + camerele cu asezari
+// si goluri) ca JSON validat in service cu studioDraftDataSchema din shared.
+// Fara PII in continut; stergerea contului curata drafturile prin cascade.
+model StudioDraft {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  name      String
+  data      Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // fara doua drafturi cu acelasi nume la acelasi user (ca la colectii)
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("studio_drafts")
+}
+
 model InspirationBoard {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")

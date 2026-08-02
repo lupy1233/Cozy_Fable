@@ -15,6 +15,7 @@ import {
   Copy,
   DoorClosed,
   DoorOpen,
+  FolderOpen,
   Footprints,
   Lamp,
   Loader2,
@@ -23,6 +24,7 @@ import {
   Plus,
   RectangleHorizontal,
   RotateCw,
+  Save,
   Send,
   Shirt,
   Trash2,
@@ -33,10 +35,18 @@ import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState, type ComponentType } from 'react';
 import { createPortal } from 'react-dom';
-import { useRouter } from '@/i18n/routing';
+import { Link, useRouter } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/toaster';
+import { ApiError } from '@/lib/api';
+import { useMe } from '@/hooks/use-auth';
+import {
+  useDeleteStudioDraft,
+  useLoadStudioDraft,
+  useSaveStudioDraft,
+  useStudioDrafts,
+} from '@/hooks/use-studio-drafts';
 import { Configurator3dStep } from '@/components/configurator/piece3d/dynamic';
 import { finishSpecFor } from '@/components/configurator/piece3d/finishes';
 import { useConfiguratorStore } from '@/stores/configurator-store';
@@ -333,6 +343,202 @@ function RoomDimControl({
   );
 }
 
+// Drafturile din cont: salvare (nou / actualizare) + lista cu incarcare si
+// stergere, intr-un singur dialog. Snapshotul pleaca din studio-store si se
+// intoarce prin loadSnapshot; serverul valideaza continutul cu schema shared.
+function StudioDraftsDialog({
+  loadedDraft,
+  onLoaded,
+  onClose,
+}: {
+  loadedDraft: { id: string; name: string } | null;
+  onLoaded: (draft: { id: string; name: string } | null) => void;
+  onClose: () => void;
+}) {
+  const t = useTranslations('Studio');
+  const me = useMe();
+  const drafts = useStudioDrafts();
+  const save = useSaveStudioDraft();
+  const load = useLoadStudioDraft();
+  const removeDraft = useDeleteStudioDraft();
+  const [name, setName] = useState(loadedDraft?.name ?? '');
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const saveErrorToast = (e: unknown) => {
+    if (e instanceof ApiError && e.code === 'STUDIO_DRAFT_NAME_TAKEN') toast.error(t('nameTaken'));
+    else if (e instanceof ApiError && e.code === 'STUDIO_DRAFT_LIMIT_REACHED')
+      toast.error(t('draftLimit'));
+    else toast.error(t('draftError'));
+  };
+
+  const onSave = (id?: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    save.mutate(
+      { id, name: trimmed, data: useStudioStore.getState().snapshot() },
+      {
+        onSuccess: (dto) => {
+          onLoaded({ id: dto.id, name: dto.name });
+          toast.success(t('draftSaved'));
+        },
+        onError: saveErrorToast,
+      },
+    );
+  };
+
+  const onLoad = (id: string) => {
+    load.mutate(id, {
+      onSuccess: (dto) => {
+        useStudioStore.getState().loadSnapshot(dto.data);
+        onLoaded({ id: dto.id, name: dto.name });
+        toast.success(t('draftLoaded'));
+        onClose();
+      },
+      onError: () => toast.error(t('draftError')),
+    });
+  };
+
+  const onDelete = (draft: { id: string; name: string }) => {
+    if (!window.confirm(t('confirmDeleteDraft', { name: draft.name }))) return;
+    removeDraft.mutate(draft.id, {
+      onSuccess: () => {
+        if (loadedDraft?.id === draft.id) onLoaded(null);
+        toast.success(t('draftDeleted'));
+      },
+      onError: () => toast.error(t('draftError')),
+    });
+  };
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('myDrafts')}
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="flex max-h-[88vh] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-surface shadow-xl"
+      >
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+          <h3 className="font-serif text-lg leading-tight">{t('myDrafts')}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t('close')}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-walnut-soft hover:text-walnut"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {!me.data ? (
+          <div className="flex flex-col items-start gap-3 p-4">
+            <p className="text-sm leading-relaxed text-muted-foreground">{t('loginToSave')}</p>
+            <Button asChild variant="walnut" size="sm">
+              <Link href="/login">{t('goToLogin')}</Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="flex min-h-0 flex-col gap-4 overflow-y-auto p-4">
+            {/* salvarea studioului curent */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium" htmlFor="studio-draft-name">
+                {t('draftNameLabel')}
+              </label>
+              <Input
+                id="studio-draft-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t('draftNamePlaceholder')}
+                maxLength={80}
+              />
+              <div className="flex flex-wrap gap-2">
+                {loadedDraft && (
+                  <Button
+                    size="sm"
+                    variant="walnut"
+                    disabled={save.isPending || !name.trim()}
+                    onClick={() => onSave(loadedDraft.id)}
+                  >
+                    <Save className="h-4 w-4" />
+                    {t('updateDraft', { name: loadedDraft.name })}
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant={loadedDraft ? 'outline' : 'walnut'}
+                  disabled={save.isPending || !name.trim()}
+                  onClick={() => onSave()}
+                >
+                  <Save className="h-4 w-4" />
+                  {t('saveAsNew')}
+                </Button>
+              </div>
+            </div>
+
+            <div className="border-t border-border" />
+
+            {/* drafturile existente */}
+            {drafts.isLoading ? (
+              <div className="grid place-items-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : !drafts.data || drafts.data.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-border-2 p-3 text-xs leading-relaxed text-muted-foreground">
+                {t('emptyDrafts')}
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {drafts.data.map((draft) => (
+                  <li
+                    key={draft.id}
+                    className="flex items-center gap-2 rounded-xl border border-border-2 bg-surface px-3 py-2"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium leading-tight">{draft.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(draft.updatedAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={load.isPending}
+                      onClick={() => onLoad(draft.id)}
+                    >
+                      {t('loadDraft')}
+                    </Button>
+                    <button
+                      type="button"
+                      title={t('deleteDraft')}
+                      aria-label={t('deleteDraft')}
+                      onClick={() => onDelete(draft)}
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-xs leading-relaxed text-muted-foreground">{t('loadWarning')}</p>
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export function StudioPage() {
   const t = useTranslations('Studio');
   const router = useRouter();
@@ -361,6 +567,9 @@ export function StudioPage() {
   const setSelectedOpening = useStudioStore((s) => s.setSelectedOpening);
 
   const [editor, setEditor] = useState<EditorState | null>(null);
+  const [draftsOpen, setDraftsOpen] = useState(false);
+  // draftul din cont incarcat/salvat ultima data — tinta butonului "Actualizeaza"
+  const [loadedDraft, setLoadedDraft] = useState<{ id: string; name: string } | null>(null);
 
   const pieceList = Object.values(pieces).sort((a, b) => b.updatedAt - a.updatedAt);
   const selected = scene.placements.find((p) => p.id === selectedId) ?? null;
@@ -456,15 +665,26 @@ export function StudioPage() {
           <h1 className="font-serif text-3xl leading-tight">{t('title')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
-        <Button variant="walnut" onClick={sendToRequest}>
-          <Send className="h-4 w-4" />
-          {t('sendToRequest')}
-          {scene.placements.length > 0 && (
-            <span className="rounded-full bg-white/20 px-1.5 text-xs tabular-nums">
-              {scene.placements.length}
-            </span>
-          )}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={() => setDraftsOpen(true)}>
+            <FolderOpen className="h-4 w-4" />
+            {t('myDrafts')}
+            {loadedDraft && (
+              <span className="max-w-[120px] truncate text-xs text-muted-foreground">
+                · {loadedDraft.name}
+              </span>
+            )}
+          </Button>
+          <Button variant="walnut" onClick={sendToRequest}>
+            <Send className="h-4 w-4" />
+            {t('sendToRequest')}
+            {scene.placements.length > 0 && (
+              <span className="rounded-full bg-white/20 px-1.5 text-xs tabular-nums">
+                {scene.placements.length}
+              </span>
+            )}
+          </Button>
+        </div>
       </div>
 
       <div className="grid items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
@@ -732,6 +952,14 @@ export function StudioPage() {
           onChange={(patch) => setEditor((prev) => (prev ? { ...prev, ...patch } : prev))}
           onSave={saveEditor}
           onClose={() => setEditor(null)}
+        />
+      )}
+
+      {draftsOpen && (
+        <StudioDraftsDialog
+          loadedDraft={loadedDraft}
+          onLoaded={setLoadedDraft}
+          onClose={() => setDraftsOpen(false)}
         />
       )}
     </div>
