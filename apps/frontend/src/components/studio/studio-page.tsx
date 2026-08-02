@@ -21,6 +21,7 @@ import {
   Loader2,
   Monitor,
   Pencil,
+  Plug,
   Plus,
   RectangleHorizontal,
   RotateCw,
@@ -51,11 +52,14 @@ import { Configurator3dStep } from '@/components/configurator/piece3d/dynamic';
 import { finishSpecFor } from '@/components/configurator/piece3d/finishes';
 import { useConfiguratorStore } from '@/stores/configurator-store';
 import {
+  OPENING_DIM_LIMITS,
+  openingSize,
   STUDIO_MAX_SCENES,
   STUDIO_OPENING_KINDS,
   STUDIO_ROOM_LIMITS,
   useActiveScene,
   useStudioStore,
+  type StudioOpening,
   type StudioOpeningKind,
   type StudioPiece,
 } from '@/stores/studio-store';
@@ -103,6 +107,7 @@ const OPENING_ICONS: Record<StudioOpeningKind, ComponentType<{ className?: strin
   DOOR_DOUBLE: DoorClosed,
   WINDOW: AppWindow,
   WINDOW_WIDE: RectangleHorizontal,
+  OUTLET: Plug,
 };
 
 const cm = (v: number) => Math.round(v * 100);
@@ -290,6 +295,115 @@ function LibraryRow({
         </button>
       </div>
     </li>
+  );
+}
+
+// Slider compact pentru o dimensiune a golului selectat (cm) — folosit in
+// panoul plutitor; variantele ne-ajustabile (min == max) nu primesc slider.
+function OpeningDimSlider({
+  label,
+  min,
+  max,
+  valueM,
+  onValueM,
+}: {
+  label: string;
+  min: number;
+  max: number;
+  valueM: number;
+  onValueM: (v: number) => void;
+}) {
+  return (
+    <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <span className="w-14 truncate text-right">{label}</span>
+      <input
+        type="range"
+        min={cm(min)}
+        max={cm(max)}
+        step={1}
+        value={cm(valueM)}
+        onChange={(e) => onValueM(Number(e.target.value) / 100)}
+        className="w-24 accent-[hsl(var(--walnut))]"
+      />
+      <span className="w-12 tabular-nums">{cm(valueM)} cm</span>
+    </label>
+  );
+}
+
+// Panoul golului selectat: nume + mutare/stergere + dimensiunile ajustabile
+// ale variantei (usa: latime/inaltime; fereastra: + parapet; priza: doar cota).
+function OpeningToolbar({
+  opening,
+  onCycle,
+  onRemove,
+  onResize,
+}: {
+  opening: StudioOpening;
+  onCycle: () => void;
+  onRemove: () => void;
+  onResize: (patch: { w?: number; h?: number; sill?: number }) => void;
+}) {
+  const t = useTranslations('Studio');
+  const lim = OPENING_DIM_LIMITS[opening.kind];
+  const size = openingSize(opening);
+  const adjustable = (r: { min: number; max: number }) => r.max - r.min > 0.001;
+  return (
+    <div className="absolute left-1/2 top-3 flex -translate-x-1/2 flex-col gap-1.5 rounded-xl border border-border-2 bg-surface/95 px-3 py-2 shadow-md backdrop-blur">
+      <div className="flex items-center justify-center gap-1">
+        <span className="max-w-[160px] truncate px-1 text-xs font-medium">
+          {t(`openings.${opening.kind}`)}
+        </span>
+        <button
+          type="button"
+          title={`${t('cycleWall')} (R)`}
+          aria-label={t('cycleWall')}
+          onClick={onCycle}
+          className="grid h-7 w-7 place-items-center rounded-full text-walnut transition-colors hover:bg-walnut-soft"
+        >
+          <ArrowLeftRight className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          title={t('removeOpening')}
+          aria-label={t('removeOpening')}
+          onClick={onRemove}
+          className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {(adjustable(lim.w) || adjustable(lim.h) || adjustable(lim.sill)) && (
+        <div className="flex flex-col gap-1">
+          {adjustable(lim.w) && (
+            <OpeningDimSlider
+              label={t('openingWidth')}
+              min={lim.w.min}
+              max={lim.w.max}
+              valueM={size.w}
+              onValueM={(w) => onResize({ w })}
+            />
+          )}
+          {adjustable(lim.h) && (
+            <OpeningDimSlider
+              label={t('openingHeight')}
+              min={lim.h.min}
+              max={lim.h.max}
+              valueM={size.h}
+              onValueM={(h) => onResize({ h })}
+            />
+          )}
+          {adjustable(lim.sill) && (
+            <OpeningDimSlider
+              label={opening.kind === 'OUTLET' ? t('outletHeight') : t('openingSill')}
+              min={lim.sill.min}
+              max={lim.sill.max}
+              valueM={size.sill}
+              onValueM={(sill) => onResize({ sill })}
+            />
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -557,6 +671,7 @@ export function StudioPage() {
   const clearPlacements = useStudioStore((s) => s.clearPlacements);
   const addOpening = useStudioStore((s) => s.addOpening);
   const cycleOpeningWall = useStudioStore((s) => s.cycleOpeningWall);
+  const resizeOpening = useStudioStore((s) => s.resizeOpening);
   const removeOpening = useStudioStore((s) => s.removeOpening);
   const addScene = useStudioStore((s) => s.addScene);
   const renameScene = useStudioStore((s) => s.renameScene);
@@ -785,6 +900,15 @@ export function StudioPage() {
                 </span>
                 <button
                   type="button"
+                  title={t('edit')}
+                  aria-label={t('edit')}
+                  onClick={() => openEditPiece(selectedPiece)}
+                  className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
                   title={`${t('rotate')} (R)`}
                   aria-label={t('rotate')}
                   onClick={() => rotatePlacement(selected.id)}
@@ -813,31 +937,14 @@ export function StudioPage() {
               </div>
             )}
 
-            {/* bara golului selectat (usa/fereastra) */}
+            {/* panoul golului selectat (usa/fereastra/priza) cu dimensiuni */}
             {!selected && selectedOpening && (
-              <div className="absolute left-1/2 top-3 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border-2 bg-surface/95 px-2 py-1 shadow-md backdrop-blur">
-                <span className="max-w-[160px] truncate px-1.5 text-xs font-medium">
-                  {t(`openings.${selectedOpening.kind}`)}
-                </span>
-                <button
-                  type="button"
-                  title={`${t('cycleWall')} (R)`}
-                  aria-label={t('cycleWall')}
-                  onClick={() => cycleOpeningWall(selectedOpening.id)}
-                  className="grid h-7 w-7 place-items-center rounded-full text-walnut transition-colors hover:bg-walnut-soft"
-                >
-                  <ArrowLeftRight className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  title={t('removeOpening')}
-                  aria-label={t('removeOpening')}
-                  onClick={() => removeOpening(selectedOpening.id)}
-                  className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
+              <OpeningToolbar
+                opening={selectedOpening}
+                onCycle={() => cycleOpeningWall(selectedOpening.id)}
+                onRemove={() => removeOpening(selectedOpening.id)}
+                onResize={(patch) => resizeOpening(selectedOpening.id, patch)}
+              />
             )}
 
             {scene.placements.length === 0 && (

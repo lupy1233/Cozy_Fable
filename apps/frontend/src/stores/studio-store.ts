@@ -2,6 +2,8 @@
 
 import {
   normalizePieceConfig,
+  OPENING_DIM_LIMITS,
+  openingSize,
   OPENING_SPECS,
   STUDIO_MAX_SCENES,
   STUDIO_OPENING_KINDS,
@@ -31,7 +33,15 @@ import { persist } from 'zustand/middleware';
 // in cont ca draft (hooks/use-studio-drafts).
 
 // re-export: componentele studio importa modelul prin store, nu direct din shared
-export { OPENING_SPECS, STUDIO_MAX_SCENES, STUDIO_OPENING_KINDS, STUDIO_ROOM_LIMITS, STUDIO_WALLS };
+export {
+  OPENING_DIM_LIMITS,
+  openingSize,
+  OPENING_SPECS,
+  STUDIO_MAX_SCENES,
+  STUDIO_OPENING_KINDS,
+  STUDIO_ROOM_LIMITS,
+  STUDIO_WALLS,
+};
 export type {
   StudioOpening,
   StudioOpeningKind,
@@ -95,25 +105,38 @@ export function wallLength(room: StudioRoom, wall: StudioWall): number {
 }
 
 // limita centrului unui gol pe perete (colturile raman pline)
-function openingMaxOffset(room: StudioRoom, wall: StudioWall, kind: StudioOpeningKind): number {
-  return wallLength(room, wall) / 2 - OPENING_SPECS[kind].w / 2 - OPENING_CORNER;
+function openingMaxOffset(room: StudioRoom, wall: StudioWall, w: number): number {
+  return wallLength(room, wall) / 2 - w / 2 - OPENING_CORNER;
 }
 
-// Ordoneaza golurile unui perete si limiteaza offsetul intre vecini.
+// forma minima pentru calculele de geometrie (gol existent sau "sonda" noua)
+type OpeningProbe = Pick<StudioOpening, 'kind' | 'w' | 'h' | 'sill'>;
+
+// doua goluri se blocheaza reciproc doar daca se suprapun SI pe verticala
+// (priza de la 30cm nu blocheaza fereastra cu parapetul la 90cm)
+function verticalOverlap(a: OpeningProbe, b: OpeningProbe): boolean {
+  const sa = openingSize(a);
+  const sb = openingSize(b);
+  return sa.sill < sb.sill + sb.h - 1e-6 && sb.sill < sa.sill + sa.h - 1e-6;
+}
+
+// Ordoneaza golurile unui perete si limiteaza offsetul intre vecinii care
+// conteaza (aceeasi banda verticala).
 function clampOpeningOffset(
   room: StudioRoom,
   openings: StudioOpening[],
   target: StudioOpening,
   rawOffset: number,
 ): number {
-  const maxOff = openingMaxOffset(room, target.wall, target.kind);
+  const w = openingSize(target).w;
+  const maxOff = openingMaxOffset(room, target.wall, w);
   if (maxOff < 0) return 0;
   let low = -maxOff;
   let high = maxOff;
-  const w = OPENING_SPECS[target.kind].w;
   for (const other of openings) {
     if (other.id === target.id || other.wall !== target.wall) continue;
-    const half = (w + OPENING_SPECS[other.kind].w) / 2 + OPENING_GAP;
+    if (!verticalOverlap(target, other)) continue;
+    const half = (w + openingSize(other).w) / 2 + OPENING_GAP;
     // vecinul din stanga ridica pragul de jos, cel din dreapta pe cel de sus
     if (other.offset <= target.offset) low = Math.max(low, other.offset + half);
     else high = Math.min(high, other.offset - half);
@@ -122,24 +145,24 @@ function clampOpeningOffset(
   return round3(Math.min(high, Math.max(low, rawOffset)));
 }
 
-// Primul loc liber pentru un gol nou: peretele din spate intai (vizibil in
-// vederea implicita), apoi lateralele, apoi fata; pe fiecare perete cauta
-// intervalul liber cel mai apropiat de mijloc.
+// Primul loc liber pentru un gol: peretele din spate intai (vizibil in vederea
+// implicita), apoi lateralele, apoi fata; pe fiecare perete cauta pozitia
+// libera cea mai apropiata de mijloc.
 function findOpeningSpot(
   room: StudioRoom,
   openings: StudioOpening[],
-  kind: StudioOpeningKind,
+  probe: OpeningProbe,
   walls: readonly StudioWall[] = ['N', 'E', 'W', 'S'],
 ): { wall: StudioWall; offset: number } | null {
-  const w = OPENING_SPECS[kind].w;
+  const w = openingSize(probe).w;
   for (const wall of walls) {
-    const maxOff = openingMaxOffset(room, wall, kind);
+    const maxOff = openingMaxOffset(room, wall, w);
     if (maxOff < 0) continue;
     // intervalele ocupate pe perete (in pozitii de CENTRU interzise)
     const blocked = openings
-      .filter((o) => o.wall === wall)
+      .filter((o) => o.wall === wall && verticalOverlap(probe, o))
       .map((o) => {
-        const half = (w + OPENING_SPECS[o.kind].w) / 2 + OPENING_GAP;
+        const half = (w + openingSize(o).w) / 2 + OPENING_GAP;
         return [o.offset - half, o.offset + half] as const;
       })
       .sort((a, b) => a[0] - b[0]);
@@ -227,7 +250,7 @@ function newScene(name: string): StudioScene {
 }
 
 // Dupa micsorarea camerei: piesele raman inauntru, golurile care nu mai incap
-// pe perete dispar, restul se trag intre limite.
+// pe perete dispar, restul se trag intre limite (inaltimile taiate sub tavan).
 function fitSceneToRoom(scene: StudioScene, pieces: Record<string, StudioPiece>): StudioScene {
   const placements = scene.placements.map((p) => {
     const piece = pieces[p.pieceId];
@@ -236,8 +259,18 @@ function fitSceneToRoom(scene: StudioScene, pieces: Record<string, StudioPiece>)
   });
   const openings: StudioOpening[] = [];
   for (const o of [...scene.openings].sort((a, b) => a.offset - b.offset)) {
-    if (openingMaxOffset(scene.room, o.wall, o.kind) < 0) continue;
-    openings.push({ ...o, offset: clampOpeningOffset(scene.room, openings, o, o.offset) });
+    const size = openingSize(o);
+    if (openingMaxOffset(scene.room, o.wall, size.w) < 0) continue;
+    const fitted: StudioOpening = { ...o };
+    // varful golului ramane sub tavan: intai coboara parapetul, apoi scurteaza
+    const maxTop = scene.room.wallHeightM - 0.05;
+    if (size.sill + size.h > maxTop) {
+      const lim = OPENING_DIM_LIMITS[o.kind];
+      const sill = Math.max(lim.sill.min, Math.min(size.sill, maxTop - size.h));
+      fitted.sill = round3(sill);
+      if (sill + size.h > maxTop) fitted.h = round3(Math.max(lim.h.min, maxTop - sill));
+    }
+    openings.push({ ...fitted, offset: clampOpeningOffset(scene.room, openings, fitted, o.offset) });
   }
   return { ...scene, placements, openings };
 }
@@ -272,6 +305,8 @@ interface StudioStore {
 
   addOpening: (kind: StudioOpeningKind) => boolean;
   moveOpening: (id: string, offset: number) => void;
+  // dimensiuni proprii pe gol (usa/fereastra pe masura, priza la alta cota)
+  resizeOpening: (id: string, patch: { w?: number; h?: number; sill?: number }) => void;
   cycleOpeningWall: (id: string) => void;
   removeOpening: (id: string) => void;
 
@@ -484,7 +519,7 @@ export const useStudioStore = create<StudioStore>()(
           set((s) => {
             const active = s.scenes.find((sc) => sc.id === s.activeSceneId);
             if (!active) return s;
-            const spot = findOpeningSpot(active.room, active.openings, kind);
+            const spot = findOpeningSpot(active.room, active.openings, { kind });
             if (!spot) return s;
             added = true;
             const opening: StudioOpening = { id: newId('op'), kind, ...spot };
@@ -518,6 +553,38 @@ export const useStudioStore = create<StudioStore>()(
             }),
           })),
 
+        resizeOpening: (id, patch) =>
+          set((s) => ({
+            scenes: patchActive(s, (scene) => {
+              const opening = scene.openings.find((o) => o.id === id);
+              if (!opening) return scene;
+              const lim = OPENING_DIM_LIMITS[opening.kind];
+              const clampDimTo = (v: number | undefined, r: { min: number; max: number }) =>
+                v === undefined ? undefined : round3(Math.max(r.min, Math.min(r.max, v)));
+              const next: StudioOpening = {
+                ...opening,
+                ...(patch.w !== undefined ? { w: clampDimTo(patch.w, lim.w) } : {}),
+                ...(patch.h !== undefined ? { h: clampDimTo(patch.h, lim.h) } : {}),
+                ...(patch.sill !== undefined ? { sill: clampDimTo(patch.sill, lim.sill) } : {}),
+              };
+              const size = openingSize(next);
+              // varful sub tavan si latimea in perete — altfel schimbarea nu se aplica
+              if (size.sill + size.h > scene.room.wallHeightM - 0.05 + 1e-6) return scene;
+              if (openingMaxOffset(scene.room, next.wall, size.w) < 0) return scene;
+              // latimea noua nu are voie sa intre peste vecini (banda verticala comuna)
+              const offset = clampOpeningOffset(scene.room, scene.openings, next, next.offset);
+              const overlapping = scene.openings.some((o) => {
+                if (o.id === id || o.wall !== next.wall || !verticalOverlap(next, o)) return false;
+                return Math.abs(o.offset - offset) < (size.w + openingSize(o).w) / 2 + OPENING_GAP - 1e-6;
+              });
+              if (overlapping) return scene;
+              return {
+                ...scene,
+                openings: scene.openings.map((o) => (o.id === id ? { ...next, offset } : o)),
+              };
+            }),
+          })),
+
         cycleOpeningWall: (id) =>
           set((s) => ({
             scenes: patchActive(s, (scene) => {
@@ -529,8 +596,9 @@ export const useStudioStore = create<StudioStore>()(
               for (let i = 1; i <= STUDIO_WALLS.length; i++) {
                 const wall = STUDIO_WALLS[(start + i) % STUDIO_WALLS.length];
                 // cautarea e restransa la peretele tinta — altfel functia ar
-                // intoarce mereu primul perete liber din ordinea ei interna
-                const spot = findOpeningSpot(scene.room, others, opening.kind, [wall]);
+                // intoarce mereu primul perete liber din ordinea ei interna;
+                // sonda e golul insusi (dimensiunile proprii se pastreaza)
+                const spot = findOpeningSpot(scene.room, others, opening, [wall]);
                 if (spot) {
                   return {
                     ...scene,

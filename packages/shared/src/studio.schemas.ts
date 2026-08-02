@@ -16,15 +16,43 @@ import {
 export const STUDIO_WALLS = ['N', 'E', 'S', 'W'] as const;
 export type StudioWall = (typeof STUDIO_WALLS)[number];
 
-export const STUDIO_OPENING_KINDS = ['DOOR', 'DOOR_DOUBLE', 'WINDOW', 'WINDOW_WIDE'] as const;
+// OUTLET (priza) nu taie peretele — sta montata PE el (cutout: false)
+export const STUDIO_OPENING_KINDS = [
+  'DOOR',
+  'DOOR_DOUBLE',
+  'WINDOW',
+  'WINDOW_WIDE',
+  'OUTLET',
+] as const;
 export type StudioOpeningKind = (typeof STUDIO_OPENING_KINDS)[number];
 
-// gabaritele variantelor de goluri (latime × inaltime, parapetul ferestrei)
-export const OPENING_SPECS: Record<StudioOpeningKind, { w: number; h: number; sill: number }> = {
-  DOOR: { w: 0.9, h: 2.05, sill: 0 },
-  DOOR_DOUBLE: { w: 1.5, h: 2.05, sill: 0 },
-  WINDOW: { w: 1.2, h: 1.3, sill: 0.9 },
-  WINDOW_WIDE: { w: 2.0, h: 1.4, sill: 0.8 },
+// gabaritele IMPLICITE ale variantelor (latime × inaltime, cota de la podea)
+export const OPENING_SPECS: Record<
+  StudioOpeningKind,
+  { w: number; h: number; sill: number; cutout: boolean }
+> = {
+  DOOR: { w: 0.9, h: 2.05, sill: 0, cutout: true },
+  DOOR_DOUBLE: { w: 1.5, h: 2.05, sill: 0, cutout: true },
+  WINDOW: { w: 1.2, h: 1.3, sill: 0.9, cutout: true },
+  WINDOW_WIDE: { w: 2.0, h: 1.4, sill: 0.8, cutout: true },
+  OUTLET: { w: 0.15, h: 0.09, sill: 0.3, cutout: false },
+};
+
+// intervalele in care fiecare varianta se poate redimensiona (cerinta PO:
+// usi/ferestre pe dimensiuni proprii); min === max inseamna ne-ajustabil
+interface DimRange {
+  min: number;
+  max: number;
+}
+export const OPENING_DIM_LIMITS: Record<
+  StudioOpeningKind,
+  { w: DimRange; h: DimRange; sill: DimRange }
+> = {
+  DOOR: { w: { min: 0.6, max: 1.2 }, h: { min: 1.9, max: 2.4 }, sill: { min: 0, max: 0 } },
+  DOOR_DOUBLE: { w: { min: 1.1, max: 2.4 }, h: { min: 1.9, max: 2.4 }, sill: { min: 0, max: 0 } },
+  WINDOW: { w: { min: 0.4, max: 2.4 }, h: { min: 0.4, max: 2.2 }, sill: { min: 0.1, max: 1.6 } },
+  WINDOW_WIDE: { w: { min: 1.2, max: 3.4 }, h: { min: 0.4, max: 2.2 }, sill: { min: 0.1, max: 1.6 } },
+  OUTLET: { w: { min: 0.15, max: 0.15 }, h: { min: 0.09, max: 0.09 }, sill: { min: 0.1, max: 1.5 } },
 };
 
 export const STUDIO_ROTATIONS = [0, 90, 180, 270] as const;
@@ -68,6 +96,30 @@ export interface StudioOpening {
   kind: StudioOpeningKind;
   // centrul golului fata de mijlocul peretelui, pe axa LUMII (x la N/S, z la E/W)
   offset: number;
+  // dimensiuni PROPRII (m) — lipsa = implicitele variantei din OPENING_SPECS
+  w?: number;
+  h?: number;
+  sill?: number;
+}
+
+// Dimensiunile EFECTIVE ale unui gol: override-urile taiate la limitele
+// variantei, altfel implicitele — sursa unica pentru randare/coliziuni/UI.
+export function openingSize(o: Pick<StudioOpening, 'kind' | 'w' | 'h' | 'sill'>): {
+  w: number;
+  h: number;
+  sill: number;
+  cutout: boolean;
+} {
+  const spec = OPENING_SPECS[o.kind];
+  const lim = OPENING_DIM_LIMITS[o.kind];
+  const clamp = (v: number | undefined, fallback: number, r: DimRange) =>
+    v === undefined || !Number.isFinite(v) ? fallback : Math.min(r.max, Math.max(r.min, v));
+  return {
+    w: clamp(o.w, spec.w, lim.w),
+    h: clamp(o.h, spec.h, lim.h),
+    sill: clamp(o.sill, spec.sill, lim.sill),
+    cutout: spec.cutout,
+  };
 }
 
 export interface StudioRoom {
@@ -146,8 +198,21 @@ const studioOpeningSchema: z.ZodType<StudioOpening> = z
     wall: z.enum(STUDIO_WALLS),
     kind: z.enum(STUDIO_OPENING_KINDS),
     offset: coordSchema,
+    w: z.number().finite().positive().max(4).optional(),
+    h: z.number().finite().positive().max(3).optional(),
+    sill: z.number().finite().min(0).max(2).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((o, ctx) => {
+    // dimensiunile proprii raman in intervalele variantei
+    const lim = OPENING_DIM_LIMITS[o.kind];
+    const bad = (field: string) =>
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'dimension out of range', path: [field] });
+    if (o.w !== undefined && (o.w < lim.w.min - 1e-6 || o.w > lim.w.max + 1e-6)) bad('w');
+    if (o.h !== undefined && (o.h < lim.h.min - 1e-6 || o.h > lim.h.max + 1e-6)) bad('h');
+    if (o.sill !== undefined && (o.sill < lim.sill.min - 1e-6 || o.sill > lim.sill.max + 1e-6))
+      bad('sill');
+  }) as unknown as z.ZodType<StudioOpening>;
 
 const studioSceneSchema: z.ZodType<StudioScene> = z
   .object({
@@ -157,7 +222,21 @@ const studioSceneSchema: z.ZodType<StudioScene> = z
     placements: z.array(studioPlacementSchema).max(STUDIO_MAX_PLACEMENTS_PER_SCENE),
     openings: z.array(studioOpeningSchema).max(STUDIO_MAX_OPENINGS_PER_SCENE),
   })
-  .strict();
+  .strict()
+  .superRefine((scene, ctx) => {
+    // golurile raman in perete: varful sub tavan, latimea in lungimea peretelui
+    scene.openings.forEach((o, i) => {
+      const size = openingSize(o);
+      const wallLen = o.wall === 'N' || o.wall === 'S' ? scene.room.widthM : scene.room.depthM;
+      if (size.sill + size.h > scene.room.wallHeightM + 1e-6 || size.w > wallLen + 1e-6) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'opening does not fit the wall',
+          path: ['openings', i],
+        });
+      }
+    });
+  }) as unknown as z.ZodType<StudioScene>;
 
 export const studioDraftDataSchema: z.ZodType<StudioDraftData> = z
   .object({

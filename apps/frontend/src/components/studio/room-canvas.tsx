@@ -14,7 +14,7 @@ import {
 } from '../configurator/piece3d/finishes';
 import { floorColorOf, wallColorOf } from './palette';
 import {
-  OPENING_SPECS,
+  openingSize,
   overlappingPlacements,
   placementHalfExtents,
   useActiveScene,
@@ -87,17 +87,61 @@ function StaticPanel({ panel, spec }: { panel: Panel3d; spec: FinishSpec }) {
   );
 }
 
+// Manerul de alama al unui front — aceleasi pozitii ca FrontHandle din
+// piece-canvas (acolo relative la grupul animat, aici absolute: fronturile
+// din camera sunt statice). Fara el, piesa cu "fronturi cu maner" arata
+// diferit in camera fata de editor (bug raportat de PO).
+function StaticHandle({ panel }: { panel: Panel3d }) {
+  let x = panel.x;
+  let y = panel.y;
+  let vertical = false;
+  let length = Math.min(0.28, panel.w * 0.45);
+  if (panel.role === 'DOOR_FRONT') {
+    const sign = panel.hinge === 'R' ? 1 : -1;
+    x = panel.x - sign * (panel.w / 2 - 0.05);
+    vertical = true;
+    length = Math.min(0.32, panel.h * 0.45);
+  } else if (panel.role === 'TILT_FRONT') {
+    y = panel.y + panel.h / 2 - 0.05;
+    length = Math.min(0.26, panel.w * 0.4);
+  } else if (panel.role === 'SLIDING_FRONT') {
+    const sign = (panel.slideDx ?? 0) >= 0 ? 1 : -1;
+    x = panel.x - sign * (panel.w / 2 - 0.06);
+    vertical = true;
+    length = Math.min(0.5, panel.h * 0.35);
+  } else {
+    // sertar: bara orizontala sub muchia de sus a frontului
+    y = panel.y + Math.max(0, panel.h / 2 - 0.045);
+  }
+  return (
+    <mesh
+      position={[x, y, panel.z + panel.d / 2 + 0.012]}
+      rotation={vertical ? [0, 0, 0] : [0, 0, Math.PI / 2]}
+    >
+      <cylinderGeometry args={[0.008, 0.008, length, 10]} />
+      <meshStandardMaterial color={ROD_COLOR} roughness={0.35} metalness={0.7} />
+    </mesh>
+  );
+}
+
+const HANDLE_ROLES = new Set(['DRAWER_FRONT', 'DOOR_FRONT', 'TILT_FRONT', 'SLIDING_FRONT']);
+
 function PieceMeshes({ piece }: { piece: StudioPiece }) {
   const panels = useMemo(() => buildPanels(piece.config, piece.kind), [piece.config, piece.kind]);
   const spec = useMemo(
     () => finishSpecFor(piece.config.finish, piece.config.customColor),
     [piece.config.finish, piece.config.customColor],
   );
+  const withHandles = piece.config.frontStyle === 'HANDLE';
   return (
     <group>
       {panels.map((p, i) => (
         <StaticPanel key={i} panel={p} spec={spec} />
       ))}
+      {withHandles &&
+        panels
+          .filter((p) => HANDLE_ROLES.has(p.role))
+          .map((p, i) => <StaticHandle key={`h${i}`} panel={p} />)}
     </group>
   );
 }
@@ -216,9 +260,10 @@ function OpeningMeshes({
   selected: boolean;
   onPointerDown: (e: ThreeEvent<PointerEvent>, opening: StudioOpening) => void;
 }) {
-  const { w, h, sill } = OPENING_SPECS[opening.kind];
+  const { w, h, sill } = openingSize(opening);
   const top = sill + h;
   const isDoor = opening.kind === 'DOOR' || opening.kind === 'DOOR_DOUBLE';
+  const isOutlet = opening.kind === 'OUTLET';
   const [hovered, setHovered] = useState(false);
   useEffect(() => {
     if (!hovered) return;
@@ -231,6 +276,45 @@ function OpeningMeshes({
   const frameColor = selected ? HIGHLIGHT_COLOR : FRAME_COLOR;
   const bar = 0.06;
   const frameZ = WALL_T / 2 + 0.012;
+
+  if (isOutlet) {
+    // priza: placa alba montata PE perete + doua "ochiuri"; hit-target mai
+    // mare decat placa, altfel e greu de prins cu cursorul
+    return (
+      <group
+        position={[cx, 0, 0]}
+        onPointerDown={(e) => onPointerDown(e, opening)}
+        onClick={(e) => e.stopPropagation()}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setHovered(true);
+        }}
+        onPointerOut={() => setHovered(false)}
+      >
+        <mesh position={[0, sill + h / 2, 0]}>
+          <boxGeometry args={[Math.max(0.24, w), Math.max(0.2, h), WALL_T + 0.06]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
+        <mesh position={[0, sill + h / 2, WALL_T / 2 + 0.013]} castShadow>
+          <boxGeometry args={[w, h, 0.025]} />
+          <meshStandardMaterial
+            color={selected ? HIGHLIGHT_COLOR : '#f2ede4'}
+            roughness={0.6}
+          />
+        </mesh>
+        {[-0.035, 0.035].map((dx) => (
+          <mesh
+            key={dx}
+            position={[dx, sill + h / 2, WALL_T / 2 + 0.027]}
+            rotation={[Math.PI / 2, 0, 0]}
+          >
+            <cylinderGeometry args={[0.024, 0.024, 0.008, 16]} />
+            <meshStandardMaterial color="#c9c2b4" roughness={0.8} />
+          </mesh>
+        ))}
+      </group>
+    );
+  }
 
   return (
     <group
@@ -355,14 +439,16 @@ function Walls({
       {specs.map((spec) => {
         const wallOpenings = openings
           .filter((o) => o.wall === spec.wall)
-          .map((o) => ({ opening: o, cx: spec.sign * o.offset, ...OPENING_SPECS[o.kind] }))
+          .map((o) => ({ opening: o, cx: spec.sign * o.offset, ...openingSize(o) }))
           .sort((a, b) => a.cx - b.cx);
 
-        // segmentele pline pe verticala intreaga, intre goluri
+        // segmentele pline pe verticala intreaga, intre golurile CARE TAIE
+        // peretele (prizele stau pe perete, nu in el)
         const half = spec.renderLen / 2;
         const segments: { x: number; w: number }[] = [];
         let cursor = -half;
-        for (const { cx, w } of wallOpenings) {
+        for (const { cx, w, cutout } of wallOpenings) {
+          if (!cutout) continue;
           const left = cx - w / 2;
           if (left - cursor > 0.005) {
             segments.push({ x: (cursor + left) / 2, w: left - cursor });
@@ -386,19 +472,18 @@ function Walls({
                 <meshStandardMaterial color={color} roughness={0.9} />
               </mesh>
             ))}
-            {wallOpenings.map(({ opening, cx, w, h, sill }) => {
+            {wallOpenings.map(({ opening, cx, w, h, sill, cutout }) => {
               const top = sill + h;
               return (
                 <group key={opening.id}>
-                  {/* buiandrugul de deasupra golului */}
-                  {H - top > 0.02 && (
+                  {/* buiandrug + parapet doar la golurile taiate in perete */}
+                  {cutout && H - top > 0.02 && (
                     <mesh position={[cx, top + (H - top) / 2, 0]} receiveShadow>
                       <boxGeometry args={[w, H - top, WALL_T]} />
                       <meshStandardMaterial color={color} roughness={0.9} />
                     </mesh>
                   )}
-                  {/* parapetul de sub fereastra */}
-                  {sill > 0.02 && (
+                  {cutout && sill > 0.02 && (
                     <mesh position={[cx, sill / 2, 0]} receiveShadow>
                       <boxGeometry args={[w, sill, WALL_T]} />
                       <meshStandardMaterial color={color} roughness={0.9} />

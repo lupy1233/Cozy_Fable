@@ -214,8 +214,13 @@
       "DOOR": "Door",
       "DOOR_DOUBLE": "Double door",
       "WINDOW": "Window",
-      "WINDOW_WIDE": "Wide window"
+      "WINDOW_WIDE": "Wide window",
+      "OUTLET": "Outlet"
     },
+    "openingWidth": "Width",
+    "openingHeight": "Height",
+    "openingSill": "Sill",
+    "outletHeight": "Floor height",
     "myDrafts": "My drafts",
     "draftNameLabel": "Draft name",
     "draftNamePlaceholder": "e.g. Our apartment",

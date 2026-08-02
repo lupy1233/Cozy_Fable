@@ -214,8 +214,13 @@
       "DOOR": "Ușă",
       "DOOR_DOUBLE": "Ușă dublă",
       "WINDOW": "Fereastră",
-      "WINDOW_WIDE": "Fereastră lată"
+      "WINDOW_WIDE": "Fereastră lată",
+      "OUTLET": "Priză"
     },
+    "openingWidth": "Lățime",
+    "openingHeight": "Înălțime",
+    "openingSill": "Parapet",
+    "outletHeight": "Cotă podea",
     "myDrafts": "Drafturile mele",
     "draftNameLabel": "Numele draftului",
     "draftNamePlaceholder": "ex. Apartamentul nostru",
