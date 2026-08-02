@@ -23,6 +23,7 @@ import { MobileNav } from './mobile-nav';
 // pagina care ramane in mintea clientilor), apoi ghidul, apoi partenerii.
 export const PUBLIC_LINKS = [
   { href: '/inspiration', key: 'inspiration' },
+  { href: '/studio', key: 'studio' },
   { href: '/sketch-guide', key: 'sketchGuide' },
   { href: '/partners', key: 'partners' },
 ] as const;

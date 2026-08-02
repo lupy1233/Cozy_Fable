@@ -84,6 +84,9 @@ interface ConfiguratorStore extends ConfiguratorSnapshot {
   setPhase: (phase: ConfiguratorPhase) => void;
   setStartMode: (mode: StartMode | null) => void;
   addRoom: (roomType: RoomType) => void;
+  // Studio 3D: adauga o camera-piesa cu raspunsuri precompletate (config3d);
+  // restul pasilor (material, schita) raman de parcurs in wizard
+  addRoomWithAnswers: (roomType: RoomType, answers: AnswerMap) => void;
   removeLastOfType: (roomType: RoomType) => void;
   removeRoom: (localId: string) => void;
   setActiveRoom: (index: number) => void;
@@ -219,6 +222,25 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
           ]),
           updatedAt: Date.now(),
         })),
+
+      addRoomWithAnswers: (roomType, answers) =>
+        set((s) => {
+          const flowVersion = CURRENT_FLOW_VERSION[roomType];
+          const flow = getFlow(roomType, flowVersion);
+          return {
+            ...sortedRoomsPatch(s, [
+              ...s.roomInstances,
+              {
+                localId: newLocalId(),
+                roomType,
+                flowVersion,
+                answers: pruneAnswers(flow, answers),
+                completed: false,
+              },
+            ]),
+            updatedAt: Date.now(),
+          };
+        }),
 
       removeLastOfType: (roomType) =>
         set((s) => {
