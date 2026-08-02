@@ -282,6 +282,13 @@ interface StudioStore {
   // selectiile din scena activa — UI pur, nepersistat
   selectedId: string | null;
   selectedOpeningId: string | null;
+  // undo/redo (nepersistat): snapshoturi ale continutului; starea e imutabila,
+  // deci pastrarea referintelor e sigura
+  history: StudioDraftData[];
+  future: StudioDraftData[];
+  // draftul din cont incarcat/salvat ultima data — tinta "Actualizeaza";
+  // persistat, ca butonul sa supravietuiasca refresh-ului (feedback PO r2)
+  accountDraft: { id: string; name: string } | null;
 
   savePiece: (input: {
     id?: string;
@@ -294,6 +301,8 @@ interface StudioStore {
   addScene: (name: string) => void;
   renameScene: (id: string, name: string) => void;
   deleteScene: (id: string) => void;
+  // copia completa a unei camere (piese asezate + goluri), ca punct de pornire
+  duplicateScene: (id: string, name: string) => void;
   setActiveScene: (id: string) => void;
 
   placePiece: (pieceId: string) => void;
@@ -305,8 +314,8 @@ interface StudioStore {
 
   addOpening: (kind: StudioOpeningKind) => boolean;
   moveOpening: (id: string, offset: number) => void;
-  // dimensiuni proprii pe gol (usa/fereastra pe masura, priza la alta cota)
-  resizeOpening: (id: string, patch: { w?: number; h?: number; sill?: number }) => void;
+  // dimensiuni proprii pe gol; false = schimbarea nu incape (vecin/tavan)
+  resizeOpening: (id: string, patch: { w?: number; h?: number; sill?: number }) => boolean;
   cycleOpeningWall: (id: string) => void;
   removeOpening: (id: string) => void;
 
@@ -314,8 +323,28 @@ interface StudioStore {
   setSelected: (id: string | null) => void;
   setSelectedOpening: (id: string | null) => void;
 
+  // undo/redo: actiunile discrete inregistreaza singure; gesturile continue
+  // (drag, slidere) apeleaza recordHistory O DATA, la inceputul gestului
+  recordHistory: () => void;
+  undo: () => void;
+  redo: () => void;
+
+  setAccountDraft: (draft: { id: string; name: string } | null) => void;
+
   snapshot: () => StudioDraftData;
   loadSnapshot: (snapshot: StudioDraftData) => void;
+}
+
+// continutul curent ca snapshot (referinte — starea e imutabila)
+function currentData(s: Pick<StudioStore, 'pieces' | 'scenes' | 'activeSceneId'>): StudioDraftData {
+  return { version: 2, pieces: s.pieces, scenes: s.scenes, activeSceneId: s.activeSceneId };
+}
+
+const HISTORY_CAP = 60;
+
+// patch-ul de istorie inclus in actiunile care schimba continutul
+function remember(s: StudioStore): Pick<StudioStore, 'history' | 'future'> {
+  return { history: [...s.history.slice(-(HISTORY_CAP - 1)), currentData(s)], future: [] };
 }
 
 // Patch pe scena activa — toate mutatiile de continut trec pe aici.
@@ -336,6 +365,9 @@ export const useStudioStore = create<StudioStore>()(
         activeSceneId: initial.id,
         selectedId: null,
         selectedOpeningId: null,
+        history: [],
+        future: [],
+        accountDraft: null,
 
         savePiece: ({ id, name, kind, config }) => {
           const piece: StudioPiece = {
@@ -357,7 +389,7 @@ export const useStudioStore = create<StudioStore>()(
                   : p,
               ),
             }));
-            return { pieces, scenes };
+            return { pieces, scenes, ...remember(s) };
           });
           return piece;
         },
@@ -374,7 +406,7 @@ export const useStudioStore = create<StudioStore>()(
               s.selectedId && active?.placements.some((p) => p.id === s.selectedId)
                 ? s.selectedId
                 : null;
-            return { pieces, scenes, selectedId };
+            return { pieces, scenes, selectedId, ...remember(s) };
           }),
 
         addScene: (name) =>
@@ -386,6 +418,7 @@ export const useStudioStore = create<StudioStore>()(
               activeSceneId: scene.id,
               selectedId: null,
               selectedOpeningId: null,
+              ...remember(s),
             };
           }),
 
@@ -394,6 +427,7 @@ export const useStudioStore = create<StudioStore>()(
             scenes: s.scenes.map((scene) =>
               scene.id === id ? { ...scene, name: name.trim() || scene.name } : scene,
             ),
+            ...remember(s),
           })),
 
         deleteScene: (id) =>
@@ -405,6 +439,29 @@ export const useStudioStore = create<StudioStore>()(
               activeSceneId: s.activeSceneId === id ? scenes[0].id : s.activeSceneId,
               selectedId: null,
               selectedOpeningId: null,
+              ...remember(s),
+            };
+          }),
+
+        duplicateScene: (id, name) =>
+          set((s) => {
+            if (s.scenes.length >= STUDIO_MAX_SCENES) return s;
+            const source = s.scenes.find((scene) => scene.id === id);
+            if (!source) return s;
+            // copie adanca cu id-uri noi — cele doua camere raman independente
+            const copy: StudioScene = {
+              id: newId('sc'),
+              name: name.trim() || source.name,
+              room: { ...source.room },
+              placements: source.placements.map((p) => ({ ...p, id: newId('pl') })),
+              openings: source.openings.map((o) => ({ ...o, id: newId('op') })),
+            };
+            return {
+              scenes: [...s.scenes, copy],
+              activeSceneId: copy.id,
+              selectedId: null,
+              selectedOpeningId: null,
+              ...remember(s),
             };
           }),
 
@@ -435,6 +492,7 @@ export const useStudioStore = create<StudioStore>()(
               })),
               selectedId: placement.id,
               selectedOpeningId: null,
+              ...remember(s),
             };
           }),
 
@@ -460,6 +518,7 @@ export const useStudioStore = create<StudioStore>()(
 
         rotatePlacement: (id) =>
           set((s) => ({
+            ...remember(s),
             scenes: patchActive(s, (scene) => {
               const placement = scene.placements.find((p) => p.id === id);
               const piece = placement && s.pieces[placement.pieceId];
@@ -496,6 +555,7 @@ export const useStudioStore = create<StudioStore>()(
                 placements: [...scene.placements, copy],
               })),
               selectedId: copy.id,
+              ...remember(s),
             };
           }),
 
@@ -506,12 +566,14 @@ export const useStudioStore = create<StudioStore>()(
               placements: scene.placements.filter((p) => p.id !== id),
             })),
             selectedId: s.selectedId === id ? null : s.selectedId,
+            ...remember(s),
           })),
 
         clearPlacements: () =>
           set((s) => ({
             scenes: patchActive(s, (scene) => ({ ...scene, placements: [] })),
             selectedId: null,
+            ...remember(s),
           })),
 
         addOpening: (kind) => {
@@ -530,6 +592,7 @@ export const useStudioStore = create<StudioStore>()(
               })),
               selectedOpeningId: opening.id,
               selectedId: null,
+              ...remember(s),
             };
           });
           return added;
@@ -553,7 +616,8 @@ export const useStudioStore = create<StudioStore>()(
             }),
           })),
 
-        resizeOpening: (id, patch) =>
+        resizeOpening: (id, patch) => {
+          let applied = false;
           set((s) => ({
             scenes: patchActive(s, (scene) => {
               const opening = scene.openings.find((o) => o.id === id);
@@ -578,15 +642,19 @@ export const useStudioStore = create<StudioStore>()(
                 return Math.abs(o.offset - offset) < (size.w + openingSize(o).w) / 2 + OPENING_GAP - 1e-6;
               });
               if (overlapping) return scene;
+              applied = true;
               return {
                 ...scene,
                 openings: scene.openings.map((o) => (o.id === id ? { ...next, offset } : o)),
               };
             }),
-          })),
+          }));
+          return applied;
+        },
 
         cycleOpeningWall: (id) =>
           set((s) => ({
+            ...remember(s),
             scenes: patchActive(s, (scene) => {
               const opening = scene.openings.find((o) => o.id === id);
               if (!opening) return scene;
@@ -619,6 +687,7 @@ export const useStudioStore = create<StudioStore>()(
               openings: scene.openings.filter((o) => o.id !== id),
             })),
             selectedOpeningId: s.selectedOpeningId === id ? null : s.selectedOpeningId,
+            ...remember(s),
           })),
 
         setRoom: (patch) =>
@@ -638,6 +707,40 @@ export const useStudioStore = create<StudioStore>()(
         setSelectedOpening: (id) =>
           set({ selectedOpeningId: id, ...(id ? { selectedId: null } : {}) }),
 
+        recordHistory: () => set((s) => remember(s)),
+
+        undo: () =>
+          set((s) => {
+            const prev = s.history[s.history.length - 1];
+            if (!prev) return s;
+            return {
+              pieces: prev.pieces,
+              scenes: prev.scenes,
+              activeSceneId: prev.activeSceneId,
+              history: s.history.slice(0, -1),
+              future: [...s.future.slice(-(HISTORY_CAP - 1)), currentData(s)],
+              selectedId: null,
+              selectedOpeningId: null,
+            };
+          }),
+
+        redo: () =>
+          set((s) => {
+            const next = s.future[s.future.length - 1];
+            if (!next) return s;
+            return {
+              pieces: next.pieces,
+              scenes: next.scenes,
+              activeSceneId: next.activeSceneId,
+              future: s.future.slice(0, -1),
+              history: [...s.history.slice(-(HISTORY_CAP - 1)), currentData(s)],
+              selectedId: null,
+              selectedOpeningId: null,
+            };
+          }),
+
+        setAccountDraft: (draft) => set({ accountDraft: draft }),
+
         snapshot: () => {
           const s = get();
           return {
@@ -649,7 +752,7 @@ export const useStudioStore = create<StudioStore>()(
         },
 
         loadSnapshot: (snapshot) =>
-          set(() => {
+          set((s) => {
             // apararea la incarcare: configurile trec prin normalize (regulile
             // geometrice curente), iar scenele prin fit (clamp in camera)
             const pieces: Record<string, StudioPiece> = {};
@@ -671,6 +774,7 @@ export const useStudioStore = create<StudioStore>()(
               activeSceneId,
               selectedId: null,
               selectedOpeningId: null,
+              ...remember(s),
             };
           }),
       };
@@ -693,7 +797,12 @@ export const useStudioStore = create<StudioStore>()(
         };
         return { pieces: old.pieces ?? {}, scenes: [scene], activeSceneId: scene.id };
       },
-      partialize: (s) => ({ pieces: s.pieces, scenes: s.scenes, activeSceneId: s.activeSceneId }),
+      partialize: (s) => ({
+        pieces: s.pieces,
+        scenes: s.scenes,
+        activeSceneId: s.activeSceneId,
+        accountDraft: s.accountDraft,
+      }),
     },
   ),
 );

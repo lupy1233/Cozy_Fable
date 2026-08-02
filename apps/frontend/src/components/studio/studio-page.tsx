@@ -24,17 +24,19 @@ import {
   Plug,
   Plus,
   RectangleHorizontal,
+  Redo2,
   RotateCw,
   Save,
   Send,
   Shirt,
   Trash2,
   Tv,
+  Undo2,
   X,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState, type ComponentType } from 'react';
+import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useRouter } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
@@ -298,6 +300,125 @@ function LibraryRow({
   );
 }
 
+// Fereastra modala compacta a studioului — inlocuieste prompt()/confirm() de
+// browser (feedback PO r2, itemul 5): aceeasi identitate ca restul dialogurilor.
+function StudioModal({
+  label,
+  onClose,
+  children,
+}: {
+  label: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={label}
+      onClick={onClose}
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-sm rounded-2xl bg-surface p-4 shadow-xl"
+      >
+        {children}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+function ConfirmDialog({
+  title,
+  body,
+  confirmLabel,
+  onConfirm,
+  onClose,
+}: {
+  title: string;
+  body?: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const t = useTranslations('Studio');
+  return (
+    <StudioModal label={title} onClose={onClose}>
+      <h3 className="font-serif text-lg leading-tight">{title}</h3>
+      {body && <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{body}</p>}
+      <div className="mt-4 flex justify-end gap-2">
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          {t('cancel')}
+        </Button>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={() => {
+            onConfirm();
+            onClose();
+          }}
+        >
+          {confirmLabel}
+        </Button>
+      </div>
+    </StudioModal>
+  );
+}
+
+function NameDialog({
+  title,
+  initial,
+  submitLabel,
+  onSubmit,
+  onClose,
+}: {
+  title: string;
+  initial: string;
+  submitLabel: string;
+  onSubmit: (name: string) => void;
+  onClose: () => void;
+}) {
+  const t = useTranslations('Studio');
+  const [name, setName] = useState(initial);
+  const submit = () => {
+    if (!name.trim()) return;
+    onSubmit(name.trim());
+    onClose();
+  };
+  return (
+    <StudioModal label={title} onClose={onClose}>
+      <h3 className="font-serif text-lg leading-tight">{title}</h3>
+      <Input
+        autoFocus
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') submit();
+        }}
+        maxLength={60}
+        className="mt-3"
+      />
+      <div className="mt-4 flex justify-end gap-2">
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          {t('cancel')}
+        </Button>
+        <Button variant="walnut" size="sm" disabled={!name.trim()} onClick={submit}>
+          {submitLabel}
+        </Button>
+      </div>
+    </StudioModal>
+  );
+}
+
 // Slider compact pentru o dimensiune a golului selectat (cm) — folosit in
 // panoul plutitor; variantele ne-ajustabile (min == max) nu primesc slider.
 function OpeningDimSlider({
@@ -306,12 +427,14 @@ function OpeningDimSlider({
   max,
   valueM,
   onValueM,
+  onGestureStart,
 }: {
   label: string;
   min: number;
   max: number;
   valueM: number;
   onValueM: (v: number) => void;
+  onGestureStart?: () => void;
 }) {
   return (
     <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
@@ -322,6 +445,7 @@ function OpeningDimSlider({
         max={cm(max)}
         step={1}
         value={cm(valueM)}
+        onPointerDown={onGestureStart}
         onChange={(e) => onValueM(Number(e.target.value) / 100)}
         className="w-24 accent-[hsl(var(--walnut))]"
       />
@@ -337,11 +461,13 @@ function OpeningToolbar({
   onCycle,
   onRemove,
   onResize,
+  onGestureStart,
 }: {
   opening: StudioOpening;
   onCycle: () => void;
   onRemove: () => void;
   onResize: (patch: { w?: number; h?: number; sill?: number }) => void;
+  onGestureStart: () => void;
 }) {
   const t = useTranslations('Studio');
   const lim = OPENING_DIM_LIMITS[opening.kind];
@@ -381,6 +507,7 @@ function OpeningToolbar({
               max={lim.w.max}
               valueM={size.w}
               onValueM={(w) => onResize({ w })}
+              onGestureStart={onGestureStart}
             />
           )}
           {adjustable(lim.h) && (
@@ -390,6 +517,7 @@ function OpeningToolbar({
               max={lim.h.max}
               valueM={size.h}
               onValueM={(h) => onResize({ h })}
+              onGestureStart={onGestureStart}
             />
           )}
           {adjustable(lim.sill) && (
@@ -399,6 +527,7 @@ function OpeningToolbar({
               max={lim.sill.max}
               valueM={size.sill}
               onValueM={(sill) => onResize({ sill })}
+              onGestureStart={onGestureStart}
             />
           )}
         </div>
@@ -415,17 +544,22 @@ function RoomDimControl({
   min,
   max,
   onValueM,
+  onGestureStart,
 }: {
   label: string;
   valueM: number;
   min: number;
   max: number;
   onValueM: (v: number) => void;
+  onGestureStart?: () => void;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
   const commit = (raw: string) => {
     const v = Number(raw);
-    if (raw.trim() !== '' && Number.isFinite(v) && v > 0) onValueM(v / 100);
+    if (raw.trim() !== '' && Number.isFinite(v) && v > 0) {
+      onGestureStart?.();
+      onValueM(v / 100);
+    }
     setDraft(null);
   };
   return (
@@ -437,6 +571,7 @@ function RoomDimControl({
         max={cm(max)}
         step={1}
         value={cm(valueM)}
+        onPointerDown={onGestureStart}
         onChange={(e) => onValueM(Number(e.target.value) / 100)}
         className="w-24 accent-[hsl(var(--walnut))]"
       />
@@ -476,6 +611,7 @@ function StudioDraftsDialog({
   const load = useLoadStudioDraft();
   const removeDraft = useDeleteStudioDraft();
   const [name, setName] = useState(loadedDraft?.name ?? '');
+  const [confirmDraft, setConfirmDraft] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -520,7 +656,6 @@ function StudioDraftsDialog({
   };
 
   const onDelete = (draft: { id: string; name: string }) => {
-    if (!window.confirm(t('confirmDeleteDraft', { name: draft.name }))) return;
     removeDraft.mutate(draft.id, {
       onSuccess: () => {
         if (loadedDraft?.id === draft.id) onLoaded(null);
@@ -635,7 +770,7 @@ function StudioDraftsDialog({
                       type="button"
                       title={t('deleteDraft')}
                       aria-label={t('deleteDraft')}
-                      onClick={() => onDelete(draft)}
+                      onClick={() => setConfirmDraft({ id: draft.id, name: draft.name })}
                       className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -648,6 +783,16 @@ function StudioDraftsDialog({
           </div>
         )}
       </div>
+
+      {confirmDraft && (
+        <ConfirmDialog
+          title={t('deleteDraft')}
+          body={t('confirmDeleteDraft', { name: confirmDraft.name })}
+          confirmLabel={t('delete')}
+          onConfirm={() => onDelete(confirmDraft)}
+          onClose={() => setConfirmDraft(null)}
+        />
+      )}
     </div>,
     document.body,
   );
@@ -676,15 +821,35 @@ export function StudioPage() {
   const addScene = useStudioStore((s) => s.addScene);
   const renameScene = useStudioStore((s) => s.renameScene);
   const deleteScene = useStudioStore((s) => s.deleteScene);
+  const duplicateScene = useStudioStore((s) => s.duplicateScene);
   const setActiveScene = useStudioStore((s) => s.setActiveScene);
   const setRoom = useStudioStore((s) => s.setRoom);
   const setSelected = useStudioStore((s) => s.setSelected);
   const setSelectedOpening = useStudioStore((s) => s.setSelectedOpening);
+  const recordHistory = useStudioStore((s) => s.recordHistory);
+  const undo = useStudioStore((s) => s.undo);
+  const redo = useStudioStore((s) => s.redo);
+  const canUndo = useStudioStore((s) => s.history.length > 0);
+  const canRedo = useStudioStore((s) => s.future.length > 0);
+  // draftul din cont incarcat/salvat ultima data — persistat in store (r2)
+  const loadedDraft = useStudioStore((s) => s.accountDraft);
+  const setLoadedDraft = useStudioStore((s) => s.setAccountDraft);
 
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [draftsOpen, setDraftsOpen] = useState(false);
-  // draftul din cont incarcat/salvat ultima data — tinta butonului "Actualizeaza"
-  const [loadedDraft, setLoadedDraft] = useState<{ id: string; name: string } | null>(null);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [confirmState, setConfirmState] = useState<{
+    title: string;
+    body?: string;
+    onConfirm: () => void;
+  } | null>(null);
+  // toastul de "nu incape" e limitat — sliderele trag continuu de resize
+  const blockedAtRef = useRef(0);
+  const blockedToast = () => {
+    if (Date.now() - blockedAtRef.current < 1600) return;
+    blockedAtRef.current = Date.now();
+    toast.error(t('resizeBlocked'));
+  };
 
   const pieceList = Object.values(pieces).sort((a, b) => b.updatedAt - a.updatedAt);
   const selected = scene.placements.find((p) => p.id === selectedId) ?? null;
@@ -707,6 +872,18 @@ export function StudioPage() {
         return;
       }
       const s = useStudioStore.getState();
+      // undo/redo global (Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y)
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        if (e.shiftKey) s.redo();
+        else s.undo();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+        e.preventDefault();
+        s.redo();
+        return;
+      }
       if (s.selectedId) {
         if (e.key === 'r' || e.key === 'R') rotatePlacement(s.selectedId);
         else if (e.key === 'Delete' || e.key === 'Backspace') removePlacement(s.selectedId);
@@ -738,18 +915,21 @@ export function StudioPage() {
     setEditor(null);
   };
 
-  const onDeletePiece = (piece: StudioPiece) => {
-    if (window.confirm(t('confirmDeletePiece', { name: piece.name }))) deletePiece(piece.id);
-  };
+  const onDeletePiece = (piece: StudioPiece) =>
+    setConfirmState({
+      title: t('delete'),
+      body: t('confirmDeletePiece', { name: piece.name }),
+      onConfirm: () => deletePiece(piece.id),
+    });
 
   const onAddScene = () => addScene(t('sceneDefaultName', { n: scenes.length + 1 }));
-  const onRenameScene = () => {
-    const name = window.prompt(t('renameScenePrompt'), scene.name);
-    if (name && name.trim()) renameScene(scene.id, name);
-  };
-  const onDeleteScene = () => {
-    if (window.confirm(t('confirmDeleteScene', { name: scene.name }))) deleteScene(scene.id);
-  };
+  const onDuplicateScene = () => duplicateScene(scene.id, t('sceneCopyName', { name: scene.name }));
+  const onDeleteScene = () =>
+    setConfirmState({
+      title: t('deleteScene'),
+      body: t('confirmDeleteScene', { name: scene.name }),
+      onConfirm: () => deleteScene(scene.id),
+    });
   const onAddOpening = (kind: StudioOpeningKind) => {
     if (!addOpening(kind)) toast.error(t('noSpaceForOpening'));
   };
@@ -849,11 +1029,22 @@ export function StudioPage() {
                     type="button"
                     title={t('renameScene')}
                     aria-label={t('renameScene')}
-                    onClick={onRenameScene}
+                    onClick={() => setRenameOpen(true)}
                     className="grid h-5 w-5 place-items-center rounded-full transition-colors hover:bg-white/20"
                   >
                     <Pencil className="h-3 w-3" />
                   </button>
+                  {scenes.length < STUDIO_MAX_SCENES && (
+                    <button
+                      type="button"
+                      title={t('duplicateScene')}
+                      aria-label={t('duplicateScene')}
+                      onClick={onDuplicateScene}
+                      className="grid h-5 w-5 place-items-center rounded-full transition-colors hover:bg-white/20"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </button>
+                  )}
                   {scenes.length > 1 && (
                     <button
                       type="button"
@@ -887,6 +1078,29 @@ export function StudioPage() {
                 {t('newScene')}
               </button>
             )}
+            {/* undo/redo — o intrare per actiune/gest, Ctrl+Z / Ctrl+Shift+Z */}
+            <div className="ml-auto flex items-center gap-1">
+              <button
+                type="button"
+                title={`${t('undo')} (Ctrl+Z)`}
+                aria-label={t('undo')}
+                disabled={!canUndo}
+                onClick={undo}
+                className="grid h-8 w-8 place-items-center rounded-md border border-border-2 bg-surface text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
+              >
+                <Undo2 className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                title={`${t('redo')} (Ctrl+Shift+Z)`}
+                aria-label={t('redo')}
+                disabled={!canRedo}
+                onClick={redo}
+                className="grid h-8 w-8 place-items-center rounded-md border border-border-2 bg-surface text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
+              >
+                <Redo2 className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           <div className="relative overflow-hidden rounded-2xl border border-border-2">
@@ -943,7 +1157,10 @@ export function StudioPage() {
                 opening={selectedOpening}
                 onCycle={() => cycleOpeningWall(selectedOpening.id)}
                 onRemove={() => removeOpening(selectedOpening.id)}
-                onResize={(patch) => resizeOpening(selectedOpening.id, patch)}
+                onResize={(patch) => {
+                  if (!resizeOpening(selectedOpening.id, patch)) blockedToast();
+                }}
+                onGestureStart={recordHistory}
               />
             )}
 
@@ -970,6 +1187,7 @@ export function StudioPage() {
               min={STUDIO_ROOM_LIMITS.width.min}
               max={STUDIO_ROOM_LIMITS.width.max}
               onValueM={(v) => setRoom({ widthM: v })}
+              onGestureStart={recordHistory}
             />
             <RoomDimControl
               label={t('depth')}
@@ -977,6 +1195,7 @@ export function StudioPage() {
               min={STUDIO_ROOM_LIMITS.depth.min}
               max={STUDIO_ROOM_LIMITS.depth.max}
               onValueM={(v) => setRoom({ depthM: v })}
+              onGestureStart={recordHistory}
             />
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium">{t('openingsLabel')}</span>
@@ -1007,7 +1226,10 @@ export function StudioPage() {
                     type="button"
                     title={s.id}
                     aria-label={`${t('walls')}: ${s.id}`}
-                    onClick={() => setRoom({ wallColor: s.id })}
+                    onClick={() => {
+                      recordHistory();
+                      setRoom({ wallColor: s.id });
+                    }}
                     className={cn(
                       'h-6 w-6 rounded-full border transition-transform',
                       scene.room.wallColor === s.id
@@ -1028,7 +1250,10 @@ export function StudioPage() {
                     type="button"
                     title={s.id}
                     aria-label={`${t('floor')}: ${s.id}`}
-                    onClick={() => setRoom({ floorColor: s.id })}
+                    onClick={() => {
+                      recordHistory();
+                      setRoom({ floorColor: s.id });
+                    }}
                     className={cn(
                       'h-6 w-6 rounded-full border transition-transform',
                       scene.room.floorColor === s.id
@@ -1067,6 +1292,26 @@ export function StudioPage() {
           loadedDraft={loadedDraft}
           onLoaded={setLoadedDraft}
           onClose={() => setDraftsOpen(false)}
+        />
+      )}
+
+      {renameOpen && (
+        <NameDialog
+          title={t('renameScene')}
+          initial={scene.name}
+          submitLabel={t('save')}
+          onSubmit={(name) => renameScene(scene.id, name)}
+          onClose={() => setRenameOpen(false)}
+        />
+      )}
+
+      {confirmState && (
+        <ConfirmDialog
+          title={confirmState.title}
+          body={confirmState.body}
+          confirmLabel={t('delete')}
+          onConfirm={confirmState.onConfirm}
+          onClose={() => setConfirmState(null)}
         />
       )}
     </div>

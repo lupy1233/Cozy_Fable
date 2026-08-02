@@ -2,7 +2,7 @@
 
 import { buildPanels, type Panel3d } from '@marketplace/shared';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { Html, Line, OrbitControls } from '@react-three/drei';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BufferGeometry, Float32BufferAttribute, Vector3, type Group } from 'three';
 import type { Camera } from 'three';
@@ -192,6 +192,76 @@ function PlacedPiece({ placement, piece, selected, overlapping, onPointerDown }:
           />
         </mesh>
       )}
+    </group>
+  );
+}
+
+// Cotele live in timpul mutarii unei piese (stil Sims): linii pe podea de la
+// muchiile piesei pana la pereti, cu distanta in cm pe fiecare — precizia de
+// 1cm devine vizibila, nu doar simtita (feedback PO r2, itemul 1).
+function DragDimensions({
+  placement,
+  piece,
+  room,
+}: {
+  placement: StudioPlacement;
+  piece: StudioPiece;
+  room: StudioRoom;
+}) {
+  const { hx, hz } = placementHalfExtents(piece.config, placement.rotation);
+  const y = 0.02;
+  const cm = (v: number) => `${Math.round(v * 100)} cm`;
+  const rails: { from: [number, number, number]; to: [number, number, number]; dist: number }[] = [
+    {
+      from: [-room.widthM / 2, y, placement.z],
+      to: [placement.x - hx, y, placement.z],
+      dist: placement.x - hx + room.widthM / 2,
+    },
+    {
+      from: [placement.x + hx, y, placement.z],
+      to: [room.widthM / 2, y, placement.z],
+      dist: room.widthM / 2 - (placement.x + hx),
+    },
+    {
+      from: [placement.x, y, -room.depthM / 2],
+      to: [placement.x, y, placement.z - hz],
+      dist: placement.z - hz + room.depthM / 2,
+    },
+    {
+      from: [placement.x, y, placement.z + hz],
+      to: [placement.x, y, room.depthM / 2],
+      dist: room.depthM / 2 - (placement.z + hz),
+    },
+  ];
+  return (
+    <group>
+      {rails
+        .filter((r) => r.dist > 0.015)
+        .map((r, i) => (
+          <group key={i}>
+            <Line points={[r.from, r.to]} color="#7a5638" lineWidth={1.5} dashed dashSize={0.06} gapSize={0.04} />
+            <Html
+              center
+              position={[(r.from[0] + r.to[0]) / 2, 0.05, (r.from[2] + r.to[2]) / 2]}
+              style={{ pointerEvents: 'none' }}
+            >
+              <span
+                style={{
+                  background: 'rgba(247,243,236,0.92)',
+                  border: '1px solid rgba(122,86,56,0.35)',
+                  borderRadius: '999px',
+                  padding: '1px 7px',
+                  fontSize: '11px',
+                  fontVariantNumeric: 'tabular-nums',
+                  color: '#5b4632',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {cm(r.dist)}
+              </span>
+            </Html>
+          </group>
+        ))}
     </group>
   );
 }
@@ -640,6 +710,8 @@ function StudioSceneView({ onDraggingChange }: { onDraggingChange: (v: boolean) 
   }, [dragging, camera, gl, room]);
 
   const startDrag = (state: DragState) => {
+    // o singura intrare de undo per gest — nu per pointermove
+    useStudioStore.getState().recordHistory();
     dragRef.current = state;
     setDragging(state);
     onDraggingChange(true);
@@ -711,6 +783,15 @@ function StudioSceneView({ onDraggingChange }: { onDraggingChange: (v: boolean) 
           />
         );
       })}
+
+      {/* cotele live cat timp se trage o piesa */}
+      {dragging?.type === 'piece' &&
+        (() => {
+          const placement = scene.placements.find((p) => p.id === dragging.id);
+          const piece = placement && pieces[placement.pieceId];
+          if (!placement || !piece) return null;
+          return <DragDimensions placement={placement} piece={piece} room={room} />;
+        })()}
     </group>
   );
 }
