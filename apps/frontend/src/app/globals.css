@@ -116,6 +116,71 @@
   input[type='radio'] {
     accent-color: hsl(var(--walnut));
   }
+
+  /* Slider-ele (range) — desenate identic pe TOATE browserele (feedback PO:
+     redarea nativa difera urat intre masini; accent-color nu ajunge). Banda
+     subtire calda + buton rotund de nuc cu inel de hartie, in limbajul
+     ATELIER. Se aplica global: buget, configurator 3D, Studio. */
+  input[type='range'] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 18px;
+    background: transparent;
+    cursor: pointer;
+  }
+  input[type='range']:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  input[type='range']::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 999px;
+    background: hsl(var(--border-2));
+  }
+  input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-top: -5px;
+    border-radius: 999px;
+    background: hsl(var(--walnut));
+    border: 2px solid hsl(var(--surface));
+    box-shadow: 0 1px 2px hsl(var(--walnut-deep) / 0.35);
+    transition: transform 0.12s ease;
+  }
+  input[type='range']:not(:disabled):hover::-webkit-slider-thumb,
+  input[type='range']:not(:disabled):active::-webkit-slider-thumb {
+    transform: scale(1.15);
+  }
+  input[type='range']::-moz-range-track {
+    height: 4px;
+    border-radius: 999px;
+    background: hsl(var(--border-2));
+  }
+  /* Firefox stie sa umple portiunea parcursa — bonus discret */
+  input[type='range']::-moz-range-progress {
+    height: 4px;
+    border-radius: 999px;
+    background: hsl(var(--walnut) / 0.5);
+  }
+  input[type='range']::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: hsl(var(--walnut));
+    border: 2px solid hsl(var(--surface));
+    box-shadow: 0 1px 2px hsl(var(--walnut-deep) / 0.35);
+  }
+  input[type='range']:focus-visible {
+    outline: none;
+  }
+  input[type='range']:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px hsl(var(--walnut) / 0.35);
+  }
+  input[type='range']:focus-visible::-moz-range-thumb {
+    box-shadow: 0 0 0 3px hsl(var(--walnut) / 0.35);
+  }
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans), system-ui, sans-serif;
