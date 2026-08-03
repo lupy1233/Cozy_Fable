@@ -1665,11 +1665,6 @@ export function StudioPage() {
               </div>
             )}
 
-            <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center">
-              <span className="rounded-full bg-surface/85 px-3 py-1 text-[11px] text-muted-foreground backdrop-blur">
-                {t('canvasHint')}
-              </span>
-            </div>
           </div>
 
           {/* controalele camerei */}

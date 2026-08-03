@@ -196,7 +196,6 @@
     "walls": "Pereți",
     "floor": "Podea",
     "clearRoom": "Golește camera",
-    "canvasHint": "Trage piesele și ușile/ferestrele ca să le muți • săgeți = 1 cm (Shift = 5) • R = rotire / alt perete • F = ecran complet • click pe podea = deselectare",
     "fullscreen": "Ecran complet",
     "exitFullscreen": "Ieși din ecran complet",
     "movePanel": "Trage ca să muți panoul • dublu-click = înapoi sus",

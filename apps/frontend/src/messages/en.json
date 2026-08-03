@@ -196,7 +196,6 @@
     "walls": "Walls",
     "floor": "Floor",
     "clearRoom": "Clear the room",
-    "canvasHint": "Drag pieces and doors/windows to move them • arrows = 1 cm (Shift = 5) • R = rotate / next wall • F = fullscreen • click the floor to deselect",
     "fullscreen": "Fullscreen",
     "exitFullscreen": "Exit fullscreen",
     "movePanel": "Drag to move the panel • double-click = back to top",
