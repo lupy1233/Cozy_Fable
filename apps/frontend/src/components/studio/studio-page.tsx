@@ -43,15 +43,18 @@ import { useConfiguratorStore } from '@/stores/configurator-store';
 import {
   OPENING_DIM_LIMITS,
   openingSize,
+  placementHalfExtents,
   STUDIO_MAX_SCENES,
   STUDIO_OPENING_KINDS,
   STUDIO_ROOM_LIMITS,
   useActiveScene,
   useStudioStore,
+  wallLength,
   type StudioDropPayload,
   type StudioOpening,
   type StudioOpeningKind,
   type StudioPiece,
+  type StudioRoom,
 } from '@/stores/studio-store';
 import { cn } from '@/lib/utils';
 import { FLOOR_COLORS, WALL_COLORS } from './palette';
@@ -396,6 +399,44 @@ function NameDialog({
   );
 }
 
+// Camp numeric compact pentru o distanta in cm (feedback PO r5: cu dragul e
+// greu sa nimeresti fix; aici scrii exact cati cm vrei pana la perete).
+// Draftul local se comite pe blur/Enter; parintele re-cheieaza campul cand
+// valoarea se schimba din alta parte (drag), ca sa ramana sincron.
+function GapField({
+  label,
+  valueM,
+  onCommit,
+}: {
+  label: string;
+  valueM: number;
+  onCommit: (m: number) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const commit = (raw: string) => {
+    const v = Number(raw);
+    if (raw.trim() !== '' && Number.isFinite(v) && v >= 0) onCommit(v / 100);
+    setDraft(null);
+  };
+  return (
+    <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
+      <span className="w-12 truncate text-right">{label}</span>
+      <input
+        type="number"
+        min={0}
+        value={draft ?? String(cm(valueM))}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={(e) => commit(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') commit((e.target as HTMLInputElement).value);
+        }}
+        className="h-6 w-14 rounded-md border border-border-2 bg-surface px-1 text-right text-[11px] tabular-nums focus-visible:border-foreground focus-visible:outline-none"
+      />
+      <span>cm</span>
+    </label>
+  );
+}
+
 // Slider compact pentru o dimensiune a golului selectat (cm) — folosit in
 // panoul plutitor; variantele ne-ajustabile (min == max) nu primesc slider.
 function OpeningDimSlider({
@@ -435,21 +476,36 @@ function OpeningDimSlider({
 // ale variantei (usa: latime/inaltime; fereastra: + parapet; priza: doar cota).
 function OpeningToolbar({
   opening,
+  room,
   onCycle,
   onRemove,
   onResize,
+  onMove,
   onGestureStart,
 }: {
   opening: StudioOpening;
+  room: StudioRoom;
   onCycle: () => void;
   onRemove: () => void;
   onResize: (patch: { w?: number; h?: number; sill?: number }) => void;
+  onMove: (offset: number) => void;
   onGestureStart: () => void;
 }) {
   const t = useTranslations('Studio');
   const lim = OPENING_DIM_LIMITS[opening.kind];
   const size = openingSize(opening);
   const adjustable = (r: { min: number; max: number }) => r.max - r.min > 0.001;
+  // pozitia pe perete, privind peretele DIN interior: stanga = capatul cu
+  // localul negativ (aceeasi conventie pe toti peretii)
+  const L = wallLength(room, opening.wall);
+  const sign = opening.wall === 'N' || opening.wall === 'E' ? 1 : -1;
+  const cx = sign * opening.offset;
+  const gapLeft = cx - size.w / 2 + L / 2;
+  const gapRight = L / 2 - (cx + size.w / 2);
+  const moveToLocal = (cxNew: number) => {
+    onGestureStart();
+    onMove(cxNew * sign);
+  };
   return (
     <div className="absolute left-1/2 top-3 flex -translate-x-1/2 flex-col gap-1.5 rounded-xl border border-border-2 bg-surface/95 px-3 py-2 shadow-md backdrop-blur">
       <div className="flex items-center justify-center gap-1">
@@ -474,6 +530,22 @@ function OpeningToolbar({
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
+      </div>
+      {/* distantele pana la capetele peretelui — editabile exact, la cm */}
+      <div
+        key={`${opening.id}:${opening.offset}`}
+        className="flex items-center justify-center gap-3"
+      >
+        <GapField
+          label={t('gapLeft')}
+          valueM={gapLeft}
+          onCommit={(g) => moveToLocal(-L / 2 + g + size.w / 2)}
+        />
+        <GapField
+          label={t('gapRight')}
+          valueM={gapRight}
+          onCommit={(g) => moveToLocal(L / 2 - g - size.w / 2)}
+        />
       </div>
       {(adjustable(lim.w) || adjustable(lim.h) || adjustable(lim.sill)) && (
         <div className="flex flex-col gap-1">
@@ -787,6 +859,8 @@ export function StudioPage() {
   const savePiece = useStudioStore((s) => s.savePiece);
   const deletePiece = useStudioStore((s) => s.deletePiece);
   const placePiece = useStudioStore((s) => s.placePiece);
+  const movePlacement = useStudioStore((s) => s.movePlacement);
+  const moveOpening = useStudioStore((s) => s.moveOpening);
   const rotatePlacement = useStudioStore((s) => s.rotatePlacement);
   const duplicatePlacement = useStudioStore((s) => s.duplicatePlacement);
   const removePlacement = useStudioStore((s) => s.removePlacement);
@@ -820,6 +894,8 @@ export function StudioPage() {
     body?: string;
     onConfirm: () => void;
   } | null>(null);
+  // sagetile misca selectia cu 1cm; o rafala de apasari = O intrare de undo
+  const nudgeAtRef = useRef(0);
   // toastul de "nu incape" e limitat — sliderele trag continuu de resize
   const blockedAtRef = useRef(0);
   const blockedToast = () => {
@@ -916,19 +992,47 @@ export function StudioPage() {
         s.redo();
         return;
       }
+      // sagetile = mutare fina la 1cm (Shift = 5cm) — precizia pe care dragul
+      // nu o poate garanta (feedback PO r5); rafala = o intrare de undo
+      const arrow = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key);
+      const nudge = () => {
+        if (Date.now() - nudgeAtRef.current > 800) s.recordHistory();
+        nudgeAtRef.current = Date.now();
+      };
+      const step = e.shiftKey ? 0.05 : 0.01;
+      const active = s.scenes.find((sc) => sc.id === s.activeSceneId);
       if (s.selectedId) {
         if (e.key === 'r' || e.key === 'R') rotatePlacement(s.selectedId);
         else if (e.key === 'Delete' || e.key === 'Backspace') removePlacement(s.selectedId);
         else if (e.key === 'Escape') setSelected(null);
+        else if (arrow) {
+          const p = active?.placements.find((pl) => pl.id === s.selectedId);
+          if (!p) return;
+          e.preventDefault();
+          nudge();
+          const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+          const dz = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+          movePlacement(p.id, p.x + dx, p.z + dz);
+        }
       } else if (s.selectedOpeningId) {
         if (e.key === 'r' || e.key === 'R') cycleOpeningWall(s.selectedOpeningId);
         else if (e.key === 'Delete' || e.key === 'Backspace') removeOpening(s.selectedOpeningId);
         else if (e.key === 'Escape') setSelectedOpening(null);
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+          const o = active?.openings.find((op) => op.id === s.selectedOpeningId);
+          if (!o) return;
+          e.preventDefault();
+          nudge();
+          // stanga/dreapta privind peretele din interior (local -x = stanga)
+          const sign = o.wall === 'N' || o.wall === 'E' ? 1 : -1;
+          const delta = (e.key === 'ArrowLeft' ? -1 : 1) * step * sign;
+          moveOpening(o.id, o.offset + delta);
+        }
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [editor, rotatePlacement, removePlacement, cycleOpeningWall, removeOpening, setSelected, setSelectedOpening]);
+  }, [editor, rotatePlacement, removePlacement, cycleOpeningWall, removeOpening, setSelected, setSelectedOpening, movePlacement, moveOpening]);
 
   const openNewPiece = () => setEditor({ kind: null, name: '', config: null });
   const openEditPiece = (piece: StudioPiece) =>
@@ -1146,9 +1250,11 @@ export function StudioPage() {
           <div className="relative overflow-hidden rounded-2xl border border-border-2">
             <RoomCanvas className="h-[380px] w-full sm:h-[520px]" />
 
-            {/* bara piesei selectate */}
+            {/* panoul piesei selectate: actiuni + distantele pana la pereti,
+                editabile la cm (feedback PO r5 — dragul nu nimereste fix) */}
             {selected && selectedPiece && (
-              <div className="absolute left-1/2 top-3 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border-2 bg-surface/95 px-2 py-1 shadow-md backdrop-blur">
+              <div className="absolute left-1/2 top-3 flex -translate-x-1/2 flex-col gap-1.5 rounded-xl border border-border-2 bg-surface/95 px-3 py-2 shadow-md backdrop-blur">
+              <div className="flex items-center justify-center gap-1">
                 <span className="max-w-[140px] truncate px-1.5 text-xs font-medium">
                   {selectedPiece.name}
                 </span>
@@ -1189,22 +1295,63 @@ export function StudioPage() {
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
+              {(() => {
+                const { hx, hz } = placementHalfExtents(selectedPiece.config, selected.rotation);
+                const roomW = scene.room.widthM;
+                const roomD = scene.room.depthM;
+                const moveTo = (x: number, z: number) => {
+                  recordHistory();
+                  movePlacement(selected.id, x, z);
+                };
+                return (
+                  <div
+                    key={`${selected.id}:${selected.x}:${selected.z}:${selected.rotation}`}
+                    className="grid grid-cols-2 gap-x-3 gap-y-1"
+                  >
+                    <GapField
+                      label={t('gapLeft')}
+                      valueM={selected.x - hx + roomW / 2}
+                      onCommit={(g) => moveTo(-roomW / 2 + g + hx, selected.z)}
+                    />
+                    <GapField
+                      label={t('gapRight')}
+                      valueM={roomW / 2 - (selected.x + hx)}
+                      onCommit={(g) => moveTo(roomW / 2 - g - hx, selected.z)}
+                    />
+                    <GapField
+                      label={t('gapBack')}
+                      valueM={selected.z - hz + roomD / 2}
+                      onCommit={(g) => moveTo(selected.x, -roomD / 2 + g + hz)}
+                    />
+                    <GapField
+                      label={t('gapFront')}
+                      valueM={roomD / 2 - (selected.z + hz)}
+                      onCommit={(g) => moveTo(selected.x, roomD / 2 - g - hz)}
+                    />
+                  </div>
+                );
+              })()}
+              </div>
             )}
 
             {/* panoul golului selectat (usa/fereastra/priza) cu dimensiuni */}
             {!selected && selectedOpening && (
               <OpeningToolbar
                 opening={selectedOpening}
+                room={scene.room}
                 onCycle={() => cycleOpeningWall(selectedOpening.id)}
                 onRemove={() => removeOpening(selectedOpening.id)}
                 onResize={(patch) => {
                   if (!resizeOpening(selectedOpening.id, patch)) blockedToast();
                 }}
+                onMove={(offset) => moveOpening(selectedOpening.id, offset)}
                 onGestureStart={recordHistory}
               />
             )}
 
-            {scene.placements.length === 0 && (
+            {/* indiciul de camera goala dispare la PRIMUL lucru asezat —
+                inclusiv usi/ferestre/prize — si cat timp tragi ceva din paleta */}
+            {scene.placements.length === 0 && scene.openings.length === 0 && !ghost && (
               <div className="pointer-events-none absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center">
                 <span className="rounded-full bg-surface/90 px-4 py-2 text-sm text-muted-foreground shadow-sm">
                   {t('emptyRoomHint')}

@@ -268,6 +268,68 @@ function DragDimensions({
   );
 }
 
+// Cotele live ale unui gol tras de-a lungul peretelui: distantele de la
+// muchiile lui pana la capetele peretelui, la inaltimea golului (feedback PO
+// r5 — aceeasi plansa ca la piese, pe verticala peretelui).
+function OpeningDragDimensions({ opening, room }: { opening: StudioOpening; room: StudioRoom }) {
+  const size = openingSize(opening);
+  const L = wallLength(room, opening.wall);
+  const y = size.sill + size.h / 2;
+  const cm = (v: number) => `${Math.round(v * 100)} cm`;
+  // pozitia 3D a unui punct de pe axa peretelui, usor desprins de perete
+  const at = (along: number): [number, number, number] => {
+    switch (opening.wall) {
+      case 'N':
+        return [along, y, -room.depthM / 2 + 0.03];
+      case 'S':
+        return [along, y, room.depthM / 2 - 0.03];
+      case 'E':
+        return [room.widthM / 2 - 0.03, y, along];
+      default:
+        return [-room.widthM / 2 + 0.03, y, along];
+    }
+  };
+  const rails = [
+    { from: at(-L / 2), to: at(opening.offset - size.w / 2), dist: opening.offset - size.w / 2 + L / 2 },
+    { from: at(opening.offset + size.w / 2), to: at(L / 2), dist: L / 2 - (opening.offset + size.w / 2) },
+  ];
+  return (
+    <group>
+      {rails
+        .filter((r) => r.dist > 0.015)
+        .map((r, i) => (
+          <group key={i}>
+            <Line points={[r.from, r.to]} color="#7a5638" lineWidth={1.5} dashed dashSize={0.06} gapSize={0.04} />
+            <Html
+              center
+              position={[
+                (r.from[0] + r.to[0]) / 2,
+                y + 0.06,
+                (r.from[2] + r.to[2]) / 2,
+              ]}
+              style={{ pointerEvents: 'none' }}
+            >
+              <span
+                style={{
+                  background: 'rgba(247,243,236,0.92)',
+                  border: '1px solid rgba(122,86,56,0.35)',
+                  borderRadius: '999px',
+                  padding: '1px 7px',
+                  fontSize: '11px',
+                  fontVariantNumeric: 'tabular-nums',
+                  color: '#5b4632',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {cm(r.dist)}
+              </span>
+            </Html>
+          </group>
+        ))}
+    </group>
+  );
+}
+
 // Grila podelei: linii la 0.5m — reper vizual; snap-ul real e la 1cm.
 export function FloorGrid({ w, d }: { w: number; d: number }) {
   const geometry = useMemo(() => {
@@ -857,13 +919,19 @@ function StudioSceneView({ onDraggingChange }: { onDraggingChange: (v: boolean) 
         );
       })}
 
-      {/* cotele live cat timp se trage o piesa */}
+      {/* cotele live cat timp se trage o piesa sau un gol */}
       {dragging?.type === 'piece' &&
         (() => {
           const placement = scene.placements.find((p) => p.id === dragging.id);
           const piece = placement && pieces[placement.pieceId];
           if (!placement || !piece) return null;
           return <DragDimensions placement={placement} piece={piece} room={room} />;
+        })()}
+      {dragging?.type === 'opening' &&
+        (() => {
+          const opening = scene.openings.find((o) => o.id === dragging.id);
+          if (!opening) return null;
+          return <OpeningDragDimensions opening={opening} room={room} />;
         })()}
     </group>
   );
