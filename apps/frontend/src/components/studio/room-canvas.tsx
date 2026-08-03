@@ -388,15 +388,20 @@ const NOOP_OPENING_HANDLERS: OpeningHandlers = {
 
 // Un gol in perete (coordonate locale): tocul, foaia de usa / geamul si
 // hit-target-ul invizibil pentru selectie + drag de-a lungul peretelui.
+// `interactive: false` (perete ascuns / mod viewer) scoate handlerele de tot:
+// fara ele, R3F nici nu mai raycasteaza golul — nu se poate selecta si nu mai
+// intercepteaza click-urile spre piesele din spatele lui (feedback PO r6).
 function OpeningMeshes({
   opening,
   cx,
   selected,
+  interactive,
   onPointerDown,
 }: {
   opening: StudioOpening;
   cx: number;
   selected: boolean;
+  interactive: boolean;
   onPointerDown: (e: ThreeEvent<PointerEvent>, opening: StudioOpening) => void;
 }) {
   const { w, h, sill } = openingSize(opening);
@@ -411,6 +416,23 @@ function OpeningMeshes({
       document.body.style.cursor = '';
     };
   }, [hovered]);
+  // peretele s-a ascuns cat timp golul era sub cursor → pointerout nu mai
+  // vine niciodata, cursorul ar ramane "grab"
+  useEffect(() => {
+    if (!interactive && hovered) setHovered(false);
+  }, [interactive, hovered]);
+
+  const handlerProps = interactive
+    ? {
+        onPointerDown: (e: ThreeEvent<PointerEvent>) => onPointerDown(e, opening),
+        onClick: (e: ThreeEvent<MouseEvent>) => e.stopPropagation(),
+        onPointerOver: (e: ThreeEvent<PointerEvent>) => {
+          e.stopPropagation();
+          setHovered(true);
+        },
+        onPointerOut: () => setHovered(false),
+      }
+    : {};
 
   const frameColor = selected ? HIGHLIGHT_COLOR : FRAME_COLOR;
   const bar = 0.06;
@@ -420,16 +442,7 @@ function OpeningMeshes({
     // priza: placa alba montata PE perete + doua "ochiuri"; hit-target mai
     // mare decat placa, altfel e greu de prins cu cursorul
     return (
-      <group
-        position={[cx, 0, 0]}
-        onPointerDown={(e) => onPointerDown(e, opening)}
-        onClick={(e) => e.stopPropagation()}
-        onPointerOver={(e) => {
-          e.stopPropagation();
-          setHovered(true);
-        }}
-        onPointerOut={() => setHovered(false)}
-      >
+      <group position={[cx, 0, 0]} {...handlerProps}>
         <mesh position={[0, sill + h / 2, 0]}>
           <boxGeometry args={[Math.max(0.24, w), Math.max(0.2, h), WALL_T + 0.06]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
@@ -456,16 +469,7 @@ function OpeningMeshes({
   }
 
   return (
-    <group
-      position={[cx, 0, 0]}
-      onPointerDown={(e) => onPointerDown(e, opening)}
-      onClick={(e) => e.stopPropagation()}
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        setHovered(true);
-      }}
-      onPointerOut={() => setHovered(false)}
-    >
+    <group position={[cx, 0, 0]} {...handlerProps}>
       {/* hit-target pe tot golul (opacitate 0 — visible:false ar opri raycastul) */}
       <mesh position={[0, sill + h / 2, 0]}>
         <boxGeometry args={[w, h, WALL_T + 0.05]} />
@@ -547,7 +551,7 @@ export function Walls({
   room,
   openings,
   color,
-  handlers = NOOP_OPENING_HANDLERS,
+  handlers,
 }: {
   room: StudioRoom;
   openings: StudioOpening[];
@@ -555,23 +559,39 @@ export function Walls({
   // lipsa = mod viewer (read-only): golurile nu se selecteaza si nu se trag
   handlers?: OpeningHandlers;
 }) {
+  const hs = handlers ?? NOOP_OPENING_HANDLERS;
   const refs = useRef<Partial<Record<StudioWall, Group | null>>>({});
   const camPos = useRef(new Vector3());
   const specs = useMemo(() => wallSpecs(room), [room]);
   const H = room.wallHeightM;
 
+  // vizibilitatea peretilor si in state React, nu doar pe grupurile three:
+  // golurile de pe peretii ascunsi isi pierd handlerele — nu se mai pot
+  // selecta si nu mai intercepteaza click-urile spre piesele din spate
+  // (feedback PO r6); setState DOAR la schimbare, orbita nu redeseneaza degeaba
+  const visRef = useRef<Record<StudioWall, boolean>>({ N: true, E: true, S: true, W: true });
+  const [visibleWalls, setVisibleWalls] = useState<Record<StudioWall, boolean>>(visRef.current);
+
   useFrame(({ camera }) => {
     camera.getWorldPosition(camPos.current);
-    const dbg: Record<string, unknown> = { cam: camPos.current.toArray() };
+    let changed = false;
+    const next = { ...visRef.current };
     for (const spec of specs) {
       const group = refs.current[spec.wall];
       if (!group) continue;
       const toCam =
         (camPos.current.x - spec.pos[0]) * spec.nx + (camPos.current.z - spec.pos[2]) * spec.nz;
-      group.visible = toCam < 0;
-      dbg[spec.wall] = group.visible;
+      const visible = toCam < 0;
+      group.visible = visible;
+      if (next[spec.wall] !== visible) {
+        next[spec.wall] = visible;
+        changed = true;
+      }
     }
-    (window as unknown as Record<string, unknown>).__wallsDbg = dbg;
+    if (changed) {
+      visRef.current = next;
+      setVisibleWalls(next);
+    }
   });
 
   return (
@@ -632,8 +652,9 @@ export function Walls({
                   <OpeningMeshes
                     opening={opening}
                     cx={cx}
-                    selected={handlers.selectedOpeningId === opening.id}
-                    onPointerDown={handlers.onOpeningPointerDown}
+                    selected={hs.selectedOpeningId === opening.id}
+                    interactive={handlers !== undefined && visibleWalls[spec.wall]}
+                    onPointerDown={hs.onOpeningPointerDown}
                   />
                 </group>
               );
