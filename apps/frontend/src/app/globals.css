@@ -181,6 +181,24 @@
   input[type='range']:focus-visible::-moz-range-thumb {
     box-shadow: 0 0 0 3px hsl(var(--walnut) / 0.35);
   }
+
+  /* Turul de invatare din Studio: tinta misiunii curente pulseaza discret cu
+     un inel de nuc care se dilata si se stinge — arata incotro sa privesti
+     fara sa acopere nimic. Urmeaza border-radius-ul elementului. */
+  .tut-pulse {
+    animation: tutPulse 1.7s ease-out infinite;
+  }
+  @keyframes tutPulse {
+    0% {
+      box-shadow: 0 0 0 0 hsl(var(--walnut) / 0.45);
+    }
+    70% {
+      box-shadow: 0 0 0 7px hsl(var(--walnut) / 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 hsl(var(--walnut) / 0);
+    }
+  }
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans), system-ui, sans-serif;

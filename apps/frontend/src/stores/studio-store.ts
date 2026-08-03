@@ -292,6 +292,17 @@ interface StudioStore {
   // draftul din cont incarcat/salvat ultima data — tinta "Actualizeaza";
   // persistat, ca butonul sa supravietuiasca refresh-ului (feedback PO r2)
   accountDraft: { id: string; name: string } | null;
+  // pozitia panoului plutitor de selectie in fereastra 3D (px fata de coltul
+  // stanga-sus al canvasului); null = implicita, sus-centrat. Persistata —
+  // odata mutat, panoul ramane unde l-a asezat utilizatorul (feedback PO).
+  panelPos: { x: number; y: number } | null;
+  // turul de invatare cu misiuni: true dupa ce a fost parcurs SAU refuzat —
+  // invitatia nu se mai deschide singura; se reia din butonul "?" (persistat)
+  tutorialSeen: boolean;
+  // contor de inlocuiri "in masa" ale continutului (undo/redo/incarcare draft),
+  // nepersistat: detectoarele turului sar peste aceste tranzitii — nu sunt
+  // gesturi ale utilizatorului si nu trebuie sa bifeze misiuni
+  bulkOps: number;
 
   savePiece: (input: {
     id?: string;
@@ -339,6 +350,8 @@ interface StudioStore {
 
   setAccountDraft: (draft: { id: string; name: string } | null) => void;
   setDropPayload: (payload: StudioDropPayload | null) => void;
+  setPanelPos: (pos: { x: number; y: number } | null) => void;
+  setTutorialSeen: (seen: boolean) => void;
 
   snapshot: () => StudioDraftData;
   loadSnapshot: (snapshot: StudioDraftData) => void;
@@ -383,6 +396,9 @@ export const useStudioStore = create<StudioStore>()(
         future: [],
         accountDraft: null,
         dropPayload: null,
+        panelPos: null,
+        tutorialSeen: false,
+        bulkOps: 0,
 
         savePiece: ({ id, name, kind, config }) => {
           const piece: StudioPiece = {
@@ -797,6 +813,7 @@ export const useStudioStore = create<StudioStore>()(
               future: [...s.future.slice(-(HISTORY_CAP - 1)), currentData(s)],
               selectedId: null,
               selectedOpeningId: null,
+              bulkOps: s.bulkOps + 1,
             };
           }),
 
@@ -812,11 +829,15 @@ export const useStudioStore = create<StudioStore>()(
               history: [...s.history.slice(-(HISTORY_CAP - 1)), currentData(s)],
               selectedId: null,
               selectedOpeningId: null,
+              bulkOps: s.bulkOps + 1,
             };
           }),
 
         setAccountDraft: (draft) => set({ accountDraft: draft }),
         setDropPayload: (payload) => set({ dropPayload: payload }),
+        // pozitia panoului nu intra in istorie/snapshot — e preferinta de UI
+        setPanelPos: (pos) => set({ panelPos: pos }),
+        setTutorialSeen: (seen) => set({ tutorialSeen: seen }),
 
         snapshot: () => {
           const s = get();
@@ -851,6 +872,7 @@ export const useStudioStore = create<StudioStore>()(
               activeSceneId,
               selectedId: null,
               selectedOpeningId: null,
+              bulkOps: s.bulkOps + 1,
               ...remember(s),
             };
           }),
@@ -879,6 +901,8 @@ export const useStudioStore = create<StudioStore>()(
         scenes: s.scenes,
         activeSceneId: s.activeSceneId,
         accountDraft: s.accountDraft,
+        panelPos: s.panelPos,
+        tutorialSeen: s.tutorialSeen,
       }),
     },
   ),

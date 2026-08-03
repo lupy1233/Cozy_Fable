@@ -196,7 +196,67 @@
     "walls": "Walls",
     "floor": "Floor",
     "clearRoom": "Clear the room",
-    "canvasHint": "Drag pieces and doors/windows to move them • arrows = 1 cm (Shift = 5) • R = rotate / next wall • click the floor to deselect",
+    "canvasHint": "Drag pieces and doors/windows to move them • arrows = 1 cm (Shift = 5) • R = rotate / next wall • F = fullscreen • click the floor to deselect",
+    "fullscreen": "Fullscreen",
+    "exitFullscreen": "Exit fullscreen",
+    "movePanel": "Drag to move the panel • double-click = back to top",
+    "tutorial": {
+      "replay": "Learning tour",
+      "welcomeTitle": "Welcome to the 3D Studio!",
+      "welcomeBody": "This is the play-house: build your furniture pieces one by one, arrange them in a 3D room and, when you love the result, send them straight into a request. Take the short mission tour — you'll learn everything the studio can do in two minutes.",
+      "start": "Start the tour",
+      "skipAll": "I'll explore on my own",
+      "missionLabel": "Mission {n} of {total}",
+      "done": "Mission accomplished!",
+      "skipStep": "Skip this step",
+      "closeTour": "Close the tour",
+      "steps": {
+        "createPiece": {
+          "title": "Your first piece",
+          "body": "Press “New piece” in the left panel, pick a body type and shape it with the sliders. When you save, the piece lands right in the room."
+        },
+        "orbit": {
+          "title": "Take a walk around it",
+          "body": "Hold the mouse down on an empty part of the room and move it to orbit the view; scroll to zoom in and out."
+        },
+        "movePiece": {
+          "title": "Put it in its place",
+          "body": "Grab the piece and drag it across the floor. For precision: arrow keys move it 1 cm (Shift = 5), and in the floating panel you can type the exact distance to each wall."
+        },
+        "rotatePiece": {
+          "title": "Face it the right way",
+          "body": "Select the piece with a click, then press R — or the rotate button in the floating panel."
+        },
+        "addOpening": {
+          "title": "Cut a door or a window",
+          "body": "In the bar under the room, click a door, window or outlet to put it on a wall — or drag it straight onto the wall you want."
+        },
+        "adjustOpening": {
+          "title": "Fit it to the wall",
+          "body": "With the opening selected, slide it along the wall or adjust its dimensions in the panel. R moves it to the next wall."
+        },
+        "styleRoom": {
+          "title": "Make the room yours",
+          "body": "Same bottom bar: set the room's width and depth to the centimetre and pick the wall and floor colours."
+        },
+        "addScene": {
+          "title": "One more room",
+          "body": "A project can hold several rooms. Press “New room” above the scene — then hop between them from the tabs, each with its own pieces."
+        },
+        "undo": {
+          "title": "No regrets",
+          "body": "Broke something? Ctrl+Z steps back, Ctrl+Shift+Z redoes. Try one step back right now.",
+          "hint": "Nothing to undo yet — make a small change first (nudge the piece with an arrow key), then press Ctrl+Z."
+        }
+      },
+      "finaleTitle": "Done — you're at home now!",
+      "finaleBody": "You've covered everything that matters. A few craftsman's tools before you go:",
+      "finaleTip1": "“My drafts” saves the project to your account — pick it up again anytime.",
+      "finaleTip2": "F = fullscreen, and the floating panel moves by its grip, wherever you like it.",
+      "finaleTip3": "“Add to request” sends the whole room into the form — companies see exactly what you built.",
+      "finaleReplay": "Replay the tour anytime from the “?” button above the room.",
+      "finaleCta": "Let's build!"
+    },
     "emptyRoomHint": "The room is empty — place pieces from the “My pieces” panel.",
     "sendToRequest": "Add to request",
     "sendHint": "The pieces in the current room enter the form as pre-configured 3D bodies; you only pick the material and details.",

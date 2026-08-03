@@ -11,7 +11,11 @@ import {
   ArrowLeftRight,
   Copy,
   FolderOpen,
+  GripVertical,
+  HelpCircle,
   Loader2,
+  Maximize2,
+  Minimize2,
   Pencil,
   Plus,
   Redo2,
@@ -24,7 +28,7 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useRouter } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
@@ -59,6 +63,7 @@ import {
 import { cn } from '@/lib/utils';
 import { FLOOR_COLORS, WALL_COLORS } from './palette';
 import { OpeningPreview, PiecePreview } from './previews';
+import { StudioTutorial, tutorialTargetFor, type TutorialPhase } from './tutorial';
 
 // Studio 3D — "modul Sims" al platformei: joc de amenajare SEPARAT de
 // formular. Biblioteca de piese (create cu acelasi configurator 3D ca in
@@ -88,6 +93,21 @@ const KIND_TO_ROOM: Record<Piece3dKind, RoomType> = {
 
 const cm = (v: number) => Math.round(v * 100);
 
+// Incuietoare numarata pe scrollul paginii: fullscreen-ul si editorul de piesa
+// o pot tine SIMULTAN, iar eliberarile in ORICE ordine (ex. browserul iese
+// singur din fullscreen nativ cat timp editorul e inca deschis) nu lasa
+// body-ul intepenit pe overflow:hidden, cum o faceau perechile save/restore.
+let bodyScrollLocks = 0;
+function lockBodyScroll(): () => void {
+  if (++bodyScrollLocks === 1) document.body.style.overflow = 'hidden';
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    if (--bodyScrollLocks === 0) document.body.style.overflow = '';
+  };
+}
+
 interface EditorState {
   pieceId?: string;
   kind: Piece3dKind | null;
@@ -116,13 +136,7 @@ function PieceEditorDialog({
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, []);
+  useEffect(() => lockBodyScroll(), []);
 
   return createPortal(
     <div
@@ -472,6 +486,115 @@ function OpeningDimSlider({
   );
 }
 
+// pozitia panoului ramane in cadru: minim 4px fata de fiecare margine
+function clampPanelPos(
+  container: HTMLElement,
+  panel: HTMLElement | null,
+  p: { x: number; y: number },
+): { x: number; y: number } {
+  if (!panel) return p;
+  return {
+    x: Math.min(Math.max(p.x, 4), Math.max(4, container.clientWidth - panel.offsetWidth - 4)),
+    y: Math.min(Math.max(p.y, 4), Math.max(4, container.clientHeight - panel.offsetHeight - 4)),
+  };
+}
+
+// Cochilia panourilor plutitoare din fereastra 3D (piesa/gol selectat).
+// Feedback PO: panoul de sus poate acoperi exact ce vrei sa vezi — manerul
+// din stanga il muta oriunde in canvas (dublu-click = inapoi sus-centrat),
+// iar pozitia aleasa se pastreaza intre selectii si peste refresh (store).
+function FloatingPanel({
+  canvasRef,
+  children,
+}: {
+  canvasRef: React.RefObject<HTMLDivElement | null>;
+  children: ReactNode;
+}) {
+  const t = useTranslations('Studio');
+  const pos = useStudioStore((s) => s.panelPos);
+  const setPos = useStudioStore((s) => s.setPanelPos);
+  const ref = useRef<HTMLDivElement>(null);
+  const posRef = useRef(pos);
+  posRef.current = pos;
+
+  // panoul nu ramane in afara cadrului cand canvasul isi schimba marimea
+  // (toggle fullscreen, resize fereastra) sau cand apare cu alta latime
+  useEffect(() => {
+    const container = canvasRef.current;
+    if (!container) return;
+    const reclamp = () => {
+      const p = posRef.current;
+      if (!p) return;
+      // un container inca ne-asezat (0x0, ex. in timpul unui remount) ar
+      // strivi pozitia in coltul {4,4} — nu re-clampam pe dimensiuni fantoma
+      if (container.clientWidth < 50 || container.clientHeight < 50) return;
+      const next = clampPanelPos(container, ref.current, p);
+      if (next.x !== p.x || next.y !== p.y) setPos(next);
+    };
+    reclamp();
+    const ro = new ResizeObserver(reclamp);
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [canvasRef, setPos]);
+
+  const onGripDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const panel = ref.current;
+    const container = canvasRef.current;
+    if (!panel || !container) return;
+    const panelRect = panel.getBoundingClientRect();
+    const grab = { dx: e.clientX - panelRect.left, dy: e.clientY - panelRect.top };
+    // urmarim DOAR pointerul care a apucat manerul (pe touch, un al doilea
+    // deget care roteste camera nu are voie sa smuceasca panoul)
+    const pointerId = e.pointerId;
+    const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      const c = canvasRef.current;
+      if (!c || !ref.current) return;
+      const rect = c.getBoundingClientRect();
+      setPos(
+        clampPanelPos(c, ref.current, {
+          x: ev.clientX - rect.left - grab.dx,
+          y: ev.clientY - rect.top - grab.dy,
+        }),
+      );
+    };
+    const onUp = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      document.body.style.cursor = '';
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    document.body.style.cursor = 'grabbing';
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
+  return (
+    <div
+      ref={ref}
+      style={pos ? { left: pos.x, top: pos.y } : undefined}
+      className={cn(
+        'absolute flex items-stretch rounded-xl border border-border-2 bg-surface/95 py-2 pl-1 pr-3 shadow-md backdrop-blur',
+        !pos && 'left-1/2 top-3 -translate-x-1/2',
+      )}
+    >
+      <button
+        type="button"
+        title={t('movePanel')}
+        aria-label={t('movePanel')}
+        onPointerDown={onGripDown}
+        onDoubleClick={() => setPos(null)}
+        className="flex cursor-grab touch-none select-none items-center rounded-lg px-0.5 text-muted-foreground/60 transition-colors hover:bg-secondary hover:text-foreground"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <div className="flex min-w-0 flex-col gap-1.5 pl-1">{children}</div>
+    </div>
+  );
+}
+
 // Panoul golului selectat: nume + mutare/stergere + dimensiunile ajustabile
 // ale variantei (usa: latime/inaltime; fereastra: + parapet; priza: doar cota).
 function OpeningToolbar({
@@ -507,7 +630,7 @@ function OpeningToolbar({
     onMove(cxNew * sign);
   };
   return (
-    <div className="absolute left-1/2 top-3 flex -translate-x-1/2 flex-col gap-1.5 rounded-xl border border-border-2 bg-surface/95 px-3 py-2 shadow-md backdrop-blur">
+    <>
       <div className="flex items-center justify-center gap-1">
         <span className="max-w-[160px] truncate px-1 text-xs font-medium">
           {t(`openings.${opening.kind}`)}
@@ -581,7 +704,7 @@ function OpeningToolbar({
           )}
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -894,6 +1017,84 @@ export function StudioPage() {
     body?: string;
     onConfirm: () => void;
   } | null>(null);
+
+  // turul de invatare cu misiuni: la prima vizita se deschide invitatia;
+  // dupa aceea (parcurs sau refuzat) se reia doar din butonul "?"
+  const [tutorial, setTutorial] = useState<TutorialPhase>(null);
+  useEffect(() => {
+    if (!useStudioStore.getState().tutorialSeen) setTutorial('welcome');
+  }, []);
+  const tutTarget = tutorialTargetFor(tutorial);
+  const tutorialModalOpen = tutorial === 'welcome' || tutorial === 'finale';
+
+  // Ecran complet (feedback PO: prea multe panouri pentru spatiul din pagina):
+  // studioul devine un overlay fixed peste tot viewportul (sub dialoguri, care
+  // stau la z-50+), iar unde browserul permite cerem si fullscreen nativ —
+  // daca refuza (ex. iframe), ramane overlay-ul, tot un castig de spatiu.
+  const [fullscreen, setFullscreen] = useState(false);
+  const enterFullscreen = useCallback(() => {
+    setFullscreen(true);
+    document.documentElement.requestFullscreen?.().catch(() => {});
+  }, []);
+  const exitFullscreen = useCallback(() => {
+    setFullscreen(false);
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  }, []);
+  const toggleFullscreen = fullscreen ? exitFullscreen : enterFullscreen;
+
+  // oglinzi pentru listenerul de fullscreenchange (montat o singura data):
+  // starea overlay-ului + "e ceva deschis" (selectie/dialog) + momentul unui
+  // Esc cheltuit pe altceva decat iesirea din fullscreen
+  const fullscreenRef = useRef(fullscreen);
+  fullscreenRef.current = fullscreen;
+  const fsGuardRef = useRef({ escAt: 0, busy: false });
+  fsGuardRef.current.busy = !!(
+    editor ||
+    draftsOpen ||
+    renameOpen ||
+    confirmState ||
+    tutorialModalOpen ||
+    selectedId ||
+    selectedOpeningId
+  );
+
+  // Browserul iese SINGUR din fullscreen nativ la Esc (necancelabil). Ca sa
+  // pastram ordinea "Esc inchide intai selectia/dialogul", la o iesire nativa
+  // provocata de un asemenea Esc (sau cu ceva inca deschis — Firefox/Safari
+  // inghit keydown-ul) retrogradam la modul overlay in loc sa inchidem tot;
+  // abia urmatorul Esc inchide overlay-ul. Sensul invers: daca intrarea
+  // nativa aterizeaza dupa ce utilizatorul s-a razgandit (toggle rapid in
+  // timpul tranzitiei), reconciliem iesind imediat din nativ.
+  useEffect(() => {
+    const onChange = () => {
+      if (document.fullscreenElement) {
+        if (!fullscreenRef.current) document.exitFullscreen().catch(() => {});
+        return;
+      }
+      const g = fsGuardRef.current;
+      if (fullscreenRef.current && (g.busy || Date.now() - g.escAt < 500)) return;
+      setFullscreen(false);
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  // la parasirea paginii (ex. "Adauga in cerere") nu lasam browserul in
+  // fullscreen nativ fara studioul care l-a cerut
+  useEffect(
+    () => () => {
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    },
+    [],
+  );
+
+  // overlay-ul acopera pagina — nu lasam fundalul sa se plimbe sub el
+  useEffect(() => {
+    if (!fullscreen) return;
+    return lockBodyScroll();
+  }, [fullscreen]);
+  // cadrul ferestrei 3D — reperul fata de care se muta panoul plutitor
+  const canvasWrapRef = useRef<HTMLDivElement>(null);
   // sagetile misca selectia cu 1cm; o rafala de apasari = O intrare de undo
   const nudgeAtRef = useRef(0);
   // toastul de "nu incape" e limitat — sliderele trag continuu de resize
@@ -968,17 +1169,24 @@ export function StudioPage() {
   // Delete = scoate, Escape = deselectare
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (editor) return;
       const target = e.target as HTMLElement | null;
-      if (
-        target &&
+      const inField =
+        !!target &&
         (target.tagName === 'INPUT' ||
           target.tagName === 'TEXTAREA' ||
           target.tagName === 'SELECT' ||
-          target.isContentEditable)
-      ) {
-        return;
+          target.isContentEditable);
+      // Esc "cheltuit" pe altceva (editor, dialog, selectie, camp focusat) e
+      // memorat: iesirea din fullscreen nativ provocata de acelasi Esc nu
+      // trebuie sa inchida si overlay-ul (vezi listenerul de fullscreenchange)
+      if (e.key === 'Escape' && (inField || fsGuardRef.current.busy)) {
+        fsGuardRef.current.escAt = Date.now();
       }
+      // dialogurile turului isi asculta singure Esc-ul; restul scurtaturilor
+      // (Delete/R/sageti) n-au voie sa actioneze in scena din spatele lor
+      if (tutorialModalOpen) return;
+      if (editor) return;
+      if (inField) return;
       const s = useStudioStore.getState();
       // undo/redo global (Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y)
       if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
@@ -990,6 +1198,21 @@ export function StudioPage() {
       if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
         e.preventDefault();
         s.redo();
+        return;
+      }
+      // F = ecran complet on/off (scurtatura de joc, in familia lui R);
+      // nu din dialoguri si nu pe auto-repeat (tinuta apasata, ar stroboscopa)
+      if (
+        (e.key === 'f' || e.key === 'F') &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        !e.repeat &&
+        !draftsOpen &&
+        !renameOpen &&
+        !confirmState
+      ) {
+        toggleFullscreen();
         return;
       }
       // sagetile = mutare fina la 1cm (Shift = 5cm) — precizia pe care dragul
@@ -1028,11 +1251,20 @@ export function StudioPage() {
           const delta = (e.key === 'ArrowLeft' ? -1 : 1) * step * sign;
           moveOpening(o.id, o.offset + delta);
         }
+      } else if (
+        e.key === 'Escape' &&
+        fullscreen &&
+        !draftsOpen &&
+        !renameOpen &&
+        !confirmState
+      ) {
+        // Esc inchide intai selectia/dialogul; abia fara ele iese din fullscreen
+        exitFullscreen();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [editor, rotatePlacement, removePlacement, cycleOpeningWall, removeOpening, setSelected, setSelectedOpening, movePlacement, moveOpening]);
+  }, [editor, fullscreen, draftsOpen, renameOpen, confirmState, tutorialModalOpen, toggleFullscreen, exitFullscreen, rotatePlacement, removePlacement, cycleOpeningWall, removeOpening, setSelected, setSelectedOpening, movePlacement, moveOpening]);
 
   const openNewPiece = () => setEditor({ kind: null, name: '', config: null });
   const openEditPiece = (piece: StudioPiece) =>
@@ -1095,11 +1327,20 @@ export function StudioPage() {
   };
 
   return (
-    <div className="flex flex-col gap-5">
+    <div
+      className={cn(
+        'flex flex-col gap-5',
+        // overlay-ul fullscreen: peste header/footer (z-30), sub dialoguri
+        // (z-50+); sub lg pastreaza curgerea normala si se deruleaza
+        fullscreen && 'fixed inset-0 z-40 gap-3 overflow-y-auto bg-background p-3 sm:p-4',
+      )}
+    >
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="max-w-2xl">
-          <h1 className="font-serif text-3xl leading-tight">{t('title')}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
+          <h1 className={cn('font-serif leading-tight', fullscreen ? 'text-xl' : 'text-3xl')}>
+            {t('title')}
+          </h1>
+          {!fullscreen && <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={() => setDraftsOpen(true)}>
@@ -1123,14 +1364,32 @@ export function StudioPage() {
         </div>
       </div>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
+      <div
+        className={cn(
+          'grid items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)]',
+          // pe desktop grila umple restul ecranului, iar coloanele se intind
+          fullscreen && 'lg:min-h-0 lg:flex-1 lg:items-stretch',
+        )}
+      >
         {/* biblioteca de piese */}
-        <aside className="flex flex-col gap-3 rounded-2xl border border-border-2 bg-surface-2/50 p-3">
+        <aside
+          className={cn(
+            'flex flex-col gap-3 rounded-2xl border border-border-2 bg-surface-2/50 p-3',
+            fullscreen && 'lg:min-h-0',
+          )}
+        >
+          {/* jurnalul de misiuni al turului — andocat deasupra bibliotecii */}
+          <StudioTutorial phase={tutorial} onPhase={setTutorial} canvasRef={canvasWrapRef} />
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               {t('library')}
             </h2>
-            <Button size="sm" variant="outline" onClick={openNewPiece}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={openNewPiece}
+              className={cn(tutTarget === 'newPiece' && 'tut-pulse')}
+            >
               <Plus className="h-4 w-4" />
               {t('newPiece')}
             </Button>
@@ -1140,7 +1399,13 @@ export function StudioPage() {
               {t('libraryEmpty')}
             </p>
           ) : (
-            <ul className="flex max-h-[430px] flex-col gap-2 overflow-y-auto pr-0.5">
+            <ul
+              className={cn(
+                'flex max-h-[430px] flex-col gap-2 overflow-y-auto pr-0.5',
+                // in fullscreen lista foloseste toata inaltimea coloanei
+                fullscreen && 'lg:min-h-0 lg:max-h-none lg:flex-1',
+              )}
+            >
               {pieceList.map((piece) => (
                 <LibraryRow
                   key={piece.id}
@@ -1159,7 +1424,7 @@ export function StudioPage() {
         </aside>
 
         {/* camerele + scena 3D */}
-        <div className="flex flex-col gap-3">
+        <div className={cn('flex flex-col gap-3', fullscreen && 'lg:min-h-0')}>
           {/* taburile camerelor: te plimbi intre scenele apartamentului */}
           <div className="flex flex-wrap items-center gap-1.5">
             {scenes.map((sc) =>
@@ -1216,7 +1481,10 @@ export function StudioPage() {
               <button
                 type="button"
                 onClick={onAddScene}
-                className="inline-flex items-center gap-1 rounded-full border border-dashed border-border-2 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-walnut/60 hover:text-walnut"
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full border border-dashed border-border-2 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-walnut/60 hover:text-walnut',
+                  tutTarget === 'newScene' && 'tut-pulse',
+                )}
               >
                 <Plus className="h-3.5 w-3.5" />
                 {t('newScene')}
@@ -1230,7 +1498,11 @@ export function StudioPage() {
                 aria-label={t('undo')}
                 disabled={!canUndo}
                 onClick={undo}
-                className="grid h-8 w-8 place-items-center rounded-md border border-border-2 bg-surface text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
+                className={cn(
+                  'grid h-8 w-8 place-items-center rounded-md border border-border-2 bg-surface text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40',
+                  // nu pulsam un buton stins — cardul misiunii explica intai
+                  tutTarget === 'undo' && canUndo && 'tut-pulse',
+                )}
               >
                 <Undo2 className="h-4 w-4" />
               </button>
@@ -1244,16 +1516,45 @@ export function StudioPage() {
               >
                 <Redo2 className="h-4 w-4" />
               </button>
+              <button
+                type="button"
+                title={`${t(fullscreen ? 'exitFullscreen' : 'fullscreen')} (F)`}
+                aria-label={t(fullscreen ? 'exitFullscreen' : 'fullscreen')}
+                onClick={toggleFullscreen}
+                className="grid h-8 w-8 place-items-center rounded-md border border-border-2 bg-surface text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </button>
+              <button
+                type="button"
+                title={t('tutorial.replay')}
+                aria-label={t('tutorial.replay')}
+                onClick={() => setTutorial('welcome')}
+                className="grid h-8 w-8 place-items-center rounded-md border border-border-2 bg-surface text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </button>
             </div>
           </div>
 
-          <div className="relative overflow-hidden rounded-2xl border border-border-2">
-            <RoomCanvas className="h-[380px] w-full sm:h-[520px]" />
+          <div
+            ref={canvasWrapRef}
+            className={cn(
+              'relative overflow-hidden rounded-2xl border border-border-2',
+              // canvasul preia tot spatiul ramas; sub o limita rezonabila
+              // lasam pagina sa se deruleze in loc sa strivim scena
+              fullscreen && 'lg:min-h-[320px] lg:flex-1',
+              tutTarget === 'orbit' && 'tut-pulse',
+            )}
+          >
+            <RoomCanvas
+              className={cn('h-[380px] w-full sm:h-[520px]', fullscreen && 'lg:h-full')}
+            />
 
             {/* panoul piesei selectate: actiuni + distantele pana la pereti,
                 editabile la cm (feedback PO r5 — dragul nu nimereste fix) */}
             {selected && selectedPiece && (
-              <div className="absolute left-1/2 top-3 flex -translate-x-1/2 flex-col gap-1.5 rounded-xl border border-border-2 bg-surface/95 px-3 py-2 shadow-md backdrop-blur">
+              <FloatingPanel canvasRef={canvasWrapRef}>
               <div className="flex items-center justify-center gap-1">
                 <span className="max-w-[140px] truncate px-1.5 text-xs font-medium">
                   {selectedPiece.name}
@@ -1272,7 +1573,10 @@ export function StudioPage() {
                   title={`${t('rotate')} (R)`}
                   aria-label={t('rotate')}
                   onClick={() => rotatePlacement(selected.id)}
-                  className="grid h-7 w-7 place-items-center rounded-full text-walnut transition-colors hover:bg-walnut-soft"
+                  className={cn(
+                    'grid h-7 w-7 place-items-center rounded-full text-walnut transition-colors hover:bg-walnut-soft',
+                    tutTarget === 'rotate' && 'tut-pulse',
+                  )}
                 >
                   <RotateCw className="h-3.5 w-3.5" />
                 </button>
@@ -1331,22 +1635,24 @@ export function StudioPage() {
                   </div>
                 );
               })()}
-              </div>
+              </FloatingPanel>
             )}
 
             {/* panoul golului selectat (usa/fereastra/priza) cu dimensiuni */}
             {!selected && selectedOpening && (
-              <OpeningToolbar
-                opening={selectedOpening}
-                room={scene.room}
-                onCycle={() => cycleOpeningWall(selectedOpening.id)}
-                onRemove={() => removeOpening(selectedOpening.id)}
-                onResize={(patch) => {
-                  if (!resizeOpening(selectedOpening.id, patch)) blockedToast();
-                }}
-                onMove={(offset) => moveOpening(selectedOpening.id, offset)}
-                onGestureStart={recordHistory}
-              />
+              <FloatingPanel canvasRef={canvasWrapRef}>
+                <OpeningToolbar
+                  opening={selectedOpening}
+                  room={scene.room}
+                  onCycle={() => cycleOpeningWall(selectedOpening.id)}
+                  onRemove={() => removeOpening(selectedOpening.id)}
+                  onResize={(patch) => {
+                    if (!resizeOpening(selectedOpening.id, patch)) blockedToast();
+                  }}
+                  onMove={(offset) => moveOpening(selectedOpening.id, offset)}
+                  onGestureStart={recordHistory}
+                />
+              </FloatingPanel>
             )}
 
             {/* indiciul de camera goala dispare la PRIMUL lucru asezat —
@@ -1367,7 +1673,12 @@ export function StudioPage() {
           </div>
 
           {/* controalele camerei */}
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-2xl border border-border-2 bg-surface-2/50 px-4 py-3">
+          <div
+            className={cn(
+              'flex flex-wrap items-center gap-x-6 gap-y-3 rounded-2xl border border-border-2 bg-surface-2/50 px-4 py-3',
+              tutTarget === 'room' && 'tut-pulse',
+            )}
+          >
             <RoomDimControl
               label={t('width')}
               valueM={scene.room.widthM}
@@ -1386,7 +1697,12 @@ export function StudioPage() {
             />
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium">{t('openingsLabel')}</span>
-              <div className="flex items-center gap-1">
+              <div
+                className={cn(
+                  'flex items-center gap-1',
+                  tutTarget === 'openings' && 'tut-pulse rounded-lg',
+                )}
+              >
                 {/* elevatiile variantelor: click = asezare automata,
                     tragere = asezare exact pe peretele tinta */}
                 {STUDIO_OPENING_KINDS.map((kind) => (

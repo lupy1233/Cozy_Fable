@@ -196,7 +196,67 @@
     "walls": "Pereți",
     "floor": "Podea",
     "clearRoom": "Golește camera",
-    "canvasHint": "Trage piesele și ușile/ferestrele ca să le muți • săgeți = 1 cm (Shift = 5) • R = rotire / alt perete • click pe podea = deselectare",
+    "canvasHint": "Trage piesele și ușile/ferestrele ca să le muți • săgeți = 1 cm (Shift = 5) • R = rotire / alt perete • F = ecran complet • click pe podea = deselectare",
+    "fullscreen": "Ecran complet",
+    "exitFullscreen": "Ieși din ecran complet",
+    "movePanel": "Trage ca să muți panoul • dublu-click = înapoi sus",
+    "tutorial": {
+      "replay": "Tur de învățare",
+      "welcomeTitle": "Bine ai venit în Studio 3D!",
+      "welcomeBody": "Aici te joci de-a amenajarea: îți construiești corpurile de mobilier bucată cu bucată, le așezi într-o cameră 3D și, când îți place rezultatul, le trimiți direct în cerere. Hai într-un tur scurt, cu misiuni — înveți tot ce știe studioul în două minute.",
+      "start": "Începe turul",
+      "skipAll": "Descopăr singur",
+      "missionLabel": "Misiunea {n} din {total}",
+      "done": "Misiune îndeplinită!",
+      "skipStep": "Sari peste pas",
+      "closeTour": "Închide turul",
+      "steps": {
+        "createPiece": {
+          "title": "Prima ta piesă",
+          "body": "Apasă „Piesă nouă” în panoul din stânga, alege un tip de corp și potrivește-l din slidere. Când salvezi, piesa apare direct în cameră."
+        },
+        "orbit": {
+          "title": "Dă o tură în jurul ei",
+          "body": "Ține apăsat pe o zonă liberă a camerei și mișcă mouse-ul ca să rotești vederea; din scroll te apropii și te depărtezi."
+        },
+        "movePiece": {
+          "title": "Mut-o la locul ei",
+          "body": "Prinde piesa cu mouse-ul și trage-o pe podea. Pentru precizie: săgețile o mută cu 1 cm (Shift = 5), iar în panoul plutitor scrii exact câți cm vrei până la perete."
+        },
+        "rotatePiece": {
+          "title": "Întoarce-o cu fața",
+          "body": "Selectează piesa cu un click, apoi apasă R — sau butonul de rotire din panoul plutitor."
+        },
+        "addOpening": {
+          "title": "Taie o ușă sau o fereastră",
+          "body": "Din bara de sub cameră, apasă pe o ușă, o fereastră sau o priză ca să apară pe perete — sau trage-o direct pe peretele dorit."
+        },
+        "adjustOpening": {
+          "title": "Potrivește-o pe perete",
+          "body": "Cu golul selectat, trage-l de-a lungul peretelui sau reglează-i dimensiunile din panou. R îl mută pe peretele următor."
+        },
+        "styleRoom": {
+          "title": "Fă camera a ta",
+          "body": "Tot din bara de jos: schimbă lățimea sau adâncimea camerei la centimetru și alege culoarea pereților și a podelei."
+        },
+        "addScene": {
+          "title": "Încă o cameră",
+          "body": "Un proiect poate avea mai multe camere. Apasă „Cameră nouă” deasupra scenei — te plimbi apoi între ele din taburi, fiecare cu piesele ei."
+        },
+        "undo": {
+          "title": "Fără regrete",
+          "body": "Ai stricat ceva? Ctrl+Z întoarce ultimul pas, Ctrl+Shift+Z îl reface. Încearcă un pas înapoi chiar acum.",
+          "hint": "Încă nu ai ce anula — fă întâi o mică modificare (mută piesa cu o săgeată), apoi apasă Ctrl+Z."
+        }
+      },
+      "finaleTitle": "Gata — ești ca acasă!",
+      "finaleBody": "Ai trecut prin tot ce e important. Câteva scule de meseriaș, la despărțire:",
+      "finaleTip1": "„Drafturile mele” îți salvează proiectul în cont — îl reiei oricând.",
+      "finaleTip2": "F = ecran complet, iar panoul plutitor se mută de mânerul lui, unde îți place.",
+      "finaleTip3": "„Adaugă în cerere” trimite camera întreagă în formular — firmele văd exact ce ai construit.",
+      "finaleReplay": "Reiei turul oricând din butonul „?” de deasupra camerei.",
+      "finaleCta": "La treabă!"
+    },
     "emptyRoomHint": "Camera e goală — așază piese din panoul „Piesele mele”.",
     "sendToRequest": "Adaugă în cerere",
     "sendHint": "Corpurile din camera curentă intră în formular ca piese preconfigurate 3D; mai alegi doar materialul și detaliile.",
