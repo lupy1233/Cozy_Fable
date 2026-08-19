@@ -11,3 +11,8 @@ coverage/
 **/generated/
 **/.prisma/
 dev-infra/data/
+
+# Claude Code local (per masina)
+.claude/settings.local.json
+.claude/worktrees/
+apps/backend/cleanup-demo-storage-keys.txt

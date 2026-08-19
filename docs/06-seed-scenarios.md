@@ -2,7 +2,7 @@
 
 # 7. Seed scenarios (Sprint 9)
 
-Parole demo identice: Demo1234!
+Parole demo: din env (`DEMO_PASSWORD`, optional `DEMO_ADMIN_PASSWORD`) — nu exista parola implicita in repo (audit 2026-08-19); seed-ul demo refuza sa ruleze in productie fara `ALLOW_DEMO_SEED=1`.
 
 ## 7.1 Useri și firme
 

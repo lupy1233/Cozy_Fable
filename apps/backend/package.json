@@ -11,7 +11,8 @@
     "prisma:generate": "prisma generate",
     "prisma:seed": "prisma db seed",
     "seed:inspiration": "tsx prisma/seed-inspiration.ts",
-    "seed:demo-credits": "tsx prisma/update-demo-credits.ts",
+    "seed:admin": "tsx prisma/seed-admin.ts",
+    "cleanup:demo": "tsx prisma/cleanup-demo.ts",
     "prisma": "prisma"
   },
   "prisma": {

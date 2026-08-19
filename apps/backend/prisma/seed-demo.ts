@@ -1,6 +1,8 @@
 // Seed demo numit (docs/06 §7) — date realiste pentru demo end-to-end.
 // Idempotent: daca admin@demo.ro exista, nu mai ruleaza. Ruleaza pe DB cu config seed-uit
-// (pnpm -F backend exec tsx prisma/seed-demo.ts). Parola tuturor: Demo1234!
+// (DEMO_PASSWORD=... pnpm -F backend exec tsx prisma/seed-demo.ts).
+// DOAR pentru dev/demo: in productie refuza fara ALLOW_DEMO_SEED=1 (audit 2026-08-19);
+// parolele vin OBLIGATORIU din env (DEMO_PASSWORD, optional DEMO_ADMIN_PASSWORD).
 import { PrismaClient, type Prisma } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { randomBytes, createHash } from 'crypto';
@@ -24,12 +26,18 @@ const daysAgo = (d: number) => new Date(Date.now() - d * 86400000);
 const daysAhead = (d: number) => new Date(Date.now() + d * 86400000);
 
 async function main() {
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== '1') {
+    throw new Error('seed-demo refuzat in productie (seteaza ALLOW_DEMO_SEED=1 doar daca chiar vrei date demo pe prod)');
+  }
   if (await prisma.user.findUnique({ where: { email: 'admin@demo.ro' } })) {
     console.log('Demo already seeded (admin@demo.ro exists). Skipping.');
     return;
   }
-  // Parole demo suprascriibile din env pentru deploy public (adminul separat de restul)
-  const demoPassword = process.env.DEMO_PASSWORD ?? 'Demo1234!';
+  // Parolele demo vin din env — fara default in repo (adminul separat de restul)
+  const demoPassword = process.env.DEMO_PASSWORD;
+  if (!demoPassword || demoPassword.length < 8) {
+    throw new Error('DEMO_PASSWORD lipseste (min 8 caractere) — nu exista parola implicita');
+  }
   const adminPassword = process.env.DEMO_ADMIN_PASSWORD ?? demoPassword;
   const hash = await bcrypt.hash(demoPassword, 12);
   const adminHash = await bcrypt.hash(adminPassword, 12);
