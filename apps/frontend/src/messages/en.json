@@ -2,12 +2,12 @@
   "LandingV2": {
     "previewBadge": "Preview · v2",
     "eyebrow": "Custom furniture platform",
-    "title": "Say what you want. Workshops compete for you.",
-    "subtitle": "You configure the request visually — rooms, materials, dimensions — and verified workshops send comparable offers. You just choose.",
+    "title": "Say what you want. Furniture companies compete for you.",
+    "subtitle": "You configure the request visually — rooms, materials, dimensions — and verified companies send comparable offers. You just choose.",
     "ctaPrimary": "Start a request",
     "ctaSecondary": "See the request's journey",
     "proof1": "Free for clients",
-    "proof2": "Verified workshops",
+    "proof2": "Verified companies",
     "proof3": "At most 3 offers per request",
     "demo": {
       "kicker": "Try the configurator",
@@ -33,7 +33,7 @@
     "m1Live": "Taken live from the configurator above — play and watch it change.",
     "m2Taken": "taken",
     "m2Free": "open",
-    "m3Chat": "Direct chat with the workshop",
+    "m3Chat": "Direct chat with the company",
     "m4Review": "Public review",
     "ideasKicker": "Inspiration",
     "ideasTitle": "The idea book",
@@ -45,51 +45,51 @@
     "p1": {
       "phase": "The request",
       "title": "You describe it visually",
-      "body": "Illustrated cards, dimensions on drawing sheets, pieces configured in 3D. No project? The workshop builds it with you."
+      "body": "Illustrated cards, dimensions on drawing sheets, pieces configured in 3D. No project yet? The company builds it with you."
     },
     "p2": {
       "phase": "The claim",
-      "title": "Workshops take it on",
-      "body": "At most three verified workshops pay credits to see your request — real interest, not spam."
+      "title": "Companies take it on",
+      "body": "At most three verified companies pay credits to see your request — real interest, not spam."
     },
     "p3": {
       "phase": "The offers",
       "title": "Compare in black and white",
-      "body": "Structured offers and a chat with each workshop, with the history kept. You agree the price directly."
+      "body": "Structured offers and a chat with each company, with the history kept. You agree the price directly."
     },
     "p4": {
       "phase": "The installation",
       "title": "Your furniture, your measurements",
-      "body": "You accept the offer, the workshop builds and installs, and your review stays for the next clients."
+      "body": "You accept the offer, the company builds and installs, and your review stays for the next clients."
     },
     "forKicker": "Who it's for",
-    "forTitle": "Two sides, the same workbench",
+    "forTitle": "Two sides, the same table",
     "forClientsTitle": "You're a client",
     "client1": "Publish your request free, in minutes",
-    "client2": "Offers come only from verified workshops",
+    "client2": "Offers come only from verified companies",
     "client3": "Compare prices, timelines and portfolios in one place",
     "clientCta": "Start a request",
-    "forWorkshopsTitle": "You run a workshop",
+    "forWorkshopsTitle": "You run a furniture company",
     "ws1": "Sized requests, with clear materials and budget",
     "ws2": "Pay credits only for the projects you claim",
-    "ws3": "Offers, chat and teamwork — inside the platform",
-    "wsCta": "Register your workshop",
+    "ws3": "Offers, chat and teamwork — all inside the platform",
+    "wsCta": "Register your company",
     "bandTitle": "Ready to start?",
-    "bandBody": "Publish your first request in minutes — or register your workshop and receive qualified requests.",
+    "bandBody": "Publish your first request in minutes — or register your company and receive qualified requests.",
     "bandCtaClient": "Start a request",
-    "bandCtaCompany": "For workshops"
+    "bandCtaCompany": "For companies"
   },
   "Landing": {
-    "title": "From your sketch to the right workshop.",
-    "subtitle": "Describe your furniture with its exact dimensions, and verified workshops compete with structured offers. You compare revisions and choose.",
-    "heroNote": "Free for clients · at most 3 workshops per request",
+    "title": "From your sketch to the right company.",
+    "subtitle": "Describe your furniture with its exact dimensions, and verified furniture companies compete with structured offers. You compare revisions and choose.",
+    "heroNote": "Free for clients · at most 3 companies per request",
     "processKicker": "Process",
     "sizingKicker": "Format",
     "ctaNewRequest": "Create a request",
-    "ctaCompanies": "Run a workshop? Sign up",
-    "kicker": "A closed platform for custom furniture",
+    "ctaCompanies": "Run a furniture company? Sign up",
+    "kicker": "A curated platform for custom furniture",
     "metricWorkshops": "340+",
-    "metricWorkshopsLabel": "Verified workshops",
+    "metricWorkshopsLabel": "Verified companies",
     "metricProjects": "2.8k",
     "metricProjectsLabel": "Projects delivered",
     "metricSatisfaction": "94%",
@@ -99,13 +99,13 @@
     "step1Title": "Draw up your request",
     "step1Body": "Pick the pieces, materials and dimensions. The system scores your project size automatically.",
     "step2Phase": "Quoting",
-    "step2Title": "Workshops claim it",
-    "step2Body": "Up to three vetted workshops take on your request and talk with you directly.",
+    "step2Title": "Companies claim it",
+    "step2Body": "Up to three verified companies take on your request and talk with you directly.",
     "step3Phase": "Decision",
     "step3Title": "Compare revisions",
-    "step3Body": "You receive structured offers, request changes and pick the workshop to move forward with.",
+    "step3Body": "You receive structured offers, request changes and pick the company to move forward with.",
     "sizingTitle": "Project format",
-    "sizingSub": "Every request gets a format that sets how many credits it costs a workshop to claim.",
+    "sizingSub": "Every request gets a format that sets how many credits it costs a company to claim.",
     "sizeSmall": "Small",
     "sizeSmallDesc": "A single piece or a compact set — quick to quote.",
     "sizeMedium": "Medium",
@@ -122,17 +122,17 @@
       "kitchen": "Kitchen",
       "bookcase": "Bookcase"
     },
-    "ctaBandTitle": "Run a workshop?",
+    "ctaBandTitle": "Run a furniture company?",
     "ctaBandBody": "Real, sized, verified requests — you spend credits only on the projects you claim.",
-    "ctaBandButton": "Register your workshop",
+    "ctaBandButton": "Register your company",
     "footerTagline": "The marketplace for custom furniture",
     "inspirationKicker": "Inspiration",
     "inspirationTitle": "Ideas for your home",
     "inspirationSub": "A curated gallery of projects and ideas — pick the style that fits your home and start a request from a picture.",
     "inspirationCta": "Browse the full gallery",
     "partnersKicker": "Partners",
-    "partnersTitle": "The workshops we work with",
-    "partnersSub": "Every workshop is vetted before it can quote. Ratings come from Google reviews.",
+    "partnersTitle": "The companies we work with",
+    "partnersSub": "Every company is vetted before it can quote. Ratings come from Google reviews.",
     "partnersAll": "All partners",
     "googleReviews": "Google Reviews rating",
     "reviewsShort": "reviews",
@@ -140,7 +140,7 @@
     "carouselNext": "Next",
     "partnerSpecialty": {
       "kitchens": "Custom kitchens and cooking spaces",
-      "dressings": "Made-to-measure wardrobes and dressings",
+      "dressings": "Walk-in closets and made-to-measure wardrobes",
       "living": "Living rooms, bookcases and everyday furniture",
       "full": "Complete fit-outs, from sketch to install"
     }
@@ -202,7 +202,7 @@
     "tutorial": {
       "replay": "Learning tour",
       "welcomeTitle": "Welcome to the 3D Studio!",
-      "welcomeBody": "This is the play-house: build your furniture pieces one by one, arrange them in a 3D room and, when you love the result, send them straight into a request. Take the short mission tour — you'll learn everything the studio can do in two minutes.",
+      "welcomeBody": "Make yourself at home: build your furniture pieces one by one, arrange them in a 3D room and, when you like the result, send them straight into a request. Take the short mission tour — two minutes and you'll know everything the studio can do.",
       "start": "Start the tour",
       "skipAll": "I'll explore on my own",
       "missionLabel": "Mission {n} of {total}",
@@ -216,7 +216,7 @@
         },
         "orbit": {
           "title": "Take a walk around it",
-          "body": "Hold the mouse down on an empty part of the room and move it to orbit the view; scroll to zoom in and out."
+          "body": "Hold the mouse down on an empty part of the room and move it to turn the view around; scroll to zoom in and out."
         },
         "movePiece": {
           "title": "Put it in its place",
@@ -249,7 +249,7 @@
         }
       },
       "finaleTitle": "Done — you're at home now!",
-      "finaleBody": "You've covered everything that matters. A few craftsman's tools before you go:",
+      "finaleBody": "You've covered everything that matters. A few things worth knowing before you go:",
       "finaleTip1": "“My drafts” saves the project to your account — pick it up again anytime.",
       "finaleTip2": "F = fullscreen, and the floating panel moves by its grip, wherever you like it.",
       "finaleTip3": "“Add to request” sends the whole room into the form — companies see exactly what you built.",
@@ -258,7 +258,7 @@
     },
     "emptyRoomHint": "The room is empty — place pieces from the “My pieces” panel.",
     "sendToRequest": "Add to request",
-    "sendHint": "The pieces in the current room enter the form as pre-configured 3D bodies; you only pick the material and details.",
+    "sendHint": "The furniture in the current room enters the form as pre-configured 3D pieces; you only pick the material and details.",
     "newScene": "New room",
     "renameScene": "Rename room",
     "deleteScene": "Delete room",
@@ -279,14 +279,14 @@
     "openingWidth": "Width",
     "openingHeight": "Height",
     "openingSill": "Sill",
-    "outletHeight": "Floor height",
+    "outletHeight": "Height from floor",
     "undo": "Undo",
     "redo": "Redo",
     "roomViewer": {
       "title": "The client's 3D room",
       "readOnly": "View only — the exact arrangement the client sent",
       "open": "View the 3D room",
-      "hint": "Orbit freely. Click a piece to open its configuration and dimensions.",
+      "hint": "Rotate the room freely. Click a piece to open its configuration and dimensions.",
       "webglMissing": "This device cannot display the 3D scene."
     },
     "duplicateScene": "Duplicate room",
@@ -337,8 +337,8 @@
     }
   },
   "Partners": {
-    "title": "Our partner workshops",
-    "subtitle": "Vetted furniture workshops that quote and build the projects on Cozy Home.",
+    "title": "Our partner companies",
+    "subtitle": "Verified furniture companies that quote and build the projects on Cozy Home.",
     "loading": "Loading partners…",
     "empty": "No partners to show yet.",
     "ratingPlaceholder": "—",
@@ -347,7 +347,7 @@
   },
   "Inspiration": {
     "title": "The Idea Book",
-    "subtitle": "Real furniture made by our partner workshops. Save ideas into your collections and filter by type, colour, material or opening system.",
+    "subtitle": "Real furniture, made by our partner companies. Save ideas into your collections and filter by type, colour, material or opening system.",
     "searchPlaceholder": "Search ideas — e.g. kitchen, dressing, reading…",
     "all": "All",
     "empty": "Nothing found for your search. Try another word or filter.",
@@ -425,9 +425,9 @@
     }
   },
   "SketchGuidePage": {
-    "kicker": "Workshop guide",
+    "kicker": "Sketch guide",
     "title": "How to sketch your space",
-    "subtitle": "No architect needed — four simple steps give workshops everything they need to quote accurately. The sheet on the left shows exactly what your sketch needs to include.",
+    "subtitle": "No architect needed — four simple steps give the companies everything they need to quote accurately. The sheet on the left shows exactly what your sketch needs to include.",
     "sheetTitle": "Kitchen sketch — example",
     "legendWall": "The wall, measured corner to corner — width and height",
     "legendSocket": "Sockets and pipes, marked with ✕ or a dashed circle",
@@ -456,36 +456,36 @@
       }
     },
     "ctaTitle": "Sketch ready?",
-    "ctaHint": "Attach it while configuring your request — workshops receive it along with your dimensions.",
+    "ctaHint": "Attach it while configuring your request — the companies receive it along with your dimensions.",
     "cta": "Create a request"
   },
   "Dashboard": {
     "loading": "Loading statistics…",
     "client": {
       "totalRequests": "Requests created",
-      "activeClaims": "Active firm claims",
+      "activeClaims": "Active claims",
       "offersReceived": "Offers received",
       "byStatus": "Requests by status",
       "recent": "Recent activity",
       "allRequests": "All requests",
-      "noRequests": "No requests yet — create your first one.",
+      "noRequests": "No requests yet. Create your first one and get offers from verified companies.",
       "newRequest": "New request"
     },
     "company": {
-      "claimsTotal": "Claims made",
+      "claimsTotal": "Total claims",
       "claimsActive": "Active claims",
       "quotesSent": "Offers sent",
-      "quotesTotalRon": "Offers value",
+      "quotesTotalRon": "Total offer value",
       "credits": "Credits",
       "walletLink": "Wallet & billing",
       "available": "Available",
       "reserved": "Reserved",
-      "consumed7d": "Used, last 7 days",
-      "consumed30d": "Used, last 30 days",
+      "consumed7d": "Used in the last 7 days",
+      "consumed30d": "Used in the last 30 days",
       "perMember": "Active claims per member",
       "unassigned": "Unassigned",
       "claimsByStatus": "Claims by stage",
-      "noClaims": "No claims yet.",
+      "noClaims": "No claims yet. Requests you claim from the marketplace appear here.",
       "penalties": "Penalties",
       "penaltyPoints": "active points",
       "toMarketplace": "Go to marketplace",
@@ -504,45 +504,45 @@
     "roleCompany": "Company — we make custom furniture",
     "loginSubmit": "Log in",
     "registerSubmit": "Create account",
-    "noAccount": "Don't have an account?",
+    "noAccount": "Don't have an account yet?",
     "registerLink": "Sign up",
     "haveAccount": "Already have an account?",
     "loginLink": "Log in",
     "registerSuccessTitle": "Account created",
-    "registerSuccessBody": "We sent you a confirmation email. Check your inbox (Mailpit in dev) and click the link.",
+    "registerSuccessBody": "We've sent you a confirmation email. Open it and click the link to activate your account.",
     "goToLogin": "Go to login",
     "verifyTitle": "Email confirmation",
-    "verifyMissingToken": "Invalid link: confirmation token is missing.",
-    "verifyPending": "Confirming...",
-    "verifySuccess": "Email confirmed. You can now log in.",
-    "verifyError": "The token is invalid or has expired.",
+    "verifyMissingToken": "This link is incomplete — the confirmation code is missing. Use the exact link from the email.",
+    "verifyPending": "Confirming your email…",
+    "verifySuccess": "Your email is confirmed. You can now log in.",
+    "verifyError": "This confirmation link is invalid or has expired.",
     "dashboardTitle": "Dashboard",
     "logout": "Log out",
-    "loading": "Loading...",
+    "loading": "Loading…",
     "role": {
       "CLIENT": "Client",
       "COMPANY_USER": "Company user",
       "ADMIN": "Administrator"
     },
     "validation": {
-      "invalidEmail": "Invalid email address.",
-      "passwordTooShort": "Password must be at least 8 characters.",
-      "nameTooShort": "Name must be at least 2 characters."
+      "invalidEmail": "That email address doesn't look right.",
+      "passwordTooShort": "Your password needs at least 8 characters.",
+      "nameTooShort": "Your name needs at least 2 characters."
     },
     "apiErrors": {
-      "INVALID_CREDENTIALS": "Wrong email or password.",
-      "EMAIL_NOT_VERIFIED": "Email not verified. Check your inbox.",
-      "EMAIL_ALREADY_REGISTERED": "An account with this email already exists.",
-      "RATE_LIMITED": "Too many attempts. Try again in a minute.",
-      "TWO_FACTOR_REQUIRED": "Two-factor authentication code required.",
-      "TWO_FACTOR_INVALID_CODE": "Invalid 2FA code.",
-      "VALIDATION_ERROR": "Submitted data is invalid.",
-      "INTERNAL_ERROR": "Unexpected error. Please retry."
+      "INVALID_CREDENTIALS": "That email and password don't match. Check them and try again.",
+      "EMAIL_NOT_VERIFIED": "Your email isn't confirmed yet. Look for the confirmation link in your inbox.",
+      "EMAIL_ALREADY_REGISTERED": "An account with this email already exists — you can log in directly.",
+      "RATE_LIMITED": "Too many attempts in a row. Wait a minute, then try again.",
+      "TWO_FACTOR_REQUIRED": "Enter your two-step verification code to continue.",
+      "TWO_FACTOR_INVALID_CODE": "That two-step verification code isn't right. Try again.",
+      "VALIDATION_ERROR": "Some fields aren't filled in correctly. Check them and submit again.",
+      "INTERNAL_ERROR": "Something unexpected went wrong. Please try again in a moment."
     }
   },
   "Company": {
     "onboardingTitle": "Register your company",
-    "onboardingSubtitle": "Complete your company profile. An admin will review it before you can see requests.",
+    "onboardingSubtitle": "Fill in your company profile. Once an admin verifies it, client requests in your area become visible.",
     "name": "Company name",
     "cui": "Tax ID (CUI)",
     "regComNumber": "Trade Register no. (J)",
@@ -555,14 +555,14 @@
     "dashboardTitle": "My company",
     "status": "Status",
     "statusValue": {
-      "PENDING_VERIFICATION": "Pending verification",
+      "PENDING_VERIFICATION": "Being verified",
       "APPROVED": "Approved",
       "REJECTED": "Rejected",
       "SUSPENDED": "Suspended"
     },
-    "pendingNotice": "Your company is awaiting admin verification. You cannot see requests until approved.",
-    "rejectedNotice": "Your company was rejected: {reason}. You may reapply after 3 months.",
-    "suspendedNotice": "Your company is suspended until {until}.",
+    "pendingNotice": "Your company profile is being verified. Requests become visible as soon as it's approved.",
+    "rejectedNotice": "Your application was rejected: {reason}. You can apply again after 3 months.",
+    "suspendedNotice": "Your company account is suspended until {until}.",
     "profile": "Profile",
     "edit": "Edit",
     "save": "Save",
@@ -570,14 +570,14 @@
     "locations": "Locations",
     "coverageRadiusKm": "Coverage radius (km)",
     "coverageRadiusLabel": "coverage radius {km} km",
-    "coverageRadiusHint": "Requests within this distance are visible to you",
+    "coverageRadiusHint": "You only see requests from clients within this radius",
     "latHint": "Decimal coordinate, e.g. 46.7712",
     "lngHint": "Decimal coordinate, e.g. 23.6236",
     "country": "Country",
     "countryRomania": "Romania",
     "addLocation": "Add location",
     "deleteLocation": "Delete",
-    "noLocations": "No locations yet. Add at least one so requests within range are visible.",
+    "noLocations": "No locations yet. Add at least one — requests are shown based on your coverage radius.",
     "team": "Team",
     "memberEmail": "Member email",
     "memberRole": "Role",
@@ -597,10 +597,10 @@
     "portfolioTitle": "Title",
     "portfolioDescription": "Description",
     "portfolioImageUrl": "Image URL",
-    "addPortfolioItem": "Add item",
-    "noPortfolio": "No portfolio items yet. Add some to reduce verification risk flags.",
+    "addPortfolioItem": "Add project",
+    "noPortfolio": "No projects in your portfolio yet. Add a few finished pieces — they help with verification and build client trust.",
     "offerPermissions": "Offer field permissions",
-    "offerPermissionsHint": "Choose which roles can edit each offer field. Only the owner can change this.",
+    "offerPermissionsHint": "Choose which roles can edit each offer field. Only the company owner can change these permissions.",
     "field": "Field",
     "fieldValue": {
       "PRICE": "Price",
@@ -610,44 +610,44 @@
       "DESCRIPTION": "Description"
     },
     "savePermissions": "Save permissions",
-    "loading": "Loading...",
+    "loading": "Loading…",
     "validation": {
-      "nameTooShort": "Name must be at least 2 characters.",
-      "invalidCui": "Invalid tax ID (CUI).",
-      "invalidRegCom": "Invalid trade register number (e.g. J40/1234/2020).",
-      "addressTooShort": "Address is too short.",
-      "countyTooShort": "County is too short.",
-      "cityTooShort": "City is too short.",
-      "titleTooShort": "Title is too short.",
-      "invalidUrl": "Invalid URL.",
-      "invalidEmail": "Invalid email address."
+      "nameTooShort": "The name needs at least 2 characters.",
+      "invalidCui": "That tax ID (CUI) doesn't look right.",
+      "invalidRegCom": "That Trade Register number doesn't look right (e.g. J40/1234/2020).",
+      "addressTooShort": "The address is too short.",
+      "countyTooShort": "The county is too short.",
+      "cityTooShort": "The city is too short.",
+      "titleTooShort": "The title is too short.",
+      "invalidUrl": "That link doesn't look valid.",
+      "invalidEmail": "That email address doesn't look right."
     },
     "apiErrors": {
-      "CUI_ALREADY_REGISTERED": "A company with this tax ID already exists.",
-      "COMPANY_REAPPLY_BLOCKED": "Reapplication is blocked for 3 months after a rejection.",
-      "MEMBER_ALREADY_EXISTS": "This user already belongs to a company.",
-      "LAST_OWNER_CANNOT_LEAVE": "The last owner cannot be removed or demoted.",
-      "NOT_FOUND": "Not found.",
+      "CUI_ALREADY_REGISTERED": "A company with this tax ID is already registered.",
+      "COMPANY_REAPPLY_BLOCKED": "After a rejection, you can apply again after 3 months.",
+      "MEMBER_ALREADY_EXISTS": "This user is already part of a company.",
+      "LAST_OWNER_CANNOT_LEAVE": "A company needs at least one owner — the last one can't be removed or demoted.",
+      "NOT_FOUND": "We couldn't find that.",
       "FORBIDDEN": "You don't have permission for this action.",
-      "VALIDATION_ERROR": "Submitted data is invalid.",
-      "INTERNAL_ERROR": "Unexpected error. Please retry."
+      "VALIDATION_ERROR": "Some fields aren't filled in correctly. Check them and submit again.",
+      "INTERNAL_ERROR": "Something unexpected went wrong. Please try again in a moment."
     },
     "marketplaceLink": "Marketplace"
   },
   "AdminInspiration": {
-    "title": "Inspiration gallery",
-    "addTitle": "Add a photo",
+    "title": "The Idea Book",
+    "addTitle": "Add a piece",
     "fields": {
       "title": "Title",
-      "company": "Workshop that made the piece",
+      "company": "Company that made the piece",
       "roomType": "Furniture type",
       "imageUrl": "Image URL (optional)",
       "imageUrlHint": "You can leave this empty and upload the image after creating.",
       "sourceUrl": "Project link (source)",
-      "sourceUrlHint": "Link to the project in the workshop's portfolio — shown as \"View project\"."
+      "sourceUrlHint": "Link to the project in the company's portfolio — shown as \"View project\"."
     },
     "addButton": "Add to gallery",
-    "empty": "No photos yet. Add the first one above.",
+    "empty": "No pieces yet. Add the first one above.",
     "published": "Published",
     "featured": "On landing",
     "uploadImage": "Upload image",
@@ -671,7 +671,7 @@
     "portfolio": "Portfolio",
     "noRisk": "None",
     "view": "View",
-    "empty": "No companies.",
+    "empty": "No companies to show.",
     "detailTitle": "Company details",
     "back": "Back to list",
     "approve": "Approve",
@@ -687,15 +687,15 @@
     }
   },
   "Requests": {
-    "loading": "Loading...",
+    "loading": "Loading…",
     "newTitle": "New request",
-    "newSubtitle": "Describe your project. We compute the size automatically and publish it to the marketplace.",
+    "newSubtitle": "Describe your project — we work out its size automatically and publish it to the marketplace.",
     "sectionGeneral": "General details",
     "sectionAddress": "Address",
     "sectionRooms": "Rooms",
     "sectionContact": "Contact preferences",
     "designHelpIncluded": "Paid design included",
-    "designHelpIncludedHint": "The workshop that claims your request builds the technical project together with you; the design fee is agreed with the workshop.",
+    "designHelpIncludedHint": "The company that claims your request builds the technical project with you; the design fee is agreed directly with them.",
     "sectionAttachments": "Attachments",
     "addRoom": "Add room",
     "removeRoom": "Remove room",
@@ -708,10 +708,10 @@
     "repost": "Repost",
     "reposted": "Request reposted.",
     "deleteRequest": "Delete request",
-    "deleteConfirm": "Delete this request? Active claims will be cancelled.",
-    "uploading": "Uploading...",
+    "deleteConfirm": "Delete this request? Companies' active claims will be cancelled.",
+    "uploading": "Uploading…",
     "myRequests": "My requests",
-    "myRequestsSubtitle": "Each request's rooms, active workshops and offers at a glance.",
+    "myRequestsSubtitle": "Each request's rooms, active companies and offers at a glance.",
     "tabs": {
       "ALL": "All",
       "ACTIVE": "Active",
@@ -729,9 +729,9 @@
     "viewOffers": "View offers & conversations",
     "empty": "No requests.",
     "emptyTitle": "No requests yet",
-    "emptyHint": "Configure your first custom furniture request — it takes a few minutes and partner workshops reply with offers.",
+    "emptyHint": "Set up your first custom furniture request — it takes a few minutes, and partner companies come back with comparable offers.",
     "untitled": "Untitled request",
-    "cardClaims": "{n, plural, =0 {no workshops} =1 {one workshop} other {# workshops}}",
+    "cardClaims": "{n, plural, =0 {no companies} =1 {one company} other {# companies}}",
     "cardOffers": "{n, plural, =0 {no offers} =1 {one offer} other {# offers}}",
     "cardOpenConversations": "Open conversations",
     "specItems": "Units & materials",
@@ -757,23 +757,23 @@
       "contactValue": "Value",
       "contactPriority": "Priority",
       "accountEmail": "Account email",
-      "message": "Message for firms",
+      "message": "Message for the companies",
       "country": "Country"
     },
-    "accountEmailLockedHint": "Your account email is always included as a communication channel. You can add extra email addresses or phone numbers.",
+    "accountEmailLockedHint": "Your account email is always included as a contact channel. You can add extra email addresses or phone numbers.",
     "autoTitleLabel": "Title (generated automatically)",
-    "messageHint": "Optional — anything else firms should know.",
+    "messageHint": "Optional — any detail that helps the companies understand your project.",
     "countryRomania": "Romania",
     "addressSearchPlaceholder": "Start typing and pick your address…",
     "editRequest": "Edit request ({remaining} left)",
-    "editPostClaimWarning": "This request was already claimed by firms. You have a single edit left; the project will be re-scored, but firms keep the credits they already spent and may withdraw their claim after your changes. Continue?",
+    "editPostClaimWarning": "Companies have already claimed this request. You have one edit left: the project will be re-scored, companies keep the credits they've spent, and they may withdraw their claim after your changes. Continue?",
     "budget": {
       "UNDER_5K": "Under 5,000 RON",
-      "FROM_5K_TO_15K": "5,000 - 15,000 RON",
+      "FROM_5K_TO_15K": "5,000 – 15,000 RON",
       "OVER_15K": "Over 15,000 RON",
       "UNDISCLOSED": "I prefer not to share"
     },
-    "budgetEstimateHint": "Rough estimate from your answers: {min} – {max}. Pick the budget you are comfortable with.",
+    "budgetEstimateHint": "Rough estimate based on your answers: {min} – {max}. Pick the range you're comfortable with.",
     "deadline": {
       "none": "Not sure yet",
       "ASAP": "As soon as possible",
@@ -856,20 +856,20 @@
       "contactEmailInvalid": "Enter a valid email address.",
       "contactPhoneInvalid": "Enter a valid phone number (with the country prefix for international numbers).",
       "countryInvalid": "Invalid country.",
-      "tooManyContacts": "Maximum 4 contact entries.",
-      "tooManyPerChannel": "Maximum 2 entries per channel.",
+      "tooManyContacts": "You can add at most 4 contact entries.",
+      "tooManyPerChannel": "You can add at most 2 entries per channel.",
       "descriptionTooLong": "Message is too long."
     },
     "apiErrors": {
       "GEOCODING_FAILED": "We couldn't locate that address. Check it and try again.",
       "REQUEST_NOT_EDITABLE": "This request can't be edited in its current state.",
-      "EDIT_LIMIT_PRE_CLAIM_REACHED": "You've reached the edit limit before claiming (3).",
-      "EDIT_LIMIT_POST_CLAIM_REACHED": "You've reached the edit limit after claiming (1).",
-      "EDIT_BLOCKED_OFFER_RECEIVED": "Editing is blocked once offers are received.",
-      "REPOST_ALREADY_USED": "This request was already reposted once.",
-      "DRAFT_TOKEN_INVALID": "Draft link is invalid or expired.",
-      "FILE_LIMIT_REACHED": "Attachment limit reached (10).",
-      "UPLOAD_NOT_FOUND_IN_STORAGE": "Upload not found. Try again.",
+      "EDIT_LIMIT_PRE_CLAIM_REACHED": "You've used all 3 edits available before the first claim.",
+      "EDIT_LIMIT_POST_CLAIM_REACHED": "You've used the one edit available after claiming.",
+      "EDIT_BLOCKED_OFFER_RECEIVED": "Once the first offer arrives, the request can no longer be edited.",
+      "REPOST_ALREADY_USED": "A request can be reposted only once, and this one already was.",
+      "DRAFT_TOKEN_INVALID": "This draft link is invalid or has expired.",
+      "FILE_LIMIT_REACHED": "You've reached the limit of 10 attachments.",
+      "UPLOAD_NOT_FOUND_IN_STORAGE": "We couldn't find the uploaded file. Please try again.",
       "VALIDATION_ERROR": "Please check the form fields.",
       "INTERNAL_ERROR": "Something went wrong. Please try again."
     }
@@ -888,7 +888,7 @@
     "slots": "Slots {active}/{max}",
     "claim": "Claim",
     "claiming": "Claiming…",
-    "claimCost": "Cost {n} credits",
+    "claimCost": "Cost: {n} credits",
     "claimSuccess": "Request claimed.",
     "full": "Slots full",
     "alreadyClaimed": "Already claimed by your company",
@@ -918,7 +918,7 @@
       "title": "Subscription",
       "none": "No active subscription.",
       "trial": "Trial",
-      "gating": "Gating +{min} min",
+      "gating": "Delay +{min} min",
       "expires": "Expires {date}",
       "tier": {
         "SILVER": "Silver",
@@ -933,10 +933,10 @@
     },
     "myClaims": {
       "title": "My claims",
-      "subtitle": "All the requests your company has claimed, with their stage and offer.",
-      "empty": "You have no claims yet.",
+      "subtitle": "Every request your company has claimed, with its stage and offer.",
+      "empty": "No claims yet.",
       "unassigned": "Unassigned",
-      "goToPage": "See my claims — who claimed, stage and offers",
+      "goToPage": "See your claims — assignee, stage and offers",
       "request": "Request",
       "claimedBy": "Claimed by",
       "assignedTo": "Assigned to",
@@ -949,16 +949,16 @@
     "apiErrors": {
       "CLAIM_NOT_ALLOWED": "This request can no longer be claimed.",
       "CLAIM_SLOTS_FULL": "All claim slots for this request are taken.",
-      "CLAIM_ALREADY_EXISTS": "Your company already claimed this request.",
+      "CLAIM_ALREADY_EXISTS": "Your company has already claimed this request.",
       "INSUFFICIENT_CREDITS": "Not enough credits available.",
-      "SUBSCRIPTION_INACTIVE": "An active subscription is required.",
+      "SUBSCRIPTION_INACTIVE": "Claiming requests needs an active subscription.",
       "OUT_OF_COVERAGE_AREA": "This request is outside your coverage area.",
       "COMPANY_EXCLUDED_FROM_REQUEST": "Your company is excluded from this request.",
-      "COMPANY_NOT_APPROVED": "Your company is not approved yet.",
-      "COMPANY_SUSPENDED": "Your company is suspended.",
-      "ACTIVE_CLAIM_WITHOUT_OFFER_EXISTS": "You already have an active claim without an offer.",
+      "COMPANY_NOT_APPROVED": "Your company hasn't been approved yet.",
+      "COMPANY_SUSPENDED": "Your company is currently suspended.",
+      "ACTIVE_CLAIM_WITHOUT_OFFER_EXISTS": "You already have an active claim without a sent offer.",
       "ASSIGNED_USER_HAS_ACTIVE_CLAIM": "That member already has an active claim.",
-      "ASSIGNED_USER_PENALTY_BLOCKED": "That member is temporarily blocked (penalties) and cannot receive claims.",
+      "ASSIGNED_USER_PENALTY_BLOCKED": "That member is temporarily blocked due to penalties and cannot receive claims.",
       "FORBIDDEN": "Only the owner or a manager can assign the claim.",
       "IDEMPOTENCY_CONFLICT": "Conflicting request. Please retry.",
       "VALIDATION_ERROR": "Invalid data.",
@@ -967,11 +967,11 @@
   },
   "Chat": {
     "loading": "Loading…",
-    "empty": "No messages yet. Start the conversation.",
+    "empty": "No messages yet. Write the first one.",
     "placeholder": "Write a message…",
     "send": "Send",
-    "attach": "Attach file",
-    "readOnly": "This conversation is read-only."
+    "attach": "Attach a file",
+    "readOnly": "This conversation is read-only — no new messages can be sent."
   },
   "Messages": {
     "loading": "Loading…",
@@ -980,10 +980,10 @@
     "tabClients": "Clients",
     "tabTeam": "Company team",
     "teamHint": "Internal conversation — only your company's members can see it. Clients have no access here.",
-    "empty": "No conversations yet. They appear once you claim a request.",
+    "empty": "No conversations yet. Your first one appears after you claim a request from the marketplace.",
     "pickThread": "Pick a conversation from the list.",
     "backToList": "Back to the list",
-    "openClaim": "Open the claim workspace",
+    "openClaim": "Open the claim worksheet",
     "fromClient": "Client",
     "fromUs": "Us",
     "attachmentOnly": "file attached",
@@ -998,26 +998,26 @@
     "offerSection": "Offer",
     "chatSection": "Chat",
     "workspace": {
-      "assignLabel": "Working on it",
+      "assignLabel": "Assigned to",
       "unassigned": "Unassigned",
-      "autoCancel": "Unassigned — cancels automatically {time}",
+      "autoCancel": "No one assigned — the claim cancels automatically {time}",
       "claimedBy": "Claimed by {name}",
       "slaLabel": "Offer deadline (SLA)",
       "slaPaused": "SLA paused",
-      "budgetLabel": "Client budget",
+      "budgetLabel": "Client's budget",
       "deadlineLine": "Desired deadline: {deadline}",
       "clientSection": "Your client",
-      "clientHidden": "The client's contact details are no longer visible — the claim is not active.",
+      "clientHidden": "The client's contact details are no longer visible — this claim is no longer active.",
       "descriptionLabel": "Client's message",
       "noDescription": "The client left no message.",
       "roomsSection": "Project rooms",
       "filesSection": "Request files"
     },
     "offersTitle": "Offers & conversations",
-    "offersSubtitle": "Your request's journey with every workshop that claimed it: discussions, offers, acceptance.",
+    "offersSubtitle": "Your request's journey with every company that claimed it: discussions, offers, acceptance.",
     "noOffers": "No offers yet.",
-    "noThreads": "No workshop has claimed your request yet. You will get a notification when it happens.",
-    "noOfferYet": "{company} has not sent an offer yet — you can discuss the details in the conversation below.",
+    "noThreads": "No company has claimed your request yet. We'll notify you as soon as one does.",
+    "noOfferYet": "{company} hasn't sent an offer yet — until then, you can discuss the details in the conversation below.",
     "claimedAt": "claimed the request {time}",
     "lastMessageAt": "last message {time}",
     "unreadMessages": "{n, plural, =1 {one new message} other {# new messages}}",
@@ -1035,20 +1035,20 @@
     "validUntil": "Valid until {date}",
     "expired": "Offer expired",
     "accepted": "You accepted this offer.",
-    "acceptedByClient": "The offer was accepted by the client.",
+    "acceptedByClient": "The client accepted the offer.",
     "accept": "Accept offer",
-    "awaitingFirm": "Waiting for the company to respond to your change.",
-    "limitNoticeClient": "The company already sent 3 versions. You can accept an existing one or a site visit invitation.",
-    "changePlaceholder": "What would you like changed?",
-    "requestChange": "Request change",
-    "rejectChange": "Reject change",
-    "reofferTitle": "Re-offer",
-    "extendValidity": "Keep the same terms (extend validity)",
-    "limitNoticeCompany": "You reached the 3-version limit. You can send an extra version, a site visit invitation, or end the negotiation.",
+    "awaitingFirm": "Waiting for the company to respond to your change request.",
+    "limitNoticeClient": "The company has sent all 3 allowed versions. You can accept one of them, or an invitation to meet at their office.",
+    "changePlaceholder": "What would you like changed in the offer?",
+    "requestChange": "Request a change",
+    "rejectChange": "Decline the change",
+    "reofferTitle": "New offer",
+    "extendValidity": "Keep the current terms and only extend the validity",
+    "limitNoticeCompany": "You've reached the 3-version limit. You can send one extra version, invite the client to your office, or end the online negotiation.",
     "extraVersion": "Extra version",
     "endNegotiation": "End online negotiation",
-    "consultationTitle": "Site visit invitation",
-    "consultationAddress": "Site address",
+    "consultationTitle": "Invitation to the company's office",
+    "consultationAddress": "Office address",
     "sendInvite": "Send invitation",
     "inviteAccept": "Accept",
     "inviteDecline": "Decline",
@@ -1073,11 +1073,11 @@
       "createTitle": "Send the offer",
       "reviseTitle": "Reply with a new version",
       "extraTitle": "Extra version",
-      "reofferTitle": "Modify (new version)",
-      "roomPrices": "Price per room (adds up automatically)",
+      "reofferTitle": "Revise the offer (new version)",
+      "roomPrices": "Price per room (the total adds up automatically)",
       "roomPricesTotal": "Total",
-      "roomPricesPartial": "Fill a price for every room, or leave all empty for a single price.",
-      "priceLocked": "The total comes from the room prices.",
+      "roomPricesPartial": "Fill in a price for every room, or leave them all empty and set a single price.",
+      "priceLocked": "The total is calculated from the room prices and can't be edited directly.",
       "price": "Price",
       "currency": "Currency",
       "designFee": "Design fee",
@@ -1089,43 +1089,43 @@
       "submit": "Send"
     },
     "validation": {
-      "priceInvalid": "Invalid price.",
-      "descriptionRequired": "Description is required."
+      "priceInvalid": "The price you entered is not valid.",
+      "descriptionRequired": "A description is required."
     },
     "apiErrors": {
-      "QUOTE_VERSION_LIMIT_REACHED": "You reached the 3-version limit.",
-      "QUOTE_ALREADY_SENT": "An offer already exists for this claim.",
-      "CHANGE_REQUEST_ALREADY_REJECTED": "The same change was already rejected.",
+      "QUOTE_VERSION_LIMIT_REACHED": "You've reached the limit of 3 offer versions.",
+      "QUOTE_ALREADY_SENT": "An offer has already been sent for this claim.",
+      "CHANGE_REQUEST_ALREADY_REJECTED": "The same change has already been declined.",
       "CHANGE_REQUEST_NOT_PENDING": "There is no pending change request.",
-      "QUOTE_EXPIRED": "The offer has expired.",
-      "QUOTE_WITHDRAW_WINDOW_CLOSED": "The withdraw window (1 business day) has closed.",
-      "VALIDITY_EXTENSION_LIMIT_REACHED": "You reached the extension limit.",
-      "OFFER_FIELD_NOT_EDITABLE": "You are not allowed to edit some offer fields.",
+      "QUOTE_EXPIRED": "This offer has expired.",
+      "QUOTE_WITHDRAW_WINDOW_CLOSED": "The withdrawal window (one business day) has closed.",
+      "VALIDITY_EXTENSION_LIMIT_REACHED": "You've reached the limit of validity extensions.",
+      "OFFER_FIELD_NOT_EDITABLE": "You don't have permission to edit some fields of this offer.",
       "CONSULTATION_INVITE_EXPIRED": "The invitation has expired.",
-      "NEGOTIATION_ENDED": "Online negotiation has ended.",
-      "QUOTE_ACCEPT_NOT_ALLOWED": "The offer cannot be accepted in its current state.",
+      "NEGOTIATION_ENDED": "The online negotiation has ended.",
+      "QUOTE_ACCEPT_NOT_ALLOWED": "The offer can't be accepted in its current state.",
       "THREAD_READ_ONLY": "This conversation is read-only.",
       "FORBIDDEN": "You don't have permission for this action.",
       "NOT_FOUND": "Not found.",
-      "IDEMPOTENCY_CONFLICT": "Conflicting request. Please retry.",
-      "VALIDATION_ERROR": "Invalid data.",
+      "IDEMPOTENCY_CONFLICT": "An identical request is already in progress. Please try again.",
+      "VALIDATION_ERROR": "The submitted data is not valid.",
       "INTERNAL_ERROR": "Something went wrong. Please try again."
     }
   },
   "Lifecycle": {
     "slaTitle": "SLA & status",
     "slaDeadline": "SLA deadline: {date}",
-    "slaPaused": "paused (clarification)",
+    "slaPaused": "paused (clarification in progress)",
     "clarifications": "Clarifications",
     "answered": "Answer",
-    "awaitingClient": "Awaiting client response",
+    "awaitingClient": "Awaiting the client's answer",
     "clarificationPlaceholder": "What would you like to clarify with the client?",
-    "askClarification": "Ask clarification",
-    "withdrawTitle": "Withdraw claim",
-    "customReasonPlaceholder": "Withdrawal reason (admin-reviewed)",
+    "askClarification": "Ask for clarification",
+    "withdrawTitle": "Withdraw the claim",
+    "customReasonPlaceholder": "Reason for withdrawing (reviewed by an admin)",
     "withdrawClaim": "Withdraw claim",
     "claimClosed": "Claim closed: {status}",
-    "refunded": "refunded",
+    "refunded": "credits refunded",
     "clientClarificationsTitle": "Questions from companies",
     "answerPlaceholder": "Your answer…",
     "sendAnswer": "Send answer",
@@ -1136,37 +1136,37 @@
       "CANCELLED_BY_CLIENT": "Cancelled by client",
       "WITHDRAWN_VOLUNTARY": "Withdrawn (voluntary)",
       "WITHDRAWN": "Withdrawn",
-      "SLA_EXPIRED": "SLA missed",
+      "SLA_EXPIRED": "SLA deadline missed",
       "COMPLETED": "Completed"
     },
     "reason": {
-      "CLIENT_UNRESPONSIVE_48H": "Client unresponsive 48h",
-      "REQUEST_MODIFIED_POST_CLAIM": "Request modified post-claim",
-      "CLIENT_CONTACT_INVALID": "Invalid contact details",
-      "CLIENT_REQUESTED_CANCELLATION": "Client requested cancellation",
+      "CLIENT_UNRESPONSIVE_48H": "Client unresponsive for 48 hours",
+      "REQUEST_MODIFIED_POST_CLAIM": "Request modified after claiming",
+      "CLIENT_CONTACT_INVALID": "Client's contact details invalid",
+      "CLIENT_REQUESTED_CANCELLATION": "Client asked to cancel",
       "VOLUNTARY_NO_REASON": "Voluntary withdrawal",
-      "CUSTOM": "Other reason (admin)"
+      "CUSTOM": "Other reason (reviewed by admin)"
     },
     "withdrawalStatus": {
-      "AUTO_APPROVED": "Auto-approved",
-      "PENDING_ADMIN_REVIEW": "Awaiting admin",
-      "ADMIN_APPROVED": "Admin approved",
-      "ADMIN_REJECTED": "Admin rejected"
+      "AUTO_APPROVED": "Approved automatically",
+      "PENDING_ADMIN_REVIEW": "Under admin review",
+      "ADMIN_APPROVED": "Approved by admin",
+      "ADMIN_REJECTED": "Rejected by admin"
     },
     "apiErrors": {
-      "WITHDRAWAL_REASON_NOT_VALIDATED": "The reason cannot be auto-validated.",
+      "WITHDRAWAL_REASON_NOT_VALIDATED": "This reason can't be validated automatically.",
       "WITHDRAWAL_ALREADY_PENDING": "A withdrawal is already pending.",
-      "CLAIM_NOT_WITHDRAWABLE": "The claim can no longer be withdrawn.",
+      "CLAIM_NOT_WITHDRAWABLE": "This claim can no longer be withdrawn.",
       "CLARIFICATION_ALREADY_PENDING": "A clarification is already pending.",
-      "CLAIM_NOT_ALLOWED": "Action not allowed in the current state.",
-      "VALIDATION_ERROR": "Invalid data.",
+      "CLAIM_NOT_ALLOWED": "This action isn't allowed in the claim's current state.",
+      "VALIDATION_ERROR": "The submitted data is not valid.",
       "INTERNAL_ERROR": "Something went wrong. Please try again."
     }
   },
   "Penalties": {
     "title": "Penalties",
-    "points": "{active} / {threshold} active points",
-    "suspended": "Company suspended until {until}.",
+    "points": "{active} of {threshold} penalty points active",
+    "suspended": "The company is suspended until {until}.",
     "pts": "pts",
     "expires": "expires"
   },
@@ -1179,13 +1179,13 @@
     "reject": "Reject"
   },
   "Fulfillment": {
-    "markDelivered": "Mark delivered",
-    "markedDelivered": "Delivery marked",
+    "markDelivered": "Mark as delivered",
+    "markedDelivered": "Marked as delivered",
     "deliveredTitle": "Order delivered",
-    "deliveredBody": "The company marked the work as delivered. Confirm to complete.",
+    "deliveredBody": "The company has marked the work as delivered. Confirm receipt to complete the order.",
     "confirmDelivery": "Confirm delivery",
     "reviewTitle": "Review",
-    "reviewPlaceholder": "How was the collaboration?",
+    "reviewPlaceholder": "How was working with this company?",
     "sendReview": "Submit review",
     "disputed": "disputed"
   },
@@ -1243,13 +1243,13 @@
       "activeSubscriptions": "Active subscriptions",
       "creditsBalance": "Credits (balance)",
       "creditsReserved": "Credits reserved",
-      "revenue": "Revenue (invoiced)",
+      "revenue": "Invoiced revenue",
       "audit": "Audit entries",
       "companies": "Companies by status",
       "requests": "Requests by status"
     },
     "audit": {
-      "filterAction": "Filter action…",
+      "filterAction": "Filter by action…",
       "action": "Action",
       "entity": "Entity",
       "role": "Role",
@@ -1261,7 +1261,7 @@
       "plans": "Subscription plans",
       "packages": "Credit packages",
       "thresholds": "Project size thresholds",
-      "creditCostNote": "Request cost is no longer set per threshold: 1 credit = 1,000 RON of the minimum estimated budget (at least 1 credit). Thresholds only decide the S/M/L size (SLA).",
+      "creditCostNote": "Request cost is no longer set per threshold: 1 credit = 1,000 RON of the minimum estimated budget (at least 1 credit). Thresholds only decide the S/M/L size and its SLA.",
       "save": "Save"
     },
     "jobs": {
@@ -1273,16 +1273,16 @@
   "Unsubscribe": {
     "title": "Email unsubscribe",
     "working": "Unsubscribing…",
-    "done": "Done — we will no longer send you notification emails. In-app notifications stay active.",
+    "done": "Done — we'll no longer send you notification emails. In-app notifications stay active.",
     "invalid": "This unsubscribe link is not valid or was already used.",
-    "reenableHint": "You can re-enable them anytime from the notification bell after signing in.",
+    "reenableHint": "You can turn them back on anytime from the notification bell after logging in.",
     "backHome": "Back to the homepage"
   },
   "Notifications": {
     "title": "Notifications",
-    "markAll": "Mark all read",
+    "markAll": "Mark all as read",
     "empty": "No notifications.",
-    "emailToggle": "Also send by email",
+    "emailToggle": "Also send them by email",
     "type": {
       "quote": {
         "created": "New offer",
@@ -1293,22 +1293,22 @@
         "created": "New message"
       },
       "request": {
-        "status_changed": "Request status updated"
+        "status_changed": "Request status changed"
       },
       "claim": {
-        "created": "Request claimed by a workshop",
+        "created": "Request claimed by a company",
         "withdrawn": "Claim withdrawn"
       }
     }
   },
   "Configurator": {
     "title": "Configure your project",
-    "subtitle": "Add rooms and answer a few questions — partner firms will see a fully structured request.",
+    "subtitle": "Add your rooms and answer a few questions — partner companies receive a clear, ready-to-quote request.",
     "kicker": "New request",
     "editKicker": "Edit request",
-    "loading": "Preparing...",
+    "loading": "Getting things ready...",
     "sheet": {
-      "phaseLabel": "Phase {current}/{total}"
+      "phaseLabel": "Phase {current} of {total}"
     },
     "phases": {
       "start": "Start",
@@ -1335,11 +1335,11 @@
     },
     "start": {
       "title": "How should we start?",
-      "subtitle": "Pick the option that fits you — we'll take the shortest path.",
+      "subtitle": "Pick the option that fits you — we'll take the shortest path from there.",
       "pick": "Choose",
       "OWN_PROJECT": {
         "title": "I already have a project",
-        "desc": "You have a technical project or finished sketches. Same form, but without the dimension questions and hand sketches — you upload the project at the Files step."
+        "desc": "You have a technical project or finished sketches. Same form, minus the dimension questions and hand-drawn sketches — you upload your project at the Files step."
       },
       "STANDARD": {
         "title": "I know what I want, but have no project",
@@ -1348,18 +1348,18 @@
       "DESIGN_HELP": {
         "title": "I'm not sure what I want — I need help",
         "badge": "Paid design",
-        "desc": "You only pick the rooms and publish the request with Paid design: the workshop that claims it builds the project together with you, for a fee."
+        "desc": "You only pick the rooms and publish the request with Paid design: the company that claims it builds the design together with you, for a fee."
       }
     },
     "cart": {
       "title": "Which rooms do you want furnished?",
-      "subtitle": "Add as many rooms as you need; you can add several of the same type.",
-      "designHelpSubtitle": "Pick the rooms or pieces you want furniture for — the workshop handles the design together with you.",
+      "subtitle": "Add as many rooms as you need — several of the same type is fine.",
+      "designHelpSubtitle": "Pick the rooms or pieces you want furniture for — the design is worked out together with the company that claims your request.",
       "basketTitle": "Your request cart",
-      "basketEmpty": "Nothing added yet — pick rooms or pieces below.",
+      "basketEmpty": "Nothing here yet — pick rooms or pieces below.",
       "totalRooms": "{count, plural, =0 {No rooms} =1 {One room} other {# rooms}}",
       "hasOwnProject": "I already have a project for the whole home",
-      "hasOwnProjectHint": "You'll upload it once at the Files step and can skip the per-room sketch steps.",
+      "hasOwnProjectHint": "Upload it once at the Files step and skip the sketch steps for every room.",
       "tabRooms": "Rooms",
       "tabPieces": "Individual pieces",
       "addPieces": "Add pieces",
@@ -1368,13 +1368,13 @@
       "removeOne": "Remove {type}"
     },
     "sketchUpload": {
-      "skipNotice": "You marked that you have a project for the whole home — you can skip this step. Upload the project at the Files step so you don't attach it for every room.",
+      "skipNotice": "You marked that you have a project for the whole home — feel free to skip this step. Upload the project at the Files step so you don't attach it for every room.",
       "hint": "Up to {local} more for this room ({global} left in total)",
-      "limitReached": "Attachment limit reached for this request."
+      "limitReached": "You've reached the file limit for this request."
     },
     "sketchGuide": {
-      "title": "No project? Make a quick sketch",
-      "subtitle": "Four simple steps — enough for firms to quote accurately.",
+      "title": "No project? A quick sketch will do",
+      "subtitle": "Four simple steps — enough for companies to quote accurately.",
       "fullGuide": "Full guide",
       "steps": {
         "measure": {
@@ -1387,7 +1387,7 @@
         },
         "mark": {
           "title": "Mark doors & windows",
-          "body": "Also mark sockets, pipes or anything that can't move."
+          "body": "Add the sockets, pipes and anything else that can't be moved."
         },
         "photo": {
           "title": "Photograph it",
@@ -1426,7 +1426,7 @@
         "OFFICE": "Desk, bookshelves, storage",
         "BEDROOM": "Wardrobe, bed, nightstands",
         "BATHROOM": "Vanity unit, mirror, tall storage",
-        "PIECES": "Any other piece — free description",
+        "PIECES": "Any other piece — describe it freely",
         "HALLWAY": "Shoe cabinet, coat rack, wardrobe, bench",
         "PANTRY": "Shelving and storage cabinets",
         "LAUNDRY": "Cabinets around the washer",
@@ -1450,7 +1450,7 @@
       "dropHint": "JPG, PNG, WEBP, PDF or ZIP, up to 25 MB",
       "uploading": "Uploading...",
       "scanning": "checking...",
-      "blockedNotice": "File rejected by the check — upload another one",
+      "blockedNotice": "This file didn't pass the check — try another one",
       "blockedShort": "Rejected",
       "status": {
         "PENDING_UPLOAD": "pending",
@@ -1463,31 +1463,31 @@
       "count": "{n, plural, =1 {one attached file} other {# attached files}}"
     },
     "editTitle": "Edit your request",
-    "editSubtitle": "Change the answers, files or details, then save. Edit limits apply (3 before a claim, 1 after).",
+    "editSubtitle": "Change your answers, files or details, then save. Edit limits apply: 3 changes before a claim, 1 after.",
     "review": {
       "title": "Review and publish",
-      "subtitle": "Confirm the details before sending your request to the marketplace.",
+      "subtitle": "Give the details one last look before sending your request to the marketplace.",
       "saveEdit": "Save changes",
       "edit": "Edit",
       "detailsIncomplete": "Complete the general info before publishing.",
       "roomIncomplete": "incomplete",
-      "designHelpBanner": "Paid design request: you publish the rooms and general details, and the workshop that claims it designs the project together with you.",
-      "designHelpRoomNote": "This room's details will be defined together with the designer after publishing.",
+      "designHelpBanner": "Paid design request: you publish the rooms and general details, and the company that claims it designs the project together with you.",
+      "designHelpRoomNote": "You'll define this room's details together with the designer after publishing.",
       "loginToPublish": "Log in to publish",
-      "loginToPublishHint": "Your request is complete. Log in or create an account to send it to the marketplace — your answers are kept.",
+      "loginToPublishHint": "Your request is complete. Log in or create an account to send it to the marketplace — your answers stay saved.",
       "publishing": "Publishing your request...",
       "publishingEdit": "Saving your changes...",
-      "publishingHint": "This takes a few seconds — we are preparing your request for the workshops."
+      "publishingHint": "This takes a few seconds — we're getting your request ready for the partner companies."
     },
     "inspirationPicker": {
       "title": "Gallery inspiration",
-      "subtitle": "Pick up to {max} photos of furniture made by our workshops — firms see exactly what you like.",
+      "subtitle": "Pick up to {max} photos of real work by our partner companies — they'll see exactly what you like.",
       "browse": "Browse the gallery",
       "dialogTitle": "Choose inspiration photos",
       "selectedCount": "{count} of {max} selected",
       "tabGallery": "Gallery",
       "tabBoards": "My collections",
-      "boardsEmpty": "You have no collections yet. Save photos in the Idea book and they will show up here.",
+      "boardsEmpty": "You have no collections yet. Save photos in the Idea book and they'll show up here.",
       "boardCount": "{count, plural, one {# photo} other {# photos}}",
       "backToBoards": "Collections",
       "confirm": "Next"
@@ -1542,7 +1542,7 @@
       "countLabel": "Count",
       "fewer": "Fewer",
       "more": "More",
-      "webglMissing": "Your device does not support the 3D view — configure the piece with the fields below; the resulting request is identical.",
+      "webglMissing": "Your device doesn't support the 3D view — configure the piece with the fields below; the resulting request is identical.",
       "zoneTypeLabel": "Zone type",
       "viewer": {
         "open": "View the piece in 3D",
@@ -1550,7 +1550,7 @@
         "readOnly": "View only — you can open doors and drawers, but you can't change the piece.",
         "hint": "Drag to rotate the model. Click a zone to open it and read its dimensions.",
         "close": "Close",
-        "webglMissing": "Your device does not support the 3D view — the piece dimensions remain in the request summary."
+        "webglMissing": "Your device doesn't support the 3D view — the piece dimensions remain in the request summary."
       },
       "zoneTypes": {
         "OPEN": "Open",
@@ -1616,27 +1616,27 @@
       "remove": "Remove"
     },
     "apiErrors": {
-      "CONFIGURATOR_ANSWERS_INVALID": "Some answers are invalid. Check the highlighted steps.",
-      "CONFIGURATOR_FLOW_VERSION_UNSUPPORTED": "The questionnaire was updated. Please redo the answers for the affected rooms.",
-      "CONFIGURATOR_STATE_TOO_LARGE": "Configurator data is too large.",
-      "GEOCODING_FAILED": "The address could not be located. Check the city and county.",
+      "CONFIGURATOR_ANSWERS_INVALID": "Some answers couldn't be validated. Check the highlighted steps.",
+      "CONFIGURATOR_FLOW_VERSION_UNSUPPORTED": "The questionnaire has been updated in the meantime. Redo the answers for the marked rooms.",
+      "CONFIGURATOR_STATE_TOO_LARGE": "The request has grown too large to save. Trim some content and try again.",
+      "GEOCODING_FAILED": "We couldn't find that address on the map. Check the city and county.",
       "FILE_SCAN_BLOCKED": "An attached file was rejected by the check. Remove it from the sketch step and try again.",
-      "GENERIC": "Something went wrong. Please try again."
+      "GENERIC": "Something unexpected went wrong. Please try again."
     },
     "validation": {
-      "answerRequired": "This field is required.",
-      "answerInvalid": "Invalid answer.",
-      "dimensionRange": "Value must be between {range}.",
-      "optionInvalid": "Invalid option.",
+      "answerRequired": "Fill in this field to continue.",
+      "answerInvalid": "This answer isn't in the expected format.",
+      "dimensionRange": "The value must be between {range}.",
+      "optionInvalid": "This option is no longer available.",
       "minOneOption": "Pick at least one option.",
-      "tooManyOptions": "Too many options selected.",
-      "dimensionOutOfRange": "Dimension out of allowed range.",
-      "numberOutOfRange": "Value out of range.",
-      "textTooLong": "Text too long.",
+      "tooManyOptions": "Fewer options can be selected here — drop one.",
+      "dimensionOutOfRange": "This dimension is outside the allowed range.",
+      "numberOutOfRange": "This value is outside the allowed range.",
+      "textTooLong": "The text is over the maximum length.",
       "minPieces": "Add at least one piece.",
-      "maxPieces": "Too many pieces.",
-      "tooManyFiles": "Too many files attached.",
-      "unknownAnswer": "Unknown answer."
+      "maxPieces": "You've reached the maximum number of pieces.",
+      "tooManyFiles": "You've reached the maximum number of files.",
+      "unknownAnswer": "We couldn't read this answer — redo this step."
     },
     "common": {
       "boolean": {
@@ -1649,57 +1649,57 @@
       "materials": {
         "PAL": {
           "label": "Chipboard (PAL)",
-          "description": "Affordable, sturdy, many finishes",
+          "description": "Lowest price, wide choice of decors, sturdy",
           "info": {
             "title": "Melamine chipboard",
-            "body": "Melamine-faced chipboard — the best price/durability ratio for cabinet bodies.",
-            "pros1": "Lowest price",
-            "pros2": "Wide range of finishes",
-            "pros3": "Scratch resistant",
-            "cons1": "Edges less refined without ABS banding",
-            "cons2": "Sensitive to moisture on unsealed cuts",
+            "body": "Melamine-faced chipboard — the standard for cabinet carcasses, with the best price-to-durability ratio.",
+            "pros1": "The best price per linear metre — your budget goes to fittings instead",
+            "pros2": "Hundreds of decors: plain colours, wood grains, even concrete looks",
+            "pros3": "The melamine surface shrugs off everyday scratches",
+            "cons1": "Edges need ABS banding, or they show and wear",
+            "cons2": "Swells if water reaches an unsealed cut",
             "price": "250–450 RON/lm"
           }
         },
         "MDF": {
           "label": "MDF",
-          "description": "Painted or foil fronts, premium look",
+          "description": "Painted or foil-wrapped fronts, refined look",
           "info": {
             "title": "Painted/foiled MDF",
-            "body": "Medium-density fibreboard — ideal for painted, milled or foil-wrapped fronts.",
-            "pros1": "Smooth surface, paints beautifully",
-            "pros2": "Allows milling and shapes",
-            "pros3": "Premium look",
-            "cons1": "Costs more than chipboard",
-            "cons2": "Heavier",
+            "body": "Medium-density fibreboard — the right base for painted, routed or foil-wrapped fronts.",
+            "pros1": "Smooth surface — paint goes on evenly, with no board texture",
+            "pros2": "Can be routed: profiles, frames, classic patterns",
+            "pros3": "Edges finish cleanly, no applied banding needed",
+            "cons1": "Costs more than chipboard for the same piece",
+            "cons2": "The boards are heavy — large units need matching hardware",
             "price": "450–800 RON/lm"
           }
         },
         "MDF_INFOLIAT": {
           "label": "Foil-wrapped MDF",
-          "description": "PVC foil on routed fronts, easy to maintain",
+          "description": "PVC foil on routed fronts, easy to keep clean",
           "info": {
             "title": "Foil-wrapped MDF",
-            "body": "MDF fronts covered with heat-pressed PVC foil — allows routed profiles with a clean look at a moderate price.",
-            "pros1": "Moisture resistant",
-            "pros2": "Easy to clean",
-            "pros3": "Allows routed fronts",
-            "cons1": "Foil can peel near strong heat",
-            "cons2": "Narrower colour palette than paint",
+            "body": "MDF fronts wrapped in heat-pressed PVC foil — routed patterns and a clean look at a moderate price.",
+            "pros1": "The foil keeps water out — works in kitchens and bathrooms",
+            "pros2": "Wipes clean with a cloth, no special products needed",
+            "pros3": "Allows routed fronts, with frames or classic patterns",
+            "cons1": "Next to an oven or hob, the foil can peel over time",
+            "cons2": "A narrower colour palette than painted MDF",
             "price": "350–600 RON/lm"
           }
         },
         "MDF_VOPSIT": {
           "label": "Painted MDF",
-          "description": "Any colour, matte or gloss",
+          "description": "Any RAL colour, matte or gloss finish",
           "info": {
             "title": "Painted MDF",
-            "body": "Electrostatically painted MDF fronts — any RAL colour, in matte, satin or gloss finish.",
-            "pros1": "Any colour and gloss level",
-            "pros2": "Premium look, fine edges",
-            "pros3": "Can be repainted",
-            "cons1": "Higher price",
-            "cons2": "Sensitive to impacts (may chip)",
+            "body": "Electrostatically painted MDF fronts — any RAL colour, in matte, satin or gloss.",
+            "pros1": "Any colour and sheen — matches the rest of your home exactly",
+            "pros2": "Fine edges with no visible banding — the most refined look",
+            "pros3": "A scratch can be repainted locally, no front replacement",
+            "cons1": "Among the most expensive front options",
+            "cons2": "Paint can chip on a direct knock",
             "price": "500–900 RON/lm"
           }
         },
@@ -1708,37 +1708,37 @@
           "description": "Natural wood veneer on a stable core",
           "info": {
             "title": "Veneered MDF",
-            "body": "MDF covered with natural wood veneer — authentic wood grain without the warping risk of solid timber.",
-            "pros1": "Natural wood look",
-            "pros2": "Dimensionally stable",
-            "pros3": "Can be stained in different shades",
+            "body": "MDF wrapped in natural wood veneer — the authentic grain of wood, without solid timber's warping risk.",
+            "pros1": "Real wood grain, there to see and to touch",
+            "pros2": "The MDF core won't warp the way solid wood does",
+            "pros3": "Can be stained to the shade you want, just like wood",
             "cons1": "Rare veneers cost close to solid wood",
-            "cons2": "Sensitive to deep scratches",
+            "cons2": "Deep scratches cut through the thin veneer layer",
             "price": "600–1100 RON/lm"
           }
         },
         "LEMN_MASIV": {
           "label": "Solid wood",
-          "description": "Natural, durable, most premium",
+          "description": "Real wood, durable, unique grain",
           "info": {
             "title": "Solid wood",
-            "body": "Natural timber — the most durable and valuable option, with unique grain.",
-            "pros1": "Excellent durability",
-            "pros2": "Warm, natural look",
-            "pros3": "Can be refinished",
-            "cons1": "Most expensive",
-            "cons2": "May warp with humidity swings",
+            "body": "Solid natural timber — the most durable option, with a grain unique to every piece.",
+            "pros1": "Lasts for decades and can always be repaired",
+            "pros2": "Every piece has its own grain — no two are alike",
+            "pros3": "Can be sanded and refinished to look new again",
+            "cons1": "The most expensive material option",
+            "cons2": "Moves with humidity — it can crack or warp",
             "price": "900–1800 RON/lm"
           }
         },
         "ALTUL": {
           "label": "Other",
-          "description": "Type the material you want below"
+          "description": "Type the material you have in mind below"
         }
       },
       "otherMaterial": {
         "title": "What material do you have in mind?",
-        "subtitle": "Briefly describe the material or finish you want — the workshop will confirm availability."
+        "subtitle": "Briefly describe the material or finish you want — the company will confirm whether they can work with it."
       },
       "pieceSystems": {
         "title": "Which opening system?",
@@ -1747,14 +1747,14 @@
       "systems": {
         "PUSH": {
           "label": "Push (handleless)",
-          "description": "Press to open",
+          "description": "Opens with a light press",
           "info": {
             "title": "Push-to-open",
-            "body": "Open with a simple press, no handles — minimalist look.",
-            "pros1": "Clean handleless fronts",
-            "pros2": "Modern look",
-            "cons1": "Fingerprints on fronts",
-            "cons2": "More sensitive adjustment",
+            "body": "Fronts open with a light press, no handles — the line stays completely clean.",
+            "pros1": "Smooth fronts with no handle to break the line",
+            "pros2": "Opens with an elbow when your hands are full",
+            "cons1": "Fingerprints show quickly on smooth fronts",
+            "cons2": "The mechanism needs adjusting more often than a classic hinge",
             "price": "+30–60 RON/front"
           }
         },
@@ -1763,63 +1763,63 @@
           "description": "Doors or drawers on rails",
           "info": {
             "title": "Sliding systems",
-            "body": "Doors or drawers on rails — save space, ideal for wardrobes.",
-            "pros1": "Save opening space",
-            "pros2": "High capacity",
-            "cons1": "Quality rails cost more",
-            "cons2": "Need precise alignment",
+            "body": "Doors or drawers that glide on rails — no swing space needed, well suited to wardrobes.",
+            "pros1": "The door never swings out — works even right beside the bed",
+            "pros2": "Carries wide, heavy fronts, all the way to the ceiling",
+            "cons1": "Good rails cost more — cheap ones you feel on every open",
+            "cons2": "Needs precise fitting — a skewed rail is heard and felt",
             "price": "+80–200 RON/set"
           }
         },
         "BUTON_PRESIUNE": {
           "label": "Press latch",
-          "description": "Simple, low cost",
+          "description": "Simple click mechanism, low cost",
           "info": {
             "title": "Press latch",
-            "body": "Simple click mechanism — the most economical handleless opening option.",
-            "pros1": "Cheapest",
-            "pros2": "Easy to fit",
-            "cons1": "Lower durability",
-            "cons2": "No soft-close",
+            "body": "A simple click mechanism — the most affordable handleless opening.",
+            "pros1": "The smallest investment for handleless fronts",
+            "pros2": "A simple mechanism — easy to fit and to replace",
+            "cons1": "Wears out faster than quality push systems",
+            "cons2": "The door shuts hard, with no soft-close",
             "price": "+10–30 RON/front"
           }
         },
         "MANER": {
           "label": "Handle",
-          "description": "Applied handles, your choice of model",
+          "description": "Mounted handles, model of your choice",
           "info": {
             "title": "Classic handles",
-            "body": "Handles mounted on the fronts — from minimal to classic, the model is chosen with the workshop.",
-            "pros1": "Reliable grip, always works",
-            "pros2": "Huge variety of models",
-            "cons1": "Visible — a deliberate style",
-            "cons2": "Can snag in tight spaces",
+            "body": "Handles mounted on the fronts — from minimal to classic; you choose the model together with the company.",
+            "pros1": "A sure grip that works the same after ten years",
+            "pros2": "Thousands of models — handles alone can change the look",
+            "cons1": "Always visible — they become part of the design",
+            "cons2": "Can catch clothes as you pass in narrow spaces",
             "price": "10–80 RON/pc"
           }
         },
         "GOLA": {
           "label": "Gola",
-          "description": "Integrated profile, no applied handle",
+          "description": "Grip profile built into the front",
           "info": {
             "title": "Gola profile",
-            "body": "Aluminium channel integrated between fronts — you open from the profile and the front line stays uninterrupted.",
-            "pros1": "Premium look, continuous lines",
-            "pros2": "Nothing snags, easy to clean",
-            "cons1": "Routing and profile costs",
-            "cons2": "More complex fitting",
+            "body": "An aluminium channel set between the fronts — you open from the profile and the front line stays unbroken.",
+            "pros1": "An unbroken line with no handles — the modern kitchen look",
+            "pros2": "Nothing sticks out — nothing to catch as you pass by",
+            "cons1": "Routing and the profile add to the price",
+            "cons2": "Demanding to fit — a job for an experienced team",
             "price": "+150–300 RON/lm"
           }
         },
         "AVENTOS": {
           "label": "Aventos (lift-up)",
-          "description": "The front lifts vertically, with soft-close",
+          "description": "The front lifts up, with soft-close",
           "info": {
             "title": "Aventos system",
-            "body": "Wall-cabinet fronts lift upwards on damped arms — full access, no door at head height.",
-            "pros1": "Easy access, no door to bump into",
-            "pros2": "Stays open at any angle",
-            "cons1": "Most expensive system",
-            "cons2": "Needs periodic adjustment",
+            "body": "Wall-cabinet fronts lift on damped arms — full access, with no open door at head height.",
+            "pros1": "No more open doors to bump into above the worktop",
+            "pros2": "The front stays open at any position until you pull it down",
+            "cons1": "The most expensive opening system",
+            "cons2": "The arms need periodic adjustment to stay balanced",
             "price": "+250–500 RON/unit"
           }
         }
@@ -1828,21 +1828,21 @@
     "flows": {
       "KITCHEN": {
         "layout": {
-          "title": "What layout is the kitchen?",
-          "subtitle": "Pick the configuration that fits your space.",
+          "title": "What shape is the kitchen?",
+          "subtitle": "Pick the layout that fits your space.",
           "options": {
             "STRAIGHT": {
               "label": "Straight",
               "description": "Cabinets along one wall",
               "info": {
                 "title": "Straight kitchen",
-                "body": "All cabinets on one wall — compact, suited to small spaces.",
+                "body": "All cabinets along one wall — compact, a natural fit for small spaces.",
                 "price": "RON 4,000–9,000",
-                "pros1": "Most economical",
-                "pros2": "Ideal for small spaces",
-                "pros3": "Simple to fit",
-                "cons1": "Limited worktop",
-                "cons2": "Less storage"
+                "pros1": "Lowest cost per metre of any layout",
+                "pros2": "Fits narrow kitchens and open-plan living areas",
+                "pros3": "Quick to install: one wall, no corners to solve",
+                "cons1": "The worktop stays short — serious cooking takes organising",
+                "cons2": "Less storage; tall units become almost essential"
               }
             },
             "L_SHAPE": {
@@ -1852,11 +1852,11 @@
                 "title": "L-shaped kitchen",
                 "body": "Cabinets on two walls — a good balance of worktop and circulation.",
                 "price": "RON 7,000–15,000",
-                "pros1": "Efficient work triangle",
-                "pros2": "Good for medium spaces",
-                "pros3": "Allows a dining corner",
-                "cons1": "Corner can be hard to reach",
-                "cons2": "Needs corner fittings"
+                "pros1": "Sink, hob and fridge sit close — short paths while cooking",
+                "pros2": "Fits most apartments without blocking the walkway",
+                "pros3": "Leaves room for a table or a breakfast corner",
+                "cons1": "The corner is hard to reach without dedicated fittings",
+                "cons2": "Corner systems (carousel, pull-out) add to the price"
               }
             },
             "U_SHAPE": {
@@ -1866,11 +1866,11 @@
                 "title": "U-shaped kitchen",
                 "body": "Cabinets on three sides — maximum storage and worktop.",
                 "price": "RON 12,000–25,000",
-                "pros1": "Maximum storage",
-                "pros2": "Plenty of worktop",
-                "pros3": "Multiple work zones",
-                "cons1": "Needs a large room",
-                "cons2": "Two corners to manage"
+                "pros1": "Storage on three sides — you'll rarely need another cupboard",
+                "pros2": "Generous worktop: cook and prep in parallel",
+                "pros3": "Separate zones for cooking, washing and prep",
+                "cons1": "Feels cramped in rooms under 2.4 m wide",
+                "cons2": "Two corners to solve — each needs fittings or wastes space"
               }
             },
             "PARALLEL": {
@@ -1878,28 +1878,28 @@
               "description": "Cabinets on two facing walls",
               "info": {
                 "title": "Galley kitchen",
-                "body": "Two parallel runs — efficient for pass-through kitchens.",
+                "body": "Two facing runs — efficient in pass-through kitchens.",
                 "price": "RON 9,000–18,000",
-                "pros1": "Very efficient for cooking",
-                "pros2": "Good for two people",
-                "cons1": "Needs a 1.2 m aisle",
-                "cons2": "No dining corner"
+                "pros1": "Everything one step away — the layout cooks prefer",
+                "pros2": "Two people can cook without getting in each other's way",
+                "cons1": "The aisle between runs needs at least 1.2 m clear",
+                "cons2": "No room left for a table in the kitchen"
               }
             }
           }
         },
         "hasIsland": {
           "title": "Do you want an island?",
-          "subtitle": "An island adds worktop, storage and a serving spot.",
+          "subtitle": "An island adds worktop, storage and a place to eat.",
           "cardLabel": "Island",
           "info": {
             "title": "Kitchen island",
-            "body": "A freestanding unit in the middle — needs at least 1.2 m clearance on each side.",
+            "body": "A freestanding unit in the middle — leave at least 1.2 m of clearance on every side.",
             "price": "+RON 3,000–8,000",
-            "pros1": "Extra worktop and storage",
-            "pros2": "A place to dine",
-            "cons1": "Needs generous space",
-            "cons2": "Extra cost"
+            "pros1": "Extra worktop and storage, right at the centre of the action",
+            "pros2": "Doubles as a breakfast bar or a spot for guests",
+            "cons1": "Only works in large kitchens — otherwise it blocks circulation",
+            "cons2": "A separate unit and worktop — the cost adds up visibly"
           }
         },
         "dimensions": {
@@ -1937,19 +1937,19 @@
         },
         "frontMaterial": {
           "title": "Front material?",
-          "subtitle": "The material drives the look and price."
+          "subtitle": "The front material sets the look and much of the price."
         },
         "frontMaterialBase": {
           "title": "Front material for the base units?",
-          "subtitle": "The lower cabinets — the material drives the look and price."
+          "subtitle": "The lower cabinets — the material sets their look and price."
         },
         "frontMaterialWall": {
           "title": "Front material for the wall units?",
-          "subtitle": "The upper cabinets can use a different material."
+          "subtitle": "The upper cabinets can use a different material from the lower ones."
         },
         "frontMaterialIsland": {
           "title": "Front material for the island?",
-          "subtitle": "The island can stand out with its own material."
+          "subtitle": "The island can stand out with a material of its own."
         },
         "openingSystems": {
           "title": "Opening systems?",
@@ -1969,23 +1969,23 @@
         },
         "sketch": {
           "title": "Upload your project or sketch",
-          "subtitle": "Optional — a sketch or plan for this kitchen helps firms quote accurately."
+          "subtitle": "Optional — a sketch or plan of this kitchen helps companies quote an accurate price."
         },
         "countertop": {
           "title": "Which countertop?",
-          "subtitle": "Optional — helps the firm estimate more accurately.",
+          "subtitle": "Optional — helps the company estimate more accurately.",
           "options": {
             "PAL": {
               "label": "Laminated board",
               "description": "Standard laminate worktop, most affordable",
               "info": {
                 "title": "Laminated chipboard worktop",
-                "body": "Chipboard core with a laminated surface — the affordable standard, many designs.",
+                "body": "Chipboard core with a laminated surface — the affordable standard, hundreds of designs.",
                 "price": "RON 150–300/lm",
-                "pros1": "Low price",
-                "pros2": "Many designs",
-                "cons1": "Edges sensitive to water",
-                "cons2": "Scratches over time"
+                "pros1": "Lowest price — easy to replace years later without regrets",
+                "pros2": "Hundreds of designs: wood, stone, plain colours",
+                "cons1": "Edges swell if water gets past the sealing",
+                "cons2": "Scratches and dulls visibly in heavy-use areas"
               }
             },
             "HPL": {
@@ -1993,12 +1993,12 @@
               "description": "High-pressure laminate, very durable",
               "info": {
                 "title": "HPL worktop",
-                "body": "High-pressure laminate — far denser and more resistant to water and scratches than standard boards.",
+                "body": "High-pressure laminate — far denser and tougher than standard chipboard.",
                 "price": "RON 400–800/lm",
-                "pros1": "Water and wear resistant",
-                "pros2": "Can be thin, modern look",
-                "cons1": "Costs more than standard board",
-                "cons2": "Narrower range of designs"
+                "pros1": "Handles water, scratches and daily wear far better than chipboard",
+                "pros2": "Can be slim, for a clean, modern line",
+                "cons1": "Roughly double the price of a standard laminate top",
+                "cons2": "Narrower range of designs than regular laminate"
               }
             },
             "LAMINATE": {
@@ -2006,12 +2006,12 @@
               "description": "Affordable, many designs",
               "info": {
                 "title": "Laminate countertop",
-                "body": "Laminated chipboard — affordable with many finishes.",
+                "body": "Laminated chipboard — the budget option with the widest choice of designs.",
                 "price": "RON 150–350/lm",
-                "pros1": "Most affordable",
-                "pros2": "Many designs",
-                "cons1": "Prone to deep scratches",
-                "cons2": "No direct heat"
+                "pros1": "The lowest-priced worktop of all",
+                "pros2": "Designs for any style, from wood to concrete",
+                "cons1": "Deep scratches cannot be repaired",
+                "cons2": "Hot pans straight on the top leave marks — use a trivet"
               }
             },
             "QUARTZ": {
@@ -2019,12 +2019,12 @@
               "description": "Durable, premium look",
               "info": {
                 "title": "Quartz countertop",
-                "body": "Engineered stone — very durable and hygienic.",
+                "body": "Engineered stone — among the most durable and hygienic worktops.",
                 "price": "RON 600–1,200/lm",
-                "pros1": "Very durable",
-                "pros2": "Non-porous, hygienic",
-                "cons1": "High price",
-                "cons2": "Heavy"
+                "pros1": "Nearly impossible to scratch in everyday use",
+                "pros2": "Non-porous surface: doesn't stain, easy to keep hygienic",
+                "cons1": "Among the priciest worktop options",
+                "cons2": "Very heavy — cabinets must be built to carry it"
               }
             },
             "GRANITE": {
@@ -2032,12 +2032,12 @@
               "description": "Natural, very durable",
               "info": {
                 "title": "Granite countertop",
-                "body": "Natural stone — durable, with unique texture.",
+                "body": "Natural stone — durable, with a unique pattern in every slab.",
                 "price": "RON 700–1,400/lm",
-                "pros1": "Very durable",
-                "pros2": "Natural look",
-                "cons1": "Needs maintenance",
-                "cons2": "High price"
+                "pros1": "Natural stone that takes decades of daily use",
+                "pros2": "Every slab has a one-of-a-kind pattern",
+                "cons1": "Needs periodic sealing, or it can stain",
+                "cons2": "High price, and so are transport and fitting"
               }
             },
             "WOOD": {
@@ -2045,19 +2045,19 @@
               "description": "Warm, natural",
               "info": {
                 "title": "Wood countertop",
-                "body": "Solid wood — warm look, needs periodic oiling.",
+                "body": "Solid wood — a warm look, cared for with periodic oiling.",
                 "price": "RON 400–900/lm",
-                "pros1": "Warm look",
-                "pros2": "Can be refinished",
-                "cons1": "Needs maintenance",
-                "cons2": "Water sensitive"
+                "pros1": "Warms up any kitchen — works in modern styles too",
+                "pros2": "Scratches sand out; the top can be refinished any time",
+                "cons1": "Needs regular oiling, especially around the sink",
+                "cons2": "Standing water stains and swells the wood"
               }
             }
           }
         },
         "appliances": {
           "title": "Built-in appliances?",
-          "subtitle": "Optional — helps with cut-outs and niches.",
+          "subtitle": "Optional — companies prepare the cut-outs and niches for your exact models.",
           "options": {
             "OVEN": {
               "label": "Oven"
@@ -2085,17 +2085,17 @@
         },
         "notes": {
           "title": "Anything else?",
-          "subtitle": "Optional — any preference or note for the firms."
+          "subtitle": "Optional — any preference or note for the companies."
         }
       },
       "PIECES": {
         "pieces": {
           "title": "What pieces do you need?",
-          "subtitle": "Add each piece with its material and quantity."
+          "subtitle": "Add each piece, with its material and quantity."
         },
         "sketch": {
           "title": "Upload your project or sketch",
-          "subtitle": "Optional — a sketch or plan helps firms quote accurately."
+          "subtitle": "Optional — a sketch or plan helps companies quote an accurate price."
         }
       },
       "DRESSING": {
@@ -2108,11 +2108,11 @@
               "description": "Along one wall",
               "info": {
                 "title": "Linear closet",
-                "body": "Modules on a single wall — compact.",
+                "body": "Modules along a single wall — the compact option for a bedroom or hallway.",
                 "price": "RON 3,000–7,000",
-                "pros1": "Compact",
-                "pros2": "Economical",
-                "cons1": "Limited capacity"
+                "pros1": "Takes up one wall — the rest of the room stays free",
+                "pros2": "The lowest-cost configuration",
+                "cons1": "Limited capacity — choose carefully what lives here"
               }
             },
             "L_SHAPE": {
@@ -2120,11 +2120,11 @@
               "description": "On two walls",
               "info": {
                 "title": "L-shaped closet",
-                "body": "Modules on two walls — good balance.",
+                "body": "Modules on two walls — puts the corner to work.",
                 "price": "RON 5,000–11,000",
-                "pros1": "Good capacity",
-                "pros2": "Uses the corner",
-                "cons1": "Corner harder to reach"
+                "pros1": "Serious capacity without taking over the room",
+                "pros2": "An otherwise wasted corner becomes storage",
+                "cons1": "The corner stays awkward without dedicated modules"
               }
             },
             "U_SHAPE": {
@@ -2132,11 +2132,11 @@
               "description": "On three walls",
               "info": {
                 "title": "U-shaped closet",
-                "body": "Modules on three sides — maximum capacity.",
+                "body": "Modules on three sides — maximum storage capacity.",
                 "price": "RON 8,000–16,000",
-                "pros1": "Maximum capacity",
-                "pros2": "Many zones",
-                "cons1": "Needs a large space"
+                "pros1": "The most storage per square metre",
+                "pros2": "Separate zones: hanging, drawers, shelves",
+                "cons1": "Needs a generous room, or you'll be bumping into doors"
               }
             },
             "WALK_IN": {
@@ -2144,11 +2144,11 @@
               "description": "Dedicated room",
               "info": {
                 "title": "Walk-in closet",
-                "body": "A dedicated room with modules on several walls.",
+                "body": "A dedicated room, with modules on several walls.",
                 "price": "RON 9,000–20,000",
-                "pros1": "Very spacious",
-                "pros2": "Comfortable",
-                "cons1": "Needs its own room"
+                "pros1": "Your whole wardrobe visible, in one place",
+                "pros2": "Get dressed on the spot, no doors to open",
+                "cons1": "You give up a room, or part of one"
               }
             }
           }
@@ -2162,11 +2162,11 @@
               "description": "Save space",
               "info": {
                 "title": "Sliding doors",
-                "body": "Doors on rails — no opening space needed.",
+                "body": "Doors that glide on rails — they need no swing space at all.",
                 "price": "+RON 800–2,000",
-                "pros1": "Save space",
-                "pros2": "Modern look",
-                "cons1": "Quality rails cost more"
+                "pros1": "Sit flush against a bed or wall — zero swing space",
+                "pros2": "One large, continuous surface — great for mirrors too",
+                "cons1": "Good rails cost more — cheap ones wear out fast"
               }
             },
             "HINGED": {
@@ -2176,9 +2176,9 @@
                 "title": "Hinged doors",
                 "body": "Classic hinged doors — full access to the interior.",
                 "price": "+RON 300–900",
-                "pros1": "Full access",
-                "pros2": "Lower cost",
-                "cons1": "Needs opening space"
+                "pros1": "Open a door and see the whole interior at a glance",
+                "pros2": "Hinges cost less than any sliding system",
+                "cons1": "Open doors need clear space in front of the wardrobe"
               }
             },
             "OPEN": {
@@ -2186,18 +2186,18 @@
               "description": "Open modules",
               "info": {
                 "title": "Open closet",
-                "body": "Doorless modules — quick access, airy look.",
+                "body": "Doorless modules — everything visible and within reach.",
                 "price": "included",
-                "pros1": "Quick access",
-                "pros2": "Minimal cost",
-                "cons1": "Dust on clothes"
+                "pros1": "Grab what you need in a single motion",
+                "pros2": "No doors, no hardware — the lowest cost",
+                "cons1": "Dust settles on clothes — takes constant tidiness"
               }
             }
           }
         },
         "dimensions": {
           "title": "Closet dimensions",
-          "subtitle": "Run lengths and height.",
+          "subtitle": "The length of each run and the closet height — the letters match the sketch.",
           "slots": {
             "runA": "Run A length",
             "runB": "Run B length",
@@ -2214,7 +2214,7 @@
               "description": "Shirts, dresses, jackets",
               "info": {
                 "title": "Hanging rods",
-                "body": "The classic hanger zone. One meter of rod holds about 10-12 hangers; long dresses need 150-160 cm of free height.",
+                "body": "The classic hanger zone. One metre of rod holds about 10–12 hangers; long dresses need 150–160 cm of free height.",
                 "price": "usually included"
               }
             },
@@ -2223,7 +2223,7 @@
               "description": "Underwear, t-shirts, small items",
               "info": {
                 "title": "Drawers",
-                "body": "The priciest interior module: slides, fronts, assembly. Soft-close drawers are worth it in daily-use zones.",
+                "body": "The priciest interior module: slides, fronts, assembly. Soft-close is worth it in daily-use zones.",
                 "price": "+250–450 lei / drawer"
               }
             },
@@ -2232,7 +2232,7 @@
               "description": "Folded clothes, boxes, bags",
               "info": {
                 "title": "Shelves",
-                "body": "The most affordable modules. Adjustable shelves are a small extra that pays off quickly.",
+                "body": "The most affordable modules. Adjustable shelves cost a little extra and pay off quickly.",
                 "price": "usually included"
               }
             },
@@ -2250,7 +2250,7 @@
               "description": "Trouser rack, belt/tie holders",
               "info": {
                 "title": "Interior accessories",
-                "body": "Pull-out trouser rack, belt and tie holders, wire baskets. Easy to add later, but cheaper if planned from the start.",
+                "body": "Pull-out trouser rack, belt and tie holders, wire baskets. They can be added later, but come out cheaper planned from the start.",
                 "price": "+200–600 lei / accessory"
               }
             },
@@ -2259,7 +2259,7 @@
               "description": "LED strip with a door sensor",
               "info": {
                 "title": "LED lighting",
-                "body": "LED strip under shelves or along the sides, usually with a door or motion sensor. Needs power nearby — tell the company where the closest outlet is.",
+                "body": "LED strip under the shelves or along the sides, usually with a door or motion sensor. Needs power — tell the company where the closest outlet is.",
                 "price": "+400–1,200 lei"
               }
             }
@@ -2267,7 +2267,7 @@
         },
         "material": {
           "title": "Which material?",
-          "subtitle": "Module material."
+          "subtitle": "The material of the interior modules."
         },
         "notes": {
           "title": "Anything else?",
@@ -2276,11 +2276,11 @@
         "toCeiling": {
           "title": "Up to the ceiling?",
           "info": {
-            "title": "Floor-to-ceiling dressing",
-            "body": "Modules go all the way up: no dust collecting on top and you gain seasonal storage. Needs careful measuring — ceilings are rarely perfectly level.",
-            "pros1": "No dust on top",
-            "pros2": "Maximum storage",
-            "cons1": "Top zone needs a step stool",
+            "title": "Floor-to-ceiling closet",
+            "body": "Modules run all the way up: no dust collecting on top, and you gain room for seasonal items. Ceilings are rarely perfectly level — careful measuring required.",
+            "pros1": "Nothing gathers dust above the wardrobe",
+            "pros2": "The top zone holds bedding and out-of-season clothes",
+            "cons1": "You'll need a step stool for the top shelves",
             "price": "+10–15% vs standard height"
           }
         },
@@ -2289,60 +2289,60 @@
           "subtitle": "LED strip with a door sensor.",
           "info": {
             "title": "LED lighting",
-            "body": "LED strip under shelves or along the sides, usually with a door or motion sensor. Needs power nearby — tell the company where the closest outlet is.",
-            "pros1": "See everything, even at night",
-            "pros2": "Premium look",
-            "cons1": "Needs an outlet nearby",
+            "body": "LED strip under the shelves or along the sides, usually with a door or motion sensor. Needs power — tell the company where the closest outlet is.",
+            "pros1": "See the whole interior, even at night",
+            "pros2": "Warm light gives the interior a premium feel",
+            "cons1": "Needs a power outlet nearby",
             "price": "+400–1,200 lei"
           }
         },
         "sketch": {
           "title": "Do you have a sketch of the space?",
-          "subtitle": "Optional — a simple sketch with measurements helps companies quote precisely."
+          "subtitle": "Optional — a simple sketch with measurements helps companies quote a precise price."
         }
       },
       "BEDROOM": {
         "piecesNeeded": {
           "title": "What pieces do you need?",
-          "subtitle": "Pick the bedroom furniture.",
+          "subtitle": "Pick the furniture for your bedroom.",
           "options": {
             "WARDROBE": {
               "label": "Wardrobe",
-              "description": "Clothes storage"
+              "description": "Clothes on rails and shelves"
             },
             "BED_FRAME": {
               "label": "Bed frame",
-              "description": "Bed structure"
+              "description": "The structure your mattress sits on"
             },
             "NIGHTSTANDS": {
               "label": "Nightstands",
-              "description": "Beside the bed"
+              "description": "Storage within reach, beside the bed"
             },
             "DRESSER": {
               "label": "Dresser",
-              "description": "Drawers"
+              "description": "Drawers for linens and folded clothes"
             },
             "TV_UNIT": {
               "label": "TV unit",
-              "description": "Below the TV"
+              "description": "Low unit below the TV"
             },
             "VANITY": {
               "label": "Vanity table",
-              "description": "With mirror and drawers"
+              "description": "Mirror and drawers for cosmetics"
             }
           }
         },
         "material": {
           "title": "Which material?",
-          "subtitle": "Furniture material."
+          "subtitle": "The material your furniture is built from."
         },
         "openingSystems": {
           "title": "Opening systems?",
-          "subtitle": "Optional — for wardrobe and drawers."
+          "subtitle": "Optional — for the wardrobe doors and drawers."
         },
         "dimensions": {
           "title": "Dimensions",
-          "subtitle": "Available space and height.",
+          "subtitle": "Available space and room height.",
           "slots": {
             "spaceWidth": "Space width",
             "wardrobeWidth": "Wardrobe width",
@@ -2354,33 +2354,33 @@
         },
         "notes": {
           "title": "Anything else?",
-          "subtitle": "Optional."
+          "subtitle": "Optional — anything that helps the companies understand your project."
         },
         "wardrobeDoorType": {
           "title": "What doors for the wardrobe?",
-          "subtitle": "Choose the access system.",
+          "subtitle": "How the wardrobe opens.",
           "options": {
             "SLIDING": {
               "label": "Sliding",
-              "description": "Save space",
+              "description": "Glide on tracks, no clearance needed",
               "info": {
                 "title": "Sliding doors",
-                "body": "Doors glide on tracks — no clearance needed, ideal when the bed sits close to the wardrobe.",
-                "pros1": "Zero opening clearance",
-                "pros2": "Modern look",
-                "cons1": "Only half the wardrobe visible at a time",
+                "body": "Doors glide on tracks, one passing in front of the other — the natural choice when the bed sits close to the wardrobe.",
+                "pros1": "Not a single centimetre of clearance needed in front",
+                "pros2": "Large panels, clean front — flatters wide wardrobes",
+                "cons1": "One door always covers half the interior",
                 "price": "+800–2,000 lei"
               }
             },
             "HINGED": {
               "label": "Hinged",
-              "description": "Classic, full access",
+              "description": "Classic, open fully",
               "info": {
                 "title": "Hinged doors",
-                "body": "Classic doors on hinges — full access to the interior and lower cost. Need ~50 cm of clearance in front.",
-                "pros1": "Full access to the interior",
-                "pros2": "Lower cost",
-                "cons1": "Needs opening clearance",
+                "body": "Classic doors on hinges — open both and see the whole interior at a glance. They need about 50 cm of clearance in front.",
+                "pros1": "Full access: the whole interior visible at once",
+                "pros2": "The most affordable option, with easy-to-adjust hinges",
+                "cons1": "Each door needs ~50 cm of clearance in front",
                 "price": "+300–900 lei"
               }
             }
@@ -2390,10 +2390,10 @@
           "title": "Wardrobe up to the ceiling?",
           "info": {
             "title": "Floor-to-ceiling wardrobe",
-            "body": "The unit goes all the way up: no dust on top, seasonal storage above. Needs the ceiling height measured in several spots.",
-            "pros1": "No dust on top",
-            "pros2": "Maximum storage",
-            "cons1": "Top zone needs a step stool",
+            "body": "The unit goes all the way up, with no dead space above. Height is measured in several spots — ceilings are rarely perfectly level.",
+            "pros1": "No more dust collecting on top of the wardrobe",
+            "pros2": "Top shelves take suitcases and seasonal items",
+            "cons1": "You only reach the top shelves with a step stool",
             "price": "+10–15%"
           }
         },
@@ -2402,7 +2402,7 @@
           "subtitle": "The bed is built around the mattress.",
           "info": {
             "title": "Standard mattress sizes",
-            "body": "Standard sizes in Romania: 90x200 (single), 140x200 (compact double), 160x200 (the standard double), 180x200 (king). The mattress is NOT included."
+            "body": "Common sizes in Romania: 90×200 (single), 140×200 (compact double), 160×200 (the standard double), 180×200 (king). Note: the mattress is not included."
           },
           "options": {
             "S_90": {
@@ -2411,15 +2411,15 @@
             },
             "M_140": {
               "label": "140 × 200",
-              "description": "Compact double"
+              "description": "Two people, small footprint"
             },
             "Q_160": {
               "label": "160 × 200",
-              "description": "Standard double"
+              "description": "The standard double"
             },
             "K_180": {
               "label": "180 × 200",
-              "description": "King"
+              "description": "King — extra room for two"
             },
             "CUSTOM": {
               "label": "Custom dimensions",
@@ -2441,15 +2441,15 @@
               "label": "None",
               "info": {
                 "title": "Simple bed",
-                "body": "Classic frame, no mechanisms. The most affordable and easiest to move.",
+                "body": "A classic frame with no mechanisms — the lowest price and the easiest to move when needed.",
                 "price": "included"
               }
             },
             "LIFT_UP": {
               "label": "Lift-up storage",
               "info": {
-                "title": "Gas-lift base",
-                "body": "The mattress lifts on gas pistons revealing a full-size storage box underneath. The biggest hidden storage in the bedroom.",
+                "title": "Gas-lift base with storage box",
+                "body": "The mattress lifts on gas pistons, revealing a storage box the full size of the bed — the largest hidden storage in the bedroom.",
                 "price": "+600–1,200 lei"
               }
             },
@@ -2457,7 +2457,7 @@
               "label": "Side drawers",
               "info": {
                 "title": "Under-bed drawers",
-                "body": "Two to four drawers accessible from the side, without lifting the mattress. They need clear space next to the bed.",
+                "body": "Two to four drawers that pull out sideways, no need to lift the mattress. They need clear floor space beside the bed to open.",
                 "price": "+400–900 lei"
               }
             }
@@ -2467,14 +2467,14 @@
           "title": "Upholstered bed?",
           "info": {
             "title": "Upholstered bed",
-            "body": "Frame and headboard wrapped in fabric or eco-leather — a soft look with many color options. The exact fabric is chosen with the company."
+            "body": "Frame and headboard wrapped in fabric or eco-leather — soft to the touch, with plenty of colours to pick from. You choose the exact fabric together with the company."
           }
         },
         "nightstandsCount": {
           "title": "How many nightstands?",
           "info": {
             "title": "One or a pair",
-            "body": "A pair costs nearly double but looks balanced next to a double bed. For a single bed, one is enough."
+            "body": "A pair costs nearly double, but visually balances a double bed. For a single bed, one is enough."
           },
           "options": {
             "ONE": {
@@ -2523,47 +2523,47 @@
         },
         "sketch": {
           "title": "Do you have a room sketch?",
-          "subtitle": "Optional — the room plan with the bed and wardrobe positions."
+          "subtitle": "Optional — the room plan, with the bed and wardrobe positions."
         }
       },
       "LIVING": {
         "piecesNeeded": {
           "title": "What pieces do you need?",
-          "subtitle": "Pick the living room furniture.",
+          "subtitle": "Pick the furniture for your living room.",
           "options": {
             "TV_UNIT": {
               "label": "TV unit",
-              "description": "Below the TV"
+              "description": "Low unit below the TV"
             },
             "BOOKSHELF": {
               "label": "Bookshelf",
-              "description": "Book shelves"
+              "description": "Shelves for books and objects"
             },
             "DISPLAY_CABINET": {
               "label": "Display cabinet",
-              "description": "For display"
+              "description": "Glass fronts for the things you love"
             },
             "COFFEE_TABLE": {
               "label": "Coffee table",
-              "description": "Living centre"
+              "description": "The piece at the centre of the room"
             },
             "WALL_SHELVES": {
               "label": "Wall shelves",
-              "description": "Wall-mounted"
+              "description": "Wall-mounted, no base unit"
             },
             "OTHER": {
               "label": "Something else",
-              "description": "A piece that is not in the list"
+              "description": "A piece that is not on the list"
             }
           }
         },
         "material": {
           "title": "Which material?",
-          "subtitle": "Furniture material."
+          "subtitle": "The material your furniture is built from."
         },
         "openingSystems": {
           "title": "Opening systems?",
-          "subtitle": "Optional."
+          "subtitle": "Optional — for doors and drawers."
         },
         "dimensions": {
           "title": "Dimensions",
@@ -2586,21 +2586,21 @@
         },
         "notes": {
           "title": "Anything else?",
-          "subtitle": "Optional."
+          "subtitle": "Optional — anything that helps the companies understand your project."
         },
         "tvStyle": {
           "title": "What does the TV area look like?",
-          "subtitle": "Floating, on the floor, or a full unit with cabinets.",
+          "subtitle": "Floating, on the floor, or a full-wall unit.",
           "options": {
             "FLOATING": {
               "label": "Floating unit",
-              "description": "Wall-mounted, floor stays clear",
+              "description": "Wall-mounted, the floor stays clear",
               "info": {
                 "title": "Floating TV unit",
-                "body": "A horizontal unit fixed to the wall — the floor stays clear and the look is airy.",
-                "pros1": "Airy, modern look",
-                "pros2": "Easy to clean underneath",
-                "cons1": "Needs a solid wall for mounting",
+                "body": "A horizontal unit fixed to the wall — the floor stays completely clear, and the room feels bigger.",
+                "pros1": "The room feels more spacious — the whole floor stays visible",
+                "pros2": "Vacuum and mop under it without moving a thing",
+                "cons1": "Needs a solid wall; plasterboard requires reinforcement",
                 "price": "2,000–5,000 lei"
               }
             },
@@ -2609,10 +2609,10 @@
               "description": "Unit standing on legs or a plinth",
               "info": {
                 "title": "Floor-standing TV unit",
-                "body": "Classic and versatile: storage for electronics and media, with the TV on top or wall-mounted above.",
-                "pros1": "Affordable",
-                "pros2": "Easy to move later",
-                "cons1": "Limited storage",
+                "body": "The classic choice that always works: storage for electronics and media, with the TV on top or wall-mounted above.",
+                "pros1": "The lowest price of the three options",
+                "pros2": "Move it any time, with no holes or marks on the wall",
+                "cons1": "A single unit — storage stops at what fits inside it",
                 "price": "1,500–4,000 lei"
               }
             },
@@ -2621,10 +2621,10 @@
               "description": "TV unit + cabinets left/right",
               "info": {
                 "title": "TV unit with cabinets",
-                "body": "A full-wall composition: TV unit with cabinets or columns on the left and right, often with a niche and LED lighting.",
-                "pros1": "Maximum storage",
-                "pros2": "Unified, striking look",
-                "cons1": "Significant cost and installation",
+                "body": "A full-wall composition: TV unit with cabinets or columns on the sides, often with a niche and LED lighting.",
+                "pros1": "The most storage, hidden behind the fronts",
+                "pros2": "The wall reads as one design, not furnished piece by piece",
+                "cons1": "The biggest investment, and installation is a project in itself",
                 "price": "6,000–15,000 lei"
               }
             }
@@ -2632,7 +2632,7 @@
         },
         "piecesOtherText": {
           "title": "What piece do you have in mind?",
-          "subtitle": "Briefly describe the piece that is not in the list."
+          "subtitle": "Briefly describe the piece you want."
         },
         "materialOtherPiece": {
           "title": "Material — your piece"
@@ -2675,10 +2675,10 @@
           "subtitle": "LED strip in panels or units.",
           "info": {
             "title": "LED lighting",
-            "body": "Warm LED strip behind TV panels or inside display cabinets. Needs an outlet nearby.",
-            "pros1": "Warm evening atmosphere",
-            "pros2": "Shows off the display cabinet",
-            "cons1": "Needs an outlet nearby",
+            "body": "A warm LED strip behind the TV panel or inside display cabinets. It needs a power outlet nearby.",
+            "pros1": "Warm background light, lovely for evening movies",
+            "pros2": "Puts the display cabinet's contents in the spotlight",
+            "cons1": "Without an outlet nearby, the cable stays visible",
             "price": "+400–1,500 lei"
           }
         },
@@ -2687,34 +2687,34 @@
           "subtitle": "Tick only the units that get an LED strip — you can skip this.",
           "info": {
             "title": "LED lighting",
-            "body": "Warm LED strip behind TV panels or inside display cabinets. Needs an outlet nearby.",
-            "pros1": "Warm evening atmosphere",
-            "pros2": "Shows off the display cabinet",
-            "cons1": "Needs an outlet nearby",
+            "body": "A warm LED strip behind the TV panel or inside display cabinets. It needs a power outlet nearby.",
+            "pros1": "Warm background light, lovely for evening movies",
+            "pros2": "Puts the display cabinet's contents in the spotlight",
+            "cons1": "Without an outlet nearby, the cable stays visible",
             "price": "+400–1,500 lei"
           }
         },
         "sketch": {
           "title": "Do you have a sketch of the space?",
-          "subtitle": "Optional — the TV wall with measurements and outlets marked."
+          "subtitle": "Optional — the TV wall, with measurements and outlets marked."
         }
       },
       "OFFICE": {
         "piecesNeeded": {
           "title": "What pieces do you need?",
-          "subtitle": "Pick the office furniture.",
+          "subtitle": "Pick the furniture for your office.",
           "options": {
             "DESK": {
               "label": "Desk",
-              "description": "Work surface"
+              "description": "The worktop you use every day"
             },
             "BOOKSHELF": {
               "label": "Bookshelf",
-              "description": "Shelves"
+              "description": "Shelves for books and binders"
             },
             "STORAGE": {
               "label": "Storage cabinet",
-              "description": "Documents and items"
+              "description": "Documents and items, behind doors"
             },
             "WALL_SHELVES": {
               "label": "Wall shelves",
@@ -2724,28 +2724,28 @@
         },
         "deskShape": {
           "title": "What desk shape?",
-          "subtitle": "Work surface configuration.",
+          "subtitle": "The layout of the worktop.",
           "options": {
             "STRAIGHT": {
               "label": "Straight",
-              "description": "A single top",
+              "description": "A single top, along one wall",
               "info": {
                 "title": "Straight desk",
-                "body": "A worktop along one wall — compact and flexible. For comfortable work we recommend at least 120 cm width and 60 cm depth.",
-                "pros1": "Takes little space",
-                "pros2": "Lower cost",
-                "cons1": "Limited work surface"
+                "body": "A worktop along one wall — compact and easy to place anywhere. For comfortable work: at least 120 cm wide and 60 cm deep.",
+                "pros1": "Fits small rooms, even a bedroom corner",
+                "pros2": "The most affordable shape",
+                "cons1": "The top fills up fast when you juggle a monitor and paperwork"
               }
             },
             "L_SHAPE": {
               "label": "L-shaped",
-              "description": "Two tops in a corner",
+              "description": "Two tops joined in a corner",
               "info": {
                 "title": "Corner desk",
-                "body": "Two work sides — one for the monitor, one kept clear. Uses the room corner that would otherwise be wasted.",
-                "pros1": "Double the work surface",
-                "pros2": "Uses the corner",
-                "cons1": "Harder to reposition"
+                "body": "Two work sides — one zone for the monitor, one kept clear for writing. It puts the room's corner to work.",
+                "pros1": "Nearly double the work surface, on the same room footprint",
+                "pros2": "Puts to use a corner that would otherwise be wasted",
+                "cons1": "Once built into the corner, it is hard to rearrange"
               }
             },
             "U_SHAPE": {
@@ -2753,25 +2753,25 @@
               "description": "Three work sides",
               "info": {
                 "title": "U-shaped desk",
-                "body": "Worktop on three sides — a complete workstation with everything within a chair's spin.",
-                "pros1": "Maximum work surface",
-                "pros2": "Everything within reach",
-                "cons1": "Needs a generous room"
+                "body": "A worktop on three sides — a complete workstation, with everything one chair spin away.",
+                "pros1": "The largest work surface of all the shapes",
+                "pros2": "Everything you use often stays one chair spin away",
+                "cons1": "Needs a large room — in small spaces it blocks the walkway"
               }
             }
           }
         },
         "material": {
           "title": "Which material?",
-          "subtitle": "Furniture material."
+          "subtitle": "The material your furniture is built from."
         },
         "openingSystems": {
           "title": "Opening systems?",
-          "subtitle": "Optional."
+          "subtitle": "Optional — for doors and drawers."
         },
         "dimensions": {
           "title": "Dimensions",
-          "subtitle": "Available space and desk.",
+          "subtitle": "Available space and the worktop.",
           "slots": {
             "spaceWidth": "Space width",
             "deskWidth": "Desk width",
@@ -2785,13 +2785,13 @@
         },
         "notes": {
           "title": "Anything else?",
-          "subtitle": "Optional."
+          "subtitle": "Optional — anything that helps the companies understand your project."
         },
         "cableManagement": {
           "title": "Cable management?",
           "info": {
             "title": "Organizing the cables",
-            "body": "A metal tray under the worktop plus discreet cutouts. The desk stays clean and vacuuming stops being an adventure. Tell the company how many monitors/devices you have."
+            "body": "A metal tray under the worktop and discreet cutouts for cables — the top stays clear, and vacuuming under the desk gets easy. Tell the company how many monitors and devices you have."
           }
         },
         "materialDesk": {
@@ -2826,19 +2826,19 @@
       "BATHROOM": {
         "piecesNeeded": {
           "title": "What pieces do you need?",
-          "subtitle": "Pick the bathroom furniture.",
+          "subtitle": "Pick the furniture for your bathroom.",
           "options": {
             "VANITY_UNIT": {
               "label": "Vanity unit",
-              "description": "Below the basin"
+              "description": "The cabinet below the basin"
             },
             "MIRROR_CABINET": {
               "label": "Mirror cabinet",
-              "description": "With storage"
+              "description": "A mirror with storage behind it"
             },
             "TALL_STORAGE": {
               "label": "Tall storage",
-              "description": "Tall cabinet"
+              "description": "Vertical storage, small footprint"
             }
           }
         },
@@ -2853,14 +2853,14 @@
         },
         "ventilation": {
           "title": "Is the bathroom ventilated?",
-          "subtitle": "Ventilation matters when choosing materials.",
+          "subtitle": "This decides which materials will last in your bathroom.",
           "options": {
             "WINDOW": {
               "label": "Window",
-              "description": "Natural ventilation"
+              "description": "Natural airflow"
             },
             "FAN": {
-              "label": "Ceiling / wall fan",
+              "label": "Extractor fan",
               "description": "Mechanical ventilation"
             },
             "NONE": {
@@ -2870,71 +2870,71 @@
           },
           "info": {
             "title": "Why ventilation matters",
-            "body": "In a bathroom without ventilation, humidity builds up and affects furniture. In that case we recommend MDF, which resists moisture better — but the final choice is yours."
+            "body": "Without ventilation, steam settles on the furniture day after day: fronts can swell, edge bands peel off. In that case we recommend MDF, which handles moisture better — the final choice is still yours."
           }
         },
         "material": {
           "title": "Which material?",
-          "subtitle": "Recommendation for a humid environment.",
+          "subtitle": "Our recommendation for a humid room.",
           "info": {
             "title": "Bathroom material",
-            "body": "We recommend painted or foiled MDF, resistant to humidity. Avoid unsealed chipboard in areas exposed to water."
+            "body": "We recommend painted or foil-wrapped MDF — it handles moisture better. Avoid unsealed chipboard near the basin, bathtub or shower."
           }
         },
         "materialVanity": {
           "title": "Material for the vanity unit?",
-          "subtitle": "The piece most exposed to water."
+          "subtitle": "The piece that catches the most splashes — it deserves the toughest material."
         },
         "materialMirror": {
           "title": "Material for the mirror cabinet?",
-          "subtitle": "Can differ from the other pieces."
+          "subtitle": "It can be a different material from the other pieces."
         },
         "materialTall": {
           "title": "Material for the tall storage?",
-          "subtitle": "Can differ from the other pieces."
+          "subtitle": "It can be a different material from the other pieces."
         },
         "sketch": {
           "title": "Upload your project or sketch",
-          "subtitle": "Optional — a sketch or plan for this bathroom helps firms quote accurately."
+          "subtitle": "Optional — a sketch or plan of the bathroom helps the companies quote accurately."
         },
         "notes": {
           "title": "Anything else?",
-          "subtitle": "Optional."
+          "subtitle": "Optional — anything that helps the companies understand your project."
         }
       },
       "HALLWAY": {
         "piecesNeeded": {
           "title": "What pieces do you need?",
-          "subtitle": "Choose the hallway furniture.",
+          "subtitle": "Choose what greets you at the door.",
           "options": {
             "SHOE_CABINET": {
               "label": "Shoe cabinet",
-              "description": "Footwear storage"
+              "description": "Shoes stored away, not scattered by the door"
             },
             "COAT_UNIT": {
               "label": "Coat rack panel",
-              "description": "Hooks on a wall panel"
+              "description": "Wall panel with hooks for coats"
             },
             "WARDROBE": {
               "label": "Hallway wardrobe",
-              "description": "Seasonal coats, vacuum"
+              "description": "Seasonal coats, the vacuum, odds and ends"
             },
             "BENCH": {
               "label": "Bench",
-              "description": "Put shoes on sitting down"
+              "description": "Put your shoes on sitting down, not balancing"
             },
             "MIRROR": {
               "label": "Mirror with shelf",
-              "description": "Frame + a shelf for keys"
+              "description": "A last look and a spot for keys"
             }
           }
         },
         "depthProfile": {
           "title": "How wide is the hallway?",
-          "subtitle": "Furniture depth follows the passage space.",
+          "subtitle": "Furniture depth follows the passage space you have left.",
           "info": {
             "title": "Why depth matters",
-            "body": "In a narrow hallway every centimeter counts: keep at least 90 cm of free passage. Slim furniture (25–35 cm) uses tilt-out doors and angled racks to fit the shoes."
+            "body": "In a narrow hallway every centimeter counts: keep at least 90 cm of free passage. Slim furniture (25–35 cm) uses tilt-out doors and angled racks so shoes fit even in a shallow body."
           },
           "options": {
             "SLIM": {
@@ -2942,10 +2942,10 @@
               "description": "25–35 cm deep",
               "info": {
                 "title": "Slim units",
-                "body": "Tilt-out shoe cabinet, flat coat panel, mirror — everything under 35 cm deep so the passage stays clear.",
-                "pros1": "Keeps the passage clear",
-                "pros2": "Airy look",
-                "cons1": "Less capacity per unit"
+                "body": "Tilt-out shoe cabinet, flat coat panel, mirror — everything under 35 cm deep, so the passage stays clear.",
+                "pros1": "The passage stays clear, even for two",
+                "pros2": "The hallway feels airier than it is",
+                "cons1": "Fewer pairs per unit — count yours first"
               }
             },
             "STANDARD": {
@@ -2953,17 +2953,17 @@
               "description": "45–60 cm deep",
               "info": {
                 "title": "Standard units",
-                "body": "Normal wardrobe depth — hangers sit normally and storage boxes fit.",
-                "pros1": "Maximum capacity",
-                "pros2": "Hangers sit normally",
-                "cons1": "Needs a hallway over 1.5 m wide"
+                "body": "Regular wardrobe depth: hangers sit straight on the rail and storage boxes fit without forcing.",
+                "pros1": "Maximum capacity per unit",
+                "pros2": "Hangers face forward, not sideways",
+                "cons1": "Only makes sense in a hallway over 1.5 m wide"
               }
             }
           }
         },
         "dimensions": {
           "title": "Dimensions",
-          "subtitle": "The width of each selected piece.",
+          "subtitle": "The width of each piece you chose.",
           "slots": {
             "shoeCabinetWidth": "Shoe cabinet width",
             "coatUnitWidth": "Coat panel width",
@@ -3004,27 +3004,27 @@
         },
         "openingSystems": {
           "title": "Opening systems",
-          "subtitle": "Optional — for units with doors or drawers."
+          "subtitle": "Optional — only for units with doors or drawers."
         },
         "sketch": {
           "title": "Do you have a hallway sketch?",
-          "subtitle": "Optional — wall lengths and door positions."
+          "subtitle": "Optional — wall lengths and door positions help with quoting."
         }
       },
       "LAUNDRY": {
         "applianceSetup": {
           "title": "How do the appliances sit?",
-          "subtitle": "The washer and dryer layout decides the rest.",
+          "subtitle": "The washer and dryer layout decides the rest of the furniture.",
           "options": {
             "WASHER_ONLY": {
               "label": "Washer only",
               "description": "No dryer",
               "info": {
                 "title": "Washer only",
-                "body": "A single appliance to build around — the rest of the space goes to storage and worktop.",
-                "pros1": "Simplest and cheapest",
-                "pros2": "Plenty of storage space",
-                "cons1": "No dryer, clothes dry on a rack"
+                "body": "A single appliance to build around — all the remaining space goes to cabinets and worktop.",
+                "pros1": "The simplest and cheapest setup",
+                "pros2": "Maximum space left for storage",
+                "cons1": "Clothes dry on a rack, which takes up room too"
               }
             },
             "STACKED": {
@@ -3032,10 +3032,10 @@
               "description": "Dryer above the washer",
               "info": {
                 "title": "Appliance column",
-                "body": "The dryer sits on top of the washer in a dedicated cabinet with a support shelf. Takes only 60–70 cm of width.",
-                "pros1": "Minimal footprint",
-                "pros2": "Good ergonomics (dryer up high)",
-                "cons1": "Tall cabinet, precise install"
+                "body": "The dryer sits on top of the washer, in a dedicated cabinet with a support shelf. The whole column fits in 60–70 cm of width.",
+                "pros1": "Takes the least width of any layout",
+                "pros2": "The dryer sits at eye level — no bending",
+                "cons1": "Tall unit, fitted to the millimeter so the doors close right"
               }
             },
             "SIDE_BY_SIDE": {
@@ -3044,9 +3044,9 @@
               "info": {
                 "title": "Side by side",
                 "body": "Washer and dryer next to each other under a continuous worktop — a generous surface for sorting and folding.",
-                "pros1": "Big work surface",
-                "pros2": "Easy access to both",
-                "cons1": "Takes ~130 cm of width"
+                "pros1": "A long worktop made for folding laundry",
+                "pros2": "Open either one without moving anything",
+                "cons1": "Needs ~130 cm of run — not every laundry room has it"
               }
             }
           }
@@ -3057,15 +3057,15 @@
           "options": {
             "APPLIANCE_HOUSING": {
               "label": "Appliance housing",
-              "description": "Wraps the appliances"
+              "description": "Wraps and lines up the appliances"
             },
             "STORAGE": {
               "label": "Storage cabinets",
-              "description": "Detergents, baskets, supplies"
+              "description": "Detergents, laundry baskets, supplies"
             },
             "COUNTERTOP": {
               "label": "Worktop",
-              "description": "Sorting and folding"
+              "description": "For sorting and folding laundry"
             },
             "SINK_UNIT": {
               "label": "Sink unit",
@@ -3078,7 +3078,7 @@
           "subtitle": "Laundry humidity matters when choosing materials.",
           "info": {
             "title": "Why ventilation matters",
-            "body": "The washer and dryer release moisture. Without a window or fan, steam builds up and affects the furniture — in that case we recommend foil-wrapped MDF, which handles humidity better."
+            "body": "The washer and dryer release steam with every cycle. Without a window or fan, moisture builds up and wears on the furniture over time — in that case we recommend foil-wrapped MDF, which handles it better."
           },
           "options": {
             "WINDOW": {
@@ -3104,7 +3104,7 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "Humid environment — see the recommendation."
+          "subtitle": "Humid environment — keep the recommendation above in mind."
         },
         "materialApplianceHousing": {
           "title": "Material for the appliance housing"
@@ -3138,48 +3138,48 @@
           "subtitle": "The shelving layout in the pantry.",
           "info": {
             "title": "Moving around the pantry",
-            "body": "Keep at least 80 cm free between shelves so you can move and see what is on them. In a narrow pantry, single-wall shelving is the right call."
+            "body": "Keep at least 80 cm free between shelves, so you can turn around and see what is on them. In a narrow pantry, shelving on a single wall is the right call."
           },
           "options": {
             "ONE_WALL": {
               "label": "One wall",
-              "description": "Shelves on one side"
+              "description": "Shelves on a single side"
             },
             "L_SHAPE": {
               "label": "L-shape",
-              "description": "Two sides"
+              "description": "Shelves on two sides"
             },
             "U_SHAPE": {
               "label": "U-shape",
-              "description": "Three sides"
+              "description": "Shelves on three sides"
             }
           }
         },
         "storageStyle": {
           "title": "Open or closed storage?",
-          "subtitle": "Open shelves, cabinets with doors, or a mix.",
+          "subtitle": "Open shelves, cabinets with doors, or a combination.",
           "options": {
             "OPEN_SHELVES": {
               "label": "Open shelves",
-              "description": "Quick access, visible",
+              "description": "Quick access, everything in sight",
               "info": {
                 "title": "Open shelves",
-                "body": "The most practical and affordable pantry option: you see everything at a glance.",
-                "pros1": "Instant access",
-                "pros2": "Lowest cost",
-                "cons1": "Dust settles on items",
+                "body": "The most practical and affordable pantry option: you see everything at a glance and grab it directly.",
+                "pros1": "Find and grab anything in one motion",
+                "pros2": "The lowest cost per meter of shelving",
+                "cons1": "Dust settles on everything left in the open",
                 "price": "1,200–3,500 lei"
               }
             },
             "CLOSED_CABINETS": {
               "label": "Closed cabinets",
-              "description": "Dust-protected",
+              "description": "Dust-protected, tidy look",
               "info": {
                 "title": "Cabinets with doors",
-                "body": "Items stay protected from dust and everything looks tidy, even when it is not.",
-                "pros1": "Dust protection",
-                "pros2": "Tidy look",
-                "cons1": "Higher cost, slower access",
+                "body": "Behind doors, things stay protected from dust — and the pantry looks tidy even when it is not.",
+                "pros1": "Dust lands on the doors, not the jars",
+                "pros2": "A tidy look, whatever is inside",
+                "cons1": "Higher cost and a door to open on every trip",
                 "price": "2,500–6,000 lei"
               }
             },
@@ -3188,9 +3188,9 @@
               "description": "Shelves up, cabinets down",
               "info": {
                 "title": "Combination",
-                "body": "Closed cabinets below for rarely used items, open shelves above for daily access — the practical balance.",
-                "pros1": "Flexible",
-                "pros2": "Cost/protection balance",
+                "body": "Closed cabinets below for what you rarely use, open shelves above for everyday access — the practical balance.",
+                "pros1": "Everything in sight or under cover, by how you use it",
+                "pros2": "You pay for doors only where they truly matter",
                 "cons1": "Slightly pricier than plain shelves",
                 "price": "2,000–5,000 lei"
               }
@@ -3208,7 +3208,7 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "The pantry is a utility space — PAL offers the best value here."
+          "subtitle": "The pantry is a utility space — PAL gives the best value for money here."
         },
         "materialShelves": {
           "title": "Material for the open shelves"
@@ -3230,7 +3230,7 @@
           "subtitle": "Indoor furniture only lasts on an enclosed balcony.",
           "info": {
             "title": "Why enclosure matters",
-            "body": "PAL and MDF suffer from moisture, frost and direct sun. On a glazed balcony they behave like indoors; on an open one we recommend treated solid wood or rethinking the project."
+            "body": "PAL and MDF suffer from moisture, frost and direct sun. On a balcony enclosed with double glazing they behave like indoors; on an open one we recommend exterior-treated solid wood — or rethinking the project."
           },
           "options": {
             "ENCLOSED": {
@@ -3238,21 +3238,21 @@
               "description": "Weather-protected",
               "info": {
                 "title": "Enclosed balcony",
-                "body": "The environment is close to indoors — any material works, minding direct sun which fades fronts over time.",
-                "pros1": "Any material works",
-                "pros2": "Year-round storage",
-                "cons1": "Direct sun fades the fronts"
+                "body": "The environment is close to indoors, with one note: sun shines straight through the glass and fades fronts over time.",
+                "pros1": "Any material works, same as the rest of the home",
+                "pros2": "Year-round storage, whatever the weather",
+                "cons1": "Direct sun through the glass fades fronts over time"
               }
             },
             "OPEN": {
               "label": "Open",
-              "description": "Exposed to weather",
+              "description": "Exposed to the weather",
               "info": {
                 "title": "Open balcony",
-                "body": "Rain, frost, sun — tough conditions for furniture. We recommend exterior-treated solid wood and stainless hardware.",
-                "pros1": "Treated wood can work",
-                "pros2": "Open air",
-                "cons1": "PAL/MDF do not survive here"
+                "body": "Rain, frost, big temperature swings — tough conditions for any furniture. We recommend exterior-treated solid wood and stainless steel hardware.",
+                "pros1": "Exterior-treated solid wood holds up outside",
+                "pros2": "You keep the open-air feel",
+                "cons1": "PAL and MDF do not survive here, foil-wrapped or not"
               }
             }
           }
@@ -3263,19 +3263,19 @@
           "options": {
             "STORAGE_BENCH": {
               "label": "Storage bench",
-              "description": "Seat + storage"
+              "description": "A seat on top, storage underneath"
             },
             "TALL_CABINET": {
               "label": "Tall cabinet",
-              "description": "Tools, jars, sundries"
+              "description": "Tools, jars, everything without a place inside"
             },
             "WORKTOP": {
               "label": "Worktop",
-              "description": "Desk or plant table"
+              "description": "A balcony desk or a plant table"
             },
             "SHELVES": {
               "label": "Shelves",
-              "description": "Open storage"
+              "description": "Open storage, in plain sight"
             }
           }
         },
@@ -3289,7 +3289,7 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "See the recommendation based on the balcony type."
+          "subtitle": "The recommendation depends on the balcony type — see above."
         },
         "materialStorageBench": {
           "title": "Material for the storage bench"
@@ -3317,43 +3317,43 @@
       "PIECE_WARDROBE": {
         "doorType": {
           "title": "What doors for the wardrobe?",
-          "subtitle": "The access system changes price and required space.",
+          "subtitle": "The choice changes the price and the clearance you need in front of it.",
           "options": {
             "SLIDING": {
               "label": "Sliding",
-              "description": "Save space",
+              "description": "No swing clearance needed",
               "info": {
                 "title": "Sliding doors",
-                "body": "Doors glide on tracks — no opening clearance needed. Quality tracks make the long-term difference.",
-                "pros1": "Zero opening clearance",
-                "pros2": "Modern look",
-                "cons1": "Only half the wardrobe visible at a time",
+                "body": "Doors glide on tracks, one past the other — handy when the bed sits close. Track quality decides how smoothly they run for years.",
+                "pros1": "The bed can sit right next to it — zero swing clearance",
+                "pros2": "Large fronts, calm modern look",
+                "cons1": "You see one half at a time, and the bottom track collects dust",
                 "price": "+800–2,000 lei"
               }
             },
             "HINGED": {
               "label": "Hinged",
-              "description": "Classic, full access",
+              "description": "Full access, lower price",
               "info": {
                 "title": "Hinged doors",
-                "body": "Doors on hinges — full access and lower cost. Need ~50 cm of clearance in front of the wardrobe.",
-                "pros1": "Full access to the interior",
-                "pros2": "Lower cost",
-                "cons1": "Needs opening clearance",
+                "body": "The classic solution, on hinges: simple, reliable, cheap to repair. Check you have about 50 cm free in front of the wardrobe.",
+                "pros1": "Open the whole wardrobe at once — see and reach every shelf",
+                "pros2": "The cheapest option, and hinges adjust in minutes",
+                "cons1": "Each door needs ~50 cm of free space to swing open",
                 "price": "+300–900 lei"
               }
             }
           }
         },
         "toCeiling": {
-          "title": "Up to the ceiling (dressing-style)?",
-          "subtitle": "The wardrobe goes all the way up, like a built-in dressing.",
+          "title": "Up to the ceiling, built-in style?",
+          "subtitle": "The wardrobe closes against the ceiling and reads as built-in furniture.",
           "info": {
             "title": "Floor-to-ceiling wardrobe",
-            "body": "Built-in look, no dust on top, seasonal storage above. Requires measuring the height in several spots — ceilings are rarely level.",
-            "pros1": "No dust on top",
-            "pros2": "Maximum vertical storage",
-            "cons1": "Top zone needs a step stool",
+            "body": "A built-in look, no dust collecting on top, and seasonal storage up high. The company measures the height in several spots — ceilings are rarely level.",
+            "pros1": "No more dust collecting on top of the wardrobe",
+            "pros2": "The top row takes suitcases and seasonal bedding",
+            "cons1": "You reach the top row only with a step stool",
             "price": "+10–15%"
           }
         },
@@ -3366,8 +3366,8 @@
           }
         },
         "interiorModules": {
-          "title": "What interior modules?",
-          "subtitle": "Pick at least one module.",
+          "title": "How should the inside work?",
+          "subtitle": "Pick at least one module — you can combine them.",
           "options": {
             "HANGING_RODS": {
               "label": "Hanging rods",
@@ -3375,25 +3375,25 @@
             },
             "SHELVES": {
               "label": "Shelves",
-              "description": "Folded clothes, boxes"
+              "description": "Folded clothes, boxes, knitwear"
             },
             "DRAWERS": {
               "label": "Drawers",
-              "description": "Underwear, accessories"
+              "description": "Underwear, belts, small items"
             },
             "SHOE_RACK": {
               "label": "Shoe rack",
-              "description": "Tilted shelves"
+              "description": "Tilted shelves for shoes"
             }
           }
         },
         "material": {
           "title": "What material?",
-          "subtitle": "The carcass and front material."
+          "subtitle": "For the carcass and fronts — you can mix them."
         },
         "sketch": {
           "title": "Do you have a wall sketch?",
-          "subtitle": "Optional — wall width and obstacles (outlets, radiator, door)."
+          "subtitle": "Optional — wall width and obstacles: outlets, radiator, door."
         },
         "config3d": {
           "title": "Build your wardrobe in 3D",
@@ -3403,29 +3403,29 @@
       "PIECE_TV_UNIT": {
         "style": {
           "title": "Low unit or media wall?",
-          "subtitle": "From a simple unit to a full-wall composition.",
+          "subtitle": "From a simple unit under the TV to a full-wall composition.",
           "options": {
             "LOW_UNIT": {
               "label": "Low unit",
-              "description": "Horizontal unit under the TV",
+              "description": "One horizontal unit under the TV",
               "info": {
                 "title": "Low TV unit",
-                "body": "A horizontal unit with doors and drawers — electronics and media hidden away, TV above.",
-                "pros1": "Affordable",
-                "pros2": "Easy to move later",
-                "cons1": "Limited storage",
+                "body": "A horizontal unit with doors and drawers: console, media collection and cables stay hidden, the TV above.",
+                "pros1": "The smallest budget of the two options",
+                "pros2": "Not fixed to the wall — it moves when you do",
+                "cons1": "Storage is limited to what fits under the TV",
                 "price": "1,500–4,000 lei"
               }
             },
             "MEDIA_WALL": {
               "label": "Media wall",
-              "description": "Panels + units across the wall",
+              "description": "Panels and units across the wall",
               "info": {
                 "title": "Full media wall",
-                "body": "A complete composition: decorative panels, suspended units, a TV niche and usually LED lighting. Cables vanish behind the panels.",
-                "pros1": "Striking look",
-                "pros2": "Cables fully hidden",
-                "cons1": "Significant cost and installation",
+                "body": "Decorative panels, wall-hung units, a TV niche and usually LED lighting. Cables run behind the panels.",
+                "pros1": "The wall becomes the centrepiece of the living room",
+                "pros2": "Every cable disappears behind the panels",
+                "cons1": "Cost and installation to match; once mounted, it stays put",
                 "price": "6,000–15,000 lei"
               }
             }
@@ -3435,7 +3435,7 @@
           "title": "Where does the TV go?",
           "info": {
             "title": "TV on the wall or on the unit",
-            "body": "If the TV is wall-mounted, the company prepares the cable route and possibly a niche. If it sits on the unit, the top depth matters. You can also decide later, together with the company."
+            "body": "If the TV goes on the wall, the company prepares the cable route and, if needed, a niche. If it sits on the unit, the top depth matters. You can also decide later, together with the company."
           },
           "options": {
             "TV_ON_WALL": {
@@ -3451,21 +3451,21 @@
         },
         "dimensions": {
           "title": "Dimensions",
-          "subtitle": "The width of the TV area.",
+          "subtitle": "The width of the area where the TV lives.",
           "slots": {
             "width": "Width"
           }
         },
         "material": {
           "title": "What material?",
-          "subtitle": "The units and panel material."
+          "subtitle": "For the units and panels."
         },
         "openingSystems": {
           "title": "Opening systems"
         },
         "sketch": {
           "title": "Do you have a wall sketch?",
-          "subtitle": "Optional — wall width and outlet positions."
+          "subtitle": "Optional — wall width and where the outlets are."
         },
         "config3d": {
           "title": "Build your TV unit in 3D",
@@ -3475,41 +3475,41 @@
       "PIECE_BOOKCASE": {
         "style": {
           "title": "What bookcase style?",
-          "subtitle": "Open, with base cabinets, or glass doors.",
+          "subtitle": "Open, with base cabinets, or behind glass.",
           "options": {
             "OPEN": {
               "label": "Open shelves",
-              "description": "Everything visible",
+              "description": "Everything visible, direct access",
               "info": {
                 "title": "Open bookcase",
-                "body": "Simple shelves, instant access to books. Needs regular dusting — the books are exposed.",
-                "pros1": "Quick access",
-                "pros2": "Lowest cost",
-                "cons1": "Dust on books",
+                "body": "Open shelves — you take the book straight off the shelf. Dust settles on the spines, so plan on regular wiping.",
+                "pros1": "Every book is one reach away, no doors in between",
+                "pros2": "The simplest build — the lowest price",
+                "cons1": "Dust lands straight on the books — regular wiping needed",
                 "price": "1,500–4,000 lei"
               }
             },
             "BASE_CABINETS": {
               "label": "Base cabinets + shelves",
-              "description": "Closed storage below",
+              "description": "Closed doors below, shelves above",
               "info": {
                 "title": "With base cabinets",
-                "body": "Closed doors below for less sightly things, open shelves above for books and decor.",
-                "pros1": "Hides clutter below",
-                "pros2": "Balanced look",
-                "cons1": "Medium cost",
+                "body": "Solid doors below for files and less sightly things; open shelves above for books and objects.",
+                "pros1": "Clutter lives below, behind doors — only what deserves display stays up",
+                "pros2": "The composition feels balanced: solid below, airy above",
+                "cons1": "Pricier than plain shelving, because of the doors and hardware",
                 "price": "2,500–5,500 lei"
               }
             },
             "GLASS_DOORS": {
               "label": "Glass display",
-              "description": "Protected and elegant",
+              "description": "Books protected and on display",
               "info": {
                 "title": "Display bookcase",
-                "body": "Glass doors over the full height — books and objects stay dust-free and visible.",
-                "pros1": "Zero dust on books",
-                "pros2": "Elegant look",
-                "cons1": "Priciest; glass needs care",
+                "body": "Glass doors over the full height — books and objects stay visible, yet sheltered from dust.",
+                "pros1": "Dust never reaches the books — you only wipe the glass",
+                "pros2": "Cherished pieces sit on display, collection-style",
+                "cons1": "The priciest option, and glass shows every fingerprint",
                 "price": "3,500–7,000 lei"
               }
             }
@@ -3519,7 +3519,7 @@
           "title": "Up to the ceiling?",
           "info": {
             "title": "Floor-to-ceiling bookcase",
-            "body": "A full wall of books — striking and efficient. The top row needs a step stool."
+            "body": "A whole wall of books — impressive and space-efficient. The top row takes a step stool."
           }
         },
         "dimensions": {
@@ -3532,7 +3532,7 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "Wide shelves need a rigid material."
+          "subtitle": "Wide shelves need a rigid material, or they sag under books."
         },
         "openingSystems": {
           "title": "Opening systems"
@@ -3543,34 +3543,34 @@
         },
         "config3d": {
           "title": "Build your bookcase in 3D",
-          "subtitle": "Drag the sliders and click zones — the model updates live, and workshops receive your exact configuration."
+          "subtitle": "Drag the sliders and click zones — the model updates live, and the company receives your exact configuration."
         }
       },
       "PIECE_DESK": {
         "shape": {
           "title": "What desk shape?",
-          "subtitle": "Straight along a wall or L-shaped in a corner.",
+          "subtitle": "Straight along one wall, or L-shaped in the corner.",
           "options": {
             "STRAIGHT": {
               "label": "Straight",
-              "description": "Along one wall",
+              "description": "Compact, along one wall",
               "info": {
                 "title": "Straight desk",
-                "body": "A worktop along one wall — compact. For comfortable work: at least 120 cm wide, 60 cm deep.",
-                "pros1": "Takes little space",
-                "pros2": "Lower cost",
-                "cons1": "Limited surface"
+                "body": "A worktop along a single wall. For comfortable work: at least 120 cm wide and 60 cm deep.",
+                "pros1": "Fits small rooms and narrow walls",
+                "pros2": "Less material — lower price",
+                "cons1": "With two monitors and paperwork, the top fills up fast"
               }
             },
             "L_SHAPE": {
               "label": "L-shape (corner)",
-              "description": "Two work sides",
+              "description": "Two working sides",
               "info": {
                 "title": "Corner desk",
-                "body": "Two work zones and a well-used corner. Ideal with two monitors or when you need a clear writing area.",
-                "pros1": "Double the surface",
-                "pros2": "Uses the corner",
-                "cons1": "Harder to reposition"
+                "body": "The top continues around the corner — one zone for monitors, one kept clear for writing. The corner stops going to waste.",
+                "pros1": "Nearly double the work surface in the same room",
+                "pros2": "Puts the corner — usually dead space — to work",
+                "cons1": "Made for that corner — hard to move to another room"
               }
             }
           }
@@ -3579,12 +3579,12 @@
           "title": "Cable management?",
           "info": {
             "title": "Organizing the cables",
-            "body": "A tray under the worktop and discreet cutouts — the desk stays clean. Tell the company how many devices you have (monitors, laptop, chargers)."
+            "body": "A tray under the top and discreet cutouts keep cables gathered, so the desk stays clean. Tell the company how many devices you have — monitors, laptop, chargers."
           }
         },
         "dimensions": {
           "title": "Dimensions",
-          "subtitle": "Worktop width (and side B if L-shaped).",
+          "subtitle": "Worktop width (and side B, if L-shaped).",
           "slots": {
             "widthA": "Worktop width",
             "widthB": "Side B width",
@@ -3600,7 +3600,7 @@
               "description": "Under the top, fixed or mobile",
               "info": {
                 "title": "Drawer unit",
-                "body": "Three-four drawers under the worktop, fixed or on wheels. Home for documents and small items.",
+                "body": "Three or four drawers under the top, fixed or on wheels. Documents and small items get a home.",
                 "price": "+600–1,200 lei"
               }
             },
@@ -3609,7 +3609,7 @@
               "description": "Shelves above the worktop",
               "info": {
                 "title": "Shelf riser",
-                "body": "Shelves above the desk for books and files — you use the wall, not the worktop.",
+                "body": "Shelves mounted above the desk for books and files — you use the wall, not the worktop.",
                 "price": "+400–900 lei"
               }
             }
@@ -3617,24 +3617,24 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "The desktop gets scratched first — the finish matters."
+          "subtitle": "The desktop takes the most wear — the finish decides how fast it scratches."
         },
         "sketch": {
           "title": "Do you have a sketch of the space?",
-          "subtitle": "Optional — the working wall, with outlets and the window."
+          "subtitle": "Optional — the working wall, with the outlets and the window."
         },
         "config3d": {
           "title": "Build your desk in 3D",
-          "subtitle": "Choose the top and configure the pedestals with drawers or doors."
+          "subtitle": "Choose the top and configure the pedestals: drawers or doors."
         }
       },
       "PIECE_BED": {
         "bedSize": {
           "title": "What mattress size?",
-          "subtitle": "The bed is built around the mattress.",
+          "subtitle": "The frame is built around the mattress — we start from its size.",
           "info": {
             "title": "Standard sizes",
-            "body": "Romanian standards: 90x200 (single), 140x200 (compact double), 160x200 (double), 180x200 (king). The mattress is NOT included."
+            "body": "Romanian standards: 90×200 (single), 140×200 (compact double), 160×200 (double), 180×200 (king). The mattress is not included — you choose it separately."
           },
           "options": {
             "S_90": {
@@ -3651,7 +3651,7 @@
             },
             "K_180": {
               "label": "180 × 200",
-              "description": "King"
+              "description": "King — the most spacious"
             }
           }
         },
@@ -3659,46 +3659,46 @@
           "title": "Upholstered bed?",
           "info": {
             "title": "Upholstered bed",
-            "body": "Frame and headboard wrapped in fabric or eco-leather. Fabric and color are chosen with the company."
+            "body": "Frame and headboard wrapped in fabric or faux leather. You choose the fabric and colour together with the company."
           }
         },
         "storage": {
           "title": "Storage under the bed?",
-          "subtitle": "Lift-up box or side drawers.",
+          "subtitle": "A lift-up box or side drawers — the space under the mattress can work.",
           "options": {
             "NONE": {
               "label": "None",
-              "description": "Simple frame",
+              "description": "Just the frame, no mechanisms",
               "info": {
                 "title": "Simple bed",
-                "body": "Classic frame with no mechanisms — the most affordable.",
-                "pros1": "Lowest cost",
-                "pros2": "Easy to move",
-                "cons1": "Under-bed space unused",
+                "body": "A classic frame with no mechanisms — the simplest and cheapest option.",
+                "pros1": "The lowest price, and nothing that can break",
+                "pros2": "Light — easy to move or take apart",
+                "cons1": "The space under the mattress goes unused",
                 "price": "included"
               }
             },
             "LIFT_UP": {
               "label": "Lift-up storage",
-              "description": "Mattress lifts on pistons",
+              "description": "The mattress lifts on pistons",
               "info": {
                 "title": "Gas-lift base",
-                "body": "The mattress lifts on gas pistons; underneath, a full-size storage box. The biggest hidden storage.",
-                "pros1": "Huge storage",
-                "pros2": "No side clearance needed",
-                "cons1": "The mechanism adds cost",
+                "body": "You lift the mattress on gas pistons and a bed-sized box opens underneath.",
+                "pros1": "The largest hidden storage in the bedroom",
+                "pros2": "Needs no side clearance — works even tight against a wall",
+                "cons1": "The mechanism adds cost, and you lift the mattress every time",
                 "price": "+600–1,200 lei"
               }
             },
             "DRAWERS": {
               "label": "Side drawers",
-              "description": "Access without lifting",
+              "description": "Pull a drawer, lift nothing",
               "info": {
                 "title": "Under-bed drawers",
-                "body": "Two-four drawers on the sides — quick access to linens without lifting anything.",
-                "pros1": "Quick access",
-                "pros2": "Moderate cost",
-                "cons1": "Needs clear space beside the bed",
+                "body": "Two to four drawers along the sides — linens are one pull away.",
+                "pros1": "Easy everyday access — pull the drawer and done",
+                "pros2": "Cheaper than the lift-up mechanism",
+                "cons1": "Drawers need clear floor space beside the bed to open",
                 "price": "+400–900 lei"
               }
             }
@@ -3710,47 +3710,47 @@
         },
         "sketch": {
           "title": "Do you have a room sketch?",
-          "subtitle": "Optional — the bed position in the room."
+          "subtitle": "Optional — where the bed sits in the room."
         }
       },
       "PIECE_DRESSER": {
         "configuration": {
-          "title": "How is the dresser divided?",
-          "subtitle": "Drawers, doors, or both.",
+          "title": "How should the dresser be divided?",
+          "subtitle": "Drawers only, doors only, or a mix.",
           "options": {
             "DRAWERS_ONLY": {
               "label": "Drawers only",
-              "description": "3–6 drawers",
+              "description": "3–6 drawers, one per level",
               "info": {
                 "title": "Drawer dresser",
-                "body": "The bedroom classic — everything organized by level. Soft-close drawers are worth it here.",
-                "pros1": "Excellent organization",
-                "pros2": "Quick access",
-                "cons1": "Drawers raise the price",
+                "body": "The bedroom classic — everything on its own level. Soft-close drawers earn their keep here.",
+                "pros1": "Each level has its job — nothing gets lost at the back",
+                "pros2": "Pull a drawer out and see everything at a glance",
+                "cons1": "Every drawer means extra slides — the price climbs noticeably",
                 "price": "1,500–3,500 lei"
               }
             },
             "MIXED": {
               "label": "Drawers + doors",
-              "description": "Combination",
+              "description": "A practical mix",
               "info": {
                 "title": "Mixed dresser",
-                "body": "Drawers on one side, doors with shelves on the other — flexible for differently shaped items.",
-                "pros1": "Flexible",
-                "pros2": "Balanced price",
-                "cons1": "Smaller compartments",
+                "body": "Drawers for small things, shelved doors for bulky ones — covers both needs.",
+                "pros1": "Small items in drawers, big ones behind doors",
+                "pros2": "More affordable than an all-drawer build",
+                "cons1": "Each zone is smaller — it fills up faster than it looks",
                 "price": "1,300–3,000 lei"
               }
             },
             "DOORS_ONLY": {
               "label": "Doors only",
-              "description": "Shelves behind",
+              "description": "Shelves behind the doors",
               "info": {
                 "title": "Door dresser",
-                "body": "Doors with interior shelves — the most affordable option, good for bulky items.",
-                "pros1": "Lowest cost",
-                "pros2": "Fits bulky items",
-                "cons1": "Less fine-grained organization",
+                "body": "Doors with shelves behind — the simplest build, so the lowest price.",
+                "pros1": "Hinges only, no slides — the lowest price",
+                "pros2": "Shelves take bulky items, not just folded clothes",
+                "cons1": "Reaching the back means moving what sits in front",
                 "price": "1,200–2,500 lei"
               }
             }
@@ -3766,14 +3766,14 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "The carcass and front material."
+          "subtitle": "The material for the carcass and fronts."
         },
         "openingSystems": {
           "title": "Opening systems"
         },
         "sketch": {
           "title": "Do you have a sketch?",
-          "subtitle": "Optional — the wall where the dresser will sit."
+          "subtitle": "Optional — the wall where the dresser will go."
         },
         "config3d": {
           "title": "Build your dresser in 3D",
@@ -3783,19 +3783,19 @@
       "PIECE_TABLE": {
         "tableType": {
           "title": "What kind of table?",
-          "subtitle": "The purpose decides size and height.",
+          "subtitle": "Its purpose sets the size and height.",
           "options": {
             "DINING": {
               "label": "Dining table",
-              "description": "For meals"
+              "description": "For family meals"
             },
             "COFFEE": {
               "label": "Coffee table",
-              "description": "Low, by the sofa"
+              "description": "Low, next to the sofa"
             },
             "CONSOLE": {
               "label": "Console",
-              "description": "Narrow, decorative"
+              "description": "Narrow and decorative"
             }
           }
         },
@@ -3805,13 +3805,13 @@
           "options": {
             "RECTANGULAR": {
               "label": "Rectangular",
-              "description": "Classic",
+              "description": "The classic",
               "info": {
                 "title": "Rectangular table",
-                "body": "The classic shape — fits against a wall or centered, easy to place in any room.",
-                "pros1": "Space-efficient",
-                "pros2": "Most versatile",
-                "cons1": "Corners in tight spaces",
+                "body": "Sits against a wall when you need space, moves to the center for occasions.",
+                "pros1": "Pushed against a wall, it frees the room day to day",
+                "pros2": "The ends seat extra guests easily",
+                "cons1": "Corners get in the way in tight rooms",
                 "price": "2,000–5,000 lei"
               }
             },
@@ -3820,23 +3820,23 @@
               "description": "No corners",
               "info": {
                 "title": "Round table",
-                "body": "Friendly in small spaces and with kids — no corners. For the same seat count it needs a bit more room around it.",
-                "pros1": "No corners",
-                "pros2": "Natural conversation",
-                "cons1": "Needs clear space around",
+                "body": "No corners — safe with small kids, and everyone sees everyone at the table.",
+                "pros1": "No corners for anyone to bump into",
+                "pros2": "Everyone sits at the same distance — conversation flows on its own",
+                "cons1": "For the same seat count it needs more clear space around it",
                 "price": "2,200–5,500 lei"
               }
             },
             "EXTENDABLE": {
               "label": "Extendable",
-              "description": "Grows when needed",
+              "description": "Grows for guests",
               "info": {
                 "title": "Extendable table",
-                "body": "Compact day to day, extends by 40–80 cm for guests. A good mechanism makes the difference — ask the company what hardware they use.",
-                "pros1": "Compact daily, big when needed",
-                "pros2": "Ideal for guests",
-                "cons1": "The mechanism adds cost",
-                "price": "+700–1,500 lei vs fixed"
+                "body": "Compact day to day, gains 40–80 cm for occasions — a good mechanism makes all the difference.",
+                "pros1": "A table for 4 becomes one for 6–8 in minutes",
+                "pros2": "You don't block the room all year for a few occasions",
+                "cons1": "The mechanism adds cost and a visible seam in the top",
+                "price": "+700–1,500 lei vs a fixed table"
               }
             }
           }
@@ -3845,7 +3845,7 @@
           "title": "How many people?",
           "info": {
             "title": "Seats and sizes",
-            "body": "As a guide: 4 people → 120–140 cm; 6 people → 160–180 cm; 8+ → over 200 cm. Allow ~60 cm of width per person."
+            "body": "As a guide: 4 people → 120–140 cm, 6 → 160–180 cm, 8+ → over 200 cm. Allow ~60 cm of width per seat."
           },
           "options": {
             "FOUR": {
@@ -3870,27 +3870,27 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "The tabletop works hardest — solid wood is the favorite here."
+          "subtitle": "The tabletop takes the most wear — solid wood lasts and can be refinished."
         },
         "sketch": {
           "title": "Do you have a sketch?",
-          "subtitle": "Optional — the space where the table will sit."
+          "subtitle": "Optional — the space where the table will go."
         }
       },
       "PIECE_SHOE_CABINET": {
         "style": {
           "title": "What type of shoe cabinet?",
-          "subtitle": "The mechanism decides depth and capacity.",
+          "subtitle": "The mechanism sets the depth and capacity.",
           "options": {
             "SLIM_TILT": {
               "label": "Slim tilt-out",
               "description": "17–25 cm deep",
               "info": {
                 "title": "Slim shoe cabinet",
-                "body": "Tilt-out doors with angled racks — shoes stand vertically. Perfect for narrow hallways.",
-                "pros1": "Minimal depth",
-                "pros2": "Ideal for narrow hallways",
-                "cons1": "Less capacity; tall boots do not fit",
+                "body": "Tilt-out doors with angled racks — shoes sit almost vertical, so the unit fits any hallway.",
+                "pros1": "At 17–25 cm deep, it fits where a classic unit can't",
+                "pros2": "Keeps a narrow hallway walkable",
+                "cons1": "Fewer pairs fit, and tall boots stay out",
                 "price": "900–2,200 lei"
               }
             },
@@ -3899,22 +3899,22 @@
               "description": "~35 cm deep",
               "info": {
                 "title": "Classic shoe cabinet",
-                "body": "Horizontal shelves — boots and boxes fit too. Needs a bit more hallway space.",
-                "pros1": "High capacity",
-                "pros2": "Tall boots fit",
-                "cons1": "Greater depth",
+                "body": "Classic horizontal shelves — tall boots, boxes and everything the slim can't take.",
+                "pros1": "The most pairs on the same stretch of wall",
+                "pros2": "Takes tall boots and shoe boxes alike",
+                "cons1": "At ~35 cm deep it noticeably narrows a small hallway",
                 "price": "800–1,800 lei"
               }
             },
             "WITH_SEAT": {
               "label": "With seat",
-              "description": "Put shoes on sitting down",
+              "description": "Put your shoes on seated",
               "info": {
                 "title": "Shoe cabinet with bench",
-                "body": "A low unit with a seat (often upholstered) and storage below — comfortable shoe changes.",
-                "pros1": "Comfortable",
-                "pros2": "Two functions in one piece",
-                "cons1": "Less shoe capacity",
+                "body": "A low unit with a seat, often upholstered, and storage below — no balancing act.",
+                "pros1": "You sit down to put shoes on, no leaning on walls",
+                "pros2": "Seating and storage on the same footprint",
+                "cons1": "The low body holds fewer pairs than a tall cabinet",
                 "price": "1,200–2,500 lei"
               }
             }
@@ -3930,7 +3930,7 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "High-traffic zone — durable fronts matter."
+          "subtitle": "A high-traffic spot — pick fronts that shrug off knocks."
         },
         "sketch": {
           "title": "Do you have a hallway sketch?",
@@ -3944,41 +3944,41 @@
       "PIECE_NIGHTSTAND": {
         "style": {
           "title": "What nightstand style?",
-          "subtitle": "With drawers, open shelf or wall-mounted.",
+          "subtitle": "With drawers, an open shelf, or wall-mounted.",
           "options": {
             "DRAWERS": {
               "label": "With drawers",
               "description": "1–2 drawers",
               "info": {
                 "title": "Drawer nightstand",
-                "body": "The classic — small things stay hidden. A soft-close drawer wakes no one at night.",
-                "pros1": "Closed storage",
-                "pros2": "Tidy look",
-                "cons1": "Drawers add cost",
+                "body": "Small things stay hidden, the top stays clear. Soft-close shuts silently at night.",
+                "pros1": "Charger, book, pills — hidden but an arm's reach away",
+                "pros2": "A clear top keeps the bedroom tidy",
+                "cons1": "Slides raise the price over a simple shelf",
                 "price": "600–1,200 lei / pc"
               }
             },
             "OPEN_SHELF": {
               "label": "Open shelf",
-              "description": "Visible shelf",
+              "description": "Shelf in plain view",
               "info": {
                 "title": "Open nightstand",
-                "body": "A simple shelf — book and phone within reach. The most affordable option.",
-                "pros1": "Lowest cost",
-                "pros2": "Instant access",
-                "cons1": "Everything visible",
+                "body": "A simple shelf — reach out and your book or phone is there. Minimal build, minimal price.",
+                "pros1": "The simplest build — the lowest price",
+                "pros2": "Nothing to open — grab and put back in one motion",
+                "cons1": "Whatever you put on it stays in sight",
                 "price": "400–800 lei / pc"
               }
             },
             "SUSPENDED": {
               "label": "Wall-mounted",
-              "description": "Floats on the wall",
+              "description": "Fixed to the wall",
               "info": {
                 "title": "Floating nightstand",
-                "body": "Floats on the wall — airy look and easy cleaning underneath. Needs a solid wall for mounting.",
-                "pros1": "Modern, airy look",
-                "pros2": "Easy cleaning",
-                "cons1": "Wall mounting required",
+                "body": "Fixed to the wall with clear floor below — the room feels airier.",
+                "pros1": "Clear floor — the vacuum passes right under",
+                "pros2": "A light, modern look beside the bed",
+                "cons1": "Needs a solid wall — drywall calls for special anchors",
                 "price": "500–1,000 lei / pc"
               }
             }
@@ -3988,7 +3988,7 @@
           "title": "How many nightstands?",
           "info": {
             "title": "One or a pair",
-            "body": "A pair looks balanced next to a double bed; for a single bed, one is enough."
+            "body": "A pair balances a double bed; beside a single bed, one is enough."
           },
           "options": {
             "ONE": {
@@ -4008,7 +4008,7 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "Usually matched to the bed or wardrobe."
+          "subtitle": "Usually matched to the bed or the wardrobe."
         },
         "sketch": {
           "title": "Do you have a sketch?",
@@ -4022,17 +4022,17 @@
       "PIECE_BENCH": {
         "style": {
           "title": "What type of bench?",
-          "subtitle": "With storage, shoe space, or simple.",
+          "subtitle": "With a storage box, with shoe space, or simple.",
           "options": {
             "WITH_STORAGE": {
               "label": "With storage box",
               "description": "The seat lifts up",
               "info": {
                 "title": "Storage bench",
-                "body": "The seat lifts to reveal a full storage box — blankets, seasonal shoes, toys.",
-                "pros1": "Hidden storage",
-                "pros2": "Two functions in one piece",
-                "cons1": "The mechanism adds cost",
+                "body": "Lift the seat and there is a full box below — blankets, seasonal shoes, toys.",
+                "pros1": "A whole box of storage, invisible from the room",
+                "pros2": "Seating and storage on the same footprint",
+                "cons1": "The lift mechanism makes it the priciest bench type",
                 "price": "1,000–2,000 lei"
               }
             },
@@ -4041,10 +4041,10 @@
               "description": "Open rack below",
               "info": {
                 "title": "Bench with shoe rack",
-                "body": "An open rack under the seat — everyday shoes within reach, no doors to open.",
-                "pros1": "Instant shoe access",
-                "pros2": "Friendly price",
-                "cons1": "Shoes stay visible",
+                "body": "An open rack under the seat — everyday shoes at hand, no doors to open.",
+                "pros1": "Slip your shoes off and shelve them in one motion",
+                "pros2": "Simple build, price to match",
+                "cons1": "Shoes stay in sight — the hallway needs a little discipline",
                 "price": "800–1,600 lei"
               }
             },
@@ -4053,10 +4053,10 @@
               "description": "Seat only",
               "info": {
                 "title": "Simple bench",
-                "body": "A clean, minimal piece — just the seat. Works at the foot of the bed or in the hallway.",
-                "pros1": "Lowest cost",
-                "pros2": "Minimalist look",
-                "cons1": "No storage",
+                "body": "Just the seat, nothing more — at the foot of the bed or in the hallway.",
+                "pros1": "The most affordable option",
+                "pros2": "Light — move it wherever a seat is needed",
+                "cons1": "No storage at all",
                 "price": "700–1,300 lei"
               }
             }
@@ -4066,7 +4066,7 @@
           "title": "Upholstered seat?",
           "info": {
             "title": "Upholstered seat",
-            "body": "A fixed cushion wrapped in fabric — comfortable shoe changes. The fabric is chosen with the company."
+            "body": "A fixed cushion wrapped in fabric — comfortable while you put shoes on. You pick the fabric with the company."
           }
         },
         "dimensions": {
@@ -4082,7 +4082,7 @@
         },
         "sketch": {
           "title": "Do you have a sketch?",
-          "subtitle": "Optional — the space where the bench will sit."
+          "subtitle": "Optional — the space where the bench will go."
         }
       }
     }
@@ -4094,7 +4094,7 @@
       "sections": {
         "intro": {
           "h": "1. Who we are and what CozyHome is",
-          "b": "The CozyHome platform (the “Platform”) is operated by [DENUMIRE LEGALĂ FIRMĂ], tax ID [CUI], registered office at [ADRESĂ] (the “Operator”, “we”).\n\nCozyHome is a marketplace connecting people who want custom furniture (“Clients”) with partner furniture workshops (“Workshops”). The Platform facilitates publishing requests, claiming them, messaging and sending offers; the furniture contract is concluded directly between the Client and the Workshop, and the Operator is not a party to it."
+          "b": "The CozyHome platform (the “Platform”) is operated by [DENUMIRE LEGALĂ FIRMĂ], tax ID [CUI], registered office at [ADRESĂ] (the “Operator”, “we”).\n\nCozyHome is a marketplace connecting people who want custom furniture (“Clients”) with partner furniture companies (“Companies”). The Platform facilitates publishing requests, claiming them, messaging and sending offers; the furniture contract is concluded directly between the Client and the Company, and the Operator is not a party to it."
         },
         "accounts": {
           "h": "2. Accounts and use of the Platform",
@@ -4102,19 +4102,19 @@
         },
         "flow": {
           "h": "3. Requests, claims and offers",
-          "b": "The Client publishes a request with project details; a limited number of Workshops can claim it and send offers. The Client's contact details become visible only to Workshops that claimed the request.\n\nOffers are commercial proposals of the Workshops. Prices, deadlines, warranties and any other conditions belong exclusively to the issuing Workshop. Budget estimates shown by the Platform are indicative and do not constitute offers."
+          "b": "The Client publishes a request with project details; a limited number of Companies can claim it and send offers. The Client's contact details become visible only to Companies that claimed the request.\n\nOffers are commercial proposals of the Companies. Prices, deadlines, warranties and any other conditions belong exclusively to the issuing Company. Budget estimates shown by the Platform are indicative and do not constitute offers."
         },
         "credits": {
-          "h": "4. Credits and subscriptions for Workshops",
-          "b": "Workshops access requests based on a subscription and credits. Credits spent claiming a request are not refunded except in the cases explicitly covered by the Platform rules (for example the Client cancelling the request, or withdrawals under accepted conditions).\n\nPricing and packages are shown in the Platform and may change; changes do not affect credits already purchased."
+          "h": "4. Credits and subscriptions for Companies",
+          "b": "Companies access requests based on a subscription and credits. Credits spent claiming a request are not refunded except in the cases explicitly covered by the Platform rules (for example the Client cancelling the request, or withdrawals under accepted conditions).\n\nPricing and packages are shown in the Platform and may change; changes do not affect credits already purchased."
         },
         "liability": {
           "h": "5. Liability",
-          "b": "The Operator makes reasonable efforts to keep the Platform running but does not guarantee error-free or uninterrupted availability.\n\nThe Operator is not liable for the execution, quality, delivery or warranty of furniture contracted between Client and Workshop, nor for user-generated content. Disputes between Client and Workshop are resolved between them; the Platform may mediate within its existing dispute features."
+          "b": "The Operator makes reasonable efforts to keep the Platform running but does not guarantee error-free or uninterrupted availability.\n\nThe Operator is not liable for the execution, quality, delivery or warranty of furniture contracted between Client and Company, nor for user-generated content. Disputes between Client and Company are resolved between them; the Platform may mediate within its existing dispute features."
         },
         "ip": {
           "h": "6. Intellectual property",
-          "b": "The Platform, the CozyHome brand, its design and own content are protected by intellectual property rights and may not be used without our written consent.\n\nBy uploading content (photos, sketches, descriptions), users grant the Operator a non-exclusive licence to display it in the Platform for the purpose of running the service. Workshops warrant they hold the necessary rights over portfolio photos."
+          "b": "The Platform, the CozyHome brand, its design and own content are protected by intellectual property rights and may not be used without our written consent.\n\nBy uploading content (photos, sketches, descriptions), users grant the Operator a non-exclusive licence to display it in the Platform for the purpose of running the service. Companies warrant they hold the necessary rights over portfolio photos."
         },
         "changes": {
           "h": "7. Changes to these terms",
@@ -4135,7 +4135,7 @@
         },
         "data": {
           "h": "2. What data we collect and why",
-          "b": "We collect and store the following categories of data:\n\n• Account data: name, email address, password (stored encrypted), language preference — to create and manage your account.\n• Request data: project description, delivery/installation address, city and county, chosen contact channels (email, phone) — to publish the request and, once claimed, to share with the Workshops working on it.\n• Workshop data: company name, tax ID, addresses, team — to verify and display the company in the Platform.\n• The content of conversations held in the Platform (stored encrypted) and uploaded files — to run messaging and offers.\n• Technical and usage data: IP address, device type, pages visited and actions performed in the Platform.\n\nThe legal bases are contract performance (providing the service), legitimate interest (security and improving the Platform) and, where required by law, your consent."
+          "b": "We collect and store the following categories of data:\n\n• Account data: name, email address, password (stored encrypted), language preference — to create and manage your account.\n• Request data: project description, delivery/installation address, city and county, chosen contact channels (email, phone) — to publish the request and, once claimed, to share with the Companies working on it.\n• Company data: company name, tax ID, addresses, team — to verify and display the company in the Platform.\n• The content of conversations held in the Platform (stored encrypted) and uploaded files — to run messaging and offers.\n• Technical and usage data: IP address, device type, pages visited and actions performed in the Platform.\n\nThe legal bases are contract performance (providing the service), legitimate interest (security and improving the Platform) and, where required by law, your consent."
         },
         "usage": {
           "h": "3. Usage data and product improvement",
@@ -4147,7 +4147,7 @@
         },
         "sharing": {
           "h": "5. Who we share data with",
-          "b": "Request data (including your name and contact channels) is shared exclusively with the Workshops that claimed your request, so they can contact you and send offers.\n\nWe use infrastructure providers (hosting, file storage, email delivery) that process data on our behalf under GDPR-compliant contracts. We do not sell your personal data to third parties."
+          "b": "Request data (including your name and contact channels) is shared exclusively with the Companies that claimed your request, so they can contact you and send offers.\n\nWe use infrastructure providers (hosting, file storage, email delivery) that process data on our behalf under GDPR-compliant contracts. We do not sell your personal data to third parties."
         },
         "rights": {
           "h": "6. Your rights under the GDPR",

@@ -30,7 +30,8 @@ const mono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: 'Cozy Home — Mobilier la comandă',
-  description: 'Cozy Home: cere oferte de la ateliere verificate pentru mobilierul tău la comandă',
+  description:
+    'Cozy Home: cere oferte de la firme de mobilier verificate pentru mobilierul tău la comandă',
 };
 
 export function generateStaticParams() {

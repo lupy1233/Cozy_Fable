@@ -41,7 +41,7 @@ const HOME_BY_ROLE: Record<string, string> = {
 
 const ROLE_LABEL: Record<string, string> = {
   CLIENT: 'Client',
-  COMPANY_USER: 'Atelier',
+  COMPANY_USER: 'Firmă',
   ADMIN: 'Admin',
 };
 

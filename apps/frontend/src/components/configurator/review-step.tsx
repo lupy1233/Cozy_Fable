@@ -1,12 +1,13 @@
 'use client';
 
 import type { ConfiguratorContentInput, ContactPreferenceInput } from '@marketplace/shared';
-import { ArrowLeft, Check, Loader2, LogIn, Pencil, Send } from 'lucide-react';
+import { ArrowLeft, Loader2, LogIn, Pencil, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import { useMe } from '@/hooks/use-auth';
 import {
   useAttachmentsFor,
@@ -18,6 +19,7 @@ import {
 import { useRouter } from '@/i18n/routing';
 import { useConfiguratorStore } from '@/stores/configurator-store';
 import { InspirationPicker } from './inspiration-picker';
+import { RailSection } from './review-rail';
 import { RoomAnswerSummary } from './room-answer-summary';
 
 export function ReviewStep({
@@ -130,6 +132,23 @@ export function ReviewStep({
   // publish-ul face geocoding pe server si poate dura cateva secunde.
   const publishing = preparing || publish.isPending || publish.isSuccess;
 
+  const readyToPublish = detailsComplete && allRoomsComplete;
+
+  // buton Editeaza: discret la hover pe desktop (hover:hover), mereu vizibil
+  // pe touch; focus-visible il arata si la navigarea din tastatura
+  const editButton = (onClick: () => void) => (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      onClick={onClick}
+      className="shrink-0 text-muted-foreground transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:focus-visible:opacity-100 [@media(hover:hover)]:group-hover:opacity-100"
+    >
+      <Pencil className="mr-1 h-3.5 w-3.5" />
+      {t('review.edit')}
+    </Button>
+  );
+
   return (
     <div className="flex flex-col gap-6">
       {publishing && (
@@ -153,109 +172,159 @@ export function ReviewStep({
         <p className="mt-1 text-sm text-muted-foreground">{t('review.subtitle')}</p>
       </div>
 
-      {/* Detalii generale */}
-      <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="font-serif text-lg">{tr('sectionGeneral')}</h3>
-          <Button type="button" variant="ghost" size="sm" onClick={onEditDetails}>
-            <Pencil className="mr-1 h-3.5 w-3.5" />
-            {t('review.edit')}
-          </Button>
+      {/* firul de verificare: linia verticala + sectiunile ancorate cu noduri */}
+      <div className="relative">
+        <span
+          aria-hidden
+          className="absolute bottom-0 left-[11px] top-5 hidden w-px bg-ink/15 sm:block"
+        />
+        <div className="flex flex-col gap-6 sm:pl-10">
+          {/* Detalii generale */}
+          <RailSection
+            state={detailsComplete ? 'complete' : 'incomplete'}
+            index="01"
+            title={tr('sectionGeneral')}
+            action={editButton(onEditDetails)}
+          >
+            {detailsComplete ? (
+              <div className="text-sm text-muted-foreground">
+                {details.description && <p>{details.description}</p>}
+                <p className="mt-1">
+                  {details.addressText}, {details.city}, {details.county}
+                </p>
+              </div>
+            ) : (
+              <Alert tone="amber">{t('review.detailsIncomplete')}</Alert>
+            )}
+          </RailSection>
+
+          {/* brief de proiectare: banner cu ce urmeaza dupa publicare */}
+          {designHelp && <Alert tone="info">{t('review.designHelpBanner')}</Alert>}
+
+          {/* Camere */}
+          {rooms.map((room, i) => {
+            const complete = room.completed || designHelp;
+            return (
+              <RailSection
+                key={room.localId}
+                state={complete ? 'complete' : 'incomplete'}
+                index={String(i + 2).padStart(2, '0')}
+                eyebrow={tr('room')}
+                title={t(`rooms.type.${room.roomType}`)}
+                titleExtra={
+                  !complete ? (
+                    <span className="font-sans text-xs font-normal text-amber">
+                      {t('review.roomIncomplete')}
+                    </span>
+                  ) : undefined
+                }
+                // fara chestionar per camera pe fluxul de proiectare — nimic de editat
+                action={!designHelp ? editButton(() => onEditRoom(i)) : undefined}
+              >
+                {designHelp ? (
+                  <p className="text-sm text-muted-foreground">{t('review.designHelpRoomNote')}</p>
+                ) : (
+                  <RoomAnswerSummary
+                    roomType={room.roomType}
+                    answers={room.answers}
+                    flowVersion={room.flowVersion}
+                    attachments={attachments}
+                  />
+                )}
+              </RailSection>
+            );
+          })}
+
+          {/* Pozele de inspiratie alese — sectiune optionala: nod neutru pe fir */}
+          <RailSection state="neutral" nodeClassName="top-4">
+            <InspirationPicker />
+          </RailSection>
+
+          {apiErr && (
+            <Alert tone="crimson">
+              {t.has(`apiErrors.${apiErr}`)
+                ? t(`apiErrors.${apiErr}`)
+                : tr.has(`apiErrors.${apiErr}`)
+                  ? tr(`apiErrors.${apiErr}`)
+                  : t('apiErrors.GENERIC')}
+            </Alert>
+          )}
+
+          {/* Poti completa cererea ca vizitator, dar publicarea necesita cont */}
+          {!authed && !me.isPending && readyToPublish && (
+            <Alert tone="info">{t('review.loginToPublishHint')}</Alert>
+          )}
         </div>
-        {detailsComplete ? (
-          <div className="text-sm text-muted-foreground">
-            {details.description && <p>{details.description}</p>}
-            <p className="mt-1">
-              {details.addressText}, {details.city}, {details.county}
+      </div>
+
+      {/* zona de semnatura: firul se termina aici, cu ultima linie de cartus */}
+      <div className="relative sm:pl-10">
+        {/* segmentul final al firului + nodul terminal (romb de registru) */}
+        <span
+          aria-hidden
+          className="absolute -top-6 left-[11px] hidden h-[38px] w-px bg-ink/15 sm:block"
+        />
+        <span
+          aria-hidden
+          className={cn(
+            'absolute left-[7px] top-[9px] hidden h-[9px] w-[9px] rotate-45 border transition-colors sm:block',
+            readyToPublish ? 'border-sage bg-sage' : 'border-amber bg-surface',
+          )}
+        />
+        <div className="border-t border-ink/15 pt-4">
+          {/* randul-sumar al comenzii — doar din datele deja existente */}
+          {readyToPublish ? (
+            <p className="font-mono text-[11px] leading-relaxed text-muted-2">
+              {t('cart.totalRooms', { count: rooms.length })}
+              {' — '}
+              {rooms.map((r) => t(`rooms.type.${r.roomType}`)).join(', ')}
+              {details.city ? ` · ${details.city}` : ''}
             </p>
-          </div>
-        ) : (
-          <Alert tone="amber">{t('review.detailsIncomplete')}</Alert>
-        )}
-      </section>
+          ) : (
+            <div className="flex flex-col gap-0.5 text-[13px] text-amber">
+              {!detailsComplete && <p>{t('review.detailsIncomplete')}</p>}
+              {rooms.length === 0 && <p>{t('cart.totalRooms', { count: 0 })}</p>}
+              {!designHelp &&
+                rooms
+                  .filter((r) => !r.completed)
+                  .map((r) => (
+                    <p key={r.localId}>
+                      {t(`rooms.type.${r.roomType}`)} — {t('review.roomIncomplete')}
+                    </p>
+                  ))}
+            </div>
+          )}
 
-      {/* brief de proiectare: banner cu ce urmeaza dupa publicare */}
-      {designHelp && <Alert tone="info">{t('review.designHelpBanner')}</Alert>}
-
-      {/* Camere */}
-      {rooms.map((room, i) => (
-        <section key={room.localId} className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="flex items-center gap-2 font-serif text-lg">
-              {t(`rooms.type.${room.roomType}`)}
-              {(room.completed || designHelp) ? (
-                <Check className="h-4 w-4 text-sage" />
-              ) : (
-                <span className="text-xs font-normal text-amber">{t('review.roomIncomplete')}</span>
-              )}
-            </h3>
-            {/* fara chestionar per camera pe fluxul de proiectare — nimic de editat */}
-            {!designHelp && (
-              <Button type="button" variant="ghost" size="sm" onClick={() => onEditRoom(i)}>
-                <Pencil className="mr-1 h-3.5 w-3.5" />
-                {t('review.edit')}
+          <div className="mt-4 flex items-center justify-between">
+            <Button type="button" variant="ghost" onClick={onBack}>
+              <ArrowLeft className="mr-1 h-4 w-4" />
+              {t('nav.back')}
+            </Button>
+            {authed ? (
+              <Button
+                type="button"
+                variant="walnut"
+                size="lg"
+                disabled={!detailsComplete || !allRoomsComplete || publish.isPending || preparing}
+                onClick={() => void doPublish()}
+              >
+                <Send className="mr-1 h-4 w-4" />
+                {isEdit ? t('review.saveEdit') : tr('publish')}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="walnut"
+                size="lg"
+                disabled={!detailsComplete || !allRoomsComplete || me.isPending}
+                onClick={() => router.push('/login?redirect=/requests/new')}
+              >
+                <LogIn className="mr-1 h-4 w-4" />
+                {t('review.loginToPublish')}
               </Button>
             )}
           </div>
-          {designHelp ? (
-            <p className="text-sm text-muted-foreground">{t('review.designHelpRoomNote')}</p>
-          ) : (
-            <RoomAnswerSummary
-              roomType={room.roomType}
-              answers={room.answers}
-              flowVersion={room.flowVersion}
-              attachments={attachments}
-            />
-          )}
-        </section>
-      ))}
-
-      {/* Pozele de inspiratie alese — vizibile (si editabile) inainte de publish (R7) */}
-      <InspirationPicker />
-
-      {apiErr && (
-        <Alert tone="crimson">
-          {t.has(`apiErrors.${apiErr}`)
-            ? t(`apiErrors.${apiErr}`)
-            : tr.has(`apiErrors.${apiErr}`)
-              ? tr(`apiErrors.${apiErr}`)
-              : t('apiErrors.GENERIC')}
-        </Alert>
-      )}
-
-      {/* Poti completa cererea ca vizitator, dar publicarea necesita cont */}
-      {!authed && !me.isPending && (detailsComplete && allRoomsComplete) && (
-        <Alert tone="info">{t('review.loginToPublishHint')}</Alert>
-      )}
-
-      <div className="flex items-center justify-between">
-        <Button type="button" variant="ghost" onClick={onBack}>
-          <ArrowLeft className="mr-1 h-4 w-4" />
-          {t('nav.back')}
-        </Button>
-        {authed ? (
-          <Button
-            type="button"
-            variant="walnut"
-            size="lg"
-            disabled={!detailsComplete || !allRoomsComplete || publish.isPending || preparing}
-            onClick={() => void doPublish()}
-          >
-            <Send className="mr-1 h-4 w-4" />
-            {isEdit ? t('review.saveEdit') : tr('publish')}
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            variant="walnut"
-            size="lg"
-            disabled={!detailsComplete || !allRoomsComplete || me.isPending}
-            onClick={() => router.push('/login?redirect=/requests/new')}
-          >
-            <LogIn className="mr-1 h-4 w-4" />
-            {t('review.loginToPublish')}
-          </Button>
-        )}
+        </div>
       </div>
     </div>
   );
