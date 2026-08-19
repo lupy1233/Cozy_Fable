@@ -8,7 +8,11 @@ import { QUEUE_REQUEST_EXPIRATION, QUEUE_SLA_BREACH } from '../../infra/queues/q
 import type { RequestExpirationJob } from '../requests/request-expiration.processor';
 import { CreditsService } from '../billing/credits.service';
 import { PenaltiesService } from '../penalties/penalties.service';
-import { REPUBLISH_EXPIRY_WORKING_DAYS, SLA_GRACE_MS } from './claims.constants';
+import {
+  REPUBLISH_EXPIRY_WORKING_DAYS,
+  REQUEST_SETTLED_STATUSES,
+  SLA_GRACE_MS,
+} from './claims.constants';
 import {
   recomputeRequestStatusAfterClaimChange,
   republishAfterMassBreach,
@@ -39,8 +43,16 @@ export class SlaBreachProcessor extends WorkerHost {
   async process(job: Job<SlaBreachJob>): Promise<void> {
     const { claimSlotId } = job.data;
     const result = await this.prisma.$transaction(async (tx) => {
-      const claim = await tx.claimSlot.findUnique({ where: { id: claimSlotId } });
+      const claim = await tx.claimSlot.findUnique({
+        where: { id: claimSlotId },
+        include: { request: { select: { status: true, deletedAt: true } } },
+      });
       if (!claim || claim.status !== 'ACTIVE') return null; // oferta trimisa / anulat
+      // L0-B: cererea a fost deja atribuita/livrata sau stearsa → sloturile nealese s-au
+      // inchis la accept/stergere; nicio penalizare/consum pentru un SLA fara obiect.
+      if (claim.request.deletedAt !== null || REQUEST_SETTLED_STATUSES.includes(claim.request.status)) {
+        return null;
+      }
       if (claim.slaPausedAt) return null; // clarificare in curs (SLA pe pauza)
       if (!claim.slaDeadlineAt) return null;
       if (Date.now() < claim.slaDeadlineAt.getTime() + SLA_GRACE_MS) return null; // extins intre timp

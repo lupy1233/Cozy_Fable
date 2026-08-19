@@ -38,6 +38,7 @@ import { InspirationService } from '../inspiration/inspiration.service';
 import { GeoService } from '../geo/geo.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { CreditsService } from '../billing/credits.service';
+import { closeOpenQuotesForSlot } from '../claims/claims.helpers';
 import {
   ConfiguratorRoomInputDto,
   CreateRequestContentDto,
@@ -530,6 +531,8 @@ export class RequestsService {
           where: { id: c.id },
           data: { status: 'CANCELLED_BY_CLIENT', withdrawnAt: new Date() },
         });
+        // ofertele deschise ale slotului nu mai pot fi acceptate; chat read-only (L0-B)
+        await closeOpenQuotesForSlot(tx, c.id, 'WITHDRAWN');
         await this.credits.refund(
           c.companyId,
           c.claimCostCreditsSnapshot,

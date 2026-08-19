@@ -43,7 +43,7 @@ export class MarketplaceService {
   ) {}
 
   // Listare cereri eligibile pentru firma (4.8/4.10/4.11):
-  // - status claimabil (IN_MARKETPLACE/CLAIMED_PARTIAL)
+  // - status claimabil (IN_MARKETPLACE/CLAIMED_PARTIAL) si nestearsa (deleted_at IS NULL, 3.12)
   // - gating plan trecut (published_at + delay <= now)
   // - Haversine <= coverage_radius_km pe cel putin o locatie a firmei
   // - firma neexclusa (request_company_exclusions)
@@ -172,6 +172,7 @@ export class MarketplaceService {
         WHERE per_loc.dist <= per_loc.radius
       ) d
       WHERE r.status::text IN ${CLAIMABLE_SQL}
+        AND r.deleted_at IS NULL
         AND r.lat IS NOT NULL AND r.lng IS NOT NULL
         AND r.published_at IS NOT NULL
         AND r.published_at + make_interval(mins => ${gatingMinutes}::int) <= now()

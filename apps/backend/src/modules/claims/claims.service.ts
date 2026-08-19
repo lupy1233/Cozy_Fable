@@ -27,21 +27,28 @@ import {
   CLAIM_TX_TIMEOUT_MS,
   OCCUPYING_CLAIM_STATUSES,
   SLA_DAYS,
-  SLA_GRACE_MS,
 } from './claims.constants';
-import { haversineKm, recomputeRequestStatusAfterClaimChange } from './claims.helpers';
+import {
+  haversineKm,
+  recomputeRequestStatusAfterClaimChange,
+  slaBreachJobOptions,
+  withSerializationRetry,
+} from './claims.helpers';
 import type { ClaimAssignJob } from './claim-assign.processor';
 import type { SlaBreachJob } from './sla-breach.processor';
 
 interface LockedRequest {
   id: string;
   status: RequestStatus;
+  deleted_at: Date | null;
+  published_at: Date | null;
   lat: number | null;
   lng: number | null;
   project_size: ProjectSize | null;
   project_score: number | null;
   credit_cost: number | null;
 }
+
 
 @Injectable()
 export class ClaimsService {
@@ -61,12 +68,7 @@ export class ClaimsService {
   // jobId include deadline-ul ca timestamp → reprogramarea (clarificare) adauga un job nou,
   // iar cel vechi se auto-ignora in procesor (verifica deadline-ul curent al slotului).
   async scheduleSlaBreach(claimSlotId: string, slaDeadlineAt: Date): Promise<void> {
-    const delay = Math.max(0, slaDeadlineAt.getTime() + SLA_GRACE_MS - Date.now());
-    await this.slaQueue.add(
-      'breach',
-      { claimSlotId },
-      { delay, jobId: `sla-${claimSlotId}-${slaDeadlineAt.getTime()}`, removeOnComplete: true },
-    );
+    await this.slaQueue.add('breach', { claimSlotId }, slaBreachJobOptions(claimSlotId, slaDeadlineAt));
   }
 
   // Claim tranzactional (invarianta 3.1): Serializable + SELECT FOR UPDATE pe requests.
@@ -98,112 +100,127 @@ export class ClaimsService {
 
     let createdId: string;
     let chatThreadId: string;
+    // gating-ul planului (4.10) — setat de SubscriptionActiveGuard; lipsa = fara intarziere
+    const gatingMinutes = ctx.gatingDelayMinutes ?? 0;
     try {
-      const res = await this.prisma.$transaction(
-        async (tx) => {
-          // 1. Lock pe request
-          // NB: coloana reala e size_score (map Prisma) → aliasata la project_score.
-          // id e TEXT (String @id), nu uuid → fara cast ::uuid (altfel text = uuid fail).
-          const locked = await tx.$queryRaw<LockedRequest[]>`
-            SELECT id, status, lat, lng, project_size, size_score AS project_score, credit_cost
-            FROM requests WHERE id = ${dto.requestId} FOR UPDATE`;
-          const req = locked[0];
-          if (!req) {
-            throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Request not found' });
-          }
-          // 2. Status claimabil
-          if (!CLAIMABLE_STATUSES.includes(req.status)) {
-            throw new HttpException(
-              { code: ERROR_CODES.CLAIM_NOT_ALLOWED, message: 'Request is not claimable' },
-              409,
-            );
-          }
-          if (
-            req.project_size === null ||
-            req.project_score === null ||
-            req.credit_cost === null ||
-            req.lat === null ||
-            req.lng === null
-          ) {
-            throw new HttpException(
-              { code: ERROR_CODES.CLAIM_NOT_ALLOWED, message: 'Request is not fully published' },
-              409,
-            );
-          }
-          // 3. Sloturi ocupate < max
-          const occupied = await tx.claimSlot.count({
-            where: { requestId: req.id, status: { in: OCCUPYING_CLAIM_STATUSES } },
-          });
-          if (occupied >= maxClaims) {
-            throw new HttpException(
-              { code: ERROR_CODES.CLAIM_SLOTS_FULL, message: 'No claim slots left' },
-              409,
-            );
-          }
-          // 4a. Firma neexclusa (4.11)
-          const excluded = await tx.requestCompanyExclusion.findUnique({
-            where: { requestId_companyId: { requestId: req.id, companyId: ctx.companyId } },
-          });
-          if (excluded) {
-            throw new ForbiddenException({
-              code: ERROR_CODES.COMPANY_EXCLUDED_FROM_REQUEST,
-              message: 'Company excluded from this request',
+      // retry 1x la serialization failure (P2034): doua claim-uri simultane pe aceeasi
+      // cerere — al doilea reia si vede starea reala (sloturi pline etc.), nu 500.
+      const res = await withSerializationRetry(() =>
+        this.prisma.$transaction(
+          async (tx) => {
+            // 1. Lock pe request
+            // NB: coloana reala e size_score (map Prisma) → aliasata la project_score.
+            // id e TEXT (String @id), nu uuid → fara cast ::uuid (altfel text = uuid fail).
+            const locked = await tx.$queryRaw<LockedRequest[]>`
+              SELECT id, status, deleted_at, published_at, lat, lng, project_size,
+                     size_score AS project_score, credit_cost
+              FROM requests WHERE id = ${dto.requestId} FOR UPDATE`;
+            const req = locked[0];
+            if (!req) {
+              throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Request not found' });
+            }
+            // 2. Status claimabil + cerere nestearsa (soft delete 3.12 / 4.15)
+            if (req.deleted_at !== null || !CLAIMABLE_STATUSES.includes(req.status)) {
+              throw new HttpException(
+                { code: ERROR_CODES.CLAIM_NOT_ALLOWED, message: 'Request is not claimable' },
+                409,
+              );
+            }
+            if (
+              req.project_size === null ||
+              req.project_score === null ||
+              req.credit_cost === null ||
+              req.lat === null ||
+              req.lng === null ||
+              req.published_at === null
+            ) {
+              throw new HttpException(
+                { code: ERROR_CODES.CLAIM_NOT_ALLOWED, message: 'Request is not fully published' },
+                409,
+              );
+            }
+            // 2b. Gating per plan (4.10): published_at + delay(plan) <= now, altfel GATING_NOT_OPEN.
+            if (req.published_at.getTime() + gatingMinutes * 60_000 > Date.now()) {
+              throw new ForbiddenException({
+                code: ERROR_CODES.GATING_NOT_OPEN,
+                message: 'Request not yet visible for your subscription plan',
+              });
+            }
+            // 3. Sloturi ocupate < max
+            const occupied = await tx.claimSlot.count({
+              where: { requestId: req.id, status: { in: OCCUPYING_CLAIM_STATUSES } },
             });
-          }
-          // 4b. Firma nu a dat deja claim ocupant
-          const own = await tx.claimSlot.findFirst({
-            where: {
-              requestId: req.id,
-              companyId: ctx.companyId,
-              status: { in: OCCUPYING_CLAIM_STATUSES },
-            },
-          });
-          if (own) {
-            throw new HttpException(
-              { code: ERROR_CODES.CLAIM_ALREADY_EXISTS, message: 'Company already claimed' },
-              409,
+            if (occupied >= maxClaims) {
+              throw new HttpException(
+                { code: ERROR_CODES.CLAIM_SLOTS_FULL, message: 'No claim slots left' },
+                409,
+              );
+            }
+            // 4a. Firma neexclusa (4.11)
+            const excluded = await tx.requestCompanyExclusion.findUnique({
+              where: { requestId_companyId: { requestId: req.id, companyId: ctx.companyId } },
+            });
+            if (excluded) {
+              throw new ForbiddenException({
+                code: ERROR_CODES.COMPANY_EXCLUDED_FROM_REQUEST,
+                message: 'Company excluded from this request',
+              });
+            }
+            // 4b. Firma nu a dat deja claim ocupant
+            const own = await tx.claimSlot.findFirst({
+              where: {
+                requestId: req.id,
+                companyId: ctx.companyId,
+                status: { in: OCCUPYING_CLAIM_STATUSES },
+              },
+            });
+            if (own) {
+              throw new HttpException(
+                { code: ERROR_CODES.CLAIM_ALREADY_EXISTS, message: 'Company already claimed' },
+                409,
+              );
+            }
+            // 4c. Arie de acoperire (4.8) — cel putin o locatie cu Haversine <= coverage_radius_km
+            await this.assertCoverage(tx, ctx.companyId, req.lat, req.lng);
+            // 4d. Regula 1-claim-activ-fara-oferta / cap manager (4.9)
+            await this.assertAssignmentRules(tx, ctx, actingUserId, assignToUserId);
+
+            // 5. Creeaza slot + chat + rezerva credite + update status
+            // SLA materializat la claim (4.11): zile lucratoare per marime (3/3/5).
+            const slaDeadlineAt = this.calendar.addWorkingDays(
+              new Date(),
+              SLA_DAYS[req.project_size],
             );
-          }
-          // 4c. Arie de acoperire (4.8) — cel putin o locatie cu Haversine <= coverage_radius_km
-          await this.assertCoverage(tx, ctx.companyId, req.lat, req.lng);
-          // 4d. Regula 1-claim-activ-fara-oferta / cap manager (4.9)
-          await this.assertAssignmentRules(tx, ctx, actingUserId, assignToUserId);
+            const slot = await tx.claimSlot.create({
+              data: {
+                requestId: req.id,
+                companyId: ctx.companyId,
+                claimedByUserId: actingUserId,
+                assignedToUserId: assignToUserId,
+                status: 'ACTIVE',
+                projectSizeSnapshot: req.project_size,
+                projectScoreSnapshot: req.project_score,
+                claimCostCreditsSnapshot: req.credit_cost,
+                slaDeadlineAt,
+                assignDeadlineAt: assignToUserId
+                  ? null
+                  : new Date(Date.now() + ASSIGN_DEADLINE_MS),
+              },
+            });
+            const thread = await tx.chatThread.create({ data: { claimSlotId: slot.id } });
+            await this.credits.reserve(
+              ctx.companyId,
+              req.credit_cost,
+              'CLAIM_RESERVE',
+              slot.id,
+              tx,
+            );
+            await recomputeRequestStatusAfterClaimChange(tx, req.id, maxClaims);
 
-          // 5. Creeaza slot + chat + rezerva credite + update status
-          // SLA materializat la claim (4.11): zile lucratoare per marime (3/3/5).
-          const slaDeadlineAt = this.calendar.addWorkingDays(
-            new Date(),
-            SLA_DAYS[req.project_size],
-          );
-          const slot = await tx.claimSlot.create({
-            data: {
-              requestId: req.id,
-              companyId: ctx.companyId,
-              claimedByUserId: actingUserId,
-              assignedToUserId: assignToUserId,
-              status: 'ACTIVE',
-              projectSizeSnapshot: req.project_size,
-              projectScoreSnapshot: req.project_score,
-              claimCostCreditsSnapshot: req.credit_cost,
-              slaDeadlineAt,
-              assignDeadlineAt: assignToUserId
-                ? null
-                : new Date(Date.now() + ASSIGN_DEADLINE_MS),
-            },
-          });
-          const thread = await tx.chatThread.create({ data: { claimSlotId: slot.id } });
-          await this.credits.reserve(
-            ctx.companyId,
-            req.credit_cost,
-            'CLAIM_RESERVE',
-            slot.id,
-            tx,
-          );
-          await recomputeRequestStatusAfterClaimChange(tx, req.id, maxClaims);
-
-          return { slot, threadId: thread.id };
-        },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: CLAIM_TX_TIMEOUT_MS },
+            return { slot, threadId: thread.id };
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: CLAIM_TX_TIMEOUT_MS },
+        ),
       );
       createdId = res.slot.id;
       chatThreadId = res.threadId;

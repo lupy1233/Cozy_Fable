@@ -58,11 +58,12 @@ export function useUpdatePenaltyRule() {
 export function useAdminPlans() {
   return useQuery({ queryKey: ['admin', 'plans'], queryFn: () => api<AdminPlan[]>('/admin/plans'), retry: false });
 }
+// L0-B: `id` merge DOAR in URL — in body ar pica pe forbidNonWhitelisted (400 VALIDATION_ERROR).
 export function useUpdatePlan() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { id: string } & Partial<AdminPlan>) =>
-      api<AdminPlan>(`/admin/plans/${v.id}`, { method: 'PATCH', body: JSON.stringify(v) }),
+    mutationFn: ({ id, ...body }: { id: string } & Partial<Omit<AdminPlan, 'id'>>) =>
+      api<AdminPlan>(`/admin/plans/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'plans'] }),
   });
 }
@@ -73,8 +74,8 @@ export function useAdminPackages() {
 export function useUpdatePackage() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { id: string } & Partial<AdminCreditPackage>) =>
-      api<AdminCreditPackage>(`/admin/credit-packages/${v.id}`, { method: 'PATCH', body: JSON.stringify(v) }),
+    mutationFn: ({ id, ...body }: { id: string } & Partial<Omit<AdminCreditPackage, 'id'>>) =>
+      api<AdminCreditPackage>(`/admin/credit-packages/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'packages'] }),
   });
 }
@@ -85,8 +86,8 @@ export function useAdminThresholds() {
 export function useUpdateThreshold() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { id: string } & Partial<AdminThreshold>) =>
-      api<AdminThreshold>(`/admin/thresholds/${v.id}`, { method: 'PATCH', body: JSON.stringify(v) }),
+    mutationFn: ({ id, ...body }: { id: string } & Partial<Omit<AdminThreshold, 'id'>>) =>
+      api<AdminThreshold>(`/admin/thresholds/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'thresholds'] }),
   });
 }

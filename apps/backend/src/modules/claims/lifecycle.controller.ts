@@ -38,8 +38,8 @@ export class ClaimLifecycleController {
   }
 
   @Get(':id/clarifications')
-  listClarifications(@Param('id', ParseUUIDPipe) id: string) {
-    return this.clarifications.listForClaim(id);
+  listClarifications(@CurrentCompany() ctx: CompanyContext, @Param('id', ParseUUIDPipe) id: string) {
+    return this.clarifications.listForClaim(ctx, id);
   }
 
   @Post(':id/withdraw')

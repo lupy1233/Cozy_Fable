@@ -118,6 +118,12 @@ export const ERROR_CODES = {
   STUDIO_DRAFT_LIMIT_REACHED: 'STUDIO_DRAFT_LIMIT_REACHED',
   STUDIO_DRAFT_INVALID: 'STUDIO_DRAFT_INVALID',
   STUDIO_DRAFT_TOO_LARGE: 'STUDIO_DRAFT_TOO_LARGE',
+
+  // L0-B — integritate business (2026-08-19)
+  // cererea nu mai primeste oferte (status in afara CLAIMED_*/OFFERS_RECEIVED/NEGOTIATION sau stearsa)
+  REQUEST_NOT_OPEN_FOR_OFFERS: 'REQUEST_NOT_OPEN_FOR_OFFERS',
+  // conflict de concurenta la scriere (serialization failure P2034) — clientul poate reincerca
+  CONCURRENT_MODIFICATION: 'CONCURRENT_MODIFICATION',
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];

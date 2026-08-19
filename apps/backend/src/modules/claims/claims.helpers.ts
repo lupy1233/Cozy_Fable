@@ -1,7 +1,63 @@
+import { HttpException } from '@nestjs/common';
+import { ERROR_CODES } from '@marketplace/shared';
 import { Prisma } from '@prisma/client';
-import { DEFAULT_MAX_CLAIMS, OCCUPYING_CLAIM_STATUSES } from './claims.constants';
+import { DEFAULT_MAX_CLAIMS, OCCUPYING_CLAIM_STATUSES, SLA_GRACE_MS } from './claims.constants';
 
 type Tx = Prisma.TransactionClient;
+
+// Prisma P2034: "Transaction failed due to a write conflict or a deadlock" (Serializable).
+export function isSerializationFailure(e: unknown): boolean {
+  return e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2034';
+}
+
+// L0-B — ruleaza o tranzactie Serializable cu retry la serialization failure (P2034);
+// daca si ultima incercare pica → 409 CONCURRENT_MODIFICATION (nu 500). Folosit la claim
+// si la acceptarea ofertei (3.1: ambele schimba sloturile active sub lock pe cerere).
+export async function withSerializationRetry<T>(fn: () => Promise<T>, retries = 1): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (!isSerializationFailure(e)) throw e;
+      if (attempt >= retries) {
+        throw new HttpException(
+          { code: ERROR_CODES.CONCURRENT_MODIFICATION, message: 'Concurrent modification, please retry' },
+          409,
+        );
+      }
+    }
+  }
+}
+
+// Optiunile jobului de verificare SLA (4.11): jobId include deadline-ul ca timestamp →
+// reprogramarea (clarificare / retragere oferta) adauga un job nou, iar cel vechi se
+// auto-ignora in procesor. Folosit de ClaimsService si QuotesService (withdrawQuote).
+export function slaBreachJobOptions(claimSlotId: string, slaDeadlineAt: Date) {
+  return {
+    delay: Math.max(0, slaDeadlineAt.getTime() + SLA_GRACE_MS - Date.now()),
+    jobId: `sla-${claimSlotId}-${slaDeadlineAt.getTime()}`,
+    removeOnComplete: true as const,
+  };
+}
+
+// L0-B — cand un slot OFFER_SENT se inchide (retragere auto/admin, voluntar, accept pe alta
+// oferta), ofertele lui inca deschise (SENT/EXPIRED) nu mai pot fi acceptate de client:
+// → WITHDRAWN (retragere) sau SUPERSEDED (accept pe alta oferta) + thread read-only.
+export async function closeOpenQuotesForSlot(
+  tx: Tx,
+  claimSlotId: string,
+  finalStatus: 'WITHDRAWN' | 'SUPERSEDED',
+): Promise<number> {
+  const res = await tx.quote.updateMany({
+    where: { claimSlotId, status: { in: ['SENT', 'EXPIRED'] } },
+    data:
+      finalStatus === 'WITHDRAWN'
+        ? { status: 'WITHDRAWN', withdrawnAt: new Date() }
+        : { status: 'SUPERSEDED' },
+  });
+  await tx.chatThread.updateMany({ where: { claimSlotId }, data: { readOnly: true } });
+  return res.count;
+}
 
 // Distanta Haversine in km (3.8) — folosita la verificarea ariei de acoperire in tranzactie.
 export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {

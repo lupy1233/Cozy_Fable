@@ -208,6 +208,8 @@ enum ClaimSlotStatus {
   WITHDRAWN
   SLA_EXPIRED
   COMPLETED
+  // L0-B: slot nealese inchis la acceptarea altei oferte (4.14 — chat read-only imediat).
+  CANCELLED_REQUEST_ACCEPTED
 
   @@map("claim_slot_status")
 }
