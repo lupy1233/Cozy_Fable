@@ -1,0 +1,13 @@
+# Trecere vizuala (local dev, pagini publice, fara login)
+- PROD (backend-production-2813.up.railway.app) este OFFLINE la 2026-08-19 (railway status: Offline; 404 Railway "Not Found"). Nu am facut redeploy.
+- P0 terms + privacy: placeholdere [DENUMIRE LEGALA FIRMA], [CUI], [ADRESA], [EMAIL CONTACT] in ambele pagini; "ULTIMA ACTUALIZARE: IULIE 2026"; brand "CozyHome" (fara spatiu) in legal vs "Cozy Home" in rest.
+- P0 landing (/ si /landing-v2): sectiunea Parteneri afiseaza ratinguri "din recenziile Google" cu cifre (4.6, 173 recenzii etc.) pentru firmele DEMO (A Mobila Premium, B DesignWood, C CasaMea, H VintageHaus) — date mock. "Bucuresti, Bucuresti" (oras, judet duplicat).
+- P2 /ro/landing-v2 = redirect catre / (cod verificat) — ok, doar de decis daca mai e nevoie de ruta.
+- P2 /ro/dev/piece-3d: in dev randeaza pagina de lucru (JSON brut); in prod notFound() (verificat in cod) — ramane totusi in bundle; de decis daca se sterge.
+- P1 404: pagina default Next (neagra, engleza, fara brand, fara link inapoi) → not-found.tsx custom.
+- P1 <title> identic pe toate paginile ("Cozy Home — Mobilier la comanda"), chiar si pe /en → metadata per pagina + localizata.
+- P1 header public: intre ~768 si ~1100px (tableta / laptop mic) linkurile de nav se rup pe 2-3 randuri ("Caietul de idei", "Ghid de schita"); la 820px pagina are overflow orizontal (scrollWidth 896 > 820), "Inregistrare" iese din ecran. Hamburger-ul apare doar sub 768.
+- P1 login: nu exista "Ai uitat parola?"; backend nu are rute forgot/reset password (lista rute Nest: auth/register, verify-email, login, refresh, logout, me, 2fa/setup, 2fa/verify).
+- P2 register: fara checkbox/link "Accept Termenii si Politica de confidentialitate", fara hint de cerinte parola.
+- P2 partners: "Partener din iunie 2026" — ok; lista vine din DB (firme demo local).
+- Backend dev: warning AWS SDK node>=22 (ruleaza node 21.6 local) — verifica versiunea node din Dockerfile.
