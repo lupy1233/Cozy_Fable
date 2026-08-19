@@ -132,18 +132,12 @@
     "inspirationCta": "Browse the full gallery",
     "partnersKicker": "Partners",
     "partnersTitle": "The companies we work with",
-    "partnersSub": "Every company is vetted before it can quote. Ratings come from Google reviews.",
+    "partnersSub": "Every company is vetted before it can send offers.",
     "partnersAll": "All partners",
-    "googleReviews": "Google Reviews rating",
-    "reviewsShort": "reviews",
     "carouselPrev": "Previous",
     "carouselNext": "Next",
-    "partnerSpecialty": {
-      "kitchens": "Custom kitchens and cooking spaces",
-      "dressings": "Walk-in closets and made-to-measure wardrobes",
-      "living": "Living rooms, bookcases and everyday furniture",
-      "full": "Complete fit-outs, from sketch to install"
-    }
+    "partnerRating": "Average rating",
+    "partnerVerified": "Verified company"
   },
   "Common": {
     "languageSwitcher": "Language",
@@ -177,7 +171,9 @@
     "logout": "Log out",
     "menu": "Menu",
     "terms": "Terms & Conditions",
-    "privacy": "Privacy Policy"
+    "privacy": "Privacy Policy",
+    "accountMenu": "Account menu",
+    "changePassword": "Change password"
   },
   "Studio": {
     "title": "3D Studio",
@@ -341,9 +337,11 @@
     "subtitle": "Verified furniture companies that quote and build the projects on Cozy Home.",
     "loading": "Loading partners…",
     "empty": "No partners to show yet.",
-    "ratingPlaceholder": "—",
-    "ratingSoon": "Google rating coming soon",
-    "memberSince": "Partner since {date}"
+    "memberSince": "Partner since {date}",
+    "loadError": "We couldn't load the partner list.",
+    "retry": "Retry",
+    "rating": "Average rating",
+    "verified": "Verified company"
   },
   "Inspiration": {
     "title": "The Idea Book",
@@ -422,7 +420,10 @@
       "bedroom-wood-slats": "Bedroom with wood slats",
       "dressing-walkin-oak": "Walk-in oak dressing",
       "office-slats": "Home office with slat screen"
-    }
+    },
+    "loadError": "We couldn't load the ideas. Check your connection and try again.",
+    "retry": "Retry",
+    "boardsLoadError": "We couldn't load your collections."
   },
   "SketchGuidePage": {
     "kicker": "Sketch guide",
@@ -527,7 +528,10 @@
     "validation": {
       "invalidEmail": "That email address doesn't look right.",
       "passwordTooShort": "Your password needs at least 8 characters.",
-      "nameTooShort": "Your name needs at least 2 characters."
+      "nameTooShort": "Your name needs at least 2 characters.",
+      "termsRequired": "You need to accept the Terms and Conditions to create your account.",
+      "passwordsMismatch": "The passwords don't match.",
+      "required": "This field is required."
     },
     "apiErrors": {
       "INVALID_CREDENTIALS": "That email and password don't match. Check them and try again.",
@@ -537,8 +541,39 @@
       "TWO_FACTOR_REQUIRED": "Enter your two-step verification code to continue.",
       "TWO_FACTOR_INVALID_CODE": "That two-step verification code isn't right. Try again.",
       "VALIDATION_ERROR": "Some fields aren't filled in correctly. Check them and submit again.",
-      "INTERNAL_ERROR": "Something unexpected went wrong. Please try again in a moment."
-    }
+      "INTERNAL_ERROR": "Something unexpected went wrong. Please try again in a moment.",
+      "RESET_TOKEN_INVALID": "This reset link is invalid, has expired or was already used. Request a new one.",
+      "PASSWORD_INCORRECT": "Your current password isn't correct.",
+      "TERMS_NOT_ACCEPTED": "You need to accept the Terms and Conditions to create your account.",
+      "UNAUTHORIZED": "Your session has expired or you're not logged in. Please log in again."
+    },
+    "forgotPasswordLink": "Forgot your password?",
+    "forgotTitle": "Forgot your password?",
+    "forgotBody": "Enter the email address you signed up with and we'll send you a link to choose a new password.",
+    "forgotSubmit": "Send the link",
+    "forgotSuccess": "If an account exists for this email, you've received a link to reset your password.",
+    "forgotSuccessHint": "The link is valid for 60 minutes. If you don't see the email, check your Spam folder too.",
+    "backToLogin": "Back to login",
+    "backToDashboard": "Back to dashboard",
+    "resetTitle": "Choose a new password",
+    "resetBody": "Enter your new password twice so we can make sure you typed it correctly.",
+    "resetSubmit": "Save new password",
+    "resetSuccess": "Your password has been changed. You can now log in with the new password.",
+    "resetTokenInvalid": "This reset link is invalid, has expired or was already used.",
+    "resetRequestNewLink": "Request a new link",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "currentPassword": "Current password",
+    "changePasswordTitle": "Change password",
+    "changePasswordBody": "After the change, any other devices where you were logged in will be signed out.",
+    "changePasswordSubmit": "Change password",
+    "changePasswordSuccess": "Your password has been changed.",
+    "resendButton": "Resend confirmation email",
+    "resendPending": "Sending…",
+    "resendPrompt": "Didn't get the email? Check your Spam folder or request a new one.",
+    "resendPromptExpired": "Enter your account email and we'll send you a new confirmation link.",
+    "resendSuccess": "If an unconfirmed account exists for this email, you've received a new confirmation link. Check your Spam folder too.",
+    "termsLabel": "I have read and accept the <terms>Terms and Conditions</terms> and the <privacy>Privacy Policy</privacy>."
   },
   "Company": {
     "onboardingTitle": "Register your company",
@@ -905,7 +940,10 @@
       "CANCELLED_UNASSIGNED": "Cancelled (unassigned)",
       "CANCELLED_BY_CLIENT": "Cancelled by client",
       "WITHDRAWN_VOLUNTARY": "Withdrawn",
-      "COMPLETED": "Completed"
+      "COMPLETED": "Completed",
+      "WITHDRAWN": "Withdrawn",
+      "SLA_EXPIRED": "SLA deadline missed",
+      "CANCELLED_REQUEST_ACCEPTED": "Closed — the client chose another company"
     },
     "wallet": {
       "title": "Credit wallet",
@@ -962,7 +1000,10 @@
       "FORBIDDEN": "Only the owner or a manager can assign the claim.",
       "IDEMPOTENCY_CONFLICT": "Conflicting request. Please retry.",
       "VALIDATION_ERROR": "Invalid data.",
-      "INTERNAL_ERROR": "Something went wrong. Please try again."
+      "INTERNAL_ERROR": "Something went wrong. Please try again.",
+      "GATING_NOT_OPEN": "This request is not yet available for your subscription plan. Please check back shortly.",
+      "CONCURRENT_MODIFICATION": "Someone else changed this request at the same time. Please retry.",
+      "NOT_FOUND": "This request is no longer available."
     }
   },
   "Chat": {
@@ -1109,7 +1150,9 @@
       "NOT_FOUND": "Not found.",
       "IDEMPOTENCY_CONFLICT": "An identical request is already in progress. Please try again.",
       "VALIDATION_ERROR": "The submitted data is not valid.",
-      "INTERNAL_ERROR": "Something went wrong. Please try again."
+      "INTERNAL_ERROR": "Something went wrong. Please try again.",
+      "REQUEST_NOT_OPEN_FOR_OFFERS": "This request no longer accepts offers (it was awarded, delivered or deleted).",
+      "CONCURRENT_MODIFICATION": "The offer was changed at the same time. Reload the page and retry."
     }
   },
   "Lifecycle": {
@@ -1137,7 +1180,8 @@
       "WITHDRAWN_VOLUNTARY": "Withdrawn (voluntary)",
       "WITHDRAWN": "Withdrawn",
       "SLA_EXPIRED": "SLA deadline missed",
-      "COMPLETED": "Completed"
+      "COMPLETED": "Completed",
+      "CANCELLED_REQUEST_ACCEPTED": "Closed — the client chose another company"
     },
     "reason": {
       "CLIENT_UNRESPONSIVE_48H": "Client unresponsive for 48 hours",
@@ -1156,11 +1200,12 @@
     "apiErrors": {
       "WITHDRAWAL_REASON_NOT_VALIDATED": "This reason can't be validated automatically.",
       "WITHDRAWAL_ALREADY_PENDING": "A withdrawal is already pending.",
-      "CLAIM_NOT_WITHDRAWABLE": "This claim can no longer be withdrawn.",
+      "CLAIM_NOT_WITHDRAWABLE": "This claim can no longer be withdrawn (it is already closed).",
       "CLARIFICATION_ALREADY_PENDING": "A clarification is already pending.",
       "CLAIM_NOT_ALLOWED": "This action isn't allowed in the claim's current state.",
       "VALIDATION_ERROR": "The submitted data is not valid.",
-      "INTERNAL_ERROR": "Something went wrong. Please try again."
+      "INTERNAL_ERROR": "Something went wrong. Please try again.",
+      "NOT_FOUND": "Claim not found."
     }
   },
   "Penalties": {
@@ -1262,7 +1307,10 @@
       "packages": "Credit packages",
       "thresholds": "Project size thresholds",
       "creditCostNote": "Request cost is no longer set per threshold: 1 credit = 1,000 RON of the minimum estimated budget (at least 1 credit). Thresholds only decide the S/M/L size and its SLA.",
-      "save": "Save"
+      "save": "Save",
+      "saved": "Saved.",
+      "saveError": "Could not save. Check the values and try again.",
+      "noMax": "no limit"
     },
     "jobs": {
       "empty": "No failed jobs.",
@@ -4088,13 +4136,13 @@
     }
   },
   "Legal": {
-    "lastUpdated": "Last updated: July 2026",
+    "lastUpdated": "Last updated: August 2026",
     "terms": {
       "title": "Terms & Conditions",
       "sections": {
         "intro": {
-          "h": "1. Who we are and what CozyHome is",
-          "b": "The CozyHome platform (the “Platform”) is operated by [DENUMIRE LEGALĂ FIRMĂ], tax ID [CUI], registered office at [ADRESĂ] (the “Operator”, “we”).\n\nCozyHome is a marketplace connecting people who want custom furniture (“Clients”) with partner furniture companies (“Companies”). The Platform facilitates publishing requests, claiming them, messaging and sending offers; the furniture contract is concluded directly between the Client and the Company, and the Operator is not a party to it."
+          "h": "1. Who we are and what Cozy Home is",
+          "b": "The Cozy Home platform (the “Platform”) is operated by [DENUMIRE LEGALĂ FIRMĂ], tax ID [CUI], registered office at [ADRESĂ] (the “Operator”, “we”).\n\nCozy Home is a marketplace connecting people who want custom furniture (“Clients”) with partner furniture companies (“Companies”). The Platform facilitates publishing requests, claiming them, messaging and sending offers; the furniture contract is concluded directly between the Client and the Company, and the Operator is not a party to it."
         },
         "accounts": {
           "h": "2. Accounts and use of the Platform",
@@ -4114,7 +4162,7 @@
         },
         "ip": {
           "h": "6. Intellectual property",
-          "b": "The Platform, the CozyHome brand, its design and own content are protected by intellectual property rights and may not be used without our written consent.\n\nBy uploading content (photos, sketches, descriptions), users grant the Operator a non-exclusive licence to display it in the Platform for the purpose of running the service. Companies warrant they hold the necessary rights over portfolio photos."
+          "b": "The Platform, the Cozy Home brand, its design and own content are protected by intellectual property rights and may not be used without our written consent.\n\nBy uploading content (photos, sketches, descriptions), users grant the Operator a non-exclusive licence to display it in the Platform for the purpose of running the service. Companies warrant they hold the necessary rights over portfolio photos."
         },
         "changes": {
           "h": "7. Changes to these terms",
@@ -4135,7 +4183,7 @@
         },
         "data": {
           "h": "2. What data we collect and why",
-          "b": "We collect and store the following categories of data:\n\n• Account data: name, email address, password (stored encrypted), language preference — to create and manage your account.\n• Request data: project description, delivery/installation address, city and county, chosen contact channels (email, phone) — to publish the request and, once claimed, to share with the Companies working on it.\n• Company data: company name, tax ID, addresses, team — to verify and display the company in the Platform.\n• The content of conversations held in the Platform (stored encrypted) and uploaded files — to run messaging and offers.\n• Technical and usage data: IP address, device type, pages visited and actions performed in the Platform.\n\nThe legal bases are contract performance (providing the service), legitimate interest (security and improving the Platform) and, where required by law, your consent."
+          "b": "We collect and store the following categories of data:\n\n• Account data: name, email address, password (stored encrypted), language preference — to create and manage your account.\n• Request data: project description, delivery/installation address, city and county, chosen contact channels (email, phone) — to publish the request and, once claimed, to share with the Companies working on it.\n• Company data: company name, tax ID, addresses, team — to verify and display the company in the Platform.\n• The content of conversations held in the Platform (stored encrypted) and uploaded files — to run messaging and offers.\n• Technical and usage data: IP address, device type, pages visited and actions performed in the Platform.\n\nThe address field in the configurator may load the Google Maps Places script (Google LLC) to suggest addresses — only when the Platform has such an integration enabled. At that moment your IP address and the text typed into the field reach Google, under Google's privacy policy; the geocoding itself is done on our servers.\n\nThe legal bases are contract performance (providing the service), legitimate interest (security and improving the Platform) and, where required by law, your consent."
         },
         "usage": {
           "h": "3. Usage data and product improvement",
@@ -4143,7 +4191,7 @@
         },
         "marketing": {
           "h": "4. Marketing and advertising",
-          "b": "With your consent, we may send you commercial communications about the Platform (news, features, offers) and may use usage data for more relevant marketing and advertising campaigns.\n\nYou can withdraw your consent at any time, with immediate effect: from your account settings, via the unsubscribe link present in every email, or by writing to [EMAIL CONTACT]. Withdrawing consent does not affect your normal use of the Platform."
+          "b": "With your consent, we may send you commercial communications about the Platform (news, features, offers) and may use usage data for more relevant marketing and advertising campaigns.\n\nYou can withdraw your consent at any time, with immediate effect: via the unsubscribe link present in every email, or by writing to [EMAIL CONTACT]. Withdrawing consent does not affect your normal use of the Platform."
         },
         "sharing": {
           "h": "5. Who we share data with",
@@ -4155,7 +4203,7 @@
         },
         "retention": {
           "h": "7. How long we keep data",
-          "b": "We keep account data for as long as the account is active. When the account is deleted, personal data is deleted or anonymised within a reasonable period, except for data we are legally required to keep (for example accounting records) and data strictly necessary to defend legal claims.\n\nTechnical usage data is kept for limited periods, proportionate to the purpose it was collected for."
+          "b": "We keep account data for as long as the account is active. Upon your account deletion request (sent to [EMAIL CONTACT]), personal data is deleted or anonymised within a reasonable period, except for data we are legally required to keep (for example accounting records) and data strictly necessary to defend legal claims.\n\nTechnical usage data is kept for limited periods, proportionate to the purpose it was collected for."
         },
         "cookies": {
           "h": "8. Cookies",
@@ -4167,5 +4215,53 @@
         }
       }
     }
+  },
+  "Meta": {
+    "defaultTitle": "Cozy Home — Custom furniture from verified companies",
+    "titleTemplate": "%s · Cozy Home",
+    "description": "Cozy Home: configure the furniture you want visually, publish a request and receive comparable offers from verified furniture companies. Free for clients.",
+    "ogTagline": "Custom furniture requests, offers from verified companies",
+    "pages": {
+      "home": {
+        "title": "Cozy Home — Custom furniture from verified companies",
+        "description": "Say what you want and furniture companies compete for you: configure the request visually, receive up to 3 comparable offers and choose. Free for clients."
+      },
+      "partners": {
+        "title": "Partner companies",
+        "description": "The verified furniture companies that quote and build the projects on Cozy Home, with their portfolios."
+      },
+      "sketchGuide": {
+        "title": "Sketch guide",
+        "description": "How to sketch your space in four simple steps — measurements, sockets and pipes, the furniture you want and its dimensions — so companies can quote accurately."
+      },
+      "inspiration": {
+        "title": "The Idea Book",
+        "description": "Real furniture made by our partner companies: kitchens, dressings, living rooms, bedrooms and offices. Filter by type, colour, material or opening system."
+      },
+      "boards": {
+        "title": "My collections",
+        "description": "Your ideas saved from the Idea Book, organised into collections."
+      },
+      "terms": {
+        "title": "Terms and Conditions",
+        "description": "The terms and conditions for using the Cozy Home platform: accounts, requests, claims, offers, credits and liability."
+      },
+      "privacy": {
+        "title": "Privacy Policy",
+        "description": "How Cozy Home collects, uses and protects your personal data under the GDPR, and what rights you have."
+      }
+    }
+  },
+  "NotFound": {
+    "title": "Page not found",
+    "body": "The link is wrong or the page has moved. Head back to the home page — everything you need is there.",
+    "home": "Back home"
+  },
+  "ErrorPage": {
+    "title": "Something went wrong",
+    "body": "The page could not be loaded. Try again — if the problem persists, come back in a few minutes.",
+    "reference": "Reference: {id}",
+    "retry": "Try again",
+    "home": "Back home"
   }
 }

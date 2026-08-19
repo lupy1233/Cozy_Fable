@@ -132,18 +132,12 @@
     "inspirationCta": "Vezi toată galeria",
     "partnersKicker": "Parteneri",
     "partnersTitle": "Firmele cu care lucrăm",
-    "partnersSub": "Fiecare firmă e verificată înainte să poată trimite oferte. Ratingurile vin din recenziile Google.",
+    "partnersSub": "Fiecare firmă e verificată înainte să poată trimite oferte.",
     "partnersAll": "Toți partenerii",
-    "googleReviews": "Rating Google Reviews",
-    "reviewsShort": "recenzii",
     "carouselPrev": "Înapoi",
     "carouselNext": "Înainte",
-    "partnerSpecialty": {
-      "kitchens": "Bucătării la comandă și spații de gătit",
-      "dressings": "Dressinguri și dulapuri pe măsură",
-      "living": "Livinguri, biblioteci și mobilier de zi",
-      "full": "Amenajări complete, de la schiță la montaj"
-    }
+    "partnerRating": "Rating mediu",
+    "partnerVerified": "Firmă verificată"
   },
   "Common": {
     "languageSwitcher": "Limba",
@@ -177,7 +171,9 @@
     "logout": "Deconectare",
     "menu": "Meniu",
     "terms": "Termeni și Condiții",
-    "privacy": "Politica de Confidențialitate"
+    "privacy": "Politica de Confidențialitate",
+    "accountMenu": "Meniul contului",
+    "changePassword": "Schimbă parola"
   },
   "Studio": {
     "title": "Studio 3D",
@@ -341,9 +337,11 @@
     "subtitle": "Firme de mobilier verificate, care ofertează și execută proiectele de pe Cozy Home.",
     "loading": "Se încarcă partenerii…",
     "empty": "Niciun partener de afișat încă.",
-    "ratingPlaceholder": "—",
-    "ratingSoon": "Rating Google în curând",
-    "memberSince": "Partener din {date}"
+    "memberSince": "Partener din {date}",
+    "loadError": "Nu am putut încărca lista partenerilor.",
+    "retry": "Reîncearcă",
+    "rating": "Rating mediu",
+    "verified": "Firmă verificată"
   },
   "Inspiration": {
     "title": "Caietul de idei",
@@ -422,7 +420,10 @@
       "bedroom-wood-slats": "Dormitor cu șipci de lemn",
       "dressing-walkin-oak": "Dressing walk-in din stejar",
       "office-slats": "Birou cu paravan din șipci"
-    }
+    },
+    "loadError": "Nu am putut încărca ideile. Verifică conexiunea și încearcă din nou.",
+    "retry": "Reîncearcă",
+    "boardsLoadError": "Nu am putut încărca colecțiile tale."
   },
   "SketchGuidePage": {
     "kicker": "Ghid de schiță",
@@ -527,7 +528,10 @@
     "validation": {
       "invalidEmail": "Adresa de email nu pare corectă.",
       "passwordTooShort": "Parola trebuie să aibă cel puțin 8 caractere.",
-      "nameTooShort": "Numele trebuie să aibă cel puțin 2 caractere."
+      "nameTooShort": "Numele trebuie să aibă cel puțin 2 caractere.",
+      "termsRequired": "Trebuie să accepți Termenii și condițiile ca să îți creezi contul.",
+      "passwordsMismatch": "Parolele nu coincid.",
+      "required": "Acest câmp este obligatoriu."
     },
     "apiErrors": {
       "INVALID_CREDENTIALS": "Emailul și parola nu se potrivesc. Verifică-le și încearcă din nou.",
@@ -537,8 +541,39 @@
       "TWO_FACTOR_REQUIRED": "Introdu codul de autentificare în doi pași ca să continui.",
       "TWO_FACTOR_INVALID_CODE": "Codul de autentificare în doi pași nu este corect. Încearcă din nou.",
       "VALIDATION_ERROR": "Unele câmpuri nu sunt completate corect. Verifică-le și trimite din nou.",
-      "INTERNAL_ERROR": "A apărut o eroare neașteptată. Încearcă din nou peste câteva momente."
-    }
+      "INTERNAL_ERROR": "A apărut o eroare neașteptată. Încearcă din nou peste câteva momente.",
+      "RESET_TOKEN_INVALID": "Linkul de resetare este invalid, a expirat sau a fost deja folosit. Cere unul nou.",
+      "PASSWORD_INCORRECT": "Parola actuală nu este corectă.",
+      "TERMS_NOT_ACCEPTED": "Trebuie să accepți Termenii și condițiile ca să îți creezi contul.",
+      "UNAUTHORIZED": "Sesiunea a expirat sau nu ești autentificat. Intră din nou în cont."
+    },
+    "forgotPasswordLink": "Ai uitat parola?",
+    "forgotTitle": "Ai uitat parola?",
+    "forgotBody": "Scrie adresa de email cu care ți-ai făcut contul și îți trimitem un link pentru a alege o parolă nouă.",
+    "forgotSubmit": "Trimite linkul",
+    "forgotSuccess": "Dacă există un cont cu acest email, ai primit un link pentru a-ți reseta parola.",
+    "forgotSuccessHint": "Linkul este valabil 60 de minute. Dacă nu vezi emailul, verifică și dosarul Spam.",
+    "backToLogin": "Înapoi la autentificare",
+    "backToDashboard": "Înapoi la panoul de control",
+    "resetTitle": "Alege o parolă nouă",
+    "resetBody": "Introdu parola nouă de două ori ca să ne asigurăm că ai scris-o corect.",
+    "resetSubmit": "Salvează parola nouă",
+    "resetSuccess": "Parola a fost schimbată. Te poți autentifica cu parola nouă.",
+    "resetTokenInvalid": "Linkul de resetare este invalid, a expirat sau a fost deja folosit.",
+    "resetRequestNewLink": "Cere un link nou",
+    "newPassword": "Parolă nouă",
+    "confirmPassword": "Confirmă parola nouă",
+    "currentPassword": "Parola actuală",
+    "changePasswordTitle": "Schimbă parola",
+    "changePasswordBody": "După schimbare, celelalte dispozitive pe care erai autentificat vor fi deconectate.",
+    "changePasswordSubmit": "Schimbă parola",
+    "changePasswordSuccess": "Parola a fost schimbată.",
+    "resendButton": "Retrimite emailul de confirmare",
+    "resendPending": "Se trimite…",
+    "resendPrompt": "Nu ai primit emailul? Verifică dosarul Spam sau cere unul nou.",
+    "resendPromptExpired": "Scrie adresa de email a contului și îți trimitem un link nou de confirmare.",
+    "resendSuccess": "Dacă există un cont neconfirmat cu acest email, ai primit un link nou de confirmare. Verifică și dosarul Spam.",
+    "termsLabel": "Am citit și accept <terms>Termenii și condițiile</terms> și <privacy>Politica de confidențialitate</privacy>."
   },
   "Company": {
     "onboardingTitle": "Înregistrează firma",
@@ -905,7 +940,10 @@
       "CANCELLED_UNASSIGNED": "Anulată (neatribuită)",
       "CANCELLED_BY_CLIENT": "Anulată de client",
       "WITHDRAWN_VOLUNTARY": "Retrasă",
-      "COMPLETED": "Finalizată"
+      "COMPLETED": "Finalizată",
+      "WITHDRAWN": "Retrasă",
+      "SLA_EXPIRED": "Termen SLA depășit",
+      "CANCELLED_REQUEST_ACCEPTED": "Închisă — clientul a ales altă firmă"
     },
     "wallet": {
       "title": "Portofel de credite",
@@ -962,7 +1000,10 @@
       "FORBIDDEN": "Doar proprietarul sau un manager poate atribui preluarea.",
       "IDEMPOTENCY_CONFLICT": "Cerere conflictuală. Reîncearcă.",
       "VALIDATION_ERROR": "Date invalide.",
-      "INTERNAL_ERROR": "A apărut o eroare. Încearcă din nou."
+      "INTERNAL_ERROR": "A apărut o eroare. Încearcă din nou.",
+      "GATING_NOT_OPEN": "Cererea nu este încă disponibilă pentru planul tău de abonament. Revino puțin mai târziu.",
+      "CONCURRENT_MODIFICATION": "Altcineva a modificat cererea în același timp. Reîncearcă.",
+      "NOT_FOUND": "Cererea nu mai este disponibilă."
     }
   },
   "Chat": {
@@ -1109,7 +1150,9 @@
       "NOT_FOUND": "Nu a fost găsit.",
       "IDEMPOTENCY_CONFLICT": "O cerere identică este deja în curs. Încearcă din nou.",
       "VALIDATION_ERROR": "Datele trimise nu sunt valide.",
-      "INTERNAL_ERROR": "A apărut o eroare. Încearcă din nou."
+      "INTERNAL_ERROR": "A apărut o eroare. Încearcă din nou.",
+      "REQUEST_NOT_OPEN_FOR_OFFERS": "Cererea nu mai primește oferte (a fost atribuită, livrată sau ștearsă).",
+      "CONCURRENT_MODIFICATION": "Oferta a fost modificată în același timp. Reîncarcă pagina și reîncearcă."
     }
   },
   "Lifecycle": {
@@ -1137,7 +1180,8 @@
       "WITHDRAWN_VOLUNTARY": "Retrasă voluntar",
       "WITHDRAWN": "Retrasă",
       "SLA_EXPIRED": "Termen SLA depășit",
-      "COMPLETED": "Finalizată"
+      "COMPLETED": "Finalizată",
+      "CANCELLED_REQUEST_ACCEPTED": "Închisă — clientul a ales altă firmă"
     },
     "reason": {
       "CLIENT_UNRESPONSIVE_48H": "Clientul nu a răspuns 48 de ore",
@@ -1156,11 +1200,12 @@
     "apiErrors": {
       "WITHDRAWAL_REASON_NOT_VALIDATED": "Motivul ales nu poate fi validat automat.",
       "WITHDRAWAL_ALREADY_PENDING": "Există deja o retragere în așteptare.",
-      "CLAIM_NOT_WITHDRAWABLE": "Preluarea nu mai poate fi retrasă.",
+      "CLAIM_NOT_WITHDRAWABLE": "Preluarea nu mai poate fi retrasă (este deja închisă).",
       "CLARIFICATION_ALREADY_PENDING": "Există deja o clarificare în așteptare.",
       "CLAIM_NOT_ALLOWED": "Acțiunea nu este permisă în starea actuală a preluării.",
       "VALIDATION_ERROR": "Datele trimise nu sunt valide.",
-      "INTERNAL_ERROR": "A apărut o eroare. Încearcă din nou."
+      "INTERNAL_ERROR": "A apărut o eroare. Încearcă din nou.",
+      "NOT_FOUND": "Preluarea nu a fost găsită."
     }
   },
   "Penalties": {
@@ -1262,7 +1307,10 @@
       "packages": "Pachete de credite",
       "thresholds": "Praguri de mărime a proiectului",
       "creditCostNote": "Costul unei cereri nu se mai stabilește pe praguri: 1 credit = 1.000 lei din bugetul minim estimat (cel puțin 1 credit). Pragurile stabilesc doar mărimea S/M/L și SLA-ul aferent.",
-      "save": "Salvează"
+      "save": "Salvează",
+      "saved": "Salvat.",
+      "saveError": "Nu am putut salva. Verifică valorile și încearcă din nou.",
+      "noMax": "fără limită"
     },
     "jobs": {
       "empty": "Niciun job eșuat.",
@@ -4088,13 +4136,13 @@
     }
   },
   "Legal": {
-    "lastUpdated": "Ultima actualizare: iulie 2026",
+    "lastUpdated": "Ultima actualizare: august 2026",
     "terms": {
       "title": "Termeni și Condiții",
       "sections": {
         "intro": {
-          "h": "1. Cine suntem și ce este CozyHome",
-          "b": "Platforma CozyHome (denumită în continuare „Platforma”) este operată de [DENUMIRE LEGALĂ FIRMĂ], CUI [CUI], cu sediul în [ADRESĂ] (denumită în continuare „Operatorul”, „noi”).\n\nCozyHome este un marketplace care pune în legătură persoane care doresc mobilier la comandă („Clienți”) cu firme de mobilier partenere („Firme”). Platforma facilitează publicarea cererilor, preluarea lor de către Firme, comunicarea și transmiterea ofertelor; contractul de execuție a mobilierului se încheie direct între Client și Firmă, iar Operatorul nu este parte a acestuia."
+          "h": "1. Cine suntem și ce este Cozy Home",
+          "b": "Platforma Cozy Home (denumită în continuare „Platforma”) este operată de [DENUMIRE LEGALĂ FIRMĂ], CUI [CUI], cu sediul în [ADRESĂ] (denumită în continuare „Operatorul”, „noi”).\n\nCozy Home este un marketplace care pune în legătură persoane care doresc mobilier la comandă („Clienți”) cu firme de mobilier partenere („Firme”). Platforma facilitează publicarea cererilor, preluarea lor de către Firme, comunicarea și transmiterea ofertelor; contractul de execuție a mobilierului se încheie direct între Client și Firmă, iar Operatorul nu este parte a acestuia."
         },
         "accounts": {
           "h": "2. Conturi și utilizarea Platformei",
@@ -4114,7 +4162,7 @@
         },
         "ip": {
           "h": "6. Proprietate intelectuală",
-          "b": "Platforma, marca CozyHome, designul și conținutul propriu sunt protejate de drepturi de proprietate intelectuală și nu pot fi folosite fără acordul nostru scris.\n\nPrin încărcarea de conținut (fotografii, schițe, descrieri), utilizatorii acordă Operatorului o licență neexclusivă de a-l afișa în Platformă în scopul funcționării serviciului. Firmele garantează că au drepturile necesare asupra fotografiilor din portofoliu."
+          "b": "Platforma, marca Cozy Home, designul și conținutul propriu sunt protejate de drepturi de proprietate intelectuală și nu pot fi folosite fără acordul nostru scris.\n\nPrin încărcarea de conținut (fotografii, schițe, descrieri), utilizatorii acordă Operatorului o licență neexclusivă de a-l afișa în Platformă în scopul funcționării serviciului. Firmele garantează că au drepturile necesare asupra fotografiilor din portofoliu."
         },
         "changes": {
           "h": "7. Modificarea termenilor",
@@ -4135,7 +4183,7 @@
         },
         "data": {
           "h": "2. Ce date colectăm și de ce",
-          "b": "Colectăm și stocăm următoarele categorii de date:\n\n• Date de cont: nume, adresă de email, parolă (stocată criptat), preferință de limbă — pentru crearea și administrarea contului.\n• Date din cereri: descrierea proiectului, adresa de livrare/montaj, orașul și județul, căile de contact alese (email, telefon) — pentru publicarea cererii și, după preluare, pentru a fi transmise Firmelor care o lucrează.\n• Date ale Firmelor: denumire, CUI, adrese, echipă — pentru verificarea și afișarea firmei în Platformă.\n• Conținutul conversațiilor purtate în Platformă (stocat criptat) și fișierele încărcate — pentru funcționarea mesageriei și a ofertelor.\n• Date tehnice și de utilizare: adresa IP, tipul dispozitivului, paginile accesate și acțiunile efectuate în Platformă.\n\nTemeiurile prelucrării sunt executarea contractului (furnizarea serviciului), interesul legitim (siguranța și îmbunătățirea Platformei) și, unde legea o cere, consimțământul tău."
+          "b": "Colectăm și stocăm următoarele categorii de date:\n\n• Date de cont: nume, adresă de email, parolă (stocată criptat), preferință de limbă — pentru crearea și administrarea contului.\n• Date din cereri: descrierea proiectului, adresa de livrare/montaj, orașul și județul, căile de contact alese (email, telefon) — pentru publicarea cererii și, după preluare, pentru a fi transmise Firmelor care o lucrează.\n• Date ale Firmelor: denumire, CUI, adrese, echipă — pentru verificarea și afișarea firmei în Platformă.\n• Conținutul conversațiilor purtate în Platformă (stocat criptat) și fișierele încărcate — pentru funcționarea mesageriei și a ofertelor.\n• Date tehnice și de utilizare: adresa IP, tipul dispozitivului, paginile accesate și acțiunile efectuate în Platformă.\n\nCâmpul de adresă din configurator poate încărca, pentru sugestii de adrese, scriptul Google Maps Places (Google LLC) — doar atunci când Platforma are o astfel de integrare activă. În acel moment, adresa ta IP și textul tastat în câmp ajung la Google, potrivit politicii de confidențialitate a Google; geocodarea propriu-zisă se face pe serverele noastre.\n\nTemeiurile prelucrării sunt executarea contractului (furnizarea serviciului), interesul legitim (siguranța și îmbunătățirea Platformei) și, unde legea o cere, consimțământul tău."
         },
         "usage": {
           "h": "3. Date de utilizare și îmbunătățirea produsului",
@@ -4143,7 +4191,7 @@
         },
         "marketing": {
           "h": "4. Marketing și publicitate",
-          "b": "Cu consimțământul tău, îți putem trimite comunicări comerciale despre Platformă (noutăți, funcționalități, oferte) și putem folosi date de utilizare pentru campanii de marketing și publicitate mai relevante.\n\nÎți poți retrage consimțământul oricând, cu efect imediat: din setările contului, prin linkul de dezabonare prezent în fiecare email sau scriindu-ne la [EMAIL CONTACT]. Retragerea consimțământului nu afectează folosirea normală a Platformei."
+          "b": "Cu consimțământul tău, îți putem trimite comunicări comerciale despre Platformă (noutăți, funcționalități, oferte) și putem folosi date de utilizare pentru campanii de marketing și publicitate mai relevante.\n\nÎți poți retrage consimțământul oricând, cu efect imediat: prin linkul de dezabonare prezent în fiecare email sau scriindu-ne la [EMAIL CONTACT]. Retragerea consimțământului nu afectează folosirea normală a Platformei."
         },
         "sharing": {
           "h": "5. Cui transmitem datele",
@@ -4155,7 +4203,7 @@
         },
         "retention": {
           "h": "7. Cât timp păstrăm datele",
-          "b": "Păstrăm datele contului cât timp contul este activ. La ștergerea contului, datele personale sunt șterse sau anonimizate într-un termen rezonabil, cu excepția datelor pe care legea ne obligă să le păstrăm (de exemplu, documente financiar-contabile) și a datelor strict necesare apărării unor drepturi în justiție.\n\nDatele tehnice de utilizare sunt păstrate pe perioade limitate, proporționale cu scopul pentru care au fost colectate."
+          "b": "Păstrăm datele contului cât timp contul este activ. La cererea ta de ștergere a contului (trimisă la [EMAIL CONTACT]), datele personale sunt șterse sau anonimizate într-un termen rezonabil, cu excepția datelor pe care legea ne obligă să le păstrăm (de exemplu, documente financiar-contabile) și a datelor strict necesare apărării unor drepturi în justiție.\n\nDatele tehnice de utilizare sunt păstrate pe perioade limitate, proporționale cu scopul pentru care au fost colectate."
         },
         "cookies": {
           "h": "8. Cookie-uri",
@@ -4167,5 +4215,53 @@
         }
       }
     }
+  },
+  "Meta": {
+    "defaultTitle": "Cozy Home — Mobilier la comandă de la firme verificate",
+    "titleTemplate": "%s · Cozy Home",
+    "description": "Cozy Home: configurezi vizual mobilierul dorit, publici o cerere și primești oferte comparabile de la firme de mobilier verificate. Gratuit pentru clienți.",
+    "ogTagline": "Cereri de mobilier la comanda, oferte de la firme verificate",
+    "pages": {
+      "home": {
+        "title": "Cozy Home — Mobilier la comandă de la firme verificate",
+        "description": "Spui ce vrei, firmele de mobilier concurează pentru tine: configurezi cererea vizual, primești până la 3 oferte comparabile și alegi. Gratuit pentru clienți."
+      },
+      "partners": {
+        "title": "Firmele partenere",
+        "description": "Firmele de mobilier verificate care ofertează și execută proiectele de pe Cozy Home, cu portofoliile lor."
+      },
+      "sketchGuide": {
+        "title": "Ghid de schiță",
+        "description": "Cum îți schițezi spațiul în patru pași simpli — măsurători, prize și țevi, mobilierul dorit și cotele lui — ca firmele să oferteze precis."
+      },
+      "inspiration": {
+        "title": "Caietul de idei",
+        "description": "Mobilier real, făcut de firmele partenere: bucătării, dressinguri, livinguri, dormitoare și birouri. Filtrează după tip, culoare, material sau sistem de deschidere."
+      },
+      "boards": {
+        "title": "Colecțiile mele",
+        "description": "Ideile tale salvate din Caietul de idei, organizate pe colecții."
+      },
+      "terms": {
+        "title": "Termeni și Condiții",
+        "description": "Termenii și condițiile de utilizare a platformei Cozy Home: conturi, cereri, revendicări, oferte, credite și răspundere."
+      },
+      "privacy": {
+        "title": "Politica de Confidențialitate",
+        "description": "Cum colectează, folosește și protejează Cozy Home datele tale personale, conform GDPR, și ce drepturi ai."
+      }
+    }
+  },
+  "NotFound": {
+    "title": "Pagina nu există",
+    "body": "Linkul e greșit sau pagina a fost mutată. Te întoarcem la prima pagină, de unde găsești tot ce ai nevoie.",
+    "home": "Înapoi acasă"
+  },
+  "ErrorPage": {
+    "title": "A apărut o eroare neașteptată",
+    "body": "Ceva nu a mers cum trebuie la încărcarea paginii. Încearcă din nou — dacă problema persistă, revino peste câteva minute.",
+    "reference": "Referință: {id}",
+    "retry": "Încearcă din nou",
+    "home": "Înapoi acasă"
   }
 }
