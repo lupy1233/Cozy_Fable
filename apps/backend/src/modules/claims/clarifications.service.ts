@@ -28,8 +28,11 @@ export class ClarificationsService {
     claimSlotId: string,
     dto: RequestClarificationInput,
   ): Promise<ClarificationRequestDto> {
-    const slot = await this.prisma.claimSlot.findUnique({ where: { id: claimSlotId } });
-    if (!slot || slot.companyId !== ctx.companyId) {
+    const slot = await this.prisma.claimSlot.findUnique({
+      where: { id: claimSlotId },
+      include: { request: { select: { deletedAt: true } } },
+    });
+    if (!slot || slot.companyId !== ctx.companyId || slot.request.deletedAt !== null) {
       throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Claim not found' });
     }
     if (slot.status !== 'ACTIVE') {
@@ -101,7 +104,12 @@ export class ClarificationsService {
     return this.toDto(updated);
   }
 
-  async listForClaim(claimSlotId: string): Promise<ClarificationRequestDto[]> {
+  // L0-B (IDOR): doar firma detinatoare a claim-ului vede clarificarile lui (NOT_FOUND altfel).
+  async listForClaim(ctx: CompanyContext, claimSlotId: string): Promise<ClarificationRequestDto[]> {
+    const slot = await this.prisma.claimSlot.findUnique({ where: { id: claimSlotId } });
+    if (!slot || slot.companyId !== ctx.companyId) {
+      throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Claim not found' });
+    }
     const rows = await this.prisma.clarificationRequest.findMany({
       where: { claimSlotId },
       orderBy: { createdAt: 'asc' },

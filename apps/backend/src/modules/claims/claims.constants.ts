@@ -10,6 +10,31 @@ export const CLAIMABLE_STATUSES: RequestStatus[] = ['IN_MARKETPLACE', 'CLAIMED_P
 // Anularile/retragerile elibereaza slotul.
 export const OCCUPYING_CLAIM_STATUSES: ClaimSlotStatus[] = ['ACTIVE', 'OFFER_SENT', 'COMPLETED'];
 
+// Statusuri de claim "in lucru" (firma mai poate actiona: oferta, clarificare, retragere).
+export const OPEN_CLAIM_STATUSES: ClaimSlotStatus[] = ['ACTIVE', 'OFFER_SENT'];
+
+// L0-B — statusuri de cerere in care firmele mai pot trimite/revizui/reoferta (4.13).
+// In afara lor (ex. ACCEPTED, DELIVERED_BY_COMPANY, EXPIRED) orice oferta noua e refuzata.
+export const OFFERABLE_REQUEST_STATUSES: RequestStatus[] = [
+  'CLAIMED_PARTIAL',
+  'CLAIMED_FULL',
+  'OFFERS_RECEIVED',
+  'NEGOTIATION',
+];
+
+// L0-B — statusuri de cerere in care clientul poate accepta o oferta (sub lock FOR UPDATE).
+export const ACCEPTABLE_REQUEST_STATUSES: RequestStatus[] = ['OFFERS_RECEIVED', 'NEGOTIATION'];
+
+// L0-B — statusuri de cerere dupa care procesoarele de SLA / atribuire ies no-op:
+// cererea a fost deja atribuita/livrata, sloturile nealese sunt inchise la accept.
+export const REQUEST_SETTLED_STATUSES: RequestStatus[] = [
+  'ACCEPTED',
+  'IN_EXECUTION',
+  'DELIVERED_BY_COMPANY',
+  'COMPLETED',
+  'DISPUTED',
+];
+
 // 4.9 — atribuire in 1h (ora calendaristica); warning la +30 min.
 export const ASSIGN_DEADLINE_MS = 60 * 60 * 1000;
 export const ASSIGN_WARNING_MS = 30 * 60 * 1000;

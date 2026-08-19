@@ -1,7 +1,10 @@
+import { Prisma } from '@prisma/client';
 import {
+  closeOpenQuotesForSlot,
   haversineKm,
   recomputeRequestStatusAfterClaimChange,
   republishAfterMassBreach,
+  withSerializationRetry,
 } from './claims.helpers';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -95,5 +98,57 @@ describe('republishAfterMassBreach (4.11)', () => {
       where: { id: 'r1' },
       data: { status: 'IN_MARKETPLACE', expiresAt: newExpiry },
     });
+  });
+});
+
+describe('withSerializationRetry (P2034, L0-B)', () => {
+  const p2034 = () =>
+    new Prisma.PrismaClientKnownRequestError('write conflict', { code: 'P2034', clientVersion: 'test' });
+
+  it('reia o data la serialization failure si intoarce rezultatul', async () => {
+    const fn = jest.fn().mockRejectedValueOnce(p2034()).mockResolvedValueOnce('ok');
+    await expect(withSerializationRetry(fn)).resolves.toBe('ok');
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('dupa retry tot P2034 → 409 CONCURRENT_MODIFICATION (nu 500)', async () => {
+    const fn = jest.fn().mockRejectedValue(p2034());
+    await expect(withSerializationRetry(fn)).rejects.toMatchObject({
+      status: 409,
+      response: { code: 'CONCURRENT_MODIFICATION' },
+    });
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('alte erori trec neschimbate, fara retry', async () => {
+    const fn = jest.fn().mockRejectedValue(new Error('boom'));
+    await expect(withSerializationRetry(fn)).rejects.toThrow('boom');
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('closeOpenQuotesForSlot (L0-B)', () => {
+  it('WITHDRAWN: ofertele SENT/EXPIRED → WITHDRAWN + withdrawnAt; thread read-only', async () => {
+    const tx: AnyTx = {
+      quote: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+      chatThread: { updateMany: jest.fn().mockResolvedValue(undefined) },
+    };
+    await expect(closeOpenQuotesForSlot(tx, 's1', 'WITHDRAWN')).resolves.toBe(1);
+    expect(tx.quote.updateMany).toHaveBeenCalledWith({
+      where: { claimSlotId: 's1', status: { in: ['SENT', 'EXPIRED'] } },
+      data: { status: 'WITHDRAWN', withdrawnAt: expect.any(Date) },
+    });
+    expect(tx.chatThread.updateMany).toHaveBeenCalledWith({ where: { claimSlotId: 's1' }, data: { readOnly: true } });
+  });
+
+  it('SUPERSEDED (accept pe alta oferta): fara withdrawnAt', async () => {
+    const tx: AnyTx = {
+      quote: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
+      chatThread: { updateMany: jest.fn().mockResolvedValue(undefined) },
+    };
+    await closeOpenQuotesForSlot(tx, 's1', 'SUPERSEDED');
+    expect(tx.quote.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { status: 'SUPERSEDED' } }),
+    );
   });
 });

@@ -168,7 +168,7 @@ export class QuotePdfService implements OnModuleDestroy {
 
   <p class="muted" style="margin-top:18px">
     Sumă contractuală exprimată în ${dto.currency}. Valoarea în ${altCurrency} este informativă,
-    calculată la cursul fix configurat. Document generat automat (mock MVP).
+    calculată la cursul fix configurat. Document generat automat de platforma Cozy Home.
   </p>
 </body></html>`;
   }

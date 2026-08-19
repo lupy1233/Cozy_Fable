@@ -32,7 +32,8 @@ Codurile sunt constante in `packages/shared`; frontend mapeaza cod → mesaj loc
 ## Claim (3.1, 4.8, 4.9)
 - `CLAIM_NOT_ALLOWED` — status nu e IN_MARKETPLACE/CLAIMED_PARTIAL.
 - `CLAIM_SLOTS_FULL` — deja 3 claim-uri active.
-- `INSUFFICIENT_CREDITS` · `SUBSCRIPTION_INACTIVE` · `OUT_OF_COVERAGE_AREA` · `GATING_NOT_OPEN`
+- `INSUFFICIENT_CREDITS` · `SUBSCRIPTION_INACTIVE` · `OUT_OF_COVERAGE_AREA`
+- `GATING_NOT_OPEN` (403) — published_at + delay-ul planului (4.10) nu a trecut inca; verificat si in tranzactia de claim (L0-B).
 - `COMPANY_EXCLUDED_FROM_REQUEST` (request_company_exclusions)
 - `ACTIVE_CLAIM_WITHOUT_OFFER_EXISTS` — regula 1-claim-activ.
 - `MANAGER_UNASSIGNED_CAP_REACHED` — cap claim-uri neatribuite.
@@ -48,7 +49,8 @@ Codurile sunt constante in `packages/shared`; frontend mapeaza cod → mesaj loc
 - `QUOTE_EXPIRED` (valid_until depasit) · `QUOTE_WITHDRAW_WINDOW_CLOSED` (1 zi lucratoare)
 - `VALIDITY_EXTENSION_LIMIT_REACHED` (max 2) · `OFFER_FIELD_NOT_EDITABLE` (matrice permisiuni)
 - `CONSULTATION_INVITE_EXPIRED` · `NEGOTIATION_ENDED`
-- `QUOTE_ACCEPT_NOT_ALLOWED` — stare cerere/oferta invalida la accept.
+- `QUOTE_ACCEPT_NOT_ALLOWED` — stare cerere/oferta invalida la accept (verificat sub lock FOR UPDATE pe cerere; a doua acceptare / cerere deja ACCEPTED → 409).
+- `REQUEST_NOT_OPEN_FOR_OFFERS` (409) — firma incearca sa trimita/revizuiasca/reoferteze cand cererea nu mai e in CLAIMED_PARTIAL/CLAIMED_FULL/OFFERS_RECEIVED/NEGOTIATION (ex. deja ACCEPTED) sau a fost stearsa (L0-B).
 
 ## Chat / upload (3.4)
 - `THREAD_READ_ONLY` · `FILE_TOO_LARGE` (25MB) · `FILE_LIMIT_REACHED` (10/cerere, 5/oferta)
@@ -67,3 +69,6 @@ Codurile sunt constante in `packages/shared`; frontend mapeaza cod → mesaj loc
 
 ## Admin
 - `SETTING_KEY_UNKNOWN` · `AUDIT_LOG_IMMUTABLE` (trigger DB) · `ADMIN_DECISION_REQUIRED_FIELDS`
+
+## Concurenta (3.1)
+- `CONCURRENT_MODIFICATION` (409) — serialization failure (Prisma P2034) dupa retry; clientul poate reincerca actiunea (claim / accept oferta).

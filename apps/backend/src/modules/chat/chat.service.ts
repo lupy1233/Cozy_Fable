@@ -101,7 +101,8 @@ export class ChatService {
       companyId: slot.companyId,
       companyName: slot.company.name,
       clientUserId: slot.request.clientUserId,
-      readOnly: thread.readOnly,
+      // cerere stearsa de client (soft delete 3.12) → conversatia e inchisa (L0-B)
+      readOnly: thread.readOnly || slot.request.deletedAt !== null,
       negotiationEndedByCompany: thread.negotiationEndedByCompany,
     };
     if (role === 'CLIENT') {

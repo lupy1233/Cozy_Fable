@@ -1,5 +1,6 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Query, UseInterceptors } from '@nestjs/common';
 import { CompanyStatus, UserRole } from '@prisma/client';
+import { IsEnum, IsOptional } from 'class-validator';
 import { AccessTokenPayload } from '../auth/auth.constants';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -8,6 +9,13 @@ import { AuditInterceptor } from '../audit/audit.interceptor';
 import { CompaniesService } from './companies.service';
 import { RejectCompanyDto } from './dto/company.dto';
 
+// Filtru lista firme admin: status optional, validat cu IsEnum (L0-B).
+export class AdminCompaniesQueryDto {
+  @IsOptional()
+  @IsEnum(CompanyStatus)
+  status?: CompanyStatus;
+}
+
 // Verificare firme — doar ADMIN (4.6 / 4.19). Deciziile sunt auditate (3.9).
 @Controller('admin/companies')
 @Roles(UserRole.ADMIN)
@@ -15,9 +23,10 @@ import { RejectCompanyDto } from './dto/company.dto';
 export class AdminCompaniesController {
   constructor(private readonly companies: CompaniesService) {}
 
+  // ?status= validat cu IsEnum (L0-B): valoare necunoscuta → 400 VALIDATION_ERROR, nu 500.
   @Get()
-  list(@Query('status') status?: CompanyStatus) {
-    return this.companies.adminList(status);
+  list(@Query() query: AdminCompaniesQueryDto) {
+    return this.companies.adminList(query.status);
   }
 
   @Get(':id')

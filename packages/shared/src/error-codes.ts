@@ -123,6 +123,11 @@ export const ERROR_CODES = {
   RESET_TOKEN_INVALID: 'RESET_TOKEN_INVALID',
   PASSWORD_INCORRECT: 'PASSWORD_INCORRECT',
   TERMS_NOT_ACCEPTED: 'TERMS_NOT_ACCEPTED',
+  // L0-B — integritate business (2026-08-19)
+  // cererea nu mai primeste oferte (status in afara CLAIMED_*/OFFERS_RECEIVED/NEGOTIATION sau stearsa)
+  REQUEST_NOT_OPEN_FOR_OFFERS: 'REQUEST_NOT_OPEN_FOR_OFFERS',
+  // conflict de concurenta la scriere (serialization failure P2034) — clientul poate reincerca
+  CONCURRENT_MODIFICATION: 'CONCURRENT_MODIFICATION',
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];

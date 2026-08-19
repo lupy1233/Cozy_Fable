@@ -5,6 +5,7 @@ import { EventBusService } from '../../infra/event-bus/event-bus.service';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { QUEUE_CLAIM_ASSIGN } from '../../infra/queues/queues.module';
 import { CreditsService } from '../billing/credits.service';
+import { REQUEST_SETTLED_STATUSES } from './claims.constants';
 import { recomputeRequestStatusAfterClaimChange } from './claims.helpers';
 
 export interface ClaimAssignJob {
@@ -28,9 +29,16 @@ export class ClaimAssignProcessor extends WorkerHost {
   async process(job: Job<ClaimAssignJob>): Promise<void> {
     const { claimSlotId } = job.data;
     const requestId = await this.prisma.$transaction(async (tx) => {
-      const claim = await tx.claimSlot.findUnique({ where: { id: claimSlotId } });
+      const claim = await tx.claimSlot.findUnique({
+        where: { id: claimSlotId },
+        include: { request: { select: { status: true, deletedAt: true } } },
+      });
       if (!claim || claim.status !== 'ACTIVE' || claim.assignedToUserId !== null) {
         return null; // a fost atribuit/anulat intre timp
+      }
+      // L0-B: cerere deja atribuita/stearsa → slotul e (sau va fi) inchis pe alta cale.
+      if (claim.request.deletedAt !== null || REQUEST_SETTLED_STATUSES.includes(claim.request.status)) {
+        return null;
       }
       await tx.claimSlot.update({
         where: { id: claimSlotId },

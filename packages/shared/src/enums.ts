@@ -15,6 +15,8 @@ export const CLAIM_SLOT_STATUSES = [
   'WITHDRAWN',
   'SLA_EXPIRED',
   'COMPLETED',
+  // L0-B: slot nealese inchis la acceptarea altei oferte pe aceeasi cerere (4.14).
+  'CANCELLED_REQUEST_ACCEPTED',
 ] as const;
 export type ClaimSlotStatus = (typeof CLAIM_SLOT_STATUSES)[number];
 

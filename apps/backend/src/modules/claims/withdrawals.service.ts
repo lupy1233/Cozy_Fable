@@ -15,15 +15,24 @@ import { QUEUE_WITHDRAWAL_REMINDER } from '../../infra/queues/queues.module';
 import type { CompanyContext } from '../../common/company-context/company-context';
 import { CreditsService } from '../billing/credits.service';
 import { PenaltiesService } from '../penalties/penalties.service';
-import { recomputeRequestStatusAfterClaimChange } from './claims.helpers';
+import { OPEN_CLAIM_STATUSES } from './claims.constants';
+import { closeOpenQuotesForSlot, recomputeRequestStatusAfterClaimChange } from './claims.helpers';
 import type { WithdrawalReminderJob } from './withdrawal-reminder.processor';
 
 type Tx = Prisma.TransactionClient;
 const GRACE_30_MIN_MS = 30 * 60 * 1000;
 const ADMIN_REMINDER_MS = 48 * 60 * 60 * 1000;
 
+// L0-B — motive fara validare automata posibila in MVP (bounce email / confirmare client in
+// chat nu exista): NU se mai auto-aproba → decizie admin, acelasi flux ca CUSTOM (4.15).
+const ADMIN_REVIEW_REASONS: WithdrawalReasonType[] = [
+  'CUSTOM',
+  'CLIENT_CONTACT_INVALID',
+  'CLIENT_REQUESTED_CANCELLATION',
+];
+
 // 4.15 — anulare/retragere claim: motive auto-validate (refund), voluntar cu gratie 30 min,
-// CUSTOM → decizie admin (48h, fara auto-decizie).
+// CUSTOM / fara dovada → decizie admin (48h, fara auto-decizie).
 @Injectable()
 export class WithdrawalsService {
   constructor(
@@ -63,8 +72,14 @@ export class WithdrawalsService {
       );
     }
 
-    if (dto.reasonType === 'CUSTOM') {
-      return this.handleCustom(slot.id, slot.requestId, actingUserId, dto.customReason ?? null);
+    if (ADMIN_REVIEW_REASONS.includes(dto.reasonType)) {
+      return this.handleAdminReview(
+        slot.id,
+        slot.requestId,
+        actingUserId,
+        dto.reasonType,
+        dto.customReason ?? null,
+      );
     }
     if (dto.reasonType === 'VOLUNTARY_NO_REASON') {
       return this.handleVoluntary(slot, actingUserId);
@@ -103,7 +118,11 @@ export class WithdrawalsService {
       }
       return;
     }
-    // CLIENT_CONTACT_INVALID / CLIENT_REQUESTED_CANCELLATION: mock auto-aprobate in MVP.
+    // CLIENT_CONTACT_INVALID / CLIENT_REQUESTED_CANCELLATION nu ajung aici (decizie admin).
+    throw new HttpException(
+      { code: ERROR_CODES.WITHDRAWAL_REASON_NOT_VALIDATED, message: 'Reason requires admin review' },
+      409,
+    );
   }
 
   private async autoApproveRefund(
@@ -112,10 +131,7 @@ export class WithdrawalsService {
     reasonType: WithdrawalReasonType,
   ): Promise<ClaimWithdrawalDto> {
     const wd = await this.prisma.$transaction(async (tx) => {
-      await tx.claimSlot.update({
-        where: { id: slot.id },
-        data: { status: 'WITHDRAWN', withdrawnAt: new Date() },
-      });
+      await this.closeSlot(tx, slot.id, 'WITHDRAWN');
       await this.credits.refund(
         slot.companyId,
         slot.claimCostCreditsSnapshot,
@@ -139,15 +155,14 @@ export class WithdrawalsService {
   ): Promise<ClaimWithdrawalDto> {
     const withinGrace = Date.now() - slot.createdAt.getTime() < GRACE_30_MIN_MS;
     const wd = await this.prisma.$transaction(async (tx) => {
-      await tx.claimSlot.update({
-        where: { id: slot.id },
-        data: { status: 'WITHDRAWN_VOLUNTARY', withdrawnAt: new Date() },
-      });
+      await this.closeSlot(tx, slot.id, 'WITHDRAWN_VOLUNTARY');
       if (withinGrace) {
         // refund integral + 0 penalizare (misclick / razgandire rapida, Î18)
         await this.credits.refund(slot.companyId, slot.claimCostCreditsSnapshot, 'WITHDRAWAL_VOLUNTARY_GRACE', slot.id, tx);
       } else {
-        // dupa gratie: fara refund + 2 puncte penalizare firma (4.12)
+        // dupa gratie: fara refund → creditele rezervate se CONSUMA definitiv (altfel raman
+        // RESERVED la infinit in portofel, L0-B) + 2 puncte penalizare firma (4.12)
+        await this.credits.consume(slot.companyId, slot.claimCostCreditsSnapshot, 'WITHDRAWAL_VOLUNTARY_LATE', slot.id, tx);
         await this.penalties.applyPenalty(
           { companyId: slot.companyId, ruleKey: 'VOLUNTARY_WITHDRAWAL', claimSlotId: slot.id, reason: 'Voluntary withdrawal after grace' },
           tx,
@@ -169,15 +184,16 @@ export class WithdrawalsService {
     return this.toDto(wd);
   }
 
-  private async handleCustom(
+  private async handleAdminReview(
     claimSlotId: string,
     requestId: string,
     actingUserId: string,
+    reasonType: WithdrawalReasonType,
     customReason: string | null,
   ): Promise<ClaimWithdrawalDto> {
     // slotul ramane ocupat pana la decizia adminului; reminder la 48h.
     const wd = await this.prisma.claimWithdrawal.create({
-      data: { claimSlotId, requestedByUserId: actingUserId, reasonType: 'CUSTOM', status: 'PENDING_ADMIN_REVIEW', customReason },
+      data: { claimSlotId, requestedByUserId: actingUserId, reasonType, status: 'PENDING_ADMIN_REVIEW', customReason },
     });
     await this.reminderQueue.add(
       'remind',
@@ -225,12 +241,17 @@ export class WithdrawalsService {
         409,
       );
     }
+    // slotul a fost intre timp inchis pe alta cale (accept pe alta oferta, SLA, stergere
+    // cerere) → creditele s-au decontat acolo; aprobarea ar face refund dublu → 409.
+    if (dto.approve && !OPEN_CLAIM_STATUSES.includes(wd.claimSlot.status)) {
+      throw new HttpException(
+        { code: ERROR_CODES.CLAIM_NOT_WITHDRAWABLE, message: 'Claim already closed; reject instead' },
+        409,
+      );
+    }
     const updated = await this.prisma.$transaction(async (tx) => {
       if (dto.approve) {
-        await tx.claimSlot.update({
-          where: { id: wd.claimSlotId },
-          data: { status: 'WITHDRAWN', withdrawnAt: new Date() },
-        });
+        await this.closeSlot(tx, wd.claimSlotId, 'WITHDRAWN');
         await this.credits.refund(
           wd.claimSlot.companyId,
           wd.claimSlot.claimCostCreditsSnapshot,
@@ -252,9 +273,23 @@ export class WithdrawalsService {
       });
     });
     if (dto.approve) {
-      await this.notifyWithdrawn(wd.claimSlotId, wd.claimSlot.requestId, 'CUSTOM');
+      await this.notifyWithdrawn(wd.claimSlotId, wd.claimSlot.requestId, wd.reasonType);
     }
     return this.toDto(updated);
+  }
+
+  // Inchide slotul cu statusul dat; daca avea oferta trimisa (OFFER_SENT), ofertele deschise
+  // devin WITHDRAWN si thread-ul read-only — clientul nu le mai poate accepta (L0-B).
+  private async closeSlot(
+    tx: Tx,
+    claimSlotId: string,
+    status: 'WITHDRAWN' | 'WITHDRAWN_VOLUNTARY',
+  ): Promise<void> {
+    await tx.claimSlot.update({
+      where: { id: claimSlotId },
+      data: { status, withdrawnAt: new Date() },
+    });
+    await closeOpenQuotesForSlot(tx, claimSlotId, 'WITHDRAWN');
   }
 
   async listForClaim(ctx: CompanyContext, claimSlotId: string): Promise<ClaimWithdrawalDto[]> {

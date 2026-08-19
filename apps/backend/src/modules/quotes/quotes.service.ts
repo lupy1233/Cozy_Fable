@@ -38,11 +38,29 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { EventBusService } from '../../infra/event-bus/event-bus.service';
 import { SettingsService } from '../../common/settings/settings.service';
 import { BusinessCalendarService } from '../../infra/calendar/business-calendar.service';
-import { QUEUE_CONSULTATION_EXPIRY, QUEUE_QUOTE_VALIDITY } from '../../infra/queues/queues.module';
+import {
+  QUEUE_CLAIM_ASSIGN,
+  QUEUE_CONSULTATION_EXPIRY,
+  QUEUE_QUOTE_VALIDITY,
+  QUEUE_SLA_BREACH,
+} from '../../infra/queues/queues.module';
 import type { CompanyContext } from '../../common/company-context/company-context';
 import { UploadsService, type PresignInput } from '../uploads/uploads.service';
 import { CreditsService } from '../billing/credits.service';
-import { OCCUPYING_CLAIM_STATUSES } from '../claims/claims.constants';
+import {
+  ACCEPTABLE_REQUEST_STATUSES,
+  CLAIM_TX_TIMEOUT_MS,
+  OCCUPYING_CLAIM_STATUSES,
+  OFFERABLE_REQUEST_STATUSES,
+  OPEN_CLAIM_STATUSES,
+} from '../claims/claims.constants';
+import {
+  closeOpenQuotesForSlot,
+  slaBreachJobOptions,
+  withSerializationRetry,
+} from '../claims/claims.helpers';
+import type { ClaimAssignJob } from '../claims/claim-assign.processor';
+import type { SlaBreachJob } from '../claims/sla-breach.processor';
 import {
   DEFAULT_CONSULTATION_DAYS,
   DEFAULT_EUR_RON_RATE,
@@ -90,6 +108,10 @@ export class QuotesService {
     @InjectQueue(QUEUE_QUOTE_VALIDITY) private readonly validityQueue: Queue<QuoteValidityJob>,
     @InjectQueue(QUEUE_CONSULTATION_EXPIRY)
     private readonly consultationQueue: Queue<ConsultationExpiryJob>,
+    // cozile de claim (globale, QueuesModule): reprogramare SLA la retragerea ofertei si
+    // curatare best-effort a joburilor sloturilor inchise la accept (L0-B).
+    @InjectQueue(QUEUE_SLA_BREACH) private readonly slaQueue: Queue<SlaBreachJob>,
+    @InjectQueue(QUEUE_CLAIM_ASSIGN) private readonly assignQueue: Queue<ClaimAssignJob>,
   ) {}
 
   // ===== COMPANY: trimitere oferta v1 =====
@@ -112,6 +134,7 @@ export class QuotesService {
         409,
       );
     }
+    this.assertRequestOpenForOffers(slot.request);
     this.assertDesignFee(dto, slot.request.includesPaidDesign);
     await this.assertFieldPermissions(ctx.companyId, ctx.memberRole, dto);
     await this.assertRoomPrices(slot.requestId, dto);
@@ -240,6 +263,7 @@ export class QuotesService {
   ): Promise<QuoteDto> {
     this.assertNotManaged(ctx);
     const quote = await this.loadCompanyQuote(quoteId, ctx.companyId);
+    this.assertRequestOpenForOffers(quote.request);
     this.assertDesignFee(dto, quote.request.includesPaidDesign);
     await this.assertFieldPermissions(ctx.companyId, ctx.memberRole, dto);
 
@@ -314,6 +338,7 @@ export class QuotesService {
   ): Promise<QuoteDto> {
     this.assertNotManaged(ctx);
     const quote = await this.loadCompanyQuote(quoteId, ctx.companyId);
+    this.assertRequestOpenForOffers(quote.request);
     this.assertDesignFee(dto, quote.request.includesPaidDesign);
     await this.assertFieldPermissions(ctx.companyId, ctx.memberRole, dto);
     if (this.nonExtraCount(quote.versions) < MAX_QUOTE_VERSIONS) {
@@ -361,6 +386,7 @@ export class QuotesService {
         409,
       );
     }
+    this.assertRequestOpenForOffers(quote.request);
     this.assertDesignFee(dto, quote.request.includesPaidDesign);
     await this.assertFieldPermissions(ctx.companyId, ctx.memberRole, dto);
     if (this.nonExtraCount(quote.versions) >= MAX_QUOTE_VERSIONS) {
@@ -400,6 +426,13 @@ export class QuotesService {
   ): Promise<QuoteDto> {
     this.assertNotManaged(ctx);
     const quote = await this.loadCompanyQuote(quoteId, ctx.companyId);
+    this.assertRequestOpenForOffers(quote.request);
+    if (quote.status !== 'SENT' && quote.status !== 'EXPIRED') {
+      throw new HttpException(
+        { code: ERROR_CODES.QUOTE_ACCEPT_NOT_ALLOWED, message: 'Quote not extendable' },
+        409,
+      );
+    }
     const latest = this.latestVersion(quote.versions);
     if (latest.validityExtensions.length >= MAX_VALIDITY_EXTENSIONS) {
       throw new HttpException(
@@ -450,17 +483,27 @@ export class QuotesService {
         409,
       );
     }
-    await this.prisma.$transaction(async (tx) => {
+    const slot = await this.prisma.$transaction(async (tx) => {
       await tx.quote.update({
         where: { id: quote.id },
         data: { status: 'WITHDRAWN', withdrawnAt: new Date() },
       });
       // slotul redevine ACTIVE fara oferta (firma poate trimite o noua oferta).
-      await tx.claimSlot.update({
+      return tx.claimSlot.update({
         where: { id: quote.claimSlotId },
         data: { status: 'ACTIVE', quoteId: null },
       });
     });
+    // L0-B: SLA-ul curge din nou pe slot (4.11) — (re)programeaza verificarea de ratare la
+    // deadline-ul existent. Acelasi jobId → no-op daca jobul initial inca asteapta; daca a
+    // rulat deja ca no-op (slot era OFFER_SENT) se adauga unul nou (delay 0 daca e depasit).
+    if (slot.slaDeadlineAt) {
+      await this.slaQueue.add(
+        'breach',
+        { claimSlotId: slot.id },
+        slaBreachJobOptions(slot.id, slot.slaDeadlineAt),
+      );
+    }
     await this.emitQuote('quote.updated', quote.id);
     return this.getQuoteDto(quote.id);
   }
@@ -547,57 +590,141 @@ export class QuotesService {
   }
 
   // ===== CLIENT: acceptare oferta =====
+  // L0-B: verificarile autoritative ruleaza IN tranzactie, sub SELECT ... FOR UPDATE pe cerere
+  // (3.1 — acceptul schimba sloturile active): a doua acceptare / doua accept-uri concurente
+  // pe oferte diferite → 409. Sloturile nealese se inchid imediat (4.14):
+  //  - OFFER_SENT (a ofertat si a pierdut) → pay-to-play: credite CONSUMATE, oferta SUPERSEDED;
+  //  - ACTIVE fara oferta → credite REFUND (decizie PO 2026-08-19);
+  // ambele → CANCELLED_REQUEST_ACCEPTED + chat read-only + notificare tintita firmei.
   async acceptQuote(userId: string, quoteId: string): Promise<QuoteDto> {
     const quote = await this.loadQuoteFull(quoteId);
     this.assertClientOwnsRequest(quote.request.clientUserId, userId);
-    if (quote.status !== 'SENT') {
-      throw new HttpException(
-        { code: ERROR_CODES.QUOTE_ACCEPT_NOT_ALLOWED, message: 'Quote not acceptable' },
-        409,
-      );
-    }
-    const latest = this.latestVersion(quote.versions);
-    if (latest.validUntil.getTime() < Date.now()) {
-      throw new HttpException({ code: ERROR_CODES.QUOTE_EXPIRED, message: 'Quote expired' }, 409);
-    }
+    // fast-fail in afara tranzactiei; re-verificat sub lock mai jos
+    this.assertQuoteAcceptable(quote.status, this.latestVersion(quote.versions).validUntil);
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.quote.update({
-        where: { id: quote.id },
-        data: { status: 'ACCEPTED', acceptedAt: new Date() },
-      });
-      await tx.request.update({ where: { id: quote.requestId }, data: { status: 'ACCEPTED' } });
-      // ofertele celorlalte firme → SUPERSEDED; chat-urile lor read-only imediat (4.14 / Î19).
-      // Creditele firmelor care pierd se CONSUMA (pay-to-play, fara refund — vezi decizie sesiune).
-      const others = await tx.quote.findMany({
-        where: { requestId: quote.requestId, id: { not: quote.id }, status: { in: ['SENT', 'EXPIRED'] } },
-        select: { id: true, claimSlotId: true, companyId: true },
-      });
-      for (const o of others) {
-        await tx.quote.update({ where: { id: o.id }, data: { status: 'SUPERSEDED' } });
-        await tx.chatThread.update({ where: { claimSlotId: o.claimSlotId }, data: { readOnly: true } });
-        const slot = await tx.claimSlot.findUnique({ where: { id: o.claimSlotId } });
-        if (slot && slot.status === 'OFFER_SENT') {
-          await this.credits.consume(o.companyId, slot.claimCostCreditsSnapshot, 'OFFER_LOST', slot.id, tx);
-        }
-      }
-    });
+    const closedSlots = await withSerializationRetry(() =>
+      this.prisma.$transaction(
+        async (tx) => {
+          const locked = await tx.$queryRaw<
+            { id: string; status: RequestStatus; deleted_at: Date | null }[]
+          >`SELECT id, status, deleted_at FROM requests WHERE id = ${quote.requestId} FOR UPDATE`;
+          const req = locked[0];
+          if (!req || req.deleted_at !== null) {
+            throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Request not found' });
+          }
+          if (!ACCEPTABLE_REQUEST_STATUSES.includes(req.status)) {
+            throw new HttpException(
+              { code: ERROR_CODES.QUOTE_ACCEPT_NOT_ALLOWED, message: 'Request not open for acceptance' },
+              409,
+            );
+          }
+          // starea reala a ofertei sub lock (status + valabilitatea ultimei versiuni)
+          const fresh = await tx.quote.findUnique({
+            where: { id: quote.id },
+            include: { versions: { select: { version: true, validUntil: true } } },
+          });
+          if (!fresh) {
+            throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Quote not found' });
+          }
+          this.assertQuoteAcceptable(fresh.status, this.latestVersion(fresh.versions).validUntil);
+          const accepted = await tx.quote.updateMany({
+            where: { id: quote.id, status: 'SENT' },
+            data: { status: 'ACCEPTED', acceptedAt: new Date() },
+          });
+          if (accepted.count === 0) {
+            throw new HttpException(
+              { code: ERROR_CODES.QUOTE_ACCEPT_NOT_ALLOWED, message: 'Quote not acceptable' },
+              409,
+            );
+          }
+          await tx.request.update({ where: { id: quote.requestId }, data: { status: 'ACCEPTED' } });
+
+          const losers = await tx.claimSlot.findMany({
+            where: {
+              requestId: quote.requestId,
+              id: { not: quote.claimSlotId },
+              status: { in: OPEN_CLAIM_STATUSES },
+            },
+          });
+          for (const slot of losers) {
+            await tx.claimSlot.update({
+              where: { id: slot.id },
+              data: { status: 'CANCELLED_REQUEST_ACCEPTED', withdrawnAt: new Date() },
+            });
+            if (slot.status === 'OFFER_SENT') {
+              await closeOpenQuotesForSlot(tx, slot.id, 'SUPERSEDED');
+              await this.credits.consume(
+                slot.companyId,
+                slot.claimCostCreditsSnapshot,
+                'OFFER_LOST',
+                slot.id,
+                tx,
+              );
+            } else {
+              await tx.chatThread.updateMany({
+                where: { claimSlotId: slot.id },
+                data: { readOnly: true },
+              });
+              await this.credits.refund(
+                slot.companyId,
+                slot.claimCostCreditsSnapshot,
+                'REQUEST_ACCEPTED_OTHER_OFFER',
+                slot.id,
+                tx,
+              );
+            }
+          }
+          // plasa de siguranta: orice alta oferta deschisa pe cerere (slot deja inchis pe
+          // alta cale, date vechi) nu mai poate fi acceptata.
+          await tx.quote.updateMany({
+            where: { requestId: quote.requestId, id: { not: quote.id }, status: { in: ['SENT', 'EXPIRED'] } },
+            data: { status: 'SUPERSEDED' },
+          });
+          return losers;
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: CLAIM_TX_TIMEOUT_MS },
+      ),
+    );
+
+    // joburile sloturilor inchise (SLA / atribuire 1h) — best-effort; procesoarele ies
+    // oricum no-op pe slot inchis / cerere ACCEPTED.
+    await this.dropClaimJobs(closedSlots);
 
     const targets = await this.participantsForRequest(quote.requestId);
     const display = await this.prisma.quote.findUnique({
       where: { id: quote.id },
       include: { request: { select: { title: true } }, company: { select: { name: true } } },
     });
+    const requestTitle = display?.request.title ?? '';
     await this.eventBus.publish(
       'quote.accepted',
       {
         quoteId: quote.id,
         requestId: quote.requestId,
-        requestTitle: display?.request.title ?? '',
+        requestTitle,
         companyName: display?.company.name ?? '',
       },
       targets,
     );
+    // notificare TINTITA per firma inchisa (membrii ei): claim-ul s-a inchis pentru ca
+    // cererea a fost atribuita altei firme.
+    for (const slot of closedSlots) {
+      const members = await this.prisma.companyMember.findMany({
+        where: { companyId: slot.companyId },
+        select: { userId: true },
+      });
+      await this.eventBus.publish(
+        'claim.withdrawn',
+        {
+          claimSlotId: slot.id,
+          requestId: quote.requestId,
+          requestTitle,
+          reason: 'REQUEST_ACCEPTED_OTHER_OFFER',
+          refunded: slot.status === 'ACTIVE',
+        },
+        members.map((m) => m.userId),
+      );
+    }
     await this.eventBus.publish('request.status_changed', { requestId: quote.requestId });
     return this.getQuoteDto(quote.id);
   }
@@ -770,6 +897,47 @@ export class QuotesService {
   private assertNotManaged(ctx: CompanyContext): void {
     if (ctx.memberRole === 'EMPLOYEE_MANAGED') {
       throw new ForbiddenException({ code: ERROR_CODES.FORBIDDEN, message: 'Managed employees cannot send offers' });
+    }
+  }
+
+  // L0-B — masina de stari: firma poate trimite/revizui/reoferta DOAR cat timp cererea e in
+  // CLAIMED_*/OFFERS_RECEIVED/NEGOTIATION si nu e stearsa (soft delete).
+  private assertRequestOpenForOffers(request: { status: RequestStatus; deletedAt: Date | null }): void {
+    if (request.deletedAt !== null || !OFFERABLE_REQUEST_STATUSES.includes(request.status)) {
+      throw new HttpException(
+        { code: ERROR_CODES.REQUEST_NOT_OPEN_FOR_OFFERS, message: 'Request no longer accepts offers' },
+        409,
+      );
+    }
+  }
+
+  private assertQuoteAcceptable(status: string, validUntil: Date): void {
+    if (status !== 'SENT') {
+      throw new HttpException(
+        { code: ERROR_CODES.QUOTE_ACCEPT_NOT_ALLOWED, message: 'Quote not acceptable' },
+        409,
+      );
+    }
+    if (validUntil.getTime() < Date.now()) {
+      throw new HttpException({ code: ERROR_CODES.QUOTE_EXPIRED, message: 'Quote expired' }, 409);
+    }
+  }
+
+  // Curata joburile intarziate ale sloturilor inchise (best-effort, in afara tranzactiei).
+  private async dropClaimJobs(
+    slots: { id: string; status: string; slaDeadlineAt: Date | null }[],
+  ): Promise<void> {
+    for (const slot of slots) {
+      try {
+        if (slot.slaDeadlineAt) {
+          await this.slaQueue.remove(slaBreachJobOptions(slot.id, slot.slaDeadlineAt).jobId);
+        }
+        if (slot.status === 'ACTIVE') {
+          await this.assignQueue.remove(`claim-assign-${slot.id}`);
+        }
+      } catch (e) {
+        this.logger.warn(`could not drop claim jobs for slot ${slot.id}: ${String(e)}`);
+      }
     }
   }
 
