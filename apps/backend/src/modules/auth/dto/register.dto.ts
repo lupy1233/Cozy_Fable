@@ -1,4 +1,13 @@
-import { IsEmail, IsEnum, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsEnum,
+  IsIn,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { Language, UserRole } from '@prisma/client';
 
 export class RegisterDto {
@@ -28,4 +37,9 @@ export class RegisterDto {
   @IsOptional()
   @IsEnum(Language)
   languagePreference?: Language;
+
+  // L0-A: obligatoriu true — serviciul raspunde TERMS_NOT_ACCEPTED (400) altfel
+  // (tipul e validat aici; valoarea, cu cod dedicat, in AuthService.register)
+  @IsBoolean()
+  termsAccepted: boolean;
 }

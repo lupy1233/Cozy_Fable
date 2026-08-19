@@ -337,6 +337,8 @@ model User {
   // (oferta noua / mesaj nou / cerere preluata); in-app ramane mereu activ.
   emailNotificationsEnabled Boolean @default(true) @map("email_notifications_enabled")
   emailVerifiedAt    DateTime? @map("email_verified_at") @db.Timestamptz()
+  // L0-A: momentul acceptarii termenilor la inregistrare (NULL la conturile vechi)
+  termsAcceptedAt    DateTime? @map("terms_accepted_at") @db.Timestamptz()
   twoFactorSecret    String?   @map("two_factor_secret")
   twoFactorEnabled   Boolean   @default(false) @map("two_factor_enabled")
   deletedAt          DateTime? @map("deleted_at") @db.Timestamptz()

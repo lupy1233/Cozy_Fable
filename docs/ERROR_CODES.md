@@ -16,6 +16,9 @@ Codurile sunt constante in `packages/shared`; frontend mapeaza cod → mesaj loc
 - `INVALID_CREDENTIALS` · `EMAIL_ALREADY_REGISTERED` · `EMAIL_NOT_VERIFIED`
 - `REFRESH_TOKEN_INVALID` · `REFRESH_TOKEN_REUSED` (familie revocata) · `SESSION_SUPERSEDED` (login pe alt device)
 - `TWO_FACTOR_REQUIRED` · `TWO_FACTOR_INVALID_CODE` (flag off in MVP)
+- `RESET_TOKEN_INVALID` (400) — token de resetare parola invalid/expirat/deja folosit (L0-A)
+- `PASSWORD_INCORRECT` (400) — parola curenta gresita la `POST /auth/change-password` (L0-A)
+- `TERMS_NOT_ACCEPTED` (400) — `termsAccepted` lipseste sau e `false` la `POST /auth/register` (L0-A)
 
 ## Companii / verificare
 - `COMPANY_NOT_APPROVED` · `COMPANY_SUSPENDED` · `COMPANY_REAPPLY_BLOCKED` (3 luni CUI/email)
