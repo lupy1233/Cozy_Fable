@@ -1,16 +1,17 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, MapPin, Star } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { BadgeCheck, ChevronLeft, ChevronRight, MapPin, Star } from 'lucide-react';
+import { useFormatter, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { usePartners } from '@/hooks/use-company';
-import { mockPartnerMeta } from '@/lib/mock-partner-meta';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-// Carusel cu atelierele partenere pe landing: monograma, rating Google
-// (mock deterministe pana la integrarea reala), specializare si oras.
+// Carusel cu firmele partenere pe landing: monograma, insigna "firma
+// verificata" (toate sunt APPROVED), de cand e partener si orasul. Ratingul
+// se afiseaza DOAR daca backendul il trimite (azi PartnerDto.rating e mereu
+// null — audit 2026-08-19 P0: fara cifre inventate pe o pagina publica).
 // Sectiunea sta pe un panou cald (surface-2) care o delimiteaza clar de
 // restul landingului. Cardurile au latimi calculate sa umple exact panoul
 // (1 + "peek" pe mobil, 2 pe tableta, 3 pe desktop) — nu mai raman carduri
@@ -25,6 +26,8 @@ const CARD_W = 'w-[85%] sm:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-2rem)/3)]';
 
 export function PartnersCarousel() {
   const t = useTranslations('Landing');
+  const tp = useTranslations('Partners');
+  const format = useFormatter();
   const partners = usePartners();
   const track = useRef<HTMLDivElement>(null);
   const paused = useRef(false);
@@ -111,8 +114,8 @@ export function PartnersCarousel() {
             />
           ))}
         {items.map((p) => {
-          const meta = mockPartnerMeta(p.id);
-          const rating = p.rating ?? meta.rating;
+          // oras si judet identice (Bucuresti, Bucuresti) → o singura data
+          const location = p.city === p.county ? p.city : `${p.city}, ${p.county}`;
           return (
             <div
               key={p.id}
@@ -127,27 +130,30 @@ export function PartnersCarousel() {
                 <span className="grid h-10 w-10 place-items-center rounded-md bg-walnut-soft font-serif text-lg text-walnut-deep">
                   {p.name.charAt(0)}
                 </span>
-                <span
-                  className="flex items-center gap-1.5 text-sm"
-                  title={t('googleReviews')}
-                >
-                  <Star className="h-4 w-4 fill-brass text-brass" />
-                  <span className="font-medium">{rating.toFixed(1)}</span>
-                  <span className="text-xs text-muted-2">
-                    ({meta.reviewsCount} {t('reviewsShort')})
+                {p.rating !== null ? (
+                  <span className="flex items-center gap-1.5 text-sm" title={t('partnerRating')}>
+                    <Star className="h-4 w-4 fill-brass text-brass" />
+                    <span className="font-medium">{p.rating.toFixed(1)}</span>
                   </span>
-                </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-xs text-sage">
+                    <BadgeCheck className="h-4 w-4" />
+                    {t('partnerVerified')}
+                  </span>
+                )}
               </div>
               {/* numele pe un singur rand — cardurile pastreaza aceeasi structura */}
               <h3 className="mt-3 truncate font-serif text-xl" title={p.name}>
                 {p.name}
               </h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                {t(`partnerSpecialty.${meta.specialtyKey}`)}
+                {tp('memberSince', {
+                  date: format.dateTime(new Date(p.memberSince), { year: 'numeric', month: 'long' }),
+                })}
               </p>
-              <p className="mt-auto flex items-center gap-1 pt-3 text-xs text-muted-2">
+              <p className="mt-auto flex items-center gap-1 pt-3 text-xs text-muted-foreground">
                 <MapPin className="h-3.5 w-3.5" />
-                {p.city}, {p.county}
+                {location}
               </p>
             </div>
           );

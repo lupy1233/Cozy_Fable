@@ -3,8 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Menu, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { usePathname } from 'next/navigation';
-import { Link } from '@/i18n/routing';
+import { Link, usePathname } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -14,6 +13,23 @@ import { Button } from '@/components/ui/button';
 // schimbarea rutei si la Escape.
 
 export type MobileNavLink = { href: string; label: string };
+
+// Starea activa a unui link: ruta exacta SAU un copil al ei (/inspiration
+// ramane activ pe /inspiration/boards). pathname vine FARA prefixul de limba
+// (usePathname din @/i18n/routing), deci hrefs se compara direct.
+export function isActivePath(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(href + '/');
+}
+
+// Dintre mai multe linkuri care potrivesc (ex. /marketplace si
+// /marketplace/claims pe /marketplace/claims/abc) activ e cel mai specific.
+export function activeHref(pathname: string, hrefs: readonly string[]): string | null {
+  let best: string | null = null;
+  for (const h of hrefs) {
+    if (isActivePath(pathname, h) && (best === null || h.length > best.length)) best = h;
+  }
+  return best;
+}
 
 export function MobileNav({
   links,
@@ -28,6 +44,10 @@ export function MobileNav({
   const t = useTranslations('Nav');
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const current = activeHref(
+    pathname,
+    links.map((l) => l.href),
+  );
 
   // inchide panoul cand ruta se schimba
   useEffect(() => setOpen(false), [pathname]);
@@ -54,7 +74,7 @@ export function MobileNav({
         <nav className="absolute inset-x-0 top-full z-40 animate-pageIn border-b border-border bg-surface/95 px-4 py-3 shadow-lg backdrop-blur-md">
           <div className="flex flex-col gap-0.5">
             {links.map((l) => {
-              const active = pathname.endsWith(l.href);
+              const active = l.href === current;
               return (
                 <Link
                   key={l.href}

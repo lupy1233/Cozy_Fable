@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import { DM_Sans, IBM_Plex_Mono, Marcellus } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
+import { getMessages, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { Providers } from '@/lib/providers';
+import { SITE_NAME, SITE_URL, ogLocale } from './_components/metadata';
 import '../globals.css';
 
 // Fonturi "ATELIER": DM Sans (body cald), Marcellus (display —
@@ -28,11 +29,32 @@ const mono = IBM_Plex_Mono({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
-  title: 'Cozy Home — Mobilier la comandă',
-  description:
-    'Cozy Home: cere oferte de la firme de mobilier verificate pentru mobilierul tău la comandă',
-};
+// Metadata implicita, per limba (audit 2026-08-19 P1): titlul/descrierea din
+// i18n (Meta.*), sablon "%s · Cozy Home" pentru paginile care isi pun titlul,
+// metadataBase din NEXT_PUBLIC_SITE_URL (URL-urile relative din OG/alternates
+// devin absolute). Paginile publice adauga canonical + hreflang + OG propriu
+// prin pageMetadata() — aici nu punem canonical, ca sa nu se mosteneasca
+// gresit pe rutele de cont.
+export async function generateMetadata({
+  params: { locale },
+}: {
+  params: { locale: string };
+}): Promise<Metadata> {
+  const t = await getTranslations({ locale, namespace: 'Meta' });
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: { default: t('defaultTitle'), template: t('titleTemplate') },
+    description: t('description'),
+    applicationName: SITE_NAME,
+    openGraph: {
+      type: 'website',
+      siteName: SITE_NAME,
+      locale: ogLocale(locale),
+      title: t('defaultTitle'),
+      description: t('description'),
+    },
+  };
+}
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));

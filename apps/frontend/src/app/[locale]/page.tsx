@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { useTranslations } from 'next-intl';
 import { Check } from 'lucide-react';
 import { Link } from '@/i18n/routing';
@@ -9,6 +10,7 @@ import { PartnersCarousel } from './_components/partners-carousel';
 import { ProcessBand } from './_components/process-band';
 import { PublicHeader } from './_components/public-header';
 import { SiteFooter } from './_components/site-footer';
+import { pageMetadata } from './_components/metadata';
 
 // Landing "ATELIER" v2 (aprobat PO 2026-08-01, fost /landing-v2): semnatura
 // paginii e mini-configuratorul FUNCTIONAL din hero (hero-demo.tsx) — produsul
@@ -28,6 +30,15 @@ function SectionRule() {
       <span className="h-px flex-1 bg-border" />
     </div>
   );
+}
+
+// titlul complet al site-ului (fara sablonul '%s · Cozy Home') + canonical/hreflang/OG
+export async function generateMetadata({
+  params: { locale },
+}: {
+  params: { locale: string };
+}): Promise<Metadata> {
+  return pageMetadata(locale, 'home', '/', { absoluteTitle: true });
 }
 
 export default function LandingPage() {
@@ -163,7 +174,7 @@ export default function LandingPage() {
                 }
               >
                 <div className="flex items-center gap-3">
-                  {/* glife in limbajul atelierului: foaia de cerere / casuta cu fum */}
+                  {/* glife in limbajul firmei de mobilier: foaia de cerere / casuta cu fum */}
                   {panel.tone === 'client' ? (
                     <svg viewBox="0 0 40 40" fill="none" className="h-9 w-9 text-walnut" aria-hidden
                       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -204,7 +215,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Dovada sociala: atelierele partenere, pe panoul lor cald (readus
+        {/* Dovada sociala: firmele partenere, pe panoul lor cald (readus
             din landing-ul v1 la cererea PO) */}
         <PartnersCarousel />
 
