@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
 import { Link } from '@/i18n/routing';
 import { useVerifyEmail } from '@/hooks/use-auth';
+import { ResendVerification } from '../_components/resend-verification';
 
 function VerifyEmailInner() {
   const t = useTranslations('Auth');
@@ -31,6 +32,10 @@ function VerifyEmailInner() {
         </>
       )}
       {verify.isError && <p className="text-crimson">{t('verifyError')}</p>}
+      {/* L0-A: link invalid/expirat sau lipsa → cere adresa si retrimite */}
+      {(verify.isError || !token) && (
+        <ResendVerification prompt={t('resendPromptExpired')} className="text-left" />
+      )}
     </div>
   );
 }

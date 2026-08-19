@@ -51,3 +51,46 @@ export function useVerifyEmail() {
       }),
   });
 }
+
+// L0-A — retrimitere confirmare / parola uitata / resetare / schimbare parola.
+// Serverul raspunde uniform la resend + forgot (anti-enumerare).
+
+export function useResendVerification() {
+  return useMutation({
+    mutationFn: (email: string) =>
+      api<{ sent: boolean }>('/auth/resend-verification', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      }),
+  });
+}
+
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: (email: string) =>
+      api<{ sent: boolean }>('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      }),
+  });
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: (input: { token: string; password: string }) =>
+      api<{ reset: boolean }>('/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (input: { currentPassword: string; newPassword: string }) =>
+      api<{ changed: boolean }>('/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+  });
+}

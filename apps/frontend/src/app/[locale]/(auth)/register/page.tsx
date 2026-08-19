@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, type RegisterInput } from '@marketplace/shared';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from '@/i18n/routing';
 import { apiErrorKey } from '@/lib/error-messages';
@@ -12,8 +13,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Alert } from '@/components/ui/alert';
+import { ResendVerification } from '../_components/resend-verification';
 
-export default function RegisterPage() {
+function RegisterInner() {
   const t = useTranslations('Auth');
   const locale = useLocale();
   const searchParams = useSearchParams();
@@ -43,6 +45,8 @@ export default function RegisterPage() {
       <div className="flex flex-col gap-4">
         <h1 className="font-serif text-2xl">{t('registerSuccessTitle')}</h1>
         <p className="text-sm text-muted-foreground">{t('registerSuccessBody')}</p>
+        {/* L0-A: emailul se poate pierde → retrimitere direct de aici */}
+        <ResendVerification email={registerMutation.variables?.email} prompt={t('resendPrompt')} />
         <Link href={loginHref} className="text-walnut underline">
           {t('goToLogin')}
         </Link>
@@ -88,6 +92,31 @@ export default function RegisterPage() {
           </label>
         </fieldset>
 
+        {/* L0-A: acceptarea termenilor e obligatorie (zod literal(true) + server) */}
+        <Field error={errors.termsAccepted && t(`validation.${errors.termsAccepted.message}`)}>
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="mt-0.5 accent-walnut"
+              {...register('termsAccepted')}
+            />
+            <span>
+              {t.rich('termsLabel', {
+                terms: (chunks) => (
+                  <Link href="/terms" target="_blank" className="text-walnut underline">
+                    {chunks}
+                  </Link>
+                ),
+                privacy: (chunks) => (
+                  <Link href="/privacy" target="_blank" className="text-walnut underline">
+                    {chunks}
+                  </Link>
+                ),
+              })}
+            </span>
+          </label>
+        </Field>
+
         {apiErr && (
           <Alert tone="crimson">{t.has(apiErr.key) ? t(apiErr.key) : apiErr.fallback}</Alert>
         )}
@@ -104,5 +133,13 @@ export default function RegisterPage() {
         </Link>
       </p>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterInner />
+    </Suspense>
   );
 }

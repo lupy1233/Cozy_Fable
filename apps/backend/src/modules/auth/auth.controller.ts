@@ -24,6 +24,7 @@ import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
 import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto, EmailOnlyDto, ResetPasswordDto } from './dto/password.dto';
 import { RegisterDto } from './dto/register.dto';
 import { TwoFactorVerifyDto } from './dto/two-factor.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
@@ -64,7 +65,9 @@ export class AuthController {
     res.clearCookie(REFRESH_COOKIE, { path: REFRESH_COOKIE_PATH });
   }
 
+  // Rate limit dedicat 5/min (L0-A): register trimite email → anti mail-bombing
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('register')
   async register(@Body() dto: RegisterDto) {
     const user = await this.auth.register(dto);
@@ -79,6 +82,52 @@ export class AuthController {
     return { verified: true };
   }
 
+  // Raspuns 200 uniform (anti-enumerare), indiferent daca emailul exista / e verificat
+  @Public()
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  @Post('resend-verification')
+  @HttpCode(200)
+  async resendVerification(@Body() dto: EmailOnlyDto) {
+    await this.auth.resendVerification(dto.email);
+    return { sent: true };
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  @Post('forgot-password')
+  @HttpCode(200)
+  async forgotPassword(@Body() dto: EmailOnlyDto) {
+    await this.auth.forgotPassword(dto.email);
+    return { sent: true };
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('reset-password')
+  @HttpCode(200)
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    await this.auth.resetPassword(dto.token, dto.password);
+    return { reset: true };
+  }
+
+  // JWT (orice rol): schimba parola, revoca celelalte sesiuni si re-emite
+  // cookie-urile pentru dispozitivul curent (userul ramane autentificat)
+  @Post('change-password')
+  @HttpCode(200)
+  async changePassword(
+    @CurrentUser() user: AccessTokenPayload,
+    @Body() dto: ChangePasswordDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { accessToken, refreshToken } = await this.auth.changePassword(
+      user.sub,
+      dto.currentPassword,
+      dto.newPassword,
+    );
+    this.setAuthCookies(res, accessToken, refreshToken);
+    return { changed: true };
+  }
+
   // Rate limit 5/min (invarianta 3.13)
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
@@ -90,7 +139,9 @@ export class AuthController {
     return { user };
   }
 
+  // Rate limit dedicat 30/min (L0-A)
   @Public()
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Post('refresh')
   @HttpCode(200)
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
