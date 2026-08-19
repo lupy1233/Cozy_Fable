@@ -10,15 +10,21 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { RedisIoAdapter } from './infra/socket/redis-io.adapter';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
+  // rawBody: webhook-ul Stripe verifica semnatura pe corpul brut (req.rawBody)
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: true,
+    rawBody: true,
+  });
   app.useLogger(app.get(Logger));
 
   const config = app.get(ConfigService);
 
   app.setGlobalPrefix('api/v1');
-  // In productie stam dupa edge proxy + rewrite-ul Next — fara asta req.ip ar fi
-  // IP-ul proxy-ului si throttlingul per-IP ar pune toti userii in acelasi bucket
-  app.set('trust proxy', true);
+  // In productie stam dupa edge proxy + rewrite-ul Next (acelasi container, loopback).
+  // Avem incredere DOAR in hop-ul loopback (Next): req.ip = ultimul IP din
+  // X-Forwarded-For, scris de edge-ul Railway. `true` ar fi avut incredere in toate
+  // hop-urile si un client putea ocoli throttlingul per-IP cu un XFF fals (audit 2026-08-19).
+  app.set('trust proxy', 'loopback');
   app.use(helmet());
   app.use(cookieParser()); // tokens in cookies httpOnly (3.5/3.13)
   app.enableCors({

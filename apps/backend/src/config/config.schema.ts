@@ -59,7 +59,33 @@ export const configSchema = z.object({
     .string()
     .regex(/^[0-9a-fA-F]{64}$/, 'MESSAGE_ENCRYPTION_KEY must be 64 hex chars (32 bytes)')
     .optional(),
-});
+
+  // Plati reale prin Stripe Checkout (decizie PO 2026-08-19 — inlocuieste calea B mock
+  // din 3.7; calea A "confirmare admin" ramane pentru transfer bancar/fallback).
+  // Lipsa cheilor = Stripe dezactivat (butoanele de plata online nu apar).
+  STRIPE_SECRET_KEY: z.string().min(1).optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  // Cheia publica nu e folosita de backend (Checkout e hosted), dar o validam daca exista.
+  STRIPE_PUBLISHABLE_KEY: z.string().min(1).optional(),
+})
+  .superRefine((cfg, ctx) => {
+    // In productie criptarea chatului e obligatorie — altfel o regresie de env ar
+    // stoca mesajele in clar fara ca nimeni sa observe (audit 2026-08-19).
+    if (cfg.NODE_ENV === 'production' && !cfg.MESSAGE_ENCRYPTION_KEY) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['MESSAGE_ENCRYPTION_KEY'],
+        message: 'obligatorie in productie (openssl rand -hex 32)',
+      });
+    }
+    if ((cfg.STRIPE_SECRET_KEY ? 1 : 0) + (cfg.STRIPE_WEBHOOK_SECRET ? 1 : 0) === 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['STRIPE_WEBHOOK_SECRET'],
+        message: 'STRIPE_SECRET_KEY si STRIPE_WEBHOOK_SECRET se seteaza impreuna',
+      });
+    }
+  });
 
 export type AppConfig = z.infer<typeof configSchema>;
 
