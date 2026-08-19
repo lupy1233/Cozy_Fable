@@ -1,13 +1,17 @@
 'use client';
 
-import { Building2, ImageOff, MapPin, Star } from 'lucide-react';
+import { AlertTriangle, BadgeCheck, Building2, ImageOff, MapPin, Star } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { usePartners } from '@/hooks/use-company';
-import { mockPartnerMeta } from '@/lib/mock-partner-meta';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { PublicShell } from '../_components/public-shell';
 
-// Pagina publica de parteneri: firmele APPROVED, cu portofoliu si (ulterior)
-// ratingul Google. Vizibila si nelogat — parte din landing-ul pentru clienti.
+// Pagina publica de parteneri: firmele APPROVED, cu portofoliu. Vizibila si
+// nelogat — parte din landing-ul pentru clienti. Ratingul apare DOAR cand
+// backendul il trimite (azi PartnerDto.rating e mereu null — audit 2026-08-19
+// P0: nicio cifra inventata); pana atunci insigna "firma verificata".
+// Metadata (titlu per pagina) vine din layout.tsx — pagina e client component.
 export default function PartnersPage() {
   const t = useTranslations('Partners');
   const format = useFormatter();
@@ -24,58 +28,83 @@ export default function PartnersPage() {
         {partners.isPending && (
           <p className="py-10 text-center text-muted-foreground">{t('loading')}</p>
         )}
+        {partners.isError && (
+          <Alert
+            tone="amber"
+            icon={<AlertTriangle />}
+            title={t('loadError')}
+            className="mx-auto w-full max-w-xl items-center"
+            action={
+              <Button variant="outline" size="sm" onClick={() => partners.refetch()}>
+                {t('retry')}
+              </Button>
+            }
+          />
+        )}
         {partners.isSuccess && partners.data.length === 0 && (
           <p className="py-10 text-center text-muted-foreground">{t('empty')}</p>
         )}
 
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {partners.data?.map((p) => (
-            <div key={p.id} className="flex flex-col rounded-2xl border border-border bg-surface p-5 shadow-sm">
-              <div className="flex items-start justify-between gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-lg bg-walnut-soft text-walnut">
-                  <Building2 className="h-5 w-5" />
-                </span>
-                <span className="flex items-center gap-1 text-sm text-muted-foreground" title={t('ratingSoon')}>
-                  <Star className="h-4 w-4 fill-brass text-brass" />
-                  {(p.rating ?? mockPartnerMeta(p.id).rating).toFixed(1)}
-                </span>
-              </div>
-              <h2 className="mt-3 font-serif text-xl">{p.name}</h2>
-              <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5" />
-                {p.city}, {p.county}
-              </p>
-              <p className="mt-0.5 text-xs text-muted-2">
-                {t('memberSince', {
-                  date: format.dateTime(new Date(p.memberSince), { year: 'numeric', month: 'long' }),
-                })}
-              </p>
-
-              {/* portofoliu: imagini cand exista, altfel placeholder */}
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                {[0, 1, 2].map((i) => {
-                  const item = p.portfolio[i];
-                  return item?.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      key={i}
-                      src={item.imageUrl}
-                      alt={item.title}
-                      className="aspect-square rounded-lg border border-border-2 object-cover"
-                    />
+          {partners.data?.map((p) => {
+            // oras si judet identice (Bucuresti, Bucuresti) → o singura data
+            const location = p.city === p.county ? p.city : `${p.city}, ${p.county}`;
+            return (
+              <div key={p.id} className="flex flex-col rounded-2xl border border-border bg-surface p-5 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="grid h-10 w-10 place-items-center rounded-lg bg-walnut-soft text-walnut">
+                    <Building2 className="h-5 w-5" />
+                  </span>
+                  {p.rating !== null ? (
+                    <span className="flex items-center gap-1 text-sm text-muted-foreground" title={t('rating')}>
+                      <Star className="h-4 w-4 fill-brass text-brass" />
+                      {p.rating.toFixed(1)}
+                    </span>
                   ) : (
-                    <div
-                      key={i}
-                      className="grid aspect-square place-items-center rounded-lg border border-dashed border-border-2 bg-surface-2 text-muted-2"
-                      title={item?.title}
-                    >
-                      <ImageOff className="h-4 w-4" />
-                    </div>
-                  );
-                })}
+                    <span className="flex items-center gap-1 text-xs text-sage">
+                      <BadgeCheck className="h-4 w-4" />
+                      {t('verified')}
+                    </span>
+                  )}
+                </div>
+                <h2 className="mt-3 font-serif text-xl">{p.name}</h2>
+                <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+                  <MapPin className="h-3.5 w-3.5" />
+                  {location}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {t('memberSince', {
+                    date: format.dateTime(new Date(p.memberSince), { year: 'numeric', month: 'long' }),
+                  })}
+                </p>
+
+                {/* portofoliu: imagini cand exista, altfel placeholder */}
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  {[0, 1, 2].map((i) => {
+                    const item = p.portfolio[i];
+                    return item?.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        key={i}
+                        src={item.imageUrl}
+                        alt={item.title}
+                        loading="lazy"
+                        className="aspect-square rounded-lg border border-border-2 object-cover"
+                      />
+                    ) : (
+                      <div
+                        key={i}
+                        className="grid aspect-square place-items-center rounded-lg border border-dashed border-border-2 bg-surface-2 text-muted-2"
+                        title={item?.title}
+                      >
+                        <ImageOff className="h-4 w-4" />
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </PublicShell>

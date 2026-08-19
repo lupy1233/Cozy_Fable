@@ -19,6 +19,33 @@ const nextConfig = {
   // engine.io serveste doar pe calea cu slash → 404. Pe polling s-ar pierde doar un
   // round-trip, dar handshake-ul WebSocket nu urmeaza redirecturi, deci realtime-ul moare.
   skipTrailingSlashRedirect: true,
+  // fara antetul X-Powered-By: Next (audit 2026-08-19)
+  poweredByHeader: false,
+  // Antete de securitate de baza pe toate raspunsurile (audit 2026-08-19 P2).
+  // Fara CSP deocamdata: Google Maps Places + CDN-ul de imagini al partenerilor
+  // cer o politica atent enumerata — vine separat.
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+        ],
+      },
+    ];
+  },
+  // /landing-v2 a fost doar un redirect in cod (PO 2026-08-01: continutul e pe
+  // radacina); acum e redirect permanent la nivel de server, cu si fara prefix
+  // de limba, iar ruta a fost stearsa din app/.
+  async redirects() {
+    return [
+      { source: '/landing-v2', destination: '/', permanent: true },
+      { source: '/:locale(ro|en)/landing-v2', destination: '/:locale', permanent: true },
+    ];
+  },
   // In prod API-ul e proxied same-origin (cookies SameSite=Lax raman valide,
   // fara CORS cross-site). BACKEND_INTERNAL_URL e setat doar la deploy;
   // in dev local frontendul vorbeste direct cu :3001 si rewrites raman goale.

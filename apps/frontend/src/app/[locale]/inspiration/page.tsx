@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, ChevronDown, FolderHeart, Loader2, Search, X } from 'lucide-react';
+import { AlertTriangle, Check, ChevronDown, FolderHeart, Loader2, Search, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -11,6 +11,8 @@ import {
   type Material,
   type RoomType,
 } from '@marketplace/shared';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MasonryColumns } from '@/components/ui/masonry-columns';
 import { useMe } from '@/hooks/use-auth';
@@ -408,8 +410,26 @@ function InspirationGallery() {
           </div>
         </div>
 
-        {photos.isPending && <p className="py-16 text-center text-muted-foreground">…</p>}
-        {!photos.isPending && visible.length === 0 && (
+        {photos.isPending && (
+          <div className="flex justify-center py-16 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        )}
+        {/* eroare de API ≠ "nicio idee" (audit 2026-08-19 P1): mesaj + reincercare */}
+        {photos.isError && (
+          <Alert
+            tone="amber"
+            icon={<AlertTriangle />}
+            title={t('loadError')}
+            className="mx-auto w-full max-w-xl items-center"
+            action={
+              <Button variant="outline" size="sm" onClick={() => photos.refetch()}>
+                {t('retry')}
+              </Button>
+            }
+          />
+        )}
+        {photos.isSuccess && visible.length === 0 && (
           <p className="py-16 text-center text-muted-foreground">{t('empty')}</p>
         )}
 

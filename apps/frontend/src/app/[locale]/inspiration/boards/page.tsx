@@ -1,10 +1,11 @@
 'use client';
 
-import { FolderHeart, Plus, Loader2 } from 'lucide-react';
+import { AlertTriangle, FolderHeart, Plus, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useMe } from '@/hooks/use-auth';
 import { useBoards, useCreateBoard } from '@/hooks/use-inspiration-boards';
@@ -77,6 +78,25 @@ export default function BoardsPage() {
           </p>
         )}
 
+        {/* incarcare + eroare pentru lista de colectii (audit 2026-08-19 P1) */}
+        {boards.isPending && (
+          <div className="flex justify-center py-16 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        )}
+        {boards.isError && !me.isError && (
+          <Alert
+            tone="amber"
+            icon={<AlertTriangle />}
+            title={t('boardsLoadError')}
+            className="items-center"
+            action={
+              <Button variant="outline" size="sm" onClick={() => boards.refetch()}>
+                {t('retry')}
+              </Button>
+            }
+          />
+        )}
         {boards.isSuccess && boards.data.length === 0 && !creating && (
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border-2 bg-card px-6 py-16 text-center">
             <span className="grid h-12 w-12 place-items-center rounded-full bg-walnut-soft text-walnut">
