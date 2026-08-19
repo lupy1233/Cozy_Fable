@@ -370,6 +370,34 @@
 
 **Impact: **Secțiunea 2.1; Docker Compose în rădăcină; Sprint 1 actualizat.
 
+### D-L0-1. Plati reale prin Stripe (2026-08-19, PO)
+
+**Decizie: **Creditele si abonamentele se platesc online prin Stripe Checkout (pagina hosted, RON) + webhook semnat `POST /webhooks/stripe`. Calea A din 3.7 (confirmare manuala de admin) RAMANE ca fallback pentru transfer bancar; calea B mock (HMAC `PAYMENT_WEBHOOK_SECRET`) este inlocuita de webhook-ul Stripe. Facturile raman generate de platforma (serie + numar, TVA), cu datele fiscale reale din Admin → Setari.
+
+**Rationale: **Lansare publica cu bani reali; mock-ul lasa comenzile PENDING la infinit si firmele blocate.
+
+**Impact: **Invarianta 3.7 (webhook) si 4.17 (facturare) — actualizate prin aceasta decizie; `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` in env; lipsa lor = plata online dezactivata (doar transfer + confirmare admin).
+
+### D-L0-2. Abonamentul dupa trial (2026-08-19, PO)
+
+**Decizie: **Firma isi cumpara/prelungeste abonamentul din portofel (acelasi flux Stripe) si adminul poate acorda/prelungi manual (`POST /admin/subscriptions/grant`, auditat). Cumpararea in timpul unui abonament activ PRELUNGESTE (zilele ramase nu se pierd). Avertizare in UI cu 7 zile inainte de expirare.
+
+**Rationale: **Dupa 30 de zile de trial firma ramanea blocata definitiv (nu exista nicio cale de reinnoire).
+
+### D-L0-3. Claim-uri active fara oferta la acceptarea altei oferte (2026-08-19, PO)
+
+**Decizie: **La `acceptQuote`, sloturile ACTIVE (fara oferta) ale celorlalte firme se inchid cu REFUND al creditelor rezervate si chat read-only; firmele care au ofertat si au pierdut raman pe pay-to-play (consum, D anterioara). Jobul de SLA nu mai penalizeaza sloturi ale unei cereri deja ACCEPTED.
+
+**Rationale: **Firma care nu a apucat sa oferteze nu a avut sansa; penalizarea SLA + consumul pe o cerere deja atribuita erau nedrepte.
+
+### D-L0-4. Date demo pe productie (2026-08-19, PO)
+
+**Decizie: **Se sterg toate datele demo de pe prod (useri `@demo.ro` inclusiv `admin@demo.ro`, firmele si cererile lor, facturile mock) — `prisma/cleanup-demo.ts` cu backup inainte; se pastreaza firma reala Mobila Unicat (CUI/RegCom de completat), galeria de inspiratie si config-ul din `seed.ts`. Adminul real se creeaza cu `prisma/seed-admin.ts` din env. `seed-demo.ts` refuza sa ruleze in productie fara `ALLOW_DEMO_SEED=1` si nu mai are parola implicita.
+
+### D-L0-5. Retrageri cu motiv "client" fara dovada (2026-08-19)
+
+**Decizie: **`CLIENT_CONTACT_INVALID` si `CLIENT_REQUESTED_CANCELLATION` nu se mai auto-aproba (nu exista bounce-log / confirmare in chat) → PENDING_ADMIN_REVIEW ca motivele CUSTOM, pana la implementarea validarii automate din 4.15.
+
 # 9. Checklist uman: ce faci acum
 
 - Citește integral acest document o dată. Verifică Decisions Log (Secțiunea 8, inclusiv 8.4). Dacă o decizie te deranjează, schimb-o ACUM în document, înainte ca agentul să scrie cod.
