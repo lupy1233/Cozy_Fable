@@ -667,7 +667,13 @@
       "VALIDATION_ERROR": "Unele câmpuri nu sunt completate corect. Verifică-le și trimite din nou.",
       "INTERNAL_ERROR": "A apărut o eroare neașteptată. Încearcă din nou peste câteva momente."
     },
-    "marketplaceLink": "Marketplace"
+    "marketplaceLink": "Marketplace",
+    "subscriptionBanner": {
+      "expiring": "Abonamentul {tier} expiră în {n, plural, =0 {mai puțin de o zi} one {# zi} other {# zile}}. După expirare nu mai poți prelua cereri.",
+      "expired": "Nu ai un abonament activ — nu poți prelua cereri din marketplace.",
+      "extend": "Prelungește abonamentul",
+      "choosePlan": "Alege un plan"
+    }
   },
   "AdminInspiration": {
     "title": "Caietul de idei",
@@ -967,7 +973,19 @@
         "ACTIVE": "Activ",
         "EXPIRED": "Expirat",
         "CANCELLED": "Anulat"
-      }
+      },
+      "daysLeft": "mai sunt {n, plural, =0 {0 zile} one {# zi} other {# zile}}",
+      "expiringSoon": "Abonamentul expiră în {n, plural, one {# zi} other {# zile}} — prelungește-l ca să nu pierzi accesul la cereri.",
+      "expired": "Nu ai un abonament activ — fără abonament nu poți prelua cereri din marketplace. Alege un plan mai jos.",
+      "plans": "Planuri",
+      "current": "Planul tău",
+      "activate": "Activează",
+      "extend": "Prelungește",
+      "perMonth": "/ 30 de zile, TVA inclus",
+      "includedCredits": "{n} credite incluse",
+      "gatingInfo": "Acces la cererile noi după {min} min",
+      "gatingNow": "Acces imediat la cererile noi",
+      "extendHint": "Dacă ai deja un abonament activ, noul plan se aplică imediat, iar cele 30 de zile se adaugă la zilele rămase — nu pierzi nimic."
     },
     "myClaims": {
       "title": "Preluările mele",
@@ -1004,6 +1022,19 @@
       "GATING_NOT_OPEN": "Cererea nu este încă disponibilă pentru planul tău de abonament. Revino puțin mai târziu.",
       "CONCURRENT_MODIFICATION": "Altcineva a modificat cererea în același timp. Reîncearcă.",
       "NOT_FOUND": "Cererea nu mai este disponibilă."
+    },
+    "accessBlocked": {
+      "title": {
+        "SUBSCRIPTION_INACTIVE": "Abonamentul tău a expirat",
+        "COMPANY_NOT_APPROVED": "Firma ta este în curs de verificare",
+        "COMPANY_SUSPENDED": "Firma ta este suspendată",
+        "generic": "Nu am putut încărca datele"
+      },
+      "cta": {
+        "subscription": "Vezi planurile de abonament",
+        "company": "Mergi la pagina firmei",
+        "retry": "Reîncearcă"
+      }
     }
   },
   "Chat": {
@@ -1244,18 +1275,137 @@
     },
     "orderStatus": {
       "PENDING": "În așteptarea plății",
-      "CONFIRMED": "Confirmată",
+      "CONFIRMED": "Plătită",
       "CANCELLED": "Anulată"
+    },
+    "buyCreditsHint": "Creditele se folosesc la preluarea cererilor. Plată securizată cu cardul (Stripe); prețurile includ TVA.",
+    "vatLine": "{base} lei + TVA {rate}% = {total} lei",
+    "payButton": "Plătește {total} lei (incl. TVA)",
+    "noPackages": "Niciun pachet de credite disponibil momentan.",
+    "noPlans": "Niciun plan disponibil momentan.",
+    "noOrders": "Nicio comandă încă.",
+    "planLabel": "Abonament {tier}",
+    "packageLabel": "Pachet {n} credite",
+    "continuePayment": "Continuă plata",
+    "source": {
+      "stripe": "Card (Stripe)",
+      "admin": "Transfer bancar",
+      "webhook": "Plată online"
+    },
+    "breakdown": {
+      "base": "Preț fără TVA",
+      "vat": "TVA {rate}%",
+      "total": "Total de plată"
+    },
+    "confirmTitle": "Confirmă comanda",
+    "confirmCreditsDesc": "Pachet de {n} credite pentru firma ta.",
+    "confirmPlanDesc": "Abonament {tier} — 30 de zile, {n} credite incluse.",
+    "confirmStripeHint": "Vei fi redirecționat către pagina securizată de plată Stripe. Creditele sau abonamentul se activează automat în câteva secunde după plată.",
+    "confirmBankHint": "Plata online nu este activă momentan — după plasarea comenzii primești datele pentru transfer bancar, iar activarea se face după ce plata ajunge la noi.",
+    "confirmButton": "Continuă la plată",
+    "confirmButtonBank": "Plasează comanda",
+    "cancel": "Renunță",
+    "bankTransfer": {
+      "title": "Plată prin transfer bancar",
+      "show": "Date de plată",
+      "intro": "Comanda #{ref} a fost înregistrată. Fă transferul cu datele de mai jos — creditele sau abonamentul se activează după ce confirmăm încasarea (de regulă 1–2 zile lucrătoare).",
+      "beneficiary": "Beneficiar",
+      "cui": "CUI",
+      "iban": "IBAN",
+      "amount": "Suma",
+      "reference": "Detalii plată",
+      "referenceValue": "Comanda {ref}",
+      "missing": "Datele bancare nu sunt încă configurate — vei primi instrucțiunile de plată pe email."
+    },
+    "paymentSuccessToast": "Plata a fost înregistrată. Creditele sau abonamentul apar în câteva secunde.",
+    "paymentCancelledToast": "Plata nu a fost finalizată. Poți relua oricând din istoricul comenzilor.",
+    "apiErrors": {
+      "CREDIT_PACKAGE_INACTIVE": "Acest pachet nu mai este disponibil.",
+      "PAYMENT_PROVIDER_UNAVAILABLE": "Plata online nu este disponibilă momentan. Încearcă din nou în câteva minute.",
+      "PAYMENT_NOT_PENDING": "Această comandă nu mai așteaptă plata.",
+      "NOT_FOUND": "Comanda sau planul nu a fost găsit.",
+      "IDEMPOTENCY_CONFLICT": "Cerere conflictuală. Reîncearcă.",
+      "VALIDATION_ERROR": "Date invalide.",
+      "INTERNAL_ERROR": "A apărut o eroare. Încearcă din nou."
     }
   },
   "AdminPayments": {
     "loading": "Se încarcă…",
-    "title": "Plăți în așteptare",
-    "empty": "Nicio plată în așteptare.",
+    "title": "Plăți și abonamente",
+    "empty": "Nicio comandă în această categorie.",
     "confirm": "Confirmă plata",
     "orderType": {
       "SUBSCRIPTION": "Abonament",
       "CREDIT_PACKAGE": "Pachet de credite"
+    },
+    "stripeNote": "Plățile cu cardul (Stripe) se confirmă automat prin webhook. Confirmă manual doar comenzile plătite prin transfer bancar, după ce vezi banii în cont.",
+    "tabs": {
+      "PENDING": "În așteptare",
+      "CONFIRMED": "Plătite",
+      "CANCELLED": "Anulate",
+      "all": "Toate"
+    },
+    "col": {
+      "company": "Firma",
+      "detail": "Tip / detaliu",
+      "total": "Total (cu TVA)",
+      "date": "Data",
+      "source": "Sursa",
+      "status": "Status"
+    },
+    "vatIncluded": "{base} lei + TVA {rate}%",
+    "planLabel": "Abonament {tier}",
+    "packageLabel": "Pachet {n} credite",
+    "source": {
+      "stripe": "Stripe",
+      "bank": "Transfer bancar",
+      "admin": "Transfer (confirmat manual)",
+      "webhook": "Webhook"
+    },
+    "status": {
+      "PENDING": "În așteptare",
+      "CONFIRMED": "Plătită",
+      "CANCELLED": "Anulată"
+    },
+    "awaitingStripe": "Se confirmă automat (Stripe)",
+    "cancel": "Anulează",
+    "confirmDialogTitle": "Confirmi încasarea?",
+    "confirmDialogDesc": "{company} · {detail} · {total}. Se emite factura (număr consumat definitiv) și se livrează creditele sau abonamentul. Acțiunea nu poate fi anulată.",
+    "cancelDialogTitle": "Anulezi comanda?",
+    "cancelDialogDesc": "{company} · {detail}. Comanda trece în Anulată, iar linkul de plată Stripe (dacă există) este invalidat. Firma poate plasa o comandă nouă oricând.",
+    "yes": "Da, confirm",
+    "no": "Renunță",
+    "confirmedToast": "Plata a fost confirmată — factura a fost emisă.",
+    "cancelledToast": "Comanda a fost anulată.",
+    "grant": {
+      "title": "Acordă sau prelungește un abonament manual",
+      "hint": "Pentru vânzare asistată sau compensații: nu se creează comandă și nu se emite factură. Dacă firma are deja un abonament activ, zilele se adaugă la cel curent.",
+      "company": "Firma",
+      "pickCompany": "Alege firma…",
+      "plan": "Plan",
+      "pickPlan": "Alege planul…",
+      "days": "Zile",
+      "includeCredits": "Acordă și creditele planului",
+      "includeCreditsHint": "Implicit nu — bifează doar dacă acorzi un abonament întreg.",
+      "note": "Notă internă (opțional, rămâne în audit)",
+      "submit": "Acordă abonamentul",
+      "success": "Abonament acordat firmei {company} până la {date}."
+    },
+    "subscriptions": {
+      "title": "Abonamente",
+      "empty": "Niciun abonament încă.",
+      "plan": "Plan",
+      "period": "Perioada",
+      "trial": "Trial",
+      "daysLeft": "{n, plural, =0 {expiră azi} one {mai e # zi} other {mai sunt # zile}}",
+      "expired": "Expirat"
+    },
+    "apiErrors": {
+      "PAYMENT_ALREADY_CONFIRMED": "Comanda a fost deja procesată.",
+      "PAYMENT_NOT_FOUND": "Comanda nu a fost găsită.",
+      "NOT_FOUND": "Firma sau planul nu a fost găsit.",
+      "VALIDATION_ERROR": "Date invalide.",
+      "INTERNAL_ERROR": "A apărut o eroare. Încearcă din nou."
     }
   },
   "AdminDisputes": {
