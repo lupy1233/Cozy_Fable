@@ -12,6 +12,7 @@ import { useRelativeTime } from '@/lib/relative-time';
 import { StatusBadge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ChatPanel } from '../../_components/chat-panel';
+import { AccessBlocked } from '../_components/access-blocked';
 
 // Mesagerie firma (PO r6): toate conversatiile cu clientii intr-un singur loc,
 // master-detail — lista in stanga, conversatia aleasa in dreapta. Pe mobil
@@ -41,6 +42,17 @@ export default function CompanyMessagesPage() {
   if (me.isPending || threads.isPending) {
     return <p className="py-20 text-center text-muted-foreground">{t('loading')}</p>;
   }
+  // 403/404 (firma neaprobata / suspendata / fara abonament) → ecran de blocaj, nu pagina goala
+  if (threads.isError) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div>
+          <h1 className="page-title">{t('title')}</h1>
+        </div>
+        <AccessBlocked error={threads.error} onRetry={() => void threads.refetch()} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -66,6 +78,8 @@ export default function CompanyMessagesPage() {
           <p className="text-sm text-muted-foreground">{t('teamHint')}</p>
           {team.data ? (
             <ChatPanel threadId={team.data.id} mode="company" />
+          ) : team.isError ? (
+            <AccessBlocked error={team.error} onRetry={() => void team.refetch()} />
           ) : (
             <p className="py-10 text-center text-muted-foreground">{t('loading')}</p>
           )}

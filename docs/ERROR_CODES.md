@@ -55,8 +55,9 @@ Codurile sunt constante in `packages/shared`; frontend mapeaza cod → mesaj loc
 - `CLARIFICATION_ALREADY_PENDING` · `SLA_ALREADY_BREACHED`
 
 ## Plati / credite / facturare
-- `PAYMENT_SIGNATURE_INVALID` (HMAC) · `PAYMENT_ALREADY_CONFIRMED` · `PAYMENT_NOT_FOUND`
+- `PAYMENT_SIGNATURE_INVALID` (semnatura Stripe `stripe-signature` pe corpul brut, sau HMAC la webhook-ul mock) · `PAYMENT_ALREADY_CONFIRMED` (409 — comanda nu mai e PENDING: confirmare dubla, anulare dupa confirmare) · `PAYMENT_NOT_FOUND`
 - `CREDIT_PACKAGE_INACTIVE` · `CREDITS_EXPIRED`
+- `PAYMENT_PROVIDER_UNAVAILABLE` (503 Stripe dezactivat cand e cerut explicit — webhook fara chei; 502 eroare la crearea sesiunii Checkout) · `PAYMENT_NOT_PENDING` (409 — "Continua plata" pe o comanda deja platita/anulata)
 
 ## Review / dispute
 - `REVIEW_NOT_ALLOWED_YET` (doar dupa COMPLETED) · `REVIEW_ALREADY_SUBMITTED`

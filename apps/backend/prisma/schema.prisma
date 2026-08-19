@@ -1274,8 +1274,15 @@ model MockBillingOrder {
   invoiceSeries   String?            @map("invoice_series")
   invoiceNumber   Int?               @map("invoice_number")
   sellerSnapshot  Json?              @map("seller_snapshot")
+  // sursa confirmarii: admin | webhook (mock istoric) | stripe
   paymentSource   String?            @map("payment_source")
   confirmedAt     DateTime?          @map("confirmed_at") @db.Timestamptz()
+  // Stripe Checkout (decizie PO 2026-08-19): sesiunea curenta (re-creata la "Continua plata"),
+  // PaymentIntent-ul la plata reusita, momentul platii si al anularii.
+  stripeSessionId       String?      @unique @map("stripe_session_id")
+  stripePaymentIntentId String?      @map("stripe_payment_intent_id")
+  paidAt                DateTime?    @map("paid_at") @db.Timestamptz()
+  cancelledAt           DateTime?    @map("cancelled_at") @db.Timestamptz()
   createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz()
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -1284,6 +1291,16 @@ model MockBillingOrder {
   @@index([companyId])
   @@index([status])
   @@map("mock_billing_orders")
+}
+
+// Dedup evenimente Stripe (webhook): event.id e unic; inregistrat DUPA procesarea
+// cu succes, ca un retry Stripe dupa o eroare 500 sa fie reprocesat.
+model StripeEvent {
+  id         String   @id
+  type       String
+  receivedAt DateTime @default(now()) @map("received_at") @db.Timestamptz()
+
+  @@map("stripe_events")
 }
 
 // docs/04 §5.1 + 3.9 — audit log append-only (trigger DB BEFORE UPDATE OR DELETE).

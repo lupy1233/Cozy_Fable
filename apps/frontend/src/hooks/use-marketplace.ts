@@ -7,7 +7,7 @@ import type {
   CreditWalletDto,
   MarketplaceDetailDto,
   MarketplaceItemDto,
-  SubscriptionDto,
+  SubscriptionDetailDto,
 } from '@marketplace/shared';
 import { api } from '@/lib/api';
 
@@ -83,10 +83,12 @@ export function useWallet() {
   });
 }
 
+// Abonamentul activ (cu daysLeft); fara abonament backendul raspunde cu body gol →
+// api() da undefined, pe care TanStack v5 il respinge → normalizam la null.
 export function useSubscription() {
   return useQuery({
     queryKey: SUBSCRIPTION_KEY,
-    queryFn: () => api<SubscriptionDto | null>('/billing/subscription'),
+    queryFn: () => api<SubscriptionDetailDto | null>('/billing/subscription').then((s) => s ?? null),
     retry: false,
   });
 }

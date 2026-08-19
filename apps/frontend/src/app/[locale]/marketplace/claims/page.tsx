@@ -10,6 +10,7 @@ import { useRealtimeSync } from '@/hooks/use-socket';
 import { StatusBadge } from '@/components/ui/badge';
 import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/table';
 import { useRelativeTime } from '@/lib/relative-time';
+import { AccessBlocked } from '../_components/access-blocked';
 
 // Pagina dedicata claim-urilor firmei (mutata din wallet): cine a preluat,
 // cui e atribuit, cand, in ce stadiu e si linkuri catre oferta/cerere.
@@ -50,6 +51,8 @@ export default function CompanyClaimsPage() {
         </Link>
       </div>
 
+      {claims.isPending && <p className="py-10 text-center text-muted-foreground">{t('loading')}</p>}
+      {claims.isError && <AccessBlocked error={claims.error} onRetry={() => void claims.refetch()} />}
       {claims.isSuccess && claims.data.length === 0 && (
         <p className="rounded-xl border border-border bg-surface px-4 py-10 text-center text-muted-foreground">
           {t('myClaims.empty')}

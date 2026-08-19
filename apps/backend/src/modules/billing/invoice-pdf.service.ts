@@ -9,7 +9,8 @@ const loadPuppeteer = new Function('return import("puppeteer")') as () => Promis
   typeof import('puppeteer')
 >;
 
-// 4.17 — factura mock conforma RO (serie-numar, TVA snapshot, furnizor=platforma).
+// 4.17 — factura conforma RO (serie-numar, TVA snapshot, furnizor=platforma), emisa la
+// confirmarea platii (Stripe webhook / admin). Datele furnizorului vin din seller_* (settings).
 @Injectable()
 export class InvoicePdfService implements OnModuleDestroy {
   private readonly logger = new Logger(InvoicePdfService.name);
@@ -103,7 +104,7 @@ export class InvoicePdfService implements OnModuleDestroy {
     </style></head><body>
       <div class="row" style="align-items:flex-start">
         <div><h1>Factură</h1><div class="muted">Seria ${esc(order.invoiceSeries)} nr. ${order.invoiceNumber} · ${date}</div></div>
-        <div class="muted" style="text-align:right">Document mock (MVP) · conform structurii Cod Fiscal RO</div>
+        <div class="muted" style="text-align:right">Factură emisă electronic · valabilă fără semnătură și ștampilă (Cod Fiscal art. 319)</div>
       </div>
       <div class="row">
         <div class="box">
