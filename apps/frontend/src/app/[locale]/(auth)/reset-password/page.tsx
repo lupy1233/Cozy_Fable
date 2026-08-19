@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { resetPasswordSchema, type ResetPasswordInput } from '@marketplace/shared';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from '@/i18n/routing';
 import { apiErrorKey } from '@/lib/error-messages';
@@ -18,7 +18,13 @@ import { Alert } from '@/components/ui/alert';
 function ResetPasswordInner() {
   const t = useTranslations('Auth');
   const params = useSearchParams();
-  const token = params.get('token') ?? '';
+  // Tokenul se citeste O DATA si se scoate din URL (istoric/referer) — altfel ar
+  // ajunge in logurile backend prin header-ul Referer la apelurile API (security close L0).
+  const [token] = useState(() => params.get('token') ?? '');
+  useEffect(() => {
+    if (params.get('token')) window.history.replaceState(null, '', window.location.pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const reset = useResetPassword();
 
   const {

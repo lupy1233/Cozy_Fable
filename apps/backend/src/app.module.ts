@@ -38,7 +38,8 @@ import { UploadsModule } from './modules/uploads/uploads.module';
       pinoHttp: {
         genReqId: (req) => (req.headers['x-trace-id'] as string) ?? randomUUID(),
         autoLogging: true,
-        redact: ['req.headers.authorization', 'req.headers.cookie'],
+        // referer poate contine ?token= (reset-password / verify-email) cand API-ul e same-origin
+        redact: ['req.headers.authorization', 'req.headers.cookie', 'req.headers.referer', 'req.headers.referrer'],
         transport:
           process.env.NODE_ENV === 'development' ? { target: 'pino-pretty' } : undefined,
       },

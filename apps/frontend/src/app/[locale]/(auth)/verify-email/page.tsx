@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Link } from '@/i18n/routing';
 import { useVerifyEmail } from '@/hooks/use-auth';
 import { ResendVerification } from '../_components/resend-verification';
@@ -10,10 +10,12 @@ import { ResendVerification } from '../_components/resend-verification';
 function VerifyEmailInner() {
   const t = useTranslations('Auth');
   const params = useSearchParams();
-  const token = params.get('token');
+  // tokenul se citeste o data si se scoate din URL (nu ajunge in Referer/istoric)
+  const [token] = useState(() => params.get('token'));
   const verify = useVerifyEmail();
 
   useEffect(() => {
+    if (params.get('token')) window.history.replaceState(null, '', window.location.pathname);
     if (token && verify.isIdle) verify.mutate(token);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
