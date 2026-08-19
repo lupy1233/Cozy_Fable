@@ -95,3 +95,11 @@ quote_validity_default_days=14 · consultation_invite_expiry_days=7 · employee_
 - claim_slots 1—1 chat_thread; claim_slots 1—N quotes 1—N quote_versions; quote_versions 1—N quote_change_requests.
 
 - users 1—N refresh_tokens (o singură familie activă); penalty_events N—1 (company sau user, prin scope).
+
+## Actualizari 2026-08-19 (Sprint L0)
+
+- `users.terms_accepted_at TIMESTAMPTZ NULL` — momentul acceptarii Termenilor la inregistrare (obligatoriu la register din L0-A; userii vechi raman NULL).
+- `claim_slots.status` primeste valoarea `CANCELLED_REQUEST_ACCEPTED` — toate sloturile nealese la acceptarea unei oferte (ACTIVE → refund, OFFER_SENT → consum pay-to-play; D-L0-3).
+- `mock_billing_orders` + `stripe_session_id` (unic), `stripe_payment_intent_id`, `paid_at`, `cancelled_at`; `payment_source` ∈ {admin, webhook, stripe}; tabel nou `stripe_events(id, type, received_at)` pentru dedup webhook (D-L0-1).
+- Abonamentul cumparat peste unul activ PRELUNGESTE randul activ (`expires_at = max(expires_at, now) + 30 zile`), nu creeaza rand nou (D-L0-2).
+- Nota: sectiunile de mai sus (§5.1–5.6) sunt in urma fata de `schema.prisma` (vezi `docs/audit-2026-08-19/11-shared-prisma.md` P2) — sincronizarea completa e planificata in Sprint L2.
