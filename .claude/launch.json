@@ -10,9 +10,8 @@
     {
       "name": "frontend",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["-F", "frontend", "exec", "next", "dev"],
-      "port": 3000,
-      "autoPort": true
+      "runtimeArgs": ["-F", "frontend", "dev"],
+      "port": 3000
     }
   ]
 }
