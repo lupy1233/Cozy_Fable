@@ -9,6 +9,7 @@ import { useMarketplace, useWallet } from '@/hooks/use-marketplace';
 import { Badge } from '@/components/ui/badge';
 import { SlotTrack } from '@/components/ui/slot-track';
 import { useRelativeTime } from '@/lib/relative-time';
+import { AccessBlocked } from './_components/access-blocked';
 
 export default function MarketplacePage() {
   const t = useTranslations('Marketplace');
@@ -46,6 +47,8 @@ export default function MarketplacePage() {
       </div>
 
       {list.isPending && <p className="py-10 text-center text-muted-foreground">{t('loading')}</p>}
+      {/* 403/404 (firma neaprobata / suspendata / fara abonament) → ecran de blocaj cu CTA */}
+      {list.isError && <AccessBlocked error={list.error} onRetry={() => void list.refetch()} />}
       {list.isSuccess && list.data.length === 0 && (
         <p className="rounded-xl border border-border bg-surface px-4 py-10 text-center text-muted-foreground">
           {t('empty')}

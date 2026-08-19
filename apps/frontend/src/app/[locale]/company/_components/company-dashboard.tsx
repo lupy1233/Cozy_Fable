@@ -9,10 +9,12 @@ import {
   type OfferFieldPermissionEntry,
   type PortfolioItemInput,
 } from '@marketplace/shared';
-import { Plus, X } from 'lucide-react';
+import { AlertTriangle, Plus, X } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Link } from '@/i18n/routing';
+import { useSubscription } from '@/hooks/use-marketplace';
+import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
@@ -69,6 +71,8 @@ export function CompanyDashboard({ company }: { company: CompanyDto }) {
         </p>
       )}
 
+      {company.status === 'APPROVED' && <SubscriptionBanner />}
+
       <Section title={t('profile')}>
         <p className="font-serif text-lg">{company.name}</p>
         <p className="text-sm text-muted-foreground">
@@ -84,6 +88,34 @@ export function CompanyDashboard({ company }: { company: CompanyDto }) {
       <PortfolioSection company={company} canManage={canManage} />
       <OfferPermissionsSection company={company} isOwner={isOwner} />
     </div>
+  );
+}
+
+// Banner abonament (L0-D): expira in <= 7 zile → amber, lipsa/expirat → crimson; link la portofel.
+const SUBSCRIPTION_WARN_DAYS = 7;
+
+function SubscriptionBanner() {
+  const t = useTranslations('Company');
+  const subscription = useSubscription();
+  if (subscription.isPending || subscription.isError) return null;
+  const sub = subscription.data;
+  if (sub && sub.daysLeft > SUBSCRIPTION_WARN_DAYS) return null;
+  const cta = (
+    <Link
+      href="/marketplace/wallet#subscription"
+      className="shrink-0 self-center text-sm font-medium underline-offset-4 hover:underline"
+    >
+      {sub ? t('subscriptionBanner.extend') : t('subscriptionBanner.choosePlan')} →
+    </Link>
+  );
+  return sub ? (
+    <Alert tone="amber" icon={<AlertTriangle />} action={cta}>
+      {t('subscriptionBanner.expiring', { tier: sub.tier, n: sub.daysLeft })}
+    </Alert>
+  ) : (
+    <Alert tone="crimson" icon={<AlertTriangle />} action={cta}>
+      {t('subscriptionBanner.expired')}
+    </Alert>
   );
 }
 

@@ -128,6 +128,9 @@ export const ERROR_CODES = {
   REQUEST_NOT_OPEN_FOR_OFFERS: 'REQUEST_NOT_OPEN_FOR_OFFERS',
   // conflict de concurenta la scriere (serialization failure P2034) — clientul poate reincerca
   CONCURRENT_MODIFICATION: 'CONCURRENT_MODIFICATION',
+  // Plati Stripe (L0-D)
+  PAYMENT_PROVIDER_UNAVAILABLE: 'PAYMENT_PROVIDER_UNAVAILABLE',
+  PAYMENT_NOT_PENDING: 'PAYMENT_NOT_PENDING',
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];

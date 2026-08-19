@@ -78,6 +78,46 @@ BACKEND_INTERNAL_URL=https://<backend-domain>
 RAILWAY_DOCKERFILE_PATH=apps/frontend/Dockerfile
 ```
 
+## Stripe (plati credite + abonamente — decizie PO 2026-08-19, sprint L0-D)
+
+Plata online = Stripe Checkout hosted (mode `payment`, moneda `ron`, suma = total CU TVA in
+bani, sesiune expira in 30 min) + webhook semnat. Calea "confirmare admin"
+(`POST /admin/payments/:id/confirm`) ramane fallback pentru transfer bancar; adminul poate si
+acorda/prelungi abonamente manual (`POST /admin/subscriptions/grant`).
+
+Variabile backend (optionale — lipsa lor = Stripe dezactivat: butoanele "Plateste" plaseaza
+comanda PENDING si afiseaza datele de transfer bancar din `system_settings.seller_*`):
+```
+STRIPE_SECRET_KEY=sk_live_...        # sau sk_test_... (se seteaza IMPREUNA cu webhook secret)
+STRIPE_WEBHOOK_SECRET=whsec_...      # din endpoint-ul creat in dashboard / `stripe listen`
+STRIPE_PUBLISHABLE_KEY=pk_live_...   # optional, nefolosit de backend (Checkout e hosted)
+FRONTEND_ORIGIN=https://<frontend>   # baza pentru success/cancel URL: /{ro|en}/marketplace/wallet?payment=...
+```
+
+Endpoint webhook: `POST https://<backend>/api/v1/webhooks/stripe` (public, semnatura verificata
+pe `req.rawBody` cu `STRIPE_WEBHOOK_SECRET`, dedup pe `event.id` in tabelul `stripe_events`,
+raspuns 200 rapid; eroare de procesare → 500 si Stripe reincearca). In dashboard Stripe →
+Developers → Webhooks → Add endpoint, evenimente de abonat:
+- `checkout.session.completed` (payment_status=paid → `PaymentsService.confirm(orderId,'stripe')`:
+  factura + credite/abonament; audit `PAYMENT_CONFIRMED`)
+- `checkout.session.async_payment_succeeded` (metode de plata asincrone — tratat identic)
+- `checkout.session.expired` (comanda PENDING → CANCELLED, daca sesiunea e inca cea curenta)
+
+`orderId` circula in `metadata.orderId` + `client_reference_id`; `mock_billing_orders` tine
+`stripe_session_id` (unic, re-creat la "Continua plata"), `stripe_payment_intent_id`, `paid_at`.
+
+Test local:
+```bash
+stripe login
+stripe listen --forward-to localhost:3001/api/v1/webhooks/stripe   # afiseaza whsec_... → STRIPE_WEBHOOK_SECRET in apps/backend/.env
+# card test: 4242 4242 4242 4242, orice data viitoare / CVC; declin: 4000 0000 0000 0002
+stripe trigger checkout.session.completed                          # eveniment sintetic (fara orderId → "no_order", 200)
+```
+Dupa deploy: `railway variables --set STRIPE_SECRET_KEY=... --set STRIPE_WEBHOOK_SECRET=...`
+inainte de `railway up`; verifica in dashboard ca endpoint-ul primeste 200 la primul eveniment.
+Datele fiscale reale (`seller_name/cui/reg_com/address/iban`, `invoice_series`) trebuie setate
+in Admin → Settings INAINTE de prima confirmare — snapshot-ul intra pe factura.
+
 ## Seed initial (o singura data, de pe masina locala)
 
 ```bash

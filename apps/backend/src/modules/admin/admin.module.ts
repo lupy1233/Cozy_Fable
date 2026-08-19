@@ -1,6 +1,7 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { BillingModule } from '../billing/billing.module';
 import {
   QUEUE_CLAIM_ASSIGN,
   QUEUE_CONSULTATION_EXPIRY,
@@ -11,11 +12,13 @@ import {
   QUEUE_WITHDRAWAL_REMINDER,
 } from '../../infra/queues/queues.module';
 import { AdminController } from './admin.controller';
+import { AdminSubscriptionsController } from './admin-subscriptions.controller';
 import { AdminService } from './admin.service';
 
 @Module({
   imports: [
     AuthModule,
+    BillingModule,
     BullModule.registerQueue(
       { name: QUEUE_NOTIFICATIONS },
       { name: QUEUE_REQUEST_EXPIRATION },
@@ -26,7 +29,7 @@ import { AdminService } from './admin.service';
       { name: QUEUE_WITHDRAWAL_REMINDER },
     ),
   ],
-  controllers: [AdminController],
+  controllers: [AdminController, AdminSubscriptionsController],
   providers: [AdminService],
 })
 export class AdminModule {}
