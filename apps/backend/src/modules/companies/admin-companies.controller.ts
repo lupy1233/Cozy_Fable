@@ -51,4 +51,12 @@ export class AdminCompaniesController {
   ) {
     return this.companies.adminReject(id, user.sub, dto);
   }
+
+  // Pasul 5 (audit 2026-08-23, F2): ridicarea suspendarii — auditata ca aprobarile.
+  @Post(':id/unsuspend')
+  @HttpCode(200)
+  @Audit('COMPANY_UNSUSPENDED', 'company')
+  unsuspend(@Param('id') id: string) {
+    return this.companies.adminUnsuspend(id);
+  }
 }

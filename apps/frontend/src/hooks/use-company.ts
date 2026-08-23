@@ -172,3 +172,16 @@ export function useRejectCompany() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ADMIN_LIST_KEY }),
   });
 }
+
+// Pasul 5 (audit 2026-08-23, F2): ridicarea suspendarii de catre admin.
+export function useUnsuspendCompany() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ id: string; status: string }>(`/admin/companies/${id}/unsuspend`, { method: 'POST' }),
+    onSuccess: (_d, id) => {
+      qc.invalidateQueries({ queryKey: ADMIN_LIST_KEY });
+      qc.invalidateQueries({ queryKey: ['admin', 'companies', 'detail', id] });
+    },
+  });
+}

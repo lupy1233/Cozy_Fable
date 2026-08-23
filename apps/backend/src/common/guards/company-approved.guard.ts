@@ -39,13 +39,20 @@ export class CompanyApprovedGuard implements CanActivate {
     if (!company) {
       throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Company not found' });
     }
-    if (company.status === 'SUSPENDED') {
+    // Pasul 5 (audit 2026-08-23, F2): suspendarea EXPIRA — dupa suspendedUntil firma nu mai
+    // e blocata (inainte SUSPENDED era fundatura permanenta). Randul e curatat de sweep-ul
+    // de reconciliere / admin unsuspend; guard-ul doar nu o mai blocheaza intre timp.
+    const suspensionExpired =
+      company.status === 'SUSPENDED' &&
+      company.suspendedUntil !== null &&
+      company.suspendedUntil.getTime() <= Date.now();
+    if (company.status === 'SUSPENDED' && !suspensionExpired) {
       throw new ForbiddenException({
         code: ERROR_CODES.COMPANY_SUSPENDED,
         message: 'Company is suspended',
       });
     }
-    if (company.status !== 'APPROVED') {
+    if (company.status !== 'APPROVED' && !suspensionExpired) {
       throw new ForbiddenException({
         code: ERROR_CODES.COMPANY_NOT_APPROVED,
         message: 'Company is not approved',
@@ -55,7 +62,7 @@ export class CompanyApprovedGuard implements CanActivate {
     req.companyContext = {
       companyId: company.id,
       memberRole: member.role,
-      status: company.status,
+      status: suspensionExpired ? 'APPROVED' : company.status,
     };
     return true;
   }

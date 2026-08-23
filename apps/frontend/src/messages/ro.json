@@ -721,6 +721,10 @@
     "rejectConfirm": "Confirmă respingerea",
     "approved": "Firma a fost aprobată.",
     "rejected": "Firma a fost respinsă.",
+    "suspendedNote": "Firma este suspendată pentru puncte de penalizare. Ridicarea suspendării o readuce în marketplace imediat.",
+    "unsuspend": "Ridică suspendarea",
+    "unsuspended": "Suspendarea a fost ridicată.",
+    "unsuspendError": "Nu am putut ridica suspendarea. Reîncarcă pagina și încearcă din nou.",
     "riskFlagValue": {
       "NO_PORTFOLIO": "Fără portofoliu",
       "INSUFFICIENT_REVIEWS": "Prea puține recenzii",
@@ -1532,12 +1536,18 @@
       },
       "delivery": {
         "marked": "Livrare de confirmat",
-        "confirmed": "Livrare confirmată de client"
+        "confirmed": "Livrare confirmată de client",
+        "autocompleted": "Comandă finalizată automat după 14 zile"
       },
       "company": {
         "approved": "Firma ta a fost aprobată",
         "rejected": "Înregistrarea firmei a fost respinsă",
-        "suspended": "Firma ta a fost suspendată"
+        "suspended": "Firma ta a fost suspendată",
+        "unsuspended": "Suspendarea firmei a fost ridicată",
+        "submitted": "Firmă nouă în așteptarea verificării"
+      },
+      "dispute": {
+        "opened": "Dispută nouă (recenzie sub 3 stele)"
       },
       "penalty": {
         "applied": "Penalizare aplicată"
@@ -1552,7 +1562,8 @@
         "reminder": "Retragere în așteptare de peste 48h"
       },
       "payment": {
-        "confirmed": "Plată confirmată — factură emisă"
+        "confirmed": "Plată confirmată — factură emisă",
+        "pending": "Plată prin transfer în așteptarea confirmării"
       },
       "subscription": {
         "expiring": "Abonamentul expiră în curând"

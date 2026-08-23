@@ -721,6 +721,10 @@
     "rejectConfirm": "Confirm rejection",
     "approved": "Company approved.",
     "rejected": "Company rejected.",
+    "suspendedNote": "This company is suspended for penalty points. Lifting the suspension brings it back to the marketplace immediately.",
+    "unsuspend": "Lift suspension",
+    "unsuspended": "Suspension lifted.",
+    "unsuspendError": "Could not lift the suspension. Reload the page and try again.",
     "riskFlagValue": {
       "NO_PORTFOLIO": "No portfolio",
       "INSUFFICIENT_REVIEWS": "Too few reviews",
@@ -1532,12 +1536,18 @@
       },
       "delivery": {
         "marked": "Delivery to confirm",
-        "confirmed": "Delivery confirmed by the client"
+        "confirmed": "Delivery confirmed by the client",
+        "autocompleted": "Order auto-completed after 14 days"
       },
       "company": {
         "approved": "Your company was approved",
         "rejected": "Your company registration was rejected",
-        "suspended": "Your company was suspended"
+        "suspended": "Your company was suspended",
+        "unsuspended": "Your company's suspension was lifted",
+        "submitted": "New company awaiting verification"
+      },
+      "dispute": {
+        "opened": "New dispute (review below 3 stars)"
       },
       "penalty": {
         "applied": "Penalty applied"
@@ -1552,7 +1562,8 @@
         "reminder": "Withdrawal pending for over 48h"
       },
       "payment": {
-        "confirmed": "Payment confirmed — invoice issued"
+        "confirmed": "Payment confirmed — invoice issued",
+        "pending": "Bank-transfer payment awaiting confirmation"
       },
       "subscription": {
         "expiring": "Subscription expiring soon"

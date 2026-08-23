@@ -215,7 +215,7 @@ export class ClaimsService {
               slot.id,
               tx,
             );
-            await recomputeRequestStatusAfterClaimChange(tx, req.id, maxClaims);
+            await recomputeRequestStatusAfterClaimChange(tx, req.id, undefined, maxClaims);
 
             return { slot, threadId: thread.id };
           },

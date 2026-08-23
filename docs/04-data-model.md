@@ -24,7 +24,7 @@ users, companies, company_members, company_locations, teams, company_verificatio
 
 | **Tabel** | **Coloane adăugate** | **Sursă** |
 | --- | --- | --- |
-| requests | project_score INT, project_size ENUM, includes_paid_design BOOLEAN DEFAULT FALSE, address_text/county/city/lat/lng, country VARCHAR(2) DEFAULT 'RO' (livrare internationala, F5 2026-07-08), budget_estimate_ron INT nullable (sliderul estimat din scor, F5; budget_range ramane pentru filtre/scoring), deleted_at, anonymized_at, last_edit_at, desired_deadline_bucket ENUM (inlocuieste desired_deadline DATE, overhaul 2026-07) | 4.5/4.1/4.3 |
+| requests | project_score INT, project_size ENUM, includes_paid_design BOOLEAN DEFAULT FALSE, address_text/county/city/lat/lng, country VARCHAR(2) DEFAULT 'RO' (livrare internationala, F5 2026-07-08), budget_estimate_ron INT nullable (sliderul estimat din scor, F5; budget_range ramane pentru filtre/scoring), deleted_at, anonymized_at, last_edit_at, desired_deadline_bucket ENUM (inlocuieste desired_deadline DATE, overhaul 2026-07), delivered_at TIMESTAMPTZ nullable (momentul marcarii livrarii; auto-COMPLETED la 14 zile, D-L1-1 2026-08-23) | 4.5/4.1/4.3 |
 | request_contact_preferences | channel ENUM(EMAIL/PHONE), value (validat ca format); priority ELIMINAT (overhaul 2026-07) | 4.2 |
 | claim_slots | claimed_by_user_id, assigned_to_user_id (nullable), sla_deadline_at, sla_paused_at, project_size_snapshot, project_score_snapshot, claim_cost_credits_snapshot, withdrawn_at, status | 4.x |
 | quotes | extra_versions_count INT DEFAULT 0, currency ENUM(RON/EUR) DEFAULT RON | 4.13 |

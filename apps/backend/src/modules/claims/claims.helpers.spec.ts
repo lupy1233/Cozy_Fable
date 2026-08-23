@@ -13,6 +13,7 @@ type AnyTx = any;
 function makeTx(opts: {
   requestStatus?: string | null;
   occupied?: number;
+  openQuotes?: number;
   breachedCompanies?: string[];
 }): AnyTx {
   return {
@@ -20,7 +21,7 @@ function makeTx(opts: {
       findUnique: jest
         .fn()
         .mockResolvedValue(
-          opts.requestStatus === null ? null : { id: 'r1', status: opts.requestStatus },
+          opts.requestStatus === null ? null : { id: 'r1', status: opts.requestStatus, deletedAt: null },
         ),
       update: jest.fn().mockResolvedValue(undefined),
     },
@@ -30,6 +31,7 @@ function makeTx(opts: {
         .fn()
         .mockResolvedValue((opts.breachedCompanies ?? []).map((companyId) => ({ companyId }))),
     },
+    quote: { count: jest.fn().mockResolvedValue(opts.openQuotes ?? 0) },
     requestCompanyExclusion: { upsert: jest.fn().mockResolvedValue(undefined) },
   };
 }
@@ -49,7 +51,7 @@ describe('haversineKm', () => {
 describe('recomputeRequestStatusAfterClaimChange (3.1)', () => {
   it('toate sloturile ocupate → CLAIMED_FULL', async () => {
     const tx = makeTx({ requestStatus: 'CLAIMED_PARTIAL', occupied: 3 });
-    await recomputeRequestStatusAfterClaimChange(tx, 'r1', 3);
+    await recomputeRequestStatusAfterClaimChange(tx, 'r1', undefined, 3);
     expect(tx.request.update).toHaveBeenCalledWith({
       where: { id: 'r1' },
       data: { status: 'CLAIMED_FULL' },
@@ -58,7 +60,7 @@ describe('recomputeRequestStatusAfterClaimChange (3.1)', () => {
 
   it('zero sloturi ocupate → inapoi IN_MARKETPLACE', async () => {
     const tx = makeTx({ requestStatus: 'CLAIMED_PARTIAL', occupied: 0 });
-    await recomputeRequestStatusAfterClaimChange(tx, 'r1', 3);
+    await recomputeRequestStatusAfterClaimChange(tx, 'r1', undefined, 3);
     expect(tx.request.update).toHaveBeenCalledWith({
       where: { id: 'r1' },
       data: { status: 'IN_MARKETPLACE' },
@@ -67,7 +69,36 @@ describe('recomputeRequestStatusAfterClaimChange (3.1)', () => {
 
   it('NU suprascrie statusurile din afara fazei de claim (ex. ACCEPTED)', async () => {
     const tx = makeTx({ requestStatus: 'ACCEPTED', occupied: 0 });
-    await recomputeRequestStatusAfterClaimChange(tx, 'r1', 3);
+    await recomputeRequestStatusAfterClaimChange(tx, 'r1', undefined, 3);
+    expect(tx.request.update).not.toHaveBeenCalled();
+  });
+
+  // --- Pasul 5 (audit 2026-08-23, F4/F5): cereri zombie ---
+
+  it('F4: OFFERS_RECEIVED cu 0 ocupanti → revine IN_MARKETPLACE cu ceas nou + republishedExpiresAt', async () => {
+    const tx = makeTx({ requestStatus: 'OFFERS_RECEIVED', occupied: 0 });
+    const expiresAt = new Date('2026-09-01T12:00:00Z');
+    const res = await recomputeRequestStatusAfterClaimChange(tx, 'r1', { republishExpiresAt: expiresAt });
+    expect(tx.request.update).toHaveBeenCalledWith({
+      where: { id: 'r1' },
+      data: { status: 'IN_MARKETPLACE', expiresAt },
+    });
+    expect(res.republishedExpiresAt).toEqual(expiresAt);
+  });
+
+  it('F4: OFFERS_RECEIVED cu ocupanti dar 0 oferte deschise → coboara la CLAIMED_PARTIAL', async () => {
+    const tx = makeTx({ requestStatus: 'OFFERS_RECEIVED', occupied: 1, openQuotes: 0 });
+    const res = await recomputeRequestStatusAfterClaimChange(tx, 'r1', undefined, 3);
+    expect(tx.request.update).toHaveBeenCalledWith({
+      where: { id: 'r1' },
+      data: { status: 'CLAIMED_PARTIAL' },
+    });
+    expect(res.republishedExpiresAt).toBeNull();
+  });
+
+  it('F4: NEGOTIATION cu oferte inca deschise → statusul ramane neatins', async () => {
+    const tx = makeTx({ requestStatus: 'NEGOTIATION', occupied: 2, openQuotes: 1 });
+    await recomputeRequestStatusAfterClaimChange(tx, 'r1', undefined, 3);
     expect(tx.request.update).not.toHaveBeenCalled();
   });
 });

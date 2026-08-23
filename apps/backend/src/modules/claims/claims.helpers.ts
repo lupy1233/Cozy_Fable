@@ -73,25 +73,60 @@ export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: numb
 
 // Recalcul status cerere dupa o schimbare de claim (3.1):
 //  occupied == max → CLAIMED_FULL; 0 < occupied < max → CLAIMED_PARTIAL; 0 → IN_MARKETPLACE.
-// Doar daca cererea e intr-un status de claim (nu suprascrie ACCEPTED/EXPIRED/etc.).
+// Pasul 5 (audit 2026-08-23, F4/F5) — acopera si OFFERS_RECEIVED/NEGOTIATION:
+//  - 0 ocupanti → cererea REVINE in piata; cu opts.republishExpiresAt primeste si ceas NOU
+//    de expirare (inainte ramanea zombie: nu revenea, nu expira, firmele n-o vedeau).
+//    APELANTUL programeaza jobul de expirare DUPA commit, cu valoarea intoarsa.
+//  - ocupanti dar nicio oferta deschisa (SENT/EXPIRED) pe sloturi vii → coboara la CLAIMED_*.
+// Nu suprascrie ACCEPTED/EXPIRED/DELIVERED/etc.
 export async function recomputeRequestStatusAfterClaimChange(
   tx: Tx,
   requestId: string,
+  opts?: { republishExpiresAt?: Date },
   maxClaims: number = DEFAULT_MAX_CLAIMS,
-): Promise<void> {
+): Promise<{ republishedExpiresAt: Date | null }> {
+  const none = { republishedExpiresAt: null };
   const request = await tx.request.findUnique({ where: { id: requestId } });
-  if (!request) return;
-  const claimStates = ['IN_MARKETPLACE', 'CLAIMED_PARTIAL', 'CLAIMED_FULL'] as const;
-  if (!claimStates.includes(request.status as (typeof claimStates)[number])) return;
+  if (!request || request.deletedAt) return none;
+  const claimStates = [
+    'IN_MARKETPLACE',
+    'CLAIMED_PARTIAL',
+    'CLAIMED_FULL',
+    'OFFERS_RECEIVED',
+    'NEGOTIATION',
+  ] as const;
+  if (!claimStates.includes(request.status as (typeof claimStates)[number])) return none;
 
   const occupied = await tx.claimSlot.count({
     where: { requestId, status: { in: OCCUPYING_CLAIM_STATUSES } },
   });
-  const next =
-    occupied >= maxClaims ? 'CLAIMED_FULL' : occupied > 0 ? 'CLAIMED_PARTIAL' : 'IN_MARKETPLACE';
+
+  if (occupied === 0) {
+    if (request.status === 'IN_MARKETPLACE') return none;
+    const expiresAt = opts?.republishExpiresAt ?? null;
+    await tx.request.update({
+      where: { id: requestId },
+      data: { status: 'IN_MARKETPLACE', ...(expiresAt ? { expiresAt } : {}) },
+    });
+    return { republishedExpiresAt: expiresAt };
+  }
+
+  if (request.status === 'OFFERS_RECEIVED' || request.status === 'NEGOTIATION') {
+    const openQuotes = await tx.quote.count({
+      where: {
+        requestId,
+        status: { in: ['SENT', 'EXPIRED'] },
+        claimSlot: { status: { in: OCCUPYING_CLAIM_STATUSES } },
+      },
+    });
+    if (openQuotes > 0) return none; // raman oferte vii → statusul de negociere ramane
+  }
+
+  const next = occupied >= maxClaims ? 'CLAIMED_FULL' : 'CLAIMED_PARTIAL';
   if (next !== request.status) {
     await tx.request.update({ where: { id: requestId }, data: { status: next } });
   }
+  return none;
 }
 
 // 4.11 / Î20 / D-v6-13 — dupa ce un claim rateaza SLA, daca cererea nu mai are claim activ:
@@ -103,8 +138,16 @@ export async function republishAfterMassBreach(
   newExpiresAt: Date,
 ): Promise<boolean> {
   const request = await tx.request.findUnique({ where: { id: requestId } });
-  if (!request) return false;
-  const claimStates = ['IN_MARKETPLACE', 'CLAIMED_PARTIAL', 'CLAIMED_FULL'] as const;
+  if (!request || request.deletedAt) return false;
+  // Pasul 5 (F4): si OFFERS_RECEIVED/NEGOTIATION se pot goli de ocupanti (retragere de
+  // oferta + SLA ratat) — fara ele, re-publicarea promisa de 4.11 nu se intampla niciodata.
+  const claimStates = [
+    'IN_MARKETPLACE',
+    'CLAIMED_PARTIAL',
+    'CLAIMED_FULL',
+    'OFFERS_RECEIVED',
+    'NEGOTIATION',
+  ] as const;
   if (!claimStates.includes(request.status as (typeof claimStates)[number])) return false;
 
   const occupied = await tx.claimSlot.count({

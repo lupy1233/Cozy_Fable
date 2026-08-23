@@ -1,4 +1,5 @@
-import { ForbiddenException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { ForbiddenException, HttpException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
   ERROR_CODES,
   type AdminDisputeItemDto,
@@ -6,18 +7,35 @@ import {
   type ResolveDisputeInput,
   type ReviewDto,
 } from '@marketplace/shared';
+import type { Queue } from 'bullmq';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { EventBusService } from '../../infra/event-bus/event-bus.service';
+import { QUEUE_DELIVERY_AUTOCOMPLETE } from '../../infra/queues/queues.module';
 import { CreditsService } from '../billing/credits.service';
 import type { CompanyContext } from '../../common/company-context/company-context';
+import type { DeliveryAutocompleteJob } from './delivery-autocomplete.processor';
+
+// Decizia PO 2026-08-23 (pasul 5, F1): livrarea neconfirmata de client se confirma
+// AUTOMAT la 14 zile calendaristice de la delivered_at — altfel creditele castigatorului
+// ramaneau RESERVED pe veci si recenzia era imposibila.
+export const AUTO_COMPLETE_DAYS = 14;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export function autoCompleteJobId(requestId: string, deliveredAt: Date): string {
+  return `auto-complete-${requestId}-${deliveredAt.getTime()}`;
+}
 
 // Sprint 8 — livrare → COMPLETED (cu consum credite castigator) + review + dispute (4.18).
 @Injectable()
 export class FulfillmentService {
+  private readonly logger = new Logger(FulfillmentService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventBus: EventBusService,
     private readonly credits: CreditsService,
+    @InjectQueue(QUEUE_DELIVERY_AUTOCOMPLETE)
+    private readonly autoCompleteQueue: Queue<DeliveryAutocompleteJob>,
   ) {}
 
   // Firma castigatoare marcheaza livrarea (ACCEPTED → DELIVERED_BY_COMPANY).
@@ -36,7 +54,24 @@ export class FulfillmentService {
         409,
       );
     }
-    await this.prisma.request.update({ where: { id: requestId }, data: { status: 'DELIVERED_BY_COMPANY' } });
+    const deliveredAt = new Date();
+    await this.prisma.request.update({
+      where: { id: requestId },
+      data: { status: 'DELIVERED_BY_COMPANY', deliveredAt },
+    });
+    // Pasul 5 (D-PO 2026-08-23): ceasul de auto-confirmare — daca clientul nu confirma in
+    // 14 zile, workerul finalizeaza automat (consuma creditele castigatorului + deblocheaza
+    // recenzia). jobId determinist pe delivered_at → sweep-ul de reconciliere il poate re-adauga.
+    await this.autoCompleteQueue.add(
+      'auto-complete',
+      { requestId } satisfies DeliveryAutocompleteJob,
+      {
+        delay: AUTO_COMPLETE_DAYS * DAY_MS,
+        jobId: autoCompleteJobId(requestId, deliveredAt),
+        removeOnComplete: true,
+        removeOnFail: 1000,
+      },
+    );
     // L1 (audit 2026-08-23): clientul AFLA ca trebuie sa confirme livrarea (clopotel + email)
     // — inainte broadcastul se arunca si recenzia ramanea blocata pe veci.
     // Guard pe clientUserId nullable: FARA tinte publish-ul ar deveni broadcast (aruncat).
@@ -71,20 +106,76 @@ export class FulfillmentService {
         409,
       );
     }
-    const winner = await this.prisma.$transaction(async (tx) => {
-      await tx.request.update({ where: { id: requestId }, data: { status: 'COMPLETED' } });
+    const result = await this.completeDelivered(requestId);
+    if (!result.completed) {
+      // decontat intre timp pe cealalta cale (auto-complete) → nu consumam de doua ori
+      throw new HttpException(
+        { code: ERROR_CODES.COMPLETION_NOT_ALLOWED, message: 'Request not delivered yet' },
+        409,
+      );
+    }
+    // best-effort: anuleaza ceasul de auto-confirmare (procesorul e oricum no-op pe COMPLETED)
+    if (request.deliveredAt) {
+      await this.autoCompleteQueue
+        .remove(autoCompleteJobId(requestId, request.deliveredAt))
+        .catch(() => undefined);
+    }
+    await this.notifyCompleted(requestId, request.title ?? '', result.winner, false, request.clientUserId);
+    return { status: 'COMPLETED' };
+  }
+
+  // Workerul de auto-confirmare (D-PO 2026-08-23, pasul 5): la 14 zile calendaristice de la
+  // livrare, daca clientul nu a confirmat. Idempotent — gardele reale sunt in completeDelivered.
+  async autoCompleteDelivered(requestId: string): Promise<boolean> {
+    const request = await this.prisma.request.findUnique({ where: { id: requestId } });
+    if (!request || request.deletedAt || request.status !== 'DELIVERED_BY_COMPANY') return false;
+    if (!request.deliveredAt || Date.now() < request.deliveredAt.getTime() + AUTO_COMPLETE_DAYS * DAY_MS) {
+      return false; // re-livrare cu ceas nou intre timp / job vechi
+    }
+    const result = await this.completeDelivered(requestId);
+    if (!result.completed) return false;
+    await this.notifyCompleted(requestId, request.title ?? '', result.winner, true, request.clientUserId);
+    this.logger.log(`request ${requestId} auto-COMPLETED dupa ${AUTO_COMPLETE_DAYS} zile de la livrare`);
+    return true;
+  }
+
+  // Tranzitia DELIVERED_BY_COMPANY → COMPLETED = biletul de decontare (audit 2026-08-23):
+  // updateMany conditionat pe status — doar calea care reuseste (count===1) consuma creditele
+  // castigatorului. Inchide race-ul client-confirm vs auto-complete (dublu consum).
+  private async completeDelivered(requestId: string): Promise<
+    { completed: false } | { completed: true; winner: { companyId: string; claimSlotId: string } | null }
+  > {
+    return this.prisma.$transaction(async (tx) => {
+      const res = await tx.request.updateMany({
+        where: { id: requestId, status: 'DELIVERED_BY_COMPANY', deletedAt: null },
+        data: { status: 'COMPLETED' },
+      });
+      if (res.count === 0) return { completed: false as const };
       const winning = await tx.quote.findFirst({ where: { requestId, status: 'ACCEPTED' } });
+      let winner: { companyId: string; claimSlotId: string } | null = null;
       if (winning) {
-        const slot = await tx.claimSlot.findUnique({ where: { id: winning.claimSlotId } });
-        if (slot && slot.status === 'OFFER_SENT') {
-          await tx.claimSlot.update({ where: { id: slot.id }, data: { status: 'COMPLETED' } });
+        const closed = await tx.claimSlot.updateMany({
+          where: { id: winning.claimSlotId, status: 'OFFER_SENT' },
+          data: { status: 'COMPLETED' },
+        });
+        if (closed.count === 1) {
+          const slot = await tx.claimSlot.findUniqueOrThrow({ where: { id: winning.claimSlotId } });
           await this.credits.consume(slot.companyId, slot.claimCostCreditsSnapshot, 'COMPLETED', slot.id, tx);
-          return { companyId: slot.companyId, claimSlotId: slot.id };
+          winner = { companyId: slot.companyId, claimSlotId: slot.id };
         }
       }
-      return null;
+      return { completed: true as const, winner };
     });
-    // L1 (audit 2026-08-23): firma AFLA ca lucrarea e finalizata (clopotel, tintit membrilor).
+  }
+
+  private async notifyCompleted(
+    requestId: string,
+    requestTitle: string,
+    winner: { companyId: string; claimSlotId: string } | null,
+    autoCompleted: boolean,
+    clientUserId: string | null,
+  ): Promise<void> {
+    // firma afla ca lucrarea e finalizata (clopotel, tintit membrilor)
     if (winner) {
       const members = await this.prisma.companyMember.findMany({
         where: { companyId: winner.companyId },
@@ -92,12 +183,15 @@ export class FulfillmentService {
       });
       await this.eventBus.publish(
         'delivery.confirmed',
-        { requestId, requestTitle: request.title ?? '', claimSlotId: winner.claimSlotId },
+        { requestId, requestTitle, claimSlotId: winner.claimSlotId, autoCompleted },
         members.map((m) => m.userId),
       );
     }
+    // la auto-confirmare, clientul afla ca fereastra s-a inchis si poate lasa recenzie
+    if (autoCompleted && clientUserId) {
+      await this.eventBus.publish('delivery.autocompleted', { requestId, requestTitle }, [clientUserId]);
+    }
     await this.eventBus.publish('request.status_changed', { requestId, status: 'COMPLETED' });
-    return { status: 'COMPLETED' };
   }
 
   // Clientul lasa review dupa COMPLETED; sub 3★ → dispute OPEN + request DISPUTED (4.18).
@@ -159,6 +253,18 @@ export class FulfillmentService {
       },
       members.map((m) => m.userId),
     );
+    // Pasul 5 (audit 2026-08-23): adminul AFLA de disputa noua (clopotel, /admin/disputes).
+    if (disputed) {
+      const admins = await this.prisma.user.findMany({
+        where: { role: 'ADMIN', deletedAt: null },
+        select: { id: true },
+      });
+      await this.eventBus.publish(
+        'dispute.opened',
+        { requestId, requestTitle: request.title ?? '', rating: dto.rating },
+        admins.map((a) => a.id),
+      );
+    }
     await this.eventBus.publish('request.status_changed', {
       requestId,
       status: disputed ? 'DISPUTED' : 'COMPLETED',

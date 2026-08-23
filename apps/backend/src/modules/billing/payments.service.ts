@@ -159,7 +159,25 @@ export class PaymentsService {
   }
 
   private async attachCheckout(order: MockBillingOrder, userId: string, tier: Tier | null): Promise<PurchaseResultDto> {
-    if (!this.stripe.isEnabled()) return { order: this.toDto(order, tier), checkoutUrl: null };
+    if (!this.stripe.isEnabled()) {
+      // Pasul 5 (audit 2026-08-23): pe calea transfer bancar, adminul AFLA ca o comanda
+      // asteapta confirmarea (clopotel → /admin/payments); pe calea Stripe webhookul confirma.
+      const [admins, company] = await Promise.all([
+        this.prisma.user.findMany({ where: { role: 'ADMIN', deletedAt: null }, select: { id: true } }),
+        this.prisma.company.findUnique({ where: { id: order.companyId }, select: { name: true } }),
+      ]);
+      await this.eventBus.publish(
+        'payment.pending',
+        {
+          orderId: order.id,
+          companyId: order.companyId,
+          companyName: company?.name ?? '',
+          orderType: order.orderType,
+        },
+        admins.map((a) => a.id),
+      );
+      return { order: this.toDto(order, tier), checkoutUrl: null };
+    }
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },

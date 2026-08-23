@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { Link } from '@/i18n/routing';
-import { useAdminCompany, useApproveCompany, useRejectCompany } from '@/hooks/use-company';
+import { useAdminCompany, useApproveCompany, useRejectCompany, useUnsuspendCompany } from '@/hooks/use-company';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ export default function AdminCompanyDetailPage() {
   const detail = useAdminCompany(id);
   const approve = useApproveCompany();
   const reject = useRejectCompany();
+  const unsuspend = useUnsuspendCompany();
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
 
@@ -30,6 +31,7 @@ export default function AdminCompanyDetailPage() {
   const c = detail.data;
   const riskFlags = (c.riskFlags ?? []) as CompanyRiskFlag[];
   const pending = c.status === 'PENDING_VERIFICATION';
+  const suspended = c.status === 'SUSPENDED';
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -95,6 +97,22 @@ export default function AdminCompanyDetailPage() {
           )}
           {approve.isSuccess && <p className="text-sm text-sage">{t('approved')}</p>}
           {reject.isSuccess && <p className="text-sm text-crimson">{t('rejected')}</p>}
+        </div>
+      )}
+
+      {/* Pasul 5 (F2): ridicarea suspendarii — inainte nu exista nicio cale in produs */}
+      {suspended && (
+        <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5 shadow-sm">
+          <p className="text-sm text-muted-foreground">{t('suspendedNote')}</p>
+          <Button
+            onClick={() => unsuspend.mutate(id)}
+            disabled={unsuspend.isPending}
+            className="self-start bg-sage text-white hover:brightness-110"
+          >
+            {t('unsuspend')}
+          </Button>
+          {unsuspend.isSuccess && <p className="text-sm text-sage">{t('unsuspended')}</p>}
+          {unsuspend.isError && <p className="text-sm text-crimson">{t('unsuspendError')}</p>}
         </div>
       )}
     </div>

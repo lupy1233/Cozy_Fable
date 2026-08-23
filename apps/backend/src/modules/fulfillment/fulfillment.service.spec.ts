@@ -1,0 +1,91 @@
+import { FulfillmentService, AUTO_COMPLETE_DAYS, autoCompleteJobId } from './fulfillment.service';
+
+// Pasul 5 (audit 2026-08-23, F1 + D-PO 14 zile): tranzitia DELIVERED_BY_COMPANY → COMPLETED
+// e biletul de decontare (updateMany conditionat) — client-confirm si auto-complete nu pot
+// consuma creditele castigatorului de doua ori.
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type Any = any;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function makeService(opts: {
+  request?: Any;
+  completeCount?: number;
+  slotCloseCount?: number;
+} = {}) {
+  const request = opts.request ?? {
+    id: 'r1',
+    title: 'Dressing Iasi',
+    status: 'DELIVERED_BY_COMPANY',
+    deletedAt: null,
+    clientUserId: 'u-client',
+    deliveredAt: new Date(Date.now() - (AUTO_COMPLETE_DAYS + 1) * DAY_MS),
+  };
+  const slot = { id: 'slot1', companyId: 'c1', claimCostCreditsSnapshot: 3, status: 'OFFER_SENT' };
+  const tx: Any = {
+    request: { updateMany: jest.fn().mockResolvedValue({ count: opts.completeCount ?? 1 }) },
+    quote: { findFirst: jest.fn().mockResolvedValue({ id: 'q1', claimSlotId: 'slot1' }) },
+    claimSlot: {
+      updateMany: jest.fn().mockResolvedValue({ count: opts.slotCloseCount ?? 1 }),
+      findUniqueOrThrow: jest.fn().mockResolvedValue(slot),
+    },
+  };
+  const prisma: Any = {
+    $transaction: jest.fn((fn: (t: Any) => Promise<unknown>) => fn(tx)),
+    request: { findUnique: jest.fn().mockResolvedValue(request) },
+    companyMember: { findMany: jest.fn().mockResolvedValue([{ userId: 'm1' }]) },
+    user: { findMany: jest.fn().mockResolvedValue([]) },
+  };
+  const eventBus: Any = { publish: jest.fn().mockResolvedValue(undefined) };
+  const credits: Any = { consume: jest.fn().mockResolvedValue(undefined) };
+  const queue: Any = { add: jest.fn().mockResolvedValue(undefined), remove: jest.fn().mockResolvedValue(1) };
+  const service = new FulfillmentService(prisma, eventBus, credits, queue);
+  return { service, tx, prisma, eventBus, credits, queue, request };
+}
+
+describe('FulfillmentService — auto-COMPLETED la 14 zile (D-PO 2026-08-23)', () => {
+  it('auto-complete dupa fereastra: COMPLETED conditionat + consum credite + notificari tintite', async () => {
+    const { service, tx, credits, eventBus } = makeService();
+    await expect(service.autoCompleteDelivered('r1')).resolves.toBe(true);
+    expect(tx.request.updateMany).toHaveBeenCalledWith({
+      where: { id: 'r1', status: 'DELIVERED_BY_COMPANY', deletedAt: null },
+      data: { status: 'COMPLETED' },
+    });
+    expect(credits.consume).toHaveBeenCalledWith('c1', 3, 'COMPLETED', 'slot1', expect.anything());
+    // firma afla (delivery.confirmed cu autoCompleted) + clientul afla (delivery.autocompleted)
+    const events = eventBus.publish.mock.calls.map((c: Any[]) => c[0]);
+    expect(events).toContain('delivery.confirmed');
+    expect(events).toContain('delivery.autocompleted');
+  });
+
+  it('inainte de 14 zile → no-op complet (jobul vechi / re-livrare)', async () => {
+    const { service, tx, credits } = makeService({
+      request: {
+        id: 'r1', title: 'X', status: 'DELIVERED_BY_COMPANY', deletedAt: null,
+        clientUserId: 'u-client', deliveredAt: new Date(Date.now() - 2 * DAY_MS),
+      },
+    });
+    await expect(service.autoCompleteDelivered('r1')).resolves.toBe(false);
+    expect(tx.request.updateMany).not.toHaveBeenCalled();
+    expect(credits.consume).not.toHaveBeenCalled();
+  });
+
+  it('RACE client-confirm vs auto-complete: biletul e luat (count 0) → fara consum dublu', async () => {
+    const { service, credits, eventBus } = makeService({ completeCount: 0 });
+    await expect(service.autoCompleteDelivered('r1')).resolves.toBe(false);
+    expect(credits.consume).not.toHaveBeenCalled();
+    expect(eventBus.publish).not.toHaveBeenCalled();
+  });
+
+  it('slotul deja decontat pe alta cale (count 0 pe slot) → COMPLETED fara al doilea consum', async () => {
+    const { service, credits } = makeService({ slotCloseCount: 0 });
+    await expect(service.autoCompleteDelivered('r1')).resolves.toBe(true);
+    expect(credits.consume).not.toHaveBeenCalled();
+  });
+
+  it('jobId-ul de auto-complete e determinist pe delivered_at (contract cu sweep-ul)', () => {
+    const at = new Date('2026-08-23T10:00:00Z');
+    expect(autoCompleteJobId('r1', at)).toBe(`auto-complete-r1-${at.getTime()}`);
+  });
+});

@@ -10,6 +10,8 @@ export const QUEUE_CONSULTATION_EXPIRY = 'consultation-expiry';
 export const QUEUE_SLA_BREACH = 'sla-breach';
 export const QUEUE_WITHDRAWAL_REMINDER = 'withdrawal-reminder';
 export const QUEUE_SUBSCRIPTION_EXPIRY = 'subscription-expiry';
+export const QUEUE_DELIVERY_AUTOCOMPLETE = 'delivery-autocomplete';
+export const QUEUE_RECONCILIATION = 'reconciliation';
 
 @Global()
 @Module({
@@ -33,6 +35,8 @@ export const QUEUE_SUBSCRIPTION_EXPIRY = 'subscription-expiry';
     BullModule.registerQueue({ name: QUEUE_SLA_BREACH }),
     BullModule.registerQueue({ name: QUEUE_WITHDRAWAL_REMINDER }),
     BullModule.registerQueue({ name: QUEUE_SUBSCRIPTION_EXPIRY }),
+    BullModule.registerQueue({ name: QUEUE_DELIVERY_AUTOCOMPLETE }),
+    BullModule.registerQueue({ name: QUEUE_RECONCILIATION }),
   ],
   exports: [BullModule],
 })

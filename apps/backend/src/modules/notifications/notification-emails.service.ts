@@ -27,6 +27,9 @@ const EMAILED_EVENTS = new Set([
   'payment.confirmed',
   'subscription.expiring',
   'request.expired',
+  // Pasul 5 (audit 2026-08-23)
+  'delivery.autocompleted',
+  'company.unsuspended',
 ]);
 
 // claim.withdrawn: email DOAR cand firma pierde bani/puncte; restul raman pe clopotel.
@@ -386,6 +389,28 @@ export class NotificationEmailsService {
           path: `/${lang}/marketplace/wallet`,
         };
       }
+      case 'delivery.autocompleted':
+        return {
+          subject: ro
+            ? `Comanda a fost finalizată automat — ${requestTitle}`
+            : `Your order was completed automatically — ${requestTitle}`,
+          intro: ro
+            ? `Au trecut 14 zile de la livrarea „${requestTitle}” fără o confirmare, așa că am finalizat comanda automat. Poți lăsa o recenzie despre colaborare.`
+            : `14 days passed since “${requestTitle}” was delivered without a confirmation, so we completed the order automatically. You can leave a review about the collaboration.`,
+          cta: ro ? 'Lasă o recenzie' : 'Leave a review',
+          path: `/${lang}/requests/${requestId}/offers`,
+        };
+      case 'company.unsuspended':
+        return {
+          subject: ro
+            ? `Suspendarea firmei a fost ridicată`
+            : `Your company's suspension was lifted`,
+          intro: ro
+            ? `Suspendarea firmei <strong>${companyName}</strong> a fost ridicată. Poți prelua din nou cereri din marketplace.`
+            : `The suspension of <strong>${companyName}</strong> was lifted. You can claim requests from the marketplace again.`,
+          cta: ro ? 'Deschide marketplace-ul' : 'Open the marketplace',
+          path: `/${lang}/marketplace`,
+        };
       case 'request.expired':
         return {
           subject: ro

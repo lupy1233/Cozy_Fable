@@ -54,6 +54,11 @@ const TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   'company.approved': BadgeCheck,
   'company.rejected': XCircle,
   'company.suspended': ShieldAlert,
+  'company.unsuspended': BadgeCheck,
+  'company.submitted': Handshake,
+  'delivery.autocompleted': PackageCheck,
+  'dispute.opened': AlertTriangle,
+  'payment.pending': CreditCard,
   'penalty.applied': AlertTriangle,
   'review.created': Star,
   'withdrawal.decided': Gavel,
@@ -95,7 +100,7 @@ function hrefFor(type: string, payload: Payload, role: string | undefined): stri
     if (type === 'payment.confirmed' || type === 'subscription.expiring') {
       return '/marketplace/wallet';
     }
-    if (type === 'company.approved') return '/marketplace';
+    if (type === 'company.approved' || type === 'company.unsuspended') return '/marketplace';
     if (type === 'company.rejected' || type === 'company.suspended' || type === 'penalty.applied' || type === 'review.created') {
       return '/company';
     }
@@ -104,6 +109,9 @@ function hrefFor(type: string, payload: Payload, role: string | undefined): stri
   }
   if (role === 'ADMIN') {
     if (type === 'withdrawal.reminder') return '/admin/withdrawals';
+    if (type === 'company.submitted') return '/admin/companies';
+    if (type === 'payment.pending') return '/admin/payments';
+    if (type === 'dispute.opened') return '/admin/disputes';
     return null;
   }
   return null;

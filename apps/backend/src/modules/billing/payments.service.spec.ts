@@ -98,6 +98,7 @@ function makePrisma(order: any | null, opts: { activeSub?: any } = {}) {
     },
     user: {
       findUnique: jest.fn().mockResolvedValue({ email: 'firma@demo.ro', languagePreference: 'RO' }),
+      findMany: jest.fn().mockResolvedValue([{ id: 'admin-1' }]),
     },
     companyMember: {
       findMany: jest.fn().mockResolvedValue([{ userId: 'owner-1' }]),

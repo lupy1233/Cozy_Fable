@@ -11,11 +11,13 @@ import { Prisma, type WithdrawalReasonType } from '@prisma/client';
 import type { Queue } from 'bullmq';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { EventBusService } from '../../infra/event-bus/event-bus.service';
-import { QUEUE_WITHDRAWAL_REMINDER } from '../../infra/queues/queues.module';
+import { BusinessCalendarService } from '../../infra/calendar/business-calendar.service';
+import { QUEUE_REQUEST_EXPIRATION, QUEUE_WITHDRAWAL_REMINDER } from '../../infra/queues/queues.module';
 import type { CompanyContext } from '../../common/company-context/company-context';
 import { CreditsService } from '../billing/credits.service';
 import { PenaltiesService } from '../penalties/penalties.service';
-import { OPEN_CLAIM_STATUSES } from './claims.constants';
+import type { RequestExpirationJob } from '../requests/request-expiration.processor';
+import { OPEN_CLAIM_STATUSES, REPUBLISH_EXPIRY_WORKING_DAYS } from './claims.constants';
 import { closeOpenQuotesForSlot, recomputeRequestStatusAfterClaimChange } from './claims.helpers';
 import type { WithdrawalReminderJob } from './withdrawal-reminder.processor';
 
@@ -40,8 +42,26 @@ export class WithdrawalsService {
     private readonly credits: CreditsService,
     private readonly penalties: PenaltiesService,
     private readonly eventBus: EventBusService,
+    private readonly calendar: BusinessCalendarService,
     @InjectQueue(QUEUE_WITHDRAWAL_REMINDER) private readonly reminderQueue: Queue<WithdrawalReminderJob>,
+    @InjectQueue(QUEUE_REQUEST_EXPIRATION) private readonly expirationQueue: Queue<RequestExpirationJob>,
   ) {}
+
+  // Pasul 5 (F5): cererea revenita IN_MARKETPLACE dupa retragere primeste ceas NOU de
+  // expirare — jobul se programeaza DUPA commit, cu expiresAt-ul scris de recompute.
+  private async scheduleRepublishExpiry(requestId: string, expiresAt: Date | null): Promise<void> {
+    if (!expiresAt) return;
+    await this.expirationQueue.add(
+      'expire',
+      { requestId } satisfies RequestExpirationJob,
+      {
+        delay: Math.max(0, expiresAt.getTime() - Date.now()),
+        jobId: `req-exp-${requestId}-${expiresAt.getTime()}`,
+        removeOnComplete: true,
+        removeOnFail: 1000,
+      },
+    );
+  }
 
   async request(
     ctx: CompanyContext,
@@ -136,7 +156,8 @@ export class WithdrawalsService {
     actingUserId: string,
     reasonType: WithdrawalReasonType,
   ): Promise<ClaimWithdrawalDto> {
-    const wd = await this.prisma.$transaction(async (tx) => {
+    const republishExpiresAt = this.calendar.addWorkingDays(new Date(), REPUBLISH_EXPIRY_WORKING_DAYS);
+    const { wd, recompute } = await this.prisma.$transaction(async (tx) => {
       if (!(await this.closeSlot(tx, slot.id, 'WITHDRAWN'))) {
         // slotul a fost inchis/decontat intre verificare si tranzactie → nimic de rambursat
         throw WithdrawalsService.claimNotWithdrawable();
@@ -151,9 +172,10 @@ export class WithdrawalsService {
       const w = await tx.claimWithdrawal.create({
         data: { claimSlotId: slot.id, requestedByUserId: actingUserId, reasonType, status: 'AUTO_APPROVED', refunded: true },
       });
-      await recomputeRequestStatusAfterClaimChange(tx, slot.requestId);
-      return w;
+      const r = await recomputeRequestStatusAfterClaimChange(tx, slot.requestId, { republishExpiresAt });
+      return { wd: w, recompute: r };
     });
+    await this.scheduleRepublishExpiry(slot.requestId, recompute.republishedExpiresAt);
     await this.notifyWithdrawn(slot, reasonType, true);
     return this.toDto(wd);
   }
@@ -170,7 +192,8 @@ export class WithdrawalsService {
     actingUserId: string,
   ): Promise<ClaimWithdrawalDto> {
     const withinGrace = Date.now() - slot.createdAt.getTime() < GRACE_30_MIN_MS;
-    const { wd, penalty } = await this.prisma.$transaction(async (tx) => {
+    const republishExpiresAt = this.calendar.addWorkingDays(new Date(), REPUBLISH_EXPIRY_WORKING_DAYS);
+    const { wd, penalty, recompute } = await this.prisma.$transaction(async (tx) => {
       if (!(await this.closeSlot(tx, slot.id, 'WITHDRAWN_VOLUNTARY'))) {
         // slot deja inchis (dublu request / decontat pe alta cale) → fara refund/consum dublu
         throw WithdrawalsService.claimNotWithdrawable();
@@ -197,9 +220,10 @@ export class WithdrawalsService {
           refunded: withinGrace,
         },
       });
-      await recomputeRequestStatusAfterClaimChange(tx, slot.requestId);
-      return { wd: w, penalty: penaltyResult };
+      const r = await recomputeRequestStatusAfterClaimChange(tx, slot.requestId, { republishExpiresAt });
+      return { wd: w, penalty: penaltyResult, recompute: r };
     });
+    await this.scheduleRepublishExpiry(slot.requestId, recompute.republishedExpiresAt);
     await this.notifyWithdrawn(slot, 'VOLUNTARY_NO_REASON', withinGrace);
     // L1 (audit 2026-08-23): penalizarea/suspendarea se comunica firmei dupa commit.
     if (penalty && penalty.pointsApplied > 0) {
@@ -300,6 +324,8 @@ export class WithdrawalsService {
         409,
       );
     }
+    const republishExpiresAt = this.calendar.addWorkingDays(new Date(), REPUBLISH_EXPIRY_WORKING_DAYS);
+    let republishedExpiresAt: Date | null = null;
     const updated = await this.prisma.$transaction(async (tx) => {
       // Decizia se ia O SINGURA data: updateMany conditionat pe PENDING_ADMIN_REVIEW —
       // doi admini / dublu-click concurent → al doilea vede count 0 → 409, fara refund dublu.
@@ -335,10 +361,14 @@ export class WithdrawalsService {
           wd.claimSlotId,
           tx,
         );
-        await recomputeRequestStatusAfterClaimChange(tx, wd.claimSlot.requestId);
+        const r = await recomputeRequestStatusAfterClaimChange(tx, wd.claimSlot.requestId, {
+          republishExpiresAt,
+        });
+        republishedExpiresAt = r.republishedExpiresAt;
       }
       return tx.claimWithdrawal.findUniqueOrThrow({ where: { id: withdrawalId } });
     });
+    await this.scheduleRepublishExpiry(wd.claimSlot.requestId, republishedExpiresAt);
     // L1 (audit 2026-08-23): firma AFLA decizia (aprobare SAU respingere) — clopotel + email
     // tintit membrilor; inainte respingerea nu publica absolut nimic.
     await this.eventBus.publish(

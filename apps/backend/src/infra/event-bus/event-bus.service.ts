@@ -27,7 +27,13 @@ export type DomainEvent =
   | 'request.expired'
   | 'withdrawal.decided'
   | 'payment.confirmed'
-  | 'subscription.expiring';
+  | 'subscription.expiring'
+  // Pasul 5 (audit 2026-08-23): iesiri din fundaturi + notificari admin
+  | 'delivery.autocompleted'
+  | 'company.unsuspended'
+  | 'company.submitted'
+  | 'payment.pending'
+  | 'dispute.opened';
 
 // Invarianta 3.5: TOATE evenimentele trec prin publish() —
 // emite pe Socket.IO si pune in coada de notificari. Controllerele nu emit direct.

@@ -91,14 +91,19 @@ export function useRealtimeSync(): void {
     s.on('withdrawal.reminder', onBell);
     s.on('delivery.marked', onDelivery);
     s.on('delivery.confirmed', onDelivery);
+    s.on('delivery.autocompleted', onDelivery);
     s.on('review.created', onDelivery);
     s.on('request.expired', onRequestChange);
     s.on('company.approved', onCompany);
     s.on('company.rejected', onCompany);
     s.on('company.suspended', onCompany);
+    s.on('company.unsuspended', onCompany);
     s.on('penalty.applied', onCompany);
     s.on('payment.confirmed', onBilling);
     s.on('subscription.expiring', onBilling);
+    s.on('company.submitted', onBell);
+    s.on('payment.pending', onBell);
+    s.on('dispute.opened', onBell);
     s.on('auth_expired', onAuthExpired);
 
     return () => {
@@ -113,14 +118,19 @@ export function useRealtimeSync(): void {
       s.off('withdrawal.reminder', onBell);
       s.off('delivery.marked', onDelivery);
       s.off('delivery.confirmed', onDelivery);
+      s.off('delivery.autocompleted', onDelivery);
       s.off('review.created', onDelivery);
       s.off('request.expired', onRequestChange);
       s.off('company.approved', onCompany);
       s.off('company.rejected', onCompany);
       s.off('company.suspended', onCompany);
+      s.off('company.unsuspended', onCompany);
       s.off('penalty.applied', onCompany);
       s.off('payment.confirmed', onBilling);
       s.off('subscription.expiring', onBilling);
+      s.off('company.submitted', onBell);
+      s.off('payment.pending', onBell);
+      s.off('dispute.opened', onBell);
       s.off('auth_expired', onAuthExpired);
     };
   }, [qc]);

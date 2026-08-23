@@ -259,6 +259,18 @@ export class CompaniesService {
       return company.id;
     });
 
+    // Pasul 5 (audit 2026-08-23): adminul AFLA ca o firma noua asteapta verificarea —
+    // clopotel tintit adminilor (inainte descoperea doar intrand pe /admin/companies).
+    const admins = await this.prisma.user.findMany({
+      where: { role: 'ADMIN', deletedAt: null },
+      select: { id: true },
+    });
+    await this.eventBus.publish(
+      'company.submitted',
+      { companyId, companyName: dto.name.trim() },
+      admins.map((a) => a.id),
+    );
+
     return this.getMyCompany(userId, companyId);
   }
 
@@ -642,5 +654,28 @@ export class CompaniesService {
     );
     // Blocajul de 3 luni e enforce-uit la urmatorul onboard prin rejectedAt + CUI/email.
     return { id: updated.id, status: updated.status };
+  }
+
+  // Pasul 5 (audit 2026-08-23, F2): ridicarea suspendarii de catre admin — inainte nu exista
+  // NICIO cale (nici automata, nici manuala); singura "portita" era adminApprove nedocumentat.
+  async adminUnsuspend(companyId: string): Promise<{ id: string; status: Company['status'] }> {
+    const res = await this.prisma.company.updateMany({
+      where: { id: companyId, status: 'SUSPENDED', deletedAt: null },
+      data: { status: 'APPROVED', suspendedAt: null, suspendedUntil: null },
+    });
+    if (res.count === 0) {
+      throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Company not suspended' });
+    }
+    const company = await this.prisma.company.findUniqueOrThrow({ where: { id: companyId } });
+    const members = await this.prisma.companyMember.findMany({
+      where: { companyId },
+      select: { userId: true },
+    });
+    await this.eventBus.publish(
+      'company.unsuspended',
+      { companyId, companyName: company.name },
+      members.map((m) => m.userId),
+    );
+    return { id: company.id, status: company.status };
   }
 }

@@ -535,6 +535,9 @@ model Request {
   repostUsed         Boolean       @default(false) @map("repost_used")
   publishedAt        DateTime?     @map("published_at") @db.Timestamptz()
   expiresAt          DateTime?     @map("expires_at") @db.Timestamptz()
+  // decizia PO 2026-08-23: livrarea nemarcata de client se confirma automat la 14 zile
+  // calendaristice de la delivered_at (worker delivery-autocomplete + sweep reconciliere)
+  deliveredAt        DateTime?     @map("delivered_at") @db.Timestamptz()
   createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
 

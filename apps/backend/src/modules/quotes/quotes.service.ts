@@ -56,6 +56,7 @@ import {
 } from '../claims/claims.constants';
 import {
   closeOpenQuotesForSlot,
+  recomputeRequestStatusAfterClaimChange,
   slaBreachJobOptions,
   withSerializationRetry,
 } from '../claims/claims.helpers';
@@ -484,15 +485,27 @@ export class QuotesService {
       );
     }
     const slot = await this.prisma.$transaction(async (tx) => {
-      await tx.quote.update({
-        where: { id: quote.id },
+      // updateMany conditionat (clasa biletului de decontare, audit 2026-08-23): acceptul
+      // concurent poate comite ACCEPTED — retragerea nu are voie sa-l suprascrie.
+      const q = await tx.quote.updateMany({
+        where: { id: quote.id, status: { in: ['SENT', 'EXPIRED'] } },
         data: { status: 'WITHDRAWN', withdrawnAt: new Date() },
       });
+      if (q.count === 0) {
+        throw new HttpException(
+          { code: ERROR_CODES.QUOTE_ACCEPT_NOT_ALLOWED, message: 'Quote not withdrawable' },
+          409,
+        );
+      }
       // slotul redevine ACTIVE fara oferta (firma poate trimite o noua oferta).
-      return tx.claimSlot.update({
-        where: { id: quote.claimSlotId },
+      await tx.claimSlot.updateMany({
+        where: { id: quote.claimSlotId, status: 'OFFER_SENT' },
         data: { status: 'ACTIVE', quoteId: null },
       });
+      // Pasul 5 (F4): fara nicio oferta deschisa ramasa pe cerere, statusul coboara din
+      // OFFERS_RECEIVED/NEGOTIATION la CLAIMED_* (slotul ramane ocupant → fara republish).
+      await recomputeRequestStatusAfterClaimChange(tx, quote.requestId);
+      return tx.claimSlot.findUniqueOrThrow({ where: { id: quote.claimSlotId } });
     });
     // L0-B: SLA-ul curge din nou pe slot (4.11) — (re)programeaza verificarea de ratare la
     // deadline-ul existent. Acelasi jobId → no-op daca jobul initial inca asteapta; daca a

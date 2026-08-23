@@ -89,18 +89,31 @@ export class ClarificationsService {
         409,
       );
     }
+    // Pasul 5 (audit 2026-08-23, F6): timpul NU curge in pauza — la raspuns, deadline-ul se
+    // muta inainte cu durata pauzei si verificarea de breach se REprogrameaza. Inainte, un
+    // raspuns venit dupa ce jobul vechi rulase no-op lasa slotul ACTIVE fara niciun ceas
+    // (ratarea nu se mai aplica niciodata) sau, invers, breach-ul lovea nedrept imediat.
+    const slot = clarification.claimSlot;
+    const now = new Date();
+    const shiftedDeadline =
+      slot.status === 'ACTIVE' && slot.slaPausedAt && slot.slaDeadlineAt
+        ? new Date(slot.slaDeadlineAt.getTime() + (now.getTime() - slot.slaPausedAt.getTime()))
+        : null;
     const updated = await this.prisma.$transaction(async (tx) => {
       const c = await tx.clarificationRequest.update({
         where: { id: clarificationId },
-        data: { status: 'ANSWERED', answerText: dto.answerText, answeredAt: new Date() },
+        data: { status: 'ANSWERED', answerText: dto.answerText, answeredAt: now },
       });
-      // SLA se reia (deadline-ul a fost deja extins cu +1 zi la cerere).
       await tx.claimSlot.update({
         where: { id: clarification.claimSlotId },
-        data: { slaPausedAt: null },
+        data: { slaPausedAt: null, ...(shiftedDeadline ? { slaDeadlineAt: shiftedDeadline } : {}) },
       });
       return c;
     });
+    if (shiftedDeadline) {
+      // jobId nou (include deadline-ul) → jobul vechi se auto-ignora pe deadline-ul mutat
+      await this.claims.scheduleSlaBreach(clarification.claimSlotId, shiftedDeadline);
+    }
     return this.toDto(updated);
   }
 

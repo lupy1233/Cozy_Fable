@@ -398,6 +398,12 @@
 
 **Decizie: **`CLIENT_CONTACT_INVALID` si `CLIENT_REQUESTED_CANCELLATION` nu se mai auto-aproba (nu exista bounce-log / confirmare in chat) → PENDING_ADMIN_REVIEW ca motivele CUSTOM, pana la implementarea validarii automate din 4.15.
 
+### D-L1-1. Livrare neconfirmata → auto-COMPLETED la 14 zile (2026-08-23, PO)
+
+**Decizie: **Daca clientul nu confirma livrarea in 14 zile CALENDARISTICE de la momentul in care firma a marcat-o (`requests.delivered_at`), cererea trece automat in COMPLETED: creditele castigatorului se consuma, recenzia devine posibila, clientul si firma sunt notificati (delivery.autocompleted / delivery.confirmed cu autoCompleted). Worker `delivery-autocomplete` + plasa de reconciliere orara.
+
+**Rationale: **DELIVERED_BY_COMPANY era fundatura (audit 2026-08-23, F1): fara actiunea clientului creditele ramaneau RESERVED pe veci si firma nu putea primi recenzie.
+
 # 9. Checklist uman: ce faci acum
 
 - Citește integral acest document o dată. Verifică Decisions Log (Secțiunea 8, inclusiv 8.4). Dacă o decizie te deranjează, schimb-o ACUM în document, înainte ca agentul să scrie cod.

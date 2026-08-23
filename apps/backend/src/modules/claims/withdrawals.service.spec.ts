@@ -65,9 +65,13 @@ function makeService(slot: Any, pending: Any = null) {
   };
   const penalties: Any = { applyPenalty: jest.fn().mockResolvedValue(undefined) };
   const eventBus: Any = { publish: jest.fn().mockResolvedValue(undefined) };
+  const calendar: Any = {
+    addWorkingDays: jest.fn().mockReturnValue(new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)),
+  };
   const queue: Any = { add: jest.fn().mockResolvedValue(undefined) };
-  const service = new WithdrawalsService(prisma, credits, penalties, eventBus, queue);
-  return { service, tx, prisma, credits, penalties, eventBus, queue };
+  const expirationQueue: Any = { add: jest.fn().mockResolvedValue(undefined) };
+  const service = new WithdrawalsService(prisma, credits, penalties, eventBus, calendar, queue, expirationQueue);
+  return { service, tx, prisma, credits, penalties, eventBus, queue, expirationQueue };
 }
 
 const ctx: Any = { companyId: 'c1', memberRole: 'OWNER', status: 'APPROVED' };
