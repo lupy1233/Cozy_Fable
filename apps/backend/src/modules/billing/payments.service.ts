@@ -19,6 +19,7 @@ import {
 } from '@prisma/client';
 import type Stripe from 'stripe';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { EventBusService } from '../../infra/event-bus/event-bus.service';
 import { SettingsService } from '../../common/settings/settings.service';
 import { AuditService } from '../audit/audit.service';
 import { CreditsService } from './credits.service';
@@ -44,6 +45,7 @@ export class PaymentsService {
     private readonly stripe: StripeService,
     private readonly config: ConfigService,
     private readonly audit: AuditService,
+    private readonly eventBus: EventBusService,
   ) {}
 
   async listPackages(): Promise<CreditPackageDto[]> {
@@ -260,6 +262,30 @@ export class PaymentsService {
       }
       return order;
     });
+    // L1 (audit 2026-08-23): firma AFLA ca plata a fost confirmata si factura emisa —
+    // clopotel + email tintit membrilor (valabil pe toate sursele: stripe/admin/webhook).
+    const [members, company] = await Promise.all([
+      this.prisma.companyMember.findMany({
+        where: { companyId: updated.companyId },
+        select: { userId: true },
+      }),
+      this.prisma.company.findUnique({
+        where: { id: updated.companyId },
+        select: { name: true },
+      }),
+    ]);
+    await this.eventBus.publish(
+      'payment.confirmed',
+      {
+        orderId: updated.id,
+        companyId: updated.companyId,
+        companyName: company?.name ?? '',
+        orderType: updated.orderType,
+        invoiceSeries: updated.invoiceSeries,
+        invoiceNumber: updated.invoiceNumber,
+      },
+      members.map((m) => m.userId),
+    );
     return this.toDto(updated, plan?.tier ?? null);
   }
 

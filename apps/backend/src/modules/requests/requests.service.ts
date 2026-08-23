@@ -572,8 +572,24 @@ export class RequestsService {
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: CLAIM_TX_TIMEOUT_MS },
       ),
     );
+    // L1 (audit 2026-08-23): fiecare firma afectata AFLA ca cererea a fost stearsa —
+    // tintit membrilor ei (inainte broadcast → invizibil); creditele s-au returnat.
     for (const c of cancelled) {
-      await this.eventBus.publish('claim.withdrawn', { claimSlotId: c.id, reason: 'CANCELLED_BY_CLIENT' });
+      const members = await this.prisma.companyMember.findMany({
+        where: { companyId: c.companyId },
+        select: { userId: true },
+      });
+      await this.eventBus.publish(
+        'claim.withdrawn',
+        {
+          claimSlotId: c.id,
+          requestId: id,
+          requestTitle: request.title ?? '',
+          reason: 'CANCELLED_BY_CLIENT',
+          refunded: true,
+        },
+        members.map((m) => m.userId),
+      );
     }
     await this.eventBus.publish('request.status_changed', { requestId: id, deleted: true });
     return { ok: true };

@@ -56,6 +56,8 @@ function makeService(slot: Any, pending: Any = null) {
       create: tx.claimWithdrawal.create,
       findUnique: jest.fn(),
     },
+    companyMember: { findMany: jest.fn().mockResolvedValue([{ userId: 'm1' }]) },
+    company: { findUnique: jest.fn().mockResolvedValue({ name: 'Firma Demo' }) },
   };
   const credits: Any = {
     refund: jest.fn().mockResolvedValue(undefined),

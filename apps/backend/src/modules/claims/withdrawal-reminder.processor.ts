@@ -25,13 +25,26 @@ export class WithdrawalReminderProcessor extends WorkerHost {
     const { withdrawalId } = job.data;
     const wd = await this.prisma.claimWithdrawal.findUnique({
       where: { id: withdrawalId },
-      include: { claimSlot: { select: { requestId: true } } },
+      include: {
+        claimSlot: { select: { requestId: true, request: { select: { title: true } } } },
+      },
     });
     if (!wd || wd.status !== 'PENDING_ADMIN_REVIEW') return;
-    await this.eventBus.publish('withdrawal.reminder', {
-      withdrawalId,
-      requestId: wd.claimSlot.requestId,
+    // L1 (audit 2026-08-23): reminderul ajunge la ADMINI in clopotel (inainte broadcast →
+    // aruncat; adminul nu afla decat intrand singur pe /admin/withdrawals).
+    const admins = await this.prisma.user.findMany({
+      where: { role: 'ADMIN', deletedAt: null },
+      select: { id: true },
     });
+    await this.eventBus.publish(
+      'withdrawal.reminder',
+      {
+        withdrawalId,
+        requestId: wd.claimSlot.requestId,
+        requestTitle: wd.claimSlot.request.title ?? '',
+      },
+      admins.map((a) => a.id),
+    );
     this.logger.warn(`withdrawal ${withdrawalId} still pending admin review after 48h`);
   }
 }

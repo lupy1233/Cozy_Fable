@@ -2,7 +2,28 @@
 
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
-import { Bell, Check, FileText, Handshake, Mail, MessageSquare, RefreshCw } from 'lucide-react';
+import {
+  AlertTriangle,
+  BadgeCheck,
+  Bell,
+  CalendarClock,
+  Check,
+  Clock,
+  CreditCard,
+  FileText,
+  Gavel,
+  Handshake,
+  Hourglass,
+  Mail,
+  MessageSquare,
+  PackageCheck,
+  RefreshCw,
+  ShieldAlert,
+  Star,
+  Truck,
+  Undo2,
+  XCircle,
+} from 'lucide-react';
 import { useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
 import {
@@ -27,6 +48,19 @@ const TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   'quote.accepted': Check,
   'message.created': MessageSquare,
   'claim.created': Handshake,
+  'claim.withdrawn': Undo2,
+  'delivery.marked': Truck,
+  'delivery.confirmed': PackageCheck,
+  'company.approved': BadgeCheck,
+  'company.rejected': XCircle,
+  'company.suspended': ShieldAlert,
+  'penalty.applied': AlertTriangle,
+  'review.created': Star,
+  'withdrawal.decided': Gavel,
+  'withdrawal.reminder': Clock,
+  'payment.confirmed': CreditCard,
+  'subscription.expiring': CalendarClock,
+  'request.expired': Hourglass,
 };
 
 type Payload = Record<string, unknown> | null;
@@ -36,18 +70,41 @@ const str = (p: Payload, key: string): string | null => {
   return typeof v === 'string' && v.trim() ? v : null;
 };
 
+// Varianta de titlu per payload (ex. motivul inchiderii claimului, decizia admin) —
+// cheia `type.<tip>_<varianta>` cu fallback pe `type.<tip>`.
+function titleVariant(type: string, payload: Payload): string | null {
+  if (type === 'claim.withdrawn') return str(payload, 'reason');
+  if (type === 'withdrawal.decided') return payload?.approved === true ? 'APPROVED' : 'REJECTED';
+  return null;
+}
+
 // Deep-link-ul notificarii, in functie de rolul contului.
 function hrefFor(type: string, payload: Payload, role: string | undefined): string | null {
   const requestId = str(payload, 'requestId');
+  const claimSlotId = str(payload, 'claimSlotId');
   if (role === 'CLIENT') {
     if (!requestId) return null;
-    if (type === 'request.status_changed') return `/requests/${requestId}`;
+    if (type === 'request.status_changed' || type === 'request.expired') {
+      return `/requests/${requestId}`;
+    }
     return `/requests/${requestId}/offers`;
   }
   if (role === 'COMPANY_USER') {
-    // mesajele (client sau echipa) duc in mesagerie; restul pe pagina de claims
+    // mesajele (client sau echipa) duc in mesagerie
     if (type === 'message.created') return '/marketplace/messages';
-    return '/marketplace/claims';
+    if (type === 'payment.confirmed' || type === 'subscription.expiring') {
+      return '/marketplace/wallet';
+    }
+    if (type === 'company.approved') return '/marketplace';
+    if (type === 'company.rejected' || type === 'company.suspended' || type === 'penalty.applied' || type === 'review.created') {
+      return '/company';
+    }
+    // preluari, oferte, livrari, retrageri → fisa de lucru daca avem slotul
+    return claimSlotId ? `/marketplace/claims/${claimSlotId}` : '/marketplace/claims';
+  }
+  if (role === 'ADMIN') {
+    if (type === 'withdrawal.reminder') return '/admin/withdrawals';
+    return null;
   }
   return null;
 }
@@ -154,7 +211,13 @@ export function NotificationBell() {
                   <span className="min-w-0 flex-1">
                     <span className="flex items-baseline justify-between gap-2">
                       <span className="font-medium">
-                        {t.has(`type.${n.type}`) ? t(`type.${n.type}`) : n.type}
+                        {(() => {
+                          const variant = titleVariant(n.type, n.payload);
+                          if (variant && t.has(`type.${n.type}_${variant}`)) {
+                            return t(`type.${n.type}_${variant}`);
+                          }
+                          return t.has(`type.${n.type}`) ? t(`type.${n.type}`) : n.type;
+                        })()}
                       </span>
                       <span className="shrink-0 font-mono text-[10px] text-muted-2">
                         {relTime(n.createdAt)}

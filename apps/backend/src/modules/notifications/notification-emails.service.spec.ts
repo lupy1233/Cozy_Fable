@@ -10,13 +10,16 @@ const CONFIG: Record<string, string> = {
   FRONTEND_ORIGIN: 'http://localhost:3000',
 };
 
-function makeService(users: Array<Record<string, unknown>> = []) {
+function makeService(users: Array<Record<string, unknown>> = [], members: string[] = []) {
   const prisma = {
     user: {
       findMany: jest.fn().mockResolvedValue(users),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       update: jest.fn().mockResolvedValue(undefined),
       findUnique: jest.fn().mockResolvedValue({ emailNotificationsEnabled: true }),
+    },
+    companyMember: {
+      findMany: jest.fn().mockResolvedValue(members.map((userId) => ({ userId }))),
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
@@ -119,6 +122,91 @@ describe('selectia destinatarilor (sendForEvent)', () => {
     const { service, prisma } = makeService([radu]);
     await service.sendForEvent('quote.updated', ['u-client'], { clientUserId: 'u-client' });
     expect(prisma.user.findMany).not.toHaveBeenCalled();
+  });
+
+  // --- L1 (audit 2026-08-23): evenimente noi + escape + terminologie ---
+
+  it('quote.accepted → email DOAR membrilor firmei castigatoare (identificata prin companyId)', async () => {
+    const { service, prisma } = makeService(
+      [{ id: 'm1', email: 'firma@demo.ro', name: 'Ana', languagePreference: 'RO' }],
+      ['m1', 'm2'],
+    );
+    await service.sendForEvent('quote.accepted', ['u-client', 'm1', 'm2', 'alt-participant'], {
+      companyId: 'c1',
+      clientUserId: 'u-client',
+      requestTitle: 'Dressing Iasi',
+      companyName: 'B DesignWood',
+      requestId: 'r1',
+      claimSlotId: 'slot1',
+    });
+    expect(prisma.companyMember.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { companyId: 'c1' } }),
+    );
+    expect(prisma.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: { in: ['m1', 'm2'] } }),
+      }),
+    );
+  });
+
+  it('claim.withdrawn cu SLA_EXPIRED trimite email; retragerea voluntara NU (doar clopotel)', async () => {
+    const member = { id: 'm1', email: 'firma@demo.ro', name: 'Ana', languagePreference: 'RO' };
+    const { service, mail } = makeService([member]);
+    await service.sendForEvent('claim.withdrawn', ['m1'], {
+      reason: 'SLA_EXPIRED',
+      requestTitle: 'Dressing Iasi',
+      requestId: 'r1',
+      claimSlotId: 'slot1',
+    });
+    expect(mail.send).toHaveBeenCalledTimes(1);
+    expect(mail.send.mock.calls[0][1]).toContain('Termenul de ofertare');
+
+    mail.send.mockClear();
+    await service.sendForEvent('claim.withdrawn', ['m1'], {
+      reason: 'VOLUNTARY_NO_REASON',
+      requestId: 'r1',
+    });
+    expect(mail.send).not.toHaveBeenCalled();
+  });
+
+  it('valorile interpolate sunt escapate (anti HTML-injection) si terminologia e "firma"', async () => {
+    const { service, mail } = makeService([radu]);
+    await service.sendForEvent('quote.created', ['u-client'], {
+      clientUserId: 'u-client',
+      requestTitle: '<img src=x onerror=alert(1)>',
+      companyName: '<b>Evil</b> & Co',
+      requestId: 'r1',
+    });
+    const [, , html] = mail.send.mock.calls[0];
+    expect(html).not.toContain('<img src=x');
+    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(html).toContain('&lt;b&gt;Evil&lt;/b&gt; &amp; Co');
+    expect(html).toContain('Firma');
+    expect(html).not.toMatch(/atelier/i);
+  });
+
+  it('company.approved / delivery.marked / payment.confirmed au template si pleaca spre tinte', async () => {
+    const member = { id: 'm1', email: 'firma@demo.ro', name: 'Ana', languagePreference: 'RO' };
+    const { service, mail } = makeService([member]);
+    await service.sendForEvent('company.approved', ['m1'], { companyId: 'c1', companyName: 'B DesignWood' });
+    await service.sendForEvent('payment.confirmed', ['m1'], {
+      companyId: 'c1',
+      orderType: 'SUBSCRIPTION',
+      invoiceSeries: 'MM',
+      invoiceNumber: 42,
+    });
+    const { service: s2, mail: mail2 } = makeService([radu]);
+    await s2.sendForEvent('delivery.marked', ['u-client'], {
+      clientUserId: 'u-client',
+      requestTitle: 'Dressing Iasi',
+      companyName: 'B DesignWood',
+      requestId: 'r1',
+    });
+    expect(mail.send).toHaveBeenCalledTimes(2);
+    expect(mail.send.mock.calls[0][1]).toContain('aprobată');
+    expect(mail.send.mock.calls[1][2]).toContain('MM-42');
+    expect(mail2.send).toHaveBeenCalledTimes(1);
+    expect(mail2.send.mock.calls[0][2]).toContain('/ro/requests/r1/offers');
   });
 
   it('emailul contine deep-link si link de dezabonare semnat; esecul SMTP nu arunca', async () => {

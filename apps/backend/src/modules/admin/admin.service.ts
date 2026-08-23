@@ -21,6 +21,7 @@ import {
   QUEUE_QUOTE_VALIDITY,
   QUEUE_REQUEST_EXPIRATION,
   QUEUE_SLA_BREACH,
+  QUEUE_SUBSCRIPTION_EXPIRY,
   QUEUE_WITHDRAWAL_REMINDER,
 } from '../../infra/queues/queues.module';
 
@@ -37,6 +38,7 @@ export class AdminService {
     @InjectQueue(QUEUE_QUOTE_VALIDITY) quoteValidity: Queue,
     @InjectQueue(QUEUE_CONSULTATION_EXPIRY) consultationExpiry: Queue,
     @InjectQueue(QUEUE_WITHDRAWAL_REMINDER) withdrawalReminder: Queue,
+    @InjectQueue(QUEUE_SUBSCRIPTION_EXPIRY) subscriptionExpiry: Queue,
   ) {
     this.queues = {
       [QUEUE_NOTIFICATIONS]: notifications,
@@ -46,6 +48,7 @@ export class AdminService {
       [QUEUE_QUOTE_VALIDITY]: quoteValidity,
       [QUEUE_CONSULTATION_EXPIRY]: consultationExpiry,
       [QUEUE_WITHDRAWAL_REMINDER]: withdrawalReminder,
+      [QUEUE_SUBSCRIPTION_EXPIRY]: subscriptionExpiry,
     };
   }
 

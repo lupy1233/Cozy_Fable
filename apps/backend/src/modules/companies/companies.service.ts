@@ -15,6 +15,7 @@ import type {
 } from '@marketplace/shared';
 import type { Company, CompanyMemberRole } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { EventBusService } from '../../infra/event-bus/event-bus.service';
 import { SubscriptionsService } from '../billing/subscriptions.service';
 import {
   defaultOfferFieldPermissions,
@@ -40,6 +41,7 @@ export class CompaniesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly subscriptions: SubscriptionsService,
+    private readonly eventBus: EventBusService,
   ) {}
 
   private normalizeCui(cui: string): string {
@@ -593,6 +595,16 @@ export class CompaniesService {
       await this.subscriptions.startTrialIfEnabled(companyId, tx);
       return c;
     });
+    // L1 (audit 2026-08-23): firma AFLA ca a fost aprobata — clopotel + email, tintit membrilor.
+    const members = await this.prisma.companyMember.findMany({
+      where: { companyId },
+      select: { userId: true },
+    });
+    await this.eventBus.publish(
+      'company.approved',
+      { companyId, companyName: company.name },
+      members.map((m) => m.userId),
+    );
     return { id: updated.id, status: updated.status };
   }
 
@@ -618,6 +630,16 @@ export class CompaniesService {
       });
       return c;
     });
+    // L1 (audit 2026-08-23): firma AFLA ca a fost respinsa si DE CE — clopotel + email.
+    const members = await this.prisma.companyMember.findMany({
+      where: { companyId },
+      select: { userId: true },
+    });
+    await this.eventBus.publish(
+      'company.rejected',
+      { companyId, companyName: company.name, reason: dto.reason.trim() },
+      members.map((m) => m.userId),
+    );
     // Blocajul de 3 luni e enforce-uit la urmatorul onboard prin rejectedAt + CUI/email.
     return { id: updated.id, status: updated.status };
   }

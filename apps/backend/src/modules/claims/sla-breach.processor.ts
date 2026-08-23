@@ -45,7 +45,7 @@ export class SlaBreachProcessor extends WorkerHost {
     const result = await this.prisma.$transaction(async (tx) => {
       const claim = await tx.claimSlot.findUnique({
         where: { id: claimSlotId },
-        include: { request: { select: { status: true, deletedAt: true } } },
+        include: { request: { select: { status: true, deletedAt: true, title: true } } },
       });
       if (!claim || claim.status !== 'ACTIVE') return null; // oferta trimisa / anulat
       // L0-B: cererea a fost deja atribuita/livrata sau stearsa → sloturile nealese s-au
@@ -73,7 +73,7 @@ export class SlaBreachProcessor extends WorkerHost {
         claimSlotId,
         tx,
       );
-      await this.penalties.applyPenalty(
+      const penalty = await this.penalties.applyPenalty(
         { companyId: claim.companyId, ruleKey: 'SLA_MISS', claimSlotId, reason: 'SLA breach' },
         tx,
       );
@@ -81,7 +81,14 @@ export class SlaBreachProcessor extends WorkerHost {
       const newExpiry = this.calendar.addWorkingDays(new Date(), REPUBLISH_EXPIRY_WORKING_DAYS);
       const republished = await republishAfterMassBreach(tx, claim.requestId, newExpiry);
       if (!republished) await recomputeRequestStatusAfterClaimChange(tx, claim.requestId);
-      return { requestId: claim.requestId, companyId: claim.companyId, republished, newExpiry };
+      return {
+        requestId: claim.requestId,
+        requestTitle: claim.request.title ?? '',
+        companyId: claim.companyId,
+        republished,
+        newExpiry,
+        penalty,
+      };
     });
 
     if (!result) return;
@@ -93,7 +100,53 @@ export class SlaBreachProcessor extends WorkerHost {
         { delay, jobId: `req-exp-${result.requestId}-${result.newExpiry.getTime()}`, removeOnComplete: true },
       );
     }
-    await this.eventBus.publish('claim.withdrawn', { claimSlotId, reason: 'SLA_EXPIRED' });
+    // L1 (audit 2026-08-23): firma AFLA ca a ratat SLA — clopotel + email TINTIT membrilor
+    // (inainte: broadcast aruncat de procesorul de notificari; firma pierdea credite si
+    // puncte fara nicio instiintare).
+    const members = await this.prisma.companyMember.findMany({
+      where: { companyId: result.companyId },
+      select: { userId: true },
+    });
+    const memberIds = members.map((m) => m.userId);
+    await this.eventBus.publish(
+      'claim.withdrawn',
+      {
+        claimSlotId,
+        requestId: result.requestId,
+        requestTitle: result.requestTitle,
+        reason: 'SLA_EXPIRED',
+      },
+      memberIds,
+    );
+    if (result.penalty.pointsApplied > 0) {
+      await this.eventBus.publish(
+        'penalty.applied',
+        {
+          companyId: result.companyId,
+          claimSlotId,
+          requestId: result.requestId,
+          requestTitle: result.requestTitle,
+          ruleKey: 'SLA_MISS',
+          points: result.penalty.pointsApplied,
+        },
+        memberIds,
+      );
+    }
+    if (result.penalty.suspended) {
+      const company = await this.prisma.company.findUnique({
+        where: { id: result.companyId },
+        select: { name: true },
+      });
+      await this.eventBus.publish(
+        'company.suspended',
+        {
+          companyId: result.companyId,
+          companyName: company?.name ?? '',
+          suspendedUntil: result.penalty.suspendedUntil?.toISOString() ?? null,
+        },
+        memberIds,
+      );
+    }
     await this.eventBus.publish('request.status_changed', {
       requestId: result.requestId,
       republished: result.republished,

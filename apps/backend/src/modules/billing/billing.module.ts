@@ -11,6 +11,7 @@ import { SubscriptionsService } from './subscriptions.service';
 import { PaymentsService } from './payments.service';
 import { InvoicePdfService } from './invoice-pdf.service';
 import { StripeService } from './stripe.service';
+import { SubscriptionExpiryProcessor } from './subscription-expiry.processor';
 import { CompanyApprovedGuard } from '../../common/guards/company-approved.guard';
 import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.interceptor';
 
@@ -23,6 +24,7 @@ import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.int
     PaymentsService,
     InvoicePdfService,
     StripeService,
+    SubscriptionExpiryProcessor,
     CompanyApprovedGuard,
     IdempotencyInterceptor,
   ],

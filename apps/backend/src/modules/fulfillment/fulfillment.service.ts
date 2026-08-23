@@ -24,6 +24,7 @@ export class FulfillmentService {
   async markDelivered(ctx: CompanyContext, requestId: string): Promise<{ status: string }> {
     const quote = await this.prisma.quote.findFirst({
       where: { requestId, companyId: ctx.companyId, status: 'ACCEPTED' },
+      include: { company: { select: { name: true } } },
     });
     if (!quote) {
       throw new ForbiddenException({ code: ERROR_CODES.DELIVERY_NOT_ALLOWED, message: 'No accepted offer for your company' });
@@ -36,6 +37,21 @@ export class FulfillmentService {
       );
     }
     await this.prisma.request.update({ where: { id: requestId }, data: { status: 'DELIVERED_BY_COMPANY' } });
+    // L1 (audit 2026-08-23): clientul AFLA ca trebuie sa confirme livrarea (clopotel + email)
+    // — inainte broadcastul se arunca si recenzia ramanea blocata pe veci.
+    // Guard pe clientUserId nullable: FARA tinte publish-ul ar deveni broadcast (aruncat).
+    if (request.clientUserId) {
+      await this.eventBus.publish(
+        'delivery.marked',
+        {
+          requestId,
+          requestTitle: request.title ?? '',
+          companyName: quote.company.name,
+          clientUserId: request.clientUserId,
+        },
+        [request.clientUserId],
+      );
+    }
     await this.eventBus.publish('request.status_changed', { requestId, status: 'DELIVERED_BY_COMPANY' });
     return { status: 'DELIVERED_BY_COMPANY' };
   }
@@ -55,7 +71,7 @@ export class FulfillmentService {
         409,
       );
     }
-    await this.prisma.$transaction(async (tx) => {
+    const winner = await this.prisma.$transaction(async (tx) => {
       await tx.request.update({ where: { id: requestId }, data: { status: 'COMPLETED' } });
       const winning = await tx.quote.findFirst({ where: { requestId, status: 'ACCEPTED' } });
       if (winning) {
@@ -63,9 +79,23 @@ export class FulfillmentService {
         if (slot && slot.status === 'OFFER_SENT') {
           await tx.claimSlot.update({ where: { id: slot.id }, data: { status: 'COMPLETED' } });
           await this.credits.consume(slot.companyId, slot.claimCostCreditsSnapshot, 'COMPLETED', slot.id, tx);
+          return { companyId: slot.companyId, claimSlotId: slot.id };
         }
       }
+      return null;
     });
+    // L1 (audit 2026-08-23): firma AFLA ca lucrarea e finalizata (clopotel, tintit membrilor).
+    if (winner) {
+      const members = await this.prisma.companyMember.findMany({
+        where: { companyId: winner.companyId },
+        select: { userId: true },
+      });
+      await this.eventBus.publish(
+        'delivery.confirmed',
+        { requestId, requestTitle: request.title ?? '', claimSlotId: winner.claimSlotId },
+        members.map((m) => m.userId),
+      );
+    }
     await this.eventBus.publish('request.status_changed', { requestId, status: 'COMPLETED' });
     return { status: 'COMPLETED' };
   }
@@ -113,6 +143,22 @@ export class FulfillmentService {
       }
       return r;
     });
+    // L1 (audit 2026-08-23): firma AFLA ca a primit o recenzie (clopotel, tintit membrilor).
+    const members = await this.prisma.companyMember.findMany({
+      where: { companyId: winning.companyId },
+      select: { userId: true },
+    });
+    await this.eventBus.publish(
+      'review.created',
+      {
+        requestId,
+        requestTitle: request.title ?? '',
+        claimSlotId: winning.claimSlotId,
+        rating: dto.rating,
+        disputed,
+      },
+      members.map((m) => m.userId),
+    );
     await this.eventBus.publish('request.status_changed', {
       requestId,
       status: disputed ? 'DISPUTED' : 'COMPLETED',

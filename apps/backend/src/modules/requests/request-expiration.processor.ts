@@ -31,6 +31,16 @@ export class RequestExpirationProcessor extends WorkerHost {
       where: { id: requestId },
       data: { status: 'EXPIRED' },
     });
+    // L1 (audit 2026-08-23): clientul AFLA ca cererea i-a expirat (clopotel + email) —
+    // inainte astepta 5 zile si nu primea nimic; broadcastul ramane pt. marketplace.
+    // Guard pe clientUserId nullable: FARA tinte publish-ul ar deveni broadcast (aruncat).
+    if (request.clientUserId) {
+      await this.eventBus.publish(
+        'request.expired',
+        { requestId, requestTitle: request.title ?? '' },
+        [request.clientUserId],
+      );
+    }
     await this.eventBus.publish('request.status_changed', {
       requestId,
       status: 'EXPIRED',

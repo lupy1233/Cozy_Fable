@@ -78,6 +78,19 @@ export const configSchema = z.object({
         message: 'obligatorie in productie (openssl rand -hex 32)',
       });
     }
+    // In productie SMTP-ul de dev (Mailpit/localhost) inseamna ca TOATE emailurile
+    // (verificare cont, reset parola, notificari) se inghit tacut — exact P0-ul din
+    // auditul 2026-08-19; boot abort in loc de esec silentios (audit 2026-08-23).
+    if (cfg.NODE_ENV === 'production') {
+      const host = cfg.SMTP_HOST.trim().toLowerCase();
+      if (host === 'mailpit' || host === 'localhost' || host === '127.0.0.1' || host === '::1') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['SMTP_HOST'],
+          message: 'SMTP de dev (Mailpit/localhost) in productie — seteaza un provider SMTP real',
+        });
+      }
+    }
     if ((cfg.STRIPE_SECRET_KEY ? 1 : 0) + (cfg.STRIPE_WEBHOOK_SECRET ? 1 : 0) === 1) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

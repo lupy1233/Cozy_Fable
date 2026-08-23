@@ -99,6 +99,12 @@ function makePrisma(order: any | null, opts: { activeSub?: any } = {}) {
     user: {
       findUnique: jest.fn().mockResolvedValue({ email: 'firma@demo.ro', languagePreference: 'RO' }),
     },
+    companyMember: {
+      findMany: jest.fn().mockResolvedValue([{ userId: 'owner-1' }]),
+    },
+    company: {
+      findUnique: jest.fn().mockResolvedValue({ name: 'Mobila Demo SRL' }),
+    },
     stripeEvent: {
       findUnique: jest.fn(async ({ where }: any) => (state.events.has(where.id) ? { id: where.id } : null)),
       create: jest.fn(async ({ data }: any) => {
@@ -130,9 +136,10 @@ const config = { getOrThrow: jest.fn(() => 'https://app.cozyhome.ro/') } as unkn
 function build(prisma: any, stripe: any) {
   const credits = { grant: jest.fn().mockResolvedValue(undefined), ensureWallet: jest.fn() } as unknown as CreditsService & { grant: jest.Mock };
   const audit = { log: jest.fn().mockResolvedValue(undefined) } as unknown as AuditService & { log: jest.Mock };
+  const eventBus = { publish: jest.fn().mockResolvedValue(undefined) } as any;
   const subscriptions = new SubscriptionsService(prisma as PrismaService, settings, credits);
-  const service = new PaymentsService(prisma as PrismaService, settings, credits, subscriptions, stripe, config, audit);
-  return { service, credits, audit, subscriptions };
+  const service = new PaymentsService(prisma as PrismaService, settings, credits, subscriptions, stripe, config, audit, eventBus);
+  return { service, credits, audit, subscriptions, eventBus };
 }
 
 function completedEvent(over: Partial<Stripe.Checkout.Session> = {}, type: string = 'checkout.session.completed', id = 'evt_1'): Stripe.Event {

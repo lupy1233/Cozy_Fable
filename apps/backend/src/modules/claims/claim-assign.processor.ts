@@ -28,10 +28,10 @@ export class ClaimAssignProcessor extends WorkerHost {
 
   async process(job: Job<ClaimAssignJob>): Promise<void> {
     const { claimSlotId } = job.data;
-    const requestId = await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const claim = await tx.claimSlot.findUnique({
         where: { id: claimSlotId },
-        include: { request: { select: { status: true, deletedAt: true } } },
+        include: { request: { select: { status: true, deletedAt: true, title: true } } },
       });
       if (!claim || claim.status !== 'ACTIVE' || claim.assignedToUserId !== null) {
         return null; // a fost atribuit/anulat intre timp
@@ -56,11 +56,32 @@ export class ClaimAssignProcessor extends WorkerHost {
         tx,
       );
       await recomputeRequestStatusAfterClaimChange(tx, claim.requestId);
-      return claim.requestId;
+      return {
+        requestId: claim.requestId,
+        requestTitle: claim.request.title ?? '',
+        companyId: claim.companyId,
+      };
     });
 
-    if (requestId) {
-      await this.eventBus.publish('claim.withdrawn', { claimSlotId, reason: 'UNASSIGNED_1H' });
+    if (result) {
+      // L1 (audit 2026-08-23): tintit membrilor firmei (inainte broadcast → invizibil);
+      // + request.status_changed broadcast ca marketplace-ul sa vada slotul eliberat.
+      const members = await this.prisma.companyMember.findMany({
+        where: { companyId: result.companyId },
+        select: { userId: true },
+      });
+      await this.eventBus.publish(
+        'claim.withdrawn',
+        {
+          claimSlotId,
+          requestId: result.requestId,
+          requestTitle: result.requestTitle,
+          reason: 'UNASSIGNED_1H',
+          refunded: true,
+        },
+        members.map((m) => m.userId),
+      );
+      await this.eventBus.publish('request.status_changed', { requestId: result.requestId });
       this.logger.debug(`claim ${claimSlotId} auto-cancelled (unassigned 1h)`);
     }
   }

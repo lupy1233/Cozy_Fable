@@ -126,7 +126,13 @@ export class WithdrawalsService {
   }
 
   private async autoApproveRefund(
-    slot: { id: string; companyId: string; requestId: string; claimCostCreditsSnapshot: number },
+    slot: {
+      id: string;
+      companyId: string;
+      requestId: string;
+      claimCostCreditsSnapshot: number;
+      request: { title: string | null };
+    },
     actingUserId: string,
     reasonType: WithdrawalReasonType,
   ): Promise<ClaimWithdrawalDto> {
@@ -148,20 +154,28 @@ export class WithdrawalsService {
       await recomputeRequestStatusAfterClaimChange(tx, slot.requestId);
       return w;
     });
-    await this.notifyWithdrawn(slot.id, slot.requestId, reasonType);
+    await this.notifyWithdrawn(slot, reasonType, true);
     return this.toDto(wd);
   }
 
   private async handleVoluntary(
-    slot: { id: string; companyId: string; requestId: string; claimCostCreditsSnapshot: number; createdAt: Date },
+    slot: {
+      id: string;
+      companyId: string;
+      requestId: string;
+      claimCostCreditsSnapshot: number;
+      createdAt: Date;
+      request: { title: string | null };
+    },
     actingUserId: string,
   ): Promise<ClaimWithdrawalDto> {
     const withinGrace = Date.now() - slot.createdAt.getTime() < GRACE_30_MIN_MS;
-    const wd = await this.prisma.$transaction(async (tx) => {
+    const { wd, penalty } = await this.prisma.$transaction(async (tx) => {
       if (!(await this.closeSlot(tx, slot.id, 'WITHDRAWN_VOLUNTARY'))) {
         // slot deja inchis (dublu request / decontat pe alta cale) → fara refund/consum dublu
         throw WithdrawalsService.claimNotWithdrawable();
       }
+      let penaltyResult = null;
       if (withinGrace) {
         // refund integral + 0 penalizare (misclick / razgandire rapida, Î18)
         await this.credits.refund(slot.companyId, slot.claimCostCreditsSnapshot, 'WITHDRAWAL_VOLUNTARY_GRACE', slot.id, tx);
@@ -169,7 +183,7 @@ export class WithdrawalsService {
         // dupa gratie: fara refund → creditele rezervate se CONSUMA definitiv (altfel raman
         // RESERVED la infinit in portofel, L0-B) + 2 puncte penalizare firma (4.12)
         await this.credits.consume(slot.companyId, slot.claimCostCreditsSnapshot, 'WITHDRAWAL_VOLUNTARY_LATE', slot.id, tx);
-        await this.penalties.applyPenalty(
+        penaltyResult = await this.penalties.applyPenalty(
           { companyId: slot.companyId, ruleKey: 'VOLUNTARY_WITHDRAWAL', claimSlotId: slot.id, reason: 'Voluntary withdrawal after grace' },
           tx,
         );
@@ -184,9 +198,40 @@ export class WithdrawalsService {
         },
       });
       await recomputeRequestStatusAfterClaimChange(tx, slot.requestId);
-      return w;
+      return { wd: w, penalty: penaltyResult };
     });
-    await this.notifyWithdrawn(slot.id, slot.requestId, 'VOLUNTARY_NO_REASON');
+    await this.notifyWithdrawn(slot, 'VOLUNTARY_NO_REASON', withinGrace);
+    // L1 (audit 2026-08-23): penalizarea/suspendarea se comunica firmei dupa commit.
+    if (penalty && penalty.pointsApplied > 0) {
+      const memberIds = await this.companyMemberIds(slot.companyId);
+      await this.eventBus.publish(
+        'penalty.applied',
+        {
+          companyId: slot.companyId,
+          claimSlotId: slot.id,
+          requestId: slot.requestId,
+          requestTitle: slot.request.title ?? '',
+          ruleKey: 'VOLUNTARY_WITHDRAWAL',
+          points: penalty.pointsApplied,
+        },
+        memberIds,
+      );
+      if (penalty.suspended) {
+        const company = await this.prisma.company.findUnique({
+          where: { id: slot.companyId },
+          select: { name: true },
+        });
+        await this.eventBus.publish(
+          'company.suspended',
+          {
+            companyId: slot.companyId,
+            companyName: company?.name ?? '',
+            suspendedUntil: penalty.suspendedUntil?.toISOString() ?? null,
+          },
+          memberIds,
+        );
+      }
+    }
     return this.toDto(wd);
   }
 
@@ -236,7 +281,7 @@ export class WithdrawalsService {
   ): Promise<ClaimWithdrawalDto> {
     const wd = await this.prisma.claimWithdrawal.findUnique({
       where: { id: withdrawalId },
-      include: { claimSlot: true },
+      include: { claimSlot: { include: { request: { select: { title: true } } } } },
     });
     if (!wd) {
       throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Withdrawal not found' });
@@ -294,8 +339,21 @@ export class WithdrawalsService {
       }
       return tx.claimWithdrawal.findUniqueOrThrow({ where: { id: withdrawalId } });
     });
+    // L1 (audit 2026-08-23): firma AFLA decizia (aprobare SAU respingere) — clopotel + email
+    // tintit membrilor; inainte respingerea nu publica absolut nimic.
+    await this.eventBus.publish(
+      'withdrawal.decided',
+      {
+        withdrawalId,
+        claimSlotId: wd.claimSlotId,
+        requestId: wd.claimSlot.requestId,
+        requestTitle: wd.claimSlot.request.title ?? '',
+        approved: dto.approve,
+      },
+      await this.companyMemberIds(wd.claimSlot.companyId),
+    );
     if (dto.approve) {
-      await this.notifyWithdrawn(wd.claimSlotId, wd.claimSlot.requestId, wd.reasonType);
+      await this.eventBus.publish('request.status_changed', { requestId: wd.claimSlot.requestId });
     }
     return this.toDto(updated);
   }
@@ -339,9 +397,33 @@ export class WithdrawalsService {
     return rows.map((w) => this.toDto(w));
   }
 
-  private async notifyWithdrawn(claimSlotId: string, requestId: string, reason: string): Promise<void> {
-    await this.eventBus.publish('claim.withdrawn', { claimSlotId, reason });
-    await this.eventBus.publish('request.status_changed', { requestId });
+  private async companyMemberIds(companyId: string): Promise<string[]> {
+    const members = await this.prisma.companyMember.findMany({
+      where: { companyId },
+      select: { userId: true },
+    });
+    return members.map((m) => m.userId);
+  }
+
+  // L1 (audit 2026-08-23): claim.withdrawn TINTIT membrilor firmei (inainte broadcast →
+  // procesorul de notificari il arunca); + broadcast request.status_changed pt. marketplace.
+  private async notifyWithdrawn(
+    slot: { id: string; companyId: string; requestId: string; request: { title: string | null } },
+    reason: string,
+    refunded: boolean,
+  ): Promise<void> {
+    await this.eventBus.publish(
+      'claim.withdrawn',
+      {
+        claimSlotId: slot.id,
+        requestId: slot.requestId,
+        requestTitle: slot.request.title ?? '',
+        reason,
+        refunded,
+      },
+      await this.companyMemberIds(slot.companyId),
+    );
+    await this.eventBus.publish('request.status_changed', { requestId: slot.requestId });
   }
 
   private toDto(w: {

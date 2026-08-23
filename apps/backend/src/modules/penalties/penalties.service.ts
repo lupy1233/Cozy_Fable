@@ -26,6 +26,15 @@ export interface ApplyPenaltyInput {
   reason?: string;
 }
 
+// L1 (audit 2026-08-23): applyPenalty ruleaza IN tranzactia apelantului, deci nu poate
+// publica evenimente (post-commit). Intoarce rezultatul ca APELANTUL sa notifice firma
+// (penalty.applied / company.suspended) dupa ce tranzactia a fost comisa.
+export interface ApplyPenaltyResult {
+  pointsApplied: number;
+  suspended: boolean;
+  suspendedUntil: Date | null;
+}
+
 @Injectable()
 export class PenaltiesService {
   private readonly logger = new Logger(PenaltiesService.name);
@@ -36,11 +45,11 @@ export class PenaltiesService {
   ) {}
 
   // Aplica o penalizare si (pentru scope COMPANY) verifica pragul de suspendare.
-  async applyPenalty(input: ApplyPenaltyInput, tx?: Tx): Promise<void> {
+  async applyPenalty(input: ApplyPenaltyInput, tx?: Tx): Promise<ApplyPenaltyResult> {
     const db = tx ?? this.prisma;
     const scope = input.scope ?? 'COMPANY';
     const points = await this.pointsFor(input.ruleKey, db);
-    if (points <= 0) return;
+    if (points <= 0) return { pointsApplied: 0, suspended: false, suspendedUntil: null };
     const now = new Date();
     await db.penaltyEvent.create({
       data: {
@@ -56,8 +65,10 @@ export class PenaltiesService {
       },
     });
     if (scope === 'COMPANY') {
-      await this.enforceCompanyThreshold(input.companyId, db);
+      const suspension = await this.enforceCompanyThreshold(input.companyId, db);
+      return { pointsApplied: points, ...suspension };
     }
+    return { pointsApplied: points, suspended: false, suspendedUntil: null };
   }
 
   private async pointsFor(ruleKey: string, db: Tx | PrismaService): Promise<number> {
@@ -67,13 +78,17 @@ export class PenaltiesService {
   }
 
   // Prag firma (4.12): SUM(puncte COMPANY active) >= 12 → SUSPENDED N luni.
-  private async enforceCompanyThreshold(companyId: string, db: Tx | PrismaService): Promise<void> {
+  private async enforceCompanyThreshold(
+    companyId: string,
+    db: Tx | PrismaService,
+  ): Promise<{ suspended: boolean; suspendedUntil: Date | null }> {
+    const none = { suspended: false, suspendedUntil: null };
     const threshold = await this.settings.getInt('company_penalty_threshold', 12);
     const months = await this.settings.getInt('company_suspension_months', 6);
     const active = await this.activePoints(companyId, db);
-    if (active < threshold) return;
+    if (active < threshold) return none;
     const company = await db.company.findUnique({ where: { id: companyId } });
-    if (!company || company.status === 'SUSPENDED') return;
+    if (!company || company.status === 'SUSPENDED') return none;
     const now = new Date();
     const until = new Date(now);
     until.setMonth(until.getMonth() + months);
@@ -82,6 +97,7 @@ export class PenaltiesService {
       data: { status: 'SUSPENDED', suspendedAt: now, suspendedUntil: until },
     });
     this.logger.warn(`company ${companyId} SUSPENDED until ${until.toISOString()} (${active} pts)`);
+    return { suspended: true, suspendedUntil: until };
   }
 
   private async activePoints(companyId: string, db: Tx | PrismaService): Promise<number> {

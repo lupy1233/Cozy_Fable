@@ -703,6 +703,10 @@ export class QuotesService {
         requestId: quote.requestId,
         requestTitle,
         companyName: display?.company.name ?? '',
+        // L1 (audit 2026-08-23): emailul "oferta ta a fost acceptata" pleaca DOAR catre
+        // membrii firmei castigatoare — identificata prin companyId (vezi recipientsFor).
+        companyId: quote.companyId,
+        claimSlotId: quote.claimSlotId,
       },
       targets,
     );

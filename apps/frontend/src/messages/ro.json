@@ -1518,11 +1518,44 @@
         "created": "Mesaj nou"
       },
       "request": {
-        "status_changed": "Statusul cererii s-a schimbat"
+        "status_changed": "Statusul cererii s-a schimbat",
+        "expired": "Cererea ta a expirat"
       },
       "claim": {
         "created": "Cerere preluată de o firmă",
-        "withdrawn": "Preluare retrasă"
+        "withdrawn": "Preluare închisă",
+        "withdrawn_SLA_EXPIRED": "Termen SLA depășit — preluare închisă",
+        "withdrawn_UNASSIGNED_1H": "Preluare anulată — neatribuită într-o oră",
+        "withdrawn_CANCELLED_BY_CLIENT": "Clientul a șters cererea",
+        "withdrawn_REQUEST_ACCEPTED_OTHER_OFFER": "Clientul a ales altă ofertă",
+        "withdrawn_VOLUNTARY_NO_REASON": "Preluare retrasă voluntar"
+      },
+      "delivery": {
+        "marked": "Livrare de confirmat",
+        "confirmed": "Livrare confirmată de client"
+      },
+      "company": {
+        "approved": "Firma ta a fost aprobată",
+        "rejected": "Înregistrarea firmei a fost respinsă",
+        "suspended": "Firma ta a fost suspendată"
+      },
+      "penalty": {
+        "applied": "Penalizare aplicată"
+      },
+      "review": {
+        "created": "Recenzie nouă"
+      },
+      "withdrawal": {
+        "decided": "Decizie la retragerea preluării",
+        "decided_APPROVED": "Retragere aprobată — credite returnate",
+        "decided_REJECTED": "Retragere respinsă",
+        "reminder": "Retragere în așteptare de peste 48h"
+      },
+      "payment": {
+        "confirmed": "Plată confirmată — factură emisă"
+      },
+      "subscription": {
+        "expiring": "Abonamentul expiră în curând"
       }
     }
   },

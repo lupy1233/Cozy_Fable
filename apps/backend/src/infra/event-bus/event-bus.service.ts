@@ -13,7 +13,21 @@ export type DomainEvent =
   | 'message.created'
   | 'request.status_changed'
   | 'sla.expiring_soon'
-  | 'withdrawal.reminder';
+  | 'withdrawal.reminder'
+  // L1 notificari tintite (audit 2026-08-23): fiecare moment vizibil utilizatorului are tip
+  // distinct + targetUserIds — NU refolosi request.status_changed generic (broadcastul se
+  // arunca la persistare). Vezi IMPACT eveniment nou in Codex.
+  | 'company.approved'
+  | 'company.rejected'
+  | 'company.suspended'
+  | 'penalty.applied'
+  | 'delivery.marked'
+  | 'delivery.confirmed'
+  | 'review.created'
+  | 'request.expired'
+  | 'withdrawal.decided'
+  | 'payment.confirmed'
+  | 'subscription.expiring';
 
 // Invarianta 3.5: TOATE evenimentele trec prin publish() —
 // emite pe Socket.IO si pune in coada de notificari. Controllerele nu emit direct.

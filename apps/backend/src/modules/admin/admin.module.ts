@@ -9,6 +9,7 @@ import {
   QUEUE_QUOTE_VALIDITY,
   QUEUE_REQUEST_EXPIRATION,
   QUEUE_SLA_BREACH,
+  QUEUE_SUBSCRIPTION_EXPIRY,
   QUEUE_WITHDRAWAL_REMINDER,
 } from '../../infra/queues/queues.module';
 import { AdminController } from './admin.controller';
@@ -27,6 +28,7 @@ import { AdminService } from './admin.service';
       { name: QUEUE_QUOTE_VALIDITY },
       { name: QUEUE_CONSULTATION_EXPIRY },
       { name: QUEUE_WITHDRAWAL_REMINDER },
+      { name: QUEUE_SUBSCRIPTION_EXPIRY },
     ),
   ],
   controllers: [AdminController, AdminSubscriptionsController],

@@ -1518,11 +1518,44 @@
         "created": "New message"
       },
       "request": {
-        "status_changed": "Request status changed"
+        "status_changed": "Request status changed",
+        "expired": "Your request expired"
       },
       "claim": {
         "created": "Request claimed by a company",
-        "withdrawn": "Claim withdrawn"
+        "withdrawn": "Claim closed",
+        "withdrawn_SLA_EXPIRED": "SLA deadline missed — claim closed",
+        "withdrawn_UNASSIGNED_1H": "Claim cancelled — unassigned for an hour",
+        "withdrawn_CANCELLED_BY_CLIENT": "The client deleted the request",
+        "withdrawn_REQUEST_ACCEPTED_OTHER_OFFER": "The client chose another offer",
+        "withdrawn_VOLUNTARY_NO_REASON": "Claim withdrawn voluntarily"
+      },
+      "delivery": {
+        "marked": "Delivery to confirm",
+        "confirmed": "Delivery confirmed by the client"
+      },
+      "company": {
+        "approved": "Your company was approved",
+        "rejected": "Your company registration was rejected",
+        "suspended": "Your company was suspended"
+      },
+      "penalty": {
+        "applied": "Penalty applied"
+      },
+      "review": {
+        "created": "New review"
+      },
+      "withdrawal": {
+        "decided": "Withdrawal decision",
+        "decided_APPROVED": "Withdrawal approved — credits refunded",
+        "decided_REJECTED": "Withdrawal rejected",
+        "reminder": "Withdrawal pending for over 48h"
+      },
+      "payment": {
+        "confirmed": "Payment confirmed — invoice issued"
+      },
+      "subscription": {
+        "expiring": "Subscription expiring soon"
       }
     }
   },
