@@ -40,10 +40,14 @@ export class ClaimAssignProcessor extends WorkerHost {
       if (claim.request.deletedAt !== null || REQUEST_SETTLED_STATUSES.includes(claim.request.status)) {
         return null;
       }
-      await tx.claimSlot.update({
-        where: { id: claimSlotId },
+      // updateMany conditionat: tranzitia de status = biletul unic de decontare. Slot
+      // atribuit/inchis (retragere, accept) intre citirea de mai sus si scriere → count 0,
+      // fara refund (anti dubla decontare, audit 2026-08-23).
+      const res = await tx.claimSlot.updateMany({
+        where: { id: claimSlotId, status: 'ACTIVE', assignedToUserId: null },
         data: { status: 'CANCELLED_UNASSIGNED', withdrawnAt: new Date() },
       });
+      if (res.count === 0) return null;
       await this.credits.refund(
         claim.companyId,
         claim.claimCostCreditsSnapshot,

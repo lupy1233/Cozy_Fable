@@ -78,6 +78,7 @@ export function useWithdrawClaim(claimSlotId: string) {
     mutationFn: (input: RequestWithdrawalInput) =>
       api<ClaimWithdrawalDto>(`/claims/${claimSlotId}/withdraw`, {
         method: 'POST',
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
         body: JSON.stringify(input),
       }),
     onSuccess: () => invalidateAll(qc),

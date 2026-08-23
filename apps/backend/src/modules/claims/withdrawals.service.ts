@@ -131,7 +131,10 @@ export class WithdrawalsService {
     reasonType: WithdrawalReasonType,
   ): Promise<ClaimWithdrawalDto> {
     const wd = await this.prisma.$transaction(async (tx) => {
-      await this.closeSlot(tx, slot.id, 'WITHDRAWN');
+      if (!(await this.closeSlot(tx, slot.id, 'WITHDRAWN'))) {
+        // slotul a fost inchis/decontat intre verificare si tranzactie → nimic de rambursat
+        throw WithdrawalsService.claimNotWithdrawable();
+      }
       await this.credits.refund(
         slot.companyId,
         slot.claimCostCreditsSnapshot,
@@ -155,7 +158,10 @@ export class WithdrawalsService {
   ): Promise<ClaimWithdrawalDto> {
     const withinGrace = Date.now() - slot.createdAt.getTime() < GRACE_30_MIN_MS;
     const wd = await this.prisma.$transaction(async (tx) => {
-      await this.closeSlot(tx, slot.id, 'WITHDRAWN_VOLUNTARY');
+      if (!(await this.closeSlot(tx, slot.id, 'WITHDRAWN_VOLUNTARY'))) {
+        // slot deja inchis (dublu request / decontat pe alta cale) → fara refund/consum dublu
+        throw WithdrawalsService.claimNotWithdrawable();
+      }
       if (withinGrace) {
         // refund integral + 0 penalizare (misclick / razgandire rapida, Î18)
         await this.credits.refund(slot.companyId, slot.claimCostCreditsSnapshot, 'WITHDRAWAL_VOLUNTARY_GRACE', slot.id, tx);
@@ -250,8 +256,33 @@ export class WithdrawalsService {
       );
     }
     const updated = await this.prisma.$transaction(async (tx) => {
+      // Decizia se ia O SINGURA data: updateMany conditionat pe PENDING_ADMIN_REVIEW —
+      // doi admini / dublu-click concurent → al doilea vede count 0 → 409, fara refund dublu.
+      const decided = await tx.claimWithdrawal.updateMany({
+        where: { id: withdrawalId, status: 'PENDING_ADMIN_REVIEW' },
+        data: {
+          status: dto.approve ? 'ADMIN_APPROVED' : 'ADMIN_REJECTED',
+          refunded: dto.approve,
+          reviewedByUserId: adminUserId,
+          reviewedAt: new Date(),
+          adminNote: dto.adminNote ?? null,
+        },
+      });
+      if (decided.count === 0) {
+        throw new HttpException(
+          { code: ERROR_CODES.WITHDRAWAL_ALREADY_DECIDED, message: 'Withdrawal already decided' },
+          409,
+        );
+      }
       if (dto.approve) {
-        await this.closeSlot(tx, wd.claimSlotId, 'WITHDRAWN');
+        // Slot decontat intre timp pe alta cale (accept/SLA/stergere) → 409 cu rollback:
+        // retragerea ramane PENDING (adminul respinge in schimb) si NU se face refund dublu.
+        if (!(await this.closeSlot(tx, wd.claimSlotId, 'WITHDRAWN'))) {
+          throw new HttpException(
+            { code: ERROR_CODES.CLAIM_NOT_WITHDRAWABLE, message: 'Claim already closed; reject instead' },
+            409,
+          );
+        }
         await this.credits.refund(
           wd.claimSlot.companyId,
           wd.claimSlot.claimCostCreditsSnapshot,
@@ -261,16 +292,7 @@ export class WithdrawalsService {
         );
         await recomputeRequestStatusAfterClaimChange(tx, wd.claimSlot.requestId);
       }
-      return tx.claimWithdrawal.update({
-        where: { id: withdrawalId },
-        data: {
-          status: dto.approve ? 'ADMIN_APPROVED' : 'ADMIN_REJECTED',
-          refunded: dto.approve,
-          reviewedByUserId: adminUserId,
-          reviewedAt: new Date(),
-          adminNote: dto.adminNote ?? null,
-        },
-      });
+      return tx.claimWithdrawal.findUniqueOrThrow({ where: { id: withdrawalId } });
     });
     if (dto.approve) {
       await this.notifyWithdrawn(wd.claimSlotId, wd.claimSlot.requestId, wd.reasonType);
@@ -280,16 +302,29 @@ export class WithdrawalsService {
 
   // Inchide slotul cu statusul dat; daca avea oferta trimisa (OFFER_SENT), ofertele deschise
   // devin WITHDRAWN si thread-ul read-only — clientul nu le mai poate accepta (L0-B).
+  // updateMany CONDITIONAT pe status deschis: tranzitia e "biletul" unic de decontare —
+  // doar cine o reuseste (count===1) misca creditele. Slot inchis intre timp pe alta cale
+  // (dublu request, accept, SLA, stergere) → false, apelantul NU deconteaza (anti dubla
+  // rambursare — invarianta 3.1 / IMPACT credite pct. 2).
   private async closeSlot(
     tx: Tx,
     claimSlotId: string,
     status: 'WITHDRAWN' | 'WITHDRAWN_VOLUNTARY',
-  ): Promise<void> {
-    await tx.claimSlot.update({
-      where: { id: claimSlotId },
+  ): Promise<boolean> {
+    const res = await tx.claimSlot.updateMany({
+      where: { id: claimSlotId, status: { in: OPEN_CLAIM_STATUSES } },
       data: { status, withdrawnAt: new Date() },
     });
+    if (res.count === 0) return false;
     await closeOpenQuotesForSlot(tx, claimSlotId, 'WITHDRAWN');
+    return true;
+  }
+
+  private static claimNotWithdrawable(): HttpException {
+    return new HttpException(
+      { code: ERROR_CODES.CLAIM_NOT_WITHDRAWABLE, message: 'Claim is not withdrawable' },
+      409,
+    );
   }
 
   async listForClaim(ctx: CompanyContext, claimSlotId: string): Promise<ClaimWithdrawalDto[]> {

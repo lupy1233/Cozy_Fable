@@ -5,13 +5,18 @@ import { WithdrawalsService } from './withdrawals.service';
 //  - CLIENT_CONTACT_INVALID / CLIENT_REQUESTED_CANCELLATION → PENDING_ADMIN_REVIEW (nu auto);
 //  - retragerea unui slot OFFER_SENT inchide ofertele (WITHDRAWN) + thread read-only;
 //  - admin approve pe slot deja inchis → 409 (fara refund dublu).
+// Audit 2026-08-23 (anti dubla rambursare): tranzitia de status a slotului = biletul unic
+// de decontare (updateMany conditionat); count 0 → 409 fara nicio miscare de credite.
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Any = any;
 
 function makeService(slot: Any, pending: Any = null) {
   const tx: Any = {
-    claimSlot: { update: jest.fn().mockResolvedValue(undefined), count: jest.fn().mockResolvedValue(1) },
+    claimSlot: {
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      count: jest.fn().mockResolvedValue(1),
+    },
     claimWithdrawal: {
       create: jest.fn().mockImplementation(({ data }: Any) =>
         Promise.resolve({
@@ -24,14 +29,18 @@ function makeService(slot: Any, pending: Any = null) {
           ...data,
         }),
       ),
-      update: jest.fn().mockImplementation(({ data }: Any) =>
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      findUniqueOrThrow: jest.fn().mockImplementation(({ where }: Any) =>
         Promise.resolve({
-          id: 'wd1',
+          id: where.id,
           claimSlotId: slot.id,
           reasonType: 'CUSTOM',
+          status: 'ADMIN_APPROVED',
           customReason: null,
+          refunded: true,
+          adminNote: null,
+          reviewedAt: new Date(),
           createdAt: new Date(),
-          ...data,
         }),
       ),
     },
@@ -105,7 +114,7 @@ describe('WithdrawalsService (L0-B)', () => {
       const wd = await service.request(ctx, 'u1', 's1', { reasonType } as Any);
       expect(wd.status).toBe('PENDING_ADMIN_REVIEW');
       expect(wd.reasonType).toBe(reasonType);
-      expect(tx.claimSlot.update).not.toHaveBeenCalled();
+      expect(tx.claimSlot.updateMany).not.toHaveBeenCalled();
       expect(credits.refund).not.toHaveBeenCalled();
       expect(queue.add).toHaveBeenCalledWith('remind', { withdrawalId: 'wd1' }, expect.objectContaining({ jobId: 'wd-rem-wd1' }));
     },
@@ -120,8 +129,11 @@ describe('WithdrawalsService (L0-B)', () => {
     const { service, tx, credits } = makeService(s);
     const wd = await service.request(ctx, 'u1', 's1', { reasonType: 'CLIENT_UNRESPONSIVE_48H' } as Any);
     expect(wd.status).toBe('AUTO_APPROVED');
-    expect(tx.claimSlot.update).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: 's1' }, data: expect.objectContaining({ status: 'WITHDRAWN' }) }),
+    expect(tx.claimSlot.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 's1', status: { in: ['ACTIVE', 'OFFER_SENT'] } },
+        data: expect.objectContaining({ status: 'WITHDRAWN' }),
+      }),
     );
     expect(tx.quote.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -169,5 +181,65 @@ describe('WithdrawalsService (L0-B)', () => {
     expect(res.status).toBe('ADMIN_APPROVED');
     expect(credits.refund).toHaveBeenCalledWith('c1', 3, 'WITHDRAWAL_ADMIN_APPROVED', 's1', expect.anything());
     expect(tx.quote.updateMany).toHaveBeenCalled();
+  });
+
+  // --- audit 2026-08-23: race-uri de dubla decontare ---
+
+  it('RACE dublu withdraw: slotul e inchis intre verificare si tranzactie (count 0) → 409, zero miscari de credite', async () => {
+    const { service, tx, credits, penalties } = makeService(slot());
+    tx.claimSlot.updateMany.mockResolvedValue({ count: 0 });
+    await expect(
+      service.request(ctx, 'u1', 's1', { reasonType: 'VOLUNTARY_NO_REASON' } as Any),
+    ).rejects.toMatchObject({ status: 409, response: { code: 'CLAIM_NOT_WITHDRAWABLE' } });
+    expect(credits.refund).not.toHaveBeenCalled();
+    expect(credits.consume).not.toHaveBeenCalled();
+    expect(penalties.applyPenalty).not.toHaveBeenCalled();
+    expect(tx.claimWithdrawal.create).not.toHaveBeenCalled();
+  });
+
+  it('RACE auto-refund: slot inchis intre timp (count 0) → 409, fara refund si fara rand de retragere', async () => {
+    const s = slot({ chatThread: { lastClientMessageAt: new Date(Date.now() - 72 * 60 * 60 * 1000) } });
+    const { service, tx, credits } = makeService(s);
+    tx.claimSlot.updateMany.mockResolvedValue({ count: 0 });
+    await expect(
+      service.request(ctx, 'u1', 's1', { reasonType: 'CLIENT_UNRESPONSIVE_48H' } as Any),
+    ).rejects.toMatchObject({ status: 409, response: { code: 'CLAIM_NOT_WITHDRAWABLE' } });
+    expect(credits.refund).not.toHaveBeenCalled();
+    expect(tx.claimWithdrawal.create).not.toHaveBeenCalled();
+  });
+
+  it('RACE doi admini decid simultan: updateMany pe retragere count 0 → 409 WITHDRAWAL_ALREADY_DECIDED, fara refund', async () => {
+    const { service, prisma, tx, credits } = makeService(slot());
+    prisma.claimWithdrawal.findUnique.mockResolvedValue({
+      id: 'wd1',
+      claimSlotId: 's1',
+      status: 'PENDING_ADMIN_REVIEW',
+      reasonType: 'CUSTOM',
+      claimSlot: slot(),
+    });
+    tx.claimWithdrawal.updateMany.mockResolvedValue({ count: 0 });
+    await expect(service.adminReview('admin', 'wd1', { approve: true })).rejects.toMatchObject({
+      status: 409,
+      response: { code: 'WITHDRAWAL_ALREADY_DECIDED' },
+    });
+    expect(credits.refund).not.toHaveBeenCalled();
+    expect(tx.claimSlot.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('RACE admin approve vs decontare concurenta: slotul se inchide pe alta cale in timpul tx (count 0) → 409, fara refund', async () => {
+    const { service, prisma, tx, credits } = makeService(slot());
+    prisma.claimWithdrawal.findUnique.mockResolvedValue({
+      id: 'wd1',
+      claimSlotId: 's1',
+      status: 'PENDING_ADMIN_REVIEW',
+      reasonType: 'CUSTOM',
+      claimSlot: slot(), // deschis la pre-check; se inchide concurent in tx
+    });
+    tx.claimSlot.updateMany.mockResolvedValue({ count: 0 });
+    await expect(service.adminReview('admin', 'wd1', { approve: true })).rejects.toMatchObject({
+      status: 409,
+      response: { code: 'CLAIM_NOT_WITHDRAWABLE' },
+    });
+    expect(credits.refund).not.toHaveBeenCalled();
   });
 });

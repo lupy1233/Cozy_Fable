@@ -526,11 +526,15 @@ export class RequestsService {
       const claims = await tx.claimSlot.findMany({
         where: { requestId: id, status: { in: ['ACTIVE', 'OFFER_SENT'] } },
       });
+      const closed: typeof claims = [];
       for (const c of claims) {
-        await tx.claimSlot.update({
-          where: { id: c.id },
+        // updateMany conditionat: slot decontat intre timp pe alta cale (retragere/SLA)
+        // → count 0, fara refund dublu (audit 2026-08-23); tranzitia = biletul de decontare.
+        const res = await tx.claimSlot.updateMany({
+          where: { id: c.id, status: { in: ['ACTIVE', 'OFFER_SENT'] } },
           data: { status: 'CANCELLED_BY_CLIENT', withdrawnAt: new Date() },
         });
+        if (res.count === 0) continue;
         // ofertele deschise ale slotului nu mai pot fi acceptate; chat read-only (L0-B)
         await closeOpenQuotesForSlot(tx, c.id, 'WITHDRAWN');
         await this.credits.refund(
@@ -540,9 +544,10 @@ export class RequestsService {
           c.id,
           tx,
         );
+        closed.push(c);
       }
       await tx.request.update({ where: { id }, data: { deletedAt: new Date() } });
-      return claims;
+      return closed;
     });
     for (const c of cancelled) {
       await this.eventBus.publish('claim.withdrawn', { claimSlotId: c.id, reason: 'CANCELLED_BY_CLIENT' });

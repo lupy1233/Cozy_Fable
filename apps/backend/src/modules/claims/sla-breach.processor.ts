@@ -57,10 +57,14 @@ export class SlaBreachProcessor extends WorkerHost {
       if (!claim.slaDeadlineAt) return null;
       if (Date.now() < claim.slaDeadlineAt.getTime() + SLA_GRACE_MS) return null; // extins intre timp
 
-      await tx.claimSlot.update({
-        where: { id: claimSlotId },
+      // updateMany conditionat: oferta trimisa / retragere / inchidere comisa intre citirea
+      // de mai sus si scriere → count 0, fara consum/penalizare (anti dubla decontare,
+      // audit 2026-08-23).
+      const res = await tx.claimSlot.updateMany({
+        where: { id: claimSlotId, status: 'ACTIVE' },
         data: { status: 'SLA_EXPIRED', withdrawnAt: new Date() },
       });
+      if (res.count === 0) return null;
       // credite consumate definitiv (firma a esuat sa livreze oferta).
       await this.credits.consume(
         claim.companyId,

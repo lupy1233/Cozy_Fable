@@ -1,7 +1,10 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { UserRole } from '@prisma/client';
 import { Audit } from '../audit/audit.decorator';
 import { AuditInterceptor } from '../audit/audit.interceptor';
+import { Idempotent } from '../../common/idempotency/idempotent.decorator';
+import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.interceptor';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { AccessTokenPayload } from '../auth/auth.constants';
@@ -42,7 +45,12 @@ export class ClaimLifecycleController {
     return this.clarifications.listForClaim(ctx, id);
   }
 
+  // POST critic pe bani (refund/consum credite) — Idempotency-Key (3.2) + rate limit,
+  // ca la POST /claims (anti dubla retragere, audit 2026-08-23).
   @Post(':id/withdraw')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Idempotent()
+  @UseInterceptors(IdempotencyInterceptor)
   withdraw(
     @CurrentCompany() ctx: CompanyContext,
     @CurrentUser() user: AccessTokenPayload,
