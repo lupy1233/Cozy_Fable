@@ -21,6 +21,10 @@ const idem = () => ({ 'Idempotency-Key': crypto.randomUUID() });
 function invalidate(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: QUOTES_KEY });
   qc.invalidateQueries({ queryKey: ['chat'] });
+  // mutatiile pe oferte schimba si statusul cererii (OFFERS_RECEIVED/NEGOTIATION/ACCEPTED) —
+  // fara invalidare, fisa si listele aratau statusul vechi dupa accept (audit 2026-08-23, P0 UX)
+  qc.invalidateQueries({ queryKey: ['request'] });
+  qc.invalidateQueries({ queryKey: ['requests'] });
 }
 
 // ===== firma =====

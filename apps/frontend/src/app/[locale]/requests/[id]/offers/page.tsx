@@ -70,6 +70,11 @@ export default function RequestOffersPage() {
     () => new Map((quotes.data ?? []).map((q) => [q.claimSlotId, q])),
     [quotes.data],
   );
+  // firma castigatoare — pentru panoul "ce urmeaza" de dupa acceptare
+  const acceptedQuote = useMemo(
+    () => (quotes.data ?? []).find((q) => q.status === 'ACCEPTED') ?? null,
+    [quotes.data],
+  );
 
   if (quotes.isPending || request.isPending || threads.isPending) {
     return <p className="py-20 text-center text-muted-foreground">{t('loading')}</p>;
@@ -89,7 +94,17 @@ export default function RequestOffersPage() {
 
       <ClientClarifications requestId={id} />
 
-      {request.data && <ClientFulfillment requestId={id} status={request.data.status} />}
+      {request.data && (
+        <ClientFulfillment
+          requestId={id}
+          status={request.data.status}
+          acceptedCompany={
+            acceptedQuote
+              ? { name: acceptedQuote.companyName, claimSlotId: acceptedQuote.claimSlotId }
+              : null
+          }
+        />
+      )}
 
       {requestThreads.length === 0 && (
         <p className="rounded-xl border border-border bg-surface px-4 py-10 text-center text-sm text-muted-foreground">
@@ -103,7 +118,8 @@ export default function RequestOffersPage() {
         return (
           <section
             key={thread.id}
-            className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm"
+            id={`firm-${thread.claimSlotId}`}
+            className="scroll-mt-24 overflow-hidden rounded-xl border border-border bg-surface shadow-sm"
           >
             {/* antetul atelierului: nume + status parcurs + ultimul mesaj */}
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-surface-2 px-4 py-3">

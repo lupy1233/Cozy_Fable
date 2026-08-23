@@ -2,16 +2,72 @@
 
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { ApiError } from '@/lib/api';
 import { useConfirmDelivery, useCreateReview, useReview } from '@/hooks/use-fulfillment';
 
-// Sectiune client pe pagina de oferte: confirmare livrare (DELIVERED_BY_COMPANY) + review (COMPLETED).
-export function ClientFulfillment({ requestId, status }: { requestId: string; status: string }) {
+// Sectiune client pe pagina de oferte: pasii de dupa acceptare (ACCEPTED/IN_EXECUTION),
+// confirmare livrare (DELIVERED_BY_COMPANY) + review (COMPLETED/DISPUTED).
+export function ClientFulfillment({
+  requestId,
+  status,
+  acceptedCompany,
+}: {
+  requestId: string;
+  status: string;
+  // firma castigatoare — pentru panoul "ce urmeaza" + ancora spre conversatia ei
+  acceptedCompany?: { name: string; claimSlotId: string } | null;
+}) {
   const t = useTranslations('Fulfillment');
   const confirm = useConfirmDelivery();
   const review = useReview(requestId);
   const createReview = useCreateReview(requestId);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
+  // audit 2026-08-23: sub 3 stele se deschide automat o disputa — avertizam inainte de trimitere
+  const [lowRatingWarned, setLowRatingWarned] = useState(false);
+  const lowRating = rating <= 2;
+  const apiErr = (m: { error: unknown }) =>
+    m.error instanceof ApiError
+      ? t.has(`apiErrors.${m.error.code}`)
+        ? t(`apiErrors.${m.error.code}`)
+        : t('apiErrors.INTERNAL_ERROR')
+      : m.error
+        ? t('apiErrors.INTERNAL_ERROR')
+        : null;
+
+  // audit 2026-08-23 (P0 UX): dupa acceptare clientul vedea un gol total — panou "ce urmeaza"
+  if (status === 'ACCEPTED' || status === 'IN_EXECUTION') {
+    return (
+      <section className="rounded-xl border border-sage/30 bg-sage-soft p-4">
+        <h2 className="font-serif text-lg text-sage">{t('acceptedTitle')}</h2>
+        <p className="mt-1 text-sm">
+          {acceptedCompany
+            ? t('acceptedIntro', { company: acceptedCompany.name })
+            : t('acceptedIntroNoName')}
+        </p>
+        <ol className="mt-3 flex flex-col gap-2 text-sm">
+          {[t('acceptedStep1'), t('acceptedStep2'), t('acceptedStep3'), t('acceptedStep4')].map(
+            (step, i) => (
+              <li key={i} className="flex gap-2.5">
+                <span className="grid h-5 w-5 flex-none place-items-center rounded-full bg-sage/15 font-serif text-[11px] text-sage">
+                  {i + 1}
+                </span>
+                <span>{step}</span>
+              </li>
+            ),
+          )}
+        </ol>
+        {acceptedCompany && (
+          <a
+            href={`#firm-${acceptedCompany.claimSlotId}`}
+            className="mt-3 inline-block text-sm font-medium text-walnut hover:underline"
+          >
+            {t('acceptedOpenChat', { company: acceptedCompany.name })} ↓
+          </a>
+        )}
+      </section>
+    );
+  }
 
   if (status === 'DELIVERED_BY_COMPANY') {
     return (
@@ -25,6 +81,7 @@ export function ClientFulfillment({ requestId, status }: { requestId: string; st
         >
           {t('confirmDelivery')}
         </button>
+        {apiErr(confirm) && <p className="mt-2 text-sm text-crimson">{apiErr(confirm)}</p>}
       </section>
     );
   }
@@ -50,7 +107,16 @@ export function ClientFulfillment({ requestId, status }: { requestId: string; st
         <h2 className="font-serif text-lg text-sage">{t('reviewTitle')}</h2>
         <div className="flex gap-1 text-2xl">
           {[1, 2, 3, 4, 5].map((n) => (
-            <button key={n} onClick={() => setRating(n)} className={n <= rating ? 'text-brass' : 'text-border-2'}>
+            <button
+              key={n}
+              onClick={() => {
+                setRating(n);
+                setLowRatingWarned(false);
+              }}
+              aria-label={t('ratingStar', { n })}
+              aria-pressed={n <= rating}
+              className={n <= rating ? 'text-brass' : 'text-border-2'}
+            >
               ★
             </button>
           ))}
@@ -62,13 +128,35 @@ export function ClientFulfillment({ requestId, status }: { requestId: string; st
           placeholder={t('reviewPlaceholder')}
           className="rounded-md border border-border-2 bg-surface px-3 py-2 text-sm focus-visible:border-foreground focus-visible:outline-none"
         />
-        <button
-          onClick={() => createReview.mutate({ rating, comment: comment.trim() || undefined })}
-          disabled={createReview.isPending}
-          className="self-start rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-ink-2 disabled:opacity-50"
-        >
-          {t('sendReview')}
-        </button>
+        {lowRatingWarned && lowRating && (
+          <div className="rounded-md border border-amber/25 bg-amber-soft px-3 py-2 text-sm text-amber">
+            {t('lowRatingWarning')}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => {
+              if (lowRating && !lowRatingWarned) {
+                setLowRatingWarned(true);
+                return;
+              }
+              createReview.mutate({ rating, comment: comment.trim() || undefined });
+            }}
+            disabled={createReview.isPending}
+            className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-ink-2 disabled:opacity-50"
+          >
+            {lowRatingWarned && lowRating ? t('lowRatingConfirm') : t('sendReview')}
+          </button>
+          {lowRatingWarned && lowRating && (
+            <button
+              onClick={() => setLowRatingWarned(false)}
+              className="rounded-lg border border-border-2 bg-surface px-4 py-2 text-sm transition-colors hover:bg-secondary"
+            >
+              {t('lowRatingCancel')}
+            </button>
+          )}
+        </div>
+        {apiErr(createReview) && <p className="text-sm text-crimson">{apiErr(createReview)}</p>}
       </section>
     );
   }

@@ -15,6 +15,14 @@ import {
   useWithdrawQuote,
 } from '@/hooks/use-quotes';
 import { OfferBuilder } from './offer-builder';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
@@ -162,8 +170,12 @@ function ClientActions({ quote, pendingChange }: { quote: QuoteDto; pendingChang
   const change = useRequestChange();
   const current = quote.versions.reduce((a, b) => (b.version > a.version ? b : a), quote.versions[0]);
   const [text, setText] = useState('');
+  // audit 2026-08-23 (P0 UX): acceptul e ireversibil si deconteaza creditele celorlalte
+  // firme — niciodata dintr-un singur click; dialog de confirmare cu consecintele pe fata.
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const acceptable = quote.status === 'SENT' && current && !current.isExpired;
   const canRequestChange = quote.status === 'SENT' && !pendingChange && !quote.versionLimitReached;
+  const fmt = (n: number) => new Intl.NumberFormat('ro-RO', { minimumFractionDigits: 2 }).format(n);
   const err = (m: typeof accept | typeof change) =>
     m.error instanceof ApiError ? (t.has(`apiErrors.${m.error.code}`) ? t(`apiErrors.${m.error.code}`) : t('apiErrors.INTERNAL_ERROR')) : null;
 
@@ -175,7 +187,7 @@ function ClientActions({ quote, pendingChange }: { quote: QuoteDto; pendingChang
     <div className="flex flex-col gap-3 border-t border-border pt-3">
       <div className="flex flex-wrap gap-2">
         <button
-          onClick={() => accept.mutate(quote.id)}
+          onClick={() => setConfirmOpen(true)}
           disabled={!acceptable || accept.isPending}
           className="rounded-md bg-sage px-4 py-2 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-50"
         >
@@ -183,6 +195,43 @@ function ClientActions({ quote, pendingChange }: { quote: QuoteDto; pendingChang
         </button>
       </div>
       {err(accept) && <p className="text-sm text-crimson">{err(accept)}</p>}
+
+      <Dialog open={confirmOpen} onOpenChange={(open) => { if (!accept.isPending) setConfirmOpen(open); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('acceptConfirmTitle', { company: quote.companyName })}</DialogTitle>
+            <DialogDescription>{t('acceptConfirmBody')}</DialogDescription>
+          </DialogHeader>
+          {current && (
+            <p className="rounded-lg bg-surface-2 px-3 py-2 text-sm">
+              {t('acceptConfirmPrice')}:{' '}
+              <span className="font-semibold tabular-nums">
+                {fmt(current.price)} {quote.currency}
+              </span>
+            </p>
+          )}
+          <p className="mt-2 text-sm text-muted-foreground">
+            {t('acceptConfirmKeepChat', { company: quote.companyName })}
+          </p>
+          {err(accept) && <p className="mt-2 text-sm text-crimson">{err(accept)}</p>}
+          <DialogFooter>
+            <button
+              onClick={() => setConfirmOpen(false)}
+              disabled={accept.isPending}
+              className="rounded-lg border border-border-2 bg-surface px-4 py-2 text-sm transition-colors hover:bg-secondary disabled:opacity-50"
+            >
+              {t('acceptConfirmCancel')}
+            </button>
+            <button
+              onClick={() => accept.mutate(quote.id, { onSuccess: () => setConfirmOpen(false) })}
+              disabled={accept.isPending}
+              className="rounded-md bg-sage px-4 py-2 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-50"
+            >
+              {accept.isPending ? t('acceptConfirmPending') : t('acceptConfirmCta')}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {pendingChange && <p className="text-sm text-muted-foreground">{t('awaitingFirm')}</p>}
       {quote.versionLimitReached && !pendingChange && (

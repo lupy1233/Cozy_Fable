@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## Fix UX P0 audit #2: confirmarea acceptului + "ce urmeaza" dupa acceptare — 2026-08-23
+- **Accept oferta cu dialog de confirmare** (`offer-card.tsx`): acceptul nu mai e 1 click ireversibil — dialog Radix cu consecintele pe fata (alegere definitiva, ofertele celorlalte firme se inchid, conversatiile lor devin doar-citire), pretul ofertei, "Da, accept oferta" / "Inapoi", blocat pe pending, erori API afisate in dialog.
+- **Statusul cererii nu mai ramane vechi dupa accept**: `invalidate()` din `use-quotes.ts` invalideaza acum si `['request']` + `['requests']` (fisa, listele, dashboardul) — valabil pentru toate mutatiile pe oferte (accept, cerere de modificare etc.).
+- **Panou "Oferta acceptata — ce urmeaza?"** (`client-fulfillment.tsx`): pe ACCEPTED/IN_EXECUTION clientul vede pasii (detalii in conversatie: masuratori/contract/avans direct cu firma → executie si livrare → confirmarea livrarii aici → recenzie) + link-ancora catre conversatia firmei castigatoare (`#firm-<claimSlotId>`, sectiunile au id + `scroll-mt-24`); pagina de oferte paseaza firma castigatoare.
+- **Recenzia sub 3 stele avertizeaza inainte de trimitere**: caseta amber "deschide automat o disputa analizata de un administrator" + butoane "Trimite oricum"/"Renunt"; schimbarea ratingului reseteaza avertismentul. Bonus: confirm-delivery si recenzia nu mai esueaza tacut (erori API mapate pe chei noi `Fulfillment.apiErrors.*`), stele cu `aria-label`/`aria-pressed`.
+- i18n: chei noi `Quotes.acceptConfirm*` + `Fulfillment.accepted*`/`ratingStar`/`lowRating*`/`apiErrors` in ro.json SI en.json. Porti: typecheck FE 0 erori · lint FE 0 · JSON valid.
+
 ## Restul clasei de dubla decontare: R3 + R8 + CHECK-uri pe wallet — 2026-08-23
 - **R3 (expire-vs-accept)**: `quote-validity.processor` face acum `updateMany where status='SENT'` — expirarea valabilitatii nu mai poate suprascrie o oferta ACCEPTED comisa concurent (inainte: `markDelivered` nu mai gasea oferta si livrarea ramanea blocata pe veci). 3 teste noi (`quote-validity.processor.spec.ts`).
 - **R8 (delete-vs-claim)**: `RequestsService.deleteForClient` intra sub invarianta 3.1 — tranzactie Serializable + `SELECT ... FOR UPDATE` pe cerere + `withSerializationRetry`, cu re-verificare `deleted_at`/status sub lock; un claim concurent nu mai poate lasa un slot ACTIV pe o cerere stearsa cu creditele RESERVED blocate.
