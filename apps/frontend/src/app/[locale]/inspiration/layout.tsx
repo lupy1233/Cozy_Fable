@@ -6,10 +6,11 @@ import { pageMetadata } from '../_components/metadata';
 // din acest layout de trecere (audit 2026-08-19 P1). Colectiile (boards/)
 // isi suprascriu metadata in layout-ul lor.
 export async function generateMetadata({
-  params: { locale },
+  params,
 }: {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
+  const { locale } = await params;
   return pageMetadata(locale, 'inspiration', '/inspiration');
 }
 

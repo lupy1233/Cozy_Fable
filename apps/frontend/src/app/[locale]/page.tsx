@@ -35,10 +35,11 @@ function SectionRule() {
 
 // titlul complet al site-ului (fara sablonul '%s · Cozy Home') + canonical/hreflang/OG
 export async function generateMetadata({
-  params: { locale },
+  params,
 }: {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
+  const { locale } = await params;
   return pageMetadata(locale, 'home', '/', { absoluteTitle: true });
 }
 

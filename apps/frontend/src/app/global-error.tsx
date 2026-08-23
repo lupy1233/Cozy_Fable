@@ -41,6 +41,9 @@ export default function GlobalError({ reset }: { error: Error & { digest?: strin
             >
               Încearcă din nou · Try again
             </button>
+            {/* global-error inlocuieste TOT layoutul (routerul poate fi cazut) —
+                ancora bruta e intentionata, <Link/> n-ar avea context de router */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
               href="/"
               style={{

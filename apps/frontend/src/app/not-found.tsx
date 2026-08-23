@@ -25,6 +25,9 @@ export default function RootNotFound() {
             Pagina nu există
           </h1>
           <p style={{ color: '#766E63', margin: 0 }}>This page could not be found.</p>
+          {/* 404-ul de radacina e in afara segmentului [locale] — ancora bruta duce
+              intentionat la redirectul / → /ro (fara context next-intl aici) */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a
             href="/"
             style={{

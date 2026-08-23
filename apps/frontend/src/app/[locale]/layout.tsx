@@ -36,10 +36,11 @@ const mono = IBM_Plex_Mono({
 // prin pageMetadata() — aici nu punem canonical, ca sa nu se mosteneasca
 // gresit pe rutele de cont.
 export async function generateMetadata({
-  params: { locale },
+  params,
 }: {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
+  const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'Meta' });
   return {
     metadataBase: new URL(SITE_URL),
@@ -62,11 +63,12 @@ export function generateStaticParams() {
 
 export default async function LocaleLayout({
   children,
-  params: { locale },
+  params,
 }: {
   children: React.ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
   if (!routing.locales.includes(locale as 'ro' | 'en')) {
     notFound();
   }

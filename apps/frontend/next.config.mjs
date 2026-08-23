@@ -11,10 +11,9 @@ const nextConfig = {
   transpilePackages: ['@marketplace/shared'],
   // Build self-contained pentru Docker (server.js + node_modules trasate)
   output: 'standalone',
-  experimental: {
-    // monorepo pnpm: traseaza dependentele de la radacina workspace-ului
-    outputFileTracingRoot: path.join(__dirname, '../../'),
-  },
+  // monorepo pnpm: traseaza dependentele de la radacina workspace-ului
+  // (Next 15: mutat din experimental la nivelul radacina)
+  outputFileTracingRoot: path.join(__dirname, '../../'),
   // Fara asta, Next face 308 de la /socket.io/ la /socket.io INAINTE de rewrites, iar
   // engine.io serveste doar pe calea cu slash → 404. Pe polling s-ar pierde doar un
   // round-trip, dar handshake-ul WebSocket nu urmeaza redirecturi, deci realtime-ul moare.

@@ -81,7 +81,7 @@ export default function CompanyClaimsPage() {
                       <span className="truncate">{c.requestTitle || '—'}</span>
                       {(unreadByClaim.get(c.id) ?? 0) > 0 && (
                         <span
-                          title={t('myClaims.newMessages', { n: unreadByClaim.get(c.id) })}
+                          title={t('myClaims.newMessages', { n: unreadByClaim.get(c.id) ?? 0 })}
                           className="grid h-4 min-w-4 shrink-0 place-items-center rounded-full bg-crimson px-1 text-[10px] font-bold leading-none text-white"
                         >
                           {unreadByClaim.get(c.id)}
