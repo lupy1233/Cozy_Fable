@@ -92,8 +92,3 @@ export interface AdminWithdrawalItemDto {
 }
 
 // SLA pe un claim (afisaj firma/client).
-export interface ClaimSlaDto {
-  status: (typeof CLAIM_SLOT_STATUSES)[number];
-  slaDeadlineAt: string | null;
-  slaPaused: boolean;
-}

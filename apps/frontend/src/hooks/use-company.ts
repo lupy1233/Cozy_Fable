@@ -64,24 +64,9 @@ export function useOnboardCompany() {
   );
 }
 
-export function useUpdateCompany() {
-  return useCompanyMutation((input: CompanyProfileUpdateInput) =>
-    api<CompanyDto>('/companies/me', { method: 'PATCH', body: JSON.stringify(input) }),
-  );
-}
-
 export function useAddLocation() {
   return useCompanyMutation((input: CompanyLocationInput) =>
     api<CompanyDto>('/companies/me/locations', { method: 'POST', body: JSON.stringify(input) }),
-  );
-}
-
-export function useUpdateLocation() {
-  return useCompanyMutation((input: CompanyLocationInput & { id: string }) =>
-    api<CompanyDto>(`/companies/me/locations/${input.id}`, {
-      method: 'PUT',
-      body: JSON.stringify(input),
-    }),
   );
 }
 

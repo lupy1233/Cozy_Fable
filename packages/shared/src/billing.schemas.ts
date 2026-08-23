@@ -21,12 +21,6 @@ export const purchaseSubscriptionSchema = z.object({
 export type PurchaseSubscriptionInput = z.infer<typeof purchaseSubscriptionSchema>;
 
 // 3.7 — webhook plata mock (istoric): HMAC-SHA256 in header + payload semnat.
-export const paymentWebhookSchema = z.object({
-  orderId: z.string().uuid(),
-  status: z.enum(['CONFIRMED', 'CANCELLED']),
-});
-export type PaymentWebhookInput = z.infer<typeof paymentWebhookSchema>;
-
 // Sursa confirmarii unei comenzi: admin (transfer bancar), webhook (mock istoric), stripe.
 export const PAYMENT_SOURCES = ['admin', 'webhook', 'stripe'] as const;
 export type PaymentSource = (typeof PAYMENT_SOURCES)[number];

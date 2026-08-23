@@ -77,11 +77,6 @@ export const offerFieldPermissionsUpdateSchema = z.object({
 export type OfferFieldPermissionEntry = z.infer<typeof offerFieldPermissionEntrySchema>;
 export type OfferFieldPermissionsUpdateInput = z.infer<typeof offerFieldPermissionsUpdateSchema>;
 
-export const companyRejectSchema = z.object({
-  reason: z.string().trim().min(3, 'reasonTooShort').max(1000),
-});
-export type CompanyRejectInput = z.infer<typeof companyRejectSchema>;
-
 // DTO-uri de raspuns (server → client)
 export interface CompanyMemberDto {
   id: string;

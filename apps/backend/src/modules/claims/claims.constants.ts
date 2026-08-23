@@ -35,9 +35,9 @@ export const REQUEST_SETTLED_STATUSES: RequestStatus[] = [
   'DISPUTED',
 ];
 
-// 4.9 — atribuire in 1h (ora calendaristica); warning la +30 min.
+// 4.9 — atribuire in 1h (ora calendaristica). (Warning-ul la +30 min: neimplementat,
+// decizie PO deschisa — constanta se re-adauga odata cu featurea.)
 export const ASSIGN_DEADLINE_MS = 60 * 60 * 1000;
-export const ASSIGN_WARNING_MS = 30 * 60 * 1000;
 
 // Timeout tranzactie claim (3.1).
 export const CLAIM_TX_TIMEOUT_MS = 10_000;

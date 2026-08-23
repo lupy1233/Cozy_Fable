@@ -93,22 +93,6 @@ export function usePublishDraft(token: string) {
   });
 }
 
-export function useEditRequest(token: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (content: ConfiguratorContentInput) =>
-      api<RequestDto>(`/requests/drafts/${token}/edit`, {
-        method: 'POST',
-        body: JSON.stringify(content),
-      }),
-    onSuccess: (data) => {
-      qc.setQueryData(draftKey(token), data);
-      qc.setQueryData(['request', data.id], data);
-      qc.invalidateQueries({ queryKey: MINE_KEY });
-    },
-  });
-}
-
 export function useRepostRequest(token: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -163,15 +147,6 @@ export function useAttachmentsFor(target: AttachmentTarget): AttachmentDto[] {
   const draft = useDraft(target.kind === 'draft' ? target.token : null);
   const request = useRequest(target.kind === 'request' ? target.id : '');
   return (target.kind === 'draft' ? draft.data?.attachments : request.data?.attachments) ?? [];
-}
-
-// wrappers compat (fluxul draft existent)
-export function useUploadAttachment(token: string) {
-  return useUploadAttachmentFor({ kind: 'draft', token });
-}
-
-export function useRemoveAttachment(token: string) {
-  return useRemoveAttachmentFor({ kind: 'draft', token });
 }
 
 // Estimarea de buget din scorul camerelor (F5, item 18) — cheia de query e

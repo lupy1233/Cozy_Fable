@@ -92,9 +92,6 @@ export const extendValiditySchema = z.object({
 export type ExtendValidityInput = z.infer<typeof extendValiditySchema>;
 
 // Firma incheie negocierea online (chat read-only pentru ambii; D3).
-export const endNegotiationSchema = z.object({});
-export type EndNegotiationInput = z.infer<typeof endNegotiationSchema>;
-
 // Invitatie la sediu pentru consultanta fizica (block dupa v3; D-v6-8).
 export const createConsultationInviteSchema = z.object({
   locationAddress: z.string().trim().min(3, 'addressTooShort').max(300),

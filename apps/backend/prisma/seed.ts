@@ -156,8 +156,6 @@ const SYSTEM_SETTINGS: Record<string, string> = {
   invoice_series: 'MM',
   quote_validity_default_days: '14',
   consultation_invite_expiry_days: '7',
-  employee_penalty_threshold: '9',
-  employee_block_months: '3',
   company_penalty_threshold: '12',
   company_suspension_months: '6',
   eur_ron_rate: '5.2',

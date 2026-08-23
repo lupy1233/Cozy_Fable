@@ -15,7 +15,7 @@ export interface AdminPlan {
   id: string; tier: string; priceRon: number; includedCredits: number; marketplaceGatingDelayMin: number; isActive: boolean;
 }
 export interface AdminCreditPackage { id: string; credits: number; priceRon: number; isActive: boolean }
-export interface AdminThreshold { id: string; size: string; minScore: number; maxScore: number | null; creditCost: number }
+export interface AdminThreshold { id: string; size: string; minScore: number; maxScore: number | null }
 
 export function useKpi() {
   return useQuery({ queryKey: ['admin', 'kpi'], queryFn: () => api<AdminKpiDto>('/admin/kpi'), retry: false });

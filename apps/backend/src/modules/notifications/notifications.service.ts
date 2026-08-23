@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ERROR_CODES, type NotificationDto, type UnreadCountDto } from '@marketplace/shared';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
@@ -58,12 +58,5 @@ export class NotificationsService {
       where: { userId, readAt: null },
       data: { readAt: new Date() },
     });
-  }
-
-  // Guard de tip: aruncat daca cineva incearca sa marcheze notificarea altcuiva (defensiv).
-  assertOwner(ownerId: string, userId: string): void {
-    if (ownerId !== userId) {
-      throw new ForbiddenException({ code: ERROR_CODES.FORBIDDEN, message: 'Not your notification' });
-    }
   }
 }

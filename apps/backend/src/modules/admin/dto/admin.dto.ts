@@ -70,5 +70,4 @@ export class UpdatePlanDto {
 export class UpdateThresholdDto {
   @IsOptional() @IsInt() @Min(0) minScore?: number;
   @IsOptional() @IsInt() @Min(0) maxScore?: number | null;
-  @IsOptional() @IsInt() @Min(0) creditCost?: number;
 }

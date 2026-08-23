@@ -33,7 +33,10 @@ export function useConfirmDelivery() {
 export function useReview(requestId: string) {
   return useQuery({
     queryKey: ['fulfillment', 'review', requestId],
-    queryFn: () => api<ReviewDto | null>(`/requests/${requestId}/review`),
+    // fara review inca → backend raspunde 200 cu body gol, iar api() poate
+    // rezolva undefined; normalizam la null (TanStack v5 respinge undefined).
+    // (Recuperat din worktree-ul stale la curatenia L2 — audit A11: regresie.)
+    queryFn: async () => (await api<ReviewDto | null>(`/requests/${requestId}/review`)) ?? null,
     enabled: !!requestId,
     retry: false,
   });

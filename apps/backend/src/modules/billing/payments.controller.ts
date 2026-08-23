@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
@@ -13,16 +12,12 @@ import {
   type RawBodyRequest,
   Req,
   StreamableFile,
-  UnauthorizedException,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { BillingOrderStatus, UserRole } from '@prisma/client';
-import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
-import { createHmac, timingSafeEqual } from 'crypto';
 import type { Request } from 'express';
-import { ERROR_CODES } from '@marketplace/shared';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -39,7 +34,7 @@ import { PaymentsService } from './payments.service';
 import { InvoicePdfService } from './invoice-pdf.service';
 import { StripeService } from './stripe.service';
 import { SubscriptionsService } from './subscriptions.service';
-import { PaymentWebhookDto, PurchaseCreditsDto, PurchaseSubscriptionDto } from './dto/payment.dto';
+import { PurchaseCreditsDto, PurchaseSubscriptionDto } from './dto/payment.dto';
 
 // Firma: pachete credite, planuri, achizitii (Stripe Checkout sau transfer bancar),
 // comenzi + factura PDF.
@@ -157,7 +152,6 @@ export class PaymentWebhookController {
   constructor(
     private readonly payments: PaymentsService,
     private readonly stripe: StripeService,
-    private readonly config: ConfigService,
   ) {}
 
   @Public()
@@ -170,34 +164,5 @@ export class PaymentWebhookController {
   ) {
     const event = this.stripe.constructEvent(req.rawBody, signature);
     return this.payments.handleStripeEvent(event);
-  }
-
-  // Calea B mock (istoric, 3.7): HMAC-SHA256 + Idempotency-Key. Pastrat pana la curatarea
-  // PAYMENT_WEBHOOK_SECRET din config (sprint separat).
-  @Public()
-  @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  @Post('payment')
-  @Idempotent()
-  @UseInterceptors(IdempotencyInterceptor)
-  webhook(
-    @Body() dto: PaymentWebhookDto,
-    @Headers('x-payment-signature') signature?: string,
-  ) {
-    const secret = this.config.getOrThrow<string>('PAYMENT_WEBHOOK_SECRET');
-    const expected = createHmac('sha256', secret).update(`${dto.orderId}.${dto.status}`).digest('hex');
-    const provided = signature ?? '';
-    const ok =
-      provided.length === expected.length &&
-      timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
-    if (!ok) {
-      throw new UnauthorizedException({
-        code: ERROR_CODES.PAYMENT_SIGNATURE_INVALID,
-        message: 'Invalid payment signature',
-      });
-    }
-    if (dto.status !== 'CONFIRMED') {
-      throw new BadRequestException({ code: ERROR_CODES.VALIDATION_ERROR, message: 'Unsupported status' });
-    }
-    return this.payments.confirm(dto.orderId, 'webhook');
   }
 }

@@ -93,26 +93,5 @@ export interface CreditWalletDto {
   available: number;
 }
 
-export interface SubscriptionDto {
-  id: string;
-  tier: (typeof SUBSCRIPTION_PLAN_TIERS)[number];
-  status: (typeof SUBSCRIPTION_STATUSES)[number];
-  isTrial: boolean;
-  startedAt: string;
-  expiresAt: string;
-  gatingDelayMinutes: number;
-}
-
 // Cererea asa cum o vede o firma cu claim (subset din RequestDto, fara contact
 // pana cand preferinta clientului permite — Sprint 6 servire date contact).
-export interface ClaimedRequestDto {
-  id: string;
-  status: (typeof REQUEST_STATUSES)[number];
-  title: string;
-  description: string;
-  budgetRange: (typeof BUDGET_RANGES)[number];
-  city: string;
-  county: string;
-  size: (typeof PROJECT_SIZES)[number] | null;
-  myClaim: ClaimSlotDto;
-}

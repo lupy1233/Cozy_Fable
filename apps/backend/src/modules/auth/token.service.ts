@@ -12,11 +12,6 @@ import {
   type AccessTokenPayload,
 } from './auth.constants';
 
-export interface TokenPair {
-  accessToken: string;
-  refreshToken: string; // raw — pleaca doar in cookie httpOnly
-}
-
 // Refresh token rotation cu family + grace 30s (invarianta 3.13).
 // In DB se stocheaza DOAR hash-ul (sha256) tokenului.
 @Injectable()

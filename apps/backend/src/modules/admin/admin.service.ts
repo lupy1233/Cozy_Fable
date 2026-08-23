@@ -325,7 +325,7 @@ export class AdminService {
 
   async getThresholds() {
     const rows = await this.prisma.projectSizeThreshold.findMany();
-    return rows.map((t) => ({ id: t.id, size: t.size, minScore: t.minScore, maxScore: t.maxScore, creditCost: t.creditCost }));
+    return rows.map((t) => ({ id: t.id, size: t.size, minScore: t.minScore, maxScore: t.maxScore }));
   }
 
   async updateThreshold(id: string, dto: UpdateThresholdInput) {
@@ -333,9 +333,9 @@ export class AdminService {
     if (!exists) throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Threshold not found' });
     const t = await this.prisma.projectSizeThreshold.update({
       where: { id },
-      data: { minScore: dto.minScore, maxScore: dto.maxScore, creditCost: dto.creditCost },
+      data: { minScore: dto.minScore, maxScore: dto.maxScore },
     });
-    return { id: t.id, size: t.size, minScore: t.minScore, maxScore: t.maxScore, creditCost: t.creditCost };
+    return { id: t.id, size: t.size, minScore: t.minScore, maxScore: t.maxScore };
   }
 
   // ===== Jobs (3.11) =====

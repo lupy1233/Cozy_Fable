@@ -54,9 +54,6 @@ export interface JobDto {
 }
 
 // --- inputs (Zod) ---
-export const updateSettingSchema = z.object({ value: z.string().max(500) });
-export type UpdateSettingInput = z.infer<typeof updateSettingSchema>;
-
 export const updatePenaltyRuleSchema = z.object({
   points: z.number().int().min(0).max(100).optional(),
   isActive: z.boolean().optional(),
@@ -81,7 +78,6 @@ export type UpdatePlanInput = z.infer<typeof updatePlanSchema>;
 export const updateThresholdSchema = z.object({
   minScore: z.number().int().min(0).optional(),
   maxScore: z.number().int().min(0).nullable().optional(),
-  creditCost: z.number().int().min(0).optional(),
 });
 export type UpdateThresholdInput = z.infer<typeof updateThresholdSchema>;
 

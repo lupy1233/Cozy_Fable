@@ -16,8 +16,9 @@ import { pageMetadata } from './_components/metadata';
 // paginii e mini-configuratorul FUNCTIONAL din hero (hero-demo.tsx) — produsul
 // insusi, nu o poveste despre el. Urmeaza "Drumul cererii" (mozaic cu imbinari
 // de alama, statia 1 legata live de demo), caietul de idei, "Pentru cine" si
-// banda CTA. Vechiul landing (hero-sheets + process-section + partners) a fost
-// inlocuit; componentele lui raman in _components pentru refolosire.
+// banda CTA. Vechiul landing a fost inlocuit; hero-sheets/process-section au
+// fost sterse la curatenia L2 (pasul 7 audit #2) — a supravietuit doar
+// partners-carousel, refolosit mai jos.
 
 // ritmul masonry al caietului de idei: inaltimi variate, ciclice
 const PIN_ASPECTS = ['aspect-[3/4]', 'aspect-square', 'aspect-[4/5]'] as const;

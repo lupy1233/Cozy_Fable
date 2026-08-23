@@ -10,6 +10,5 @@ import { SubscriptionActiveGuard } from '../../common/guards/subscription-active
   imports: [AuthModule, UploadsModule],
   controllers: [MarketplaceController],
   providers: [MarketplaceService, CompanyApprovedGuard, SubscriptionActiveGuard],
-  exports: [MarketplaceService],
 })
 export class MarketplaceModule {}

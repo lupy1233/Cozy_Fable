@@ -1,6 +1,5 @@
 {
   "LandingV2": {
-    "previewBadge": "Previzualizare · v2",
     "eyebrow": "Platformă pentru mobilier la comandă",
     "title": "Spui ce vrei. Firmele de mobilier concurează pentru tine.",
     "subtitle": "Configurezi vizual cererea — camere, materiale, dimensiuni — iar firme verificate îți trimit oferte comparabile. Tu doar alegi.",
@@ -80,56 +79,7 @@
     "bandCtaCompany": "Pentru firme"
   },
   "Landing": {
-    "title": "De la schița ta, la firma potrivită.",
-    "subtitle": "Descrii mobilierul pe cotele tale, iar firme de mobilier verificate concurează cu oferte structurate. Tu compari reviziile și alegi.",
-    "heroNote": "Gratuit pentru clienți · cel mult 3 firme pe cerere",
-    "processKicker": "Proces",
-    "sizingKicker": "Format",
-    "ctaNewRequest": "Creează o cerere",
-    "ctaCompanies": "Ai o firmă de mobilier? Înscrie-te",
-    "kicker": "Platformă selectivă pentru mobilier la comandă",
-    "metricWorkshops": "340+",
-    "metricWorkshopsLabel": "Firme verificate",
-    "metricProjects": "2.8k",
-    "metricProjectsLabel": "Proiecte livrate",
-    "metricSatisfaction": "94%",
-    "metricSatisfactionLabel": "Satisfacție clienți",
-    "howTitle": "Cum funcționează",
-    "step1Phase": "Schiță",
-    "step1Title": "Desenezi cererea",
-    "step1Body": "Alegi piesele, materialele și cotele. Sistemul calculează automat mărimea proiectului.",
-    "step2Phase": "Ofertare",
-    "step2Title": "Firmele o preiau",
-    "step2Body": "Cel mult trei firme verificate îți preiau cererea și discută direct cu tine.",
-    "step3Phase": "Decizie",
-    "step3Title": "Compari reviziile",
-    "step3Body": "Primești oferte structurate, ceri modificări și alegi firma cu care mergi mai departe.",
-    "sizingTitle": "Formatul proiectului",
-    "sizingSub": "Fiecare cerere primește un format care stabilește câte credite costă preluarea ei.",
-    "sizeSmall": "Small",
-    "sizeSmallDesc": "O singură piesă sau un set compact — ușor de ofertat.",
-    "sizeMedium": "Medium",
-    "sizeMediumDesc": "O cameră întreagă sau mai multe piese coordonate.",
-    "sizeLarge": "Large",
-    "sizeLargeDesc": "Amenajări pe mai multe camere și lucrări complexe la comandă.",
-    "creditsUnit": "credite",
-    "creditsUnitOne": "credit",
-    "heroSheetTitle": "Dulap dormitor — axonometrie",
-    "heroSheetClient": "Cerere client",
-    "heroSheetsSwitcher": "Alege planșa",
-    "heroSheets": {
-      "wardrobe": "Dulap dormitor",
-      "kitchen": "Bucătărie",
-      "bookcase": "Bibliotecă"
-    },
-    "ctaBandTitle": "Conduci o firmă de mobilier?",
-    "ctaBandBody": "Primești cereri reale, dimensionate și verificate — și plătești credite doar pentru proiectele pe care le preiei.",
-    "ctaBandButton": "Înregistrează-ți firma",
     "footerTagline": "Marketplace pentru mobilier la comandă",
-    "inspirationKicker": "Inspirație",
-    "inspirationTitle": "Idei pentru casa ta",
-    "inspirationSub": "O galerie curată de proiecte și idei — alege stilul care ți se potrivește și pornește o cerere de la o imagine.",
-    "inspirationCta": "Vezi toată galeria",
     "partnersKicker": "Parteneri",
     "partnersTitle": "Firmele cu care lucrăm",
     "partnersSub": "Fiecare firmă e verificată înainte să poată trimite oferte.",
@@ -140,8 +90,6 @@
     "partnerVerified": "Firmă verificată"
   },
   "Common": {
-    "languageSwitcher": "Limba",
-    "loading": "Se încarcă...",
     "relativeTime": {
       "minutes": "{count, plural, =0 {chiar acum} =1 {acum 1 min} other {acum # min}}",
       "hours": "{count, plural, =1 {acum o oră} few {acum # ore} other {acum # de ore}}",
@@ -150,7 +98,6 @@
     }
   },
   "Nav": {
-    "home": "Cozy Home",
     "dashboard": "Contul meu",
     "myRequests": "Cererile mele",
     "newRequest": "Cerere nouă",
@@ -259,7 +206,6 @@
     "renameScene": "Redenumește camera",
     "deleteScene": "Șterge camera",
     "sceneDefaultName": "Camera {n}",
-    "renameScenePrompt": "Cum se numește camera?",
     "confirmDeleteScene": "Ștergi camera „{name}”, cu tot ce e în ea?",
     "openingsLabel": "Uși & ferestre",
     "noSpaceForOpening": "Nu mai e loc pe pereți pentru asta.",
@@ -349,7 +295,6 @@
     "searchPlaceholder": "Caută idei — ex. bucătărie, dressing, lectură…",
     "all": "Toate",
     "empty": "Nimic găsit pentru căutarea ta. Încearcă alt cuvânt sau alt filtru.",
-    "openPinterest": "Vezi pe Pinterest",
     "byFirm": "de {name}",
     "viewProject": "Vezi proiectul",
     "clearFilters": "Șterge filtrele",
@@ -600,8 +545,6 @@
     "rejectedNotice": "Înscrierea firmei a fost respinsă: {reason}. Poți aplica din nou după 3 luni.",
     "suspendedNotice": "Contul firmei este suspendat până la {until}.",
     "profile": "Profil",
-    "edit": "Editează",
-    "save": "Salvează",
     "cancel": "Anulează",
     "locations": "Locații",
     "coverageRadiusKm": "Rază de acoperire (km)",
@@ -735,7 +678,6 @@
   "Requests": {
     "loading": "Se încarcă…",
     "newTitle": "Cerere nouă",
-    "newSubtitle": "Descrie proiectul tău — calculăm automat dimensiunea și publicăm cererea în marketplace.",
     "sectionGeneral": "Detalii generale",
     "sectionAddress": "Adresă",
     "sectionRooms": "Camere",
@@ -743,19 +685,13 @@
     "designHelpIncluded": "Proiectare cu plată inclusă",
     "designHelpIncludedHint": "Firma care preia cererea realizează proiectul tehnic împreună cu tine; costul proiectării îl stabilești direct cu ea.",
     "sectionAttachments": "Atașamente",
-    "addRoom": "Adaugă cameră",
-    "removeRoom": "Șterge camera",
-    "addItem": "Adaugă corp",
-    "removeItem": "Șterge corpul",
     "addContact": "Adaugă contact",
-    "items": "Corpuri",
     "room": "Cameră",
     "publish": "Publică",
     "repost": "Republică",
     "reposted": "Cererea a fost republicată.",
     "deleteRequest": "Șterge cererea",
     "deleteConfirm": "Sigur ștergi cererea? Preluările active ale firmelor vor fi anulate.",
-    "uploading": "Se încarcă…",
     "myRequests": "Cererile mele",
     "myRequestsSubtitle": "Camerele, firmele active și ofertele fiecărei cereri, dintr-o privire.",
     "tabs": {
@@ -792,16 +728,8 @@
       "addressText": "Adresă",
       "county": "Județ",
       "city": "Oraș",
-      "roomType": "Tip cameră",
-      "lengthM": "Lungime (m)",
-      "widthM": "Lățime (m)",
-      "heightM": "Înălțime (m)",
-      "itemName": "Denumire corp",
-      "material": "Material",
-      "quantity": "Cant.",
       "contactChannel": "Canal",
       "contactValue": "Valoare",
-      "contactPriority": "Prioritate",
       "accountEmail": "Emailul contului",
       "message": "Mesaj pentru firme",
       "country": "Țară"
@@ -809,7 +737,6 @@
     "accountEmailLockedHint": "Emailul contului este inclus automat drept canal de contact. Dacă vrei, adaugă și alte adrese de email sau numere de telefon.",
     "autoTitleLabel": "Titlu (generat automat)",
     "messageHint": "Opțional — orice detaliu care ajută firmele să înțeleagă proiectul.",
-    "countryRomania": "România",
     "addressSearchPlaceholder": "Începe să tastezi și alege adresa…",
     "editRequest": "Editează cererea ({remaining} rămase)",
     "editPostClaimWarning": "Cererea a fost deja preluată de firme. Mai ai o singură editare: proiectul va fi reevaluat, firmele își păstrează creditele cheltuite și pot renunța la preluare după modificări. Continui?",
@@ -854,16 +781,6 @@
       "PIECE_SHOE_CABINET": "Pantofar",
       "PIECE_NIGHTSTAND": "Noptiere",
       "PIECE_BENCH": "Băncuță"
-    },
-    "material": {
-      "PAL": "PAL",
-      "MDF": "MDF",
-      "LEMN_MASIV": "Lemn masiv"
-    },
-    "system": {
-      "PUSH": "Push",
-      "GLISANTE": "Glisante",
-      "BUTON_PRESIUNE": "Buton presiune"
     },
     "statusValue": {
       "DRAFT": "Ciornă",
@@ -928,7 +845,6 @@
     "loading": "Se încarcă…",
     "empty": "Nicio cerere disponibilă momentan.",
     "distance": "{km} km",
-    "publishedAgo": "acum {min} min",
     "credits": "credite",
     "size": "Mărime",
     "slots": "Sloturi {active}/{max}",
@@ -965,15 +881,8 @@
     },
     "subscription": {
       "title": "Abonament",
-      "none": "Niciun abonament activ.",
       "trial": "Trial",
-      "gating": "Întârziere +{min} min",
       "expires": "Expiră {date}",
-      "tier": {
-        "SILVER": "Silver",
-        "GOLD": "Gold",
-        "PLATINUM": "Platinum"
-      },
       "statusValue": {
         "ACTIVE": "Activ",
         "EXPIRED": "Expirat",
@@ -1092,7 +1001,6 @@
     },
     "offersTitle": "Oferte și conversații",
     "offersSubtitle": "Drumul cererii tale la fiecare firmă care a preluat-o: discuții, oferte, acceptare.",
-    "noOffers": "Nicio ofertă încă.",
     "noThreads": "Nicio firmă nu a preluat încă cererea. Te anunțăm imediat ce se întâmplă.",
     "noOfferYet": "{company} nu a trimis încă o ofertă — până atunci poți discuta detaliile în conversația de mai jos.",
     "claimedAt": "a preluat cererea {time}",
@@ -1137,7 +1045,6 @@
     "inviteAccept": "Accept",
     "inviteDecline": "Refuz",
     "withdraw": "Retrage oferta",
-    "offerLabel": "Ofertă",
     "consultationStatus": {
       "PENDING_CLIENT": "În așteptarea clientului",
       "ACCEPTED": "Acceptată",
@@ -1333,10 +1240,6 @@
     "buyCredits": "Cumpără credite",
     "orders": "Comenzi și facturi",
     "invoice": "Factură",
-    "orderType": {
-      "SUBSCRIPTION": "Abonament",
-      "CREDIT_PACKAGE": "Pachet de credite"
-    },
     "orderStatus": {
       "PENDING": "În așteptarea plății",
       "CONFIRMED": "Plătită",

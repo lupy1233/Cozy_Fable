@@ -5,7 +5,6 @@ import { INSPIRATION_COLORS, ITEM_SYSTEMS, MATERIALS, ROOM_TYPES } from './enums
 // atelierele partenere. Adminul le incarca si le eticheteaza; clientii filtreaza
 // dupa tip/culoare/material/deschidere si le pot atasa cererii ca inspiratie.
 
-export const MAX_INSPIRATION_PER_REQUEST = 10;
 
 // Meta unei poze — create/update din admin. Imaginea vine separat: ori upload
 // prin fluxul presign (attachment), ori URL extern (seed/demo).
@@ -53,11 +52,6 @@ export interface InspirationFilters {
 // --- Colectii de salvari (item 8, stil Pinterest) ---
 
 export const MAX_BOARD_NAME_LENGTH = 60;
-
-export const inspirationBoardInputSchema = z.object({
-  name: z.string().trim().min(1, 'nameRequired').max(MAX_BOARD_NAME_LENGTH, 'nameTooLong'),
-});
-export type InspirationBoardInput = z.infer<typeof inspirationBoardInputSchema>;
 
 export interface InspirationBoardDto {
   id: string;

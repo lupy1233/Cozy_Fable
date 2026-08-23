@@ -1,6 +1,5 @@
 {
   "LandingV2": {
-    "previewBadge": "Preview · v2",
     "eyebrow": "Custom furniture platform",
     "title": "Say what you want. Furniture companies compete for you.",
     "subtitle": "You configure the request visually — rooms, materials, dimensions — and verified companies send comparable offers. You just choose.",
@@ -80,56 +79,7 @@
     "bandCtaCompany": "For companies"
   },
   "Landing": {
-    "title": "From your sketch to the right company.",
-    "subtitle": "Describe your furniture with its exact dimensions, and verified furniture companies compete with structured offers. You compare revisions and choose.",
-    "heroNote": "Free for clients · at most 3 companies per request",
-    "processKicker": "Process",
-    "sizingKicker": "Format",
-    "ctaNewRequest": "Create a request",
-    "ctaCompanies": "Run a furniture company? Sign up",
-    "kicker": "A curated platform for custom furniture",
-    "metricWorkshops": "340+",
-    "metricWorkshopsLabel": "Verified companies",
-    "metricProjects": "2.8k",
-    "metricProjectsLabel": "Projects delivered",
-    "metricSatisfaction": "94%",
-    "metricSatisfactionLabel": "Client satisfaction",
-    "howTitle": "How it works",
-    "step1Phase": "Sketch",
-    "step1Title": "Draw up your request",
-    "step1Body": "Pick the pieces, materials and dimensions. The system scores your project size automatically.",
-    "step2Phase": "Quoting",
-    "step2Title": "Companies claim it",
-    "step2Body": "Up to three verified companies take on your request and talk with you directly.",
-    "step3Phase": "Decision",
-    "step3Title": "Compare revisions",
-    "step3Body": "You receive structured offers, request changes and pick the company to move forward with.",
-    "sizingTitle": "Project format",
-    "sizingSub": "Every request gets a format that sets how many credits it costs a company to claim.",
-    "sizeSmall": "Small",
-    "sizeSmallDesc": "A single piece or a compact set — quick to quote.",
-    "sizeMedium": "Medium",
-    "sizeMediumDesc": "A full room or several coordinated pieces.",
-    "sizeLarge": "Large",
-    "sizeLargeDesc": "Multi-room fit-outs and complex bespoke work.",
-    "creditsUnit": "credits",
-    "creditsUnitOne": "credit",
-    "heroSheetTitle": "Bedroom wardrobe — axonometric",
-    "heroSheetClient": "Client request",
-    "heroSheetsSwitcher": "Choose a sheet",
-    "heroSheets": {
-      "wardrobe": "Bedroom wardrobe",
-      "kitchen": "Kitchen",
-      "bookcase": "Bookcase"
-    },
-    "ctaBandTitle": "Run a furniture company?",
-    "ctaBandBody": "Real, sized, verified requests — you spend credits only on the projects you claim.",
-    "ctaBandButton": "Register your company",
     "footerTagline": "The marketplace for custom furniture",
-    "inspirationKicker": "Inspiration",
-    "inspirationTitle": "Ideas for your home",
-    "inspirationSub": "A curated gallery of projects and ideas — pick the style that fits your home and start a request from a picture.",
-    "inspirationCta": "Browse the full gallery",
     "partnersKicker": "Partners",
     "partnersTitle": "The companies we work with",
     "partnersSub": "Every company is vetted before it can send offers.",
@@ -140,8 +90,6 @@
     "partnerVerified": "Verified company"
   },
   "Common": {
-    "languageSwitcher": "Language",
-    "loading": "Loading...",
     "relativeTime": {
       "minutes": "{count, plural, =0 {just now} =1 {1 min ago} other {# min ago}}",
       "hours": "{count, plural, =1 {1 hour ago} other {# hours ago}}",
@@ -150,7 +98,6 @@
     }
   },
   "Nav": {
-    "home": "Cozy Home",
     "dashboard": "My account",
     "myRequests": "My requests",
     "newRequest": "New request",
@@ -259,7 +206,6 @@
     "renameScene": "Rename room",
     "deleteScene": "Delete room",
     "sceneDefaultName": "Room {n}",
-    "renameScenePrompt": "What is this room called?",
     "confirmDeleteScene": "Delete “{name}” with everything in it?",
     "openingsLabel": "Doors & windows",
     "noSpaceForOpening": "There is no wall space left for that.",
@@ -349,7 +295,6 @@
     "searchPlaceholder": "Search ideas — e.g. kitchen, dressing, reading…",
     "all": "All",
     "empty": "Nothing found for your search. Try another word or filter.",
-    "openPinterest": "View on Pinterest",
     "byFirm": "by {name}",
     "viewProject": "View project",
     "clearFilters": "Clear filters",
@@ -600,8 +545,6 @@
     "rejectedNotice": "Your application was rejected: {reason}. You can apply again after 3 months.",
     "suspendedNotice": "Your company account is suspended until {until}.",
     "profile": "Profile",
-    "edit": "Edit",
-    "save": "Save",
     "cancel": "Cancel",
     "locations": "Locations",
     "coverageRadiusKm": "Coverage radius (km)",
@@ -735,7 +678,6 @@
   "Requests": {
     "loading": "Loading…",
     "newTitle": "New request",
-    "newSubtitle": "Describe your project — we work out its size automatically and publish it to the marketplace.",
     "sectionGeneral": "General details",
     "sectionAddress": "Address",
     "sectionRooms": "Rooms",
@@ -743,19 +685,13 @@
     "designHelpIncluded": "Paid design included",
     "designHelpIncludedHint": "The company that claims your request builds the technical project with you; the design fee is agreed directly with them.",
     "sectionAttachments": "Attachments",
-    "addRoom": "Add room",
-    "removeRoom": "Remove room",
-    "addItem": "Add item",
-    "removeItem": "Remove item",
     "addContact": "Add contact",
-    "items": "Items",
     "room": "Room",
     "publish": "Publish",
     "repost": "Repost",
     "reposted": "Request reposted.",
     "deleteRequest": "Delete request",
     "deleteConfirm": "Delete this request? Companies' active claims will be cancelled.",
-    "uploading": "Uploading…",
     "myRequests": "My requests",
     "myRequestsSubtitle": "Each request's rooms, active companies and offers at a glance.",
     "tabs": {
@@ -792,16 +728,8 @@
       "addressText": "Address",
       "county": "County",
       "city": "City",
-      "roomType": "Room type",
-      "lengthM": "Length (m)",
-      "widthM": "Width (m)",
-      "heightM": "Height (m)",
-      "itemName": "Item name",
-      "material": "Material",
-      "quantity": "Qty",
       "contactChannel": "Channel",
       "contactValue": "Value",
-      "contactPriority": "Priority",
       "accountEmail": "Account email",
       "message": "Message for the companies",
       "country": "Country"
@@ -809,7 +737,6 @@
     "accountEmailLockedHint": "Your account email is always included as a contact channel. You can add extra email addresses or phone numbers.",
     "autoTitleLabel": "Title (generated automatically)",
     "messageHint": "Optional — any detail that helps the companies understand your project.",
-    "countryRomania": "Romania",
     "addressSearchPlaceholder": "Start typing and pick your address…",
     "editRequest": "Edit request ({remaining} left)",
     "editPostClaimWarning": "Companies have already claimed this request. You have one edit left: the project will be re-scored, companies keep the credits they've spent, and they may withdraw their claim after your changes. Continue?",
@@ -854,16 +781,6 @@
       "PIECE_SHOE_CABINET": "Shoe cabinet",
       "PIECE_NIGHTSTAND": "Nightstands",
       "PIECE_BENCH": "Bench"
-    },
-    "material": {
-      "PAL": "Particleboard (PAL)",
-      "MDF": "MDF",
-      "LEMN_MASIV": "Solid wood"
-    },
-    "system": {
-      "PUSH": "Push",
-      "GLISANTE": "Sliding",
-      "BUTON_PRESIUNE": "Press button"
     },
     "statusValue": {
       "DRAFT": "Draft",
@@ -928,7 +845,6 @@
     "loading": "Loading…",
     "empty": "No requests available right now.",
     "distance": "{km} km",
-    "publishedAgo": "{min} min ago",
     "credits": "credits",
     "size": "Size",
     "slots": "Slots {active}/{max}",
@@ -965,15 +881,8 @@
     },
     "subscription": {
       "title": "Subscription",
-      "none": "No active subscription.",
       "trial": "Trial",
-      "gating": "Delay +{min} min",
       "expires": "Expires {date}",
-      "tier": {
-        "SILVER": "Silver",
-        "GOLD": "Gold",
-        "PLATINUM": "Platinum"
-      },
       "statusValue": {
         "ACTIVE": "Active",
         "EXPIRED": "Expired",
@@ -1092,7 +1001,6 @@
     },
     "offersTitle": "Offers & conversations",
     "offersSubtitle": "Your request's journey with every company that claimed it: discussions, offers, acceptance.",
-    "noOffers": "No offers yet.",
     "noThreads": "No company has claimed your request yet. We'll notify you as soon as one does.",
     "noOfferYet": "{company} hasn't sent an offer yet — until then, you can discuss the details in the conversation below.",
     "claimedAt": "claimed the request {time}",
@@ -1137,7 +1045,6 @@
     "inviteAccept": "Accept",
     "inviteDecline": "Decline",
     "withdraw": "Withdraw offer",
-    "offerLabel": "Offer",
     "consultationStatus": {
       "PENDING_CLIENT": "Awaiting client",
       "ACCEPTED": "Accepted",
@@ -1333,10 +1240,6 @@
     "buyCredits": "Buy credits",
     "orders": "Orders & invoices",
     "invoice": "Invoice",
-    "orderType": {
-      "SUBSCRIPTION": "Subscription",
-      "CREDIT_PACKAGE": "Credit package"
-    },
     "orderStatus": {
       "PENDING": "Awaiting payment",
       "CONFIRMED": "Paid",

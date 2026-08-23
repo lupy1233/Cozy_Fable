@@ -64,7 +64,6 @@ export const requestRoomSchema = z.object({
   heightM: dimensionSchema,
   items: z.array(requestItemSchema).min(1, 'roomNeedsItem').max(50),
 });
-export type RequestRoomInput = z.infer<typeof requestRoomSchema>;
 
 // Telefon RO: mobil (07xxxxxxxx) sau fix ([23]xxxxxxxx), cu sau fara prefixul +40.
 export const RO_PHONE_REGEX = /^(\+40|0)(7\d{8}|[23]\d{8})$/;
@@ -113,7 +112,6 @@ export const requestContentSchema = z.object({
   rooms: z.array(requestRoomSchema).min(1, 'needsRoom').max(MAX_REQUEST_ROOMS),
   contactPreferences: contactPreferencesSchema,
 });
-export type RequestContentInput = z.infer<typeof requestContentSchema>;
 
 // O camera in payload-ul configuratorului: raspunsuri brute + versiunea flow-ului.
 // Validarea semantica a answers (step-uri, sloturi dinamice, conditii) se face cu
@@ -123,7 +121,6 @@ export const configuratorRoomSchema = z.object({
   flowVersion: z.number().int().positive(),
   answers: z.record(z.string(), z.unknown()),
 });
-export type ConfiguratorRoomInput = z.infer<typeof configuratorRoomSchema>;
 
 // Continutul complet al unei cereri create prin configurator (payload publish/edit).
 // Backend-ul deriva rooms/items/dims + scoring din answers (nu se trimit derivate).
@@ -166,9 +163,6 @@ export const requestDraftPatchSchema = z.object({
 export type RequestDraftPatchInput = z.infer<typeof requestDraftPatchSchema>;
 
 // Editare post-creare a unei cereri publicate (aceleasi reguli ca publish).
-export const requestEditSchema = requestContentSchema;
-export type RequestEditInput = z.infer<typeof requestEditSchema>;
-
 // Upload presigned (mock): cerere URL + confirmare.
 // ZIP e permis explicit de invarianta 3.4 (untrusted, fara preview) — Windows
 // raporteaza adesea 'application/x-zip-compressed' in loc de 'application/zip'.
@@ -213,11 +207,6 @@ export const presignUploadSchema = z.object({
   sizeBytes: z.number().int().positive().max(MAX_ATTACHMENT_BYTES),
 });
 export type PresignUploadInput = z.infer<typeof presignUploadSchema>;
-
-export const confirmUploadSchema = z.object({
-  attachmentId: z.string().uuid(),
-});
-export type ConfirmUploadInput = z.infer<typeof confirmUploadSchema>;
 
 // DTO-uri de raspuns (server → client)
 export interface RequestItemDto {

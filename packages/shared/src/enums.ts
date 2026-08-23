@@ -22,14 +22,11 @@ export type ClaimSlotStatus = (typeof CLAIM_SLOT_STATUSES)[number];
 
 // clarification_requests.status (Sprint 7). 4.11.
 export const CLARIFICATION_STATUSES = ['PENDING', 'ANSWERED'] as const;
-export type ClarificationStatus = (typeof CLARIFICATION_STATUSES)[number];
 
 // Sprint 8 (nedefinite verbatim in docs/04, confirmate in sesiune).
 export const REVIEW_DISPUTE_STATUSES = ['OPEN', 'RESOLVED', 'DISMISSED'] as const;
-export type ReviewDisputeStatus = (typeof REVIEW_DISPUTE_STATUSES)[number];
 
 export const BILLING_ORDER_TYPES = ['SUBSCRIPTION', 'CREDIT_PACKAGE'] as const;
-export type BillingOrderType = (typeof BILLING_ORDER_TYPES)[number];
 
 export const BILLING_ORDER_STATUSES = ['PENDING', 'CONFIRMED', 'CANCELLED'] as const;
 export type BillingOrderStatus = (typeof BILLING_ORDER_STATUSES)[number];
@@ -50,7 +47,6 @@ export const WITHDRAWAL_STATUSES = [
   'ADMIN_APPROVED',
   'ADMIN_REJECTED',
 ] as const;
-export type WithdrawalStatus = (typeof WITHDRAWAL_STATUSES)[number];
 
 export const CONSULTATION_INVITE_STATUSES = [
   'PENDING_CLIENT',
@@ -59,10 +55,8 @@ export const CONSULTATION_INVITE_STATUSES = [
   'COMPLETED',
   'EXPIRED',
 ] as const;
-export type ConsultationInviteStatus = (typeof CONSULTATION_INVITE_STATUSES)[number];
 
 export const CURRENCIES = ['RON', 'EUR'] as const;
-export type Currency = (typeof CURRENCIES)[number];
 
 export const OFFER_FIELD_KEYS = ['PRICE', 'DELIVERY_TERM', 'DELIVERY_DATE', 'WARRANTY', 'DESCRIPTION'] as const;
 export type OfferFieldKey = (typeof OFFER_FIELD_KEYS)[number];
@@ -143,7 +137,6 @@ export const ITEM_SYSTEMS = ['PUSH', 'GLISANTE', 'BUTON_PRESIUNE', 'MANER', 'GOL
 export type ItemSystem = (typeof ITEM_SYSTEMS)[number];
 
 export const ATTACHMENT_STATUSES = ['PENDING_UPLOAD', 'PENDING_SCAN', 'SAFE', 'BLOCKED'] as const;
-export type AttachmentStatus = (typeof ATTACHMENT_STATUSES)[number];
 
 // Culorile galeriei de inspiratie (F6 2026-07-08) — filtru pe /inspiration.
 export const INSPIRATION_COLORS = [
@@ -192,24 +185,19 @@ export type SubscriptionPlanTier = (typeof SUBSCRIPTION_PLAN_TIERS)[number];
 
 // Starea abonamentului firmei. Creditele raman valabile 3 luni dupa EXPIRED (4.16).
 export const SUBSCRIPTION_STATUSES = ['ACTIVE', 'EXPIRED', 'CANCELLED'] as const;
-export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
 
 // docs/04 §5.1 credit_transactions — tipuri de miscare in portofel (4.8).
 // RESERVE la claim, REFUND la anulare valida/edit post-claim, CONSUME la finalizare,
 // GRANT la trial/top-up.
 export const CREDIT_TRANSACTION_TYPES = ['GRANT', 'RESERVE', 'REFUND', 'CONSUME'] as const;
-export type CreditTransactionType = (typeof CREDIT_TRANSACTION_TYPES)[number];
 
 // docs/04 §5.2 request_company_exclusions — motiv excludere de la re-claim (4.11).
 export const REQUEST_EXCLUSION_REASONS = ['SLA_BREACH'] as const;
-export type RequestExclusionReason = (typeof REQUEST_EXCLUSION_REASONS)[number];
 
 // Status oferta (Sprint 6; nedefinit verbatim in docs/04, confirmat in sesiune).
 // SUPERSEDED = inlocuita de o versiune mai noua sau de oferta acceptata a altei firme.
 export const QUOTE_STATUSES = ['DRAFT', 'SENT', 'WITHDRAWN', 'EXPIRED', 'ACCEPTED', 'SUPERSEDED'] as const;
-export type QuoteStatus = (typeof QUOTE_STATUSES)[number];
 
 // Status cerere de modificare a clientului (4.13). FULFILLED = firma a raspuns cu versiune
 // noua; REJECTED = firma a refuzat (nu consuma slot; clientul nu poate cere aceeasi modificare).
 export const QUOTE_CHANGE_REQUEST_STATUSES = ['PENDING', 'FULFILLED', 'REJECTED'] as const;
-export type QuoteChangeRequestStatus = (typeof QUOTE_CHANGE_REQUEST_STATUSES)[number];

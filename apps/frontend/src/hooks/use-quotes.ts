@@ -28,14 +28,6 @@ function invalidate(qc: ReturnType<typeof useQueryClient>) {
 }
 
 // ===== firma =====
-export function useCompanyQuotes() {
-  return useQuery({
-    queryKey: [...QUOTES_KEY, 'company'],
-    queryFn: () => api<QuoteDto[]>('/quotes/mine'),
-    retry: false,
-  });
-}
-
 export function useClaimContext(claimSlotId: string) {
   return useQuery({
     queryKey: [...QUOTES_KEY, 'claim', claimSlotId],

@@ -92,12 +92,15 @@ services:
       S3_BUCKET: uploads
       S3_REGION: us-east-1
       SMTP_HOST: mailpit
+      # stack local prod-like: Mailpit e intentionat; pe hostingul real NU se seteaza
+      SMTP_ALLOW_DEV_HOST: 'true'
       SMTP_PORT: 1025
       MAIL_FROM: no-reply@cozy-fable.local
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-prodlike-access-secret-min16}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-prodlike-refresh-secret-min16}
-      PAYMENT_WEBHOOK_SECRET: ${PAYMENT_WEBHOOK_SECRET:-prodlike-webhook-secret-16}
       IP_HASH_SALT: ${IP_HASH_SALT:-prodlike-salt}
+      # obligatorie pe NODE_ENV=production (audit 2026-08-23: compose-ul dadea boot abort)
+      MESSAGE_ENCRYPTION_KEY: ${MESSAGE_ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
 
   frontend:
     build:

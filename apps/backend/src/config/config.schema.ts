@@ -29,6 +29,13 @@ export const configSchema = z.object({
     .optional()
     .default('false')
     .transform((v) => v === 'true'),
+  // Supapa EXPLICITA pentru stack-ul local prod-like (dev-infra/docker-compose.prod.yml),
+  // care ruleaza intentionat cu Mailpit. Pe hostingul real NU se seteaza niciodata.
+  SMTP_ALLOW_DEV_HOST: z
+    .string()
+    .optional()
+    .default('false')
+    .transform((v) => v === 'true'),
   MAIL_FROM: z.string().min(1),
 
   // 2FA TOTP implementat dar inactiv in MVP (invarianta 3.13) — flag off by default
@@ -40,7 +47,6 @@ export const configSchema = z.object({
 
   JWT_ACCESS_SECRET: z.string().min(16),
   JWT_REFRESH_SECRET: z.string().min(16),
-  PAYMENT_WEBHOOK_SECRET: z.string().min(16),
   IP_HASH_SALT: z.string().min(8),
 
   // Geocoding (invarianta 3.8): Nominatim cu user-agent custom + cache 90 zile.
@@ -81,7 +87,7 @@ export const configSchema = z.object({
     // In productie SMTP-ul de dev (Mailpit/localhost) inseamna ca TOATE emailurile
     // (verificare cont, reset parola, notificari) se inghit tacut — exact P0-ul din
     // auditul 2026-08-19; boot abort in loc de esec silentios (audit 2026-08-23).
-    if (cfg.NODE_ENV === 'production') {
+    if (cfg.NODE_ENV === 'production' && !cfg.SMTP_ALLOW_DEV_HOST) {
       const host = cfg.SMTP_HOST.trim().toLowerCase();
       if (host === 'mailpit' || host === 'localhost' || host === '127.0.0.1' || host === '::1') {
         ctx.addIssue({
