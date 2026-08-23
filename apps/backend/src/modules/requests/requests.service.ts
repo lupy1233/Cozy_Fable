@@ -38,7 +38,8 @@ import { InspirationService } from '../inspiration/inspiration.service';
 import { GeoService } from '../geo/geo.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { CreditsService } from '../billing/credits.service';
-import { closeOpenQuotesForSlot } from '../claims/claims.helpers';
+import { closeOpenQuotesForSlot, withSerializationRetry } from '../claims/claims.helpers';
+import { CLAIM_TX_TIMEOUT_MS } from '../claims/claims.constants';
 import {
   ConfiguratorRoomInputDto,
   CreateRequestContentDto,
@@ -522,33 +523,55 @@ export class RequestsService {
         message: 'Request cannot be deleted in this state',
       });
     }
-    const cancelled = await this.prisma.$transaction(async (tx) => {
-      const claims = await tx.claimSlot.findMany({
-        where: { requestId: id, status: { in: ['ACTIVE', 'OFFER_SENT'] } },
-      });
-      const closed: typeof claims = [];
-      for (const c of claims) {
-        // updateMany conditionat: slot decontat intre timp pe alta cale (retragere/SLA)
-        // → count 0, fara refund dublu (audit 2026-08-23); tranzitia = biletul de decontare.
-        const res = await tx.claimSlot.updateMany({
-          where: { id: c.id, status: { in: ['ACTIVE', 'OFFER_SENT'] } },
-          data: { status: 'CANCELLED_BY_CLIENT', withdrawnAt: new Date() },
-        });
-        if (res.count === 0) continue;
-        // ofertele deschise ale slotului nu mai pot fi acceptate; chat read-only (L0-B)
-        await closeOpenQuotesForSlot(tx, c.id, 'WITHDRAWN');
-        await this.credits.refund(
-          c.companyId,
-          c.claimCostCreditsSnapshot,
-          'REQUEST_DELETED_BY_CLIENT',
-          c.id,
-          tx,
-        );
-        closed.push(c);
-      }
-      await tx.request.update({ where: { id }, data: { deletedAt: new Date() } });
-      return closed;
-    });
+    // Invarianta 3.1 (R8, audit 2026-08-23): stergerea schimba numarul de sloturi active →
+    // Serializable + FOR UPDATE pe cerere (acelasi lock ca la claim/accept), altfel un claim
+    // comis intre findMany si scrierea lui deletedAt lasa un slot ACTIVE pe o cerere stearsa,
+    // cu creditele RESERVED blocate pe veci (procesoarele ies no-op pe deleted_at).
+    const cancelled = await withSerializationRetry(() =>
+      this.prisma.$transaction(
+        async (tx) => {
+          const locked = await tx.$queryRaw<
+            { id: string; status: RequestStatus; deleted_at: Date | null }[]
+          >`SELECT id, status, deleted_at FROM requests WHERE id = ${id} FOR UPDATE`;
+          const req = locked[0];
+          if (!req || req.deleted_at !== null) {
+            throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Request not found' });
+          }
+          if (!deletable.includes(req.status)) {
+            throw new BadRequestException({
+              code: ERROR_CODES.REQUEST_NOT_DELETABLE,
+              message: 'Request cannot be deleted in this state',
+            });
+          }
+          const claims = await tx.claimSlot.findMany({
+            where: { requestId: id, status: { in: ['ACTIVE', 'OFFER_SENT'] } },
+          });
+          const closed: typeof claims = [];
+          for (const c of claims) {
+            // updateMany conditionat: slot decontat intre timp pe alta cale (retragere/SLA)
+            // → count 0, fara refund dublu (audit 2026-08-23); tranzitia = biletul de decontare.
+            const res = await tx.claimSlot.updateMany({
+              where: { id: c.id, status: { in: ['ACTIVE', 'OFFER_SENT'] } },
+              data: { status: 'CANCELLED_BY_CLIENT', withdrawnAt: new Date() },
+            });
+            if (res.count === 0) continue;
+            // ofertele deschise ale slotului nu mai pot fi acceptate; chat read-only (L0-B)
+            await closeOpenQuotesForSlot(tx, c.id, 'WITHDRAWN');
+            await this.credits.refund(
+              c.companyId,
+              c.claimCostCreditsSnapshot,
+              'REQUEST_DELETED_BY_CLIENT',
+              c.id,
+              tx,
+            );
+            closed.push(c);
+          }
+          await tx.request.update({ where: { id }, data: { deletedAt: new Date() } });
+          return closed;
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: CLAIM_TX_TIMEOUT_MS },
+      ),
+    );
     for (const c of cancelled) {
       await this.eventBus.publish('claim.withdrawn', { claimSlotId: c.id, reason: 'CANCELLED_BY_CLIENT' });
     }

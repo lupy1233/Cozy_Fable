@@ -846,6 +846,9 @@ model Subscription {
 model CompanyCreditWallet {
   id        String   @id @default(uuid())
   companyId String   @unique @map("company_id")
+  // CHECK ("balance" >= 0) si CHECK ("reserved" >= 0) traiesc DOAR in SQL (migrarea
+  // 20260823150000_wallet_check_nonnegative) — Prisma nu modeleaza CHECK-uri; un
+  // `migrate dev` care reseteaza din schema le-ar pierde. Nu le sterge.
   balance   Int      @default(0)
   reserved  Int      @default(0)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()

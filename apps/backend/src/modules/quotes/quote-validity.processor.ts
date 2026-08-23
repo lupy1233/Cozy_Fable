@@ -35,7 +35,14 @@ export class QuoteValidityProcessor extends WorkerHost {
       const latest = quote.versions.reduce((a, b) => (b.version > a.version ? b : a));
       if (latest.id !== version.id) return null; // a aparut o versiune mai noua
       if (version.validUntil.getTime() > Date.now()) return null; // extinsa intre timp
-      await tx.quote.update({ where: { id: quote.id }, data: { status: 'EXPIRED' } });
+      // updateMany conditionat (R3, audit 2026-08-23): acceptul (Serializable) poate comite
+      // ACCEPTED intre citirea de mai sus si scriere — un update neconditionat ar suprascrie
+      // ACCEPTED cu EXPIRED si markDelivered nu ar mai gasi oferta → livrare blocata pe veci.
+      const res = await tx.quote.updateMany({
+        where: { id: quote.id, status: 'SENT' },
+        data: { status: 'EXPIRED' },
+      });
+      if (res.count === 0) return null;
       return quote.id;
     });
 
