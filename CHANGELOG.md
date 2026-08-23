@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## Pasul 7B audit #2: CI + lint backend + fixuri CVE prin overrides — 2026-08-23
+- **CI (GitHub Actions, NOU — `.github/workflows/ci.yml`)**: pe push/PR — install frozen → build shared → typecheck (shared+BE+FE) → lint (FE+BE) → teste (backend jest 132 + shared vitest 113). Aceleasi porti care ruleaza local la fiecare sprint.
+- **ESLint pe backend (NOU)**: `pnpm lint` acoperea doar frontendul; acum backendul are `.eslintrc.cjs` pragmatic (reguli de corectitudine, nu de stil) + script `lint` pe src+prisma; codul existent trecea din prima cu 2 exceptii reale, reparate (import orfan ForbiddenException dupa pasul 2, escape inutil in sanitizeFilename). Script `test` nou la radacina (`pnpm -r test`).
+- **CVE**: overrides noi body-parser>=1.20.6, qs>=6.15.2, nanoid>=3.3.18, postcss>=8.5.23 → `pnpm audit --prod` scade de la 43 la **32 vulnerabilitati (14→9 high)**; cele ramase sunt lantul next@14 (rezolvat in 7C) + nodemailer (major 9, planificat cu SMTP-ul real).
+- Porti: lint BE 0 · teste 132+113 verzi · typecheck 0.
+
 ## Pasul 7A audit #2: curatenie L2 — cod mort, chei i18n, docs, repo — 2026-08-23
 - **Frontend sters (0 importatori, dovada in audit A9)**: hero-sheets.tsx + process-section.tsx (vechiul landing, ~400 linii), ui/card|choice-card|score-gauge|separator|timeline, 13 ilustratii Illu* line-art (inlocuite de redarile foto 3D; ramane doar IlluCountertopHpl) + exportul illustrationStrokeProps, hooks moarte (useEditRequest, useUploadAttachment/useRemoveAttachment, useUpdateCompany/useUpdateLocation, useCompanyQuotes, FURNITURE_TYPES), directoarele goale landing-v2/.
 - **i18n**: 87 chei-frunza moarte sterse din ro.json SI en.json (Landing pastreaza doar cele 9 vii; Requests 22 — formularul manual pre-configurator; Marketplace 6, Billing 2 etc.), inclusiv metricile INVENTATE "340+/2.8k/94%"; paritate re-verificata 2.860 = 2.860, diff pur de stergere (0 adaugiri).

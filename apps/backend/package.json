@@ -13,7 +13,8 @@
     "seed:inspiration": "tsx prisma/seed-inspiration.ts",
     "seed:admin": "tsx prisma/seed-admin.ts",
     "cleanup:demo": "tsx prisma/cleanup-demo.ts",
-    "prisma": "prisma"
+    "prisma": "prisma",
+    "lint": "eslint \"src/**/*.ts\" \"prisma/**/*.ts\""
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -66,6 +67,9 @@
     "prisma": "^5.19.1",
     "ts-jest": "29",
     "tsx": "^4.22.4",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "eslint": "^8.57.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0"
   }
 }

@@ -1,0 +1,43 @@
+# Pasul 7B audit #2 (2026-08-23): CI minim — portile care ruleaza si local la fiecare
+# sprint (shared build → typecheck → lint FE+BE → teste backend + shared). Fara build
+# Next complet (standalone-ul se valideaza in Docker la deploy, nu aici).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        # versiunea vine din packageManager (package.json)
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalare dependinte
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared (tipurile comune, inaintea typecheck-ului FE/BE)
+        run: pnpm build:shared
+
+      - name: Typecheck (shared + backend + frontend)
+        run: pnpm typecheck
+
+      - name: Lint (frontend + backend)
+        run: pnpm lint
+
+      - name: Teste (backend jest + shared vitest)
+        run: pnpm test

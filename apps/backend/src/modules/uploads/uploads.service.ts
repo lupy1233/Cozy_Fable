@@ -34,7 +34,7 @@ export class UploadsService {
   ) {}
 
   private sanitizeFilename(name: string): string {
-    return name.replace(/[^\w.\-]+/g, '_').slice(0, 200);
+    return name.replace(/[^\w.-]+/g, '_').slice(0, 200);
   }
 
   async presign(
