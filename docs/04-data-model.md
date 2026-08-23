@@ -33,7 +33,7 @@ users, companies, company_members, company_locations, teams, company_verificatio
 | chat_threads | negotiation_ended_by_company BOOLEAN DEFAULT FALSE | 4.13 |
 | subscription_plans | price_ron, included_credits, marketplace_gating_delay_minutes (0/30/60) | 4.10/4.16 |
 | subscriptions | is_trial BOOLEAN, trial_ends_at TIMESTAMPTZ | 4.16 |
-| users | language_preference ENUM(RO/EN) DEFAULT RO, two_factor_secret (nullable), two_factor_enabled BOOLEAN DEFAULT FALSE | 3.13/4.20 |
+| users | language_preference ENUM(RO/EN) DEFAULT RO, two_factor_secret (nullable), two_factor_enabled BOOLEAN DEFAULT FALSE, blocked_at TIMESTAMPTZ nullable (blocare de admin — login/refresh/me refuza cu ACCOUNT_BLOCKED, D-L1-2 2026-08-23) | 3.13/4.20 |
 | penalty_events | applied_at TIMESTAMPTZ, expires_at = applied_at + 180d, scope (EMPLOYEE/COMPANY) | 4.12 |
 | companies / company_locations | address_text/county/city/lat/lng; company_locations.coverage_radius_km NUMERIC DEFAULT 50 | 3.8/4.8 |
 | mock_billing_orders | invoice_series, invoice_number, vat_rate, seller_snapshot (jsonb) | 4.17 |

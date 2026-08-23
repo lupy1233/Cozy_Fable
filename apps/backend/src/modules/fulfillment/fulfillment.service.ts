@@ -333,9 +333,41 @@ export class FulfillmentService {
           resolvedAt: new Date(),
         },
       });
-      // dupa decizie cererea revine COMPLETED (review-ul ramane inregistrat).
+      // D-L1-3 (PO 2026-08-23): DISMISSED = recenzia se STERGE (disputa dispare in cascada;
+      // trail-ul ramane in audit_logs prin @Audit). RESOLVED = recenzia ramane inregistrata.
+      // Nota: dupa stergere clientul poate lasa o recenzie noua (unicitatea e per cerere).
+      if (dto.status === 'DISMISSED') {
+        await tx.review.delete({ where: { id: dispute.review.id } });
+      }
+      // dupa decizie cererea revine COMPLETED.
       await tx.request.update({ where: { id: dispute.review.requestId }, data: { status: 'COMPLETED' } });
     });
+    // Pasul 6: partile AFLA decizia — clientul (recenzia pastrata/stearsa) + membrii firmei.
+    const [request, members] = await Promise.all([
+      this.prisma.request.findUnique({
+        where: { id: dispute.review.requestId },
+        select: { title: true, clientUserId: true },
+      }),
+      this.prisma.companyMember.findMany({
+        where: { companyId: dispute.review.companyId },
+        select: { userId: true },
+      }),
+    ]);
+    const targets = [
+      ...members.map((m) => m.userId),
+      ...(request?.clientUserId ? [request.clientUserId] : []),
+    ];
+    if (targets.length > 0) {
+      await this.eventBus.publish(
+        'dispute.decided',
+        {
+          requestId: dispute.review.requestId,
+          requestTitle: request?.title ?? '',
+          dismissed: dto.status === 'DISMISSED',
+        },
+        targets,
+      );
+    }
     await this.eventBus.publish('request.status_changed', {
       requestId: dispute.review.requestId,
       status: 'COMPLETED',

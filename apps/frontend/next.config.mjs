@@ -25,6 +25,32 @@ const nextConfig = {
   // Fara CSP deocamdata: Google Maps Places + CDN-ul de imagini al partenerilor
   // cer o politica atent enumerata — vine separat.
   async headers() {
+    // Pasul 6 (audit 2026-08-23): CSP + HSTS doar in productie — in dev API-ul e pe alt
+    // port (localhost:3001) si HMR-ul Next are nevoie de eval, deci CSP-ul ar rupe totul.
+    // Google Maps Places e singurul script extern (address-autocomplete); imaginile vin
+    // din bucketul S3 prin presigned URL (host per-mediu) → img-src https:.
+    const prodOnly =
+      process.env.NODE_ENV === 'production'
+        ? [
+            {
+              key: 'Content-Security-Policy',
+              value: [
+                "default-src 'self'",
+                "script-src 'self' 'unsafe-inline' https://maps.googleapis.com",
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+                "img-src 'self' data: blob: https:",
+                "font-src 'self' data: https://fonts.gstatic.com",
+                "connect-src 'self' https: wss: blob:",
+                "worker-src 'self' blob:",
+                "frame-ancestors 'none'",
+                "base-uri 'self'",
+                "form-action 'self'",
+                "object-src 'none'",
+              ].join('; '),
+            },
+            { key: 'Strict-Transport-Security', value: 'max-age=15552000; includeSubDomains' },
+          ]
+        : [];
     return [
       {
         source: '/:path*',
@@ -33,6 +59,7 @@ const nextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          ...prodOnly,
         ],
       },
     ];

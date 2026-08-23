@@ -536,6 +536,7 @@
     "apiErrors": {
       "INVALID_CREDENTIALS": "That email and password don't match. Check them and try again.",
       "EMAIL_NOT_VERIFIED": "Your email isn't confirmed yet. Look for the confirmation link in your inbox.",
+      "ACCOUNT_BLOCKED": "Your account was blocked by an administrator. Check your email for details or contact us.",
       "EMAIL_ALREADY_REGISTERED": "An account with this email already exists — you can log in directly.",
       "RATE_LIMITED": "Too many attempts in a row. Wait a minute, then try again.",
       "TWO_FACTOR_REQUIRED": "Enter your two-step verification code to continue.",
@@ -1257,6 +1258,38 @@
     "pts": "pts",
     "expires": "expires"
   },
+  "AdminUsers": {
+    "title": "Users",
+    "searchPlaceholder": "Search by name or email…",
+    "roleFilter": {
+      "ALL": "All",
+      "CLIENT": "Clients",
+      "COMPANY_USER": "Companies",
+      "ADMIN": "Admins"
+    },
+    "role": {
+      "CLIENT": "Client",
+      "COMPANY_USER": "Company",
+      "ADMIN": "Admin"
+    },
+    "colUser": "User",
+    "colRole": "Role",
+    "colCompany": "Company",
+    "colStatus": "Status",
+    "colActions": "Actions",
+    "blocked": "Blocked",
+    "active": "Active",
+    "unverified": "Unverified",
+    "block": "Block",
+    "unblock": "Unblock",
+    "blockConfirmTitle": "Block the account {name}?",
+    "blockConfirmBody": "The user will no longer be able to log in, active sessions close immediately, and they receive an explanatory email. You can unblock at any time.",
+    "blockConfirmCta": "Yes, block",
+    "blockCancel": "Back",
+    "empty": "No users found.",
+    "loadError": "Could not load users. Reload the page.",
+    "actionError": "The action failed. Try again."
+  },
   "AdminWithdrawals": {
     "loading": "Loading…",
     "title": "Claim withdrawals (custom)",
@@ -1454,6 +1487,7 @@
     "nav": {
       "dashboard": "Dashboard",
       "companies": "Companies",
+      "users": "Users",
       "inspiration": "The Idea Book",
       "disputes": "Disputes",
       "payments": "Payments",
@@ -1547,7 +1581,10 @@
         "submitted": "New company awaiting verification"
       },
       "dispute": {
-        "opened": "New dispute (review below 3 stars)"
+        "opened": "New dispute (review below 3 stars)",
+        "decided": "The dispute was decided",
+        "decided_DISMISSED": "Dispute upheld — the review was removed",
+        "decided_RESOLVED": "Dispute rejected — the review stays"
       },
       "penalty": {
         "applied": "Penalty applied"

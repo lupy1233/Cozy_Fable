@@ -410,6 +410,8 @@ export class CompaniesService {
   // Adauga un user existent (dupa email) la firma. Un user = o singura firma.
   async addMember(userId: string, dto: InviteMemberDto): Promise<CompanyDto> {
     const member = await this.requireManager(userId);
+    // Nota (pasul 6): rolul OWNER nu poate fi acordat aici — inviteMemberSchema din shared
+    // nu il accepta; escaladarea era posibila DOAR prin changeMemberRole (garda de mai jos).
     const invitee = await this.prisma.user.findFirst({
       where: { email: dto.email.toLowerCase(), deletedAt: null, role: 'COMPANY_USER' },
     });
@@ -443,6 +445,15 @@ export class CompaniesService {
     });
     if (!target) {
       throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Member not found' });
+    }
+    // Pasul 6 (audit 2026-08-23, escaladare de privilegii): acordarea SAU retragerea rolului
+    // OWNER se face doar de un OWNER — inainte un MANAGER se putea auto-promova OWNER si
+    // apoi retrograda ownerul real (regula 4.13: matricea de permisiuni e doar-OWNER).
+    if ((dto.role === 'OWNER' || target.role === 'OWNER') && manager.role !== 'OWNER') {
+      throw new ForbiddenException({
+        code: ERROR_CODES.FORBIDDEN,
+        message: 'Only an owner can grant or revoke the owner role',
+      });
     }
     // Nu lasa firma fara owner: ultimul OWNER nu poate fi retrogradat
     if (target.role === 'OWNER' && dto.role !== 'OWNER') {

@@ -2,7 +2,9 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Put,
@@ -17,6 +19,7 @@ import { Audit } from '../audit/audit.decorator';
 import { AuditInterceptor } from '../audit/audit.interceptor';
 import { AdminService } from './admin.service';
 import {
+  AdminUsersQueryDto,
   UpdateCreditPackageDto,
   UpdatePenaltyRuleDto,
   UpdatePlanDto,
@@ -35,6 +38,27 @@ export class AdminController {
   @Get('kpi')
   kpi() {
     return this.admin.getKpi();
+  }
+
+  // ===== Utilizatori (pasul 6, D-L1-2) =====
+
+  @Get('users')
+  users(@Query() query: AdminUsersQueryDto) {
+    return this.admin.listUsers(query.q, query.role);
+  }
+
+  @Post('users/:id/block')
+  @HttpCode(200)
+  @Audit('USER_BLOCKED', 'user')
+  blockUser(@Param('id', ParseUUIDPipe) id: string) {
+    return this.admin.blockUser(id);
+  }
+
+  @Post('users/:id/unblock')
+  @HttpCode(200)
+  @Audit('USER_UNBLOCKED', 'user')
+  unblockUser(@Param('id', ParseUUIDPipe) id: string) {
+    return this.admin.unblockUser(id);
   }
 
   @Get('audit-logs')

@@ -28,6 +28,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { AccessTokenPayload } from '../auth/auth.constants';
 import { CompanyApprovedGuard } from '../../common/guards/company-approved.guard';
+import { CompanyManagerGuard } from '../../common/guards/company-manager.guard';
 import { CurrentCompany } from '../../common/company-context/current-company.decorator';
 import type { CompanyContext } from '../../common/company-context/company-context';
 import { Idempotent } from '../../common/idempotency/idempotent.decorator';
@@ -63,17 +64,21 @@ export class PaymentsController {
   }
 
   @Get('payment-instructions')
+  @UseGuards(CompanyManagerGuard)
   paymentInstructions() {
     return this.payments.getPaymentInstructions();
   }
 
+  // Pasul 6 (audit 2026-08-23): comenzile/facturile/achizitiile = doar OWNER/MANAGER.
   @Get('orders')
+  @UseGuards(CompanyManagerGuard)
   orders(@CurrentCompany() ctx: CompanyContext) {
     return this.payments.listOrders(ctx.companyId);
   }
 
   // POST critic — Idempotency-Key (3.2). Raspuns: { order, checkoutUrl } (null = transfer bancar).
   @Post('credits/purchase')
+  @UseGuards(CompanyManagerGuard)
   @Idempotent()
   @UseInterceptors(IdempotencyInterceptor)
   buyCredits(
@@ -85,6 +90,7 @@ export class PaymentsController {
   }
 
   @Post('subscription/purchase')
+  @UseGuards(CompanyManagerGuard)
   @Idempotent()
   @UseInterceptors(IdempotencyInterceptor)
   buySubscription(
@@ -97,6 +103,7 @@ export class PaymentsController {
 
   // "Continua plata" — sesiune Checkout noua pentru o comanda PENDING (cea veche e expirata).
   @Post('orders/:id/checkout')
+  @UseGuards(CompanyManagerGuard)
   @HttpCode(200)
   checkout(
     @CurrentUser() user: AccessTokenPayload,
@@ -107,6 +114,7 @@ export class PaymentsController {
   }
 
   @Get('orders/:id/invoice')
+  @UseGuards(CompanyManagerGuard)
   @Header('Content-Type', 'application/pdf')
   @Header('Content-Disposition', 'attachment; filename="factura.pdf"')
   async invoice(@CurrentCompany() ctx: CompanyContext, @Param('id', ParseUUIDPipe) id: string) {

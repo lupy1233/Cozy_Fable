@@ -13,6 +13,7 @@ import { LangSwitch } from '../_components/lang-switch';
 const NAV = [
   { href: '/admin', key: 'dashboard' },
   { href: '/admin/companies', key: 'companies' },
+  { href: '/admin/users', key: 'users' },
   { href: '/admin/inspiration', key: 'inspiration' },
   { href: '/admin/disputes', key: 'disputes' },
   { href: '/admin/payments', key: 'payments' },

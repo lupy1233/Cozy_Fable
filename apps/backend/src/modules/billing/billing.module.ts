@@ -13,6 +13,7 @@ import { InvoicePdfService } from './invoice-pdf.service';
 import { StripeService } from './stripe.service';
 import { SubscriptionExpiryProcessor } from './subscription-expiry.processor';
 import { CompanyApprovedGuard } from '../../common/guards/company-approved.guard';
+import { CompanyManagerGuard } from '../../common/guards/company-manager.guard';
 import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.interceptor';
 
 @Module({
@@ -26,6 +27,7 @@ import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.int
     StripeService,
     SubscriptionExpiryProcessor,
     CompanyApprovedGuard,
+    CompanyManagerGuard,
     IdempotencyInterceptor,
   ],
   exports: [CreditsService, SubscriptionsService, PaymentsService, StripeService],

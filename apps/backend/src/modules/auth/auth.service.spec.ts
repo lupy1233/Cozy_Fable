@@ -41,6 +41,7 @@ function makeUser(overrides: Record<string, unknown> = {}) {
     emailVerifiedAt: new Date('2026-01-01T00:00:00Z'),
     twoFactorEnabled: false,
     twoFactorSecret: null,
+    blockedAt: null,
     deletedAt: null,
     ...overrides,
   };
@@ -56,6 +57,16 @@ function makeService(user: Record<string, unknown> | null = makeUser()) {
         return user;
       }),
       findUniqueOrThrow: jest.fn(async () => user),
+      // pasul 6: refresh()/me() filtreaza deletedAt/blockedAt prin findFirst
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findFirst: jest.fn(async ({ where }: any) => {
+        if (!user) return null;
+        if (where.id && where.id !== user.id) return null;
+        if (where.email && where.email !== user.email) return null;
+        if ('deletedAt' in where && where.deletedAt === null && user.deletedAt) return null;
+        if ('blockedAt' in where && where.blockedAt === null && user.blockedAt) return null;
+        return user;
+      }),
       create: jest.fn(async ({ data }: { data: Record<string, unknown> }) => ({
         ...makeUser(),
         ...data,
@@ -69,6 +80,7 @@ function makeService(user: Record<string, unknown> | null = makeUser()) {
     revokeAllForUser: jest.fn().mockResolvedValue(undefined),
     issueNewFamily: jest.fn().mockResolvedValue('raw-refresh'),
     signAccessToken: jest.fn().mockResolvedValue('access-jwt'),
+    rotate: jest.fn().mockResolvedValue({ userId: 'u1', refreshToken: 'raw-refresh-2' }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -257,5 +269,43 @@ describe('change-password', () => {
     expect(tokens.revokeAllForUser.mock.invocationCallOrder[0]).toBeLessThan(
       tokens.issueNewFamily.mock.invocationCallOrder[0],
     );
+  });
+});
+
+// Pasul 6 (audit 2026-08-23, D-L1-2): cont blocat de admin + refresh pe cont sters/blocat.
+describe('cont blocat / sters soft (pasul 6)', () => {
+  it('login pe cont blocat cu parola corecta → 403 ACCOUNT_BLOCKED', async () => {
+    const { service } = makeService(makeUser({ blockedAt: new Date() }));
+    await expect(
+      service.login({ email: 'ana@demo.ro', password: 'Parola123' } as never),
+    ).rejects.toMatchObject({ status: 403, response: { code: ERROR_CODES.ACCOUNT_BLOCKED } });
+  });
+
+  it('login pe cont blocat cu parola GRESITA → INVALID_CREDENTIALS (nu confirmam blocarea)', async () => {
+    const { service } = makeService(makeUser({ blockedAt: new Date() }));
+    await expect(
+      service.login({ email: 'ana@demo.ro', password: 'gresita123' } as never),
+    ).rejects.toMatchObject({ response: { code: ERROR_CODES.INVALID_CREDENTIALS } });
+  });
+
+  it('refresh pe cont sters soft → 401 + toate sesiunile revocate', async () => {
+    const { service, tokens } = makeService(makeUser({ deletedAt: new Date() }));
+    await expect(service.refresh('raw')).rejects.toMatchObject({ status: 401 });
+    expect(tokens.revokeAllForUser).toHaveBeenCalledWith('u1');
+  });
+
+  it('refresh pe cont blocat → 401 + revocare; me() la fel', async () => {
+    const { service, tokens } = makeService(makeUser({ blockedAt: new Date() }));
+    await expect(service.refresh('raw')).rejects.toMatchObject({ status: 401 });
+    expect(tokens.revokeAllForUser).toHaveBeenCalledWith('u1');
+    await expect(service.me('u1')).rejects.toMatchObject({ status: 401 });
+  });
+
+  it('refresh pe cont valid functioneaza in continuare', async () => {
+    const { service } = makeService();
+    await expect(service.refresh('raw')).resolves.toEqual({
+      accessToken: 'access-jwt',
+      refreshToken: 'raw-refresh-2',
+    });
   });
 });

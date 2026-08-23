@@ -24,18 +24,30 @@ function makeService(opts: {
   };
   const slot = { id: 'slot1', companyId: 'c1', claimCostCreditsSnapshot: 3, status: 'OFFER_SENT' };
   const tx: Any = {
-    request: { updateMany: jest.fn().mockResolvedValue({ count: opts.completeCount ?? 1 }) },
+    request: {
+      updateMany: jest.fn().mockResolvedValue({ count: opts.completeCount ?? 1 }),
+      update: jest.fn().mockResolvedValue(undefined),
+    },
     quote: { findFirst: jest.fn().mockResolvedValue({ id: 'q1', claimSlotId: 'slot1' }) },
     claimSlot: {
       updateMany: jest.fn().mockResolvedValue({ count: opts.slotCloseCount ?? 1 }),
       findUniqueOrThrow: jest.fn().mockResolvedValue(slot),
     },
+    reviewDispute: { update: jest.fn().mockResolvedValue(undefined) },
+    review: { delete: jest.fn().mockResolvedValue(undefined) },
   };
   const prisma: Any = {
     $transaction: jest.fn((fn: (t: Any) => Promise<unknown>) => fn(tx)),
     request: { findUnique: jest.fn().mockResolvedValue(request) },
     companyMember: { findMany: jest.fn().mockResolvedValue([{ userId: 'm1' }]) },
     user: { findMany: jest.fn().mockResolvedValue([]) },
+    reviewDispute: {
+      findUnique: jest.fn().mockResolvedValue({
+        id: 'd1',
+        status: 'OPEN',
+        review: { id: 'rev1', requestId: 'r1', companyId: 'c1' },
+      }),
+    },
   };
   const eventBus: Any = { publish: jest.fn().mockResolvedValue(undefined) };
   const credits: Any = { consume: jest.fn().mockResolvedValue(undefined) };
@@ -87,5 +99,29 @@ describe('FulfillmentService — auto-COMPLETED la 14 zile (D-PO 2026-08-23)', (
   it('jobId-ul de auto-complete e determinist pe delivered_at (contract cu sweep-ul)', () => {
     const at = new Date('2026-08-23T10:00:00Z');
     expect(autoCompleteJobId('r1', at)).toBe(`auto-complete-r1-${at.getTime()}`);
+  });
+});
+
+// D-L1-3 (PO 2026-08-23): DISMISSED sterge recenzia; RESOLVED o pastreaza.
+describe('resolveDispute (D-L1-3)', () => {
+  it('DISMISSED → recenzia se STERGE + dispute.decided(dismissed:true) catre parti', async () => {
+    const { service, tx, eventBus } = makeService();
+    await service.resolveDispute('admin', 'd1', { status: 'DISMISSED' } as Any);
+    expect(tx.review.delete).toHaveBeenCalledWith({ where: { id: 'rev1' } });
+    expect(tx.request.update).toHaveBeenCalledWith({
+      where: { id: 'r1' },
+      data: { status: 'COMPLETED' },
+    });
+    const decided = eventBus.publish.mock.calls.find((c: Any[]) => c[0] === 'dispute.decided');
+    expect(decided[1].dismissed).toBe(true);
+    expect(decided[2]).toEqual(expect.arrayContaining(['m1', 'u-client']));
+  });
+
+  it('RESOLVED → recenzia RAMANE + dispute.decided(dismissed:false)', async () => {
+    const { service, tx, eventBus } = makeService();
+    await service.resolveDispute('admin', 'd1', { status: 'RESOLVED' } as Any);
+    expect(tx.review.delete).not.toHaveBeenCalled();
+    const decided = eventBus.publish.mock.calls.find((c: Any[]) => c[0] === 'dispute.decided');
+    expect(decided[1].dismissed).toBe(false);
   });
 });

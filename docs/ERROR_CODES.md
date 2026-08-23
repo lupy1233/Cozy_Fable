@@ -13,7 +13,7 @@ Codurile sunt constante in `packages/shared`; frontend mapeaza cod → mesaj loc
 - `INTERNAL_ERROR` — fallback neasteptat.
 
 ## Auth (3.13)
-- `INVALID_CREDENTIALS` · `EMAIL_ALREADY_REGISTERED` · `EMAIL_NOT_VERIFIED`
+- `INVALID_CREDENTIALS` · `EMAIL_ALREADY_REGISTERED` · `EMAIL_NOT_VERIFIED` · `ACCOUNT_BLOCKED` (D-L1-2: users.blocked_at)
 - `REFRESH_TOKEN_INVALID` · `REFRESH_TOKEN_REUSED` (familie revocata) · `SESSION_SUPERSEDED` (login pe alt device)
 - `TWO_FACTOR_REQUIRED` · `TWO_FACTOR_INVALID_CODE` (flag off in MVP)
 - `RESET_TOKEN_INVALID` (400) — token de resetare parola invalid/expirat/deja folosit (L0-A)

@@ -1,4 +1,17 @@
-import { IsBoolean, IsInt, IsOptional, IsString, Min, MaxLength } from 'class-validator';
+import { UserRole } from '@prisma/client';
+import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Min, MaxLength } from 'class-validator';
+
+// Pasul 6 (D-L1-2): filtrele listei de utilizatori din consola admin.
+export class AdminUsersQueryDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  q?: string;
+
+  @IsOptional()
+  @IsEnum(UserRole)
+  role?: UserRole;
+}
 
 export class UpdateSettingDto {
   @IsString()

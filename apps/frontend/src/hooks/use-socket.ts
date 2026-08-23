@@ -93,6 +93,7 @@ export function useRealtimeSync(): void {
     s.on('delivery.confirmed', onDelivery);
     s.on('delivery.autocompleted', onDelivery);
     s.on('review.created', onDelivery);
+    s.on('dispute.decided', onDelivery);
     s.on('request.expired', onRequestChange);
     s.on('company.approved', onCompany);
     s.on('company.rejected', onCompany);
@@ -120,6 +121,7 @@ export function useRealtimeSync(): void {
       s.off('delivery.confirmed', onDelivery);
       s.off('delivery.autocompleted', onDelivery);
       s.off('review.created', onDelivery);
+      s.off('dispute.decided', onDelivery);
       s.off('request.expired', onRequestChange);
       s.off('company.approved', onCompany);
       s.off('company.rejected', onCompany);

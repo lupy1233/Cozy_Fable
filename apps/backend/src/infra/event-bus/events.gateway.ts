@@ -13,7 +13,13 @@ import { ACCESS_COOKIE, type AccessTokenPayload } from '../../modules/auth/auth.
 // Invarianta 3.5: auth socket cookie-based (acelasi cookie httpOnly).
 // Token lipsa/expirat la handshake → emit auth_expired → client face refresh + reconectare.
 // Controllerele NU emit direct; doar EventBusService foloseste serverul.
-@WebSocketGateway({ cors: { origin: true, credentials: true } })
+// Pasul 6 (audit 2026-08-23): CORS aliniat la FRONTEND_ORIGIN ca pe REST (inainte
+// origin:true reflecta ORICE origine cu credentials). Decoratorul se evalueaza la
+// import, deci citim direct process.env (validat oricum la boot de config.schema);
+// fallback true doar cand env-ul lipseste (dev/test).
+@WebSocketGateway({
+  cors: { origin: process.env.FRONTEND_ORIGIN ?? true, credentials: true },
+})
 export class EventsGateway implements OnGatewayConnection {
   private readonly logger = new Logger(EventsGateway.name);
 

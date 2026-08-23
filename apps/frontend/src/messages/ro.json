@@ -536,6 +536,7 @@
     "apiErrors": {
       "INVALID_CREDENTIALS": "Emailul și parola nu se potrivesc. Verifică-le și încearcă din nou.",
       "EMAIL_NOT_VERIFIED": "Emailul nu este confirmat încă. Caută linkul de confirmare în inbox.",
+      "ACCOUNT_BLOCKED": "Contul tău a fost blocat de un administrator. Verifică-ți emailul pentru detalii sau contactează-ne.",
       "EMAIL_ALREADY_REGISTERED": "Există deja un cont cu acest email — poți intra direct în el.",
       "RATE_LIMITED": "Prea multe încercări una după alta. Așteaptă un minut și încearcă din nou.",
       "TWO_FACTOR_REQUIRED": "Introdu codul de autentificare în doi pași ca să continui.",
@@ -1257,6 +1258,38 @@
     "pts": "pct",
     "expires": "expiră"
   },
+  "AdminUsers": {
+    "title": "Utilizatori",
+    "searchPlaceholder": "Caută după nume sau email…",
+    "roleFilter": {
+      "ALL": "Toți",
+      "CLIENT": "Clienți",
+      "COMPANY_USER": "Firme",
+      "ADMIN": "Admini"
+    },
+    "role": {
+      "CLIENT": "Client",
+      "COMPANY_USER": "Firmă",
+      "ADMIN": "Admin"
+    },
+    "colUser": "Utilizator",
+    "colRole": "Rol",
+    "colCompany": "Firmă",
+    "colStatus": "Status",
+    "colActions": "Acțiuni",
+    "blocked": "Blocat",
+    "active": "Activ",
+    "unverified": "Neconfirmat",
+    "block": "Blochează",
+    "unblock": "Deblochează",
+    "blockConfirmTitle": "Blochezi contul {name}?",
+    "blockConfirmBody": "Utilizatorul nu se va mai putea autentifica, sesiunile active se închid imediat și primește un email cu explicația. Poți debloca oricând.",
+    "blockConfirmCta": "Da, blochează",
+    "blockCancel": "Înapoi",
+    "empty": "Niciun utilizator găsit.",
+    "loadError": "Nu am putut încărca utilizatorii. Reîncarcă pagina.",
+    "actionError": "Acțiunea nu a reușit. Încearcă din nou."
+  },
   "AdminWithdrawals": {
     "loading": "Se încarcă…",
     "title": "Retrageri de preluări (custom)",
@@ -1454,6 +1487,7 @@
     "nav": {
       "dashboard": "Tablou de bord",
       "companies": "Firme",
+      "users": "Utilizatori",
       "inspiration": "Caietul de idei",
       "disputes": "Dispute",
       "payments": "Plăți",
@@ -1547,7 +1581,10 @@
         "submitted": "Firmă nouă în așteptarea verificării"
       },
       "dispute": {
-        "opened": "Dispută nouă (recenzie sub 3 stele)"
+        "opened": "Dispută nouă (recenzie sub 3 stele)",
+        "decided": "Disputa a fost soluționată",
+        "decided_DISMISSED": "Dispută admisă — recenzia a fost retrasă",
+        "decided_RESOLVED": "Dispută respinsă — recenzia rămâne"
       },
       "penalty": {
         "applied": "Penalizare aplicată"

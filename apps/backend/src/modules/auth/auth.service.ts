@@ -321,6 +321,14 @@ export class AuthService {
         message: 'Invalid email or password',
       });
     }
+    // D-L1-2 (pasul 6): cont blocat de admin — mesaj explicit DOAR dupa parola corecta
+    // (altfel am confirma existenta contului fara credentiale valide).
+    if (user.blockedAt) {
+      throw new ForbiddenException({
+        code: ERROR_CODES.ACCOUNT_BLOCKED,
+        message: 'Account blocked',
+      });
+    }
     if (!user.emailVerifiedAt) {
       throw new ForbiddenException({
         code: ERROR_CODES.EMAIL_NOT_VERIFIED,
@@ -355,7 +363,18 @@ export class AuthService {
 
   async refresh(rawToken: string): Promise<{ accessToken: string; refreshToken: string }> {
     const rotated = await this.tokens.rotate(rawToken);
-    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: rotated.userId } });
+    // Pasul 6 (audit 2026-08-23): contul sters soft sau blocat NU isi mai reinnoieste
+    // sesiunea (inainte un cont sters ramanea functional pana la 7 zile prin refresh).
+    const user = await this.prisma.user.findFirst({
+      where: { id: rotated.userId, deletedAt: null, blockedAt: null },
+    });
+    if (!user) {
+      await this.tokens.revokeAllForUser(rotated.userId);
+      throw new UnauthorizedException({
+        code: ERROR_CODES.UNAUTHORIZED,
+        message: 'Session no longer valid',
+      });
+    }
     return {
       accessToken: await this.tokens.signAccessToken(user),
       refreshToken: rotated.refreshToken,
@@ -367,7 +386,15 @@ export class AuthService {
   }
 
   async me(userId: string): Promise<PublicUser> {
-    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, deletedAt: null, blockedAt: null },
+    });
+    if (!user) {
+      throw new UnauthorizedException({
+        code: ERROR_CODES.UNAUTHORIZED,
+        message: 'Session no longer valid',
+      });
+    }
     return this.toPublic(user);
   }
 }

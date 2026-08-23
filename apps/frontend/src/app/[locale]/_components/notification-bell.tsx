@@ -58,6 +58,7 @@ const TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   'company.submitted': Handshake,
   'delivery.autocompleted': PackageCheck,
   'dispute.opened': AlertTriangle,
+  'dispute.decided': Gavel,
   'payment.pending': CreditCard,
   'penalty.applied': AlertTriangle,
   'review.created': Star,
@@ -80,6 +81,7 @@ const str = (p: Payload, key: string): string | null => {
 function titleVariant(type: string, payload: Payload): string | null {
   if (type === 'claim.withdrawn') return str(payload, 'reason');
   if (type === 'withdrawal.decided') return payload?.approved === true ? 'APPROVED' : 'REJECTED';
+  if (type === 'dispute.decided') return payload?.dismissed === true ? 'DISMISSED' : 'RESOLVED';
   return null;
 }
 
@@ -101,7 +103,7 @@ function hrefFor(type: string, payload: Payload, role: string | undefined): stri
       return '/marketplace/wallet';
     }
     if (type === 'company.approved' || type === 'company.unsuspended') return '/marketplace';
-    if (type === 'company.rejected' || type === 'company.suspended' || type === 'penalty.applied' || type === 'review.created') {
+    if (type === 'company.rejected' || type === 'company.suspended' || type === 'penalty.applied' || type === 'review.created' || type === 'dispute.decided') {
       return '/company';
     }
     // preluari, oferte, livrari, retrageri → fisa de lucru daca avem slotul

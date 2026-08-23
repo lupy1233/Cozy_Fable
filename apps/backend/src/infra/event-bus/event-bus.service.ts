@@ -33,7 +33,9 @@ export type DomainEvent =
   | 'company.unsuspended'
   | 'company.submitted'
   | 'payment.pending'
-  | 'dispute.opened';
+  | 'dispute.opened'
+  // Pasul 6 (audit 2026-08-23): moderare + blocari
+  | 'dispute.decided';
 
 // Invarianta 3.5: TOATE evenimentele trec prin publish() —
 // emite pe Socket.IO si pune in coada de notificari. Controllerele nu emit direct.

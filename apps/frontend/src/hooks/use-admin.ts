@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   AdminKpiDto,
+  AdminUserItemDto,
   AuditLogPageDto,
   JobDto,
   PenaltyRuleDto,
@@ -18,6 +19,29 @@ export interface AdminThreshold { id: string; size: string; minScore: number; ma
 
 export function useKpi() {
   return useQuery({ queryKey: ['admin', 'kpi'], queryFn: () => api<AdminKpiDto>('/admin/kpi'), retry: false });
+}
+
+// --- utilizatori (pasul 6, D-L1-2) ---
+export function useAdminUsers(q: string, role?: string) {
+  const qs = new URLSearchParams();
+  if (q.trim()) qs.set('q', q.trim());
+  if (role) qs.set('role', role);
+  return useQuery({
+    queryKey: ['admin', 'users', q.trim(), role ?? 'ALL'],
+    queryFn: () => api<AdminUserItemDto[]>(`/admin/users${qs.size ? `?${qs.toString()}` : ''}`),
+    retry: false,
+  });
+}
+
+export function useBlockUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; block: boolean }) =>
+      api<AdminUserItemDto>(`/admin/users/${input.id}/${input.block ? 'block' : 'unblock'}`, {
+        method: 'POST',
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'users'] }),
+  });
 }
 
 export function useAuditLogs(page: number, filters: { action?: string; entityType?: string } = {}) {

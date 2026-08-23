@@ -27,7 +27,8 @@
     --secondary: 39 44% 92%;           /* surface-3 */
     --secondary-foreground: 30 13% 9%;
     --muted: 38 52% 96%;               /* surface-2 */
-    --muted-foreground: 35 9% 43%;     /* #766E63 */
+    /* pasul 6 (audit A16): 43% dadea 4.13:1 pe ivorie — sub AA; 39% ≈ 4.8:1 */
+    --muted-foreground: 35 9% 39%;     /* #6F675D */
     --accent: 39 44% 92%;              /* hover */
     --accent-foreground: 30 13% 9%;
     --destructive: 7 54% 40%;          /* #9C3A2E */

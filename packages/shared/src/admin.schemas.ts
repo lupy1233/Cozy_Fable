@@ -84,3 +84,15 @@ export const updateThresholdSchema = z.object({
   creditCost: z.number().int().min(0).optional(),
 });
 export type UpdateThresholdInput = z.infer<typeof updateThresholdSchema>;
+
+// Pasul 6 (audit 2026-08-23, D-L1-2): management utilizatori in consola admin.
+export interface AdminUserItemDto {
+  id: string;
+  email: string;
+  name: string;
+  role: 'CLIENT' | 'COMPANY_USER' | 'ADMIN';
+  companyName: string | null;
+  emailVerified: boolean;
+  blockedAt: string | null;
+  createdAt: string;
+}

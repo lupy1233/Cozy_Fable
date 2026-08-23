@@ -1,8 +1,9 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
   ERROR_CODES,
   type AdminKpiDto,
+  type AdminUserItemDto,
   type AuditLogPageDto,
   type JobDto,
   type PenaltyRuleDto,
@@ -12,8 +13,12 @@ import {
   type UpdateThresholdInput,
   type UpsertCreditPackageInput,
 } from '@marketplace/shared';
+import { Language, type UserRole } from '@prisma/client';
 import type { Queue } from 'bullmq';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { EventBusService } from '../../infra/event-bus/event-bus.service';
+import { MailService } from '../../infra/mail/mail.service';
+import { TokenService } from '../auth/token.service';
 import {
   QUEUE_CLAIM_ASSIGN,
   QUEUE_CONSULTATION_EXPIRY,
@@ -29,10 +34,14 @@ import {
 
 @Injectable()
 export class AdminService {
+  private readonly logger = new Logger(AdminService.name);
   private readonly queues: Record<string, Queue>;
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly tokens: TokenService,
+    private readonly mail: MailService,
+    private readonly eventBus: EventBusService,
     @InjectQueue(QUEUE_NOTIFICATIONS) notifications: Queue,
     @InjectQueue(QUEUE_REQUEST_EXPIRATION) requestExpiration: Queue,
     @InjectQueue(QUEUE_CLAIM_ASSIGN) claimAssign: Queue,
@@ -55,6 +64,121 @@ export class AdminService {
       [QUEUE_SUBSCRIPTION_EXPIRY]: subscriptionExpiry,
       [QUEUE_DELIVERY_AUTOCOMPLETE]: deliveryAutocomplete,
       [QUEUE_RECONCILIATION]: reconciliation,
+    };
+  }
+
+  // ===== Utilizatori (pasul 6, D-L1-2 PO 2026-08-23) =====
+
+  async listUsers(q?: string, role?: UserRole): Promise<AdminUserItemDto[]> {
+    const rows = await this.prisma.user.findMany({
+      where: {
+        deletedAt: null,
+        ...(role ? { role } : {}),
+        ...(q
+          ? {
+              OR: [
+                { email: { contains: q, mode: 'insensitive' } },
+                { name: { contains: q, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      include: { companyMemberships: { include: { company: { select: { name: true } } } } },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+    return rows.map((u) => this.toAdminUserDto(u));
+  }
+
+  // Blocare cont (D-L1-2): blocked_at + revocarea tuturor sesiunilor + email direct
+  // (transactional — nu trece prin opt-out-ul de notificari). Idempotent.
+  async blockUser(id: string): Promise<AdminUserItemDto> {
+    const user = await this.prisma.user.findFirst({
+      where: { id, deletedAt: null },
+      include: { companyMemberships: { include: { company: { select: { name: true } } } } },
+    });
+    if (!user) {
+      throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'User not found' });
+    }
+    if (user.role === 'ADMIN') {
+      throw new ForbiddenException({
+        code: ERROR_CODES.FORBIDDEN,
+        message: 'Admin accounts cannot be blocked',
+      });
+    }
+    const res = await this.prisma.user.updateMany({
+      where: { id, blockedAt: null },
+      data: { blockedAt: new Date() },
+    });
+    if (res.count === 1) {
+      await this.tokens.revokeAllForUser(id);
+      this.eventBus.emitAuthExpired(id);
+      await this.sendBlockedEmail(user.email, user.name, user.languagePreference);
+    }
+    const fresh = await this.prisma.user.findUniqueOrThrow({
+      where: { id },
+      include: { companyMemberships: { include: { company: { select: { name: true } } } } },
+    });
+    return this.toAdminUserDto(fresh);
+  }
+
+  async unblockUser(id: string): Promise<AdminUserItemDto> {
+    const res = await this.prisma.user.updateMany({
+      where: { id, deletedAt: null },
+      data: { blockedAt: null },
+    });
+    if (res.count === 0) {
+      throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'User not found' });
+    }
+    const fresh = await this.prisma.user.findUniqueOrThrow({
+      where: { id },
+      include: { companyMemberships: { include: { company: { select: { name: true } } } } },
+    });
+    return this.toAdminUserDto(fresh);
+  }
+
+  private async sendBlockedEmail(email: string, name: string, lang: Language): Promise<void> {
+    const ro = lang !== Language.EN;
+    const esc = (v: string) =>
+      v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const subject = ro ? 'Contul tău Cozy Home a fost blocat' : 'Your Cozy Home account was blocked';
+    const html = `
+      <div style="font-family: Georgia, serif; max-width: 520px; margin: 0 auto; color: #2b2b2b;">
+        <p style="letter-spacing: 0.12em; font-size: 12px; color: #8a7355;">COZY HOME</p>
+        <p>${ro ? 'Salut' : 'Hi'} ${esc(name)},</p>
+        <p>${
+          ro
+            ? 'Contul tău Cozy Home a fost blocat de un administrator, iar sesiunile active au fost închise. Dacă crezi că este o eroare, răspunde la acest email și analizăm situația.'
+            : 'Your Cozy Home account was blocked by an administrator and your active sessions were closed. If you believe this is a mistake, reply to this email and we will review it.'
+        }</p>
+      </div>`;
+    try {
+      await this.mail.send(email, subject, html);
+    } catch (e) {
+      // best-effort: blocarea ramane valabila chiar daca emailul pica
+      this.logger.warn(`emailul de blocare catre ${email} a esuat: ${(e as Error).message}`);
+    }
+  }
+
+  private toAdminUserDto(u: {
+    id: string;
+    email: string;
+    name: string;
+    role: UserRole;
+    emailVerifiedAt: Date | null;
+    blockedAt: Date | null;
+    createdAt: Date;
+    companyMemberships: { company: { name: string } }[];
+  }): AdminUserItemDto {
+    return {
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      role: u.role,
+      companyName: u.companyMemberships[0]?.company.name ?? null,
+      emailVerified: u.emailVerifiedAt !== null,
+      blockedAt: u.blockedAt?.toISOString() ?? null,
+      createdAt: u.createdAt.toISOString(),
     };
   }
 
