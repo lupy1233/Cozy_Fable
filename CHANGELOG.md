@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## Marketing — 2026-09-26 — doua videouri promo 9:16 (clienti + firme) + pipeline de randare HTML → MP4
+
+- `marketing/videos/PLAN.md`: storyboard cu 9 scene per video (copy RO, timpi, functia acoperita), identitate vizuala,
+  reguli de continut verificate in cod/docs (fara metrici inventate, fara rating-uri, fara preturi de plan) si decizii necesare.
+- `marketing/videos/clienti/` → `out/cozy-home-clienti-9x16.mp4` (40 s): hook, configurator vizual (captura reala din hero),
+  3D (capturi reale din Studio 3D), schita + estimare, publicare gratuita + 3 sloturi, oferte structurate, chat + acceptare,
+  livrare + recenzie, CTA.
+- `marketing/videos/firme/` → `out/cozy-home-firme-9x16.mp4` (42 s): hook, feed cu cereri dimensionate, preluare cu credite,
+  fisa de lucru cu SLA, ofertare rapida (o fisa, PDF), echipa + permisiuni, formularul white-label „pe site-ul tau”
+  (repo `cozy-mobilaunicat`), portofel + planuri + Stripe, CTA.
+- Pipeline reproductibil: `render.mjs` (Playwright/Chromium cadru cu cadru → ffmpeg H.264 + pista audio muta),
+  `capture.mjs` (capturi reale din frontend-ul local), `lib/timeline.js` (cronologie determinista), fonturi self-hosted.
+- Decizii deschise (constante in `index.html`): domeniul afisat la CTA (`SITE_URL`), formularul white-label ca oferta generala.
+
 ## Sprint L0 "deblocare" — 2026-08-19 — blocantele din audit (auth, plati Stripe, integritate oferte/claim, public/SEO, infra)
 - **Auth (L0-A)**: `POST /auth/resend-verification` (3/min, raspuns uniform), `POST /auth/forgot-password` + `POST /auth/reset-password` (token 32B sha256 in Redis, TTL 60 min, one-time, revoca toate sesiunile, marcheaza emailul verificat), `POST /auth/change-password` (JWT; revoca celelalte sesiuni, cookie-uri noi); `register()` trimite emailul best-effort (contul nu mai moare daca SMTP pica) si cere `termsAccepted=true` (coloana noua `users.terms_accepted_at`, migrarea `20260819100000`); throttle register 5/min, refresh 30/min; emailuri auth RO/EN cu HTML escapat. FE: link "Ai uitat parola?", pagini `/forgot-password`, `/reset-password`, `/change-password`, checkbox Termeni + Politica la register, buton "Retrimite" pe login (EMAIL_NOT_VERIFIED)/register/verify-email; link "Schimba parola" in meniul de cont. Coduri noi: RESET_TOKEN_INVALID, PASSWORD_INCORRECT, TERMS_NOT_ACCEPTED. 17 teste noi.
 - **Integritate business + securitate (L0-B)**: cererea stearsa nu mai apare/nu mai e claimabila (filtru `deleted_at` in marketplace, claim, chat, oferte); `createQuote/revise/extra/reoffer` refuza cand cererea nu mai e deschisa (`REQUEST_NOT_OPEN_FOR_OFFERS`); `acceptQuote` in tranzactie cu `FOR UPDATE` + `updateMany where SENT` (a doua acceptare → 409) si inchide TOATE sloturile nealese cu statusul nou `CANCELLED_REQUEST_ACCEPTED` (migrare enum `20260819120000`): ACTIVE fara oferta → REFUND (decizie PO D-L0-3), OFFER_SENT → consum pay-to-play + oferta SUPERSEDED; chat read-only; notificare tintita firmelor; procesoarele SLA/atribuire ies no-op pe cereri ACCEPTED+. Retrageri: voluntar dupa gratie → CONSUME (nu mai raman RESERVED), retragere slot OFFER_SENT → oferte WITHDRAWN, `CLIENT_CONTACT_INVALID`/`CLIENT_REQUESTED_CANCELLATION` → PENDING_ADMIN_REVIEW (D-L0-5); `withdrawQuote` reprogrameaza SLA. IDOR `GET /claims/:id/clarifications` inchis; gating 4.10 verificat in tranzactia de claim (`GATING_NOT_OPEN`); P2034 → retry 1x apoi 409 `CONCURRENT_MODIFICATION`; `?status=` validat pe `/admin/companies`; footer "mock MVP" scos din PDF-ul ofertei. Admin → Setari: salvarea planuri/pachete/praguri reparata (`id` nu mai pleaca in body) + toast + LARGE cu `maxScore: null`. 28 teste noi.
