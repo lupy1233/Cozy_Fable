@@ -1,0 +1,1034 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<title>Cozy Home — Video 2 · Firme de mobilier (9:16, 42 s)</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.local.css">
+<style>
+/* Tokens din apps/frontend/src/app/globals.css (:root, sistemul ATELIER) + Mobila Unicat (scena 7) */
+:root{
+  --ivory:#F1EADF; --ink:#1A1714; --ink2:#2E2A24; --muted:#786F64; --muted2:#A9A193;
+  --border:#E7E0CF; --border2:#D7CCB7; --s2:#FAF6EF; --s3:#F4EDE2; --paper:#F8F6F2;
+  --walnut:#855232; --walnut-deep:#5D3C22; --walnut-soft:#F0E5D6;
+  --brass:#B48431; --brass2:#CAA149; --sage:#5C7A57; --sage-soft:#E8EEE2;
+  --amber:#AE7E1E; --amber-soft:#F5EBD1; --crimson:#9D3C2F; --crimson-soft:#F4DCD7;
+  --info:#3C6B8B; --info-soft:#DDE8EE;
+  --u-red:#EF3B31; --u-logo:#CB2628; --u-navy:#343E52; --u-dark:#171D29; --u-muted:#677081; --u-s2:#F4F4F4; --u-border:#DDDFE4;
+  --serif:'Marcellus', Georgia, serif; --sans:'DM Sans', system-ui, sans-serif; --mono:'IBM Plex Mono', ui-monospace, monospace;
+  --shadow:0 2px 4px rgba(46,33,20,.05), 0 26px 50px -24px rgba(46,33,20,.30);
+}
+*{box-sizing:border-box}
+html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:#F1EADF}
+body{font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased}
+.ic{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none;display:inline-block}
+#stage{position:absolute;inset:0;overflow:hidden}
+.paper{background:linear-gradient(rgba(180,132,49,.045) 2px,transparent 2px) 0 40px/120px 120px,linear-gradient(90deg,rgba(180,132,49,.045) 2px,transparent 2px) 0 40px/120px 120px,radial-gradient(110% 70% at 50% 38%,#F6F1E8 0%,#F1EADF 58%,#E9DFCF 100%)}
+#bg{position:absolute;inset:0}
+.corner{position:absolute;width:46px;height:46px;border-color:var(--brass);border-style:solid;border-width:0;opacity:0}
+.corner.tl{left:40px;top:222px;border-left-width:3px;border-top-width:3px}
+.corner.tr{right:40px;top:222px;border-right-width:3px;border-top-width:3px}
+.corner.bl{left:40px;top:1566px;border-left-width:3px;border-bottom-width:3px}
+.corner.br{right:40px;top:1566px;border-right-width:3px;border-bottom-width:3px}
+.scene{position:absolute;inset:0;visibility:hidden}
+.scene.is-live{visibility:visible}
+.xw{position:absolute;inset:0}
+.abs{position:absolute}
+
+/* tipografie de scena */
+.hl{position:absolute;left:72px;top:292px;width:940px;margin:0;font:400 90px/1.07 var(--serif);letter-spacing:-.012em;color:var(--ink)}
+.hl .w{display:inline-block}
+.hl .acc{color:var(--walnut)}
+.sub{position:absolute;left:72px;font:500 44px/1.22 var(--mono);color:var(--walnut-deep);letter-spacing:-.01em;padding-bottom:20px;white-space:nowrap}
+.sub .dim{position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--brass);transform-origin:0 50%}
+.sub .dim::before,.sub .dim::after{content:"";position:absolute;top:-9px;width:3px;height:21px;background:var(--brass)}
+.sub .dim::before{left:0}.sub .dim::after{right:0}
+
+/* componente UI recreate (badge.tsx, button.tsx, card.tsx, slot-track.tsx) — scara ~2.9x */
+.card{position:absolute;background:#fff;border:2px solid var(--border);border-radius:30px;box-shadow:var(--shadow)}
+.badge{position:relative;display:inline-flex;align-items:center;gap:10px;border-radius:999px;padding:5px 18px;font:500 30px/1.3 var(--mono);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+.b-muted{background:var(--s3);color:var(--muted);box-shadow:inset 0 0 0 2px var(--border2)}
+.b-outline{color:var(--muted);box-shadow:inset 0 0 0 2px var(--border2)}
+.b-walnut{background:var(--walnut-soft);color:var(--walnut)}
+.b-sage{background:var(--sage-soft);color:var(--sage)}
+.b-info{background:var(--info-soft);color:var(--info)}
+.b-amber{background:var(--amber-soft);color:var(--amber)}
+.ring{position:absolute;inset:-10px;border:4px solid var(--brass);border-radius:999px;opacity:0;pointer-events:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:14px;border-radius:14px;font:600 36px/1 var(--sans);white-space:nowrap}
+.btn-walnut{background:var(--walnut);color:var(--paper);box-shadow:0 16px 30px -12px rgba(133,82,50,.6)}
+.btn-outline{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 2px var(--border2),0 2px 5px rgba(46,33,20,.07)}
+.mlabel{font:500 30px/1.2 var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);white-space:nowrap}
+.slot{width:44px;height:44px;border-radius:9px;border:3px solid var(--border2);background:#fff;flex:none}
+.slot.on{background:var(--ink);border-color:var(--ink)}
+.chip{display:inline-flex;align-items:baseline;gap:12px;border-radius:999px;box-shadow:inset 0 0 0 2px var(--border2);background:var(--s2);padding:8px 22px;font:400 30px/1.25 var(--sans);white-space:nowrap}
+.chip .k{color:var(--muted)} .chip .v{font-weight:600;color:var(--ink)}
+.tap{position:absolute;width:0;height:0;z-index:60;pointer-events:none}
+.tap i{position:absolute;left:-44px;top:-44px;width:88px;height:88px;border-radius:50%;opacity:0}
+.tap .dot{background:rgba(26,23,20,.20);box-shadow:0 0 0 5px rgba(255,255,255,.9),0 6px 18px rgba(26,23,20,.25)}
+.tap .rip{border:5px solid var(--brass)}
+
+/* ---------- S1 hook ---------- */
+#s1-hl{top:300px;font-size:128px;line-height:1.02}
+#s1-ul{position:absolute;left:66px;top:676px;width:560px;height:40px;overflow:visible}
+.pdf{position:absolute;width:250px;height:340px;background:#fff;border-radius:12px;border:2px solid #ECE4D6;box-shadow:0 18px 38px -16px rgba(46,33,20,.5);padding:22px 22px 0}
+.pdf .ph{display:flex;justify-content:space-between;align-items:center;font:500 24px var(--mono);color:var(--walnut);letter-spacing:.12em}
+.pdf .tag{background:var(--crimson);color:#fff;border-radius:6px;padding:3px 9px;font:700 18px var(--sans);letter-spacing:.06em}
+.pdf .ttl{margin-top:16px;font:400 27px/1.15 var(--serif);color:var(--ink)}
+.pdf .ln{height:11px;border-radius:6px;background:#EEE7DB;margin-top:13px}
+.pdf .pr{position:absolute;left:22px;right:22px;bottom:16px;border-top:2px solid #EEE7DB;padding-top:8px}
+.pdf .pr small{display:block;font:500 17px var(--mono);color:var(--muted);letter-spacing:.12em}
+.pdf .pr b{display:block;font:400 38px/1.15 var(--serif);white-space:nowrap}
+.pdf .veil{position:absolute;inset:-2px;border-radius:12px;background:rgba(236,229,218,.62);opacity:0}
+.phone{position:absolute;width:420px;height:860px;border-radius:66px;background:#1A1714;padding:15px;box-shadow:0 50px 90px -34px rgba(26,23,20,.6)}
+.phone .scr{position:relative;width:100%;height:100%;border-radius:52px;overflow:hidden;background:#F6F3EE}
+.phone .notch{position:absolute;left:50%;top:14px;width:120px;height:34px;margin-left:-60px;border-radius:20px;background:#1A1714;z-index:5}
+.phone .stat{position:absolute;left:36px;top:17px;font:600 24px var(--sans);color:var(--ink)}
+.chat-head{position:absolute;left:0;right:0;top:0;height:150px;padding:66px 26px 0;background:#fff;border-bottom:2px solid #ECE6DC;display:flex;gap:16px;align-items:center}
+.av{width:62px;height:62px;border-radius:50%;background:var(--walnut-soft);color:var(--walnut);display:grid;place-items:center;font:400 30px var(--serif);flex:none}
+.chat-head b{display:block;font:600 30px/1.1 var(--sans)}
+.chat-head span{font:400 28px var(--sans);color:var(--muted)}
+.bub{position:absolute;max-width:320px;padding:16px 22px;border-radius:26px;font:400 30px/1.25 var(--sans)}
+.bub.out{right:20px;background:#E9E1D3;color:var(--ink);border-bottom-right-radius:8px}
+.bub.in{left:20px;background:#fff;color:var(--ink);border-bottom-left-radius:8px;box-shadow:0 2px 6px rgba(26,23,20,.08)}
+.att{margin-top:12px;display:flex;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:10px 12px;font:500 25px var(--sans);color:var(--ink2)}
+.att .tag{background:var(--crimson);color:#fff;border-radius:6px;padding:3px 8px;font:700 17px var(--sans)}
+.seen{position:absolute;right:26px;font:400 26px var(--sans);color:var(--muted)}
+.typing{position:absolute;left:20px;background:#fff;border-radius:26px;border-bottom-left-radius:8px;padding:22px 24px;display:flex;gap:10px;box-shadow:0 2px 6px rgba(26,23,20,.08)}
+.typing i{width:14px;height:14px;border-radius:50%;background:#B9B0A2;display:block}
+#cut{position:absolute;left:0;top:0;width:1080px;height:1920px;box-shadow:0 -30px 60px -20px rgba(46,33,20,.35);transform:translateY(2000px)}
+#cut::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:var(--brass)}
+
+/* ---------- S2 feed marketplace ---------- */
+.fhead{position:absolute;left:72px;top:712px;width:936px;display:flex;justify-content:space-between;align-items:flex-end}
+.ptitle{font:400 54px/1 var(--serif)}
+.psub{margin-top:10px;font:400 30px var(--sans);color:var(--muted)}
+.wlink{display:flex;align-items:center;gap:10px;font:500 32px var(--sans);color:var(--walnut)}
+.fcard{left:72px;width:936px;height:244px;padding:28px 30px;display:grid;grid-template-columns:1fr 200px;gap:10px}
+.fcard h3{margin:0;font:400 46px/1.1 var(--serif);letter-spacing:-.01em;white-space:nowrap}
+.fcard .bl{margin-top:18px;display:flex;flex-wrap:wrap;gap:12px 12px}
+.fcard .rc{display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between}
+.strack{display:flex;gap:9px;position:relative}
+.strack .ring{inset:-12px;border-radius:16px}
+.slots-t{font:400 30px var(--mono);color:var(--muted)}
+#s2-det{left:72px;top:690px;width:936px;height:880px;overflow:hidden;z-index:2}
+#c1{z-index:3}
+#s2-det .inner{position:absolute;left:0;top:0;width:100%;padding:30px 34px 0}
+.det-t{font:400 46px/1.15 var(--serif);letter-spacing:-.01em}
+.det-b{margin-top:18px;display:flex;gap:12px}
+.hr{height:2px;background:var(--border);margin:20px 0 16px}
+.row-sb{display:flex;justify-content:space-between;align-items:center}
+.room{position:relative;margin-top:14px;border:2px solid var(--border);border-radius:24px;overflow:hidden;background:#fff}
+.room .rh{display:flex;align-items:center;justify-content:space-between;background:var(--s2);border-bottom:2px solid var(--border);padding:10px 22px}
+.room .rn{display:flex;align-items:center;gap:16px;font:400 40px/1 var(--serif)}
+.room .rn small{font:500 30px var(--mono);color:var(--muted2);margin-right:-4px}
+.ricon{width:56px;height:56px;border-radius:16px;background:var(--walnut-soft);color:var(--walnut);display:grid;place-items:center;font-size:34px}
+.room .rd{font:500 30px var(--mono);color:var(--muted);display:flex;align-items:center;gap:10px}
+.room .rb{padding:20px 22px;display:flex;flex-wrap:wrap;gap:12px}
+.snap{width:236px;height:196px;border-radius:16px;border:2px solid var(--border2);background:#F6F1EA url(../assets/shots/firme/studio-biblioteca-3d.png) center/contain no-repeat;flex:none}
+.pill3d{display:inline-flex;align-items:center;gap:12px;border-radius:999px;background:rgba(240,229,214,.7);box-shadow:inset 0 0 0 2px rgba(133,82,50,.4);color:var(--walnut);padding:10px 22px;font:600 30px var(--sans);white-space:nowrap}
+
+/* ---------- S3 preluare ---------- */
+#s3-card{left:72px;top:664px;width:936px;height:560px;padding:32px 34px}
+.srow{position:relative;height:92px;border-radius:20px;display:flex;align-items:center;gap:20px;padding:0 24px;margin-top:14px;font:400 32px var(--sans)}
+.srow.full{background:var(--s2);box-shadow:inset 0 0 0 2px var(--border)}
+.srow.free{border:3px dashed var(--border2);background:rgba(250,246,239,.45)}
+.srow .fr{display:flex;align-items:center;gap:20px}
+.srow .ov{position:absolute;left:-3px;right:-3px;top:-3px;bottom:-3px;border-radius:20px;background:var(--s2);box-shadow:inset 0 0 0 2px var(--border);display:flex;align-items:center;gap:20px;padding:0 24px;opacity:0}
+.srow .free-t{font:500 30px var(--mono);text-transform:uppercase;letter-spacing:.12em;color:var(--muted2)}
+.srow .occ{margin-left:auto;display:flex;align-items:center;gap:10px;font:600 30px var(--sans);color:var(--sage)}
+.verif{display:inline-flex;align-items:center;gap:10px;font:500 30px var(--sans);color:var(--sage)}
+.house{width:48px;height:42px;flex:none}
+#s3-panel{left:72px;top:1252px;width:936px;height:140px;padding:0 30px 0 34px;display:flex;align-items:center;justify-content:space-between}
+#s3-cost{font:400 32px var(--sans);color:var(--muted)}
+#s3-cost b{color:var(--ink);font-weight:600}
+#s3-btn{position:relative;width:250px;height:92px;font-size:40px}
+#s3-wal{position:absolute;left:72px;top:1428px;width:936px;display:flex;align-items:flex-end;gap:22px}
+#s3-num{font:400 120px/1 var(--serif);letter-spacing:-.02em}
+#s3-numl{font:400 36px/1.15 var(--sans);color:var(--muted);padding-bottom:10px}
+#s3-minus{position:absolute;left:292px;top:1404px;font:600 40px var(--mono);color:var(--walnut)}
+#s3-note{position:absolute;left:72px;top:1262px;font:500 44px/1.3 var(--mono);color:var(--walnut-deep)}
+#s3-note .strike{position:relative;color:var(--muted)}
+#s3-note .strike i{position:absolute;left:-4px;right:-4px;top:52%;height:4px;background:var(--crimson);transform-origin:0 50%}
+#s3-note b{color:var(--walnut);font-weight:500}
+#s3-brk{position:absolute;left:1016px;top:894px;width:26px;height:318px;border:3px solid var(--brass);border-left:0;border-radius:0 6px 6px 0;transform-origin:0 0}
+
+/* ---------- S4 fisa de lucru ---------- */
+#s4-wb{left:72px;top:614px;width:936px;height:326px;padding:4px 32px}
+.wbr{height:104px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--border)}
+.wbr.last{border-bottom:0}
+.wbl{display:flex;flex-direction:column;gap:10px}
+.wbl .mlabel{display:flex;align-items:center;gap:12px;font-size:30px;letter-spacing:.06em}
+.wbv{font:600 36px var(--sans)}
+.wbs{font:400 30px var(--sans);color:var(--muted)}
+.sel{position:relative;width:330px;height:82px;border-radius:14px;box-shadow:inset 0 0 0 3px var(--border2);display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:500 34px var(--sans);background:#fff}
+.sel.warn{box-shadow:inset 0 0 0 3px rgba(174,126,30,.55)}
+.dd{position:absolute;right:32px;top:96px;width:330px;background:#fff;border-radius:16px;box-shadow:0 20px 44px -12px rgba(46,33,20,.4),inset 0 0 0 2px var(--border);padding:10px;z-index:5;transform-origin:50% 0}
+.dd div{height:66px;border-radius:10px;display:flex;align-items:center;padding:0 18px;font:500 32px var(--sans)}
+.dd .hi{background:var(--walnut-soft);color:var(--walnut-deep)}
+#s4-timer{font:500 32px var(--mono);color:var(--ink2);display:flex;align-items:center;gap:10px;justify-content:flex-end}
+#s4-pause{margin-top:10px}
+#s4-client{left:72px;top:956px;width:936px;height:178px;overflow:hidden}
+.ch{height:92px;display:flex;align-items:center;gap:20px;padding:0 28px;background:var(--s2);border-bottom:2px solid var(--border)}
+.ch .av{width:66px;height:66px;font-size:30px}
+.ch .nm{font:400 38px/1.05 var(--serif)}
+.cl{display:flex;gap:34px;padding:0 28px;height:82px;align-items:center;font:500 30px var(--sans);color:var(--walnut)}
+.cl span{display:flex;align-items:center;gap:12px}
+.cl .ad{color:var(--muted);font-weight:400}
+#s4-files{position:absolute;left:72px;top:1152px;width:936px;display:flex;align-items:center;gap:14px}
+.fch{display:inline-flex;align-items:center;gap:10px;height:58px;padding:0 20px;border-radius:12px;background:#fff;box-shadow:inset 0 0 0 2px var(--border2);font:500 30px var(--sans);color:var(--ink2)}
+.fch .ic{font-size:30px;color:var(--walnut)}
+#s4-clar{left:72px;top:1230px;width:936px;height:250px;padding:22px 28px}
+.ta{position:relative;margin-top:14px;height:84px;border-radius:14px;box-shadow:inset 0 0 0 3px var(--border2);padding:0 22px;display:flex;align-items:center;font:400 32px var(--sans);color:var(--ink)}
+.ta .ph{position:absolute;left:22px;color:var(--muted2)}
+.cbtn{position:absolute;left:28px;top:164px;height:66px;padding:0 26px;border-radius:12px;box-shadow:inset 0 0 0 2px var(--border2);background:#fff;display:flex;align-items:center;font:500 30px var(--sans)}
+.qitem{position:absolute;left:28px;right:28px;top:72px;border-radius:14px;background:var(--s2);padding:16px 22px}
+.qitem b{display:block;font:600 32px var(--sans)}
+.qitem span{font:400 28px var(--sans);color:var(--muted)}
+#s4-wd{position:absolute;left:72px;top:1500px;display:flex;align-items:center;gap:22px;font:400 30px var(--sans);color:var(--muted)}
+.wbtn{height:62px;padding:0 24px;border-radius:12px;box-shadow:inset 0 0 0 2px rgba(157,60,47,.45);color:var(--crimson);display:flex;align-items:center;font:500 30px var(--sans)}
+
+/* ---------- S5 ofertare ---------- */
+#s5-ob{left:72px;top:704px;width:936px;height:872px;padding:26px 34px}
+.ob-t{font:400 46px var(--serif)}
+.rp{margin-top:14px;border-radius:20px;box-shadow:inset 0 0 0 2px var(--border2);background:var(--s2);padding:16px 24px}
+.rpl{font:500 30px/1.25 var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.rpr{margin-top:10px;display:grid;grid-template-columns:1fr 290px;align-items:center;font:400 34px var(--sans)}
+.inp{height:72px;border-radius:12px;background:#fff;box-shadow:inset 0 0 0 3px var(--border2);display:flex;align-items:center;padding:0 22px;font:500 34px var(--sans);position:relative}
+.inp.r{justify-content:flex-end}
+.inp.focus{box-shadow:inset 0 0 0 3px var(--ink)}
+.inp .ph{position:absolute;left:22px;color:var(--muted2)}
+.inp.r .ph{left:auto;right:22px}
+.rpt{margin-top:12px;padding-top:8px;border-top:2px solid var(--border2);display:flex;justify-content:space-between;align-items:baseline;font:600 34px var(--sans)}
+.rpt .tot{display:flex;align-items:baseline;gap:14px}
+#s5-tot{font:400 58px/1.1 var(--serif);font-variant-numeric:tabular-nums}
+#s5-eur{font:500 32px var(--mono);color:var(--walnut)}
+.fg{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px 22px}
+.fl{font:500 30px var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px;white-space:nowrap}
+.seg{display:flex;height:72px;border-radius:12px;box-shadow:inset 0 0 0 3px var(--border2);padding:6px;gap:6px;background:#fff}
+.seg div{flex:1;border-radius:8px;display:grid;place-items:center;font:600 32px var(--mono);color:var(--muted)}
+.seg .on{background:var(--walnut);color:var(--paper)}
+#s5-send{position:absolute;left:34px;bottom:28px;height:86px;padding:0 44px;font-size:38px}
+#s5-oc{left:72px;top:704px;width:936px;height:640px;padding:34px}
+.oc-h{display:flex;justify-content:space-between;align-items:flex-start}
+.oc-h b{display:block;font:600 40px var(--sans)}
+.oc-h span{font:400 30px var(--sans);color:var(--muted)}
+.dl{display:flex;align-items:center;gap:12px;font:600 32px var(--sans);color:var(--walnut)}
+.otab{margin-top:26px;border-radius:18px;box-shadow:inset 0 0 0 2px var(--border2);overflow:hidden}
+.otab div{display:flex;justify-content:space-between;padding:18px 24px;font:400 32px var(--sans)}
+.otab div:nth-child(2){background:rgba(250,246,239,.9)}
+.otab .tt{background:rgba(240,229,214,.7);border-top:2px solid var(--border2)}
+.otab .tt b{font:400 40px var(--serif)}
+.okv{margin-top:22px;display:grid;grid-template-columns:1fr auto;gap:14px 20px;font:400 32px var(--sans)}
+.okv span:nth-child(odd){color:var(--muted)}
+.okv span:nth-child(even){text-align:right;font-weight:600}
+#s5-pdf{position:absolute;left:806px;top:1372px;width:170px;height:214px}
+
+/* ---------- S6 echipa ---------- */
+#s6-team{left:72px;top:636px;width:936px;height:660px;padding:26px 32px}
+.ct{font:400 44px/1.2 var(--serif)}
+.ctc{margin-top:4px;font:400 30px var(--sans);color:var(--muted)}
+.pm{margin-top:14px;display:grid;grid-template-columns:1fr 116px 122px 138px;align-items:center}
+.pm .hd{font:600 30px var(--sans);color:var(--muted);text-align:center;padding-bottom:12px}
+.pm .who{height:114px;border-top:2px solid var(--border);display:flex;align-items:center;gap:18px}
+.pm .who .av{width:60px;height:60px;font-size:26px}
+.pm .who .nm{display:flex;flex-direction:column;align-items:flex-start;gap:8px;font:600 32px/1.1 var(--sans)}
+.pm .cb{height:114px;display:grid;place-items:center;border-top:2px solid var(--border)}
+.box{width:48px;height:48px;border-radius:11px;box-shadow:inset 0 0 0 3px var(--border2);background:#fff;display:grid;place-items:center;color:#fff;font-size:32px;position:relative}
+.box .fill{position:absolute;inset:0;border-radius:11px;background:var(--walnut);opacity:0}
+.box .ic{position:relative;stroke-width:3.4}
+#s6-msg{left:72px;top:1320px;width:936px;height:214px;padding:20px 24px;overflow:hidden}
+.tabs{display:flex;gap:14px}
+.tab{height:62px;border-radius:999px;padding:0 26px;display:flex;align-items:center;gap:12px;font:600 30px var(--sans);color:var(--muted);box-shadow:inset 0 0 0 2px var(--border2);background:#fff;position:relative}
+.tab .on{position:absolute;inset:0;border-radius:999px;background:var(--walnut-soft);box-shadow:inset 0 0 0 3px var(--walnut);opacity:0}
+.tab span,.tab svg{position:relative}
+.ib{position:absolute;left:24px;top:100px;max-width:880px;background:var(--s3);border-radius:22px;border-top-left-radius:8px;padding:12px 22px;font:400 32px/1.25 var(--sans)}
+.ib b{font:600 30px var(--sans);color:var(--muted);display:block}
+
+/* ---------- S7 formular white-label Mobila Unicat ---------- */
+#s7-phone{left:315px;top:668px;width:450px;height:900px;transform-origin:0 0}
+#s7-phone .scr{background:#FAFAFA}
+.u-head{position:absolute;left:0;right:0;top:0;height:150px;background:#fff;border-bottom:2px solid var(--u-border);padding:62px 24px 0;display:flex;justify-content:space-between;align-items:center}
+.u-head img{height:66px}
+.u-lang{font:600 28px var(--sans);color:var(--u-navy);border:2px solid var(--u-border);border-radius:6px;padding:4px 10px}
+.u-step{position:absolute;left:0;right:0;top:150px;bottom:0;padding:26px 24px;background:#FAFAFA}
+.u-t{font:700 38px/1.12 var(--sans);color:var(--u-navy);letter-spacing:-.01em}
+.u-meta{margin-top:12px;font:500 30px var(--mono);color:var(--u-muted);display:flex;align-items:center;gap:12px}
+.u-bar{display:flex;gap:6px;margin-top:14px}
+.u-bar i{flex:1;height:8px;border-radius:4px;background:#E3E5EA}
+.u-bar i.on{background:var(--u-red)}
+.u-tabs{margin-top:18px;display:flex}
+.u-tabs div{height:56px;border-radius:4px;padding:0 20px;display:flex;align-items:center;font:600 30px var(--sans);background:var(--u-navy);color:#fff}
+.u-grid{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.u-card{position:relative;height:150px;border-radius:6px;background:#fff;box-shadow:inset 0 0 0 2px var(--u-border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font:600 30px var(--sans);color:var(--u-navy)}
+.u-card .ic{font-size:46px;stroke-width:1.7;color:var(--u-navy)}
+.u-card .sel3{position:absolute;inset:0;border-radius:6px;box-shadow:inset 0 0 0 4px var(--u-red);opacity:0}
+.u-card .ck{position:absolute;right:10px;top:10px;width:40px;height:40px;border-radius:50%;background:var(--u-red);color:#fff;display:grid;place-items:center;font-size:26px;opacity:0}
+.u-pill{display:inline-flex;align-items:center;gap:10px;height:60px;padding:0 22px;border-radius:999px;background:var(--u-red);color:#fff;font:600 30px var(--sans)}
+.u-canvas{margin-top:16px;height:392px;border-radius:8px;box-shadow:inset 0 0 0 2px var(--u-border);background:#F6F1EA url(../assets/shots/firme/studio-biblioteca-3d.png) center/contain no-repeat}
+.u-cols{margin-top:16px;display:flex;align-items:center;justify-content:space-between;font:600 30px var(--sans);color:var(--u-navy)}
+.u-stp{display:flex;align-items:center;border-radius:6px;box-shadow:inset 0 0 0 2px var(--u-border);height:64px;background:#fff}
+.u-stp span{width:62px;display:grid;place-items:center;color:var(--u-navy);font-size:30px}
+.u-stp b{width:52px;text-align:center;font:600 30px var(--sans)}
+.u-sum{margin-top:22px;border-radius:6px;box-shadow:inset 0 0 0 2px var(--u-border);background:#fff;padding:20px}
+.u-sum div{display:flex;justify-content:space-between;font:400 30px/1.6 var(--sans);color:var(--u-navy)}
+.u-sum div b{font-weight:600}
+.u-cons{margin-top:22px;display:flex;gap:14px;align-items:flex-start;font:400 30px/1.3 var(--sans);color:var(--u-navy)}
+.u-cons u{text-decoration-color:rgba(239,59,49,.6);text-underline-offset:4px}
+.u-cb{width:40px;height:40px;flex:none;margin-top:2px;border-radius:4px;background:var(--u-red);color:#fff;display:grid;place-items:center;font-size:28px}
+.u-cb .ic{stroke-width:3}
+.u-send{position:absolute;left:24px;right:24px;bottom:34px;height:92px;border-radius:5px;background:var(--u-red);color:#fff;display:flex;align-items:center;justify-content:center;gap:14px;font:700 32px var(--sans);box-shadow:0 14px 26px -12px rgba(239,59,49,.7)}
+.u-ty{text-align:center;padding-top:40px}
+.u-k{font:600 30px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--u-navy)}
+.u-ty .u-t{margin-top:16px;font-size:42px}
+.u-ref{margin:30px 6px 0;border-radius:8px;box-shadow:inset 0 0 0 2px rgba(52,62,82,.3);background:var(--u-s2);padding:22px 10px}
+.u-ref p{margin:0;font:500 30px var(--sans);color:var(--u-muted)}
+.u-ref b{display:block;margin-top:8px;font:500 50px var(--mono);letter-spacing:.12em;color:var(--u-navy)}
+.u-ty .u-msg{margin:24px 6px 0;font:400 30px/1.35 var(--sans);color:var(--u-muted)}
+#s7-tag{position:absolute;left:600px;top:1532px;display:flex;align-items:center;gap:0;z-index:4}
+#s7-tag .ln{width:0;height:3px}
+#s7-tagc{display:inline-flex;align-items:center;gap:12px;background:var(--ink);color:var(--ivory);border-radius:999px;padding:10px 26px;font:500 32px var(--mono);letter-spacing:.02em;box-shadow:0 12px 24px -10px rgba(26,23,20,.5)}
+#s7-mail{left:318px;top:716px;width:712px;height:780px;padding:0;overflow:hidden}
+.m-top{height:96px;background:var(--u-dark);display:flex;align-items:center;justify-content:space-between;padding:0 28px}
+.m-top img{height:50px}
+.m-top span{font:500 30px var(--mono);color:rgba(255,255,255,.75);letter-spacing:.08em}
+.m-sub{padding:26px 30px 18px;border-bottom:2px solid var(--u-border)}
+.m-sub b{display:block;font:700 38px/1.18 var(--sans);color:var(--u-navy)}
+.m-sub span{display:block;margin-top:10px;font:400 30px var(--sans);color:var(--u-muted)}
+.m-body{padding:18px 30px 0}
+.m-l{display:grid;grid-template-columns:230px 1fr;font:400 30px/1.58 var(--sans);color:#333}
+.m-l span:first-child{color:var(--u-muted)}
+.m-l.hd{grid-template-columns:1fr;font-weight:700;color:var(--u-navy)}
+.m-q{margin-top:10px;font:400 30px/1.4 var(--sans);color:#333}
+.m-q span{display:block;color:var(--u-muted)}
+.m-btn{position:absolute;left:30px;bottom:30px;height:80px;border-radius:5px;background:var(--u-navy);color:#fff;display:flex;align-items:center;gap:14px;padding:0 30px;font:600 30px var(--sans)}
+
+/* ---------- S8 portofel & planuri ---------- */
+#s8-wal{left:72px;top:704px;width:936px;height:282px;padding:28px 32px}
+.mets{margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);text-align:center}
+.met b{display:block;font:400 100px/1 var(--serif);letter-spacing:-.02em}
+.met span{display:block;margin-top:10px}
+.met.dim b{color:var(--muted)}
+.plans{position:absolute;left:72px;top:1010px;width:936px;display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.plan{position:relative;height:296px;border-radius:26px;background:#fff;box-shadow:inset 0 0 0 2px var(--border2),var(--shadow);padding:24px 22px}
+.tier{display:inline-flex;align-items:center;gap:12px;border-radius:999px;padding:6px 20px;font:500 30px/1.3 var(--mono);letter-spacing:.05em}
+.tier i{width:12px;height:12px;border-radius:50%;background:currentColor;display:block}
+.t-silver{background:linear-gradient(135deg,#8A8378,#B0A99B);color:#F4EFE6}
+.t-gold{background:linear-gradient(135deg,#B07F1E,#D4A547);color:#FFF8E6}
+.t-plat{background:linear-gradient(135deg,#2E2A24,#5C534A);color:#F4EFE6}
+.pl{margin-top:22px;display:flex;gap:12px;font:400 30px/1.25 var(--sans);color:var(--ink2)}
+.pl .ic{margin-top:3px;color:var(--sage);font-size:30px;stroke-width:2.6}
+.pl.hi{color:var(--walnut-deep);font-weight:600}
+.plan .hring{position:absolute;inset:-8px;border-radius:32px;border:4px solid var(--brass);opacity:0}
+#s8-stripe{position:absolute;left:72px;top:1334px;display:flex;gap:16px}
+.sp{display:inline-flex;align-items:center;gap:14px;height:76px;padding:0 26px;border-radius:999px;background:#fff;box-shadow:inset 0 0 0 2px var(--border2);font:500 32px var(--sans);color:var(--ink2)}
+.sp .ic{font-size:36px;color:var(--sage)}
+#s8-trial{position:absolute;left:72px;top:1438px;width:936px;display:flex;align-items:center;gap:20px;font:400 38px var(--sans);color:var(--ink)}
+
+/* ---------- S9 CTA ---------- */
+/* lockup-ul real (components/brand/logo.tsx): marca in stanga, wordmark Marcellus spatiat .18em */
+#s9-logo{position:absolute;left:0;width:1080px;top:596px;display:flex;justify-content:center;align-items:center;gap:22px}
+#s9-mark{width:150px;height:150px;overflow:visible;flex:none}
+#s9-word{font:400 70px/1 var(--serif);letter-spacing:.18em;text-transform:uppercase;white-space:nowrap;margin-right:-.18em}
+#s9-for{position:absolute;left:0;width:1080px;top:792px;text-align:center;font:400 70px/1 var(--serif);color:var(--walnut)}
+#s9-btn{position:absolute;left:190px;top:940px;width:700px;height:136px;border-radius:18px;font-size:54px}
+#s9-trust{position:absolute;left:0;width:1080px;top:1146px;display:flex;flex-direction:column;align-items:center;gap:18px}
+.tl9{display:flex;align-items:center;gap:18px;font:400 44px var(--sans);color:var(--ink2);width:520px}
+.tl9 .ic{color:var(--sage);font-size:44px;stroke-width:2.6}
+#s9-shine{position:absolute;left:0;top:-20px;width:120px;height:180px;background:linear-gradient(100deg,rgba(255,255,255,0) 0%,rgba(255,236,200,.38) 50%,rgba(255,255,255,0) 100%);transform:translateX(-260px) rotate(12deg)}
+#s9-url{position:absolute;left:0;width:1080px;top:1420px;text-align:center;font:500 42px var(--mono);color:var(--walnut-deep)}
+#fadeout{position:absolute;inset:0;background:#F1EADF;opacity:0;pointer-events:none}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<!-- iconite lucide (licenta ISC), aceleasi ca in apps/frontend -->
+<symbol id="i-chef-hat" viewBox="0 0 24 24"><path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"/><path d="M6 17h12"/></symbol>
+<symbol id="i-library" viewBox="0 0 24 24"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></symbol>
+<symbol id="i-sofa" viewBox="0 0 24 24"><path d="M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3"/><path d="M2 16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5V11a2 2 0 0 0-4 0z"/><path d="M4 18v2"/><path d="M20 18v2"/><path d="M12 4v9"/></symbol>
+<symbol id="i-rotate-3d" viewBox="0 0 24 24"><path d="m15.194 13.707 3.814 1.86-1.86 3.814"/><path d="M16.47214 7.52786 A 5 10 0 1 0 13 21.79796"/><path d="M21.79796 11 A 10 5 0 1 0 19 15.57071"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></symbol>
+<symbol id="i-calendar-clock" viewBox="0 0 24 24"><path d="M16 14v2.2l1.6 1"/><path d="M16 2v4"/><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M3 10h5"/><path d="M8 2v4"/><circle cx="16" cy="16" r="6"/></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/></symbol>
+<symbol id="i-mail" viewBox="0 0 24 24"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></symbol>
+<symbol id="i-map-pin" viewBox="0 0 24 24"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></symbol>
+<symbol id="i-badge-check" viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-shield-check" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+<symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-pause" viewBox="0 0 24 24"><rect x="14" y="3" width="5" height="18" rx="1"/><rect x="5" y="3" width="5" height="18" rx="1"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+<symbol id="i-move-diagonal" viewBox="0 0 24 24"><path d="M11 19H5v-6"/><path d="M13 5h6v6"/><path d="M19 5 5 19"/></symbol>
+<symbol id="i-shirt" viewBox="0 0 24 24"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></symbol>
+<symbol id="i-door-closed" viewBox="0 0 24 24"><path d="M10 12h.01"/><path d="M18 20V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14"/><path d="M2 20h20"/></symbol>
+<symbol id="i-tv" viewBox="0 0 24 24"><path d="m17 2-5 5-5-5"/><rect width="20" height="15" x="2" y="7" rx="2"/></symbol>
+<symbol id="i-footprints" viewBox="0 0 24 24"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"/><path d="M16 17h4"/><path d="M4 13h4"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></symbol>
+<symbol id="i-paperclip" viewBox="0 0 24 24"><path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"/></symbol>
+<symbol id="i-file-text" viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+</defs></svg>
+
+<div id="stage">
+  <div id="bg" class="paper"></div>
+
+  <!-- ========== S1 · HOOK (0.0–3.0) ========== -->
+  <section class="scene" id="s1"><div class="xw" id="s1-x">
+    <h1 class="hl" id="s1-hl">Câte oferte<br>trimiți<br><span class="acc">degeaba?</span></h1>
+    <svg id="s1-ul" viewBox="0 0 560 40"><path id="s1-ulp" d="M6 26 C 120 12, 260 10, 380 18 S 520 30, 552 14" fill="none" stroke="#B48431" stroke-width="7" stroke-linecap="round" stroke-dasharray="620" stroke-dashoffset="620"/></svg>
+
+    <div class="phone" id="s1-phone" style="left:596px;top:752px">
+      <div class="scr">
+        <div class="notch"></div><div class="stat">9:41</div>
+        <div class="chat-head"><div class="av">A</div><div><b>Ana M.</b><span>client · dressing</span></div></div>
+        <div class="bub out" style="top:196px">Bună ziua! Vă trimit oferta.<div class="att"><span class="tag">PDF</span>Ofertă_dressing.pdf</div></div>
+        <div class="seen" style="top:410px">Văzut</div>
+        <div class="typing" id="s1-typ" style="top:470px"><i></i><i></i><i></i></div>
+        <div class="bub in" id="s1-in" style="top:470px">Mulțumim, mai vedem…</div>
+      </div>
+    </div>
+
+    <div class="pdf" id="p1" style="left:40px;top:850px"><div class="ph">OFERTĂ<span class="tag">PDF</span></div><div class="ttl">Dressing<br>dormitor</div><div class="ln" style="width:90%"></div><div class="ln" style="width:70%"></div><div class="ln" style="width:82%"></div><div class="pr"><small>TOTAL</small><b>9.800 lei</b></div><i class="veil"></i></div>
+    <div class="pdf" id="p2" style="left:114px;top:922px"><div class="ph">OFERTĂ<span class="tag">PDF</span></div><div class="ttl">Bucătărie<br>în U</div><div class="ln" style="width:84%"></div><div class="ln" style="width:92%"></div><div class="ln" style="width:64%"></div><div class="pr"><small>TOTAL</small><b>21.400 lei</b></div><i class="veil"></i></div>
+    <div class="pdf" id="p3" style="left:188px;top:994px"><div class="ph">OFERTĂ<span class="tag">PDF</span></div><div class="ttl">Bibliotecă<br>living</div><div class="ln" style="width:76%"></div><div class="ln" style="width:88%"></div><div class="ln" style="width:58%"></div><div class="pr"><small>TOTAL</small><b>5.300 lei</b></div><i class="veil"></i></div>
+    <div class="pdf" id="p4" style="left:262px;top:1066px"><div class="ph">OFERTĂ<span class="tag">PDF</span></div><div class="ttl">Dulap<br>hol</div><div class="ln" style="width:86%"></div><div class="ln" style="width:66%"></div><div class="ln" style="width:80%"></div><div class="pr"><small>TOTAL</small><b>6.900 lei</b></div><i class="veil"></i></div>
+    <div class="pdf" id="p5" style="left:336px;top:1138px"><div class="ph">OFERTĂ<span class="tag">PDF</span></div><div class="ttl">Birou<br>acasă</div><div class="ln" style="width:72%"></div><div class="ln" style="width:90%"></div><div class="ln" style="width:60%"></div><div class="pr"><small>TOTAL</small><b>4.200 lei</b></div><i class="veil"></i></div>
+  </div>
+  <div id="cut" class="paper"></div>
+  </section>
+
+  <!-- ========== S2 · CERERI CALIFICATE (3.0–9.0) ========== -->
+  <section class="scene" id="s2"><div class="xw" id="s2-x">
+    <h2 class="hl" id="s2-hl">Cereri dimensionate,<br>cu materiale<br>și buget clar.</h2>
+    <div class="sub" id="s2-sub" style="top:602px"><span id="s2-subt"></span><span style="visibility:hidden;position:absolute">mărime · buget · distanță · sloturi</span><i class="dim" id="s2-dim"></i></div>
+
+    <div class="fhead" id="s2-fh"><div><div class="ptitle">Marketplace</div><div class="psub">Cereri eligibile pentru firma ta</div></div><div class="wlink">200 credite <svg class="ic"><use href="#i-arrow-right"/></svg></div></div>
+
+    <div class="card fcard" id="c1" style="top:846px">
+      <div><h3>Bucătărie în L + insulă</h3>
+        <div class="bl"><span class="badge b-muted">București</span><span class="badge b-walnut" id="c1-size">Medie · 12 credite<i class="ring"></i></span><span class="badge b-muted" id="c1-bud">12.000 – 18.000 lei<i class="ring"></i></span></div></div>
+      <div class="rc"><span class="badge b-outline" id="c1-km">14 km<i class="ring"></i></span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:12px"><div class="strack" id="c1-st"><i class="slot on"></i><i class="slot"></i><i class="slot"></i><i class="ring"></i></div><span class="slots-t">Sloturi 1/3</span></div></div>
+    </div>
+    <div class="card fcard" id="c2" style="top:1110px">
+      <div><h3>Dressing walk-in</h3>
+        <div class="bl"><span class="badge b-muted">Cluj-Napoca</span><span class="badge b-walnut">Mare · 25 credite</span><span class="badge b-muted">25.000 – 32.000 lei</span></div></div>
+      <div class="rc"><span class="badge b-outline">9 km</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:12px"><div class="strack"><i class="slot"></i><i class="slot"></i><i class="slot"></i></div><span class="slots-t">Sloturi 0/3</span></div></div>
+    </div>
+    <div class="card fcard" id="c3" style="top:1374px">
+      <div><h3>Bibliotecă living</h3>
+        <div class="bl"><span class="badge b-muted">Timișoara</span><span class="badge b-walnut">Mică · 4 credite</span><span class="badge b-muted">4.000 – 6.000 lei</span></div></div>
+      <div class="rc"><span class="badge b-outline">22 km</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:12px"><div class="strack"><i class="slot on"></i><i class="slot on"></i><i class="slot"></i></div><span class="slots-t">Sloturi 2/3</span></div></div>
+    </div>
+
+    <!-- fisa cererii (marketplace/[id]): camere cu chips + corp configurat 3D -->
+    <div class="card" id="s2-det" data-round="30"><div class="inner" id="s2-deti">
+      <div class="det-t">Bucătărie în L + insulă</div>
+      <div class="det-b"><span class="badge b-walnut">Medie · 12 credite</span><span class="badge b-muted">12.000 – 18.000 lei</span></div>
+      <div class="hr"></div>
+      <div class="row-sb" id="s2-camrow"><span style="font:400 42px var(--serif)">Camere</span><span class="btn btn-outline" id="s2-v3d" style="height:70px;padding:0 26px;font-size:30px;font-weight:500;position:relative"><svg class="ic" style="font-size:34px"><use href="#i-sofa"/></svg>Vezi camera 3D<i class="ring" style="border-radius:18px"></i></span></div>
+      <div class="room" id="s2-r1">
+        <div class="rh"><span class="rn"><span class="ricon"><svg class="ic"><use href="#i-chef-hat"/></svg></span><small>01</small>Bucătărie</span><span class="rd"><svg class="ic"><use href="#i-move-diagonal"/></svg>4.2 × 3 × 2.7 m</span></div>
+        <div class="rb"><span class="chip"><span class="k">Ce formă are bucătăria?</span><span class="v">În formă de L</span></span><span class="chip"><span class="k">Vrei și o insulă?</span><span class="v">Da</span></span></div>
+      </div>
+      <div class="room" id="s2-r2">
+        <div class="rh"><span class="rn"><span class="ricon"><svg class="ic"><use href="#i-library"/></svg></span><small>02</small>Bibliotecă</span><span class="rd"><svg class="ic"><use href="#i-move-diagonal"/></svg>1.6 × 0.35 × 2 m</span></div>
+        <div class="rb" style="flex-wrap:nowrap;gap:22px"><div class="snap" id="s2-snap"></div>
+          <div style="display:flex;flex-wrap:wrap;align-content:flex-start;gap:12px">
+            <span class="chip s2c" style="font-weight:600">160 × 200 × 35 cm</span><span class="chip s2c" style="font-weight:600">3 coloane</span><span class="chip s2c" style="font-weight:600">12 polițe</span><span class="chip s2c" style="font-weight:600">Finisaj Stejar</span>
+            <span class="pill3d s2c"><svg class="ic" style="font-size:32px"><use href="#i-rotate-3d"/></svg>Vezi corpul în 3D</span>
+          </div></div>
+      </div>
+    </div></div>
+  </div></section>
+
+  <!-- ========== S3 · PREIEI (9.0–14.0) ========== -->
+  <section class="scene" id="s3"><div class="xw" id="s3-x">
+    <h2 class="hl" id="s3-hl">Plătești credite doar<br>pentru proiectele<br>pe care le preiei.</h2>
+    <h2 class="hl" id="s3-hl2">Cel mult 3 firme<br><span class="acc">pe cerere.</span></h2>
+
+    <div class="card" id="s3-card">
+      <div class="row-sb"><span style="font:400 46px var(--serif)">Bucătărie în L + insulă</span></div>
+      <div style="margin-top:16px;display:flex;gap:12px"><span class="badge b-walnut">Medie · 12 credite</span><span class="badge b-outline">14 km</span></div>
+      <div class="row-sb" style="margin-top:30px"><span class="mlabel" style="color:var(--ink)" id="s3-sl">Sloturi 1/3</span></div>
+      <div class="srow full"><i class="slot on"></i><span class="verif"><svg class="ic" style="font-size:34px"><use href="#i-badge-check"/></svg>Firmă verificată</span><span class="occ"><svg class="ic" style="font-size:32px;stroke-width:3"><use href="#i-check"/></svg>ocupat</span></div>
+      <div class="srow free" id="s3-r2"><span class="fr" id="s3-fr2"><i class="slot"></i><span class="free-t">liber</span></span>
+        <div class="ov" id="s3-r2f"><i class="slot on" id="s3-sq2f"></i><span style="font:700 34px var(--sans)">Atelier Nord</span><span class="verif"><svg class="ic" style="font-size:34px"><use href="#i-badge-check"/></svg>Firmă verificată</span><span class="occ"><svg class="ic" style="font-size:32px;stroke-width:3"><use href="#i-check"/></svg>ocupat</span></div></div>
+      <div class="srow free" id="s3-r3"><i class="slot"></i><span class="free-t">liber</span></div>
+    </div>
+    <div id="s3-brk"></div>
+
+    <div class="card" id="s3-panel">
+      <div id="s3-cost">Cost: <b>12 credite</b> · <span id="s3-av">200</span> credite</div>
+      <span class="btn btn-walnut" id="s3-btn"><span id="s3-bl">Preia</span><span id="s3-bl2" style="position:absolute;opacity:0">Se preia…</span></span>
+      <span class="btn abs" id="s3-ok" style="right:30px;height:92px;padding:0 30px;background:var(--sage-soft);color:var(--sage);font-size:34px;opacity:0"><svg class="ic" style="font-size:36px;stroke-width:3"><use href="#i-check"/></svg>Cerere preluată.</span>
+    </div>
+    <div id="s3-minus">−12</div>
+    <div id="s3-note">nu <span class="strike">30 de firme<i id="s3-strk"></i></span>, <b>cel mult 3</b></div>
+
+    <div id="s3-wal"><span id="s3-num">200</span><span id="s3-numl">credite<br>disponibile</span><span id="s3-res" style="margin-left:auto;align-self:center"><span class="badge b-walnut" style="font-size:32px">12 credite rezervate</span></span></div>
+  </div></section>
+
+  <!-- ========== S4 · FISA DE LUCRU (14.0–20.0) ========== -->
+  <section class="scene" id="s4"><div class="xw" id="s4-x">
+    <h2 class="hl" id="s4-hl">Fișă de lucru cu tot<br>ce ai nevoie.</h2>
+    <div class="sub" id="s4-sub" style="top:512px">SLA · client · chat · fișiere<i class="dim"></i></div>
+
+    <div class="card" id="s4-wb">
+      <div class="wbr"><div class="wbl"><span class="mlabel"><svg class="ic"><use href="#i-users"/></svg>Se ocupă</span><span class="wbs" id="s4-cb">Preluată de Cristina V.</span></div>
+        <div class="sel warn" id="s4-sel"><span id="s4-selv" style="color:var(--muted)">Neatribuit</span><span id="s4-selv2" class="abs" style="left:24px;opacity:0">Andrei P.</span><svg class="ic" style="font-size:32px;color:var(--muted)"><use href="#i-chevron-down"/></svg></div></div>
+      <div class="wbr"><div class="wbl"><span class="mlabel"><svg class="ic"><use href="#i-calendar-clock"/></svg>Termen pentru ofertă (SLA)</span><span class="wbv">3 zile lucrătoare</span></div>
+        <div style="text-align:right"><div id="s4-timer"><svg class="ic" id="s4-tico" style="font-size:30px"><use href="#i-calendar-clock"/></svg><span id="s4-tv">2z 23:59:59</span></div><div id="s4-pause" style="opacity:0"><span class="badge b-amber"><svg class="ic" style="font-size:26px"><use href="#i-pause"/></svg>SLA în pauză</span></div></div></div>
+      <div class="wbr last"><div class="wbl"><span class="mlabel">Bugetul clientului</span><span class="wbv">12.000 – 18.000 lei</span></div><span class="wbs" style="align-self:flex-end;margin-bottom:22px">Termen dorit: 1–3 luni</span></div>
+      <div class="dd" id="s4-dd" style="opacity:0"><div>Cristina V.</div><div class="hi" id="s4-ddh">Andrei P.</div><div>Mihai D.</div></div>
+    </div>
+
+    <div class="card" id="s4-client">
+      <div class="ch"><div class="av">IM</div><div><div class="mlabel">Clientul tău</div><div class="nm">Ioana Marin</div></div></div>
+      <div class="cl"><span><svg class="ic" style="font-size:32px"><use href="#i-phone"/></svg>0740 ••• 318</span><span class="ad"><svg class="ic" style="font-size:32px"><use href="#i-map-pin"/></svg>Str. Arțarilor, Sector 3, București</span></div>
+    </div>
+
+    <div id="s4-files"><span class="mlabel" style="margin-right:6px">Fișierele cererii</span><span class="fch"><svg class="ic"><use href="#i-paperclip"/></svg>schiță.jpg</span><span class="fch"><svg class="ic"><use href="#i-paperclip"/></svg>releveu.pdf</span></div>
+    <div class="card" id="s4-clar">
+      <div class="row-sb"><span class="mlabel">Clarificări</span></div>
+      <div class="ta" id="s4-ta"><span class="ph" id="s4-taph">Ce vrei să clarifici cu clientul?</span><span id="s4-tat"></span></div>
+      <div class="cbtn" id="s4-cbtn">Cere clarificare</div>
+      <div class="qitem" id="s4-q" style="opacity:0"><b>Bună! Blatul e inclus în buget?</b><span>Se așteaptă răspunsul clientului</span></div>
+      <div id="s4-slap" style="position:absolute;left:28px;top:192px;display:flex;align-items:center;gap:12px;font:500 30px var(--sans);color:var(--amber);opacity:0"><svg class="ic" style="font-size:30px"><use href="#i-pause"/></svg>Termen SLA · în pauză (clarificare în curs)</div>
+    </div>
+    <div id="s4-wd"><span class="wbtn">Retrage preluarea</span><span>rambursare la motivele validate</span></div>
+  </div></section>
+
+  <!-- ========== S5 · OFERTARE RAPIDA (20.0–26.0) ========== -->
+  <section class="scene" id="s5"><div class="xw" id="s5-x">
+    <h2 class="hl" id="s5-hl">Ofertare rapidă:<br>o singură fișă,<br><span class="acc">PDF gata.</span></h2>
+    <div class="sub" id="s5-sub" style="top:604px">până la 3 versiuni · RON/EUR<i class="dim"></i></div>
+
+    <div class="card" id="s5-ob">
+      <div class="ob-t">Trimite oferta</div>
+      <div class="rp">
+        <div class="rpl">Preț pe fiecare cameră (totalul se calculează automat)</div>
+        <div class="rpr"><span>1. Bucătărie</span><div class="inp r" id="s5-i1"><span class="ph" id="s5-p1">0</span><span id="s5-v1"></span></div></div>
+        <div class="rpr"><span>2. Bibliotecă</span><div class="inp r" id="s5-i2"><span class="ph" id="s5-p2">0</span><span id="s5-v2"></span></div></div>
+        <div class="rpt"><span>Total</span><span class="tot"><b id="s5-tot">—</b><span id="s5-eur" style="opacity:0">lei ≈ 3.077 €</span></span></div>
+      </div>
+      <div class="fg">
+        <div><div class="fl">Monedă</div><div class="seg"><div class="on">RON</div><div>EUR</div></div></div>
+        <div><div class="fl">Termen de livrare</div><div class="inp" id="s5-i3"><span id="s5-v3"></span></div></div>
+        <div><div class="fl">Garanție</div><div class="inp" id="s5-i4"><span id="s5-v4"></span></div></div>
+        <div><div class="fl">Valabilitate (zile)</div><div class="inp" id="s5-i5"><span class="ph" id="s5-p5">14</span><span id="s5-v5"></span></div></div>
+      </div>
+      <span class="btn btn-walnut" id="s5-send">Trimite</span>
+    </div>
+
+    <!-- offer-card.tsx dupa trimitere -->
+    <div class="card" id="s5-oc">
+      <div class="oc-h"><div><b>Atelier Nord</b><span>Versiunea 1 · Trimisă</span></div><span class="dl" id="s5-dl" style="position:relative"><svg class="ic" id="s5-dli" style="font-size:36px"><use href="#i-download"/></svg>Descarcă PDF<i class="ring" style="inset:-14px -18px;border-radius:14px"></i></span></div>
+      <div class="otab"><div><span>Bucătărie</span><span>13.400,00 RON</span></div><div><span>Bibliotecă</span><span>2.600,00 RON</span></div><div class="tt"><span style="font-weight:600">Total</span><b>16.000,00 RON</b></div></div>
+      <div class="okv"><span>Preț</span><span>16.000,00 RON <em style="font:400 28px var(--sans);color:var(--muted);font-style:normal">≈ 3.076,92 EUR</em></span><span>Termen de livrare</span><span>6 săpt.</span><span>Garanție</span><span>24 luni</span></div>
+    </div>
+    <svg id="s5-pdf" viewBox="0 0 170 214"><path d="M10 6h108l46 46v152a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6V12a6 6 0 0 1 6-6z" fill="#fff" stroke="#D7CCB7" stroke-width="4"/><path d="M118 6v40a6 6 0 0 0 6 6h40" fill="#F4EDE2" stroke="#D7CCB7" stroke-width="4"/><rect x="24" y="118" width="96" height="44" rx="8" fill="#9D3C2F"/><text x="72" y="149" text-anchor="middle" font-family="DM Sans" font-weight="700" font-size="28" fill="#fff">PDF</text><rect x="24" y="70" width="80" height="9" rx="4" fill="#E7E0CF"/><rect x="24" y="90" width="110" height="9" rx="4" fill="#E7E0CF"/><rect x="24" y="178" width="120" height="9" rx="4" fill="#E7E0CF"/></svg>
+  </div></section>
+
+  <!-- ========== S6 · ECHIPA (26.0–31.0) ========== -->
+  <section class="scene" id="s6"><div class="xw" id="s6-x">
+    <h2 class="hl" id="s6-hl">Lucrezi în echipă, cu<br>roluri și permisiuni.</h2>
+    <div class="sub" id="s6-sub" style="top:512px">chat intern, invizibil clientului<i class="dim"></i></div>
+
+    <!-- company-dashboard.tsx: echipa (ROLE_TONE) + permisiunile pe campurile ofertei (seed implicit) -->
+    <div class="card" id="s6-team">
+      <div class="ct">Echipă</div>
+      <div class="ctc">Permisiuni pe câmpurile ofertei</div>
+      <div class="pm" id="s6-pm"><div class="hd"></div><div class="hd">Preț</div><div class="hd">Termen</div><div class="hd">Garanție</div></div>
+    </div>
+
+    <div class="card" id="s6-msg">
+      <div class="tabs"><span class="tab">Clienți</span><span class="tab" id="s6-tab" style="color:var(--walnut)"><i class="on" id="s6-tabon"></i><svg class="ic" style="font-size:30px"><use href="#i-users"/></svg><span>Echipa firmei</span></span></div>
+      <div class="ib" id="s6-bub"><b>Cristina V.</b>Verifică stocul de MDF înainte de ofertă</div>
+    </div>
+  </div></section>
+
+  <!-- ========== S7 · FORMULAR PE SITE-UL TAU (31.0–36.0) ========== -->
+  <section class="scene" id="s7"><div class="xw" id="s7-x">
+    <h2 class="hl" id="s7-hl">Același formular,<br>pe site-ul <span class="acc">tău.</span></h2>
+    <div class="sub" id="s7-sub" style="top:514px">clienții configurează ·<br>tu primești fișa completă<i class="dim"></i></div>
+
+    <div class="phone" id="s7-phone"><div class="scr">
+      <div class="notch"></div><div class="stat">9:41</div>
+      <div class="u-head"><img src="../assets/shots/firme/mobilaunicat-logo.svg" alt="Mobila Unicat"><span class="u-lang">RO</span></div>
+      <!-- A: cos (piese individuale) -->
+      <div class="u-step" id="u-a">
+        <div class="u-t">Ce camere vrei<br>să mobilezi?</div>
+        <div class="u-meta">Faza 2 din 6</div>
+        <div class="u-bar"><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="u-tabs"><div>Piese individuale</div></div>
+        <div class="u-grid">
+          <div class="u-card"><svg class="ic"><use href="#i-door-closed"/></svg>Dulap</div>
+          <div class="u-card" id="u-bib"><svg class="ic"><use href="#i-library"/></svg>Bibliotecă<i class="sel3" id="u-bibs"></i><span class="ck" id="u-bibc"><svg class="ic" style="font-size:26px;color:#fff;stroke-width:3"><use href="#i-check"/></svg></span></div>
+          <div class="u-card"><svg class="ic"><use href="#i-tv"/></svg>Comodă TV</div>
+          <div class="u-card"><svg class="ic"><use href="#i-footprints"/></svg>Pantofar</div>
+        </div>
+      </div>
+      <!-- B: configurator 3D -->
+      <div class="u-step" id="u-b">
+        <div class="u-t">Bibliotecă</div>
+        <div style="margin-top:16px"><span class="u-pill"><svg class="ic" style="font-size:28px"><use href="#i-rotate-3d"/></svg>Configurează în 3D</span></div>
+        <div class="u-canvas" id="u-can"></div>
+        <div class="u-cols">Coloane<div class="u-stp"><span><svg class="ic"><use href="#i-minus"/></svg></span><b>3</b><span><svg class="ic"><use href="#i-plus"/></svg></span></div></div>
+      </div>
+      <!-- C: sumar + trimitere fara cont -->
+      <div class="u-step" id="u-c">
+        <div class="u-t">Verifică și trimite</div>
+        <div class="u-meta">Faza 6 din 6</div>
+        <div class="u-bar"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+        <div class="u-sum"><div><span>Bibliotecă</span><b>160 × 200 cm</b></div><div><span>Buget</span><b>~6.000 lei</b></div><div><span>Locație</span><b>București</b></div></div>
+        <div class="u-cons"><span class="u-cb"><svg class="ic"><use href="#i-check"/></svg></span><span>Am citit și accept <u>Termenii și condițiile</u></span></div>
+        <div class="u-send" id="u-send"><svg class="ic" style="font-size:32px"><use href="#i-send"/></svg>Trimite cererea</div>
+      </div>
+      <!-- D: multumim (apps/frontend/src/app/[locale]/multumim) -->
+      <div class="u-step u-ty" id="u-d">
+        <div class="u-k">Mobila Unicat</div>
+        <div class="u-t">Îți mulțumim<br>pentru cerere!</div>
+        <div class="u-ref"><p>Numărul cererii tale</p><b>A1F3C07E</b></div>
+        <div class="u-msg">Un coleg de la Mobila Unicat o analizează și te va contacta în curând.</div>
+      </div>
+    </div></div>
+    <div id="s7-tag"><span id="s7-tagc"><svg class="ic" style="font-size:30px"><use href="#i-lock"/></svg>fără cont</span></div>
+
+    <!-- notificarea interna reala: request-emails.ts → "Cerere nouă #REF — oras" -->
+    <div class="card" id="s7-mail">
+      <div class="m-top"><img src="../assets/shots/firme/mobilaunicat-logo-white.svg" alt="Mobila Unicat"><span>E-MAIL · ACUM</span></div>
+      <div class="m-sub"><b>Cerere nouă #A1F3C07E — București</b><span>către echipa Mobila Unicat</span></div>
+      <div class="m-body">
+        <div class="m-l hd s7l"><span>Bibliotecă living</span></div>
+        <div class="m-l s7l"><span>Camere/piese</span><span>Bibliotecă</span></div>
+        <div class="m-l s7l"><span>Mod de pornire</span><span>știe ce vrea, fără proiect</span></div>
+        <div class="m-l s7l"><span>Buget estimat</span><span>6.000 lei</span></div>
+        <div class="m-l s7l"><span>Locație</span><span>București</span></div>
+        <div class="m-l s7l"><span>Fișiere</span><span>1</span></div>
+        <div class="m-q s7l"><span>Ce a scris clientul:</span>„Pe tot peretele din living, finisaj stejar.”</div>
+      </div>
+      <div class="m-btn s7l" id="s7-mbtn">Fișa completă<svg class="ic" style="font-size:32px"><use href="#i-arrow-right"/></svg></div>
+    </div>
+  </div></section>
+
+  <!-- ========== S8 · PLANURI & CREDITE (36.0–40.0) ========== -->
+  <section class="scene" id="s8"><div class="xw" id="s8-x">
+    <h2 class="hl" id="s8-hl">Abonament flexibil.<br>Credite doar<br>când <span class="acc">preiei.</span></h2>
+    <div class="sub" id="s8-sub" style="top:600px">Stripe · factură automată<i class="dim"></i></div>
+
+    <div class="card" id="s8-wal">
+      <div style="font:400 42px var(--serif)">Portofel de credite</div>
+      <div class="mets"><div class="met"><b id="s8-m1">0</b><span class="mlabel" style="color:var(--ink2)">Disponibile</span></div><div class="met dim"><b id="s8-m2">0</b><span class="mlabel">Rezervate</span></div><div class="met dim"><b id="s8-m3">0</b><span class="mlabel">Sold liber</span></div></div>
+    </div>
+
+    <div class="plans">
+      <div class="plan" id="s8-p1"><span class="tier t-silver"><i></i>SILVER</span><div class="pl"><svg class="ic"><use href="#i-check"/></svg>Credite incluse</div><div class="pl"><svg class="ic"><use href="#i-check"/></svg>Acces la cererile noi după 60 min</div></div>
+      <div class="plan" id="s8-p2"><span class="tier t-gold"><i></i>GOLD</span><div class="pl"><svg class="ic"><use href="#i-check"/></svg>Credite incluse</div><div class="pl"><svg class="ic"><use href="#i-check"/></svg>Acces la cererile noi după 30 min</div></div>
+      <div class="plan" id="s8-p3"><span class="tier t-plat"><i></i>PLATINUM</span><div class="pl"><svg class="ic"><use href="#i-check"/></svg>Credite incluse</div><div class="pl hi"><svg class="ic"><use href="#i-check"/></svg>Acces imediat la cererile noi</div><i class="hring" id="s8-hr"></i></div>
+    </div>
+
+    <div id="s8-stripe"><span class="sp" id="s8-sp1"><svg class="ic"><use href="#i-shield-check"/></svg>Plată securizată cu cardul (Stripe)</span></div>
+    <div id="s8-trial"><span class="badge b-amber" style="font-size:32px">Trial</span><span>o lună Gold + 10 credite la aprobare</span></div>
+  </div></section>
+
+  <!-- ========== S9 · CTA (40.0–42.0) ========== -->
+  <section class="scene" id="s9"><div class="xw" id="s9-x">
+    <div id="s9-logo"><svg id="s9-mark" viewBox="0 0 32 32" fill="none">
+      <path class="mk" d="M5.5 15.5 L16 6.5 L26.5 15.5" stroke="#1A1714" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      <path class="mk" d="M8 14 V24.5 A1.5 1.5 0 0 0 9.5 26 H22.5 A1.5 1.5 0 0 0 24 24.5 V14" stroke="#1A1714" stroke-width="1.8" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      <path class="mk" d="M13.5 26 V21 A2.5 2.5 0 0 1 18.5 21 V26" stroke="#1A1714" stroke-width="1.6" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      <path class="mk" d="M21.5 11.2 V7.5 M24 7.5 V13.4 M20.8 7.5 H24.7" stroke="#1A1714" stroke-width="1.7" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      <path class="mk" d="M22.9 5.4 C22.1 4.6 23.6 3.8 22.9 3" stroke="#B48431" stroke-width="1.5" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+    </svg><span id="s9-word">Cozy&nbsp;Home</span></div>
+    <div id="s9-for">pentru firme</div>
+    <span class="btn btn-walnut" id="s9-btn" style="overflow:hidden">Înscrie-ți firma<svg class="ic" style="font-size:54px"><use href="#i-arrow-right"/></svg><i id="s9-shine"></i></span>
+    <div id="s9-trust">
+      <div class="tl9"><svg class="ic"><use href="#i-check"/></svg>Verificare gratuită</div>
+      <div class="tl9"><svg class="ic"><use href="#i-check"/></svg>Cereri calificate</div>
+      <div class="tl9"><svg class="ic"><use href="#i-check"/></svg>Fără spam</div>
+    </div>
+    <div id="s9-url"></div>
+  </div></section>
+
+  <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+  <div id="fadeout"></div>
+</div>
+
+<script src="../lib/timeline.js"></script>
+<script>
+// DECIZIE NECESARĂ: domeniu neconfirmat — cand e gol, CTA-ul arata doar wordmark-ul
+const SITE_URL = '';
+
+// Cifrele de exemplu din PLAN.md (Video 2). Portofelul urmeaza semantica reala din
+// credits.service.ts: available = balance (creditele libere), reserved = tinute de preluari.
+const WALLET = { available: 188, reserved: 12, balance: 188 };
+
+const tl = new Timeline({ durationMs: 42000 });
+const E = ease;
+const ms = (s) => Math.round(s * 1000);
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const lerp = (a, b, p) => a + (b - a) * p;
+const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
+const fmt = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+const toEls = (t) => (typeof t === 'string' ? $$(t) : t instanceof Element ? [t] : Array.from(t));
+
+// Animatie pe segmente: fiecare proprietate e o functie pura de t, construita din
+// segmentele [t0, t1, {prop:[from,to]}, easing] (secunde). Apelurile K pe acelasi
+// element se compun (registru per element + proprietate). Inainte de primul segment
+// se aplica "from"-ul lui, intre segmente ramane "to"-ul ultimului segment terminat.
+const REG = new Map();
+function K(target, ...segs) {
+  for (const el of toEls(target)) {
+    let r = REG.get(el);
+    if (!r) { r = {}; REG.set(el, r); }
+    for (const sg of segs) for (const k of Object.keys(sg[2])) (r[k] || (r[k] = [])).push(sg);
+  }
+}
+function evalK(t) {
+  for (const [el, r] of REG) {
+    const v = {};
+    for (const k in r) {
+      const list = r[k];
+      if (!list.sorted) { list.sort((a, b) => a[0] - b[0]); list.sorted = true; }
+      let val = list[0][2][k][0];
+      for (const [t0, t1, pr, e] of list) {
+        if (t >= t1) { val = pr[k][1]; continue; }
+        if (t > t0) { const p = (e || E.outCubic)(clamp01((t - t0) / (t1 - t0))); val = lerp(pr[k][0], pr[k][1], p); }
+        break;
+      }
+      v[k] = val;
+    }
+    applyV(el, v);
+  }
+}
+tl.always((tms) => evalK(tms / 1000));
+function applyV(el, v) {
+  if (v.x !== undefined || v.y !== undefined || v.s !== undefined || v.sx !== undefined || v.sy !== undefined || v.r !== undefined) {
+    let tr = `translate(${v.x || 0}px,${v.y || 0}px)`;
+    if (v.s !== undefined) tr += ` scale(${v.s})`;
+    if (v.sx !== undefined || v.sy !== undefined) tr += ` scale(${v.sx ?? 1},${v.sy ?? 1})`;
+    if (v.r !== undefined) tr += ` rotate(${v.r}deg)`;
+    el.style.transform = tr;
+  }
+  if (v.o !== undefined) el.style.opacity = v.o;
+  if (v.blur !== undefined || v.gray !== undefined) el.style.filter = `blur(${v.blur || 0}px) grayscale(${v.gray || 0})`;
+  if (v.dash !== undefined) el.style.strokeDashoffset = v.dash;
+  if (v.w !== undefined) el.style.width = v.w + 'px';
+  if (v.h !== undefined) el.style.height = v.h + 'px';
+  if (v.it !== undefined) {
+    // clip-path inset animat: it/ib = sus/jos (px)
+    el.style.clipPath = `inset(${v.it}px 0px ${v.ib || 0}px 0px round ${el.dataset.round || 0}px)`;
+  }
+}
+// schimbari discrete de stare: fn(true/false) dupa cum t e in [t0, t1)
+function when(t0, t1, fn) { tl.always((tms) => { const t = tms / 1000; fn(t >= t0 && t < t1); }); }
+function show(target, t0, t1 = 1e9) { const els = toEls(target); when(t0, t1, (on) => els.forEach((e) => (e.style.visibility = on ? 'visible' : 'hidden'))); }
+function type(target, t0, t1, text, cursor = true) { toEls(target).forEach((el) => tl.type(el, ms(t0), ms(t1), text, { cursor })); }
+// tastare in camp: cursorul clipeste doar cat campul e activ (pana la tOff)
+function typeIn(target, t0, t1, text, tOff) {
+  const els = toEls(target);
+  tl.always((tms) => {
+    const t = tms / 1000;
+    const n = Math.round(clamp01((t - t0) / (t1 - t0)) * text.length);
+    const blink = t >= t0 - 0.15 && t < tOff && Math.floor(tms / 400) % 2 === 0;
+    for (const el of els) el.textContent = text.slice(0, n) + (blink ? '|' : '');
+  });
+}
+function count(target, t0, t1, a, b, f = fmt, e = E.outCubic) { toEls(target).forEach((el) => tl.count(el, ms(t0), ms(t1), a, b, f, e)); }
+
+// cuvintele titlului intra pe rand (sus → pozitie, opacitate)
+function splitWords(el) {
+  const walk = (node) => {
+    for (const n of Array.from(node.childNodes)) {
+      if (n.nodeType === 3) {
+        const frag = document.createDocumentFragment();
+        for (const p of n.textContent.split(/(\s+)/)) {
+          if (!p) continue;
+          if (/^\s+$/.test(p)) frag.appendChild(document.createTextNode(' '));
+          else { const s = document.createElement('span'); s.className = 'w'; s.textContent = p; frag.appendChild(s); }
+        }
+        node.replaceChild(frag, n);
+      } else if (n.nodeType === 1 && n.tagName !== 'BR') walk(n);
+    }
+  };
+  walk(el);
+  return $$('.w', el);
+}
+function headlineIn(sel, t0, { stagger = 0.055, dur = 0.55, dy = 48, out } = {}) {
+  const ws = splitWords($(sel));
+  ws.forEach((w, i) => {
+    const segs = [[t0 + i * stagger, t0 + i * stagger + dur, { o: [0, 1], y: [dy, 0] }, E.outCubic]];
+    if (out) segs.push([out[0] + i * 0.02, out[1] + i * 0.02, { o: [1, 0], y: [0, -36] }, E.inCubic]);
+    K(w, ...segs);
+  });
+}
+// linia de cota de sub textul mono: se traseaza, apoi textul urca
+function subIn(sel, t0) {
+  const el = $(sel);
+  K(el, [t0, t0 + 0.5, { o: [0, 1], y: [22, 0] }, E.outCubic]);
+  K($('.dim', el), [t0 + 0.1, t0 + 0.75, { sx: [0, 1] }, E.inOutCubic]);
+}
+// intrare standard pentru carduri / blocuri UI
+function rise(target, t0, { dur = 0.7, dy = 110, s = 0.97, easing = E.outQuart } = {}) {
+  K(target, [t0, t0 + dur, { o: [0, 1], y: [dy, 0], s: [s, 1] }, easing]);
+}
+// iesirea scenei: tot continutul urca usor si se stinge
+function sceneOut(id, t0, t1) { K(`#${id}-x`, [t0, t1, { o: [1, 0], y: [0, -60] }, E.inCubic]); }
+// atingerea degetului pe un buton (punct + unda de alama)
+function tap(parent, x, y, t) {
+  const el = document.createElement('div');
+  el.className = 'tap';
+  el.style.left = x + 'px'; el.style.top = y + 'px';
+  el.innerHTML = '<i class="rip"></i><i class="dot"></i>';
+  $(parent).appendChild(el);
+  K($('.dot', el), [t - 0.22, t, { o: [0, 1], s: [1.35, 0.82] }, E.outCubic], [t + 0.1, t + 0.42, { o: [1, 0], s: [0.82, 1.05] }, E.inCubic]);
+  K($('.rip', el), [t - 0.01, t, { o: [0, 0.9], s: [0.4, 0.4] }, E.linear], [t, t + 0.55, { o: [0.9, 0], s: [0.4, 2.0] }, E.outCubic]);
+}
+function press(target, t) { K(target, [t - 0.04, t + 0.08, { s: [1, 0.94] }, E.outCubic], [t + 0.08, t + 0.36, { s: [0.94, 1] }, E.outBack]); }
+function pulseRing(target, t, dur = 0.9) { K(target, [t, t + 0.25, { o: [0, 1], s: [1.15, 1] }, E.outCubic], [t + dur - 0.3, t + dur, { o: [1, 0], s: [1, 1.04] }, E.inCubic]); }
+
+/* ---------------- scene on/off ---------------- */
+const SC = [[1, 0, 3.05], [2, 2.9, 9.12], [3, 8.9, 14.12], [4, 13.9, 20.12], [5, 19.9, 26.12], [6, 25.9, 31.12], [7, 30.9, 36.12], [8, 35.9, 39.8], [9, 39.55, 42.1]];
+for (const [n, a, b] of SC) tl.scene(`#s${n}`, ms(a), ms(b));
+
+/* rama de plansa (coltare de alama) */
+$$('.corner').forEach((c, i) => K(c, [0.15 + i * 0.06, 0.65 + i * 0.06, { o: [0, 1], s: [1.5, 1] }, E.outCubic]));
+// la fiecare granita de scena coltarele "respira" spre exterior (ritm comun al tranzitiilor)
+const BOUNDS = [3, 9, 14, 20, 26, 31, 36, 39.75];
+const DIRS = { tl: [-1, -1], tr: [1, -1], bl: [-1, 1], br: [1, 1] };
+for (const [cls, [dx, dy]] of Object.entries(DIRS)) {
+  const segs = [];
+  for (const b of BOUNDS) {
+    segs.push([b - 0.3, b, { x: [0, 14 * dx], y: [0, 14 * dy] }, E.outQuad]);
+    segs.push([b, b + 0.45, { x: [14 * dx, 0], y: [14 * dy, 0] }, E.outCubic]);
+  }
+  K(`.corner.${cls}`, ...segs);
+}
+
+/* ================= S1 · HOOK ================= */
+headlineIn('#s1-hl', 0.0, { stagger: 0.07, dur: 0.5, dy: 60 });
+K('#s1-ulp', [0.55, 1.05, { dash: [620, 0] }, E.inOutCubic]);
+K('#s1-phone', [0.25, 0.95, { o: [0, 1], y: [260, 0], r: [8, 3] }, E.outQuart]);
+// foile de oferta zboara spre telefon, apoi se sting in gri cand vine raspunsul
+const PDFS = [['#p1', 0.16, -560, 220, -30, -11], ['#p2', 0.32, -640, 160, -24, -6], ['#p3', 0.48, -720, 120, -18, -1], ['#p4', 0.64, -800, 90, -12, 4], ['#p5', 0.8, -880, 60, -6, 6]];
+PDFS.forEach(([sel, t, dx, dy, r0, r1], i) => {
+  K(sel, [t, t + 0.62, { x: [dx, 0], y: [dy, 0], r: [r0, r1], o: [0, 1], s: [1.1, 1] }, E.outQuart],
+    [1.62 + i * 0.07, 2.02 + i * 0.07, { gray: [0, 1] }, E.inOutCubic]);
+  K(`${sel} .veil`, [1.62 + i * 0.07, 2.02 + i * 0.07, { o: [0, 1] }, E.inOutCubic]);
+});
+K('#s1-typ', [1.0, 1.12, { o: [0, 1], s: [0.6, 1] }, E.outBack], [1.38, 1.46, { o: [1, 0] }, E.linear]);
+$$('#s1-typ i').forEach((d, i) => tl.always((tms) => { const t = tms / 1000; d.style.opacity = String(0.35 + 0.65 * Math.max(0, Math.sin((t * 7 - i * 0.9)))); }));
+K('#s1-in', [1.42, 1.72, { o: [0, 1], s: [0.7, 1], y: [20, 0] }, E.outBack]);
+K('#s1-phone', [1.42, 1.49, { r: [3, 5] }, E.outQuad], [1.49, 1.58, { r: [5, 1.4] }, E.inOutQuad], [1.58, 1.7, { r: [1.4, 3] }, E.outQuad]);
+// taietura: o coala curata de ivoriu urca peste tot
+K('#cut', [2.52, 2.98, { y: [2000, 0] }, E.inOutCubic]);
+
+/* ================= S2 · CERERI CALIFICATE ================= */
+headlineIn('#s2-hl', 3.0);
+K('#s2-sub', [3.55, 3.9, { o: [0, 1] }, E.outCubic]);
+K('#s2-dim', [3.6, 4.3, { sx: [0, 1] }, E.inOutCubic]);
+type('#s2-subt', 3.95, 5.3, 'mărime · buget · distanță · sloturi');
+rise('#s2-fh', 3.2, { dy: 60 });
+rise('#c1', 3.3); rise('#c2', 3.45); rise('#c3', 3.6);
+// fiecare cuvant din linia mono aprinde elementul corespunzator de pe primul card
+pulseRing('#c1-size .ring', 4.05, 0.8); pulseRing('#c1-bud .ring', 4.4, 0.8);
+pulseRing('#c1-km .ring', 4.78, 0.8); pulseRing('#c1-st .ring', 5.15, 0.85);
+// cardul se deschide in fisa cererii
+tap('#s2-x', 520, 900, 5.72);
+press('#c1', 5.74);
+K('#s2-fh', [5.9, 6.3, { o: [1, 0], y: [0, -40] }, E.inCubic]);
+K('#c2', [5.9, 6.4, { o: [1, 0], y: [0, 140] }, E.inCubic]);
+K('#c3', [5.95, 6.45, { o: [1, 0], y: [0, 180] }, E.inCubic]);
+show('#s2-det', 5.95);
+K('#s2-det', [5.95, 6.7, { it: [156, 0], ib: [480, 0] }, E.inOutCubic]);
+K('#s2-deti', [5.95, 6.7, { y: [150, 0] }, E.inOutCubic]);
+K('#c1', [5.86, 6.02, { o: [1, 0] }, E.inCubic]);
+K('#s2-deti', [6.1, 6.45, { o: [0, 1] }, E.outCubic]);
+rise('#s2-camrow', 6.45, { dy: 40, s: 1 }); rise('#s2-r1', 6.6, { dy: 60, s: 1 }); rise('#s2-r2', 6.78, { dy: 60, s: 1 });
+K('#s2-snap', [6.95, 7.5, { o: [0, 1], s: [0.85, 1] }, E.outCubic]);
+$$('.s2c').forEach((c, i) => K(c, [7.05 + i * 0.12, 7.45 + i * 0.12, { o: [0, 1], s: [0.6, 1] }, E.outBack]));
+pulseRing('#s2-v3d .ring', 7.95, 0.9);
+sceneOut('s2', 8.64, 9.04);
+
+/* ================= S3 · PREIEI ================= */
+headlineIn('#s3-hl', 9.0, { out: [11.62, 11.95] });
+headlineIn('#s3-hl2', 11.95, { stagger: 0.07 });
+rise('#s3-card', 9.15); rise('#s3-panel', 9.35);
+K('#s3-wal', [9.55, 10.15, { o: [0, 1], y: [50, 0] }, E.outCubic]);
+tap('#s3-x', 882, 1322, 10.42);
+press('#s3-btn', 10.44);
+K('#s3-bl', [10.5, 10.6, { o: [1, 0] }, E.linear]);
+K('#s3-bl2', [10.52, 10.62, { o: [0, 1] }, E.linear], [10.98, 11.05, { o: [1, 0] }, E.linear]);
+K('#s3-btn', [11.0, 11.12, { o: [1, 0] }, E.linear]);
+K('#s3-ok', [11.02, 11.35, { o: [0, 1], s: [0.8, 1] }, E.outBack]);
+// slotul 2 din 3 se ocupa + creditele se rezerva (200 → 188)
+K('#s3-r2f', [11.05, 11.45, { o: [0, 1], x: [-40, 0] }, E.outCubic]);
+K('#s3-sq2f', [11.05, 11.4, { s: [0.2, 1] }, E.outBack]);
+K('#s3-fr2', [11.05, 11.2, { o: [1, 0] }, E.linear]);
+when(11.1, 1e9, (on) => { $('#s3-sl').textContent = on ? 'Sloturi 2/3' : 'Sloturi 1/3'; });
+count('#s3-num', 11.1, 11.85, 200, WALLET.available);
+count('#s3-av', 11.1, 11.85, 200, WALLET.available);
+K('#s3-minus', [11.05, 11.3, { o: [0, 1], y: [24, 0] }, E.outCubic], [11.9, 12.2, { o: [1, 0], y: [0, -16] }, E.inCubic]);
+K('#s3-res', [11.6, 11.95, { o: [0, 1], s: [0.7, 1] }, E.outBack]);
+// "cel mult 3": panoul de cost pleaca, apare nota + acolada pe cele 3 sloturi
+K('#s3-panel', [12.0, 12.35, { o: [1, 0], y: [0, 30] }, E.inCubic]);
+K('#s3-note', [12.3, 12.75, { o: [0, 1], y: [30, 0] }, E.outCubic]);
+K('#s3-strk', [12.6, 12.95, { sx: [0, 1] }, E.inOutCubic]);
+K('#s3-brk', [12.25, 12.75, { o: [0, 1], sy: [0, 1] }, E.outCubic]);
+sceneOut('s3', 13.64, 14.04);
+
+/* ================= S4 · FISA DE LUCRU ================= */
+headlineIn('#s4-hl', 14.0);
+subIn('#s4-sub', 14.35);
+rise('#s4-wb', 14.2);
+// atribuire: Neatribuit → Andrei P.
+tap('#s4-x', 870, 670, 14.95);
+K('#s4-dd', [15.02, 15.25, { o: [0, 1], sy: [0.7, 1] }, E.outCubic], [15.55, 15.7, { o: [1, 0] }, E.linear]);
+tap('#s4-x', 860, 826, 15.42);
+K('#s4-selv', [15.55, 15.62, { o: [1, 0] }, E.linear]);
+K('#s4-selv2', [15.58, 15.8, { o: [0, 1] }, E.outCubic]);
+when(15.6, 1e9, (on) => $('#s4-sel').classList.toggle('warn', !on));
+// cronometrul SLA curge pana la cererea de clarificare, apoi ingheata in pauza
+tl.always((tms) => {
+  const t = Math.min(tms / 1000, 18.05);
+  const left = 3 * 86400 - Math.max(0, Math.floor((t - 14.2) * 1)) - 1;
+  const d = Math.floor(left / 86400), h = Math.floor((left % 86400) / 3600), m = Math.floor((left % 3600) / 60), s = left % 60;
+  $('#s4-tv').textContent = `${d}z ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  const paused = tms / 1000 >= 18.05;
+  $('#s4-timer').style.color = paused ? 'var(--amber)' : 'var(--ink2)';
+});
+K('#s4-pause', [18.1, 18.45, { o: [0, 1], s: [0.6, 1] }, E.outBack]);
+rise('#s4-client', 15.5);
+K('#s4-files', [15.8, 16.25, { o: [0, 1], y: [24, 0] }, E.outCubic]);
+rise('#s4-clar', 16.05);
+K('#s4-taph', [16.7, 16.75, { o: [1, 0] }, E.linear]);
+typeIn('#s4-tat', 16.75, 17.55, 'Bună! Blatul e inclus în buget?', 17.85);
+tap('#s4-x', 216, 1427, 17.85);
+press('#s4-cbtn', 17.86);
+K('#s4-ta', [18.0, 18.25, { o: [1, 0] }, E.linear]);
+K('#s4-cbtn', [18.0, 18.25, { o: [1, 0] }, E.linear]);
+K('#s4-q', [18.05, 18.45, { o: [0, 1], y: [-30, 0] }, E.outCubic]);
+K('#s4-slap', [18.3, 18.7, { o: [0, 1], x: [-20, 0] }, E.outCubic]);
+K('#s4-wd', [18.6, 19.05, { o: [0, 1], y: [24, 0] }, E.outCubic]);
+sceneOut('s4', 19.64, 20.04);
+
+/* ================= S5 · OFERTARE RAPIDA ================= */
+headlineIn('#s5-hl', 20.0);
+subIn('#s5-sub', 20.35);
+rise('#s5-ob', 20.2);
+const focus = (sel, t0, t1) => when(t0, t1, (on) => $(sel).classList.toggle('focus', on));
+focus('#s5-i1', 20.95, 21.6); focus('#s5-i2', 21.6, 22.15);
+K('#s5-p1', [20.98, 21.0, { o: [1, 0] }, E.linear]); typeIn('#s5-v1', 21.0, 21.45, '13.400', 21.6);
+K('#s5-p2', [21.62, 21.64, { o: [1, 0] }, E.linear]); typeIn('#s5-v2', 21.65, 21.95, '2.600', 22.15);
+// totalul: "—" → "13.400…" (defalcare partiala) → suma completa 16.000
+tl.always((tms) => {
+  const t = tms / 1000, el = $('#s5-tot');
+  if (t < 21.45) el.textContent = '—';
+  else if (t < 22.02) el.textContent = '13.400…';
+  else el.textContent = fmt(lerp(13400, 16000, E.outCubic(clamp01((t - 22.02) / 0.55))));
+});
+K('#s5-eur', [22.5, 22.9, { o: [0, 1], x: [18, 0] }, E.outCubic]);
+focus('#s5-i3', 22.7, 23.05); focus('#s5-i4', 23.05, 23.35); focus('#s5-i5', 23.35, 23.6);
+typeIn('#s5-v3', 22.72, 23.0, '6 săpt.', 23.05); typeIn('#s5-v4', 23.07, 23.3, '24 luni', 23.35);
+K('#s5-p5', [23.36, 23.38, { o: [1, 0] }, E.linear]); typeIn('#s5-v5', 23.38, 23.5, '14', 23.6);
+tap('#s5-x', 245, 1533, 23.8); press('#s5-send', 23.82);
+K('#s5-ob', [23.98, 24.38, { x: [0, -1100], o: [1, 0.4] }, E.inCubic]);
+K('#s5-oc', [24.12, 24.62, { x: [1100, 0] }, E.outQuart]);
+K('#s5-pdf', [24.62, 24.72, { o: [0, 1] }, E.linear], [24.62, 25.15, { x: [-40, 0], y: [-600, 0], s: [0.22, 1], r: [-20, 6] }, E.outCubic]);
+K('#s5-dli', [25.0, 25.2, { y: [0, 8] }, E.inOutCubic], [25.2, 25.5, { y: [8, 0] }, E.outBack]);
+pulseRing('#s5-dl .ring', 24.5, 0.8);
+sceneOut('s5', 25.64, 26.04);
+
+/* ================= S6 · ECHIPA ================= */
+headlineIn('#s6-hl', 26.0);
+subIn('#s6-sub', 26.35);
+rise('#s6-team', 26.15);
+// matricea implicita (docs/03 §4.13): proprietar/manager pot tot; de incredere tot fara pret; coordonat doar citire
+const TEAM = [['CV', 'Cristina V.', 'b-walnut', 'Proprietar', [1, 1, 1]], ['AP', 'Andrei P.', 'b-sage', 'Manager', [1, 1, 1]], ['MD', 'Mihai D.', 'b-info', 'Angajat de încredere', [0, 1, 1]], ['RT', 'Radu T.', 'b-muted', 'Angajat coordonat', [0, 0, 0]]];
+const pm = $('#s6-pm');
+TEAM.forEach(([ini, name, tone, role, perms], r) => {
+  const who = document.createElement('div'); who.className = 'who';
+  who.innerHTML = `<div class="av">${ini}</div><div class="nm">${name}<span class="badge ${tone}">${role}</span></div>`;
+  pm.appendChild(who);
+  K(who, [26.4 + r * 0.1, 26.85 + r * 0.1, { o: [0, 1], x: [-30, 0] }, E.outCubic]);
+  K($('.badge', who), [26.75 + r * 0.12, 27.15 + r * 0.12, { o: [0, 1], s: [0.5, 1] }, E.outBack]);
+  perms.forEach((on, c) => {
+    const cb = document.createElement('div'); cb.className = 'cb';
+    cb.innerHTML = '<span class="box"><i class="fill"></i><svg class="ic"><use href="#i-check"/></svg></span>';
+    pm.appendChild(cb);
+    const t = 27.45 + r * 0.26 + c * 0.08;
+    K($('.box', cb), [26.5 + r * 0.1, 26.9 + r * 0.1, { o: [0, 1] }, E.outCubic]);
+    if (on) {
+      K($('.fill', cb), [t, t + 0.16, { o: [0, 1] }, E.outCubic]);
+      K($('.ic', cb), [t + 0.04, t + 0.3, { o: [0, 1], s: [0.3, 1] }, E.outBack]);
+    } else K($('.ic', cb), [0, 0.01, { o: [0, 0] }, E.linear]);
+  });
+});
+rise('#s6-msg', 28.55);
+tap('#s6-x', 470, 1371, 29.0);
+K('#s6-tabon', [29.02, 29.25, { o: [0, 1] }, E.outCubic]);
+K('#s6-bub', [29.3, 29.7, { o: [0, 1], y: [30, 0], s: [0.94, 1] }, E.outBack]);
+sceneOut('s6', 30.64, 31.04);
+
+/* ================= S7 · FORMULAR PE SITE-UL TAU ================= */
+headlineIn('#s7-hl', 31.0);
+subIn('#s7-sub', 31.3);
+K('#s7-phone', [31.1, 31.75, { o: [0, 1], y: [160, 0], s: [1, 1] }, E.outQuart], [33.55, 34.15, { x: [0, -268], y: [0, 36], s: [1, 0.78] }, E.inOutCubic]);
+// pasii wizardului (A → B → C → D): push de la dreapta, pasul vechi aluneca putin spre stanga
+const STEPS = [['#u-a', 0, 32.0], ['#u-b', 32.0, 32.55], ['#u-c', 32.55, 33.1], ['#u-d', 33.1, 99]];
+STEPS.forEach(([sel, a, b], i) => {
+  const segs = [];
+  if (i > 0) segs.push([a, a + 0.32, { x: [430, 0] }, E.outCubic]);
+  if (b < 90) segs.push([b, b + 0.32, { x: [0, -130] }, E.outCubic]);
+  if (segs.length === 0) segs.push([0, 0.01, { x: [0, 0] }, E.linear]);
+  K(sel, ...segs);
+});
+tap('#s7-x', 663, 1178, 31.74);
+K('#u-bibs', [31.76, 31.9, { o: [0, 1] }, E.outCubic]);
+K('#u-bibc', [31.78, 32.02, { o: [0, 1], s: [0.3, 1] }, E.outBack]);
+K('#u-can', [32.05, 32.55, { s: [0.94, 1.02] }, E.outCubic]);
+tap('#s7-x', 540, 1473, 32.92); press('#u-send', 32.94);
+K('#s7-tag', [32.68, 33.0, { o: [0, 1], y: [24, 0], s: [0.8, 1] }, E.outBack], [33.45, 33.65, { o: [1, 0] }, E.linear]);
+K('#s7-mail', [33.65, 33.75, { o: [0, 1] }, E.linear], [33.65, 34.25, { x: [760, 0] }, E.outQuart]);
+$$('.s7l').forEach((l, i) => K(l, [33.95 + i * 0.06, 34.3 + i * 0.06, { o: [0, 1], y: [16, 0] }, E.outCubic]));
+sceneOut('s7', 35.64, 36.04);
+
+/* ================= S8 · PLANURI & CREDITE ================= */
+headlineIn('#s8-hl', 36.0, { stagger: 0.05 });
+subIn('#s8-sub', 36.3);
+rise('#s8-wal', 36.15);
+count('#s8-m1', 36.35, 37.1, 0, WALLET.available); count('#s8-m2', 36.45, 37.1, 0, WALLET.reserved); count('#s8-m3', 36.55, 37.2, 0, WALLET.balance);
+['#s8-p1', '#s8-p2', '#s8-p3'].forEach((p, i) => rise(p, 36.75 + i * 0.12, { dy: 90 }));
+$$('.plans .tier').forEach((b, i) => K(b, [37.0 + i * 0.12, 37.4 + i * 0.12, { s: [0.5, 1] }, E.outBack]));
+K('#s8-hr', [37.5, 37.8, { o: [0, 1], s: [1.06, 1] }, E.outCubic]);
+rise('#s8-sp1', 37.8, { dy: 30, s: 0.9, easing: E.outBack, dur: 0.5 });
+K('#s8-trial', [38.15, 38.55, { o: [0, 1], y: [30, 0] }, E.outCubic]);
+sceneOut('s8', 39.35, 39.75);
+
+/* ================= S9 · CTA ================= */
+$$('#s9-mark .mk').forEach((p, i) => K(p, [39.74 + i * 0.07, 40.19 + i * 0.07, { dash: [1, 0] }, E.inOutCubic]));
+K('#s9-mark', [39.72, 40.15, { o: [0, 1], s: [0.9, 1] }, E.outCubic]);
+K('#s9-word', [39.8, 40.25, { o: [0, 1], x: [-20, 0] }, E.outCubic]);
+K('#s9-for', [39.87, 40.32, { o: [0, 1], y: [24, 0] }, E.outCubic]);
+K('#s9-btn', [40.0, 40.45, { o: [0, 1], y: [40, 0], s: [0.85, 1] }, E.outBack]);
+$$('#s9-trust .tl9').forEach((r, i) => K(r, [40.2 + i * 0.09, 40.6 + i * 0.09, { o: [0, 1], x: [-24, 0] }, E.outCubic]));
+if (SITE_URL) { $('#s9-url').textContent = SITE_URL; K('#s9-url', [40.5, 40.9, { o: [0, 1] }, E.outCubic]); } else $('#s9-url').style.display = 'none';
+// buton: o trecere de lumina (alama) peste CTA, dupa ce s-a asezat
+K('#s9-shine', [40.75, 41.35, { x: [-260, 760], r: [12, 12] }, E.inOutCubic]);
+// iesire: foarte scurt spre ivoriu, ca bucla sa se lege cu primul cadru
+K('#fadeout', [41.78, 42.0, { o: [0, 1] }, E.inCubic]);
+
+tl.onReady(async () => {
+  await Promise.all(['400 90px Marcellus', '400 30px "DM Sans"', '600 30px "DM Sans"', '700 30px "DM Sans"', '500 30px "IBM Plex Mono"', '400 30px "IBM Plex Mono"'].map((f) => document.fonts.load(f, 'ăâîșțĂÂÎȘȚ')));
+  await document.fonts.ready;
+  await Promise.all($$('img').map((i) => (i.decode ? i.decode().catch(() => {}) : null)));
+});
+tl.install();
+</script>
+</body>
+</html>
