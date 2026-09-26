@@ -1,0 +1,11 @@
+{
+  "name": "cozy-demo-env",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Helper local (fara Docker) pentru demo/capturi: S3 mock, SMTP sink, Nominatim mock, server static pini",
+  "type": "module",
+  "dependencies": {
+    "s3rver": "^3.7.1",
+    "smtp-server": "^3.19.13"
+  }
+}
