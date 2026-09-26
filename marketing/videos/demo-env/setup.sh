@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Setup O SINGURA DATA (idempotent) al bazei demo: rol+DB Postgres, apps/backend/.env,
 # prisma generate + migrate deploy, seed-uri (config, demo, inspiratie), rescrierea
-# pozelor de inspiratie catre pins/ locale, colectii demo, snapshot pentru reset rapid.
+# pozelor de inspiratie catre pins/ locale, colectii demo, cosmetizarea datelor
+# (tools/polish-data.mjs) si snapshot-uri pentru reset rapid.
 #   ./setup.sh           → sare peste ce exista deja
 # Parola conturilor demo: DEMO_PASSWORD (implicit DemoCozy2026!).
 set -euo pipefail
@@ -42,6 +43,15 @@ node "$DEMO_DIR/tools/rewrite-inspiration.mjs"
 echo "== backend + colectii demo"
 "$DEMO_DIR/start.sh" >/dev/null
 node "$DEMO_DIR/tools/seed-boards.mjs"
+
+echo "== snapshot-base (seed brut, inainte de cosmetizare)"
+if psql -h localhost -U marketplace -d marketplace -tAc "select 1 from companies where name='A Mobila Premium'" | grep -q 1; then
+  "$DEMO_DIR/snapshot.sh" base
+else echo "  = DB deja cosmetizat — pastrez data/snapshot-base.dump existent"; fi
+
+echo "== date cosmetizate (nume, titluri, oferte, chat, fisiere, feed owner.a)"
+[ -f "$DEMO_DIR/fixtures/schita-dormitor.png" ] || python3 "$DEMO_DIR/tools/make-fixtures.py"
+node "$DEMO_DIR/tools/polish-data.mjs"
 
 echo "== snapshot (reset rapid cu ./reset-db.sh, pastreaza ID-urile)"
 "$DEMO_DIR/snapshot.sh"
