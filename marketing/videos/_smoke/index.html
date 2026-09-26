@@ -1,0 +1,22 @@
+<!doctype html><html lang="ro"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../assets/fonts/fonts.local.css">
+<style>
+html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:#F1EADF;font-family:'DM Sans',sans-serif;color:#1A1714}
+h1{font-family:Marcellus,serif;font-weight:400;font-size:110px;margin:0;position:absolute;left:80px;top:700px;width:920px;line-height:1.05}
+.mono{font-family:'IBM Plex Mono',monospace;position:absolute;left:80px;top:1000px;font-size:34px;color:#855232}
+.card{position:absolute;left:80px;top:1200px;width:920px;height:300px;background:#fff;border-radius:28px;box-shadow:0 20px 60px rgba(26,23,20,.12);opacity:0}
+.pulse{position:absolute;left:80px;top:400px;width:120px;height:120px;border-radius:50%;background:#B08A3E;animation:pulse 1s infinite alternate}
+@keyframes pulse{from{transform:scale(1)}to{transform:scale(1.4)}}
+</style></head><body>
+<div class="pulse"></div>
+<h1 id="h1">Spui ce vrei. Firmele concurează pentru tine.</h1>
+<div class="mono" id="mono"></div>
+<div class="card" id="card"></div>
+<script src="../lib/timeline.js"></script>
+<script>
+const tl = new Timeline({ durationMs: 2000 });
+tl.tween('#h1', 0, 900, { y: [60, 0], o: [0, 1] }, ease.outCubic);
+tl.type('#mono', 300, 1500, 'Dulap 120 cm · Furnir stejar · Mânere');
+tl.tween('#card', 800, 1600, { y: [80, 0], o: [0, 1], s: [0.96, 1] }, ease.outBack);
+tl.install();
+</script></body></html>
