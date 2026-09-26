@@ -10,6 +10,8 @@
  *   tl.add(0, 3000, (p, t) => { ... p = progres 0..1 in [0,3000] ... });
  *   tl.scene('#s1', 0, 6000);              // arata elementul doar in interval (clasa .is-live)
  *   tl.tween('#h1', 200, 900, { y: [40, 0], o: [0, 1] }, ease.outCubic);
+ *   tl.tween('#h1', 5000, 5800, { o: [1, 0] });   // se COMPUNE cu tween-ul de mai sus (per proprietate)
+ *   tl.type('#spec', 300, 1500, 'Dulap 160 cm', { cursorTail: 0 }); // fara cursor dupa final
  *   tl.install();                          // expune window.__video + preview live in browser
  *
  * Animatiile CSS (@keyframes / transition) sunt si ele derulate la t prin
@@ -88,7 +90,7 @@
     }
 
     // scriere "la masina": textul apare caracter cu caracter in [t0, t1]
-    type(sel, t0, t1, text, { cursor = true } = {}) {
+    type(sel, t0, t1, text, { cursor = true, cursorTail = 600 } = {}) {
       const els = typeof sel === 'string' ? Array.from(this.root.querySelectorAll(sel)) : [sel];
       this.tracks.push({
         t0: -Infinity, t1: Infinity, easing: null,
@@ -96,7 +98,7 @@
           const p = progress(t, t0, t1);
           const n = Math.round(p * text.length);
           const shown = text.slice(0, n);
-          const blink = cursor && t >= t0 && t < t1 + 600 && Math.floor(t / 400) % 2 === 0;
+          const blink = cursor && t >= t0 && t < t1 + cursorTail && Math.floor(t / 400) % 2 === 0;
           for (const el of els) el.textContent = shown + (blink ? '|' : '');
         },
       });
@@ -187,19 +189,28 @@
     }
   }
 
+  // Stare per element: fiecare tween scrie DOAR proprietatile lui, iar transform-ul
+  // se recompune din toate proprietatile cunoscute (x, y, s, r). Astfel doua tween-uri
+  // pe acelasi element (ex. intrare pe y + iesire pe o) se compun in loc sa se suprascrie.
+  const stateMap = new WeakMap();
   function applyProps(el, props, p) {
+    let st = stateMap.get(el);
+    if (!st) { st = {}; stateMap.set(el, st); }
+    for (const k of ['x', 'y', 's', 'r', 'o', 'blur', 'w', 'h', 'clip', 'dash']) {
+      if (props[k]) st[k] = lerp(props[k][0], props[k][1], p);
+    }
     const parts = [];
-    if (props.x) parts.push(`translateX(${lerp(props.x[0], props.x[1], p)}px)`);
-    if (props.y) parts.push(`translateY(${lerp(props.y[0], props.y[1], p)}px)`);
-    if (props.s) parts.push(`scale(${lerp(props.s[0], props.s[1], p)})`);
-    if (props.r) parts.push(`rotate(${lerp(props.r[0], props.r[1], p)}deg)`);
+    if (st.x !== undefined) parts.push(`translateX(${st.x}px)`);
+    if (st.y !== undefined) parts.push(`translateY(${st.y}px)`);
+    if (st.s !== undefined) parts.push(`scale(${st.s})`);
+    if (st.r !== undefined) parts.push(`rotate(${st.r}deg)`);
     if (parts.length) el.style.transform = parts.join(' ');
-    if (props.o) el.style.opacity = String(lerp(props.o[0], props.o[1], p));
-    if (props.blur) el.style.filter = `blur(${lerp(props.blur[0], props.blur[1], p)}px)`;
-    if (props.w) el.style.width = `${lerp(props.w[0], props.w[1], p)}px`;
-    if (props.h) el.style.height = `${lerp(props.h[0], props.h[1], p)}px`;
-    if (props.clip) el.style.clipPath = `inset(0 ${100 - lerp(props.clip[0], props.clip[1], p)}% 0 0)`;
-    if (props.dash) el.style.strokeDashoffset = String(lerp(props.dash[0], props.dash[1], p));
+    if (st.o !== undefined) el.style.opacity = String(st.o);
+    if (st.blur !== undefined) el.style.filter = `blur(${st.blur}px)`;
+    if (st.w !== undefined) el.style.width = `${st.w}px`;
+    if (st.h !== undefined) el.style.height = `${st.h}px`;
+    if (st.clip !== undefined) el.style.clipPath = `inset(0 ${100 - st.clip}% 0 0)`;
+    if (st.dash !== undefined) el.style.strokeDashoffset = String(st.dash);
   }
 
   global.Timeline = Timeline;
