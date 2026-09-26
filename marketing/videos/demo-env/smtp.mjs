@@ -11,6 +11,14 @@ const here = dirname(fileURLToPath(import.meta.url));
 const outDir = join(here, 'data', 'mail');
 mkdirSync(outDir, { recursive: true });
 
+// decodeaza subiectele MIME (=?UTF-8?Q?...?= / =?UTF-8?B?...?=) pentru log
+const decodeWords = (v) => v.replace(/=\?([^?]+)\?([QqBb])\?([^?]*)\?=\s*/g, (_, cs, enc, txt) => {
+  const buf = enc.toUpperCase() === 'B'
+    ? Buffer.from(txt, 'base64')
+    : Buffer.from(txt.replace(/_/g, ' ').replace(/=([0-9A-F]{2})/gi, (m, h) => String.fromCharCode(parseInt(h, 16))), 'latin1');
+  return buf.toString('utf8');
+});
+
 const server = new SMTPServer({
   authOptional: true,
   disabledCommands: ['STARTTLS'],
@@ -22,7 +30,7 @@ const server = new SMTPServer({
       const raw = Buffer.concat(chunks).toString('utf8');
       const file = join(outDir, `${new Date().toISOString().replace(/[:.]/g, '-')}.eml`);
       writeFileSync(file, raw);
-      const subject = (raw.match(/^Subject: (.*)$/m) ?? [])[1] ?? '';
+      const subject = decodeWords(((raw.match(/^Subject: (.*)$/m) ?? [])[1] ?? '').trim());
       const to = session.envelope.rcptTo.map((r) => r.address).join(', ');
       // quoted-printable: lipeste liniile rupte ("=\n") si decodeaza "=3D"
       const body = raw.replace(/=\r?\n/g, '').replace(/=3D/g, '=');

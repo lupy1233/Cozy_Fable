@@ -19,7 +19,12 @@ pid_alive() { [ -f "$PIDS/$1.pid" ] && kill -0 "$(cat "$PIDS/$1.pid")" 2>/dev/nu
 start_bg() {
   local name="$1" port="$2"; shift 2
   if port_open "$port"; then echo "  = $name deja activ pe :$port"; return 0; fi
-  (cd "$DEMO_DIR" && setsid nohup "$@" >>"$LOGS/$name.log" 2>&1 < /dev/null & echo $! > "$PIDS/$name.pid")
+  # comanda simpla in fundal → copilul face exec direct in setsid (fara subshell care sa tina
+  # deschis stdout-ul apelantului); setsid → sesiune/grup nou, deci stop poate omori tot grupul
+  pushd "$DEMO_DIR" >/dev/null
+  setsid nohup "$@" >>"$LOGS/$name.log" 2>&1 < /dev/null &
+  echo $! > "$PIDS/$name.pid"
+  popd >/dev/null
   echo "  + $name pornit (pid $(cat "$PIDS/$name.pid"), log logs/$name.log)"
 }
 

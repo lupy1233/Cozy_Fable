@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # Porneste TOT mediul demo Cozy Home fara Docker (idempotent: ce ruleaza deja e sarit).
-#   ./start.sh            → infra + backend + frontend (next dev)
+#   ./start.sh            → infra + backend + frontend (in ultimul mod folosit; implicit next dev)
 #   FRONTEND_MODE=prod ./start.sh  → frontend din build de productie (next build + next start;
 #                                    fara overlay-ul de dev, navigare instant — recomandat la filmare)
+#   FRONTEND_MODE=dev ./start.sh   → inapoi la next dev (hot reload)
 #   ./start.sh infra      → doar Postgres/Redis/S3/SMTP/Nominatim/pini
 set -uo pipefail
 source "$(dirname "$0")/lib.sh"
 ONLY="${1:-all}"
-FRONTEND_MODE="${FRONTEND_MODE:-dev}"
+# modul frontendului: FRONTEND_MODE explicit > ultimul mod folosit (data/frontend-mode) > dev
+FRONTEND_MODE="${FRONTEND_MODE:-$(cat "$DEMO_DIR/data/frontend-mode" 2>/dev/null || echo dev)}"
 
 echo "== infra"
 if port_open 5432; then echo "  = postgres deja activ pe :5432"; else
@@ -55,7 +57,7 @@ if port_open 3000; then echo "  = frontend deja activ pe :3000"; else
     mkdir -p .next && touch .next/.dev-mode
     start_bg frontend 3000 bash -c "cd '$REPO/apps/frontend' && exec ./node_modules/.bin/next dev -p 3000"
   fi
-  wait_port 3000 90 frontend
+  wait_port 3000 90 frontend && echo "$FRONTEND_MODE" > "$DEMO_DIR/data/frontend-mode"
 fi
 
 exec "$DEMO_DIR/status.sh"
