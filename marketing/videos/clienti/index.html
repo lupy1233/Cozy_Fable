@@ -1,0 +1,1096 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<title>Cozy Home — Video 1 · Clienți (9:16, 40 s)</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.local.css">
+<style>
+/* Tokens ATELIER (din apps/frontend/src/app/globals.css, convertite din HSL) */
+:root{
+  --ivory:#F1EADF; --sheet:#FFFFFF; --ink:#1A1714; --ink-2:#2E2A24; --muted:#786F64; --muted-2:#A9A193;
+  --walnut:#855232; --walnut-deep:#5D3C22; --walnut-soft:#F0E5D6;
+  --brass:#B48431; --brass-2:#CAA149; --brass-ink:#946A1F;
+  --sage:#5C7A57; --sage-soft:#E8EEE2; --crimson:#9D3C2F; --crimson-soft:#F4DBD7;
+  --info:#3C6B8B; --info-soft:#DDE8EE;
+  --border:#E7E0CF; --border-2:#D7CCB7; --surface-2:#FAF6EF; --surface-3:#F4EDE2; --paper3d:#F7F3EC;
+  --sh-sm:0 1px 2px rgba(46,33,20,.05),0 1px 1px rgba(46,33,20,.03);
+  --sh:0 6px 20px -6px rgba(46,33,20,.12),0 2px 6px -2px rgba(46,33,20,.06);
+  --sh-lg:0 28px 60px -18px rgba(46,33,20,.22),0 8px 18px -8px rgba(46,33,20,.10);
+  --sans:'DM Sans',system-ui,sans-serif; --serif:Marcellus,Georgia,serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:var(--ivory)}
+body{font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased}
+#stage{position:relative;width:1080px;height:1920px;overflow:hidden;background:var(--ivory)}
+.bg{position:absolute;inset:0;background:
+  radial-gradient(1200px 720px at 84% -6%, rgba(133,82,50,.11), transparent 62%),
+  radial-gradient(1000px 640px at -8% 104%, rgba(92,122,87,.11), transparent 58%), var(--ivory)}
+.scene{position:absolute;inset:0;visibility:hidden;z-index:1}
+.scene.is-live{visibility:visible}
+.abs{position:absolute}
+.ico{display:inline-block;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}
+
+/* ---------- elemente globale: kicker de faza + firul de alama ---------- */
+#kick{position:absolute;left:80px;top:258px;height:52px;width:700px;z-index:30}
+#kick span{position:absolute;left:0;top:0;white-space:nowrap;font:600 30px/52px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--brass-ink);opacity:0}
+#kick span i{font-style:normal;font-family:var(--serif);font-size:46px;letter-spacing:0;color:var(--brass);margin-right:18px;vertical-align:-2px}
+.tag{position:absolute;right:80px;top:268px;font:400 30px/36px var(--mono);color:var(--muted);letter-spacing:.01em;z-index:30}
+#thread{position:absolute;left:40px;top:318px;width:2px;height:1236px;z-index:25}
+#thread .line{position:absolute;inset:0;background:rgba(180,132,49,.22)}
+#thread .fill{position:absolute;inset:0;background:var(--brass);transform-origin:50% 0;transform:scaleY(0)}
+#thread .node{position:absolute;left:-7px;width:16px;height:16px;margin-top:-8px;background:var(--ivory);border:2px solid rgba(180,132,49,.55);transform:rotate(45deg)}
+#thread .node[data-on="1"]{background:var(--brass);border-color:var(--brass)}
+
+.h{position:absolute;left:80px;top:318px;width:920px;margin:0;font:400 100px/1.04 var(--serif);letter-spacing:.002em;color:var(--ink);white-space:nowrap}
+.h em{font-style:normal;color:var(--walnut)}
+.mono{font-family:var(--mono)}
+/* colturi de registru (plansa de atelier) */
+.reg{position:absolute;width:26px;height:26px;border:0 solid rgba(26,23,20,.34)}
+.reg.a{left:-13px;top:-13px;border-left-width:2px;border-top-width:2px}
+.reg.b{right:-13px;top:-13px;border-right-width:2px;border-top-width:2px}
+.reg.c{left:-13px;bottom:-13px;border-left-width:2px;border-bottom-width:2px}
+.reg.d{right:-13px;bottom:-13px;border-right-width:2px;border-bottom-width:2px}
+
+/* "deget" care apasa: punct + unda */
+.tap{position:absolute;width:0;height:0;z-index:40;pointer-events:none;--k:1}
+.tap i{position:absolute;left:calc(-34px*var(--k));top:calc(-34px*var(--k));width:calc(68px*var(--k));height:calc(68px*var(--k));border-radius:50%;
+  background:rgba(133,82,50,.24);border:calc(3px*var(--k)) solid rgba(255,255,255,.95);
+  box-shadow:0 0 0 calc(2px*var(--k)) rgba(133,82,50,.45),0 calc(8px*var(--k)) calc(22px*var(--k)) rgba(46,33,20,.28);opacity:0}
+.tap b{position:absolute;left:calc(-34px*var(--k));top:calc(-34px*var(--k));width:calc(68px*var(--k));height:calc(68px*var(--k));border-radius:50%;
+  border:calc(4px*var(--k)) solid var(--walnut);opacity:0}
+
+/* ---------- S1 · hook ---------- */
+#s1 .note{position:absolute;width:318px;min-height:228px;padding:34px 28px 26px;border-radius:3px;
+  box-shadow:0 22px 34px -16px rgba(46,33,20,.42),0 2px 5px rgba(46,33,20,.10);z-index:2}
+#s1 .note::before{content:"";position:absolute;top:-16px;left:50%;width:120px;height:34px;margin-left:-60px;background:rgba(255,255,255,.55);
+  box-shadow:0 1px 2px rgba(0,0,0,.06);transform:rotate(-4deg)}
+#s1 .hand{display:block;font:italic 500 44px/1.18 var(--sans);color:#28356A;filter:url(#rough);white-space:nowrap}
+#s1 .hand.sm{font-size:38px}
+#s1 .hand.big{font-size:52px;font-weight:600}
+#s1 .scrib{position:absolute;inset:0;overflow:visible;pointer-events:none;filter:url(#rough)}
+#s1 .call{position:absolute;width:660px;height:124px;border-radius:32px;background:rgba(255,255,255,.97);box-shadow:var(--sh-lg);
+  display:flex;align-items:center;gap:22px;padding:0 26px 0 24px;z-index:3}
+#s1 .call .ic{width:76px;height:76px;border-radius:22px;background:var(--crimson-soft);color:var(--crimson);display:grid;place-items:center}
+#s1 .call .t1{font:600 36px/1.12 var(--sans);color:var(--ink)}
+#s1 .call .t2{font:400 30px/1.2 var(--sans);color:var(--muted);margin-top:4px}
+#s1 .call .n{margin-left:auto;min-width:58px;height:58px;padding:0 14px;border-radius:29px;background:var(--crimson);color:#fff;font:600 32px/58px var(--sans);text-align:center}
+#s1sheet{position:absolute;left:56px;top:246px;width:968px;height:1364px;background:#fff;border:2px solid rgba(26,23,20,.14);z-index:4;
+  box-shadow:var(--sh-lg);
+  background-image:linear-gradient(rgba(180,132,49,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(180,132,49,.07) 1px,transparent 1px);
+  background-size:44px 44px;background-position:-1px -1px}
+#s1sheet .no{position:absolute;right:34px;top:26px;font:400 30px/1 var(--mono);color:var(--brass-2);letter-spacing:.12em}
+#s1sheet .ttl{position:absolute;left:34px;top:26px;font:400 30px/1 var(--mono);color:var(--muted-2);letter-spacing:.14em;text-transform:uppercase}
+#s1h{position:absolute;left:80px;top:772px;width:960px;margin:0;font:400 100px/1.06 var(--serif);white-space:nowrap;color:var(--ink);z-index:6;
+  text-shadow:0 0 18px rgba(241,234,223,.95),0 0 4px rgba(241,234,223,.95)}
+.fig{font-family:var(--sans);font-weight:400;font-size:.9em;letter-spacing:-.01em}
+#s1u{position:absolute;left:78px;top:986px;width:800px;height:40px;z-index:6;overflow:visible}
+
+/* ---------- S2 · configuratorul din hero (captura reala) ---------- */
+#s2win{position:absolute;left:80px;top:452px;width:920px;height:968px;background:#fff;border:2px solid rgba(26,23,20,.15);box-shadow:var(--sh-lg)}
+#s2win .clip{position:absolute;inset:0;overflow:hidden}
+#s2card{position:absolute;left:0;top:0;width:398px;height:706px;transform-origin:0 0}
+#s2card img{position:absolute;left:0;top:0;width:398px;height:706px;display:block}
+#s2cart{position:absolute;left:0;right:0;bottom:0;height:190px;background:#FCFAF6;border-top:2px solid rgba(26,23,20,.16);padding:32px 38px;box-shadow:0 -14px 30px -18px rgba(46,33,20,.25)}
+#s2cart .l{font:500 30px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+#s2cart .v{margin-top:24px;font:400 48px/1.1 var(--serif);white-space:nowrap;color:var(--ink)}
+.caret{display:inline-block;width:4px;height:50px;background:var(--brass);margin-left:6px;vertical-align:-6px}
+
+/* ---------- S3 · Studio 3D (capturi reale) ---------- */
+#s3dims{position:absolute;left:80px;top:438px;font:400 44px/1 var(--mono);color:var(--brass-ink);letter-spacing:.01em;white-space:nowrap}
+#s3vp{position:absolute;left:80px;top:512px;width:920px;height:688px;background:var(--paper3d);border:2px solid var(--border-2);border-radius:26px;overflow:hidden;box-shadow:var(--sh-lg)}
+#s3vp img{position:absolute;left:34px;top:36px;width:852px;height:661px;display:block}
+.pill3d{position:absolute;left:24px;top:22px;height:58px;padding:0 24px 0 18px;border-radius:29px;background:var(--walnut);color:#fff;display:flex;align-items:center;gap:12px;font:500 30px/1 var(--sans);z-index:5;box-shadow:0 8px 18px -8px rgba(133,82,50,.55)}
+.callout{position:absolute;height:52px;padding:0 20px;border-radius:26px;background:#fff;border:2px solid var(--brass);font:500 30px/48px var(--sans);color:var(--ink);white-space:nowrap;z-index:6;box-shadow:var(--sh)}
+#s3lines{position:absolute;left:0;top:0;width:920px;height:688px;z-index:5;overflow:visible}
+#s3panel{position:absolute;left:80px;top:1222px;width:920px;height:250px;background:#fff;border:2px solid var(--border-2);border-radius:26px;padding:22px 30px;box-shadow:var(--sh)}
+#s3panel .ra{display:flex;justify-content:space-between;align-items:baseline;font:500 32px/1 var(--sans)}
+#s3panel .ra span:last-child{font:400 30px/1 var(--sans);color:var(--muted)}
+#s3panel .rb{position:relative;height:66px;margin-top:14px}
+#s3panel .track{position:absolute;left:0;top:30px;width:600px;height:8px;border-radius:4px;background:var(--border-2)}
+#s3panel .trackf{position:absolute;left:0;top:30px;height:8px;border-radius:4px;background:rgba(133,82,50,.55);width:0}
+#s3thumb{position:absolute;left:-21px;top:13px;width:42px;height:42px;border-radius:50%;background:var(--walnut);border:5px solid #fff;box-shadow:0 2px 6px rgba(93,60,34,.45)}
+#s3panel .val{position:absolute;right:0;top:0;width:220px;height:66px;border:2px solid var(--border-2);border-radius:12px;display:flex;align-items:center;justify-content:flex-end;gap:12px;padding:0 20px;font:500 38px/1 var(--mono)}
+#s3panel .val small{font:400 28px/1 var(--sans);color:var(--muted)}
+#s3panel .rc{display:flex;align-items:center;justify-content:space-between;margin-top:20px}
+#s3panel .grp{display:flex;align-items:center;gap:16px;font:500 32px/1 var(--sans)}
+.stepper{position:relative;display:flex;align-items:center;gap:6px;height:64px;padding:0 8px;border:2px solid var(--border-2);border-radius:14px}
+.stepper .bt{width:48px;height:48px;border-radius:10px;display:grid;place-items:center;color:var(--ink)}
+.stepper b{min-width:40px;text-align:center;font:500 34px/1 var(--mono)}
+.sws{display:flex;gap:10px}
+.sw{position:relative;width:44px;height:44px;border-radius:50%;border:2px solid var(--border-2)}
+.sw .ring{position:absolute;left:-8px;top:-8px;width:56px;height:56px;border-radius:50%;border:3px solid var(--walnut);box-shadow:0 0 0 3px rgba(133,82,50,.18);opacity:0}
+
+/* ---------- S4 · schita + estimare ---------- */
+#s4h{font-size:86px}
+#s4h2{top:1034px;font-size:84px}
+#s4up{position:absolute;left:80px;top:516px;width:920px;height:494px;background:#fff;border:2px solid var(--border);border-radius:26px;padding:26px;box-shadow:var(--sh)}
+#s4dz{position:relative;height:220px;border:3px dashed var(--border-2);border-radius:18px;background:var(--surface-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center}
+#s4dz .over{position:absolute;inset:-3px;border:3px dashed var(--walnut);border-radius:18px;background:var(--walnut-soft);opacity:0}
+#s4dz .l{position:relative;font:500 32px/1.2 var(--sans)} #s4dz .hnt{position:relative;font:400 30px/1.2 var(--sans);color:var(--muted)}
+#s4dz .ico{position:relative;color:var(--muted)}
+#s4row{position:relative;margin-top:18px;height:112px;border:2px solid var(--border);border-radius:14px;background:var(--surface-2);display:flex;align-items:center;gap:20px;padding:0 20px}
+#s4row .th{width:92px;height:72px;border-radius:8px;overflow:hidden;border:2px solid var(--border);flex:none;background:#FBF8F1}
+#s4row .fn{font:500 32px/1.15 var(--sans);color:var(--ink-2)}
+#s4row .sz{font:400 30px/1 var(--mono);color:var(--muted);margin-top:6px}
+.bdg{display:inline-flex;align-items:center;gap:10px;height:52px;padding:0 20px;border-radius:26px;font:400 30px/1 var(--mono);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+#s4scan{position:absolute;right:20px;top:30px;background:var(--surface-3);color:var(--muted);border:2px solid var(--border-2)}
+#s4ok{position:absolute;right:20px;top:30px;background:var(--sage-soft);color:var(--sage);opacity:0}
+#s4paper{position:absolute;left:260px;top:500px;width:560px;height:440px;z-index:10;box-shadow:0 34px 60px -22px rgba(46,33,20,.5),0 3px 8px rgba(46,33,20,.12)}
+#s4bud{position:absolute;left:80px;top:1232px;width:920px;height:318px;background:#fff;border:2px solid var(--border);border-radius:26px;padding:28px 34px;box-shadow:var(--sh)}
+#s4ins{position:relative;margin-top:14px;height:70px;border:2px solid var(--border);border-radius:14px;background:#fff;display:flex;align-items:center;gap:16px;padding:0 20px;font:500 30px/1 var(--sans);color:var(--walnut)}
+#s4ins .n{margin-left:auto;font:400 30px/1 var(--mono);color:var(--muted)}
+#s4bud .l{font:400 30px/1.25 var(--sans);color:var(--muted)}
+#s4bud .v{margin-top:14px;font:400 72px/1 var(--serif);white-space:nowrap}
+#s4bud .sl{position:relative;height:44px;margin-top:30px}
+#s4bud .tr{position:absolute;left:0;right:0;top:18px;height:8px;border-radius:4px;background:var(--border-2)}
+#s4bud .tf{position:absolute;left:0;top:18px;height:8px;border-radius:4px;background:rgba(133,82,50,.6);width:0}
+#s4thumb{position:absolute;left:-22px;top:0;width:44px;height:44px;border-radius:50%;background:var(--walnut);border:5px solid #fff;box-shadow:0 2px 6px rgba(93,60,34,.45)}
+#s4bud .ticks{display:flex;justify-content:space-between;margin-top:16px;font:400 30px/1 var(--sans);color:var(--muted)}
+
+/* ---------- S5 · publici + sloturi ---------- */
+#s5h2{font-size:92px}
+.card{position:absolute;left:80px;width:920px;background:#fff;border:2px solid var(--border);border-radius:28px;box-shadow:var(--sh)}
+#s5rev{top:470px;height:690px;padding:34px 38px}
+#s5rev .t{font:400 56px/1.1 var(--serif)}
+#s5rev .rail{position:relative;margin-top:26px;padding-left:4px}
+#s5rev .rail::before{content:"";position:absolute;left:15px;top:20px;bottom:30px;width:2px;background:rgba(26,23,20,.14)}
+#s5rev .ri{position:relative;display:flex;gap:22px;align-items:flex-start;margin-bottom:22px}
+#s5rev .nd{position:relative;flex:none;width:24px;height:24px;margin-top:8px;border:2px solid var(--border-2);background:#fff;transform:rotate(45deg)}
+#s5rev .nd b{position:absolute;inset:-2px;background:var(--sage);border:2px solid var(--sage);opacity:0}
+#s5rev .ix{font:400 30px/40px var(--mono);color:var(--brass-2);flex:none}
+#s5rev .rt{font:500 32px/40px var(--sans);color:var(--ink)}
+#s5rev .rs{font:400 30px/1.3 var(--sans);color:var(--muted);margin-top:2px}
+#s5rev .rs .c3{display:inline-block;margin-left:10px;padding:2px 12px;border-radius:14px;background:var(--walnut-soft);color:var(--walnut);font:500 26px/30px var(--mono)}
+#s5rev .sum{position:absolute;left:38px;bottom:150px;font:400 30px/1.3 var(--mono);color:var(--muted)}
+#s5rev .rule{position:absolute;left:38px;right:38px;bottom:204px;height:2px;background:rgba(26,23,20,.12)}
+#s5rev .btns{position:absolute;left:38px;right:38px;bottom:30px;display:flex;justify-content:space-between;align-items:center}
+.ghost{display:flex;align-items:center;gap:12px;font:500 34px/1 var(--sans);color:var(--ink-2);padding:0 10px}
+.btn-w{position:relative;display:flex;align-items:center;gap:16px;height:98px;padding:0 50px;border-radius:14px;background:var(--walnut);color:#fff;font:500 40px/1 var(--sans);
+  box-shadow:0 16px 30px -12px rgba(133,82,50,.6)}
+#s5ov{position:absolute;inset:0;background:rgba(241,234,223,.84);z-index:20;opacity:0}
+#s5modal{position:absolute;left:140px;top:760px;width:800px;padding:52px 60px;border-radius:28px;background:#fff;border:2px solid var(--border);box-shadow:var(--sh-lg);text-align:center;z-index:21;opacity:0}
+#s5modal .sp{width:84px;height:84px;margin:0 auto;color:var(--walnut)}
+#s5modal .t{margin-top:26px;font:400 54px/1.1 var(--serif)}
+#s5modal .s{margin-top:18px;font:400 32px/1.35 var(--sans);color:var(--muted)}
+#s5pt{position:absolute;left:80px;top:548px;margin:0;font:400 46px/1 var(--serif);color:var(--ink-2)}
+#s5req{top:620px;height:306px;padding:32px 38px}
+#s5req .r1{display:flex;justify-content:space-between;align-items:flex-start}
+#s5req .t{font:400 56px/1.05 var(--serif);white-space:nowrap}
+.st{display:inline-flex;align-items:center;gap:12px;height:52px;padding:0 20px;border-radius:26px;font:400 30px/1 var(--mono);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.st::before{content:"";width:12px;height:12px;border-radius:6px;background:currentColor;opacity:.75}
+.st.info{background:var(--info-soft);color:var(--info)} .st.walnut{background:var(--walnut-soft);color:var(--walnut)}
+.st.sage{background:var(--sage-soft);color:var(--sage)} .st.muted{background:var(--surface-3);color:var(--muted);border:2px solid var(--border-2)}
+#s5req .r2{display:flex;align-items:center;gap:26px;margin-top:22px;font:400 30px/1 var(--sans);color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:12px;height:56px;padding:0 22px;border-radius:28px;border:2px solid var(--border-2);background:var(--surface-2);font:400 30px/1 var(--sans);color:var(--muted)}
+.chip .ico{color:var(--walnut)}
+#s5req .r3{position:absolute;left:38px;right:38px;bottom:30px;padding-top:22px;border-top:2px solid var(--border-2);display:flex;align-items:center;justify-content:space-between;font:400 32px/1 var(--sans)}
+#s5req .r3 .cl{display:flex;gap:34px}
+#s5req .r3 span{display:inline-flex;align-items:center;gap:12px;white-space:nowrap}
+#s5slots{position:absolute;left:80px;top:962px;width:920px}
+.slot{position:relative;height:120px;border-radius:20px;margin-bottom:20px}
+.slot .free,.slot .taken{position:absolute;inset:0;border-radius:20px;display:flex;align-items:center;gap:22px;padding:0 28px}
+.slot .free{border:3px dashed var(--border-2);background:rgba(250,246,239,.7)}
+.slot .free .m{font:400 30px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.slot .free .bar{width:180px;height:12px;border-radius:6px;background:var(--surface-3)}
+.slot .free .k{margin-left:auto;font:400 30px/1 var(--mono);color:var(--muted)}
+.slot .taken{border:2px solid var(--border-2);background:#fff;box-shadow:var(--sh-sm);opacity:0}
+.slot .taken .nm{font:600 36px/1.1 var(--sans)}
+.slot .taken .vf{display:flex;align-items:center;gap:8px;margin-top:6px;font:500 30px/1 var(--sans);color:var(--sage)}
+.slot .taken .ok{margin-left:auto;display:flex;align-items:center;gap:10px;font:500 32px/1 var(--sans);color:var(--sage)}
+.house{width:62px;height:54px;color:var(--ink)}
+
+/* ---------- S6 · oferte ---------- */
+#s6h{font-size:84px}
+#s6tag{position:absolute;left:80px;top:600px;margin:0;font:400 44px/1 var(--mono);color:var(--brass-ink);white-space:nowrap}
+#s6tag span{position:relative;display:inline-block}
+#s6tag span::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:4px;background:var(--brass);transform:scaleX(var(--u,0));transform-origin:0 50%}
+#s6bell{position:absolute;left:926px;top:250px;width:74px;height:74px;border-radius:37px;background:#fff;border:2px solid var(--border);display:grid;place-items:center;color:var(--ink);box-shadow:var(--sh);z-index:31}
+#s6bell .cnt{position:absolute;right:-8px;top:-8px;min-width:38px;height:38px;border-radius:19px;background:var(--crimson);color:#fff;font:600 26px/38px var(--sans);text-align:center;padding:0 8px}
+#s6toast{position:absolute;left:390px;top:252px;width:516px;height:70px;border-radius:35px;background:#fff;border:2px solid var(--border);box-shadow:var(--sh-lg);display:flex;align-items:center;gap:14px;padding:0 24px;font:600 30px/1 var(--sans);white-space:nowrap;z-index:30;opacity:0}
+#s6toast .ico{color:var(--walnut)} #s6toast em{font-style:normal;font-weight:400;color:var(--muted)}
+.offer{position:absolute;left:80px;width:920px;height:272px;background:#fff;border:2px solid var(--border);border-radius:28px;box-shadow:var(--sh);padding:24px 30px}
+.offer .top{display:flex;justify-content:space-between;align-items:center}
+.offer .co{font:600 40px/1.1 var(--sans);display:flex;align-items:center;gap:12px}
+.offer .co .ico{color:var(--sage)}
+.pdf{position:relative;display:flex;align-items:center;gap:10px;height:54px;padding:0 20px;border-radius:12px;border:2px solid var(--border-2);color:var(--walnut);font:500 30px/1 var(--sans);white-space:nowrap}
+.offer .ver{margin-top:6px;font:400 30px/1.2 var(--sans);color:var(--muted)}
+.offer .body{display:flex;justify-content:space-between;margin-top:12px}
+.offer .pr{position:relative}
+.offer .pr .p{font:600 58px/1.05 var(--sans);letter-spacing:-.01em;white-space:nowrap}
+.offer .pr .e{margin-top:10px;font:400 32px/1 var(--sans);color:var(--muted)}
+.offer .pr .u{position:absolute;left:0;bottom:-12px;height:4px;width:100%;background:var(--brass);transform:scaleX(var(--u,0));transform-origin:0 50%}
+.offer .tbl{width:470px;border:2px solid var(--border-2);border-radius:14px;overflow:hidden}
+.offer .tbl div{position:relative;display:flex;justify-content:space-between;height:44px;align-items:center;padding:0 18px;font:400 30px/1 var(--sans);color:var(--ink-2)}
+.offer .tbl div:nth-child(2){background:var(--surface-2)}
+.offer .tbl div span:first-child{color:var(--muted)}
+.offer .tbl div::after{content:"";position:absolute;inset:0;background:rgba(180,132,49,.16);box-shadow:inset 4px 0 0 var(--brass);opacity:var(--u,0)}
+.pdf::after{content:"";position:absolute;inset:-2px;border-radius:12px;border:3px solid var(--brass);opacity:var(--u,0)}
+
+/* ---------- S7 · chat + acceptare ---------- */
+#s7h{font-size:88px}
+#s7card{top:540px;height:640px;overflow:hidden}
+#s7card .hd{height:112px;background:var(--surface-2);border-bottom:2px solid var(--border);display:flex;align-items:center;gap:20px;padding:0 30px}
+.num{width:60px;height:60px;border-radius:30px;background:var(--walnut-soft);color:var(--walnut);display:grid;place-items:center;font:400 32px/1 var(--serif);flex:none}
+#s7card .hd .nm{font:400 46px/1 var(--serif)}
+#s7card .hd .stw{margin-left:auto;position:relative;width:360px;height:52px}
+#s7card .hd .stw .st{position:absolute;right:0;top:0}
+.chat{position:relative;padding:26px 30px 0;height:330px}
+.bub{position:absolute;max-width:700px;padding:18px 26px;border-radius:18px;font:400 36px/1.3 var(--sans)}
+.bub.l{left:30px;top:26px;background:var(--surface-3);color:var(--ink)}
+.bub.l .who{display:block;font:600 30px/1.2 var(--sans);color:var(--walnut-deep);opacity:.85;margin-bottom:6px}
+.bub.r{right:30px;top:214px;background:var(--walnut);color:#fff}
+#s7strip{position:absolute;left:0;right:0;bottom:0;height:196px;border-top:2px solid var(--border);padding:26px 30px;display:flex;align-items:center;justify-content:space-between}
+#s7strip .vw{position:relative;width:300px;height:52px}
+#s7strip .vw .st{position:absolute;left:0;top:0}
+#s7strip .p{margin-top:14px;font:600 56px/1 var(--sans);letter-spacing:-.01em;white-space:nowrap}
+#s7strip .p small{font:400 32px/1 var(--sans);letter-spacing:0;color:var(--muted);margin-left:14px}
+.btn-s{position:relative;display:flex;align-items:center;gap:14px;height:92px;padding:0 40px;border-radius:14px;background:var(--sage);color:#fff;font:500 38px/1 var(--sans);box-shadow:0 14px 26px -12px rgba(92,122,87,.6)}
+#s7seal{position:absolute;left:672px;top:950px;width:262px;height:262px;z-index:12;opacity:0}
+.mini{position:absolute;left:80px;width:920px;height:126px;background:#fff;border:2px solid var(--border);border-radius:24px;box-shadow:var(--sh-sm);display:flex;align-items:center;gap:20px;padding:0 28px}
+.mini .gray{position:absolute;inset:0;border-radius:24px;background:var(--surface-3);opacity:0}
+.mini .nm{position:relative;font:400 40px/1.1 var(--serif)}
+.mini .sub{position:relative;font:400 30px/1.2 var(--sans);color:var(--muted);margin-top:4px}
+.mini .num{position:relative}
+.mini .rt{position:relative;margin-left:auto;width:390px;height:92px}
+.mini .rt .st{position:absolute;right:0;top:0}
+.mini .ro{position:absolute;right:4px;top:62px;display:flex;align-items:center;gap:8px;font:400 30px/1 var(--sans);color:var(--muted);opacity:0;white-space:nowrap}
+
+/* ---------- S8 · livrare + recenzie ---------- */
+#s8del{top:556px;height:412px;background:var(--info-soft);border-color:rgba(60,107,139,.3);padding:32px 36px}
+#s8del .t{font:400 58px/1.1 var(--serif);color:var(--info)}
+#s8del .b{margin-top:14px;width:560px;font:400 32px/1.35 var(--sans);color:var(--info)}
+#s8del .act{position:absolute;left:36px;bottom:30px;height:92px;width:520px}
+#s8del .act>*{position:absolute;left:0;top:0}
+#s8ill{position:absolute;right:30px;top:40px;width:270px;height:234px}
+#s8rev{top:992px;height:330px;background:var(--sage-soft);border-color:rgba(92,122,87,.3);padding:30px 36px}
+#s8rev .t{font:400 58px/1.1 var(--serif);color:var(--sage)}
+#s8rev .stars{display:flex;gap:18px;margin-top:22px}
+.starw{position:relative;width:96px;height:96px}
+.starw svg{position:absolute;inset:0;width:96px;height:96px}
+#s8pub{position:absolute;left:36px;bottom:30px;display:inline-flex;align-items:center;gap:12px;height:62px;padding:0 26px;border-radius:31px;background:#fff;border:2px solid rgba(92,122,87,.35);font:500 32px/1 var(--sans);color:var(--sage);opacity:0}
+#s8note{position:absolute;left:80px;top:1356px;width:920px;display:flex;align-items:center;gap:18px;font:400 44px/1.2 var(--sans);color:var(--ink-2)}
+#s8note .ico{color:var(--brass)}
+
+/* ---------- S9 · CTA ---------- */
+#s9mark{position:absolute;left:445px;top:500px;width:190px;height:190px;color:var(--ink);overflow:visible}
+#s9word{position:absolute;left:0;width:1080px;top:716px;text-align:center;font:400 84px/1 var(--serif);letter-spacing:.18em;text-transform:uppercase;padding-left:.18em;white-space:nowrap}
+#s9rule{position:absolute;left:470px;top:846px;width:140px;height:3px;background:var(--brass);transform-origin:50% 50%}
+#s9tag{position:absolute;left:0;width:1080px;top:888px;text-align:center;font:400 60px/1.15 var(--serif);color:var(--ink-2);white-space:nowrap}
+#s9btn{position:absolute;left:170px;top:1034px;width:740px;height:112px;border-radius:16px;background:var(--walnut);color:#fff;display:flex;align-items:center;justify-content:center;gap:20px;
+  font:500 46px/1 var(--sans);box-shadow:0 22px 40px -16px rgba(133,82,50,.65)}
+#s9url{position:absolute;left:0;width:1080px;top:1172px;text-align:center;font:400 40px/1 var(--mono);color:var(--ink-2)}
+#s9trust{position:absolute;left:250px;top:1236px;width:640px}
+#s9trust div{display:flex;align-items:center;gap:20px;height:64px;font:400 44px/1 var(--sans);color:var(--ink-2)}
+#s9trust .ico{color:var(--sage)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <!-- "cerneala de pix": tremur usor, determinist (seed fix) -->
+    <filter id="rough" x="-5%" y="-10%" width="110%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2" seed="7" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="pencil" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="11" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="3.6" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <linearGradient id="brassG" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#D2AC5C"/><stop offset=".55" stop-color="#B48431"/><stop offset="1" stop-color="#8E6420"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div id="stage">
+  <div class="bg"></div>
+
+  <!-- kicker de faza (cele 4 statii ale "Drumului cererii" de pe landing) -->
+  <div id="kick">
+    <span data-ph="1"><i>1</i>Cererea</span>
+    <span data-ph="2"><i>2</i>Preluarea</span>
+    <span data-ph="3"><i>3</i>Ofertele</span>
+    <span data-ph="4"><i>4</i>Montajul</span>
+  </div>
+  <!-- firul de alama care leaga statiile -->
+  <div id="thread">
+    <div class="line"></div><div class="fill"></div>
+    <i class="node" style="top:0"></i><i class="node" style="top:412px"></i><i class="node" style="top:824px"></i><i class="node" style="top:1236px"></i>
+  </div>
+
+  <!-- ================= S1 · HOOK (0–3 s) ================= -->
+  <section class="scene" id="s1">
+    <div class="note" id="n1" style="left:92px;top:300px;background:#F4E3A0">
+      <span class="hand sm">Dulap 3 uși</span><span class="hand big">14.500 lei??</span>
+      <svg class="scrib" viewBox="0 0 318 228"><ellipse cx="160" cy="132" rx="150" ry="46" fill="none" stroke="#C0392B" stroke-width="3.5" transform="rotate(-4 160 132)"/></svg>
+    </div>
+    <div class="note" id="n2" style="left:650px;top:292px;background:#F2D2C3">
+      <span class="hand sm">Sună-l pe Mihai</span><span class="hand sm">după ora 18!</span>
+      <svg class="scrib" viewBox="0 0 318 228"><path d="M30 170 C90 160 170 178 280 162" fill="none" stroke="#28356A" stroke-width="3.5" stroke-linecap="round"/></svg>
+    </div>
+    <div class="note" id="n3" style="left:84px;top:1136px;background:#DDE5CD">
+      <span class="hand sm">Oferta 2:</span><span class="hand big">9.000</span><span class="hand sm">+ montaj?</span>
+    </div>
+    <div class="note" id="n4" style="left:640px;top:1150px;background:#F7F0E1">
+      <span class="hand sm">„Revin eu</span><span class="hand sm">cu prețul luni…”</span>
+      <svg class="scrib" viewBox="0 0 318 228"><path d="M40 176 L270 176 M40 196 L200 196" stroke="#28356A" stroke-width="2" opacity=".35"/></svg>
+    </div>
+    <div class="note" id="n5" style="left:364px;top:1370px;background:#F4E3A0">
+      <span class="hand">12.000?</span><span class="hand">16.500??</span>
+      <svg class="scrib" viewBox="0 0 318 228"><path d="M24 62 L196 50" stroke="#C0392B" stroke-width="4" stroke-linecap="round"/></svg>
+    </div>
+    <div class="call" id="c1" style="left:150px;top:584px">
+      <span class="ic"><svg class="ico" width="40" height="40" viewBox="0 0 24 24" data-i="phoneMissed"></svg></span>
+      <div><div class="t1">Apel nerecepționat</div><div class="t2">Atelier mobilă · acum</div></div><span class="n">3</span>
+    </div>
+    <div class="call" id="c2" style="left:300px;top:1012px">
+      <span class="ic"><svg class="ico" width="40" height="40" viewBox="0 0 24 24" data-i="voicemail"></svg></span>
+      <div><div class="t1">Mesaj vocal nou</div><div class="t2">Număr necunoscut · 2 min</div></div>
+    </div>
+    <div class="call" id="c3" style="left:360px;top:470px">
+      <span class="ic"><svg class="ico" width="40" height="40" viewBox="0 0 24 24" data-i="phoneMissed"></svg></span>
+      <div><div class="t1">Apel nerecepționat</div><div class="t2">Tâmplărie · 10:42</div></div><span class="n">2</span>
+    </div>
+    <div id="s1sheet">
+      <span class="reg a"></span><span class="reg b"></span><span class="reg c"></span><span class="reg d"></span>
+      <span class="no">№ 0001</span>
+    </div>
+    <h1 id="s1h">Mobilă la comandă,<br>fără <span class="fig">10</span> telefoane.</h1>
+    <svg id="s1u" viewBox="0 0 800 40"><path id="s1up" d="M6 26 C 180 14, 420 34, 790 18" fill="none" stroke="#B48431" stroke-width="6" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg>
+  </section>
+
+  <!-- ================= S2 · DESCRII VIZUAL (3–8 s) ================= -->
+  <section class="scene" id="s2">
+    <span class="tag" id="s2tag">10 camere · 10 piese</span>
+    <h2 class="h" id="s2h">Descrii vizual ce vrei</h2>
+    <div id="s2win">
+      <div class="clip">
+        <div id="s2card">
+          <img id="hs0" src="../assets/shots/clienti/hero-0.png" alt="">
+          <img id="hs1" src="../assets/shots/clienti/hero-1.png" alt="" style="opacity:0">
+          <img id="hs2" src="../assets/shots/clienti/hero-2.png" alt="" style="opacity:0">
+          <img id="hs3" src="../assets/shots/clienti/hero-3.png" alt="" style="opacity:0">
+          <img id="hs4" src="../assets/shots/clienti/hero-4.png" alt="" style="opacity:0">
+          <div class="tap" id="t2a" style="left:45px;top:86.75px;--k:.38"><b></b><i></i></div>
+          <div class="tap" id="t2b" style="left:49px;top:360.75px;--k:.38"><b></b><i></i></div>
+          <div class="tap" id="t2c" style="left:199px;top:447px;--k:.38"><b></b><i></i></div>
+          <div class="tap" id="t2d" style="left:75.6px;top:558.6px;--k:.38"><b></b><i></i></div>
+        </div>
+        <div id="s2cart">
+          <div class="l">Cererea ta ar suna așa</div>
+          <div class="v"><span id="s2spec"></span><i class="caret" id="s2caret"></i></div>
+        </div>
+      </div>
+      <span class="reg a"></span><span class="reg b"></span><span class="reg c"></span><span class="reg d"></span>
+    </div>
+  </section>
+
+  <!-- ================= S3 · 3D (8–13 s) ================= -->
+  <section class="scene" id="s3">
+    <span class="tag" id="s3tag">Studio 3D</span>
+    <h2 class="h" id="s3h">Îl configurezi în 3D</h2>
+    <div id="s3dims">L <span id="s3L">120</span> · H 240 · A 60 cm</div>
+    <div id="s3vp">
+      <img id="v0" src="../assets/shots/clienti/studio-w120-c2.png" alt="">
+      <img id="v1" src="../assets/shots/clienti/studio-w140-c2.png" alt="" style="opacity:0">
+      <img id="v2" src="../assets/shots/clienti/studio-w160-c2.png" alt="" style="opacity:0">
+      <img id="v3" src="../assets/shots/clienti/studio-w160-c3.png" alt="" style="opacity:0">
+      <img id="v4" src="../assets/shots/clienti/studio-w170-c3.png" alt="" style="opacity:0">
+      <img id="v5" src="../assets/shots/clienti/studio-w180-c3.png" alt="" style="opacity:0">
+      <img id="v6" src="../assets/shots/clienti/studio-w180-c3-open.png" alt="" style="opacity:0">
+      <img id="v7" src="../assets/shots/clienti/studio-w180-c3-open-nuc.png" alt="" style="opacity:0">
+      <img id="v8" src="../assets/shots/clienti/studio-w180-c3-open-verde-salvie.png" alt="" style="opacity:0">
+      <div class="pill3d"><svg class="ico" width="32" height="32" viewBox="0 0 24 24" data-i="box"></svg>Configurează în 3D</div>
+      <svg id="s3lines" viewBox="0 0 920 688">
+        <g fill="none" stroke="#B48431" stroke-width="3" stroke-linecap="round">
+          <path id="s3l1" d="M539 132 L 664 132" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+          <path id="s3l2" d="M430 246 L 530 300 L 664 300" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+        </g>
+        <circle id="s3d1" cx="539" cy="132" r="9" fill="#B48431" stroke="#fff" stroke-width="3" opacity="0"/>
+        <circle id="s3d2" cx="430" cy="246" r="9" fill="#B48431" stroke="#fff" stroke-width="3" opacity="0"/>
+      </svg>
+      <div class="callout" id="s3c1" style="left:664px;top:106px;opacity:0">Bară de haine</div>
+      <div class="callout" id="s3c2" style="left:664px;top:274px;opacity:0">Polițe</div>
+      <div class="tap" id="t3door" style="left:425px;top:235px"><b></b><i></i></div>
+    </div>
+    <div id="s3panel">
+      <div class="ra"><span>Lățime</span><span>60–600 cm</span></div>
+      <div class="rb">
+        <div class="track"></div><div class="trackf" id="s3tf"></div>
+        <div id="s3thumb"></div>
+        <div class="val"><span id="s3w">120</span><small>cm</small></div>
+      </div>
+      <div class="rc">
+        <div class="grp">Coloane
+          <div class="stepper"><span class="bt"><svg class="ico" width="30" height="30" viewBox="0 0 24 24" data-i="minus"></svg></span><b id="s3cols">2</b>
+            <span class="bt" style="position:relative"><svg class="ico" width="30" height="30" viewBox="0 0 24 24" data-i="plus"></svg><div class="tap" id="t3plus" style="left:24px;top:24px"><b></b><i></i></div></span></div>
+        </div>
+        <div class="grp">Finisaj
+          <div class="sws">
+            <span class="sw" style="background:#efece4"></span>
+            <span class="sw" style="background:#e4d7bd"></span>
+            <span class="sw" style="background:#c49a66"><i class="ring" id="r-stejar"></i></span>
+            <span class="sw" style="background:#7a5638"><i class="ring" id="r-nuc"></i><div class="tap" id="t3nuc" style="left:20px;top:20px"><b></b><i></i></div></span>
+            <span class="sw" style="background:#98968f"></span>
+            <span class="sw" style="background:#2e2a26"></span>
+            <span class="sw" style="background:#8a9c88"><i class="ring" id="r-salvie"></i><div class="tap" id="t3sal" style="left:20px;top:20px"><b></b><i></i></div></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= S4 · SCHITA + ESTIMARE (13–17 s) ================= -->
+  <section class="scene" id="s4">
+    <span class="tag" id="s4tag">Fișiere · buget</span>
+    <h2 class="h" id="s4h">Ai doar o schiță<br>pe hârtie? <em>E de ajuns.</em></h2>
+    <div id="s4up">
+      <div id="s4dz">
+        <div class="over" id="s4over"></div>
+        <svg class="ico" width="60" height="60" viewBox="0 0 24 24" data-i="upload"></svg>
+        <div class="l">Trage fișierele aici sau apasă ca să le încarci</div>
+        <div class="hnt">JPG, PNG, WEBP, PDF sau ZIP, până la 25 MB</div>
+      </div>
+      <div id="s4row">
+        <div class="th" id="s4th"></div>
+        <div><div class="fn">schita-dulap-dormitor.jpg</div><div class="sz">1840 KB</div></div>
+        <span class="bdg" id="s4scan"><svg class="ico" id="s4spin" width="30" height="30" viewBox="0 0 24 24" data-i="loader"></svg>se scanează…</span>
+        <span class="bdg" id="s4ok"><svg class="ico" width="30" height="30" viewBox="0 0 24 24" data-i="check" style="stroke-width:3"></svg>verificat</span>
+      </div>
+      <div id="s4ins"><svg class="ico" width="34" height="34" viewBox="0 0 24 24" data-i="images"></svg>Inspirație din Caietul de idei<span class="n">3 poze</span></div>
+    </div>
+    <div id="s4paper"></div>
+    <h2 class="h" id="s4h2">Primești o estimare<br>pe loc.</h2>
+    <div id="s4bud">
+      <div class="l">Estimare orientativă pe baza răspunsurilor tale:</div>
+      <div class="v"><span id="s4min">8.500</span> – <span id="s4max">12.000</span> lei</div>
+      <div class="sl"><div class="tr"></div><div class="tf" id="s4tf"></div><div id="s4thumb"></div></div>
+      <div class="ticks"><span>8.500 lei</span><span>10.500 lei</span><span>12.000 lei</span></div>
+    </div>
+  </section>
+
+  <!-- ================= S5 · PUBLICI (17–22 s) ================= -->
+  <section class="scene" id="s5">
+    <h2 class="h" id="s5h1">Publici gratuit.</h2>
+    <h2 class="h" id="s5h2">Cel mult 3 firme<br>verificate o preiau.</h2>
+    <div class="card" id="s5rev">
+      <div class="t">Verifică și publică</div>
+      <div class="rail">
+        <div class="ri"><i class="nd"><b></b></i><span class="ix">01</span><div><div class="rt">Detalii generale</div><div class="rs">București · buget 8.500 – 12.000 lei</div></div></div>
+        <div class="ri"><i class="nd"><b></b></i><span class="ix">02</span><div><div class="rt">Cameră · Dulap</div><div class="rs">160 cm · Furnir stejar · Mânere<span class="c3">3D</span></div></div></div>
+        <div class="ri"><i class="nd"><b></b></i><span class="ix">03</span><div><div class="rt">Fișiere</div><div class="rs">un fișier atașat · verificat</div></div></div>
+      </div>
+      <div class="sum">O cameră — Dulap · București</div>
+      <div class="rule"></div>
+      <div class="btns">
+        <span class="ghost"><svg class="ico" width="34" height="34" viewBox="0 0 24 24" data-i="arrowLeft"></svg>Înapoi</span>
+        <span class="btn-w" id="s5pub"><svg class="ico" width="38" height="38" viewBox="0 0 24 24" data-i="send"></svg>Publică
+          <div class="tap" id="t5pub" style="left:50%;top:50%"><b></b><i></i></div></span>
+      </div>
+    </div>
+    <p id="s5pt">Cererile mele</p>
+    <div class="card" id="s5req">
+      <div class="r1"><div class="t">Dulap dormitor</div>
+        <div style="position:relative;width:390px;height:52px">
+          <span class="st info" id="s5st1" style="position:absolute;right:0;top:0">În marketplace</span>
+          <span class="st walnut" id="s5st2" style="position:absolute;right:0;top:0;opacity:0">Preluată parțial</span>
+        </div>
+      </div>
+      <div class="r2">
+        <span class="chip"><svg class="ico" width="30" height="30" viewBox="0 0 24 24" data-i="door"></svg>Dulap</span>
+        <span style="display:inline-flex;align-items:center;gap:10px"><svg class="ico" width="30" height="30" viewBox="0 0 24 24" data-i="pin"></svg>București</span>
+        <span class="mono" style="color:var(--muted-2)">acum câteva secunde</span>
+      </div>
+      <div class="r3">
+        <div class="cl">
+          <span id="s5cl" style="color:var(--muted-2)"><svg class="ico" width="34" height="34" viewBox="0 0 24 24" data-i="handshake"></svg><em id="s5clt" style="font-style:normal">nicio firmă</em></span>
+          <span style="color:var(--muted-2)"><svg class="ico" width="34" height="34" viewBox="0 0 24 24" data-i="file"></svg>nicio ofertă</span>
+        </div>
+        <span style="color:var(--muted-2)">Vezi<svg class="ico" width="30" height="30" viewBox="0 0 24 24" data-i="arrow"></svg></span>
+      </div>
+    </div>
+    <div id="s5slots">
+      <div class="slot" id="sl1">
+        <div class="free"><span class="bar"></span><span class="m">liber</span></div>
+        <div class="taken"><svg class="house" viewBox="0 0 40 34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 31V16l14-10 14 10v15z"/><path d="M29 9V5h3v6" stroke-width="1.75"/></svg>
+          <div><div class="nm">Atelier Nord</div><div class="vf"><svg class="ico" width="32" height="32" viewBox="0 0 24 24" data-i="badge"></svg>Firmă verificată</div></div>
+          <span class="ok"><svg class="ico" width="34" height="34" viewBox="0 0 24 24" data-i="check" style="stroke-width:3"></svg>ocupat</span></div>
+      </div>
+      <div class="slot" id="sl2">
+        <div class="free"><span class="bar"></span><span class="m">liber</span></div>
+        <div class="taken"><svg class="house" viewBox="0 0 40 34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 31V16l14-10 14 10v15z"/><path d="M29 9V5h3v6" stroke-width="1.75"/></svg>
+          <div><div class="nm">Lemn &amp; Formă</div><div class="vf"><svg class="ico" width="32" height="32" viewBox="0 0 24 24" data-i="badge"></svg>Firmă verificată</div></div>
+          <span class="ok"><svg class="ico" width="34" height="34" viewBox="0 0 24 24" data-i="check" style="stroke-width:3"></svg>ocupat</span></div>
+      </div>
+      <div class="slot" id="sl3">
+        <div class="free"><span class="bar"></span><span class="m">liber</span><span class="k" id="s5k">0/3</span></div>
+      </div>
+    </div>
+    <div id="s5ov"></div>
+    <div id="s5modal">
+      <svg class="ico sp" id="s5spin" viewBox="0 0 24 24" data-i="loader" style="stroke-width:2.2"></svg>
+      <div class="t">Publicăm cererea ta…</div>
+      <div class="s">Durează câteva secunde — pregătim cererea pentru firmele partenere.</div>
+    </div>
+  </section>
+
+  <!-- ================= S6 · COMPARI OFERTELE (22–28 s) ================= -->
+  <section class="scene" id="s6">
+    <div id="s6bell"><svg class="ico" width="38" height="38" viewBox="0 0 24 24" data-i="bell"></svg><span class="cnt" id="s6cnt">1</span></div>
+    <div id="s6toast"><svg class="ico" width="32" height="32" viewBox="0 0 24 24" data-i="file"></svg>Ofertă nouă<em id="s6tco">· Atelier Nord</em></div>
+    <h2 class="h" id="s6h">Compari oferte<br>structurate,<br>negru pe alb.</h2>
+    <p id="s6tag"><span id="k1">preț</span> · <span id="k2">termen</span> · <span id="k3">garanție</span> · <span id="k4">PDF</span></p>
+    <div class="offer" id="of1" style="top:672px">
+      <div class="top"><div class="co">Atelier Nord<svg class="ico" width="36" height="36" viewBox="0 0 24 24" data-i="badge"></svg></div>
+        <span class="pdf"><svg class="ico" width="30" height="30" viewBox="0 0 24 24" data-i="download"></svg>Descarcă PDF</span></div>
+      <div class="ver">Versiunea 2 · Valabilă până la 10.10.2026</div>
+      <div class="body">
+        <div class="pr"><div class="p">9.800 lei</div><div class="e">≈ 1.885 €</div><i class="u"></i></div>
+        <div class="tbl"><div class="rp"><span>Dulap</span><span>9.800 lei</span></div><div class="rt"><span>Termen de livrare</span><span>5 săpt.</span></div><div class="rg"><span>Garanție</span><span>24 luni</span></div></div>
+      </div>
+    </div>
+    <div class="offer" id="of2" style="top:966px">
+      <div class="top"><div class="co"><span class="partner">Mobila Unicat</span><svg class="ico" width="36" height="36" viewBox="0 0 24 24" data-i="badge"></svg></div>
+        <span class="pdf"><svg class="ico" width="30" height="30" viewBox="0 0 24 24" data-i="download"></svg>Descarcă PDF</span></div>
+      <div class="ver">Versiunea 1 · Valabilă până la 11.10.2026</div>
+      <div class="body">
+        <div class="pr"><div class="p">10.400 lei</div><div class="e">≈ 2.000 €</div><i class="u"></i></div>
+        <div class="tbl"><div class="rp"><span>Dulap</span><span>10.400 lei</span></div><div class="rt"><span>Termen de livrare</span><span>5 săpt.</span></div><div class="rg"><span>Garanție</span><span>24 luni</span></div></div>
+      </div>
+    </div>
+    <div class="offer" id="of3" style="top:1260px">
+      <div class="top"><div class="co">Lemn &amp; Formă<svg class="ico" width="36" height="36" viewBox="0 0 24 24" data-i="badge"></svg></div>
+        <span class="pdf"><svg class="ico" width="30" height="30" viewBox="0 0 24 24" data-i="download"></svg>Descarcă PDF</span></div>
+      <div class="ver">Versiunea 3 · Valabilă până la 09.10.2026</div>
+      <div class="body">
+        <div class="pr"><div class="p">9.200 lei</div><div class="e">≈ 1.769 €</div><i class="u"></i></div>
+        <div class="tbl"><div class="rp"><span>Dulap</span><span>9.200 lei</span></div><div class="rt"><span>Termen de livrare</span><span>5 săpt.</span></div><div class="rg"><span>Garanție</span><span>24 luni</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= S7 · CHAT & ALEGI (28–33 s) ================= -->
+  <section class="scene" id="s7">
+    <h2 class="h" id="s7h"><span id="s7l1">Discuți direct.</span><br><span id="s7l2">Ceri modificări.</span> <span id="s7l3"><em>Alegi.</em></span></h2>
+    <div class="card" id="s7card">
+      <div class="hd"><span class="num">1</span><span class="nm">Atelier Nord</span>
+        <div class="stw"><span class="st walnut" id="s7st1">Ofertă primită</span><span class="st sage" id="s7st2" style="opacity:0">Ofertă acceptată</span></div></div>
+      <div class="chat">
+        <div class="bub l" id="s7b1"><span class="who">Atelier Nord</span>Putem face ușile push-to-open,<br>+300 lei.</div>
+        <div class="bub r" id="s7b2">Perfect, trimiteți varianta.</div>
+      </div>
+      <div id="s7strip">
+        <div>
+          <div class="vw"><span class="st walnut" id="s7v2">Versiunea 2</span><span class="st walnut" id="s7v3" style="opacity:0;background:var(--brass);color:#fff">Versiunea 3</span></div>
+          <div class="p"><span id="s7p">9.800</span> lei<small id="s7e">≈ 1.885 €</small></div>
+        </div>
+        <span class="btn-s" id="s7btn"><svg class="ico" width="38" height="38" viewBox="0 0 24 24" data-i="check" style="stroke-width:2.6"></svg>Acceptă oferta
+          <div class="tap" id="t7acc" style="left:50%;top:50%"><b></b><i></i></div></span>
+      </div>
+    </div>
+    <svg id="s7seal" viewBox="0 0 270 270">
+      <circle cx="135" cy="135" r="128" fill="url(#brassG)"/>
+      <circle cx="135" cy="135" r="112" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="3" stroke-dasharray="4 7"/>
+      <circle cx="135" cy="135" r="98" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="2"/>
+      <path d="M100 118 L126 144 L172 96" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="135" y="192" text-anchor="middle" font-family="DM Sans" font-weight="700" font-size="32" letter-spacing="2.5" fill="#fff">ACCEPTATĂ</text>
+    </svg>
+    <div class="mini" id="s7m2" style="top:1206px"><div class="gray"></div><span class="num">2</span>
+      <div><div class="nm partner">Mobila Unicat</div><div class="sub">Versiunea 1 · 10.400 lei</div></div>
+      <div class="rt"><span class="st walnut" id="s7m2a">Ofertă primită</span><span class="st muted" id="s7m2b" style="opacity:0">Conversație închisă</span>
+        <span class="ro" id="s7m2c"><svg class="ico" width="28" height="28" viewBox="0 0 24 24" data-i="lock"></svg>doar pentru citire</span></div>
+    </div>
+    <div class="mini" id="s7m3" style="top:1350px"><div class="gray"></div><span class="num">3</span>
+      <div><div class="nm">Lemn &amp; Formă</div><div class="sub">Versiunea 3 · 9.200 lei</div></div>
+      <div class="rt"><span class="st walnut" id="s7m3a">Ofertă primită</span><span class="st muted" id="s7m3b" style="opacity:0">Conversație închisă</span>
+        <span class="ro" id="s7m3c"><svg class="ico" width="28" height="28" viewBox="0 0 24 24" data-i="lock"></svg>doar pentru citire</span></div>
+    </div>
+  </section>
+
+  <!-- ================= S8 · LIVRARE & RECENZIE (33–37 s) ================= -->
+  <section class="scene" id="s8">
+    <h2 class="h" id="s8h">Confirmi livrarea.<br>Lași recenzia.</h2>
+    <div class="card" id="s8del">
+      <div class="t">Comandă livrată</div>
+      <div class="b">Firma a marcat lucrarea ca livrată. Confirmă primirea ca să finalizezi comanda.</div>
+      <div class="act">
+        <span class="btn-s" id="s8btn"><svg class="ico" width="38" height="38" viewBox="0 0 24 24" data-i="check" style="stroke-width:2.6"></svg>Confirmă livrarea
+          <div class="tap" id="t8" style="left:50%;top:50%"><b></b><i></i></div></span>
+        <span class="st sage" id="s8fin" style="top:20px;opacity:0">Finalizată</span>
+      </div>
+      <svg id="s8ill" viewBox="0 0 120 104" fill="none">
+        <path d="M24 88V28l18-11h54v60l-18 11z" stroke="#1A1714" stroke-width="2" stroke-linejoin="round" fill="#fff"/>
+        <path d="M24 28h54v60H24z" stroke="#1A1714" stroke-width="2" stroke-linejoin="round" fill="#fff"/>
+        <path d="M78 28l18-11M78 88l18-11" stroke="#1A1714" stroke-width="2" stroke-linecap="round"/>
+        <path d="M51 28v60" stroke="#1A1714" stroke-width="1.5"/>
+        <path d="M46 54v9M56 54v9" stroke="#B48431" stroke-width="2" stroke-linecap="round"/>
+        <path d="M16 28v60M13 28h6M13 88h6" stroke="#B48431" stroke-width="1"/>
+        <g id="s8chk"><circle cx="98" cy="18" r="13" fill="#B48431"/><path d="M92 18l4.5 4.5L104.5 13" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g>
+      </svg>
+    </div>
+    <div class="card" id="s8rev">
+      <div class="t">Recenzie</div>
+      <div class="stars" id="s8stars"></div>
+      <span id="s8pub"><svg class="ico" width="34" height="34" viewBox="0 0 24 24" data-i="check" style="stroke-width:3"></svg>Recenzie publică</span>
+    </div>
+    <div id="s8note"><svg class="ico" width="52" height="52" viewBox="0 0 24 24" data-i="shield"></svg>Sub 3 stele? Intervenim noi.</div>
+  </section>
+
+  <!-- ================= S9 · CTA (37–40 s) ================= -->
+  <section class="scene" id="s9">
+    <svg id="s9mark" viewBox="0 0 32 32" fill="none">
+      <path class="dr" d="M5.5 15.5 L16 6.5 L26.5 15.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      <path class="dr" d="M8 14 V24.5 A1.5 1.5 0 0 0 9.5 26 H22.5 A1.5 1.5 0 0 0 24 24.5 V14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      <path class="dr" d="M13.5 26 V21 A2.5 2.5 0 0 1 18.5 21 V26" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      <path class="dr" d="M21.5 11.2 V7.5 M24 7.5 V13.4 M20.8 7.5 H24.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      <path id="s9smoke" d="M22.9 5.4 C22.1 4.6 23.6 3.8 22.9 3" stroke="#B48431" stroke-width="1.5" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+    </svg>
+    <div id="s9word">Cozy Home</div>
+    <div id="s9rule"></div>
+    <div id="s9tag">De la schița ta, la firma potrivită.</div>
+    <div id="s9btn">Începe o cerere — gratuit<svg class="ico" width="44" height="44" viewBox="0 0 24 24" data-i="arrow" style="stroke-width:2.4"></svg></div>
+    <div id="s9url"></div>
+    <div id="s9trust">
+      <div id="tr1"><svg class="ico" width="44" height="44" viewBox="0 0 24 24" data-i="check" style="stroke-width:2.6"></svg>Gratuit pentru clienți</div>
+      <div id="tr2"><svg class="ico" width="44" height="44" viewBox="0 0 24 24" data-i="check" style="stroke-width:2.6"></svg>Firme verificate</div>
+      <div id="tr3"><svg class="ico" width="44" height="44" viewBox="0 0 24 24" data-i="check" style="stroke-width:2.6"></svg>Cel mult 3 oferte</div>
+    </div>
+  </section>
+</div>
+
+<script src="../lib/timeline.js"></script>
+<script>
+const SITE_URL = ''; // DECIZIE NECESARĂ: domeniu neconfirmat — cat timp e gol, CTA-ul arata doar wordmark-ul (fara domeniu inventat)
+// Singurul nume REAL de firma din video (partener): oferta nr. 2 din scena 6, devine „Conversație închisă” in scena 7.
+// Restul numelor (Atelier Nord, Lemn & Formă) sunt fictive. Schimba aici daca partenerul nu doreste sa apara.
+const PARTNER_NAME = 'Mobila Unicat';
+
+/* =====================================================================
+   Video 1 — CLIENȚI (40 s). Tot ce se misca e functie pura de t (ms):
+   pistele de mai jos sunt evaluate la fiecare seek(t) (lib/timeline.js).
+   ===================================================================== */
+const DUR = 40000;
+const tl = new Timeline({ durationMs: DUR });
+const E = ease;
+const $ = (s) => document.querySelector(s);
+const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
+const nf = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+// ---------- iconite (lucide, aceleasi ca in aplicatie) ----------
+const ICONS = {
+  send: '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
+  loader: '<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
+  pin: '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
+  handshake: '<path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/>',
+  file: '<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  star: '<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>',
+  bell: '<path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/>',
+  upload: '<path d="M12 13v8"/><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="m8 17 4-4 4 4"/>',
+  download: '<path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/>',
+  lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  badge: '<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/>',
+  phoneMissed: '<path d="m16 2 6 6"/><path d="m22 2-6 6"/><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/>',
+  voicemail: '<circle cx="6" cy="12" r="4"/><circle cx="18" cy="12" r="4"/><line x1="6" x2="18" y1="16" y2="16"/>',
+  arrow: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  arrowLeft: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  box: '<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+  minus: '<path d="M5 12h14"/>',
+  plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+  door: '<path d="M10 12h.01"/><path d="M18 20V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14"/><path d="M2 20h20"/>',
+  images: '<path d="m22 11-1.296-1.296a2.4 2.4 0 0 0-3.408 0L11 16"/><path d="M4 8a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2"/><circle cx="13" cy="7" r="1" fill="currentColor"/><rect x="8" y="2" width="14" height="14" rx="2"/>',
+  shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+};
+document.querySelectorAll('svg[data-i]').forEach((s) => { s.innerHTML = ICONS[s.dataset.i] || ''; });
+
+// ---------- schita pe hartie (S4): coala cu patratele + desen in creion ----------
+const PAPER_SVG = `
+<svg viewBox="0 0 560 440" width="100%" height="100%" preserveAspectRatio="none">
+  <defs><pattern id="sq" width="22" height="22" patternUnits="userSpaceOnUse"><path d="M22 0H0V22" fill="none" stroke="#C5D4DD" stroke-width="1"/></pattern>
+  <linearGradient id="lit" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".45"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#3a2a1a" stop-opacity=".10"/></linearGradient></defs>
+  <rect width="560" height="440" fill="#FBF8F1"/><rect width="560" height="440" fill="url(#sq)"/>
+  <g filter="url(#pencil)" stroke="#35312C" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M150 104 L404 101 L407 356 L147 358 Z"/>
+    <path d="M233 103 L235 357 M318 102 L320 357"/>
+    <path d="M149 282 L405 280 M149 318 L406 317"/>
+    <path d="M222 178 L222 206 M246 178 L246 206 M330 178 L330 206"/>
+    <path d="M186 300 L206 300 M268 299 L288 299 M352 298 L372 298 M186 337 L206 337 M268 336 L288 336 M352 335 L372 335" stroke-width="2.4"/>
+    <path d="M150 390 L406 388 M150 379 L150 400 M406 377 L406 398" stroke-width="2.2"/>
+    <path d="M440 101 L441 356 M430 101 L451 101 M431 356 L452 356" stroke-width="2.2"/>
+    <path d="M82 318 L98 334 M98 318 L82 334" stroke-width="2.6"/>
+  </g>
+  <g filter="url(#pencil)" font-family="DM Sans" font-style="italic" font-weight="500" fill="#2E2A26">
+    <text x="277" y="430" font-size="32" text-anchor="middle">180</text>
+    <text transform="translate(482 230) rotate(-90)" font-size="32" text-anchor="middle">240</text>
+    <text x="148" y="70" font-size="36">Dulap dormitor</text>
+    <text x="62" y="366" font-size="24">priză</text>
+  </g>
+  <path d="M150 80 C230 74 320 84 386 76" stroke="#35312C" stroke-width="2" fill="none" filter="url(#pencil)" opacity=".7"/>
+  <rect width="560" height="440" fill="url(#lit)"/>
+</svg>`;
+$('#s4paper').innerHTML = PAPER_SVG;
+$('#s4th').innerHTML = PAPER_SVG.replace(/id="sq"/, 'id="sq2"').replace('url(#sq)', 'url(#sq2)').replace(/id="lit"/, 'id="lit2"').replace('url(#lit)', 'url(#lit2)');
+
+// ---------- stele (S8) ----------
+$('#s8stars').innerHTML = [0, 1, 2, 3, 4].map((i) => `<span class="starw">
+  <svg viewBox="0 0 24 24" fill="#D7CCB7" stroke="none">${ICONS.star}</svg>
+  <svg viewBox="0 0 24 24" class="on" id="st${i}" fill="#B48431" stroke="none" style="opacity:0">${ICONS.star}</svg></span>`).join('');
+
+document.querySelectorAll('.partner').forEach((el) => { el.textContent = PARTNER_NAME; });
+if (SITE_URL) { $('#s9url').textContent = SITE_URL; $('#s9trust').style.top = '1290px'; }   // cu domeniu: lista de incredere coboara
+
+/* ---------------- motor de piste (keyframes per proprietate) ----------------
+   A(sel, [[tSec, {x,y,s,sx,sy,r,o,blur,w,h,clip,dash,'--var'}, easing], ...])
+   easing-ul unui keyframe se aplica segmentului care se TERMINA in el.        */
+const tracks = [];
+const hooks = [];
+function els(sel) { return typeof sel === 'string' ? Array.from(document.querySelectorAll(sel)) : Array.isArray(sel) ? sel : [sel]; }
+function A(sel, keys) {
+  const list = els(sel);
+  if (!list.length) { console.error('[A] element lipsa:', sel); return; }
+  const props = {};
+  for (const [t, p, e] of keys) for (const k in p) (props[k] = props[k] || []).push([t * 1000, p[k], e]);
+  tracks.push({ els: list, props });
+}
+function val(list, t) {
+  if (t <= list[0][0]) return list[0][1];
+  for (let i = 1; i < list.length; i++) {
+    const k1 = list[i];
+    if (t < k1[0]) {
+      const k0 = list[i - 1];
+      const p = clamp01((t - k0[0]) / Math.max(1, k1[0] - k0[0]));
+      return k0[1] + (k1[1] - k0[1]) * (k1[2] || E.inOutCubic)(p);
+    }
+  }
+  return list[list.length - 1][1];
+}
+function applyTrack(tr, t) {
+  const v = {};
+  for (const k in tr.props) v[k] = val(tr.props[k], t);
+  const hasT = ('x' in v) || ('y' in v) || ('s' in v) || ('r' in v) || ('sx' in v) || ('sy' in v);
+  for (const el of tr.els) {
+    if (hasT) {
+      const s = v.s ?? 1;
+      el.style.transform = `translate(${(v.x || 0).toFixed(2)}px,${(v.y || 0).toFixed(2)}px) rotate(${(v.r || 0).toFixed(3)}deg) scale(${(s * (v.sx ?? 1)).toFixed(4)},${(s * (v.sy ?? 1)).toFixed(4)})`;
+    }
+    if ('o' in v) el.style.opacity = clamp01(v.o).toFixed(3);
+    if ('blur' in v) el.style.filter = v.blur > 0.05 ? `blur(${v.blur.toFixed(2)}px)` : '';
+    if ('w' in v) el.style.width = v.w.toFixed(2) + 'px';
+    if ('h' in v) el.style.height = v.h.toFixed(2) + 'px';
+    if ('clip' in v) el.style.clipPath = `inset(0 ${(100 - v.clip).toFixed(2)}% 0 0)`;
+    if ('dash' in v) el.style.strokeDashoffset = v.dash.toFixed(4);
+    for (const k in v) if (k.charCodeAt(0) === 45) el.style.setProperty(k, v[k].toFixed(4));
+  }
+}
+// stare discreta: ultima valoare cu t <= acum (prima valoare inainte de primul prag)
+function steps(fn, list) { hooks.push((t) => { let cur = list[0][1]; for (const [ts, v] of list) if (t >= ts * 1000) cur = v; fn(cur, t); }); }
+// intrare + iesire standard (fade + deplasare)
+function inOut(sel, t0, t1, o = {}) {
+  const { dy = 46, dx = 0, dur = 0.5, out = 0.38, ody = -34, odx = 0, s0 = 1, e = E.outCubic } = o;
+  A(sel, [[t0, { o: 0, y: dy, x: dx, s: s0 }], [t0 + dur, { o: 1, y: 0, x: 0, s: 1 }, e], [t1 - out, { o: 1, y: 0, x: 0, s: 1 }], [t1, { o: 0, y: ody, x: odx, s: 1 }, E.inCubic]]);
+}
+// apasare: punct care coboara + unda de nuc
+function tap(sel, t) {
+  A(`${sel} i`, [[t - 0.28, { o: 0, s: 1.5 }], [t - 0.1, { o: 1, s: 1 }, E.outCubic], [t, { s: 0.78 }, E.inOutQuad], [t + 0.14, { s: 1 }, E.outCubic], [t + 0.34, { o: 1 }], [t + 0.52, { o: 0, s: 1.1 }, E.inCubic]]);
+  A(`${sel} b`, [[t, { o: 0, s: 0.7 }], [t + 0.03, { o: 0.75, s: 0.8 }], [t + 0.5, { o: 0, s: 2.6 }, E.outCubic]]);
+}
+function press(sel, t) { A(sel, [[t - 0.05, { s: 1 }], [t + 0.03, { s: 0.95 }, E.inOutQuad], [t + 0.2, { s: 1 }, E.outBack]]); }
+function typeText(sel, caretSel, t0, t1, text) {
+  const el = $(sel), caret = caretSel ? $(caretSel) : null;
+  hooks.push((t) => {
+    const p = clamp01((t - t0 * 1000) / ((t1 - t0) * 1000));
+    el.textContent = text.slice(0, Math.round(p * text.length));
+    if (caret) {
+      const typing = t >= t0 * 1000 - 250 && t <= t1 * 1000;
+      const blink = t > t1 * 1000 && Math.floor((t - t1 * 1000) / 360) % 2 === 0;
+      caret.style.opacity = typing || blink ? 1 : 0;
+    }
+  });
+}
+function count(sel, t0, t1, a, b, fmt = nf, e = E.outCubic) {
+  const list = els(sel);
+  hooks.push((t) => { const v = a + (b - a) * e(clamp01((t - t0 * 1000) / ((t1 - t0) * 1000))); for (const el of list) el.textContent = fmt(v); });
+}
+function spin(sel, degPerMs = 0.8) { const el = $(sel); hooks.push((t) => { el.style.transform = `rotate(${(t * degPerMs) % 360}deg)`; }); }
+
+/* ======================= GLOBALE ======================= */
+// vizibilitatea scenelor (cu suprapuneri pentru tranzitii)
+tl.scene('#s1', 0, 3250);
+tl.scene('#s2', 2600, 8150);
+tl.scene('#s3', 7600, 13100);
+tl.scene('#s4', 12650, 17100);
+tl.scene('#s5', 16700, 22100);
+tl.scene('#s6', 21650, 27800);
+tl.scene('#s7', 27600, 33100);
+tl.scene('#s8', 32650, 37100);
+tl.scene('#s9', 36700, 40001);
+
+// kicker-ul fazei: 1 Cererea (3–17), 2 Preluarea (17–22), 3 Ofertele (22–33), 4 Montajul (33–37)
+const PH = [[1, 3.0, 17.0], [2, 17.0, 22.0], [3, 22.0, 33.0], [4, 33.0, 37.0]];
+for (const [n, a, b] of PH) {
+  A(`#kick span[data-ph="${n}"]`, [[a - 0.05, { o: 0, x: -24 }], [a + 0.4, { o: 1, x: 0 }, E.outCubic], [b - 0.3, { o: 1, x: 0 }], [b + 0.02, { o: 0, x: 18 }, E.inCubic]]);
+}
+// firul de alama: se deseneaza pe parcursul celor 4 statii; nodurile se aprind la intrarea in faza
+A('#thread', [[2.8, { o: 0 }], [3.3, { o: 1 }, E.outCubic], [36.9, { o: 1 }], [37.35, { o: 0 }, E.inCubic]]);
+A('#thread .fill', [[3.0, { sy: 0.001 }], [17.0, { sy: 1 / 3 }, E.linear], [22.0, { sy: 2 / 3 }, E.linear], [33.0, { sy: 1 }, E.linear]]);
+const nodes = Array.from(document.querySelectorAll('#thread .node'));
+PH.forEach(([n, a], i) => {
+  steps((v) => { nodes[i].dataset.on = v; }, [[0, '0'], [a, '1']]);
+  A(nodes[i], [[a - 0.01, { s: 1, r: 45 }], [a + 0.12, { s: 1.7, r: 45 }, E.outCubic], [a + 0.45, { s: 1, r: 45 }, E.inOutCubic]]);
+});
+
+/* ======================= S1 · HOOK (0–3 s) ======================= */
+// biletele si notificarile cad dezordonat; la ~1.5 s o coala curata le matura
+const drops = [
+  ['#n1', -0.12, -8], ['#c1', 0.02, -3], ['#n3', 0.1, 5], ['#n4', 0.2, -6],
+  ['#n2', 0.36, 6], ['#c2', 0.52, 4], ['#c3', 0.68, 2], ['#n5', 0.88, 3],
+];
+// marginea din dreapta a colii care intra (1.42–1.94 s): biletele pleaca exact cand sunt atinse
+const sheetEdge = (t) => 1024 - 1110 * (1 - E.inOutCubic(clamp01((t - 1.42) / 0.52)));
+const tTouch = (L) => { for (let t = 1.42; t <= 1.94; t += 0.005) if (sheetEdge(t) >= L - 30) return t; return 1.94; };
+for (const [sel, t, rot] of drops) {
+  const el = $(sel);
+  const left = parseFloat(el.style.left);
+  const top = parseFloat(el.style.top);
+  const tExit = tTouch(left);   // "maturate" de coala: pleaca odata cu marginea ei
+  // cele de sus cad de sus, cele de jos sunt "aruncate" de jos — nu traverseaza titlul
+  const y0 = top < 760 ? -(top + 420) : (1920 - top + 160);
+  A(sel, [
+    [t - 0.42, { y: y0, r: rot + (top < 760 ? 22 : -22), o: 1, x: 0, blur: 0 }],
+    [t, { y: 0, r: rot, x: 0 }, E.outBack],
+    [tExit, { x: 0, r: rot, o: 1, blur: 0 }],
+    [tExit + 0.42, { x: 1060, r: rot + 30, o: 0, blur: 6 }, E.outCubic],
+  ]);
+}
+// notificarile "vibreaza" scurt (determinist)
+for (const [sel, t0] of [['#c1 .ic', 0.25], ['#c3 .ic', 0.6], ['#c2 .ic', 0.95]]) {
+  const el = $(sel);
+  hooks.push((t) => {
+    const d = t / 1000 - t0;
+    const a = d > 0 && d < 0.55 ? Math.sin(d * 90) * 5 * (1 - d / 0.55) : 0;
+    el.style.transform = `rotate(${a.toFixed(2)}deg)`;
+  });
+}
+A('#s1h', [[0, { s: 1.035, o: 1 }], [0.9, { s: 1 }, E.outCubic], [2.62, { o: 1, y: 0 }], [3.0, { o: 0, y: -48 }, E.inCubic]]);
+A('#s1sheet', [
+  [1.42, { x: -1110, y: 0, w: 968, h: 1364, o: 1 }],
+  [1.94, { x: 0 }, E.inOutCubic],
+  [2.66, { x: 0, y: 0, w: 968, h: 1364 }],
+  [3.16, { x: 24, y: 206, w: 920, h: 968 }, E.inOutCubic],
+  [3.2, { o: 1 }], [3.34, { o: 0 }, E.linear],
+]);
+A('#s1up', [[1.98, { dash: 1, o: 0 }], [2.02, { o: 1 }, E.linear], [2.4, { dash: 0 }, E.outCubic]]);
+A('#s1u', [[2.62, { o: 1, y: 0 }], [3.0, { o: 0, y: -48 }, E.inCubic]]);
+
+/* ======================= S2 · DESCRII VIZUAL (3–8 s) ======================= */
+inOut('#s2tag', 3.05, 7.84, { dy: 0, dx: 30, out: 0.34 });
+inOut('#s2h', 2.98, 7.84, { dy: 50, out: 0.34 });
+// fereastra peste card: preia coala din S1, apoi se dizolva spre 3D
+A('#s2win', [[3.08, { o: 0, s: 1 }], [3.3, { o: 1 }, E.linear], [7.6, { o: 1, s: 1 }], [7.98, { o: 0, s: 1.03 }, E.inQuad]]);
+// "camera" peste captura: vederi (top in px CSS ai cardului, scara S, centru orizontal cx)
+const S2W = 920;
+const V = (top, S = 2.45, cx = 199) => ({ x: S2W / 2 - cx * S, y: -top * S, s: S });
+A('#s2card', [
+  [3.1, V(46)], [4.36, V(46)], [4.8, V(150), E.inOutCubic], [5.22, V(150)], [5.66, V(220), E.inOutCubic],
+  [6.08, V(220)], [6.66, V(104, 3.7, 200), E.inOutCubic], [7.4, V(106, 3.8, 200), E.linear], [8.12, V(104, 4.3, 200), E.inCubic],
+]);
+tap('#t2a', 3.62); A('#hs1', [[3.64, { o: 0 }], [3.82, { o: 1 }, E.linear]]);
+tap('#t2b', 4.12); A('#hs2', [[4.14, { o: 0 }], [4.32, { o: 1 }, E.linear]]);
+tap('#t2c', 4.98); A('#hs3', [[5.0, { o: 0 }], [5.18, { o: 1 }, E.linear]]);
+tap('#t2d', 5.86); A('#hs4', [[5.88, { o: 0 }], [6.06, { o: 1 }, E.linear]]);
+A('#s2cart', [[6.3, { y: 192 }], [6.66, { y: 0 }, E.outCubic]]);
+typeText('#s2spec', '#s2caret', 6.6, 7.42, 'Dulap 160 cm · Furnir stejar · Mânere');
+
+/* ======================= S3 · 3D (8–13 s) ======================= */
+inOut('#s3tag', 8.05, 12.75, { dy: 0, dx: 30 });
+inOut('#s3h', 7.9, 12.8, { dy: 50 });
+inOut('#s3dims', 8.1, 12.75, { dy: 30 });
+A('#s3vp', [[7.8, { o: 0, s: 1.06 }], [8.3, { o: 1, s: 1 }, E.outCubic], [12.55, { o: 1, s: 1, y: 0 }], [12.98, { o: 0, s: 0.97, y: -40 }, E.inCubic]]);
+A('#s3panel', [[8.12, { o: 0, y: 60 }], [8.6, { o: 1, y: 0 }, E.outCubic], [12.6, { o: 1, y: 0 }], [13.0, { o: 0, y: 50 }, E.inCubic]]);
+// latimea 120 → 160 (2 coloane), "+" coloana, 160 → 180 (3 coloane); flipbook de capturi reale
+const W = [[8.62, 120], [9.08, 160, E.inOutCubic], [9.3, 160], [9.66, 180, E.inOutCubic]];
+const wAt = (t) => { const L = W.map(([s, v, e]) => [s * 1000, v, e]); return val(L, t); };
+hooks.push((t) => {
+  const w = wAt(t);
+  $('#s3L').textContent = Math.round(w);
+  $('#s3w').textContent = Math.round(w);
+  const p = (w - 60) / 540;
+  $('#s3thumb').style.transform = `translateX(${(600 * p).toFixed(2)}px)`;
+  $('#s3tf').style.width = (600 * p).toFixed(2) + 'px';
+});
+A('#v1', [[8.74, { o: 0 }], [8.88, { o: 1 }, E.linear]]);
+A('#v2', [[8.92, { o: 0 }], [9.06, { o: 1 }, E.linear]]);
+tap('#t3plus', 9.2);
+steps((v) => { $('#s3cols').textContent = v; }, [[0, '2'], [9.22, '3']]);
+A('#v3', [[9.22, { o: 0 }], [9.36, { o: 1 }, E.linear]]);
+A('#v4', [[9.42, { o: 0 }], [9.54, { o: 1 }, E.linear]]);
+A('#v5', [[9.56, { o: 0 }], [9.68, { o: 1 }, E.linear]]);
+// usile se deschid (click pe corp) → politele si bara de haine
+tap('#t3door', 9.92);
+A('#v6', [[9.96, { o: 0 }], [10.2, { o: 1 }, E.inOutQuad]]);
+A('#s3l1', [[10.2, { dash: 1, o: 0 }], [10.24, { o: 1 }, E.linear], [10.5, { dash: 0 }, E.outCubic]]);
+A('#s3l2', [[10.3, { dash: 1, o: 0 }], [10.34, { o: 1 }, E.linear], [10.62, { dash: 0 }, E.outCubic]]);
+A('#s3d1', [[10.15, { o: 0 }], [10.25, { o: 1 }]]);
+A('#s3d2', [[10.25, { o: 0 }], [10.35, { o: 1 }]]);
+A('#s3c1', [[10.4, { o: 0, x: -16 }], [10.62, { o: 1, x: 0 }, E.outCubic]]);
+A('#s3c2', [[10.52, { o: 0, x: -16 }], [10.74, { o: 1, x: 0 }, E.outCubic]]);
+// paleta de finisaje: Stejar → Nuc → Verde salvie
+tap('#t3nuc', 11.02);
+A('#v7', [[11.05, { o: 0 }], [11.3, { o: 1 }, E.inOutQuad]]);
+tap('#t3sal', 11.72);
+A('#v8', [[11.75, { o: 0 }], [12.0, { o: 1 }, E.inOutQuad]]);
+A('#r-stejar', [[0, { o: 1 }], [11.02, { o: 1 }], [11.1, { o: 0 }]]);
+A('#r-nuc', [[11.02, { o: 0, s: 1.3 }], [11.2, { o: 1, s: 1 }, E.outBack], [11.72, { o: 1 }], [11.8, { o: 0 }]]);
+A('#r-salvie', [[11.72, { o: 0, s: 1.3 }], [11.9, { o: 1, s: 1 }, E.outBack]]);
+
+/* ======================= S4 · SCHITA + ESTIMARE (13–17 s) ======================= */
+inOut('#s4tag', 13.05, 16.75, { dy: 0, dx: 30 });
+A('#s4h', [[12.95, { o: 0, y: 50 }], [13.45, { o: 1, y: 0 }, E.outCubic], [14.78, { o: 1 }], [15.1, { o: 0.62 }], [16.6, { o: 0.62, y: 0 }], [16.98, { o: 0, y: -34 }, E.inCubic]]);
+A('#s4up', [[13.08, { o: 0, y: 50 }], [13.55, { o: 1, y: 0 }, E.outCubic], [14.78, { o: 1 }], [15.1, { o: 0.7 }], [16.6, { o: 0.7, y: 0 }], [16.98, { o: 0, y: -34 }, E.inCubic]]);
+// fotografia schitei urca din afara cadrului peste zona de upload, apoi intra in randul fisierului
+A('#s4paper', [
+  [13.25, { x: 40, y: 1500, r: 9, s: 1, o: 1 }],
+  [13.9, { x: 0, y: 0, r: -4, s: 0.86 }, E.outCubic],
+  [14.02, { x: 0, y: 0, r: -4, s: 0.86, o: 1 }],
+  [14.36, { x: -364, y: 104, r: 0, s: 0.164, o: 1 }, E.inOutCubic],
+  [14.42, { o: 0 }, E.linear],
+]);
+A('#s4over', [[13.5, { o: 0 }], [13.7, { o: 1 }], [14.12, { o: 1 }], [14.3, { o: 0 }]]);
+A('#s4row', [[14.2, { o: 0, y: 16 }], [14.42, { o: 1, y: 0 }, E.outCubic]]);
+A('#s4ins', [[14.5, { o: 0, y: 16 }], [14.74, { o: 1, y: 0 }, E.outCubic]]);
+spin('#s4spin', 0.9);
+A('#s4scan', [[14.2, { o: 1 }], [14.66, { o: 1, s: 1 }], [14.76, { o: 0, s: 0.9 }]]);
+A('#s4ok', [[14.68, { o: 0, s: 1.35 }], [14.92, { o: 1, s: 1 }, E.outBack]]);
+A('#s4h2', [[14.84, { o: 0, y: 46 }], [15.3, { o: 1, y: 0 }, E.outCubic], [16.6, { o: 1, y: 0 }], [16.98, { o: 0, y: -34 }, E.inCubic]]);
+A('#s4bud', [[14.98, { o: 0, y: 56 }], [15.44, { o: 1, y: 0 }, E.outCubic], [16.62, { o: 1, y: 0 }], [17.0, { o: 0, y: -30 }, E.inCubic]]);
+count('#s4min', 15.2, 15.9, 0, 8500, (v) => nf(Math.round(v / 100) * 100));
+count('#s4max', 15.2, 15.9, 0, 12000, (v) => nf(Math.round(v / 100) * 100));
+hooks.push((t) => {
+  const p = 0.42 * E.inOutCubic(clamp01((t - 15.5 * 1000) / 900));
+  const W4 = 852 - 0;
+  $('#s4thumb').style.transform = `translateX(${(W4 * p).toFixed(2)}px)`;
+  $('#s4tf').style.width = (W4 * p).toFixed(2) + 'px';
+});
+
+/* ======================= S5 · PUBLICI (17–22 s) ======================= */
+A('#s5h1', [[16.95, { o: 0, y: 50 }], [17.42, { o: 1, y: 0 }, E.outCubic], [19.0, { o: 1, y: 0 }], [19.3, { o: 0, y: -40 }, E.inCubic]]);
+A('#s5h2', [[19.2, { o: 0, y: 50 }], [19.66, { o: 1, y: 0 }, E.outCubic], [21.6, { o: 1, y: 0 }], [21.98, { o: 0, y: -34 }, E.inCubic]]);
+A('#s5rev', [[17.05, { o: 0, y: 60 }], [17.5, { o: 1, y: 0 }, E.outCubic], [18.12, { o: 1 }], [18.32, { o: 0 }]]);
+document.querySelectorAll('#s5rev .nd b').forEach((b, i) => A(b, [[17.3 + i * 0.14, { o: 0, s: 0.3 }], [17.5 + i * 0.14, { o: 1, s: 1 }, E.outBack]]));
+tap('#t5pub', 17.86); press('#s5pub', 17.86);
+A('#s5ov', [[17.98, { o: 0 }], [18.18, { o: 1 }, E.outCubic], [18.9, { o: 1 }], [19.12, { o: 0 }, E.inCubic]]);
+A('#s5modal', [[18.02, { o: 0, s: 0.94, y: 20 }], [18.28, { o: 1, s: 1, y: 0 }, E.outCubic], [18.86, { o: 1, s: 1 }], [19.08, { o: 0, s: 0.97 }, E.inCubic]]);
+spin('#s5spin', 0.75);
+A('#s5pt', [[18.95, { o: 0, y: 30 }], [19.3, { o: 1, y: 0 }, E.outCubic], [21.55, { o: 1, y: 0 }], [21.95, { o: 0, y: -30 }, E.inCubic]]);
+A('#s5req', [[18.98, { o: 0, y: 50, s: 0.98 }], [19.4, { o: 1, y: 0, s: 1 }, E.outCubic], [21.58, { o: 1, y: 0 }], [21.98, { o: 0, y: -30 }, E.inCubic]]);
+A('#s5slots', [[19.3, { o: 0, y: 60 }], [19.72, { o: 1, y: 0 }, E.outCubic], [21.6, { o: 1, y: 0 }], [22.0, { o: 0, y: -30 }, E.inCubic]]);
+for (const [sel, t] of [['#sl1', 19.95], ['#sl2', 20.55]]) {
+  A(`${sel} .taken`, [[t, { o: 0, s: 0.96, x: 40 }], [t + 0.34, { o: 1, s: 1, x: 0 }, E.outCubic]]);
+  A(`${sel} .free`, [[t + 0.05, { o: 1 }], [t + 0.25, { o: 0 }]]);
+  A(`${sel} .ok`, [[t + 0.18, { s: 0.3, o: 0 }], [t + 0.44, { s: 1, o: 1 }, E.outBack]]);
+}
+steps((v) => { $('#s5k').textContent = v; }, [[0, '0/3'], [19.95, '1/3'], [20.55, '2/3']]);
+steps((v) => { $('#s5clt').textContent = v[0]; $('#s5cl').style.color = v[1]; }, [[0, ['nicio firmă', 'var(--muted-2)']], [19.98, ['o firmă', 'var(--walnut)']], [20.58, ['2 firme', 'var(--walnut)']]]);
+A('#s5st1', [[19.95, { o: 1 }], [20.1, { o: 0 }]]);
+A('#s5st2', [[19.95, { o: 0, s: 1.2 }], [20.2, { o: 1, s: 1 }, E.outBack]]);
+
+/* ======================= S6 · COMPARI OFERTELE (22–28 s) ======================= */
+A('#s6h', [[21.95, { o: 0, y: 50 }], [22.45, { o: 1, y: 0 }, E.outCubic], [27.25, { o: 1, y: 0 }], [27.62, { o: 0, y: -40 }, E.inCubic]]);
+A('#s6tag', [[22.15, { o: 0, y: 30 }], [22.6, { o: 1, y: 0 }, E.outCubic], [27.25, { o: 1, y: 0 }], [27.62, { o: 0, y: -40 }, E.inCubic]]);
+A('#s6bell', [[22.3, { o: 0, s: 0.6 }], [22.6, { o: 1, s: 1 }, E.outBack], [27.25, { o: 1, s: 1 }], [27.6, { o: 0, s: 0.8 }, E.inCubic]]);
+const offerT = [22.7, 23.25, 23.8];
+['#of1', '#of2', '#of3'].forEach((sel, i) => {
+  const t = offerT[i];
+  const tail = i === 0
+    ? [[27.2 + i * 0.05, { o: 1, x: 0, y: 0 }], [27.6 + i * 0.05, { o: 0, x: 0, y: -60 }, E.inCubic]]
+    : [[27.2 + i * 0.05, { o: 1, x: 0, y: 0 }], [27.6 + i * 0.05, { o: 0, x: 0, y: -60 }, E.inCubic]];
+  A(sel, [[t, { o: 0, x: 140, y: 0 }], [t + 0.5, { o: 1, x: 0 }, E.outQuart], ...tail]);
+});
+// clopotel: 3 x „Ofertă nouă”
+hooks.push((t) => {
+  const s = t / 1000;
+  let a = 0;
+  for (const tt of offerT) { const d = s - tt; if (d > 0 && d < 0.6) a += Math.sin(d * 34) * 16 * (1 - d / 0.6); }
+  $('#s6bell svg').style.transform = `rotate(${a.toFixed(2)}deg)`;
+});
+steps((v) => { $('#s6cnt').textContent = v; }, [[0, '1'], [offerT[1], '2'], [offerT[2], '3']]);
+A('#s6cnt', [[offerT[0], { s: 0 }], [offerT[0] + 0.25, { s: 1 }, E.outBack], [offerT[1], { s: 1.35 }, E.outCubic], [offerT[1] + 0.2, { s: 1 }], [offerT[2], { s: 1.35 }, E.outCubic], [offerT[2] + 0.2, { s: 1 }]]);
+steps((v) => { $('#s6tco').textContent = v; }, [[0, ' · Atelier Nord'], [offerT[1], ' · ' + PARTNER_NAME], [offerT[2], ' · Lemn & Formă']]);
+A('#s6toast', [[offerT[0] + 0.02, { o: 0, x: 60 }], [offerT[0] + 0.3, { o: 1, x: 0 }, E.outCubic], [24.35, { o: 1, x: 0 }], [24.7, { o: 0, x: 40 }, E.inCubic]]);
+// comparatia structurata: pret → termen → garantie → PDF (acelasi rand pe toate cele 3 oferte)
+const cmp = [['#k1', '.pr', 24.75], ['#k2', '.rt', 25.35], ['#k3', '.rg', 25.95], ['#k4', '.pdf', 26.55]];
+cmp.forEach(([k, part, t], i) => {
+  const end = i < 3 ? cmp[i + 1][2] : 27.1;
+  A(k, [[t, { '--u': 0 }], [t + 0.25, { '--u': 1 }, E.outCubic], [end - 0.05, { '--u': 1 }], [end + 0.15, { '--u': 0 }]]);
+  A(`#of1 ${part}, #of2 ${part}, #of3 ${part}`, [[t, { '--u': 0 }], [t + 0.25, { '--u': 1 }, E.outCubic], [end - 0.05, { '--u': 1 }], [end + 0.15, { '--u': 0 }]]);
+});
+
+/* ======================= S7 · CHAT & ALEGI (28–33 s) ======================= */
+A('#s7l1', [[28.0, { o: 0, y: 40 }], [28.42, { o: 1, y: 0 }, E.outCubic]]);
+A('#s7l2', [[29.72, { o: 0, y: 40 }], [30.1, { o: 1, y: 0 }, E.outCubic]]);
+A('#s7l3', [[30.95, { o: 0, y: 40 }], [31.3, { o: 1, y: 0 }, E.outCubic]]);
+A('#s7h', [[32.55, { o: 1, y: 0 }], [32.95, { o: 0, y: -40 }, E.inCubic]]);
+A('#s7card', [[27.66, { o: 0, y: 70 }], [28.14, { o: 1, y: 0 }, E.outCubic], [32.55, { o: 1, y: 0 }], [32.98, { o: 0, y: -40 }, E.inCubic]]);
+A('#s7b1', [[28.55, { o: 0, y: 30, s: 0.96 }], [28.9, { o: 1, y: 0, s: 1 }, E.outQuart]]);
+A('#s7b2', [[29.45, { o: 0, y: 30, s: 0.96 }], [29.8, { o: 1, y: 0, s: 1 }, E.outQuart]]);
+// varianta noua a ofertei: Versiunea 2 → Versiunea 3, 9.800 → 10.100 lei
+A('#s7v2', [[30.2, { o: 1 }], [30.32, { o: 0 }]]);
+A('#s7v3', [[30.2, { o: 0, s: 1.5 }], [30.46, { o: 1, s: 1 }, E.outBack]]);
+count('#s7p', 30.25, 30.8, 9800, 10100, (v) => nf(Math.round(v / 10) * 10));
+steps((v) => { $('#s7e').textContent = v; }, [[0, '≈ 1.885 €'], [30.8, '≈ 1.942 €']]);
+tap('#t7acc', 31.28); press('#s7btn', 31.28);
+A('#s7btn', [[31.55, { o: 1 }], [31.7, { o: 0 }]]);
+A('#s7seal', [[31.5, { o: 0, s: 2.3, r: -32 }], [31.74, { o: 1, s: 0.92, r: -10 }, E.inCubic], [31.9, { s: 1, r: -10 }, E.outBack], [32.55, { o: 1, s: 1, y: 0 }], [32.98, { o: 0, s: 1, y: -40 }, E.inCubic]]);
+A('#s7st1', [[31.72, { o: 1 }], [31.86, { o: 0 }]]);
+A('#s7st2', [[31.72, { o: 0, s: 1.3 }], [31.96, { o: 1, s: 1 }, E.outBack]]);
+// impact: cardul se "aseaza" la stampila
+A('#s7card .hd, #s7card .chat', [[31.72, { y: 0 }], [31.8, { y: 5 }, E.outQuad], [31.95, { y: 0 }, E.outCubic]]);
+for (const [m, t] of [['#s7m2', 27.84], ['#s7m3', 27.96]]) {
+  A(m, [[t, { o: 0, y: 60 }], [t + 0.46, { o: 1, y: 0 }, E.outCubic], [32.6, { o: 1, y: 0 }], [33.0, { o: 0, y: 40 }, E.inCubic]]);
+  A(`${m} .gray`, [[31.95, { o: 0 }], [32.3, { o: 1 }]]);
+  A(`${m} .nm, ${m} .sub, ${m} .num`, [[31.95, { o: 1 }], [32.3, { o: 0.5 }]]);
+  A(`${m}a`, [[31.95, { o: 1 }], [32.1, { o: 0 }]]);
+  A(`${m}b`, [[31.98, { o: 0, s: 1.2 }], [32.22, { o: 1, s: 1 }, E.outBack]]);
+  A(`${m}c`, [[32.1, { o: 0, y: 8 }], [32.34, { o: 1, y: 0 }, E.outCubic]]);
+}
+
+/* ======================= S8 · LIVRARE & RECENZIE (33–37 s) ======================= */
+inOut('#s8h', 32.95, 36.8, { dy: 50 });
+A('#s8del', [[33.05, { o: 0, y: 60 }], [33.5, { o: 1, y: 0 }, E.outCubic], [36.6, { o: 1, y: 0 }], [36.98, { o: 0, y: -30 }, E.inCubic]]);
+A('#s8chk', [[0, { o: 0 }], [34.2, { o: 0 }], [34.4, { o: 1 }]]);
+tap('#t8', 33.95); press('#s8btn', 33.95);
+A('#s8btn', [[34.2, { o: 1 }], [34.34, { o: 0 }]]);
+A('#s8fin', [[34.26, { o: 0, s: 1.3 }], [34.5, { o: 1, s: 1 }, E.outBack]]);
+A('#s8rev', [[34.3, { o: 0, y: 60 }], [34.72, { o: 1, y: 0 }, E.outCubic], [36.62, { o: 1, y: 0 }], [37.0, { o: 0, y: -30 }, E.inCubic]]);
+for (let i = 0; i < 5; i++) {
+  const t = 34.85 + i * 0.16;
+  A(`#st${i}`, [[t, { o: 0, s: 0.4 }], [t + 0.24, { o: 1, s: 1 }, E.outBack]]);
+}
+A('#s8pub', [[35.72, { o: 0, s: 0.8 }], [35.98, { o: 1, s: 1 }, E.outBack]]);
+A('#s8note', [[35.95, { o: 0, y: 30 }], [36.3, { o: 1, y: 0 }, E.outCubic], [36.65, { o: 1, y: 0 }], [37.0, { o: 0, y: -24 }, E.inCubic]]);
+
+/* ======================= S9 · CTA (37–40 s) ======================= */
+document.querySelectorAll('#s9mark .dr').forEach((p, i) => A(p, [[36.95 + i * 0.1, { dash: 1, o: 0 }], [37.0 + i * 0.1, { o: 1 }, E.linear], [37.4 + i * 0.1, { dash: 0 }, E.outCubic]]));
+A('#s9smoke', [[37.4, { dash: 1, o: 0 }], [37.45, { o: 1 }, E.linear], [37.72, { dash: 0 }, E.outCubic]]);
+A('#s9mark', [[36.9, { o: 0, s: 0.9 }], [37.2, { o: 1, s: 1 }, E.outCubic]]);
+A('#s9word', [[37.1, { o: 0, y: 24, '--ls': 0.3 }], [37.55, { o: 1, y: 0, '--ls': 0.18 }, E.outCubic]]);
+hooks.push(() => { const el = $('#s9word'); el.style.letterSpacing = (parseFloat(el.style.getPropertyValue('--ls')) || 0.18) + 'em'; });
+A('#s9rule', [[37.4, { sx: 0 }], [37.75, { sx: 1 }, E.outCubic]]);
+A('#s9tag', [[37.45, { o: 0, y: 24 }], [37.85, { o: 1, y: 0 }, E.outCubic]]);
+A('#s9btn', [[37.65, { o: 0, s: 0.86 }], [38.0, { o: 1, s: 1 }, E.outBack]]);
+A('#s9url', [[37.9, { o: 0 }], [38.2, { o: 1 }]]);
+['#tr1', '#tr2', '#tr3'].forEach((s, i) => A(s, [[37.9 + i * 0.1, { o: 0, x: -20 }], [38.22 + i * 0.1, { o: 1, x: 0 }, E.outCubic]]));
+// iesirea finala: fade scurt spre ivoriu (bucla curata spre hook)
+A('#s9', [[39.66, { o: 1 }], [40.0, { o: 0 }, E.inQuad]]);
+
+/* ---------------- instalare ---------------- */
+tl.always((t) => { for (const tr of tracks) applyTrack(tr, t); for (const h of hooks) h(t); });
+tl.onReady(async () => {
+  const faces = ['400 100px Marcellus', '400 40px "DM Sans"', '500 40px "DM Sans"', '600 40px "DM Sans"', '700 40px "DM Sans"', 'italic 500 40px "DM Sans"', 'italic 600 40px "DM Sans"', '400 40px "IBM Plex Mono"', '500 40px "IBM Plex Mono"'];
+  await Promise.all(faces.map((f) => document.fonts.load(f, 'AaĂăÂâÎîȘșȚț€№·–—…„”?')));
+  await Promise.all(Array.from(document.images).map((im) => (im.decode ? im.decode().catch(() => {}) : null)));
+});
+tl.install();
+</script>
+</body>
+</html>
