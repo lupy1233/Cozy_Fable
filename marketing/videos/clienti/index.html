@@ -470,7 +470,8 @@ const yOf = (n, sy) => (PG[n] ? HDR : 0) + M[n].y0 - sy;
 // coordonata verticala in ecran (px CSS) a unui punct din pagina, la scroll-ul sy
 const vy = (n, docY, sy) => yOf(n, sy) + docY - M[n].y0;
 function scroll(n, keys) { A(`#st-${n} img`, keys.map(([t, sy, e]) => [t, { y: yOf(n, sy) }, e])); }
-// vizibilitate: apare (0→1) in [tIn, tIn+d]; dispare instant la tOut (starea urmatoare e deja opaca deasupra)
+// vizibilitate: apare (0→1) in [tIn, tIn+d]; dispare instant la tOut — tOut ≥ sfarsitul intrarii starii urmatoare
+// (care e deasupra, in ordinea DOM), altfel fundalul se vede prin ea
 function vis(n, tIn, d, tOut, dOut = 0.01) {
   const k = [[tIn, { o: 0 }], [tIn + d, { o: 1 }, E.inOutCubic]];
   if (tOut !== undefined) k.push([tOut, { o: 1 }], [tOut + dOut, { o: 0 }, E.inOutCubic]);
@@ -596,8 +597,8 @@ scroll('s5-m1', [[0, 1090]]);
 vis('s5-d0', 30.65, 0.8, 32.62);
 scroll('s5-d0', [[0, 474]]);
 tap(92, vy('s5-d0', 863.6, 474), 32.45);
-vis('s5-d1', 32.5, 0.08, 32.72); scroll('s5-d1', [[0, 474]]);
-vis('s5-d2', 32.72, 0.08, 32.94); scroll('s5-d2', [[0, 474]]);
+vis('s5-d1', 32.5, 0.08, 32.8); scroll('s5-d1', [[0, 474]]);
+vis('s5-d2', 32.72, 0.08, 33.04); scroll('s5-d2', [[0, 474]]);
 vis('s5-d3', 32.94, 0.1, B[5] + 0.4); scroll('s5-d3', [[0, 474]]);
 
 /* ======================= S6 · 3D (34,5–41,5) ======================= */
@@ -609,7 +610,7 @@ vis('s6-a', B[5] - 0.4, 0.8, 38.25);
 $('#slider').style.top = '414px';
 A('#slider', [[B[5] - 0.4, { o: 0 }], [B[5] + 0.4, { o: 1 }, E.inOutCubic], [B[6] - 0.4, { o: 1 }], [B[6] + 0.4, { o: 0 }, E.inOutCubic]]);
 drag(83, 438, 105, 438, 37.9, 38.55);
-vis('s6-b', 38.1, 0.15, 38.45);
+vis('s6-b', 38.1, 0.15, 38.5);
 vis('s6-c', 38.35, 0.15, 40.1);
 A('#sl-b', [[38.1, { o: 0 }], [38.25, { o: 1 }, E.linear]]);
 A('#sl-c', [[38.35, { o: 0 }], [38.5, { o: 1 }, E.linear]]);

@@ -53,11 +53,13 @@ FRAMES = [
     ('s7-offer-a2.jpg', 'b4-price', 790, H_APP),
     ('s7-offer-b.jpg', 'b5-filled', 1180, H_APP),
     ('s7-offer-c.jpg', 'b6-sent', 782, H_APP),
-    ('s8-claims.jpg', 'claims3', 70, H_APP),
+    ('s7b-v2.jpg', 'v2', 766, H_APP),
+    ('s7b-exec.jpg', 'exec', 1114, H_APP),
+    ('s8-claims.jpg', 'claims3', 186, H_APP),
     ('s8-messages.jpg', 'thread-ana', 222, H_APP),
     ('s9-perms.jpg', 'company2', 1730, H_APP),
     ('s9-team.jpg', 'messages-team2', 160, H_APP),
-    ('s10-wallet-a.jpg', 'wallet2', 70, H_APP),
+    ('s10-wallet-a.jpg', 'wallet2', 118, H_APP),
     ('s10-wallet-b.jpg', 'wallet2', 425, H_APP),
     ('s10-wallet-c.jpg', 'wallet2', 785, H_APP),
 ]
@@ -68,8 +70,16 @@ for f, src, top, h in FRAMES:
 im, d = load('company')
 save(im.crop((round(270 * d), round(96 * d), round(417 * d), round(143 * d))), 's2-status.png')
 
-# PDF-ul real al ofertei (Versiunea 1), randat cu pypdfium2 la 3x: jumatatea de sus a paginii
+# 7b: recenzia 5★ din pagina clientului (mihai, cererea finalizata) + pastila „Finalizată” din fisa firmei
+save(crop('review', 236, 126, x0=16, x1=414), 's7b-review.jpg', q=92)
+im, d = load('done')
+save(im.crop((round(317 * d), round(85 * d), round(414 * d), round(109 * d))), 's7b-done.png')
+
+# PDF-ul real al ofertei (Versiunea 1), randat cu pypdfium2 la 3x: jumatatea de sus a paginii.
+# Statusul brut netradus „· SENT” de langa „Versiunea 1” e acoperit cu fundalul alb al paginii.
 pdf = Image.open(f'{RAW}/offer-v1-p0.png').convert('RGB')
+from PIL import ImageDraw
+ImageDraw.Draw(pdf).rectangle((286, 230, 376, 260), fill=(255, 255, 255))
 top = pdf.crop((0, 0, pdf.width, int(pdf.height * 0.305)))
 save(top.resize((600, round(600 * top.height / top.width)), Image.LANCZOS), 's7-pdf.jpg', q=92)
 

@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="utf-8">
-<title>Cozy Home — Video 2 · Firme de mobilier (9:16, 72 s)</title>
+<title>Cozy Home — Video 2 · Firme de mobilier (9:16, 78 s)</title>
 <link rel="stylesheet" href="../assets/fonts/fonts.local.css">
 <style>
 /* Tokens din apps/frontend/src/app/globals.css (:root, sistemul ATELIER) */
@@ -99,6 +99,11 @@ body{font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased
 #pdfsheet img{display:block;width:600px}
 #pdfsheet .tag{position:absolute;right:16px;top:16px;background:var(--crimson);color:#fff;border-radius:8px;padding:6px 14px;font:700 30px var(--sans);letter-spacing:.06em}
 
+/* ---------- S7b: recenzia reala (pagina clientului) + pastila „Finalizată” (fisa firmei) ---------- */
+#stk7b{position:absolute;left:65px;top:1212px;width:950px;height:302px;z-index:20;opacity:0}
+#stk7b-rev{position:absolute;left:0;top:0;width:950px;border-radius:28px;box-shadow:0 26px 50px -18px rgba(46,33,20,.5),0 0 0 2px #E7E0CF}
+#stk7b-pill{position:absolute;right:24px;top:-38px;width:291px;border-radius:999px;box-shadow:0 10px 22px -10px rgba(46,33,20,.45)}
+
 /* ---------- S11 CTA ---------- */
 #s11-logo{position:absolute;left:0;width:1080px;top:596px;display:flex;justify-content:center;align-items:center;gap:22px}
 #s11-mark{width:150px;height:150px;overflow:visible;flex:none}
@@ -167,6 +172,10 @@ body{font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased
     <h2 class="hl" id="s7-hl">Ofertare rapidă:<br>o singură fișă, <span class="acc">PDF gata.</span></h2>
     <div class="sub" id="s7-sub">până la 3 versiuni · RON/EUR<i class="dim"></i></div>
   </div></section>
+  <section class="scene hs" id="s7b"><div class="xw" id="s7b-x">
+    <h2 class="hl" id="s7b-hl">Versiuni, acceptare,<br>livrare — tot în <span class="acc">fișă.</span></h2>
+    <div class="sub" id="s7b-sub">până la 3 versiuni ·<br>acceptare · livrare<i class="dim"></i></div>
+  </div></section>
   <section class="scene hs" id="s8"><div class="xw" id="s8-x">
     <h2 class="hl" id="s8-hl">Toate preluările și<br>conversațiile, într-un loc.</h2>
   </div></section>
@@ -183,6 +192,7 @@ body{font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased
   <div id="phone"><div class="bez"></div><i class="slit"></i><div class="scr" id="scr"></div></div>
   <div id="ov"></div>
   <img class="stk" id="stk-status" src="../assets/shots/firme/s2-status.png" alt="" style="left:540px;top:1030px;width:441px">
+  <div id="stk7b"><img id="stk7b-rev" src="../assets/shots/firme/s7b-review.jpg" alt=""><img id="stk7b-pill" src="../assets/shots/firme/s7b-done.png" alt=""></div>
   <div id="pdfsheet"><img src="../assets/shots/firme/s7-pdf.jpg" alt=""><span class="tag">PDF</span></div>
 
   <!-- ========== S11 · CTA ========== -->
@@ -213,7 +223,7 @@ body{font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased
 // DECIZIE NECESARĂ: domeniu neconfirmat — cand e gol, CTA-ul arata doar wordmark-ul
 const SITE_URL = '';
 
-const tl = new Timeline({ durationMs: 72000 });
+const tl = new Timeline({ durationMs: 78000 });
 const E = ease;
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -332,28 +342,33 @@ function tap(x, y, t) {
 }
 
 /* ---------- cronologia (secunde) — vezi NOTES.md ---------- */
-// granitele scenelor; tranzitie = fondu incrucisat 0,8 s centrat pe granita [B-0,4 ; B+0,4]
-const B = { 2: 4.4, 3: 10.4, 4: 18.5, 5: 24.4, 6: 30.3, 7: 37.9, 8: 47.5, 9: 53.4, 10: 59.5, 11: 67.5 };
+// granitele scenelor; tranzitie = fondu incrucisat 0,8 s centrat pe granita [B-0,4 ; B+0,4].
+// 7b (ciclul ofertei) a fost adaugata dupa S7: scenele 8–11 sunt decalate cu D = 6 s fata de v2 initial.
+const D = 6;
+const B = { s2: 4.4, s3: 10.4, s4: 18.5, s5: 24.4, s6: 30.3, s7: 37.9, s7b: 47.8, s8: 47.5 + D, s9: 53.4 + D, s10: 59.5 + D, s11: 67.5 + D };
+const SC = ['s2', 's3', 's4', 's5', 's6', 's7', 's7b', 's8', 's9', 's10'];
+const NEXT = (id) => B[id === 's10' ? 's11' : SC[SC.indexOf(id) + 1]];
 const TX = 0.4;
 
 tl.scene('#s1', 0, 4450);
-for (let n = 2; n <= 10; n++) {
-  tl.scene(`#s${n}`, Math.round((B[n] - TX - 0.05) * 1000), Math.round((B[n + 1] + 0.05) * 1000));
-  // titlul intra primul [B-0,1 ; B+0,4] si iese in prima jumatate a tranzitiei urmatoare
-  const t0 = n === 2 ? B[2] : B[n] - 0.1;
-  headlineIn(`#s${n}-hl`, t0, 0.5);
-  const sub = $(`#s${n}-sub`) || $(`#s${n}-sup`);
+for (const id of SC) {
+  const b0 = B[id], b1 = NEXT(id);
+  tl.scene(`#${id}`, Math.round((b0 - TX - 0.05) * 1000), Math.round((b1 + 0.05) * 1000));
+  // titlul intra primul [B-0,15 ; B+0,35] si iese in prima jumatate a tranzitiei urmatoare [B'-0,4 ; B'-0,17]
+  const t0 = id === 's2' ? B.s2 : b0 - 0.15;
+  headlineIn(`#${id}-hl`, t0, 0.5);
+  const sub = $(`#${id}-sub`) || $(`#${id}-sup`);
   if (sub) {
     K(sub, [t0 + 0.12, t0 + 0.5, { o: [0, 1], y: [18, 0] }, E.outCubic]);
     const dim = $('.dim', sub); if (dim) K(dim, [t0 + 0.12, t0 + 0.5, { sx: [0, 1] }, E.inOutCubic]);
   }
-  K(`#s${n}-x`, [B[n + 1] - TX, B[n + 1] - 0.12, { o: [1, 0], y: [0, -30] }, E.inCubic]);
+  K(`#${id}-x`, [b1 - TX, b1 - 0.17, { o: [1, 0], y: [0, -30] }, E.inCubic]);
 }
-tl.scene('#s11', Math.round((B[11] - TX) * 1000), 72100);
+tl.scene('#s11', Math.round((B.s11 - TX) * 1000), 78100);
 
 /* rama de plansa (coltare de alama): doar in hook si la CTA */
 $$('.corner').forEach((c, i) => K(c, [0.15 + i * 0.05, 0.6 + i * 0.05, { o: [0, 1], s: [1.4, 1] }, E.outCubic], [3.9, 4.2, { o: [1, 0] }, E.linear],
-  [B[11] + 0.1 + i * 0.05, B[11] + 0.55 + i * 0.05, { o: [0, 1] }, E.outCubic]));
+  [B.s11 + 0.1 + i * 0.05, B.s11 + 0.55 + i * 0.05, { o: [0, 1] }, E.outCubic]));
 
 /* ================= S1 · HOOK (0–4,4) ================= */
 headlineIn('#s1-hl', 0.0, 0.5, 60);
@@ -369,7 +384,7 @@ K('#s1-phone', [0.6, 1.15, { o: [0, 1], y: [260, 0], r: [8, 3] }, E.outQuart]);
 K('#cut', [3.9, 4.4, { y: [2000, 0] }, E.inOutCubic]);
 
 /* telefonul real: intra dupa titlul scenei 2, iese la CTA */
-K('#phone', [4.85, 5.45, { o: [0, 1], y: [240, 0] }, E.outCubic], [B[11] - TX, B[11] + TX, { o: [1, 0], y: [0, 80] }, E.inOutQuad]);
+K('#phone', [4.85, 5.45, { o: [0, 1], y: [240, 0] }, E.outCubic], [B.s11 - TX, B.s11 + TX, { o: [1, 0], y: [0, 80] }, E.inOutQuad]);
 K('#ov', [4.85, 5.45, { y: [240, 0] }, E.outCubic]);
 
 /* ================= S2 · ÎNSCRIERE & VERIFICARE (4,4–10,4) ================= */
@@ -379,14 +394,14 @@ layer('partners', 's2-partners.jpg', 'hdr-pub.jpg');
 frame('reg', 4.85, 4.85, 7.95, 8.7);
 tap(540, cy(731, 420, false), 7.9);
 // rezultat: cardul real din „Firmele partenere” + pastila reala „Status: Aprobată” din „Firma mea”
-frame('partners', 7.95, 8.7, B[3] - TX, B[3] + TX);
-ring([284, 536, 109, 16], 488, 7.95, 8.7, B[3] - TX, B[3] + TX, { pill: true, pad: 12 });
-K('#stk-status', [7.95, 8.7, { o: [0, 1], s: [0.85, 1] }, E.outBack], [B[3] - TX, B[3] + TX, { o: [1, 0] }, E.inOutQuad]);
+frame('partners', 7.95, 8.7, B.s3 - TX, B.s3 + TX);
+ring([284, 536, 109, 16], 488, 7.95, 8.7, B.s3 - TX, B.s3 + TX, { pill: true, pad: 12 });
+K('#stk-status', [7.95, 8.7, { o: [0, 1], s: [0.85, 1] }, E.outBack], [B.s3 - TX, B.s3 + TX, { o: [1, 0] }, E.inOutQuad]);
 
 /* ================= S3 · CERERI CALIFICATE (10,4–18,5) ================= */
 layer('feedA', 's3-feed-a.jpg', 'hdr-app.jpg');
 layer('feedB', 's3-feed-b.jpg', 'hdr-app.jpg');
-frame('feedA', B[3] - TX, B[3] + TX, 16.05, 16.85);
+frame('feedA', B.s3 - TX, B.s3 + TX, 16.05, 16.85);
 // cuvintele liniei mono aprind, pe rand (cascada 0,25 s), elementul lor de pe card
 const R3 = [[[38, 341, 122, 24], true], [[169, 341, 106, 24], true], [[332, 194, 60, 24], true], [[312, 303, 84, 42], false]];
 R3.forEach(([box, pill], i) => {
@@ -395,86 +410,100 @@ R3.forEach(([box, pill], i) => {
   K(`#m${i + 1} i`, [t, t + 0.3, { o: [0, 1] }, E.outCubic]);
 });
 // reincadrare: mai jos in feed — „Sloturi 2/3” si „Preluată deja de firma ta”
-frame('feedB', 16.05, 16.85, B[4] - TX, B[4] + TX);
+frame('feedB', 16.05, 16.85, B.s4 - TX, B.s4 + TX);
 
 /* ================= S4 · FIȘA CERERII (18,5–24,4) ================= */
 layer('reqA', 's4-req-a.jpg', 'hdr-app.jpg');
 layer('reqB', 's4-req-b.jpg', 'hdr-app.jpg');
-frame('reqA', B[4] - TX, B[4] + TX, 21.9, 22.7);
-frame('reqB', 21.9, 22.7, B[5] - TX, B[5] + TX);
+frame('reqA', B.s4 - TX, B.s4 + TX, 21.9, 22.7);
+frame('reqB', 21.9, 22.7, B.s5 - TX, B.s5 + TX);
 
 /* ================= S5 · PREIEI (24,4–30,3) ================= */
 layer('baie', 's5-baie.jpg', 'hdr-app.jpg');
 layer('feed5', 's5-feed.jpg', 'hdr-app.jpg');
-frame('baie', B[5] - TX, B[5] + TX, 27.85, 28.6);
+frame('baie', B.s5 - TX, B.s5 + TX, 27.85, 28.6);
 tap(cx(357), cy(810, 515), 27.8);                  // „Preia” (preluare reala, 4 credite)
-frame('feed5', 27.85, 28.6, B[6] - TX, B[6] + TX);
-ring([313, 125, 99, 26], 120, 27.85, 28.6, B[6] - TX, B[6], { pad: 5 });           // 196 credite
-ring([312, 333, 84, 44], 120, 27.85, 28.6, B[6] - TX, B[6]);                         // Sloturi 1/3
-ring([198, 402, 195, 24], 120, 27.85, 28.6, B[6] - TX, B[6], { pill: true, pad: 8 }); // Preluată deja de firma ta
+frame('feed5', 27.85, 28.6, B.s6 - TX, B.s6 + TX);
+ring([313, 125, 99, 26], 120, 27.85, 28.6, B.s6 - TX, B.s6, { pad: 5 });           // 196 credite
+ring([312, 333, 84, 44], 120, 27.85, 28.6, B.s6 - TX, B.s6);                         // Sloturi 1/3
+ring([198, 402, 195, 24], 120, 27.85, 28.6, B.s6 - TX, B.s6, { pill: true, pad: 8 }); // Preluată deja de firma ta
 
 /* ================= S6 · FIȘA DE LUCRU (30,3–37,9) ================= */
 layer('workA', 's6-work-a.jpg', 'hdr-app.jpg');
 layer('workA2', 's6-work-a2.jpg', 'hdr-app.jpg');
 layer('clar', 's6-clar.jpg', 'hdr-app.jpg');
-frame('workA', B[6] - TX, B[6] + TX, 33.75, 34.5);
+frame('workA', B.s6 - TX, B.s6 + TX, 33.75, 34.5);
 tap(cx(340), cy(286, 222), 33.7);                  // „Se ocupă” → Cristina Vlad (atribuire reala)
 frame('workA2', 33.75, 34.5, 35.7, 36.5);
-frame('clar', 35.7, 36.5, B[7] - TX, B[7] + TX);   // clarificare reala → „în pauză (clarificare în curs)”
-ring([35, 1859, 302, 40], 1768, 35.7, 36.5, B[7] - TX, B[7], { pad: 10 });
+frame('clar', 35.7, 36.5, B.s7 - TX, B.s7 + TX);   // clarificare reala → „în pauză (clarificare în curs)”
+ring([35, 1859, 302, 40], 1768, 35.7, 36.5, B.s7 - TX, B.s7, { pad: 10 });
 
-/* ================= S7 · OFERTARE RAPIDĂ (37,9–47,5) ================= */
+/* ================= S7 · OFERTARE RAPIDĂ (37,9–47,8) ================= */
 layer('offA', 's7-offer-a.jpg', 'hdr-app.jpg');
 layer('offA2', 's7-offer-a2.jpg', 'hdr-app.jpg');
 layer('offB', 's7-offer-b.jpg', 'hdr-app.jpg');
 layer('offC', 's7-offer-c.jpg', 'hdr-app.jpg');
-frame('offA', B[7] - TX, B[7] + TX, 41.85, 42.15);
-// pretul camerei se tasteaza (in campul real, peste captura goala), apoi captura reala cu totalul calculat
+frame('offA', B.s7 - TX, B.s7 + TX, 41.7, 41.9);
+// A1 (41,3–41,9): pretul camerei se tasteaza in campul real (text suprapus peste captura goala),
+// apoi captura reala cu totalul calculat automat
 const tb = document.createElement('div');
 tb.className = 'tbox';
 Object.assign(tb.style, { left: '602px', top: '1100px', width: '360px', height: '93px' });
 tb.innerHTML = '<span id="tbt"></span><i class="car" id="tbc"></i>';
 $('#ov').appendChild(tb);
-K(tb, [41.3, 41.36, { o: [0, 1] }, E.linear], [41.85, 42.15, { o: [1, 0] }, E.inOutQuad]);
+K(tb, [41.3, 41.33, { o: [0, 1] }, E.linear], [41.7, 41.9, { o: [1, 0] }, E.inOutQuad]);
 tap(680, 1146, 41.3);
 tl.always((tms) => {
   const t = tms / 1000, txt = '11800';
-  const n = Math.round(clamp01((t - 41.36) / 0.45) * txt.length);
+  const n = Math.round(clamp01((t - 41.33) / 0.33) * txt.length);
   $('#tbt').textContent = txt.slice(0, n);
-  $('#tbc').style.opacity = t < 41.36 || Math.floor((t - 41.36) / 0.25) % 2 === 0 ? 1 : 0;
-  $('#tbc').style.display = t >= 41.82 ? 'none' : 'inline-block';
+  $('#tbc').style.opacity = t < 41.33 || Math.floor((t - 41.33) / 0.2) % 2 === 0 ? 1 : 0;
+  $('#tbc').style.display = t >= 41.68 ? 'none' : 'inline-block';
 });
-frame('offA2', 41.85, 42.15, 43.15, 43.95);
-ring([322, 972, 66, 30], 790, 41.85, 42.15, 43.15, 43.55, { pad: 10 });   // totalul se aduna singur: 11.800
-frame('offB', 43.15, 43.95, 45.0, 45.75);
-tap(cx(72), cy(1393, 1180), 44.95);                // „Trimite” (oferta reala, Versiunea 1)
-frame('offC', 45.0, 45.75, B[8] - TX, B[8] + TX);
-ring([298, 806, 99, 26], 782, 45.0, 45.75, B[8] - TX, B[8], { pad: 10 });  // „Descarcă PDF”
-K('#pdfsheet', [45.25, 45.95, { o: [0, 1], y: [120, 0], r: [4, -2] }, E.outCubic], [B[8] - TX, B[8], { o: [1, 0] }, E.inCubic]);
+frame('offA2', 41.7, 41.9, 43.4, 44.2);
+ring([322, 972, 66, 30], 790, 41.7, 41.9, 43.4, 43.8, { pad: 10 });   // totalul se aduna singur: 11.800
+// A2 (43,4–44,2): reincadrare pe restul fisei completate + „Trimite”
+frame('offB', 43.4, 44.2, 45.52, 46.1);
+// A3 (45,5–46,37): „Trimite” (oferta reala, Versiunea 1) → cardul ofertei + foaia PDF (cascada 0,25 s)
+tap(cx(72), cy(1393, 1180), 45.5);
+frame('offC', 45.52, 46.1, B.s7b - TX, B.s7b + TX);
+ring([298, 806, 99, 26], 782, 45.52, 46.1, B.s7b - TX, B.s7b, { pad: 10 });  // „Descarcă PDF”
+K('#pdfsheet', [45.77, 46.37, { o: [0, 1], y: [120, 0], r: [4, -2] }, E.outCubic], [B.s7b - TX, B.s7b + TX, { o: [1, 0] }, E.inOutQuad]);
 
-/* ================= S8 · PRELUĂRI & MESAGERIE (47,5–53,4) ================= */
+/* ================= S7b · VERSIUNI, ACCEPTARE, LIVRARE (47,8–53,5) ================= */
+layer('v2', 's7b-v2.jpg', 'hdr-app.jpg');       // 6b85f005: baia Elenei, Atelier Nord „Versiunea 2 · Trimisă”
+layer('exec', 's7b-exec.jpg', 'hdr-app.jpg');   // 34be4ac5: „Clientul a acceptat oferta.” + „Marchează ca livrată”
+frame('v2', B.s7b - TX, B.s7b + TX, 51.15, 51.75);
+ring([37, 808, 121, 20], 766, B.s7b - TX, B.s7b + TX, 51.15, 51.55, { pad: 9 });
+// A1 (51,15–52,0): reincadrare pe comanda acceptata, apoi (cascada 0,25 s) finalizarea: pastila reala
+// „Finalizată” (e797deb9) + recenzia reala 5★ lasata de client pentru aceeasi lucrare
+frame('exec', 51.15, 51.75, B.s8 - TX, B.s8 + TX);
+ring([37, 1121, 182, 24], 1114, 51.15, 51.75, B.s8 - TX, B.s8, { pad: 8 });
+K('#stk7b', [51.4, 52.0, { o: [0, 1], y: [60, 0] }, E.outCubic], [B.s8 - TX, B.s8 + TX, { o: [1, 0] }, E.inOutQuad]);
+
+/* ================= S8 · PRELUĂRI & MESAGERIE (53,5–59,4) ================= */
 layer('claims', 's8-claims.jpg', 'hdr-app.jpg');
 layer('msgs', 's8-messages.jpg', 'hdr-app.jpg');
-frame('claims', B[8] - TX, B[8] + TX, 50.9, 51.7);
-frame('msgs', 50.9, 51.7, B[9] - TX, B[9] + TX);
+frame('claims', B.s8 - TX, B.s8 + TX, 50.9 + D, 51.7 + D);
+frame('msgs', 50.9 + D, 51.7 + D, B.s9 - TX, B.s9 + TX);
 
-/* ================= S9 · ECHIPĂ (53,4–59,5) ================= */
+/* ================= S9 · ECHIPĂ (59,4–65,5) ================= */
 layer('perms', 's9-perms.jpg', 'hdr-app.jpg');
 layer('team', 's9-team.jpg', 'hdr-app.jpg');
-frame('perms', B[9] - TX, B[9] + TX, 56.8, 57.6);
-frame('team', 56.8, 57.6, B[10] - TX, B[10] + TX);
+frame('perms', B.s9 - TX, B.s9 + TX, 56.8 + D, 57.6 + D);
+frame('team', 56.8 + D, 57.6 + D, B.s10 - TX, B.s10 + TX);
 
-/* ================= S10 · PORTOFEL & PLANURI (59,5–67,5) ================= */
+/* ================= S10 · PORTOFEL & PLANURI (65,5–73,5) ================= */
 layer('walA', 's10-wallet-a.jpg', 'hdr-app.jpg');
 layer('walB', 's10-wallet-b.jpg', 'hdr-app.jpg');
 layer('walC', 's10-wallet-c.jpg', 'hdr-app.jpg');
-frame('walA', B[10] - TX, B[10] + TX, 62.9, 63.7);
-frame('walB', 62.9, 63.7, 65.0, 65.8);
-frame('walC', 65.0, 65.8, B[11] - TX, B[11] + TX);
-ring([33, 1061, 364, 42], 785, 65.0, 65.8, B[11] - TX, B[11], { pad: 6 });  // „Plată securizată cu cardul (Stripe)”
+frame('walA', B.s10 - TX, B.s10 + TX, 62.9 + D, 63.7 + D);
+frame('walB', 62.9 + D, 63.7 + D, 65.0 + D, 65.8 + D);
+frame('walC', 65.0 + D, 65.8 + D, B.s11 - TX, B.s11 + TX);
+ring([33, 1061, 364, 42], 785, 65.0 + D, 65.8 + D, B.s11 - TX, B.s11, { pad: 6 });  // „Plată securizată cu cardul (Stripe)”
 
-/* ================= S11 · CTA (67,5–72) ================= */
-const C0 = B[11] + 0.1;
+/* ================= S11 · CTA (73,5–78) ================= */
+const C0 = B.s11 + 0.1;
 $$('#s11-mark .mk').forEach((p, i) => K(p, [C0 + i * 0.07, C0 + 0.45 + i * 0.07, { dash: [1, 0] }, E.inOutCubic]));
 K('#s11-mark', [C0, C0 + 0.45, { o: [0, 1], s: [0.9, 1] }, E.outCubic]);
 K('#s11-word', [C0 + 0.1, C0 + 0.55, { o: [0, 1], x: [-20, 0] }, E.outCubic]);
@@ -482,14 +511,14 @@ K('#s11-for', [C0 + 0.35, C0 + 0.8, { o: [0, 1], y: [24, 0] }, E.outCubic]);
 K('#s11-btn', [C0 + 0.6, C0 + 1.05, { o: [0, 1], y: [40, 0], s: [0.9, 1] }, E.outBack]);
 $$('#s11-trust .tl9').forEach((r, i) => K(r, [C0 + 0.85 + i * 0.25, C0 + 1.25 + i * 0.25, { o: [0, 1], x: [-24, 0] }, E.outCubic]));
 if (SITE_URL) { $('#s11-url').textContent = SITE_URL; K('#s11-url', [C0 + 1.6, C0 + 2.0, { o: [0, 1] }, E.outCubic]); } else $('#s11-url').style.display = 'none';
-K('#s11-shine', [70.2, 70.8, { x: [-260, 760], r: [12, 12] }, E.inOutCubic]);
-K('#fadeout', [71.8, 72.0, { o: [0, 1] }, E.inCubic]);
+K('#s11-shine', [70.2 + D, 70.8 + D, { x: [-260, 760], r: [12, 12] }, E.inOutCubic]);
+K('#fadeout', [71.8 + D, 72.0 + D, { o: [0, 1] }, E.inCubic]);
 
 /* ---------- asezarea liniilor de sprijin sub titlu (layout static, masurat o data) ---------- */
 function placeSubs() {
   const BOTTOM = 606;
-  for (let n = 2; n <= 10; n++) {
-    const hl = $(`#s${n}-hl`), sub = $(`#s${n}-sub`) || $(`#s${n}-sup`);
+  for (const id of SC) {
+    const hl = $(`#${id}-hl`), sub = $(`#${id}-sub`) || $(`#${id}-sup`);
     const hh = hl.offsetHeight, sh = sub ? sub.offsetHeight + 14 : 0;
     const top = Math.max(252, BOTTOM - hh - sh);
     hl.style.top = top + 'px';

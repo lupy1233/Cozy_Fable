@@ -1,20 +1,21 @@
 # Video 2 — FIRME DE MOBILIER (v2) · note de producție
 
-Livrabil: `marketing/videos/out/cozy-home-firme-9x16.mp4` — 1080×1920, 30 fps, **72,00 s** (2160 cadre),
-H.264 High (yuv420p) + pistă AAC mută, 10,4 MB. Sursa: `firme/index.html` (cronologie deterministă, `lib/timeline.js`).
-Înlocuiește v1 (42 s). Scena cu formularul white-label (a fost doar un test) a fost scoasă complet; logourile ei și
+Livrabil: `marketing/videos/out/cozy-home-firme-9x16.mp4` — 1080×1920, 30 fps, **78,00 s** (2340 cadre),
+H.264 High (yuv420p) + pistă AAC mută, ~11 MB. Sursa: `firme/index.html` (cronologie deterministă, `lib/timeline.js`).
+Înlocuiește v1 (42 s). Durata a crescut de la 72 la 78 s prin decizia coordonatorului (27.09): scena **7b**
+„ciclul ofertei” (+6 s) după scena 7; scenele 8–11 sunt decalate cu 6 s, cu ritmul intern neschimbat. Scena cu formularul white-label (a fost doar un test) a fost scoasă complet; logourile ei și
 randarea 3D din v1 au fost șterse din `assets/shots/firme/`.
 
 ```
 cd marketing/videos
-node render.mjs firme --out out/cozy-home-firme-9x16.mp4                 # ~10,5 min (2160 cadre)
+node render.mjs firme --out out/cozy-home-firme-9x16.mp4                 # ~11,5 min (2340 cadre)
 node render.mjs firme --stills-only --contact 24 --stills 9.2,15.2,29.2   # QA
 ```
 
 Capturi (Playwright, owner.a@demo.ro = Andrei Albu / Atelier Nord, sesiune refolosită prin
 `demo-env/tools/login.mjs`): `firme/_tools/cap-a.mjs` (fără modificări de stare), `cap-b.mjs`
 (fișa de lucru 861163e7: atribuire, clarificare, ofertă + PDF), `cap-c.mjs` (chat de echipă, „Preia”
-real, capturile de după). Capturile brute (PNG, DPR 3) stau în afara repo-ului (`RAW_DIR`, implicit scratchpad-ul sesiunii); `_tools/build-assets.py`
+real, capturile de după), `cap-d.mjs` (recenzia 5★ pentru 7b, doar citire). Capturile brute (PNG, DPR 3) stau în afara repo-ului (`RAW_DIR`, implicit scratchpad-ul sesiunii); `_tools/build-assets.py`
 decupează cadrele folosite (JPEG q90 4:4:4, 1000 px lățime) în `assets/shots/firme/` (**~2 MB** în total).
 `_tools/preview.py` = segmente de previzualizare, `_tools/cap-lib.mjs` = utilitare comune.
 
@@ -38,7 +39,7 @@ decupează cadrele folosite (JPEG q90 4:4:4, 1000 px lățime) în `assets/shots
 ## Cronologia finală (secunde)
 
 Tranziții: fondu încrucișat 0,8 s centrat pe graniță [B−0,4; B+0,4]; titlul vechi dispare în
-[B−0,4; B−0,12], cel nou intră în [B−0,1; B+0,4] (cuvinte în cascadă). „Acțiune” = atingere/tastare/
+[B−0,4; B−0,17], cel nou intră în [B−0,15; B+0,35] (cuvinte în cascadă). „Acțiune” = atingere/tastare/
 reîncadrare (0,6–0,9 s); după fiecare, 1,0–1,5 s în care nimic nu se mișcă.
 
 | # | Interval | Text pe ecran | Ce se vede (real / recreat) | Acțiuni (t) · pauze |
@@ -49,30 +50,36 @@ reîncadrare (0,6–0,9 s); după fiecare, 1,0–1,5 s în care nimic nu se miș
 | 4 | 18,5–24,4 | **Vezi exact ce vrea clientul, înainte să preiei.** · `contact vizibil după preluare` | REAL `/ro/marketplace/ce41d9a4…`: fișa (descriere, Mărime: Mare · 25 credite, buget, 8.8 km, termen, Sloturi 0/3) → camera „01 Bucătărie 3.6 × 2.4 × 2.6 m”, „Corpuri și materiale” (MDF vopsit, Gola, Push, Aventos, insulă cu sertare). | reîncadrare 21,9–22,7 · pauză 1,3 |
 | 5 | 24,4–30,3 | **Plătești credite doar pentru proiectele pe care le preiei.** · *Cel mult 3 firme pe cerere.* | REAL `/ro/marketplace/336fb0e8…`: „01 Baie”, corpuri, „Cost: 4 credite · 200 credite” + **Preia** → REAL (după preluarea făcută de mine) feed: „196 credite”, „Sloturi 1/3”, „PRELUATĂ DEJA DE FIRMA TA” (inele). | atingere „Preia” 27,8 → 27,85–28,6 · pauză 1,3 |
 | 6 | 30,3–37,9 | **Fișă de lucru cu tot ce ai nevoie.** · `SLA · client · chat · fișiere` | REAL fișa 861163e7: WorkBar „Se ocupă: Neatribuit” (chenar chihlimbar), SLA, „Bugetul clientului 12.000 lei”, „Clientul tău Ana Popescu” → REAL „Se ocupă: Cristina Vlad” → REAL cardul „SLA și stare”: „Termen SLA … · în pauză (clarificare în curs)”, clarificarea „Bună ziua! Tavanul are 2,60 m pe toată lungimea peretelui? · Se așteaptă răspunsul clientului”. | atingere select 33,7 → 33,75–34,5 · pauză 1,2 · reîncadrare 35,7–36,5 · pauză 1,0 |
-| 7 | 37,9–47,5 | **Ofertare rapidă: o singură fișă, PDF gata.** · `până la 3 versiuni · RON/EUR` | REAL builder „Trimite oferta” (preț pe cameră, Total —, Preț, Monedă RON) → se tastează „11800” (text suprapus peste câmpul real gol, DM Sans, aceeași poziție) → REAL: Total 11.800, preț blocat pe sumă → REAL: garanție 24 de luni, valabilitate 14, descriere, **Trimite** → REAL cardul „Atelier Nord · Versiunea 1 · Trimisă · Descarcă PDF”, 11.800,00 RON ≈ 2.269,23 EUR, 5 săptămâni + foaia **PDF reală** generată de backend (randată cu pypdfium2). | atingere+tastare 41,3–42,15 · pauză 1,0 · reîncadrare 43,15–43,95 · pauză 1,0 · atingere „Trimite” 44,95 → 45,0–45,75 (+PDF în cascadă 45,25) · pauză 1,15 |
-| 8 | 47,5–53,4 | **Toate preluările și conversațiile, într-un loc.** | REAL `/ro/marketplace/claims` („Preluările mele”: baia nouă Mică · 4 credite, Dormitor → Cristina Vlad, „Neatribuită”) → REAL `/ro/marketplace/messages`, conversația „Bucătărie albă cu blat de stejar · București” (OFERTĂ TRIMISĂ, „Deschide fișa de lucru”, mesajele Andrei ↔ Ana). | reîncadrare 50,9–51,7 · pauză 1,3 |
-| 9 | 53,4–59,5 | **Lucrezi în echipă, cu roluri și permisiuni.** · `chat intern, invizibil clientului` | REAL „Firma mea” → „Permisiuni pe câmpurile ofertei” (Proprietar / Manager / Angajat de încredere × Preț, Termen, Dată, Garanție) → REAL tab „Echipa firmei”: „Conversație internă — o văd doar membrii firmei tale. Clienții nu au acces aici.” + 2 mesaje reale Andrei Albu ↔ Cristina Vlad. | reîncadrare 56,8–57,6 · pauză 1,5 |
-| 10 | 59,5–67,5 | **Abonament flexibil. Credite doar când preiei.** · `Stripe · factură automată` | REAL `/ro/marketplace/wallet`: 196 Disponibile · 4 Rezervate · 196 Sold liber; „Abonament · GOLD · ACTIV · Acces la cererile noi după 30 min” → Planuri SILVER / GOLD (Planul tău) / PLATINUM cu accesul (60 min / 30 min / imediat) → „Cumpără credite · … Plată securizată cu cardul (Stripe); prețurile includ TVA.” (inel). | reîncadrări 62,9–63,7 și 65,0–65,8 · pauze 1,3 / 1,3 |
-| 11 | 67,5–72,0 | **Cozy Home** · *pentru firme* · **Înscrie-ți firma** · Verificare gratuită / Cereri calificate / Fără spam | Lockup-ul real (path-urile din `logo.tsx`), buton nuc cu reflex de alamă; ultimele 0,2 s → ivoriu (buclă curată). `SITE_URL` gol → fără URL. | cascadă 67,6–68,85 · reflex 70,2 |
+| 7 | 37,9–47,8 | **Ofertare rapidă: o singură fișă, PDF gata.** · `până la 3 versiuni · RON/EUR` | REAL builder „Trimite oferta” (preț pe cameră, Total —, Preț, Monedă RON) → se tastează „11800” (text suprapus peste câmpul real gol, DM Sans, aceeași poziție) → REAL: Total 11.800, preț blocat pe sumă → REAL: garanție 24 de luni, valabilitate 14, descriere, **Trimite** → REAL cardul „Atelier Nord · Versiunea 1 · Trimisă · Descarcă PDF”, 11.800,00 RON ≈ 2.269,23 EUR, 5 săptămâni + foaia **PDF reală** generată de backend (randată cu pypdfium2; statusul netradus „· SENT” acoperit cu alb). | atingere+tastare 41,3–41,9 · pauză 1,5 · reîncadrare 43,4–44,2 · pauză 1,0 · atingere „Trimite” 45,5 → 45,52–46,1 (+PDF în cascadă 45,77–46,37) · pauză 1,0 |
+| 7b | 47,8–53,5 | **Versiuni, acceptare, livrare — tot în fișă.** · `până la 3 versiuni · acceptare · livrare` (2 rânduri) | REAL `/ro/marketplace/claims/6b85f005…` (baia Elenei): cardul „Atelier Nord · **Versiunea 2** · Trimisă”, 9.800 RON ≈ 1.884,62 EUR, proiectare 1.200 RON, 35 zile, 24 luni, „Varianta 2: … push-to-open Blum…” (inel pe „Versiunea 2 · Trimisă”) → REAL `…/34be4ac5…`: „**Clientul a acceptat oferta.**” (inel) + butonul „**Marchează ca livrată**” → în cascadă (0,25 s): pastila REALĂ „**Finalizată**” din `…/e797deb9…` + recenzia REALĂ 5★ a aceleiași lucrări („Bucătăria a ieșit exact ca în randare… Recomand Atelier Nord cu toată încrederea!”) — decupată din pagina clientului (Mihai, `/ro/requests/5dcd35ab…/offers`), singurul loc unde aplicația afișează recenzia. | titlu 47,65–48,15 · reîncadrare 51,15–51,75 + autocolant 51,4–52,0 · pauză 1,1 |
+| 8 | 53,5–59,4 | **Toate preluările și conversațiile, într-un loc.** | REAL `/ro/marketplace/claims` (tabelul „Preluările mele”, cadrul începe la antetul tabelului ca să nu apară linkul „← ← Marketplace”: baia nouă Mică · 4 credite, Dormitor → Cristina Vlad, „Neatribuită”) → REAL `/ro/marketplace/messages`, conversația „Bucătărie albă cu blat de stejar · București” (OFERTĂ TRIMISĂ, „Deschide fișa de lucru”, mesajele Andrei ↔ Ana). | reîncadrare 56,9–57,7 · pauză 1,3 |
+| 9 | 59,4–65,5 | **Lucrezi în echipă, cu roluri și permisiuni.** · `chat intern, invizibil clientului` | REAL „Firma mea” → „Permisiuni pe câmpurile ofertei” (Proprietar / Manager / Angajat de încredere × Preț, Termen, Dată, Garanție) → REAL tab „Echipa firmei”: „Conversație internă — o văd doar membrii firmei tale. Clienții nu au acces aici.” + 2 mesaje reale Andrei Albu ↔ Cristina Vlad. | reîncadrare 62,8–63,6 · pauză 1,5 |
+| 10 | 65,5–73,5 | **Abonament flexibil. Credite doar când preiei.** · `Stripe · factură automată` | REAL `/ro/marketplace/wallet` (cadrul începe la cardul „Portofel de credite”, fără linkul „← ← Marketplace”): 196 Disponibile · 4 Rezervate · 196 Sold liber; „Abonament · GOLD · ACTIV · Acces la cererile noi după 30 min” → Planuri SILVER / GOLD (Planul tău) / PLATINUM cu accesul (60 min / 30 min / imediat) → „Cumpără credite · … Plată securizată cu cardul (Stripe); prețurile includ TVA.” (inel). | reîncadrări 68,9–69,7 și 71,0–71,8 · pauze 1,3 / 1,3 |
+| 11 | 73,5–78,0 | **Cozy Home** · *pentru firme* · **Înscrie-ți firma** · Verificare gratuită / Cereri calificate / Fără spam | Lockup-ul real (path-urile din `logo.tsx`), buton nuc cu reflex de alamă; ultimele 0,2 s → ivoriu (buclă curată). `SITE_URL` gol → fără URL. | cascadă 73,6–74,85 · reflex 76,2 |
 
-Verificare „Ritm”: titlul stă ≥ 3,0 s înainte de prima acțiune în fiecare scenă (4,9→7,9; 10,8→13,8;
-18,9→21,9; 24,8→27,8; 30,7→33,7; 38,3→41,3; 47,9→50,9; 53,8→56,8; 59,9→62,9); acțiunile 0,75–0,85 s;
-pauze 1,0–1,5 s; tranziții 0,8 s; un singur element în mișcare (inelele/autocolantele/PDF-ul apar odată
-cu fondul încrucișat sau în cascadă de 0,25 s); fără panoramări; fiecare text ≥ 2,5 s (cele mai scurte:
-foaia PDF 3 din hook 1,65→~4,15 s și cadrul cu totalul tastat din S7, 41,85→43,95 s ≈ 2,1 s — acesta e
-același cadru cu cel dinainte, cu o singură valoare schimbată). Abaterile de la granițele din PLAN sunt ≤ 0,5 s
-(S2 începe la 4,4; S3 se termină la 18,5; S7 37,9–47,5; S9 se termină la 59,5; CTA începe la 67,5).
+Verificare „Ritm”: titlul stă ≥ 3,0 s înainte de prima acțiune (titlu complet → prima atingere/reîncadrare:
+4,9→7,9; 10,75→13,8; 18,85→21,9; 24,75→27,8; 30,65→33,7; 38,25→41,3; 48,15→51,15; 53,85→56,9; 59,75→62,8;
+65,85→68,9); acțiunile 0,6–0,85 s; pauzele dintre acțiuni 1,0–1,5 s (măsurate până la apariția indicatorului
+de atingere); tranziții 0,8 s; un singur element în mișcare (inelele apar odată cu fondul încrucișat; PDF-ul
+din S7 și autocolantul din 7b vin în cascadă la 0,25 s); fără panoramări. Fiecare stare cu text stă ≥ 2,5 s
+de la apariție până dispare complet (cele mai scurte: totalul „11.800” din S7 41,7→44,2 = 2,5 s; foaia PDF (ilustrația
+documentului, textul ei nu e de citit) 45,77→48,2 ≈ 2,4 s; autocolantul „Finalizată + recenzie” din 7b 51,4→53,9 = 2,5 s).
+Față de PLAN (72 s): S2–S7 rămân în ±0,5 s (S2 începe la 4,4; S3 se termină la 18,5; S7 se termină la 47,8);
+de la 7b încolo cronologia urmează decizia coordonatorului (+6 s, total 78 s).
 
 ## Real vs. recreat
 
-- **Real (capturat din stack-ul local)**: toate ecranele de firmă din scenele 2–10 (22 de cadre din 18 capturi),
-  pastila „Status: Aprobată”, PDF-ul ofertei (fișierul generat de backend la „Descarcă PDF”).
+- **Real (capturat din stack-ul local)**: toate ecranele de firmă din scenele 2–10 (24 de cadre din 21 de capturi),
+  pastila „Status: Aprobată”, pastila „Finalizată”, PDF-ul ofertei (fișierul generat de backend la „Descarcă PDF”),
+  recenzia 5★ (pagina clientului Mihai — aplicația nu afișează recenzia în fișa firmei).
 - **Recreat**: recuzita din hook (foi PDF, chat generic „Ana M.”), CTA-ul, indicatorul de atingere,
   inelele de alamă, textul „11800” în timpul tastării (0,45 s, peste câmpul gol real; apoi fondu în
   captura reală cu valoarea tastată de Playwright).
 - **Mascat la captură**: e-mailurile de login `…@demo.ro` (doar subșirul, blur 6 px — cardul clientului,
   echipa); **prețurile planurilor** Silver/Gold/Platinum (rândurile de preț au `display:none` în captură,
-  regula din PLAN). Telefonul și adresa clientei (Ana Popescu, 0722 481 305, Str. Ion Câmpineanu 18) sunt
+  regula din PLAN). Pe foaia PDF, statusul brut netradus „· SENT” e acoperit cu alb (cerința coordonatorului).
+  Cadrele S8 și S10 încep sub linkul aplicației „← ← Marketplace” (săgeată dublă, bug de afișare).
+  Telefonul și adresa clientei (Ana Popescu, 0722 481 305, Str. Ion Câmpineanu 18) sunt
   date fictive din seed.
 
 ## Modificări făcute în DB-ul demo (nu am rulat reset-db.sh)
@@ -89,6 +96,10 @@ același cadru cu cel dinainte, cu o singură valoare schimbată). Abaterile de 
 5. **„Preia” real** pe `336fb0e8…` (Mobilier baie suspendat · București, clienta Sorina Matei): slot nou
    `cb72f0b5-01c3-4f2b-9cac-4bbc15a26149`, 4 credite rezervate → portofel 196 / 4 / 196, cererea 1/3.
 6. Conversația cu Ana (Bucătărie albă) a fost deschisă → marcată citită pentru owner.a.
+7. Pentru 7b: un login nou ca `mihai.ionescu@demo.ro` într-un context separat (fără a atinge
+   `demo-env/data/auth/mihai…json`, folosit de agentul „clienți”), doar citire pe `/ro/requests/5dcd35ab…/offers`,
+   apoi logout. Nicio modificare de date. Claim-urile 6b85f005 / 34be4ac5 / e797deb9 sunt doar citite
+   („Marchează ca livrată” NU a fost apăsat — ar fi schimbat cererea Anei, filmată de agentul „clienți”).
 Toate se anulează cu `demo-env/reset-db.sh` (după ce ambii agenți au terminat).
 
 ## Abateri de la PLAN / brief (și de ce)
@@ -96,10 +107,11 @@ Toate se anulează cu `demo-env/reset-db.sh` (după ce ambii agenți au terminat
 1. **Ritmul decide ce încape.** Cu regulile din „Ritm” (3 s de titlu, acțiune 0,6–0,9 s + 1,0–1,5 s pauză,
    fondu 0,8 s) o scenă de 6 s are loc pentru o singură acțiune, una de 8 s pentru două, S7 (9,6 s) pentru
    trei. De aceea:
-   - **S7 nu mai arată „Versiunea 2 → Clientul a acceptat oferta. → Marchează ca livrată → Finalizată”**.
-     Capturile reale există (`6b85f005` Versiunea 2 · Trimisă, `34be4ac5` „Clientul a acceptat oferta.” +
-     „Marchează ca livrată”, `e797deb9` FINALIZATĂ), dar ar fi cerut încă ~4 s. „până la 3 versiuni” rămâne
-     doar în linia mono. Vezi întrebarea 2.
+   - **Ciclul ofertei** (Versiunea 2 → acceptată → livrată → finalizată) nu încăpea în S7 → rezolvat prin
+     scena **7b** (+6 s, decizia coordonatorului). În 6 s regulile permit o singură acțiune după cele 3 s de
+     titlu, deci „acceptată + Marchează ca livrată” și „Finalizată + recenzia 5★” apar în aceeași acțiune:
+     reîncadrare + autocolant în cascadă (0,25 s). Atingerea pe „Marchează ca livrată” nu e arătată (butonul
+     e vizibil). Pentru asta S7 a fost strâns la minimul regulilor (se termină la 47,8 în loc de 47,5).
    - **S2** nu mai arată formularul de onboarding „Înregistrează firma / Trimite spre verificare” (l-am
      capturat real, forțând în browser 404 pe `GET /companies/me` pentru owner.a — în DB nu există cont de
      firmă fără firmă — dar formularul are 450 px CSS, nu încape cu butonul în fereastră). Înscrierea e
@@ -133,7 +145,9 @@ Toate se anulează cu `demo-env/reset-db.sh` (după ce ambii agenți au terminat
 
 ## Probleme observate în aplicație (nu le-am reparat — în afara zonei mele)
 
-- PDF-ul ofertei afișează statusul brut în engleză: „Versiunea 1 · **SENT**” (enum netradus în șablon).
+- PDF-ul ofertei afișează statusul brut în engleză: „Versiunea 1 · **SENT**” (enum netradus în șablon) — acoperit în video.
+- Linkurile „înapoi” afișează săgeată dublă: „← ← Marketplace” (textul din ro.json conține deja „←”).
+- Fișa firmei arată „Ofertă expirată” sub o ofertă acceptată și butonul „Marchează ca livrată” și pe o preluare finalizată (e797deb9); cadrele din 7b le evită.
 - Fișa de lucru: sub data SLA scrie „chiar acum” lângă o dată viitoare (deja notat în DEMO-ENV §10) — se
   vede în S6.
 - `input[type=date]` din builder apare „mm/dd/yyyy” în Chromium headless chiar cu `--lang=ro-RO`; cadrele
@@ -142,9 +156,8 @@ Toate se anulează cu `demo-env/reset-db.sh` (după ce ambii agenți au terminat
 ## Decizii necesare / întrebări deschise
 
 1. **DECIZIE NECESARĂ: domeniul de la CTA** — `const SITE_URL = ''` în `index.html`; gol = doar wordmark.
-2. **Ciclul ofertei (Versiunea 2 → acceptată → livrată → finalizată)**: nu încape în 72 s cu ritmul cerut.
-   Variante: (a) +6 s o scenă 7b dedicată (clip de 78 s); (b) scoaterea S8 și folosirea timpului pentru 7b;
-   (c) un clip scurt separat „Ofertare rapidă”. Capturile reale sunt pregătite (`cap-a.mjs v2 exec done`).
+2. ~~Ciclul ofertei~~ — rezolvat: scena 7b, clip de 78 s (decizia coordonatorului, 27.09).
+   Rămâne de confirmat dacă recenzia (vizibilă doar clientului în aplicație) e în regulă într-un clip pentru firme.
 3. **3D / inspirație în fișa cererii (S4)**: dacă sunt importante, e nevoie de o cerere în raza lui
    Atelier Nord publicată prin wizard cu o piesă configurată 3D și pini atașați (nu există în seed).
 4. **Etichetele mono de 10 px** ale aplicației ies la ~25 px în video; dacă 30 px e strict și pentru ele,
