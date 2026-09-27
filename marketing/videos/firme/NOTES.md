@@ -1,7 +1,7 @@
 # Video 2 — FIRME DE MOBILIER (v2) · note de producție
 
 Livrabil: `marketing/videos/out/cozy-home-firme-9x16.mp4` — 1080×1920, 30 fps, **78,00 s** (2340 cadre),
-H.264 High (yuv420p) + pistă AAC mută, ~11 MB. Sursa: `firme/index.html` (cronologie deterministă, `lib/timeline.js`).
+H.264 High (yuv420p) + pistă AAC mută, 11,6 MB (verificat cu ffmpeg: 00:01:18.00, decodare fără erori). Sursa: `firme/index.html` (cronologie deterministă, `lib/timeline.js`).
 Înlocuiește v1 (42 s). Durata a crescut de la 72 la 78 s prin decizia coordonatorului (27.09): scena **7b**
 „ciclul ofertei” (+6 s) după scena 7; scenele 8–11 sunt decalate cu 6 s, cu ritmul intern neschimbat. Scena cu formularul white-label (a fost doar un test) a fost scoasă complet; logourile ei și
 randarea 3D din v1 au fost șterse din `assets/shots/firme/`.
