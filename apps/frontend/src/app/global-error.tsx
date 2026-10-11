@@ -1,9 +1,17 @@
 'use client';
 
+import { useEffect } from 'react';
+import { reportClientError } from '@/lib/monitoring';
+
 // Ultimul plasa de siguranta: eroare in [locale]/layout.tsx insusi (fonturi,
 // mesaje, Providers). Se randeaza in locul intregului document, deci trebuie
 // sa aiba html/body proprii; fara i18n (provider-ul a cazut) — bilingv, minimal.
-export default function GlobalError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  // E-admin-platform-8: raportat in trackerul de erori (daca e configurat)
+  useEffect(() => {
+    reportClientError(error, 'global');
+  }, [error]);
+
   return (
     <html lang="ro">
       <body

@@ -1,14 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CircleUserRound, KeyRound, LogOut } from 'lucide-react';
-import { Link, usePathname, useRouter } from '@/i18n/routing';
-import { useLogout, useMe } from '@/hooks/use-auth';
+import { Link, usePathname } from '@/i18n/routing';
+import { useSessionRole } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { CozyHomeLogo } from '@/components/brand/logo';
-import { Button } from '@/components/ui/button';
-import { NotificationBell } from './notification-bell';
+import { AccountMenu } from './account-menu';
+import { BellPlaceholder, NotificationBell } from './notification-bell';
 import { LangSwitch } from './lang-switch';
 import { MobileNav, activeHref } from './mobile-nav';
 
@@ -43,45 +41,19 @@ const HOME_BY_ROLE: Record<string, string> = {
 // ca headerul sa nu "sara" la trecerea landing ↔ cont. Cele 6 linkuri ale
 // firmei + lang + clopotel + meniul de cont incap de la 1024px (~920px RO)
 // doar pentru ca eticheta rolului din butonul de cont apare abia de la xl.
+// Rolul vine din indiciul de sesiune (cookie mm_session, randat pe server) cat useMe e pending,
+// deci navigatia rolului apare de la primul paint, fara saltul „header minimal → meniu complet".
 export function AppHeader() {
   const t = useTranslations('Nav');
-  const ta = useTranslations('Auth');
-  const router = useRouter();
   const pathname = usePathname();
-  const me = useMe();
-  const logout = useLogout();
+  const { role, user } = useSessionRole();
 
-  const links = me.data ? (NAV_BY_ROLE[me.data.role] ?? []) : [];
-  const homeHref = me.data ? (HOME_BY_ROLE[me.data.role] ?? '/') : '/';
+  const links = role ? (NAV_BY_ROLE[role] ?? []) : [];
+  const homeHref = role ? (HOME_BY_ROLE[role] ?? '/') : '/';
   const current = activeHref(
     pathname,
     links.map((l) => l.href),
   );
-  // eticheta rolului din i18n (Auth.role.*); rol necunoscut → codul brut
-  const roleLabel = me.data
-    ? ta.has(`role.${me.data.role}`)
-      ? ta(`role.${me.data.role}`)
-      : me.data.role
-    : '';
-
-  // meniul de cont (rol + schimbare parola + deconectare): se inchide la click
-  // in afara, Escape si la schimbarea rutei
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  useEffect(() => setMenuOpen(false), [pathname]);
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onDown = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
-    document.addEventListener('mousedown', onDown);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [menuOpen]);
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-surface/80 backdrop-blur-md backdrop-saturate-150">
@@ -99,7 +71,7 @@ export function AppHeader() {
                   key={l.href}
                   href={l.href}
                   className={cn(
-                    'whitespace-nowrap rounded-md px-2 py-1.5 text-[13px] transition-colors xl:px-2.5 xl:text-sm',
+                    'whitespace-nowrap rounded-md px-2 py-1.5 text-ui transition-colors xl:px-2.5 xl:text-sm',
                     active
                       ? 'bg-walnut-soft font-medium text-walnut-deep'
                       : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
@@ -115,54 +87,8 @@ export function AppHeader() {
           <LangSwitch />
           {/* B6: clopotelul DOAR pentru sesiuni active — vizitatorii nelogati
               nu au notificari (si nici API-ul nu i-ar servi) */}
-          {me.data && <NotificationBell />}
-          {me.data && (
-            <div ref={menuRef} className="relative">
-              <Button
-                variant="outline"
-                size="sm"
-                aria-label={t('accountMenu')}
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                onClick={() => setMenuOpen((v) => !v)}
-                className="px-2 xl:px-3"
-              >
-                <CircleUserRound className="size-4" />
-                <span className="hidden xl:inline">{roleLabel}</span>
-              </Button>
-              {menuOpen && (
-                <div
-                  role="menu"
-                  className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-lg border border-border bg-surface p-1 shadow-lg"
-                >
-                  <div className="flex items-center gap-1.5 px-2.5 py-2 font-mono text-[11px] uppercase tracking-[0.04em] text-muted-foreground">
-                    <span className="h-1.5 w-1.5 rounded-full bg-sage" />
-                    {roleLabel}
-                  </div>
-                  <Link
-                    role="menuitem"
-                    href="/change-password"
-                    className="flex items-center gap-2 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-secondary"
-                  >
-                    <KeyRound className="size-4 text-muted-foreground" />
-                    {t('changePassword')}
-                  </Link>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    disabled={logout.isPending}
-                    onClick={() =>
-                      logout.mutate(undefined, { onSuccess: () => router.replace('/login') })
-                    }
-                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm transition-colors hover:bg-secondary disabled:opacity-50"
-                  >
-                    <LogOut className="size-4 text-muted-foreground" />
-                    {t('logout')}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          {user ? <NotificationBell /> : role ? <BellPlaceholder /> : null}
+          {role && <AccountMenu role={role} />}
           {links.length > 0 && (
             <MobileNav
               className="lg:hidden"

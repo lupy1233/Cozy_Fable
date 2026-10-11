@@ -2,7 +2,7 @@
 
 import { MapPin } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 
@@ -77,6 +77,7 @@ export function AddressAutocomplete({
   onResolved: (parts: AddressParts) => void;
 }) {
   const t = useTranslations('Requests');
+  const inputId = useId();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const attached = useRef(false);
   // instanta Places, ca sa putem schimba restrictia de tara fara reatasare
@@ -142,10 +143,11 @@ export function AddressAutocomplete({
   }, []);
 
   return (
-    <Field label={t('field.addressText')} error={error}>
+    <Field label={t('field.addressText')} htmlFor={inputId} error={error}>
       <div className="relative">
         <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
+          id={inputId}
           ref={inputRef}
           defaultValue={defaultValue}
           onChange={(e) => onText(e.target.value)}

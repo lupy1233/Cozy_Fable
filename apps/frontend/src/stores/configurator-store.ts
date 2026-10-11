@@ -1,15 +1,19 @@
 'use client';
 
-import type { AnswerMap, AnswerValue, RequestStudioSceneData, RoomType } from '@marketplace/shared';
+import type { AnswerMap, AnswerValue, RequestStudioSceneData, RoomType, StudioDraftData } from '@marketplace/shared';
 import {
   CURRENT_FLOW_VERSION,
   getFlow,
+  INSPIRATION_NOTE_MAX,
+  MAX_REQUEST_INSPIRATION_PHOTOS,
   pruneAnswers,
   REQUEST_STUDIO_SCENES_MAX,
   sortByRoomOrder,
 } from '@marketplace/shared';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { roomIssue } from '@/components/configurator/room-screens';
+import { prepareStudioTransfer, type StudioTransferResult } from './studio-transfer';
 
 // Stare wizard configurator. Conform STATE_CONVENTIONS Exemplul 1:
 // Zustand tine pasul curent + draftul local pre-submit + tokenul; RHF tine campurile
@@ -27,6 +31,7 @@ export type ConfiguratorPhase = 'start' | 'cart' | 'rooms' | 'details' | 'upload
 export type StartMode = 'OWN_PROJECT' | 'STANDARD' | 'DESIGN_HELP';
 
 export interface RoomInstance {
+  sourceStudio?: { sceneId: string; placementId: string };
   localId: string;
   roomType: RoomType;
   // versiunea flow-ului cu care a fost creata camera; raspunsurile se valideaza
@@ -58,6 +63,12 @@ export interface DetailsValues {
   contactPreferences: ContactPreferenceValue[];
 }
 
+// E-client-34: notita + camera (localId) pentru o poza de inspiratie aleasa; draft local pre-submit
+export interface InspirationMeta {
+  note?: string;
+  roomLocalId?: string;
+}
+
 // Snapshot serializabil trimis la server (configuratorState) si rehidratat la resume.
 export interface ConfiguratorSnapshot {
   phase: ConfiguratorPhase;
@@ -69,6 +80,8 @@ export interface ConfiguratorSnapshot {
   details: Partial<DetailsValues>;
   // pozele din galerie alese ca inspiratie (F6, item 3)
   inspirationPhotoIds: string[];
+  // E-client-34: notita + camera per poza (cheie = photoId); optional, snapshot-urile vechi raman valide
+  inspirationMeta?: Record<string, InspirationMeta>;
   // camerele 3D trimise din Studio (feedback PO r3): calatoresc cu draftul in
   // configuratorState si se materializeaza pe cerere la publish (server)
   studioScenes?: RequestStudioSceneData[];
@@ -80,6 +93,7 @@ export interface ConfiguratorSnapshot {
 export type DimensionUnit = 'm' | 'cm' | 'mm';
 
 interface ConfiguratorStore extends ConfiguratorSnapshot {
+  transferStudio: (data: StudioDraftData) => StudioTransferResult;
   token: string | null;
   dimensionUnit: DimensionUnit;
   // PNG-urile scenei 3D per camera (localId → dataURL), capturate in timp ce
@@ -106,8 +120,24 @@ interface ConfiguratorStore extends ConfiguratorSnapshot {
   setAnswer: (localId: string, stepId: string, value: AnswerValue) => void;
   copyRoomAnswers: (sourceLocalId: string, targetLocalId: string) => void;
   markRoomCompleted: (localId: string, completed: boolean) => void;
+  // scoate un atasament sters din toti pasii upload ai camerelor (E-client-2)
+  forgetAttachment: (id: string) => void;
+  // pastreaza in pasii upload doar id-urile care mai exista pe draft/cerere;
+  // intoarce cate referinte au fost scoase
+  pruneAttachmentRefs: (existingIds: Set<string>) => number;
+  // completed = validarea stricta de publicare (nu doar "a trecut prin ecrane")
+  syncCompletion: (ownProject: boolean) => void;
+  // deschide camera la un ecran anume (setActiveRoom reseteaza pasul la 0)
+  focusRoomStep: (roomIndex: number, screenIndex: number) => void;
   setDetails: (patch: Partial<DetailsValues>) => void;
   setInspirationPhotos: (ids: string[]) => void;
+  // E-client-34: adauga poze (ex. toata o colectie) pana la plafon; notita venita din colectie nu
+  // suprascrie una existenta; camera se sugereaza doar cand exista EXACT una de acel tip
+  addInspirationPhotos: (
+    entries: { photoId: string; note?: string | null; roomType?: RoomType | null }[],
+  ) => { added: number; skipped: number };
+  setInspirationNote: (photoId: string, note: string) => void;
+  setInspirationRoom: (photoId: string, roomLocalId: string | null) => void;
   loadSnapshot: (snapshot: ConfiguratorSnapshot) => void;
   snapshot: () => ConfiguratorSnapshot;
   reset: () => void;
@@ -117,12 +147,78 @@ function newLocalId(): string {
   return `r_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+// Noptiera asezata in Studio = o singura piesa (studio-publication.ts pe server):
+// pasul "count" e ascuns in wizard, deci valoarea se forteaza aici.
+function lockStudioNightstand(room: RoomInstance): RoomInstance {
+  if (!room.sourceStudio || room.roomType !== 'PIECE_NIGHTSTAND' || room.answers.count === 'ONE') return room;
+  try {
+    if (!getFlow(room.roomType, room.flowVersion).steps.some((s) => s.id === 'count')) return room;
+  } catch {
+    return room;
+  }
+  return { ...room, answers: { ...room.answers, count: 'ONE' } };
+}
+
+// Scoate din pasii upload id-urile respinse de `keep`; intoarce camerele noi si
+// numarul de referinte scoase. Flow necunoscut → camera ramane neatinsa.
+function filterUploadRefs(
+  rooms: RoomInstance[],
+  keep: (id: string) => boolean,
+): { rooms: RoomInstance[]; removed: number } {
+  let removed = 0;
+  const next = rooms.map((room) => {
+    let flow;
+    try {
+      flow = getFlow(room.roomType, room.flowVersion);
+    } catch {
+      return room;
+    }
+    let answers: AnswerMap | null = null;
+    for (const step of flow.steps) {
+      if (step.type !== 'upload') continue;
+      const value = room.answers[step.id];
+      if (!Array.isArray(value)) continue;
+      const kept = value.filter((id) => typeof id === 'string' && keep(id));
+      if (kept.length === value.length) continue;
+      removed += value.length - kept.length;
+      answers = { ...(answers ?? room.answers) };
+      if (kept.length > 0) answers[step.id] = kept as string[];
+      else delete answers[step.id];
+    }
+    return answers ? { ...room, answers: pruneAnswers(flow, answers) } : room;
+  });
+  return { rooms: removed > 0 ? next : rooms, removed };
+}
+
 // Normalizeaza instante provenite din snapshot-uri vechi (fara flowVersion):
 // acele camere au fost create pe versiunea 1 a flow-urilor. Aplicata pe TOATE
 // caile de intrare (migrate localStorage, resume de pe server, edit-mode),
 // impune si ordinea canonica a intrebarilor (ROOM_ORDER, stabila per tip).
 function normalizeInstances(rooms: RoomInstance[] | undefined): RoomInstance[] {
-  return sortByRoomOrder((rooms ?? []).map((r) => ({ ...r, flowVersion: r.flowVersion ?? 1 })));
+  return sortByRoomOrder(
+    (rooms ?? []).map((r) => lockStudioNightstand({ ...r, flowVersion: r.flowVersion ?? 1 })),
+  );
+}
+
+// Pastreaza doar meta pentru pozele alese; camera doar daca inca exista in cos; nota taiata la plafon.
+function sanitizeInspirationMeta(
+  meta: unknown,
+  photoIds: string[],
+  rooms: Pick<RoomInstance, 'localId'>[],
+): Record<string, InspirationMeta> {
+  if (!meta || typeof meta !== 'object' || Array.isArray(meta)) return {};
+  const ids = new Set(photoIds);
+  const roomIds = new Set(rooms.map((r) => r.localId));
+  const out: Record<string, InspirationMeta> = {};
+  for (const [photoId, raw] of Object.entries(meta as Record<string, unknown>)) {
+    if (!ids.has(photoId) || !raw || typeof raw !== 'object') continue;
+    const { note, roomLocalId } = raw as { note?: unknown; roomLocalId?: unknown };
+    const entry: InspirationMeta = {};
+    if (typeof note === 'string' && note.length > 0) entry.note = note.slice(0, INSPIRATION_NOTE_MAX);
+    if (typeof roomLocalId === 'string' && roomIds.has(roomLocalId)) entry.roomLocalId = roomLocalId;
+    if (entry.note !== undefined || entry.roomLocalId !== undefined) out[photoId] = entry;
+  }
+  return out;
 }
 
 // Dupa reordonare, indexul camerei active trebuie remapat prin localId —
@@ -140,6 +236,7 @@ function normalizeSnapshot(snapshot: Partial<ConfiguratorSnapshot>): Partial<Con
     Object.keys(details).length > 0 ||
     (snapshot.phase !== undefined && snapshot.phase !== 'cart' && snapshot.phase !== 'start');
   const startMode = snapshot.startMode ?? (hasProgress ? 'STANDARD' : null);
+  const inspirationPhotoIds = Array.isArray(snapshot.inspirationPhotoIds) ? snapshot.inspirationPhotoIds : [];
   return {
     ...snapshot,
     startMode,
@@ -147,9 +244,8 @@ function normalizeSnapshot(snapshot: Partial<ConfiguratorSnapshot>): Partial<Con
     roomInstances,
     activeRoomIndex: remapped >= 0 ? remapped : 0,
     details,
-    inspirationPhotoIds: Array.isArray(snapshot.inspirationPhotoIds)
-      ? snapshot.inspirationPhotoIds
-      : [],
+    inspirationPhotoIds,
+    inspirationMeta: sanitizeInspirationMeta(snapshot.inspirationMeta, inspirationPhotoIds, roomInstances),
   };
 }
 
@@ -193,6 +289,7 @@ const initialSnapshot: ConfiguratorSnapshot = {
   activeStepIndex: 0,
   details: {},
   inspirationPhotoIds: [],
+  inspirationMeta: {},
   updatedAt: Date.now(),
 };
 
@@ -214,7 +311,65 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
         }),
       setDimensionUnit: (unit) => set({ dimensionUnit: unit }),
       setInspirationPhotos: (ids) =>
-        set({ inspirationPhotoIds: [...new Set(ids)].slice(0, 10), updatedAt: Date.now() }),
+        set((s) => {
+          const inspirationPhotoIds = [...new Set(ids)].slice(0, MAX_REQUEST_INSPIRATION_PHOTOS);
+          return {
+            inspirationPhotoIds,
+            inspirationMeta: sanitizeInspirationMeta(s.inspirationMeta, inspirationPhotoIds, s.roomInstances),
+            updatedAt: Date.now(),
+          };
+        }),
+      addInspirationPhotos: (entries) => {
+        const s = get();
+        const ids = [...s.inspirationPhotoIds];
+        const meta: Record<string, InspirationMeta> = { ...(s.inspirationMeta ?? {}) };
+        let added = 0;
+        let skipped = 0;
+        for (const entry of entries) {
+          const note = entry.note?.trim().slice(0, INSPIRATION_NOTE_MAX) || undefined;
+          if (ids.includes(entry.photoId)) {
+            // poza deja aleasa: completeaza notita doar daca draftul nu are una
+            if (note && !meta[entry.photoId]?.note) meta[entry.photoId] = { ...meta[entry.photoId], note };
+            continue;
+          }
+          if (ids.length >= MAX_REQUEST_INSPIRATION_PHOTOS) {
+            skipped += 1;
+            continue;
+          }
+          ids.push(entry.photoId);
+          added += 1;
+          const sameType = entry.roomType ? s.roomInstances.filter((r) => r.roomType === entry.roomType) : [];
+          const next: InspirationMeta = {};
+          if (note) next.note = note;
+          if (sameType.length === 1) next.roomLocalId = sameType[0].localId;
+          if (next.note !== undefined || next.roomLocalId !== undefined) meta[entry.photoId] = next;
+        }
+        if (added > 0 || JSON.stringify(meta) !== JSON.stringify(s.inspirationMeta ?? {})) {
+          set({ inspirationPhotoIds: ids, inspirationMeta: meta, updatedAt: Date.now() });
+        }
+        return { added, skipped };
+      },
+      setInspirationNote: (photoId, note) =>
+        set((s) => {
+          if (!s.inspirationPhotoIds.includes(photoId)) return s;
+          const { [photoId]: current, ...rest } = s.inspirationMeta ?? {};
+          const text = note.slice(0, INSPIRATION_NOTE_MAX);
+          const next: InspirationMeta = { ...current };
+          if (text.length > 0) next.note = text;
+          else delete next.note;
+          const hasAny = next.note !== undefined || next.roomLocalId !== undefined;
+          return { inspirationMeta: hasAny ? { ...rest, [photoId]: next } : rest, updatedAt: Date.now() };
+        }),
+      setInspirationRoom: (photoId, roomLocalId) =>
+        set((s) => {
+          if (!s.inspirationPhotoIds.includes(photoId)) return s;
+          const { [photoId]: current, ...rest } = s.inspirationMeta ?? {};
+          const next: InspirationMeta = { ...current };
+          if (roomLocalId && s.roomInstances.some((r) => r.localId === roomLocalId)) next.roomLocalId = roomLocalId;
+          else delete next.roomLocalId;
+          const hasAny = next.note !== undefined || next.roomLocalId !== undefined;
+          return { inspirationMeta: hasAny ? { ...rest, [photoId]: next } : rest, updatedAt: Date.now() };
+        }),
       setToken: (token) => set({ token }),
       setPhase: (phase) => set({ phase, updatedAt: Date.now() }),
       setStartMode: (mode) => set({ startMode: mode, updatedAt: Date.now() }),
@@ -254,13 +409,20 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
           };
         }),
 
+      transferStudio: (data) => {
+        const s = get();
+        const result = prepareStudioTransfer(data, s.roomInstances, s.studioScenes ?? [], newLocalId);
+        if (result.ok) set({ ...sortedRoomsPatch(s, result.roomInstances), studioScenes: result.studioScenes, updatedAt: Date.now() });
+        return result;
+      },
+
       attachStudioScene: (data) =>
         set((s) => {
           const existing = (s.studioScenes ?? []).filter(
             (entry) => entry.scene.id !== data.scene.id,
           );
           return {
-            studioScenes: [...existing, data].slice(-REQUEST_STUDIO_SCENES_MAX),
+            studioScenes: existing.length >= REQUEST_STUDIO_SCENES_MAX ? s.studioScenes : [...existing, data],
             updatedAt: Date.now(),
           };
         }),
@@ -271,6 +433,11 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
           if (idx < 0) return s;
           return {
             ...sortedRoomsPatch(s, s.roomInstances.filter((_, i) => i !== idx)),
+            inspirationMeta: sanitizeInspirationMeta(
+              s.inspirationMeta,
+              s.inspirationPhotoIds,
+              s.roomInstances.filter((_, i) => i !== idx),
+            ),
             updatedAt: Date.now(),
           };
         }),
@@ -280,6 +447,11 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
           const { [localId]: _removed, ...snapshots3d } = s.snapshots3d;
           return {
             ...sortedRoomsPatch(s, s.roomInstances.filter((r) => r.localId !== localId)),
+            inspirationMeta: sanitizeInspirationMeta(
+              s.inspirationMeta,
+              s.inspirationPhotoIds,
+              s.roomInstances.filter((r) => r.localId !== localId),
+            ),
             snapshots3d,
             updatedAt: Date.now(),
           };
@@ -338,6 +510,33 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
           updatedAt: Date.now(),
         })),
 
+      forgetAttachment: (id) =>
+        set((s) => {
+          const { rooms, removed } = filterUploadRefs(s.roomInstances, (ref) => ref !== id);
+          return removed > 0 ? { roomInstances: rooms, updatedAt: Date.now() } : s;
+        }),
+
+      pruneAttachmentRefs: (existingIds) => {
+        const { rooms, removed } = filterUploadRefs(get().roomInstances, (ref) => existingIds.has(ref));
+        if (removed > 0) set({ roomInstances: rooms, updatedAt: Date.now() });
+        return removed;
+      },
+
+      syncCompletion: (ownProject) =>
+        set((s) => {
+          let changed = false;
+          const roomInstances = s.roomInstances.map((r) => {
+            const completed = roomIssue(r, { ownProject }) === null;
+            if (completed === r.completed) return r;
+            changed = true;
+            return { ...r, completed };
+          });
+          return changed ? { roomInstances, updatedAt: Date.now() } : s;
+        }),
+
+      focusRoomStep: (roomIndex, screenIndex) =>
+        set({ activeRoomIndex: roomIndex, activeStepIndex: Math.max(0, screenIndex) }),
+
       setDetails: (patch) =>
         set((s) => ({ details: { ...s.details, ...patch }, updatedAt: Date.now() })),
 
@@ -353,6 +552,7 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
           activeStepIndex: s.activeStepIndex,
           details: s.details,
           inspirationPhotoIds: s.inspirationPhotoIds,
+          inspirationMeta: s.inspirationMeta ?? {},
           ...(s.studioScenes && s.studioScenes.length > 0
             ? { studioScenes: s.studioScenes }
             : {}),
@@ -390,6 +590,7 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
         activeStepIndex: s.activeStepIndex,
         details: s.details,
         inspirationPhotoIds: s.inspirationPhotoIds,
+        inspirationMeta: s.inspirationMeta,
         studioScenes: s.studioScenes,
         updatedAt: s.updatedAt,
         dimensionUnit: s.dimensionUnit,

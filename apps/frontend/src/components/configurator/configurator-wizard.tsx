@@ -3,8 +3,8 @@
 import type { AnswerMap, RequestDto } from '@marketplace/shared';
 import { motion } from 'framer-motion';
 import { FilePlus2, History } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -19,27 +19,31 @@ import {
   useCreateDraft,
   useDiscardDraft,
   useDraft,
+  useAttachmentsStateFor,
   usePatchDraft,
   useRequest,
   type AttachmentTarget,
 } from '@/hooks/use-requests';
+import { track } from '@/lib/analytics';
 import { ApiError } from '@/lib/api';
+import { DRAFT_TOKEN_KEY } from '@/lib/session-cleanup';
 import { useRouter } from '@/i18n/routing';
 import {
   useConfiguratorStore,
   type ConfiguratorPhase,
   type ConfiguratorSnapshot,
   type DetailsValues,
+  type InspirationMeta,
   type StartMode,
 } from '@/stores/configurator-store';
 import { DetailsStep } from './details-step';
 import { ReviewStep } from './review-step';
 import { RoomCartStep } from './room-cart-step';
 import { RoomFlowRunner } from './room-flow-runner';
+import { screenIndexForStep } from './room-screens';
 import { StartModeStep } from './start-mode-step';
 import { UploadsStep } from './uploads-step';
 
-const DRAFT_TOKEN_KEY = 'mm_draft_token';
 // 'start' (PO r9) = alegerea modului pe cartonase, ca pas de sine statator;
 // fisierele (planuri/poze) vin INAINTE de detaliile generale (decizie PO, overhaul 2026-07)
 const PHASE_ORDER: ConfiguratorPhase[] = ['start', 'cart', 'rooms', 'uploads', 'details', 'review'];
@@ -76,22 +80,38 @@ function buildSnapshotFromRequest(dto: RequestDto): ConfiguratorSnapshot {
       : dto.hasOwnProject
         ? 'OWN_PROJECT'
         : 'STANDARD';
-  return {
-    phase: 'cart',
-    startMode,
-    roomInstances: dto.rooms
-      .filter((r) => r.answers)
-      .map((r) => ({
-        localId: `r_${Math.random().toString(36).slice(2, 10)}`,
+  const roomInstances = dto.rooms
+    .filter((r) => r.answers)
+    .map((r) => ({
+        localId: r.id,
+        sourceStudio: dto.studioScenes?.flatMap((entry) => Object.entries(entry.data.requestEntryIds ?? {}).filter(([, roomId]) => roomId === r.id).map(([placementId]) => ({ sceneId: entry.data.scene.id, placementId })))[0],
         roomType: r.roomType,
         flowVersion: r.flowVersion ?? 1,
         answers: r.answers as AnswerMap,
         completed: true,
-      })),
+      }));
+  // E-client-34: notita + camera per poza; la editare localId = id-ul camerei persistate
+  // (camerele legacy fara answers lipsesc din roomInstances → poza trece pe "toata locuinta")
+  const inspirationPhotos = dto.inspirationPhotos ?? [];
+  const inspirationMeta: Record<string, InspirationMeta> = {};
+  for (const p of inspirationPhotos) {
+    const entry: InspirationMeta = {};
+    if (p.note) entry.note = p.note;
+    if (p.requestRoomId && roomInstances.some((r) => r.localId === p.requestRoomId)) {
+      entry.roomLocalId = p.requestRoomId;
+    }
+    if (entry.note !== undefined || entry.roomLocalId !== undefined) inspirationMeta[p.photoId] = entry;
+  }
+  return {
+    phase: 'cart',
+    startMode,
+    roomInstances,
     activeRoomIndex: 0,
     activeStepIndex: 0,
     details,
-    inspirationPhotoIds: dto.inspirationPhotoIds ?? [],
+    inspirationPhotoIds: dto.inspirationPhotos?.map((p) => p.photoId) ?? dto.inspirationPhotoIds ?? [],
+    inspirationMeta,
+    studioScenes: dto.studioScenes?.map((entry) => entry.data),
     updatedAt: Date.now(),
   };
 }
@@ -109,10 +129,15 @@ function snapshotHasProgress(state: ConfiguratorSnapshot): boolean {
 export function ConfiguratorWizard({ editId }: { editId?: string }) {
   const t = useTranslations('Configurator');
   const router = useRouter();
+  const locale = useLocale();
   const isEdit = Boolean(editId);
   const createDraft = useCreateDraft();
+  const { mutateAsync: createDraftAsync } = createDraft;
   const created = useRef(false);
   const [token, setToken] = useState<string | null>(null);
+  const [bootstrapFailed, setBootstrapFailed] = useState(false);
+  const [creatingDraft, setCreatingDraft] = useState(false);
+  const resetOnCreate = useRef(true);
 
   const store = useConfiguratorStore;
   const phase = useConfiguratorStore((s) => s.phase);
@@ -124,6 +149,27 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
   const setStartMode = useConfiguratorStore((s) => s.setStartMode);
   const setDetails = useConfiguratorStore((s) => s.setDetails);
   const designHelp = startMode === 'DESIGN_HELP';
+
+  const createAnonymousDraft = useCallback((resetProgress: boolean) => {
+    created.current = true;
+    resetOnCreate.current = resetProgress;
+    setBootstrapFailed(false);
+    setCreatingDraft(true);
+    return createDraftAsync({})
+      .then((res) => {
+        localStorage.setItem(DRAFT_TOKEN_KEY, res.draftToken);
+        if (resetProgress) store.getState().reset();
+        setTokenInStore(res.draftToken);
+        setToken(res.draftToken);
+        // E-admin-platform-8: doar un draft NOU conteaza (reutilizarea tokenului salvat, nu)
+        track('wizard_start', locale);
+      })
+      .catch(() => {
+        // Retry explicit: un serviciu indisponibil nu trebuie sa declanseze POST-uri in bucla.
+        setBootstrapFailed(true);
+      })
+      .finally(() => setCreatingDraft(false));
+  }, [createDraftAsync, locale, setTokenInStore, store]);
 
   // --- mod creare: draft anonim cu token ---
   // La montare: refoloseste tokenul din localStorage sau creeaza un draft nou.
@@ -140,21 +186,11 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     // mutateAsync (nu mutate+onSuccess): callback-urile per-apel ale unei mutatii
     // React Query sunt ignorate daca observer-ul se demonteaza inainte de rezolvare
     // (cazul remount-ului simulat de React StrictMode in dev) — promisiunea ruleaza mereu.
-    createDraft
-      .mutateAsync({})
-      .then((res) => {
-        localStorage.setItem(DRAFT_TOKEN_KEY, res.draftToken);
-        store.getState().reset();
-        setTokenInStore(res.draftToken);
-        setToken(res.draftToken);
-      })
-      .catch(() => {
-        // permite o noua incercare la remount daca crearea draftului esueaza
-        created.current = false;
-      });
-  }, [createDraft, isEdit, setTokenInStore, store]);
+    void createAnonymousDraft(!snapshotHasProgress(store.getState().snapshot()));
+  }, [createAnonymousDraft, isEdit, setTokenInStore, store]);
 
   const draft = useDraft(isEdit ? null : token);
+  const draftLoaded = Boolean(draft.data);
   const patchDraft = usePatchDraft(token ?? '');
   const discardDraft = useDiscardDraft();
   const hydrated = useRef(false);
@@ -192,21 +228,13 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     if (!(draft.error instanceof ApiError) || draft.error.status !== 404) return;
     hydrated.current = true;
     localStorage.removeItem(DRAFT_TOKEN_KEY);
-    createDraft
-      .mutateAsync({})
-      .then((res) => {
-        localStorage.setItem(DRAFT_TOKEN_KEY, res.draftToken);
-        setTokenInStore(res.draftToken);
-        setToken(res.draftToken);
-      })
-      .catch(() => {
-        created.current = false;
-      });
+    setToken(null);
+    void createAnonymousDraft(false);
     if (!resumeChecked.current) {
       resumeChecked.current = true;
       if (snapshotHasProgress(store.getState().snapshot())) setResumePrompt(true);
     }
-  }, [draft.error, isEdit, createDraft, setTokenInStore, store]);
+  }, [draft.error, isEdit, createAnonymousDraft, store]);
 
   // "Incepe una noua": arunca draftul curent de pe server (altfel s-ar aduna
   // ciorne goale in cont — PO r5) si creeaza altul.
@@ -220,17 +248,7 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     // best-effort: un esec de stergere nu blocheaza cererea noua (ciorna ramane
     // doar invizibila — listele de client exclud oricum status DRAFT)
     if (oldToken) discardDraft.mutate(oldToken);
-    createDraft
-      .mutateAsync({})
-      .then((res) => {
-        localStorage.setItem(DRAFT_TOKEN_KEY, res.draftToken);
-        setTokenInStore(res.draftToken);
-        setToken(res.draftToken);
-      })
-      .catch(() => {
-        // reintra pe fluxul de creare de la montare la urmatoarea vizita
-        created.current = false;
-      });
+    void createAnonymousDraft(false);
   };
 
   // --- mod editare: reconstruim starea din cererea publicata ---
@@ -240,6 +258,28 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     hydrated.current = true;
     store.getState().loadSnapshot(buildSnapshotFromRequest(editRequest.data));
   }, [editRequest.data, isEdit, store]);
+
+  // Referinte la fisiere sterse (schite/snapshot3d scoase de pe draft sau de pe
+  // cererea publicata): se curata o data dupa incarcare si la fiecare intrare in
+  // review, doar pe o lista incarcata cu succes si nu in timpul unui refetch.
+  // Niciodata in faza 'rooms': o schita poate fi in curs de urcare (E-client-2).
+  const attachmentState = useAttachmentsStateFor(
+    isEdit ? { kind: 'request', id: editId ?? '' } : { kind: 'draft', token: token ?? '' },
+  );
+  const initialPruneDone = useRef(false);
+  const lastPrunedPhase = useRef<ConfiguratorPhase | null>(null);
+  useEffect(() => {
+    if (!hydrated.current || !attachmentState.isSuccess || attachmentState.isFetching) return;
+    if (phase === 'rooms') {
+      lastPrunedPhase.current = phase;
+      return;
+    }
+    const enteringReview = phase === 'review' && lastPrunedPhase.current !== 'review';
+    lastPrunedPhase.current = phase;
+    if (initialPruneDone.current && !enteringReview) return;
+    initialPruneDone.current = true;
+    store.getState().pruneAttachmentRefs(new Set(attachmentState.attachments.map((a) => a.id)));
+  }, [attachmentState.isSuccess, attachmentState.isFetching, attachmentState.attachments, phase, store]);
 
   // La schimbarea fazei (cos → intrebari → fisiere → detalii → review) pagina
   // se intoarce sus — altfel pe mobil ramai cu scroll-ul fostei faze (item 7).
@@ -261,7 +301,7 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
 
   // Sync server debounced (doar creare): backup pentru resume de pe alt device.
   useEffect(() => {
-    if (isEdit || !token) return;
+    if (isEdit || !token || !draftLoaded) return;
     const handle = setTimeout(() => {
       patchDraft.mutate({
         configuratorState: store.getState().snapshot() as unknown as Record<string, unknown>,
@@ -269,11 +309,24 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     }, 1500);
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [updatedAt, token, isEdit]);
+  }, [updatedAt, token, isEdit, draftLoaded]);
 
-  const ready = isEdit ? Boolean(editRequest.data) : Boolean(token);
+  const ready = isEdit ? Boolean(editRequest.data) : Boolean(token && draft.data);
   if (!ready) {
-    return <p className="py-20 text-center text-muted-foreground">{t('loading')}</p>;
+    const failed = isEdit ? editRequest.isError : bootstrapFailed || (draft.isError && !(draft.error instanceof ApiError && draft.error.status === 404));
+    const retrying = isEdit ? editRequest.isFetching : creatingDraft || draft.isFetching;
+    if (failed) return (
+      <div className="mx-auto flex max-w-lg flex-col items-center gap-4 py-20 text-center" role="alert">
+        <h1 className="font-serif text-2xl">{t('bootstrap.title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('bootstrap.description')}</p>
+        <Button type="button" variant="walnut" disabled={retrying} onClick={() => {
+          if (isEdit) void editRequest.refetch();
+          else if (token) void draft.refetch();
+          else void createAnonymousDraft(resetOnCreate.current);
+        }}>{t('bootstrap.retry')}</Button>
+      </div>
+    );
+    return <p role="status" className="py-20 text-center text-muted-foreground">{t('loading')}</p>;
   }
 
   const uploadTarget: AttachmentTarget = isEdit
@@ -335,7 +388,7 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
         <div className="border border-ink/15 bg-surface shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-ink/15 px-6 py-3.5">
             <div className="flex items-baseline gap-3">
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-2">
+              <span className="font-mono text-micro uppercase tracking-[0.14em] text-muted-2">
                 {t('sheet.phaseLabel', {
                   current: phaseIndex + 1,
                   total: phaseOrder.length,
@@ -395,16 +448,21 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
             editId={editId}
             uploadTarget={uploadTarget}
             onBack={() => setPhase('details')}
-            onEditRoom={(i) => {
-              setActiveRoom(i);
+            onEditRoom={(i, stepId) => {
+              // "Completeaza" din sumar: camera se redeschide exact la pasul problema
+              const state = store.getState();
+              const room = state.roomInstances[i];
+              if (!room) return;
+              state.markRoomCompleted(room.localId, false);
+              state.focusRoomStep(i, stepId ? screenIndexForStep(room, stepId, state.details.hasOwnProject === true) : 0);
               setPhase('rooms');
             }}
             onEditDetails={() => setPhase('details')}
+            onEditFiles={() => setPhase('uploads')}
             onPublished={(id) => {
-              if (!isEdit && token) {
-                localStorage.setItem(`mm_req_token_${id}`, token);
-                localStorage.removeItem(DRAFT_TOKEN_KEY);
-              }
+              // tokenul moare la publicare (SEC2-4): nu se mai pastreaza per cerere;
+              // repostul/editarea merg pe rutele autentificate :id
+              if (!isEdit) localStorage.removeItem(DRAFT_TOKEN_KEY);
               store.getState().reset();
               router.push(`/requests/${id}`);
             }}

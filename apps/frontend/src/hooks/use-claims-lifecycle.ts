@@ -5,12 +5,14 @@ import type {
   AdminWithdrawalItemDto,
   AnswerClarificationInput,
   ClaimWithdrawalDto,
+  ClaimWithdrawalPreviewDto,
   ClarificationRequestDto,
   RequestClarificationInput,
   RequestWithdrawalInput,
   ReviewWithdrawalInput,
 } from '@marketplace/shared';
 import { api } from '@/lib/api';
+import { useIdempotentApi } from './use-idempotent-api';
 
 function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ['lifecycle'] });
@@ -72,13 +74,25 @@ export function useClaimWithdrawals(claimSlotId: string) {
   });
 }
 
+// E-company-6: consecintele retragerii calculate de server (read-only); refetch la deschiderea
+// dialogului, ca dialogul sa nu arate un rezultat vechi.
+export function useClaimWithdrawPreview(claimSlotId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['lifecycle', 'withdraw-preview', claimSlotId],
+    queryFn: () => api<ClaimWithdrawalPreviewDto>(`/claims/${claimSlotId}/withdraw-preview`),
+    enabled: enabled && !!claimSlotId,
+    retry: false,
+    staleTime: 0,
+  });
+}
+
 export function useWithdrawClaim(claimSlotId: string) {
   const qc = useQueryClient();
+  const request = useIdempotentApi();
   return useMutation({
     mutationFn: (input: RequestWithdrawalInput) =>
-      api<ClaimWithdrawalDto>(`/claims/${claimSlotId}/withdraw`, {
+      request<ClaimWithdrawalDto>(`/claims/${claimSlotId}/withdraw`, {
         method: 'POST',
-        headers: { 'Idempotency-Key': crypto.randomUUID() },
         body: JSON.stringify(input),
       }),
     onSuccess: () => invalidateAll(qc),

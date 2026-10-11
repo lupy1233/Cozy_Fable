@@ -2,6 +2,7 @@
 
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { useTranslations } from 'next-intl';
 
 // Telefon cu prefix de tara (F5, item 20): clientul alege prefixul si scrie
 // numarul national; valoarea stocata e una singura, in format international
@@ -52,6 +53,7 @@ export function PhoneInput({
   onChange: (value: string) => void;
 }) {
   const { code, national } = split(value);
+  const t = useTranslations('Configurator');
 
   const emit = (nextCode: string, nextNational: string) => {
     // doar cifre in numarul national; zeroul initial cade (e inclus in prefix)
@@ -62,7 +64,7 @@ export function PhoneInput({
   return (
     <div className="flex gap-2">
       <div className="w-28 shrink-0">
-        <Select value={code} onChange={(e) => emit(e.target.value, national)} aria-label="country code">
+        <Select value={code} onChange={(e) => emit(e.target.value, national)} aria-label={t('phone.countryCode')} autoComplete="tel-country-code">
           {PHONE_CODES.map((c) => (
             <option key={c.code} value={c.code}>
               {c.country} {c.code}
@@ -73,6 +75,8 @@ export function PhoneInput({
       <Input
         type="tel"
         inputMode="tel"
+        aria-label={t('phone.nationalNumber')}
+        autoComplete="tel-national"
         placeholder="722 123 456"
         value={national}
         onChange={(e) => emit(code, e.target.value)}

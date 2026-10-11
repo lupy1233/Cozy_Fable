@@ -5,6 +5,11 @@ import { useState } from 'react';
 import { useAuditLogs } from '@/hooks/use-admin';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadError } from '@/components/ui/query-state';
+import { SkeletonTable } from '@/components/ui/skeleton';
 import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/table';
 
 export default function AdminAuditPage() {
@@ -16,7 +21,7 @@ export default function AdminAuditPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="page-title">{t('nav.audit')}</h1>
+      <PageHeader title={t('nav.audit')} />
       <Input
         value={action}
         onChange={(e) => {
@@ -26,7 +31,13 @@ export default function AdminAuditPage() {
         placeholder={t('audit.filterAction')}
         className="w-64"
       />
-      <div className="rounded-xl border border-border bg-surface shadow-sm">
+      {logs.isPending && <SkeletonTable rows={6} cols={4} />}
+      {logs.isError && <LoadError onRetry={() => void logs.refetch()} />}
+      {logs.isSuccess && logs.data.items.length === 0 && (
+        <EmptyState variant="card" size="sm" title={t('audit.empty')} />
+      )}
+      {logs.isSuccess && logs.data.items.length > 0 && (
+      <Card padding="none">
         <Table>
           <THead>
             <TR>
@@ -47,7 +58,8 @@ export default function AdminAuditPage() {
             ))}
           </TBody>
         </Table>
-      </div>
+      </Card>
+      )}
       <div className="flex items-center gap-3 text-sm">
         <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
           ←

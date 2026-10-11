@@ -20,10 +20,11 @@ const MY_COMPANY_KEY = ['company', 'me'] as const;
 const ADMIN_LIST_KEY = ['admin', 'companies'] as const;
 
 // --- Firma proprie ---
-export function useMyCompany() {
+export function useMyCompany(enabled = true) {
   return useQuery({
     queryKey: MY_COMPANY_KEY,
     queryFn: () => api<CompanyDto>('/companies/me'),
+    enabled,
     retry: false,
     staleTime: 30_000,
   });
@@ -61,6 +62,13 @@ function useCompanyMutation<TInput>(fn: (input: TInput) => Promise<CompanyDto>) 
 export function useOnboardCompany() {
   return useCompanyMutation((input: CompanyOnboardingInput) =>
     api<CompanyDto>('/companies', { method: 'POST', body: JSON.stringify(input) }),
+  );
+}
+
+// PATCH /companies/me (OWNER/MANAGER) — E-company-24: si emailul de facturare
+export function useUpdateCompanyProfile() {
+  return useCompanyMutation((input: CompanyProfileUpdateInput) =>
+    api<CompanyDto>('/companies/me', { method: 'PATCH', body: JSON.stringify(input) }),
   );
 }
 

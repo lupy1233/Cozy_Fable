@@ -1,12 +1,15 @@
 'use client';
 
-import type { InspirationPhotoDto } from '@marketplace/shared';
-import { Check, FolderInput, Pencil, Trash2, X } from 'lucide-react';
+import type { InspirationBoardItemMetaDto, InspirationPhotoDto } from '@marketplace/shared';
+import { Check, FolderHeart, FolderInput, MessageSquarePlus, Pencil, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useMe } from '@/hooks/use-auth';
 import {
   useBoardDetail,
@@ -16,19 +19,23 @@ import {
   useUnsavePhoto,
 } from '@/hooks/use-inspiration-boards';
 import { PublicShell } from '../../../_components/public-shell';
+import { BoardItemNoteEditor } from '../../_components/board-item-note-editor';
 import { BoardPicker } from '../../_components/board-picker';
 
 const PIN_ASPECTS = ['aspect-[3/4]', 'aspect-square', 'aspect-[4/5]'] as const;
 
-// Pin din colectie: scoatere + mutare in alta colectie (idee 4 PO r2).
+// Pin din colectie: scoatere + mutare in alta colectie (idee 4 PO r2) + notita si camera
+// (E-client-34): chip-ul camerei si notita sub imagine, editor in Popover.
 function BoardPin({
   photo,
   boardId,
+  meta,
   aspectClass,
   onRemove,
 }: {
   photo: InspirationPhotoDto;
   boardId: string;
+  meta?: InspirationBoardItemMetaDto;
   aspectClass: string;
   onRemove: () => void;
 }) {
@@ -36,20 +43,11 @@ function BoardPin({
   const tc = useTranslations('Configurator');
   const move = useMovePhoto();
   const [moveOpen, setMoveOpen] = useState(false);
-  const rootRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    if (!moveOpen) return;
-    const onDown = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setMoveOpen(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [moveOpen]);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const hasMeta = Boolean(meta?.note || meta?.roomType);
 
   return (
     <figure
-      ref={rootRef}
       className="group relative mb-4 break-inside-avoid overflow-hidden rounded-2xl border border-border bg-surface-2 shadow-sm"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -64,17 +62,19 @@ function BoardPin({
           moveOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
         }`}
       >
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setMoveOpen((o) => !o)}
-            title={t('moveTo')}
-            className="flex items-center gap-1 rounded-full bg-surface/95 px-3 py-1.5 text-xs font-semibold text-foreground shadow-md transition-colors hover:bg-surface"
-          >
-            <FolderInput className="h-3.5 w-3.5" />
-            {t('movePin')}
-          </button>
-          {moveOpen && (
+        {/* Portal: panoul nu mai e taiat de overflow-hidden de pe figure */}
+        <Popover open={moveOpen} onOpenChange={setMoveOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              title={t('moveTo')}
+              className="flex items-center gap-1 rounded-full bg-surface/95 px-3 py-1.5 text-xs font-semibold text-foreground shadow-md transition-colors hover:bg-surface"
+            >
+              <FolderInput className="h-3.5 w-3.5" />
+              {t('movePin')}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent width="md" align="end" className="p-0">
             <BoardPicker
               title={t('moveTo')}
               excludeBoardId={boardId}
@@ -83,8 +83,8 @@ function BoardPin({
                 setMoveOpen(false);
               }}
             />
-          )}
-        </div>
+          </PopoverContent>
+        </Popover>
         <button
           type="button"
           onClick={onRemove}
@@ -93,12 +93,40 @@ function BoardPin({
           {t('removePin')}
         </button>
       </div>
-      <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent p-3 pt-10 text-[13px] leading-snug text-white">
+      <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent p-3 pt-10 text-ui leading-snug text-white">
         {photo.title}
-        <span className="mt-0.5 block text-[10px] uppercase tracking-[0.12em] text-white/75">
+        <span className="mt-0.5 block text-micro uppercase tracking-[0.12em] text-white/75">
           {tc(`rooms.type.${photo.roomType}`)} · {t('byFirm', { name: photo.company.name })}
         </span>
       </figcaption>
+      {/* E-client-34: camera + notita clientului, in afara overlay-ului */}
+      <div className="flex flex-col gap-1.5 border-t border-border bg-surface px-3 py-2.5">
+        {meta?.roomType && (
+          <span className="w-fit rounded-full bg-walnut-soft px-2 py-0.5 text-micro font-medium text-walnut">
+            {tc(`rooms.type.${meta.roomType}`)}
+          </span>
+        )}
+        {meta?.note && <p className="line-clamp-3 text-sm text-foreground">{meta.note}</p>}
+        <Popover open={noteOpen} onOpenChange={setNoteOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="flex w-fit items-center gap-1 text-xs font-medium text-walnut hover:underline"
+            >
+              {hasMeta ? <Pencil className="h-3.5 w-3.5" aria-hidden /> : <MessageSquarePlus className="h-3.5 w-3.5" aria-hidden />}
+              {hasMeta ? t('noteEdit') : t('noteAdd')}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent width="lg" align="start" className="p-0">
+            <BoardItemNoteEditor
+              boardId={boardId}
+              photoId={photo.id}
+              meta={meta}
+              onClose={() => setNoteOpen(false)}
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
     </figure>
   );
 }
@@ -126,7 +154,11 @@ export default function BoardDetailPage() {
   if (board.isPending) {
     return (
       <PublicShell>
-        <p className="py-20 text-center text-muted-foreground">…</p>
+        <LoadingRegion className="columns-2 gap-4 sm:columns-3 lg:columns-4">
+          {Array.from({ length: 8 }, (_, i) => (
+            <Skeleton key={i} className={`mb-4 w-full rounded-2xl ${PIN_ASPECTS[i % PIN_ASPECTS.length]}`} />
+          ))}
+        </LoadingRegion>
       </PublicShell>
     );
   }
@@ -139,6 +171,7 @@ export default function BoardDetailPage() {
   }
 
   const b = board.data;
+  const metaByPhoto = new Map(b.items.map((i) => [i.photoId, i]));
 
   const saveRename = () => {
     const trimmed = name.trim();
@@ -162,7 +195,7 @@ export default function BoardDetailPage() {
                   onChange={(e) => setName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && saveRename()}
                   maxLength={60}
-                  className="h-11 rounded-lg border border-border-2 bg-card px-3 font-serif text-2xl outline-none focus:border-walnut"
+                  className="h-11 rounded-lg border border-border-2 bg-surface px-3 font-serif text-2xl outline-none focus:border-walnut"
                 />
                 <button
                   type="button"
@@ -215,12 +248,16 @@ export default function BoardDetailPage() {
         </div>
 
         {b.photos.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-border-2 bg-card px-6 py-14 text-center">
-            <p className="text-muted-foreground">{t('boardEmpty')}</p>
-            <Button asChild variant="walnut" className="mt-4">
-              <Link href="/inspiration">{t('exploreGallery')}</Link>
-            </Button>
-          </div>
+          <EmptyState
+            variant="dashed"
+            icon={FolderHeart}
+            title={t('boardEmpty')}
+            action={
+              <Button asChild variant="walnut">
+                <Link href="/inspiration">{t('exploreGallery')}</Link>
+              </Button>
+            }
+          />
         )}
 
         <div className="columns-2 gap-4 sm:columns-3 lg:columns-4">
@@ -229,6 +266,7 @@ export default function BoardDetailPage() {
               key={photo.id}
               photo={photo}
               boardId={id}
+              meta={metaByPhoto.get(photo.id)}
               aspectClass={PIN_ASPECTS[i % PIN_ASPECTS.length]}
               onRemove={() => unsave.mutate({ boardId: id, photoId: photo.id })}
             />

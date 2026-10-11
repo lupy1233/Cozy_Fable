@@ -274,7 +274,7 @@ function OptionChip({
       onClick={onClick}
       aria-pressed={selected}
       className={cn(
-        'rounded-lg border px-2.5 py-1.5 text-[12.5px] font-medium leading-none transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-walnut',
+        'rounded-lg border px-2.5 py-1.5 text-xs font-medium leading-none transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-walnut',
         selected
           ? 'border-walnut bg-walnut-soft text-walnut shadow-[0_0_0_2px_hsl(var(--walnut)/0.14)]'
           : 'border-border-2 bg-surface text-muted-foreground hover:border-walnut/50 hover:text-foreground',
@@ -340,7 +340,7 @@ function OptionCard({
           <line x1="16" y1="9" x2="16" y2="13" stroke="hsl(var(--brass))" />
         </svg>
       )}
-      <span className="mt-1 text-center text-[10.5px] font-medium leading-tight">{label}</span>
+      <span className="mt-1 text-center text-micro font-medium leading-tight">{label}</span>
     </button>
   );
 }
@@ -397,10 +397,10 @@ export function HeroDemo() {
 
       <div className="border border-ink/15 bg-surface shadow-sm">
         <div className="flex items-center justify-between border-b border-ink/15 px-4 py-2.5">
-          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-2">
+          <span className="font-mono text-micro uppercase tracking-[0.14em] text-muted-2">
             {t('demo.kicker')}
           </span>
-          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-brass-2">
+          <span className="font-mono text-micro uppercase tracking-[0.14em] text-brass-2">
             № 0001
           </span>
         </div>
@@ -469,13 +469,13 @@ export function HeroDemo() {
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-ink/15 bg-surface-2/60 px-4 py-3">
           <div className="min-w-0">
             <p className="label">{t('demo.specLabel')}</p>
-            <p aria-live="polite" className="truncate font-serif text-[15px]">
+            <p aria-live="polite" className="truncate font-serif text-lead">
               {spec}
             </p>
           </div>
           <Link
             href="/requests/new"
-            className="group flex shrink-0 items-center gap-1.5 text-[13px] font-medium text-walnut hover:text-walnut-deep"
+            className="group flex shrink-0 items-center gap-1.5 text-ui font-medium text-walnut hover:text-walnut-deep"
           >
             {t('demo.cta')}
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />

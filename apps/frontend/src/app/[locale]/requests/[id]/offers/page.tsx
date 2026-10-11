@@ -26,7 +26,8 @@ import { OfferCard } from '../../../_components/offer-card';
 type ThreadStage = 'DISCUSSION' | 'OFFER_SENT' | 'ACCEPTED' | 'CLOSED';
 
 function stageFor(thread: ChatThreadDto, quote: QuoteDto | undefined): ThreadStage {
-  if (quote?.status === 'ACCEPTED') return 'ACCEPTED';
+  // E-admin-platform-3: oferta ramane ACCEPTED ca istoric si dupa anularea proiectului
+  if (quote?.status === 'ACCEPTED') return thread.claimStatus === 'CANCELLED_PROJECT' ? 'CLOSED' : 'ACCEPTED';
   // claim retras/anulat/ratat → conversatia e istorie, indiferent de oferta
   if (!['ACTIVE', 'OFFER_SENT', 'COMPLETED'].includes(thread.claimStatus)) return 'CLOSED';
   if (thread.readOnly) return 'CLOSED';
@@ -103,6 +104,8 @@ export default function RequestOffersPage() {
               ? { name: acceptedQuote.companyName, claimSlotId: acceptedQuote.claimSlotId }
               : null
           }
+          acceptedQuote={acceptedQuote}
+          cancelledAt={request.data.cancelledAt ?? null}
         />
       )}
 
@@ -138,7 +141,7 @@ export default function RequestOffersPage() {
                       />
                     )}
                   </h2>
-                  <p className="flex items-center gap-1 text-[11px] text-muted-2">
+                  <p className="flex items-center gap-1 text-meta text-muted-2">
                     <Handshake className="h-3 w-3" />
                     {t('claimedAt', { time: relTime(thread.createdAt) })}
                   </p>
@@ -147,13 +150,13 @@ export default function RequestOffersPage() {
               <div className="flex flex-col items-end gap-1">
                 <Badge tone={STAGE_TONE[stage]}>{t(`stage.${stage}`)}</Badge>
                 {thread.unreadCount > 0 ? (
-                  <span className="flex items-center gap-1 text-[11px] font-semibold text-crimson">
+                  <span className="flex items-center gap-1 text-meta font-semibold text-crimson">
                     <MessageSquare className="h-3 w-3" />
                     {t('unreadMessages', { n: thread.unreadCount })}
                   </span>
                 ) : (
                   thread.lastMessage && (
-                    <span className="flex items-center gap-1 text-[11px] text-muted-2">
+                    <span className="flex items-center gap-1 text-meta text-muted-2">
                       <MessageSquare className="h-3 w-3" />
                       {t('lastMessageAt', { time: relTime(thread.lastMessage.createdAt) })}
                     </span>

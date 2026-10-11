@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-// Label — stil mono uppercase din prototip (.field label).
+// Label — stil .label (sans uppercase spatiat).
 export const Label = React.forwardRef<
   HTMLLabelElement,
   React.LabelHTMLAttributes<HTMLLabelElement>
@@ -9,7 +9,7 @@ export const Label = React.forwardRef<
   <label
     ref={ref}
     className={cn(
-      'font-mono text-[11px] uppercase tracking-[0.06em] text-muted-foreground',
+      'text-meta font-medium uppercase tracking-[0.08em] text-muted-foreground',
       'peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
       className,
     )}

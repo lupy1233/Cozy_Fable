@@ -112,7 +112,7 @@ export function SketchGuide() {
           <li key={key} className="flex flex-col bg-surface p-4">
             <div className="flex items-baseline gap-2">
               <span className="font-serif text-2xl leading-none text-brass">{ROMAN[i]}.</span>
-              <span className="font-serif text-[15px]">{t(`steps.${key}.title`)}</span>
+              <span className="font-serif text-lead">{t(`steps.${key}.title`)}</span>
             </div>
             <span className="mx-auto mt-3 h-[72px] w-24 text-walnut">
               <Visual />
@@ -120,7 +120,7 @@ export function SketchGuide() {
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
               {t(`steps.${key}.body`)}
             </p>
-            <p className="mt-2 flex items-baseline gap-1.5 text-[11px] text-muted-2">
+            <p className="mt-2 flex items-baseline gap-1.5 text-meta text-muted-2">
               <span aria-hidden className="text-brass">—</span>
               {t(`steps.${key}.tip`)}
             </p>

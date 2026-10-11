@@ -1,16 +1,24 @@
 'use client';
+import { HouseEditor } from './house-editor';
+import { useDialogFocus } from '@/hooks/use-dialog-focus';
 
 import {
   defaultPieceConfig,
   PIECE3D_KINDS,
   type Piece3dKind,
   type PieceConfig3d,
-  type RoomType,
 } from '@marketplace/shared';
 import {
   ArrowLeftRight,
+  BrickWall,
   Copy,
   FolderOpen,
+  Eye,
+  EyeOff,
+  House,
+  Minus,
+  SlidersHorizontal,
+  Sofa,
   GripVertical,
   HelpCircle,
   Loader2,
@@ -33,6 +41,7 @@ import { createPortal } from 'react-dom';
 import { Link, useRouter } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { toast } from '@/components/ui/toaster';
 import { ApiError } from '@/lib/api';
 import { useMe } from '@/hooks/use-auth';
@@ -81,16 +90,6 @@ const RoomCanvas = dynamic(() => import('./room-canvas'), {
 });
 
 // piesa-carcasa → tipul de camera din configurator (flow-urile v3 cu config3d)
-const KIND_TO_ROOM: Record<Piece3dKind, RoomType> = {
-  BOOKCASE: 'PIECE_BOOKCASE',
-  WARDROBE: 'PIECE_WARDROBE',
-  TV_UNIT: 'PIECE_TV_UNIT',
-  SHOE_CABINET: 'PIECE_SHOE_CABINET',
-  DRESSER: 'PIECE_DRESSER',
-  NIGHTSTAND: 'PIECE_NIGHTSTAND',
-  DESK: 'PIECE_DESK',
-};
-
 const cm = (v: number) => Math.round(v * 100);
 
 // Incuietoare numarata pe scrollul paginii: fullscreen-ul si editorul de piesa
@@ -127,6 +126,7 @@ function PieceEditorDialog({
   onClose: () => void;
 }) {
   const t = useTranslations('Studio');
+  const dialogRef = useDialogFocus(onClose);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -143,6 +143,8 @@ function PieceEditorDialog({
       role="dialog"
       aria-modal="true"
       aria-label={editor.pieceId ? t('editorEdit') : t('editorNew')}
+      ref={dialogRef}
+      tabIndex={-1}
       onClick={onClose}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
     >
@@ -305,6 +307,7 @@ function StudioModal({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const dialogRef = useDialogFocus(onClose);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -317,6 +320,8 @@ function StudioModal({
       role="dialog"
       aria-modal="true"
       aria-label={label}
+      ref={dialogRef}
+      tabIndex={-1}
       onClick={onClose}
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
     >
@@ -433,7 +438,7 @@ function GapField({
     setDraft(null);
   };
   return (
-    <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
+    <label className="flex items-center gap-1 text-meta text-muted-foreground">
       <span className="w-12 truncate text-right">{label}</span>
       <input
         type="number"
@@ -444,7 +449,7 @@ function GapField({
         onKeyDown={(e) => {
           if (e.key === 'Enter') commit((e.target as HTMLInputElement).value);
         }}
-        className="h-6 w-14 rounded-md border border-border-2 bg-surface px-1 text-right text-[11px] tabular-nums focus-visible:border-foreground focus-visible:outline-none"
+        className="h-6 w-14 rounded-md border border-border-2 bg-surface px-1 text-right text-meta tabular-nums focus-visible:border-foreground focus-visible:outline-none"
       />
       <span>cm</span>
     </label>
@@ -469,7 +474,7 @@ function OpeningDimSlider({
   onGestureStart?: () => void;
 }) {
   return (
-    <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+    <label className="flex items-center gap-1.5 text-meta text-muted-foreground">
       <span className="w-14 truncate text-right">{label}</span>
       <input
         type="range"
@@ -495,7 +500,7 @@ function clampPanelPos(
   if (!panel) return p;
   return {
     x: Math.min(Math.max(p.x, 4), Math.max(4, container.clientWidth - panel.offsetWidth - 4)),
-    y: Math.min(Math.max(p.y, 4), Math.max(4, container.clientHeight - panel.offsetHeight - 4)),
+    y: Math.min(Math.max(p.y, 76), Math.max(76, container.clientHeight - panel.offsetHeight - 80)),
   };
 }
 
@@ -506,9 +511,15 @@ function clampPanelPos(
 function FloatingPanel({
   canvasRef,
   children,
+  minimized,
+  onMinimize,
+  stacked = false,
 }: {
   canvasRef: React.RefObject<HTMLDivElement | null>;
   children: ReactNode;
+  minimized: boolean;
+  onMinimize: () => void;
+  stacked?: boolean;
 }) {
   const t = useTranslations('Studio');
   const pos = useStudioStore((s) => s.panelPos);
@@ -534,6 +545,7 @@ function FloatingPanel({
     reclamp();
     const ro = new ResizeObserver(reclamp);
     ro.observe(container);
+    if (ref.current) ro.observe(ref.current);
     return () => ro.disconnect();
   }, [canvasRef, setPos]);
 
@@ -576,8 +588,9 @@ function FloatingPanel({
       ref={ref}
       style={pos ? { left: pos.x, top: pos.y } : undefined}
       className={cn(
-        'absolute flex items-stretch rounded-xl border border-border-2 bg-surface/95 py-2 pl-1 pr-3 shadow-md backdrop-blur',
-        !pos && 'left-1/2 top-3 -translate-x-1/2',
+        'absolute z-10 flex max-h-[calc(100%-168px)] max-w-[calc(100%-24px)] items-stretch rounded-xl border border-border-2 bg-surface/95 py-2 pl-1 pr-3 shadow-md backdrop-blur',
+        !pos && 'right-3 top-20',
+        stacked && 'max-lg:!left-3 max-lg:!right-3 max-lg:!top-[calc(50%+8px)] max-lg:!w-auto max-lg:max-h-[calc(50%-104px)]',
       )}
     >
       <button
@@ -586,11 +599,16 @@ function FloatingPanel({
         aria-label={t('movePanel')}
         onPointerDown={onGripDown}
         onDoubleClick={() => setPos(null)}
-        className="flex cursor-grab touch-none select-none items-center rounded-lg px-0.5 text-muted-foreground/60 transition-colors hover:bg-secondary hover:text-foreground"
+        className={cn('flex cursor-grab touch-none select-none items-center rounded-lg px-0.5 text-muted-foreground/60 transition-colors hover:bg-secondary hover:text-foreground', stacked && 'max-lg:hidden')}
       >
         <GripVertical className="h-4 w-4" />
       </button>
-      <div className="flex min-w-0 flex-col gap-1.5 pl-1">{children}</div>
+      <div className="flex min-w-0 flex-col gap-1.5 overflow-y-auto overscroll-contain pl-1">
+        <button type="button" aria-expanded={!minimized} aria-label={t(minimized ? 'workspace.expandSelection' : 'workspace.minimizeSelection')} onClick={onMinimize} className="flex min-h-8 items-center justify-between gap-4 text-xs font-medium text-muted-foreground">
+          {t('workspace.selection')}{minimized ? <Plus className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
+        </button>
+        {!minimized && children}
+      </div>
     </div>
   );
 }
@@ -739,6 +757,7 @@ function RoomDimControl({
       <span className="text-xs font-medium">{label}</span>
       <input
         type="range"
+        aria-label={label}
         min={cm(min)}
         max={cm(max)}
         step={1}
@@ -749,6 +768,7 @@ function RoomDimControl({
       />
       <input
         type="number"
+        aria-label={`${label} (cm)`}
         min={cm(min)}
         max={cm(max)}
         value={draft ?? String(cm(valueM))}
@@ -759,7 +779,7 @@ function RoomDimControl({
         }}
         className="h-7 w-16 rounded-md border border-border-2 bg-surface px-1.5 text-right text-xs tabular-nums focus-visible:border-foreground focus-visible:outline-none"
       />
-      <span className="text-[11px] text-muted-foreground">cm</span>
+      <span className="text-meta text-muted-foreground">cm</span>
     </div>
   );
 }
@@ -777,6 +797,7 @@ function StudioDraftsDialog({
   onClose: () => void;
 }) {
   const t = useTranslations('Studio');
+  const dialogRef = useDialogFocus(onClose);
   const me = useMe();
   const drafts = useStudioDrafts();
   const save = useSaveStudioDraft();
@@ -842,6 +863,8 @@ function StudioDraftsDialog({
       role="dialog"
       aria-modal="true"
       aria-label={t('myDrafts')}
+      ref={dialogRef}
+      tabIndex={-1}
       onClick={onClose}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
     >
@@ -865,7 +888,7 @@ function StudioDraftsDialog({
           <div className="flex flex-col items-start gap-3 p-4">
             <p className="text-sm leading-relaxed text-muted-foreground">{t('loginToSave')}</p>
             <Button asChild variant="walnut" size="sm">
-              <Link href="/login">{t('goToLogin')}</Link>
+              <Link href="/login?redirect=/studio">{t('goToLogin')}</Link>
             </Button>
           </div>
         ) : (
@@ -973,10 +996,21 @@ function StudioDraftsDialog({
 export function StudioPage() {
   const t = useTranslations('Studio');
   const router = useRouter();
+  const [webgl, setWebgl] = useState<boolean | null>(null);
+  useEffect(() => {
+    try {
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('webgl2');
+      setWebgl(Boolean(context));
+      context?.getExtension('WEBGL_lose_context')?.loseContext();
+    } catch { setWebgl(false); }
+  }, []);
 
   const pieces = useStudioStore((s) => s.pieces);
   const scenes = useStudioStore((s) => s.scenes);
+  const houseEnabled = useStudioStore((s) => Boolean(s.house));
   const scene = useActiveScene();
+  const transferCount = houseEnabled ? scenes.reduce((n, s) => n + s.placements.length, 0) : scene.placements.length;
   const selectedId = useStudioStore((s) => s.selectedId);
   const selectedOpeningId = useStudioStore((s) => s.selectedOpeningId);
   const savePiece = useStudioStore((s) => s.savePiece);
@@ -1011,6 +1045,36 @@ export function StudioPage() {
 
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [draftsOpen, setDraftsOpen] = useState(false);
+  const [workspaceView, setWorkspaceView] = useState<'room' | 'house'>('room');
+  const [houseVisited, setHouseVisited] = useState(false);
+  const [toolPanel, setToolPanel] = useState<'library' | 'room' | null>(null);
+  const [toolsHidden, setToolsHidden] = useState(false);
+  const [selectionMinimized, setSelectionMinimized] = useState(false);
+  const cutawayWalls = useStudioStore((s) => s.cutawayWalls);
+  const setCutawayWalls = useStudioStore((s) => s.setCutawayWalls);
+  const persistenceError = useStudioStore((s) => s.persistenceError);
+  const collisionReason = useStudioStore((s) => s.collisionReason);
+  const collisionToastAt = useRef<{ reason: typeof collisionReason; at: number }>({ reason: null, at: 0 });
+  useEffect(() => {
+    if (!collisionReason) return;
+    if (collisionReason !== collisionToastAt.current.reason || Date.now() - collisionToastAt.current.at > 1600) {
+      collisionToastAt.current = { reason: collisionReason, at: Date.now() };
+      const message = collisionReason === 'HOUSE_ROOMS' ? 'collisionHouseRooms' : collisionReason === 'FURNITURE' ? 'collisionFurniture' : collisionReason === 'ROOM_BOUNDS' ? 'collisionRoomBounds' : 'collisionNoSpace';
+      toast.error(t(`workspace.${message}`));
+    }
+    useStudioStore.getState().clearCollision();
+  }, [collisionReason, t]);
+  const showToolPanel = (panel: 'library' | 'room') => {
+    setWorkspaceView('room');
+    setToolsHidden(false);
+    setToolPanel((current) => workspaceView === 'room' && current === panel ? null : panel);
+  };
+  const showHouse = () => {
+    setSelected(null);
+    setSelectedOpening(null);
+    setHouseVisited(true);
+    setWorkspaceView((current) => current === 'house' ? 'room' : 'house');
+  };
   const [renameOpen, setRenameOpen] = useState(false);
   const [confirmState, setConfirmState] = useState<{
     title: string;
@@ -1026,6 +1090,13 @@ export function StudioPage() {
   }, []);
   const tutTarget = tutorialTargetFor(tutorial);
   const tutorialModalOpen = tutorial === 'welcome' || tutorial === 'finale';
+  useEffect(() => {
+    if (typeof tutorial !== 'number') return;
+    setToolsHidden(false);
+    setWorkspaceView('room');
+    if (tutTarget === 'newPiece') setToolPanel('library');
+    else if (tutTarget === 'room' || tutTarget === 'openings' || tutTarget === 'newScene') setToolPanel('room');
+  }, [tutorial, tutTarget]);
 
   // Ecran complet (feedback PO: prea multe panouri pentru spatiul din pagina):
   // studioul devine un overlay fixed peste tot viewportul (sub dialoguri, care
@@ -1122,11 +1193,13 @@ export function StudioPage() {
     payload: StudioDropPayload;
     active: boolean;
   } | null>(null);
+  const suppressOpeningClickRef = useRef(false);
 
   const beginPaletteDrag = (e: React.PointerEvent, payload: StudioDropPayload, label: string) => {
     if (e.button !== 0) return;
     // butoanele de actiune ale randului raman butoane, nu manere de drag
     if ((e.target as HTMLElement).closest('button') && payload.type === 'piece') return;
+    suppressOpeningClickRef.current = false;
     dragStartRef.current = { x: e.clientX, y: e.clientY, payload, label, active: false };
   };
 
@@ -1138,6 +1211,7 @@ export function StudioPage() {
         // pragul de 6px desparte click-ul obisnuit de ridicare
         if (Math.hypot(ev.clientX - d.x, ev.clientY - d.y) < 6) return;
         d.active = true;
+        suppressOpeningClickRef.current = d.payload.type === 'opening';
         useStudioStore.getState().setDropPayload(d.payload);
         document.body.style.cursor = 'grabbing';
       }
@@ -1184,7 +1258,7 @@ export function StudioPage() {
       }
       // dialogurile turului isi asculta singure Esc-ul; restul scurtaturilor
       // (Delete/R/sageti) n-au voie sa actioneze in scena din spatele lor
-      if (tutorialModalOpen) return;
+      if (e.defaultPrevented || tutorialModalOpen || draftsOpen || renameOpen || confirmState) return;
       if (editor) return;
       if (inField) return;
       const s = useStudioStore.getState();
@@ -1278,6 +1352,7 @@ export function StudioPage() {
       kind: editor.kind,
       config: editor.config ?? defaultPieceConfig(editor.kind),
     });
+    if (!saved) return;
     // piesa noua intra direct in camera — sa se vada imediat rezultatul
     if (!editor.pieceId) placePiece(saved.id);
     setEditor(null);
@@ -1303,258 +1378,34 @@ export function StudioPage() {
   };
 
   const sendToRequest = () => {
-    if (scene.placements.length === 0) {
-      toast.error(t('toastEmpty'));
-      return;
-    }
     const cfg = useConfiguratorStore.getState();
+    const result = cfg.transferStudio(useStudioStore.getState().snapshot());
+    if (!result.ok) { toast.error(t(`house.transferErrors.${result.error}`)); return; }
     if (cfg.startMode == null) cfg.setStartMode('STANDARD');
-    let count = 0;
-    const scenePieces: Record<string, StudioPiece> = {};
-    for (const placement of scene.placements) {
-      const piece = pieces[placement.pieceId];
-      if (!piece) continue;
-      cfg.addRoomWithAnswers(KIND_TO_ROOM[piece.kind], { config3d: piece.config });
-      scenePieces[piece.id] = piece;
-      count++;
-    }
-    // camera insasi calatoreste cu cererea (feedback PO r3): firmele o vad
-    // read-only in detaliu, cu click pe piesa → viewerul de dimensiuni
-    cfg.attachStudioScene({ scene, pieces: scenePieces });
     useConfiguratorStore.getState().setPhase('cart');
-    toast.success(t('toastSent', { count }));
+    toast.success(t('toastSent', { count: result.count }));
     router.push('/requests/new');
   };
 
   return (
-    <div
-      className={cn(
-        'flex flex-col gap-5',
-        // overlay-ul fullscreen: peste header/footer (z-30), sub dialoguri
-        // (z-50+); sub lg pastreaza curgerea normala si se deruleaza
-        fullscreen && 'fixed inset-0 z-40 gap-3 overflow-y-auto bg-background p-3 sm:p-4',
-      )}
-    >
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="max-w-2xl">
-          <h1 className={cn('font-serif leading-tight', fullscreen ? 'text-xl' : 'text-3xl')}>
-            {t('title')}
-          </h1>
-          {!fullscreen && <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={() => setDraftsOpen(true)}>
-            <FolderOpen className="h-4 w-4" />
-            {t('myDrafts')}
-            {loadedDraft && (
-              <span className="max-w-[120px] truncate text-xs text-muted-foreground">
-                · {loadedDraft.name}
-              </span>
-            )}
-          </Button>
-          <Button variant="walnut" onClick={sendToRequest}>
-            <Send className="h-4 w-4" />
-            {t('sendToRequest')}
-            {scene.placements.length > 0 && (
-              <span className="rounded-full bg-white/20 px-1.5 text-xs tabular-nums">
-                {scene.placements.length}
-              </span>
-            )}
-          </Button>
-        </div>
-      </div>
-
-      <div
-        className={cn(
-          'grid items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)]',
-          // pe desktop grila umple restul ecranului, iar coloanele se intind
-          fullscreen && 'lg:min-h-0 lg:flex-1 lg:items-stretch',
-        )}
+    <div className={cn('flex flex-col gap-2', fullscreen && 'fixed inset-0 z-40 bg-background p-2')}>
+      <section
+        aria-label={t('workspace.label')}
+        data-testid="studio-workspace"
+        className={cn('relative isolate h-[calc(100dvh-136px)] min-h-[520px] w-full overflow-hidden rounded-2xl border border-border-2 bg-[#f7f3ec] shadow-sm sm:h-[calc(100dvh-112px)]', fullscreen && 'h-full min-h-0 flex-1')}
       >
-        {/* biblioteca de piese */}
-        <aside
-          className={cn(
-            'flex flex-col gap-3 rounded-2xl border border-border-2 bg-surface-2/50 p-3',
-            fullscreen && 'lg:min-h-0',
-          )}
-        >
-          {/* jurnalul de misiuni al turului — andocat deasupra bibliotecii */}
-          <StudioTutorial phase={tutorial} onPhase={setTutorial} canvasRef={canvasWrapRef} />
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-              {t('library')}
-            </h2>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={openNewPiece}
-              className={cn(tutTarget === 'newPiece' && 'tut-pulse')}
-            >
-              <Plus className="h-4 w-4" />
-              {t('newPiece')}
-            </Button>
-          </div>
-          {pieceList.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border-2 p-3 text-xs leading-relaxed text-muted-foreground">
-              {t('libraryEmpty')}
-            </p>
-          ) : (
-            <ul
-              className={cn(
-                'flex max-h-[430px] flex-col gap-2 overflow-y-auto pr-0.5',
-                // in fullscreen lista foloseste toata inaltimea coloanei
-                fullscreen && 'lg:min-h-0 lg:max-h-none lg:flex-1',
-              )}
-            >
-              {pieceList.map((piece) => (
-                <LibraryRow
-                  key={piece.id}
-                  piece={piece}
-                  onPlace={() => placePiece(piece.id)}
-                  onEdit={() => openEditPiece(piece)}
-                  onDelete={() => onDeletePiece(piece)}
-                  onGrab={(e) =>
-                    beginPaletteDrag(e, { type: 'piece', pieceId: piece.id }, piece.name)
-                  }
-                />
-              ))}
-            </ul>
-          )}
-          <p className="text-xs leading-relaxed text-muted-foreground">{t('sendHint')}</p>
-        </aside>
-
-        {/* camerele + scena 3D */}
-        <div className={cn('flex flex-col gap-3', fullscreen && 'lg:min-h-0')}>
-          {/* taburile camerelor: te plimbi intre scenele apartamentului */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {scenes.map((sc) =>
-              sc.id === scene.id ? (
-                <span
-                  key={sc.id}
-                  className="inline-flex items-center gap-1 rounded-full bg-walnut px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-sm"
-                >
-                  {sc.name}
-                  <button
-                    type="button"
-                    title={t('renameScene')}
-                    aria-label={t('renameScene')}
-                    onClick={() => setRenameOpen(true)}
-                    className="grid h-5 w-5 place-items-center rounded-full transition-colors hover:bg-white/20"
-                  >
-                    <Pencil className="h-3 w-3" />
-                  </button>
-                  {scenes.length < STUDIO_MAX_SCENES && (
-                    <button
-                      type="button"
-                      title={t('duplicateScene')}
-                      aria-label={t('duplicateScene')}
-                      onClick={onDuplicateScene}
-                      className="grid h-5 w-5 place-items-center rounded-full transition-colors hover:bg-white/20"
-                    >
-                      <Copy className="h-3 w-3" />
-                    </button>
-                  )}
-                  {scenes.length > 1 && (
-                    <button
-                      type="button"
-                      title={t('deleteScene')}
-                      aria-label={t('deleteScene')}
-                      onClick={onDeleteScene}
-                      className="grid h-5 w-5 place-items-center rounded-full transition-colors hover:bg-white/20"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  )}
-                </span>
-              ) : (
-                <button
-                  key={sc.id}
-                  type="button"
-                  onClick={() => setActiveScene(sc.id)}
-                  className="rounded-full border border-border-2 bg-surface px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-walnut/50 hover:text-foreground"
-                >
-                  {sc.name}
-                </button>
-              ),
-            )}
-            {scenes.length < STUDIO_MAX_SCENES && (
-              <button
-                type="button"
-                onClick={onAddScene}
-                className={cn(
-                  'inline-flex items-center gap-1 rounded-full border border-dashed border-border-2 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-walnut/60 hover:text-walnut',
-                  tutTarget === 'newScene' && 'tut-pulse',
-                )}
-              >
-                <Plus className="h-3.5 w-3.5" />
-                {t('newScene')}
-              </button>
-            )}
-            {/* undo/redo — o intrare per actiune/gest, Ctrl+Z / Ctrl+Shift+Z */}
-            <div className="ml-auto flex items-center gap-1">
-              <button
-                type="button"
-                title={`${t('undo')} (Ctrl+Z)`}
-                aria-label={t('undo')}
-                disabled={!canUndo}
-                onClick={undo}
-                className={cn(
-                  'grid h-8 w-8 place-items-center rounded-md border border-border-2 bg-surface text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40',
-                  // nu pulsam un buton stins — cardul misiunii explica intai
-                  tutTarget === 'undo' && canUndo && 'tut-pulse',
-                )}
-              >
-                <Undo2 className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                title={`${t('redo')} (Ctrl+Shift+Z)`}
-                aria-label={t('redo')}
-                disabled={!canRedo}
-                onClick={redo}
-                className="grid h-8 w-8 place-items-center rounded-md border border-border-2 bg-surface text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
-              >
-                <Redo2 className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                title={`${t(fullscreen ? 'exitFullscreen' : 'fullscreen')} (F)`}
-                aria-label={t(fullscreen ? 'exitFullscreen' : 'fullscreen')}
-                onClick={toggleFullscreen}
-                className="grid h-8 w-8 place-items-center rounded-md border border-border-2 bg-surface text-muted-foreground transition-colors hover:text-foreground"
-              >
-                {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-              </button>
-              <button
-                type="button"
-                title={t('tutorial.replay')}
-                aria-label={t('tutorial.replay')}
-                onClick={() => setTutorial('welcome')}
-                className="grid h-8 w-8 place-items-center rounded-md border border-border-2 bg-surface text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <HelpCircle className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-          <div
-            ref={canvasWrapRef}
-            className={cn(
-              'relative overflow-hidden rounded-2xl border border-border-2',
-              // canvasul preia tot spatiul ramas; sub o limita rezonabila
-              // lasam pagina sa se deruleze in loc sa strivim scena
-              fullscreen && 'lg:min-h-[320px] lg:flex-1',
-              tutTarget === 'orbit' && 'tut-pulse',
-            )}
-          >
-            <RoomCanvas
-              className={cn('h-[380px] w-full sm:h-[520px]', fullscreen && 'lg:h-full')}
-            />
+        <div ref={canvasWrapRef} className={cn('absolute inset-0', workspaceView !== 'room' && 'invisible pointer-events-none', tutTarget === 'orbit' && 'tut-pulse')} aria-hidden={workspaceView !== 'room'} inert={workspaceView !== 'room'}>
+            {webgl === true ? <RoomCanvas
+              className="h-full w-full"
+              cutaway={cutawayWalls}
+            /> : <div role="status" className="grid h-full w-full place-items-center bg-surface-2 p-6 text-center text-muted-foreground">
+              {webgl === false ? t('roomViewer.webglMissing') : <Loader2 aria-hidden="true" className="h-6 w-6 animate-spin" />}
+            </div>}
 
             {/* panoul piesei selectate: actiuni + distantele pana la pereti,
                 editabile la cm (feedback PO r5 — dragul nu nimereste fix) */}
-            {selected && selectedPiece && (
-              <FloatingPanel canvasRef={canvasWrapRef}>
+            {!toolsHidden && selected && selectedPiece && (
+              <FloatingPanel canvasRef={canvasWrapRef} minimized={selectionMinimized} onMinimize={() => setSelectionMinimized((value) => !value)} stacked={toolPanel !== null}>
               <div className="flex items-center justify-center gap-1">
                 <span className="max-w-[140px] truncate px-1.5 text-xs font-medium">
                   {selectedPiece.name}
@@ -1639,8 +1490,8 @@ export function StudioPage() {
             )}
 
             {/* panoul golului selectat (usa/fereastra/priza) cu dimensiuni */}
-            {!selected && selectedOpening && (
-              <FloatingPanel canvasRef={canvasWrapRef}>
+            {!toolsHidden && !selected && selectedOpening && (
+              <FloatingPanel canvasRef={canvasWrapRef} minimized={selectionMinimized} onMinimize={() => setSelectionMinimized((value) => !value)} stacked={toolPanel !== null}>
                 <OpeningToolbar
                   opening={selectedOpening}
                   room={scene.room}
@@ -1658,22 +1509,196 @@ export function StudioPage() {
             {/* indiciul de camera goala dispare la PRIMUL lucru asezat —
                 inclusiv usi/ferestre/prize — si cat timp tragi ceva din paleta */}
             {scene.placements.length === 0 && scene.openings.length === 0 && !ghost && (
-              <div className="pointer-events-none absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center">
-                <span className="rounded-full bg-surface/90 px-4 py-2 text-sm text-muted-foreground shadow-sm">
+              <div className="pointer-events-none absolute inset-x-4 bottom-24 flex justify-center">
+                <span className="max-w-sm rounded-xl bg-surface/90 px-4 py-2 text-center text-xs text-muted-foreground shadow-sm">
                   {t('emptyRoomHint')}
                 </span>
               </div>
             )}
 
-          </div>
 
-          {/* controalele camerei */}
-          <div
-            className={cn(
-              'flex flex-wrap items-center gap-x-6 gap-y-3 rounded-2xl border border-border-2 bg-surface-2/50 px-4 py-3',
-              tutTarget === 'room' && 'tut-pulse',
+        </div>
+        {houseVisited && <div className={cn('absolute inset-0', workspaceView !== 'house' && 'invisible pointer-events-none')} aria-hidden={workspaceView !== 'house'} inert={workspaceView !== 'house'}>
+          <HouseEditor toolsHidden={toolsHidden} cutaway={cutawayWalls} />
+        </div>}
+
+        <div className={cn('absolute inset-x-2 top-2 z-20 flex min-h-12 items-center gap-2 rounded-xl border border-border/80 bg-surface/95 p-1.5 shadow-sm backdrop-blur-md sm:inset-x-3 sm:top-3 sm:gap-3', toolsHidden && 'hidden')}>
+          <h1 className="hidden shrink-0 px-2 font-serif text-xl md:block">{t('title')}</h1>
+          <Select aria-label={t('workspace.activeRoom')} value={scene.id} onChange={(e) => { setActiveScene(e.target.value); }} className="min-w-0 max-w-44 flex-1 border-transparent bg-transparent text-sm sm:max-w-56">
+            {scenes.map((sc) => <option key={sc.id} value={sc.id}>{sc.name}</option>)}
+          </Select>
+          <div className="ml-auto flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                title={`${t('undo')} (Ctrl+Z)`}
+                aria-label={t('undo')}
+                disabled={!canUndo}
+                onClick={undo}
+                className={cn(
+                  'grid h-9 w-9 place-items-center rounded-md border border-border-2 bg-surface text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40',
+                  // nu pulsam un buton stins — cardul misiunii explica intai
+                  tutTarget === 'undo' && canUndo && 'tut-pulse',
+                )}
+              >
+                <Undo2 className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                title={`${t('redo')} (Ctrl+Shift+Z)`}
+                aria-label={t('redo')}
+                disabled={!canRedo}
+                onClick={redo}
+                className="grid h-9 w-9 place-items-center rounded-md border border-border-2 bg-surface text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
+              >
+                <Redo2 className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                title={`${t(fullscreen ? 'exitFullscreen' : 'fullscreen')} (F)`}
+                aria-label={t(fullscreen ? 'exitFullscreen' : 'fullscreen')}
+                onClick={toggleFullscreen}
+                className="grid h-9 w-9 place-items-center rounded-md border border-border-2 bg-surface text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </button>
+              <button
+                type="button"
+                title={t('tutorial.replay')}
+                aria-label={t('tutorial.replay')}
+                onClick={() => { setToolsHidden(false); setTutorial('welcome'); }}
+                className="hidden sm:grid h-9 w-9 place-items-center rounded-md border border-border-2 bg-surface text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </button>
+
+            <span className="mx-1 hidden h-6 w-px bg-border sm:block" aria-hidden="true" />
+          <Button variant="ghost" aria-label={t('myDrafts')} title={t('myDrafts')} onClick={() => setDraftsOpen(true)}>
+            <FolderOpen className="h-4 w-4" />
+            <span className="hidden xl:inline">{t('myDrafts')}</span>
+            {loadedDraft && (
+              <span className="hidden max-w-[120px] xl:inline truncate text-xs text-muted-foreground">
+                · {loadedDraft.name}
+              </span>
             )}
-          >
+          </Button>
+          <Button variant="walnut" aria-label={t('sendToRequest')} title={t('sendToRequest')} onClick={sendToRequest}>
+            <Send className="h-4 w-4" />
+            <span className="hidden xl:inline">{t('sendToRequest')}</span>
+            {transferCount > 0 && (
+              <span className="rounded-full bg-white/20 px-1.5 text-xs tabular-nums">
+                {transferCount}
+              </span>
+            )}
+          </Button>
+
+          </div>
+        </div>
+
+        {workspaceView === 'room' && !toolsHidden && toolPanel && <aside
+          id="studio-tool-panel"
+          aria-label={t(toolPanel === 'library' ? 'library' : 'workspace.roomTools')}
+          className={cn('absolute bottom-24 left-3 top-20 z-10 flex w-[min(300px,calc(100%-24px))] flex-col overflow-hidden rounded-xl border border-border-2 bg-surface/95 shadow-lg backdrop-blur-md', (selectedId || selectedOpeningId) && 'max-lg:bottom-[calc(50%+8px)]')}
+        >
+          <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-2">
+            <h2 className="text-sm font-semibold">{t(toolPanel === 'library' ? 'library' : 'workspace.roomTools')}</h2>
+            <Button size="icon-sm" variant="ghost" aria-label={t('workspace.minimizePanel')} title={t('workspace.minimizePanel')} onClick={() => { setToolPanel(null); document.getElementById(`studio-${toolPanel}-toggle`)?.focus(); }}><Minus /></Button>
+          </div>
+          <div className="flex min-h-0 flex-col gap-4 overflow-y-auto overscroll-contain p-3">
+            {toolPanel === 'library' ? <>
+              <Button variant="outline" onClick={openNewPiece} className={cn(tutTarget === 'newPiece' && 'tut-pulse')}><Plus />{t('newPiece')}</Button>
+          {pieceList.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-border-2 p-3 text-xs leading-relaxed text-muted-foreground">
+              {t('libraryEmpty')}
+            </p>
+          ) : (
+            <ul
+              className={cn(
+                'flex flex-col gap-2',
+                // in fullscreen lista foloseste toata inaltimea coloanei
+                fullscreen && 'lg:min-h-0 lg:max-h-none lg:flex-1',
+              )}
+            >
+              {pieceList.map((piece) => (
+                <LibraryRow
+                  key={piece.id}
+                  piece={piece}
+                  onPlace={() => placePiece(piece.id)}
+                  onEdit={() => openEditPiece(piece)}
+                  onDelete={() => onDeletePiece(piece)}
+                  onGrab={(e) =>
+                    beginPaletteDrag(e, { type: 'piece', pieceId: piece.id }, piece.name)
+                  }
+                />
+              ))}
+            </ul>
+          )}
+          <p className="text-xs leading-relaxed text-muted-foreground">{t(houseEnabled ? 'house.sendHint' : 'sendHint')}</p>
+
+            </> : <>
+              <div className="flex flex-wrap gap-1.5">            {scenes.map((sc) =>
+              sc.id === scene.id ? (
+                <span
+                  key={sc.id}
+                  className="inline-flex items-center gap-1 rounded-full bg-walnut px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-sm"
+                >
+                  {sc.name}
+                  <button
+                    type="button"
+                    title={t('renameScene')}
+                    aria-label={t('renameScene')}
+                    onClick={() => setRenameOpen(true)}
+                    className="grid h-5 w-5 place-items-center rounded-full transition-colors hover:bg-white/20"
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                  {scenes.length < STUDIO_MAX_SCENES && (
+                    <button
+                      type="button"
+                      title={t('duplicateScene')}
+                      aria-label={t('duplicateScene')}
+                      onClick={onDuplicateScene}
+                      className="grid h-5 w-5 place-items-center rounded-full transition-colors hover:bg-white/20"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </button>
+                  )}
+                  {scenes.length > 1 && (
+                    <button
+                      type="button"
+                      title={t('deleteScene')}
+                      aria-label={t('deleteScene')}
+                      onClick={onDeleteScene}
+                      className="grid h-5 w-5 place-items-center rounded-full transition-colors hover:bg-white/20"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </span>
+              ) : (
+                <button
+                  key={sc.id}
+                  type="button"
+                  onClick={() => setActiveScene(sc.id)}
+                  className="rounded-full border border-border-2 bg-surface px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-walnut/50 hover:text-foreground"
+                >
+                  {sc.name}
+                </button>
+              ),
+            )}
+            {scenes.length < STUDIO_MAX_SCENES && (
+              <button
+                type="button"
+                onClick={onAddScene}
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full border border-dashed border-border-2 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-walnut/60 hover:text-walnut',
+                  tutTarget === 'newScene' && 'tut-pulse',
+                )}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {t('newScene')}
+              </button>
+            )}
+</div>
             <RoomDimControl
               label={t('width')}
               valueM={scene.room.widthM}
@@ -1690,7 +1715,7 @@ export function StudioPage() {
               onValueM={(v) => setRoom({ depthM: v })}
               onGestureStart={recordHistory}
             />
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col items-start gap-2">
               <span className="text-xs font-medium">{t('openingsLabel')}</span>
               <div
                 className={cn(
@@ -1709,7 +1734,12 @@ export function StudioPage() {
                     onPointerDown={(e) =>
                       beginPaletteDrag(e, { type: 'opening', kind }, t(`openings.${kind}`))
                     }
-                    onClick={() => onAddOpening(kind)}
+                    onClick={(e) => {
+                      const dragged = suppressOpeningClickRef.current;
+                      suppressOpeningClickRef.current = false;
+                      if (dragged && e.detail > 0) return;
+                      onAddOpening(kind);
+                    }}
                     className="grid h-10 w-11 cursor-grab place-items-center rounded-md border border-border-2 bg-surface p-1 transition-colors hover:border-walnut/50"
                   >
                     <OpeningPreview kind={kind} className="h-full w-full" />
@@ -1717,7 +1747,7 @@ export function StudioPage() {
                 ))}
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col items-start gap-2">
               <span className="text-xs font-medium">{t('walls')}</span>
               <div className="flex items-center gap-1">
                 {WALL_COLORS.map((s) => (
@@ -1741,7 +1771,7 @@ export function StudioPage() {
                 ))}
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col items-start gap-2">
               <span className="text-xs font-medium">{t('floor')}</span>
               <div className="flex items-center gap-1">
                 {FLOOR_COLORS.map((s) => (
@@ -1769,14 +1799,37 @@ export function StudioPage() {
               <button
                 type="button"
                 onClick={clearPlacements}
-                className="ml-auto text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-destructive hover:underline"
+                className="self-start text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-destructive hover:underline"
               >
                 {t('clearRoom')}
               </button>
             )}
+            <Button variant="ghost" onClick={() => setTutorial('welcome')}><HelpCircle />{t('tutorial.replay')}</Button>
+
+            </>}
+          </div>
+        </aside>}
+
+        <div className={cn('pointer-events-none absolute bottom-24 right-3 z-20 w-[min(300px,calc(100%-24px))]', toolsHidden && 'hidden')}>
+          <div className="pointer-events-auto"><StudioTutorial phase={tutorial} onPhase={setTutorial} canvasRef={canvasWrapRef} /></div>
+        </div>
+        {persistenceError && <p role="alert" className="absolute inset-x-4 bottom-24 z-20 rounded-lg bg-surface p-3 text-sm text-crimson">{t('house.persistenceError')}</p>}
+
+        <div className="pointer-events-none absolute inset-x-2 bottom-3 z-20 flex justify-center sm:inset-x-3">
+          <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-2xl border border-border-2 bg-surface/95 p-1.5 shadow-lg backdrop-blur-md">
+            {!toolsHidden && <>
+              <Button variant="walnut" onClick={openNewPiece} aria-label={t('newPiece')} title={t('newPiece')} className="h-11 shrink-0 px-3"><Plus /><span className="hidden sm:inline">{t('newPiece')}</span></Button>
+              <Button id="studio-library-toggle" variant={toolPanel === 'library' && workspaceView === 'room' ? 'secondary' : 'ghost'} aria-expanded={toolPanel === 'library' && workspaceView === 'room'} aria-controls="studio-tool-panel" onClick={() => showToolPanel('library')} className="h-11 shrink-0 px-2 sm:px-3"><Sofa /><span>{t('workspace.furniture')}</span></Button>
+              <Button id="studio-room-toggle" variant={toolPanel === 'room' && workspaceView === 'room' ? 'secondary' : 'ghost'} aria-expanded={toolPanel === 'room' && workspaceView === 'room'} aria-controls="studio-tool-panel" onClick={() => showToolPanel('room')} className="h-11 shrink-0 px-2 sm:px-3"><SlidersHorizontal /><span>{t('workspace.room')}</span></Button>
+              <Button variant={workspaceView === 'house' ? 'secondary' : 'ghost'} aria-pressed={workspaceView === 'house'} onClick={showHouse} title={t('workspace.house')} aria-label={t('workspace.house')} className="h-11 shrink-0 px-2 sm:px-3"><House /><span className="hidden sm:inline">{t('workspace.house')}</span></Button>
+              <Button variant={cutawayWalls ? 'ghost' : 'secondary'} aria-pressed={!cutawayWalls} aria-label={t('workspace.wallMode')} title={t(cutawayWalls ? 'workspace.cutawayWalls' : 'workspace.fullWalls')} onClick={() => setCutawayWalls(!cutawayWalls)} className="h-11 shrink-0 px-2 sm:px-3"><BrickWall /><span className="hidden md:inline">{t(cutawayWalls ? 'workspace.cutawayWalls' : 'workspace.fullWalls')}</span></Button>
+            </>}
+            <Button variant="ghost" onClick={() => setToolsHidden((hidden) => !hidden)} aria-label={t(toolsHidden ? 'workspace.showTools' : 'workspace.hideTools')} title={t(toolsHidden ? 'workspace.showTools' : 'workspace.hideTools')} className="h-11 shrink-0 px-2 sm:px-3">
+              {toolsHidden ? <Eye /> : <EyeOff />}<span className={cn(!toolsHidden && 'hidden lg:inline')}>{t(toolsHidden ? 'workspace.showTools' : 'workspace.hideTools')}</span>
+            </Button>
           </div>
         </div>
-      </div>
+      </section>
 
       {editor && (
         <PieceEditorDialog

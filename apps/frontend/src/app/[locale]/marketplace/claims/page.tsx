@@ -8,8 +8,15 @@ import { useMyClaims } from '@/hooks/use-marketplace';
 import { useThreads } from '@/hooks/use-chat';
 import { useRealtimeSync } from '@/hooks/use-socket';
 import { StatusBadge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
+import { QueryState } from '@/components/ui/query-state';
+import { SkeletonPage, SkeletonTable } from '@/components/ui/skeleton';
 import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/table';
+import { useNow } from '@/hooks/use-now';
 import { useRelativeTime } from '@/lib/relative-time';
+import { slaPhase, useSlaDateFormat } from '@/lib/sla-deadline';
 import { AccessBlocked } from '../_components/access-blocked';
 
 // Pagina dedicata claim-urilor firmei (mutata din wallet): cine a preluat,
@@ -22,6 +29,9 @@ export default function CompanyClaimsPage() {
   const claims = useMyClaims();
   const threads = useThreads('company');
   const relTime = useRelativeTime();
+  const fmtSla = useSlaDateFormat();
+  // E-company-13: culoarea termenului (chihlimbar / rosu) avanseaza fara reload
+  const now = useNow(60_000);
   useRealtimeSync();
 
   // mesaje necitite per claim (idee 1 PO r2) — thread-ul e legat de claim slot
@@ -36,31 +46,25 @@ export default function CompanyClaimsPage() {
   }, [me.isError, me.data, router]);
 
   if (me.isPending) {
-    return <p className="py-20 text-center text-muted-foreground">{t('loading')}</p>;
+    return <QueryState pending onRetry={() => void me.refetch()} skeleton={<SkeletonPage variant="table" />} />;
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="page-title">{t('myClaims.title')}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{t('myClaims.subtitle')}</p>
-        </div>
-        <Link href="/marketplace" className="text-sm text-walnut hover:underline">
-          ← {t('back')}
-        </Link>
-      </div>
+      <PageHeader
+        back={{ href: '/marketplace', label: t('back') }}
+        title={t('myClaims.title')}
+        subtitle={t('myClaims.subtitle')}
+      />
 
-      {claims.isPending && <p className="py-10 text-center text-muted-foreground">{t('loading')}</p>}
+      {claims.isPending && <SkeletonTable rows={5} cols={7} />}
       {claims.isError && <AccessBlocked error={claims.error} onRetry={() => void claims.refetch()} />}
       {claims.isSuccess && claims.data.length === 0 && (
-        <p className="rounded-xl border border-border bg-surface px-4 py-10 text-center text-muted-foreground">
-          {t('myClaims.empty')}
-        </p>
+        <EmptyState variant="card" title={t('myClaims.empty')} />
       )}
 
       {claims.data && claims.data.length > 0 && (
-        <div className="rounded-xl border border-border bg-surface shadow-sm">
+        <Card padding="none">
           <Table>
             <THead>
               <TR>
@@ -82,7 +86,7 @@ export default function CompanyClaimsPage() {
                       {(unreadByClaim.get(c.id) ?? 0) > 0 && (
                         <span
                           title={t('myClaims.newMessages', { n: unreadByClaim.get(c.id) ?? 0 })}
-                          className="grid h-4 min-w-4 shrink-0 place-items-center rounded-full bg-crimson px-1 text-[10px] font-bold leading-none text-white"
+                          className="grid h-4 min-w-4 shrink-0 place-items-center rounded-full bg-crimson px-1 text-micro font-bold leading-none text-white"
                         >
                           {unreadByClaim.get(c.id)}
                         </span>
@@ -105,9 +109,15 @@ export default function CompanyClaimsPage() {
                   <TD>
                     <StatusBadge status={c.status} label={t(`claimStatus.${c.status}`)} />
                   </TD>
-                  <TD className="whitespace-nowrap text-xs text-muted-foreground">
-                    {c.slaDeadlineAt ? new Date(c.slaDeadlineAt).toLocaleString() : '—'}
-                    {c.slaPaused && ` · ${t('myClaims.slaPaused')}`}
+                  <TD className={'whitespace-nowrap text-xs ' + slaCellClass(c, now)}>
+                    {c.status === 'ACTIVE' && c.slaDeadlineAt ? (
+                      <>
+                        {fmtSla(c.slaDeadlineAt)}
+                        {c.slaPaused && ` · ${t('myClaims.slaPaused')}`}
+                      </>
+                    ) : (
+                      '—'
+                    )}
                   </TD>
                   <TD>
                     <div className="flex gap-3 whitespace-nowrap">
@@ -129,8 +139,21 @@ export default function CompanyClaimsPage() {
               ))}
             </TBody>
           </Table>
-        </div>
+        </Card>
       )}
     </div>
   );
+}
+
+// E-company-13: SLA doar pe preluarile ACTIVE (dupa oferta nu mai conteaza). Lista nu are
+// momentul penalizarii, deci aici nu exista numaratoare de gratie: doar culoarea.
+function slaCellClass(
+  c: { status: string; slaDeadlineAt: string | null; slaPaused: boolean },
+  now: number,
+): string {
+  if (c.status !== 'ACTIVE' || !c.slaDeadlineAt || c.slaPaused) return 'text-muted-foreground';
+  const phase = slaPhase(c.slaDeadlineAt, null, now);
+  if (phase === 'SOON') return 'text-amber';
+  if (phase === 'GRACE' || phase === 'BREACHED') return 'text-crimson';
+  return 'text-muted-foreground';
 }

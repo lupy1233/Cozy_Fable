@@ -22,6 +22,19 @@ import {
   useUploadInspirationImage,
 } from '@/hooks/use-admin-inspiration';
 import { Button } from '@/components/ui/button';
+import { Card, CardSection } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadError } from '@/components/ui/query-state';
+import { SkeletonList, SkeletonPage } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -80,7 +93,7 @@ export default function AdminInspirationPage() {
     else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
   }, [me.isError, me.data, router]);
 
-  if (me.isPending || me.data?.role !== 'ADMIN') return null;
+  if (me.isPending || me.data?.role !== 'ADMIN') return <SkeletonPage variant="list" />;
 
   const submit = () => {
     if (!title.trim() || !companyId) return;
@@ -111,11 +124,10 @@ export default function AdminInspirationPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="page-title">{t('title')}</h1>
+      <PageHeader title={t('title')} />
 
       {/* adaugare poza */}
-      <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-        <h2 className="mb-3 font-serif text-lg">{t('addTitle')}</h2>
+      <CardSection title={t('addTitle')}>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t('fields.title')}>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={150} />
@@ -181,9 +193,11 @@ export default function AdminInspirationPage() {
         >
           {t('addButton')}
         </Button>
-      </section>
+      </CardSection>
 
       {/* lista */}
+      {list.isPending && <SkeletonList rows={3} variant="cards" className="sm:grid-cols-2 lg:grid-cols-3" />}
+      {list.isError && <LoadError onRetry={() => void list.refetch()} />}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {list.data?.map((p) => (
           <PhotoCard
@@ -196,7 +210,7 @@ export default function AdminInspirationPage() {
           />
         ))}
         {list.data?.length === 0 && (
-          <p className="col-span-full py-10 text-center text-muted-foreground">{t('empty')}</p>
+          <EmptyState variant="card" size="sm" title={t('empty')} className="col-span-full" />
         )}
       </section>
     </div>
@@ -218,8 +232,17 @@ function PhotoCard({
 }) {
   const t = useTranslations('AdminInspiration');
   const tc = useTranslations('Configurator');
+  // poza folosita de cereri active / colectii: retragerea sau stergerea cer
+  // confirmare (clientii nu o mai pot pastra la urmatoarea editare) — E-client-2
+  const inUse = (photo.usage?.activeRequests ?? 0) + (photo.usage?.boards ?? 0) > 0;
+  const [pending, setPending] = useState<'unpublish' | 'delete' | null>(null);
+  const confirmPending = () => {
+    if (pending === 'unpublish') onToggle({ published: false });
+    if (pending === 'delete') onDelete();
+    setPending(null);
+  };
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+    <Card padding="none" className="overflow-hidden">
       {photo.imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={photo.imageUrl} alt={photo.title} className="aspect-[4/3] w-full object-cover" />
@@ -234,6 +257,11 @@ function PhotoCard({
           <p className="truncate text-xs text-muted-foreground">
             {photo.company.name} · {tc(`rooms.type.${photo.roomType}`)}
           </p>
+          {photo.usage && (
+            <p className="truncate text-xs text-muted-foreground">
+              {t('usage', { requests: photo.usage.activeRequests, boards: photo.usage.boards })}
+            </p>
+          )}
           {photo.sourceUrl && (
             <a
               href={photo.sourceUrl}
@@ -251,7 +279,10 @@ function PhotoCard({
               type="checkbox"
               className="accent-walnut"
               checked={photo.published}
-              onChange={(e) => onToggle({ published: e.target.checked })}
+              onChange={(e) => {
+                if (!e.target.checked && inUse) setPending('unpublish');
+                else onToggle({ published: e.target.checked });
+              }}
             />
             {t('published')}
           </label>
@@ -277,11 +308,34 @@ function PhotoCard({
               }}
             />
           </label>
-          <button type="button" onClick={onDelete} className="text-crimson hover:underline">
+          <button type="button" onClick={() => (inUse ? setPending('delete') : onDelete())} className="text-crimson hover:underline">
             {t('delete')}
           </button>
         </div>
       </div>
-    </div>
+      <Dialog open={pending !== null} onOpenChange={(open) => { if (!open) setPending(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('confirmTitle')}</DialogTitle>
+            <DialogDescription>
+              {pending === 'delete' ? t('confirmDeleteBody') : t('confirmUnpublishBody')}
+            </DialogDescription>
+          </DialogHeader>
+          {photo.usage && (
+            <p className="text-sm text-muted-foreground">
+              {t('usage', { requests: photo.usage.activeRequests, boards: photo.usage.boards })}
+            </p>
+          )}
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button type="button" variant="outline" onClick={() => setPending(null)}>
+              {t('cancel')}
+            </Button>
+            <Button type="button" variant={pending === 'delete' ? 'destructive' : 'walnut'} onClick={confirmPending}>
+              {pending === 'delete' ? t('confirmDelete') : t('confirmUnpublish')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 }

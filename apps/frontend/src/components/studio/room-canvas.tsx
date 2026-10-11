@@ -1,18 +1,21 @@
 'use client';
 
-import { buildPanels, type Panel3d } from '@marketplace/shared';
+import { pieceElevation, buildPanels, buildInteriorDetails, buildStaticHandles } from '@marketplace/shared';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { Html, Line, OrbitControls } from '@react-three/drei';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BufferGeometry, Float32BufferAttribute, Vector3, type Group } from 'three';
 import type { Camera } from 'three';
 import {
-  finishSpecFor,
+  finishSpecForConfig,
   HIGHLIGHT_COLOR,
   ROD_COLOR,
-  type FinishSpec,
 } from '../configurator/piece3d/finishes';
 import { floorColorOf, wallColorOf } from './palette';
+import { ShowroomEnvironment } from '../configurator/piece3d/showroom-environment';
+import { ShowroomBatches } from '../configurator/piece3d/showroom-batches';
+import { ShowroomGeometry, ShowroomMaterial } from '../configurator/piece3d/showroom-panel';
+import { RoomCameraRig } from '../configurator/piece3d/stable-orbit-camera';
 import {
   openingSize,
   overlappingPlacements,
@@ -37,113 +40,26 @@ import {
 // exportate si pentru viewerul read-only al cererii (room-viewer.tsx)
 export const WALL_T = 0.09;
 export const FLOOR_T = 0.12;
-const BACKDROP_COLOR = '#262019';
 const OVERLAP_COLOR = '#c2452d';
-const DOOR_LEAF_COLOR = '#8a6544';
+const DOOR_FINISH = { body: '#8a6544', front: '#8a6544', roughness: 0.58, grain: true };
 const GLASS_COLOR = '#bcd3dc';
 const FRAME_COLOR = '#efe9df';
-
-type ControlsLike = {
-  target: { set: (x: number, y: number, z: number) => void };
-  update: () => void;
-} | null;
 
 // Panourile unei piese, randate STATIC (fara animatii/hotspot-uri — camera e
 // pentru asezat piese, nu pentru deschis usi). Aceleasi conventii de material
 // ca PanelMesh din piece-canvas.
-function StaticPanel({ panel, spec }: { panel: Panel3d; spec: FinishSpec }) {
-  if (panel.role === 'ROD') {
-    return (
-      <mesh position={[panel.x, panel.y, panel.z]} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.013, 0.013, panel.w, 12]} />
-        <meshStandardMaterial color={ROD_COLOR} roughness={0.35} metalness={0.7} />
-      </mesh>
-    );
-  }
-  if (panel.role === 'LEG') {
-    return (
-      <mesh position={[panel.x, panel.y, panel.z]} castShadow>
-        <cylinderGeometry args={[0.014, 0.01, panel.h, 10]} />
-        <meshStandardMaterial color={spec.body} roughness={spec.roughness} />
-      </mesh>
-    );
-  }
-  if (panel.role === 'FRONT_BACKDROP') {
-    return (
-      <mesh position={[panel.x, panel.y, panel.z]}>
-        <boxGeometry args={[panel.w, panel.h, panel.d]} />
-        <meshStandardMaterial color={BACKDROP_COLOR} roughness={1} />
-      </mesh>
-    );
-  }
-  const front =
-    panel.role === 'DRAWER_FRONT' ||
-    panel.role === 'DOOR_FRONT' ||
-    panel.role === 'TILT_FRONT' ||
-    panel.role === 'SLIDING_FRONT';
-  return (
-    <mesh position={[panel.x, panel.y, panel.z]} castShadow receiveShadow>
-      <boxGeometry args={[panel.w, panel.h, panel.d]} />
-      <meshStandardMaterial color={front ? spec.front : spec.body} roughness={spec.roughness} />
-    </mesh>
-  );
-}
-
-// Manerul de alama al unui front — aceleasi pozitii ca FrontHandle din
-// piece-canvas (acolo relative la grupul animat, aici absolute: fronturile
-// din camera sunt statice). Fara el, piesa cu "fronturi cu maner" arata
-// diferit in camera fata de editor (bug raportat de PO).
-function StaticHandle({ panel }: { panel: Panel3d }) {
-  let x = panel.x;
-  let y = panel.y;
-  let vertical = false;
-  let length = Math.min(0.28, panel.w * 0.45);
-  if (panel.role === 'DOOR_FRONT') {
-    const sign = panel.hinge === 'R' ? 1 : -1;
-    x = panel.x - sign * (panel.w / 2 - 0.05);
-    vertical = true;
-    length = Math.min(0.32, panel.h * 0.45);
-  } else if (panel.role === 'TILT_FRONT') {
-    y = panel.y + panel.h / 2 - 0.05;
-    length = Math.min(0.26, panel.w * 0.4);
-  } else if (panel.role === 'SLIDING_FRONT') {
-    const sign = (panel.slideDx ?? 0) >= 0 ? 1 : -1;
-    x = panel.x - sign * (panel.w / 2 - 0.06);
-    vertical = true;
-    length = Math.min(0.5, panel.h * 0.35);
-  } else {
-    // sertar: bara orizontala sub muchia de sus a frontului
-    y = panel.y + Math.max(0, panel.h / 2 - 0.045);
-  }
-  return (
-    <mesh
-      position={[x, y, panel.z + panel.d / 2 + 0.012]}
-      rotation={vertical ? [0, 0, 0] : [0, 0, Math.PI / 2]}
-    >
-      <cylinderGeometry args={[0.008, 0.008, length, 10]} />
-      <meshStandardMaterial color={ROD_COLOR} roughness={0.35} metalness={0.7} />
-    </mesh>
-  );
-}
-
-const HANDLE_ROLES = new Set(['DRAWER_FRONT', 'DOOR_FRONT', 'TILT_FRONT', 'SLIDING_FRONT']);
-
 export function PieceMeshes({ piece }: { piece: StudioPiece }) {
-  const panels = useMemo(() => buildPanels(piece.config, piece.kind), [piece.config, piece.kind]);
+  const panels = useMemo(() => {
+    const structure = buildPanels(piece.config, piece.kind);
+    return [...structure, ...buildInteriorDetails(structure), ...buildStaticHandles(piece.config, structure)];
+  }, [piece.config, piece.kind]);
   const spec = useMemo(
-    () => finishSpecFor(piece.config.finish, piece.config.customColor),
-    [piece.config.finish, piece.config.customColor],
+    () => finishSpecForConfig(piece.config),
+    [piece.config],
   );
-  const withHandles = piece.config.frontStyle === 'HANDLE';
   return (
-    <group>
-      {panels.map((p, i) => (
-        <StaticPanel key={i} panel={p} spec={spec} />
-      ))}
-      {withHandles &&
-        panels
-          .filter((p) => HANDLE_ROLES.has(p.role))
-          .map((p, i) => <StaticHandle key={`h${i}`} panel={p} />)}
+    <group position={[0, pieceElevation(piece.config), 0]}>
+      <ShowroomBatches panels={panels} spec={spec} />
     </group>
   );
 }
@@ -391,7 +307,7 @@ const NOOP_OPENING_HANDLERS: OpeningHandlers = {
 // `interactive: false` (perete ascuns / mod viewer) scoate handlerele de tot:
 // fara ele, R3F nici nu mai raycasteaza golul — nu se poate selecta si nu mai
 // intercepteaza click-urile spre piesele din spatele lui (feedback PO r6).
-function OpeningMeshes({
+export function OpeningMeshes({
   opening,
   cx,
   selected,
@@ -448,22 +364,24 @@ function OpeningMeshes({
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
         <mesh position={[0, sill + h / 2, WALL_T / 2 + 0.013]} castShadow>
-          <boxGeometry args={[w, h, 0.025]} />
+          <ShowroomGeometry w={w} h={h} d={0.025} radius={0.008} />
           <meshStandardMaterial
             color={selected ? HIGHLIGHT_COLOR : '#f2ede4'}
             roughness={0.6}
           />
         </mesh>
-        {[-0.035, 0.035].map((dx) => (
-          <mesh
-            key={dx}
-            position={[dx, sill + h / 2, WALL_T / 2 + 0.027]}
+        {[-w * 0.25, w * 0.25].map((dx) => <group key={dx}>
+          <mesh position={[dx, sill + h / 2, WALL_T / 2 + 0.027]}
             rotation={[Math.PI / 2, 0, 0]}
           >
-            <cylinderGeometry args={[0.024, 0.024, 0.008, 16]} />
+            <cylinderGeometry args={[Math.min(w * 0.2, h * 0.3), Math.min(w * 0.2, h * 0.3), 0.004, 20]} />
             <meshStandardMaterial color="#c9c2b4" roughness={0.8} />
           </mesh>
-        ))}
+          {[-1, 1].map(side => <mesh key={side} position={[dx + side * w * 0.058, sill + h / 2, WALL_T / 2 + 0.03]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[Math.min(0.004, h * 0.045), Math.min(0.004, h * 0.045), 0.002, 8]} />
+            <meshStandardMaterial color="#45413c" roughness={1} />
+          </mesh>)}
+        </group>)}
       </group>
     );
   }
@@ -478,20 +396,20 @@ function OpeningMeshes({
 
       {/* tocul: bara de sus + laterale (+ jos la ferestre), pe fata interioara */}
       <mesh position={[0, top + bar / 2, frameZ]}>
-        <boxGeometry args={[w + 2 * bar, bar, 0.03]} />
+        <ShowroomGeometry w={w + 2 * bar} h={bar} d={0.03} radius={0.002} />
         <meshStandardMaterial color={frameColor} roughness={0.7} />
       </mesh>
       <mesh position={[-(w + bar) / 2, sill + h / 2 + (isDoor ? bar / 2 : 0), frameZ]}>
-        <boxGeometry args={[bar, h + (isDoor ? bar : 2 * bar), 0.03]} />
+        <ShowroomGeometry w={bar} h={h + (isDoor ? bar : 2 * bar)} d={0.03} radius={0.002} />
         <meshStandardMaterial color={frameColor} roughness={0.7} />
       </mesh>
       <mesh position={[(w + bar) / 2, sill + h / 2 + (isDoor ? bar / 2 : 0), frameZ]}>
-        <boxGeometry args={[bar, h + (isDoor ? bar : 2 * bar), 0.03]} />
+        <ShowroomGeometry w={bar} h={h + (isDoor ? bar : 2 * bar)} d={0.03} radius={0.002} />
         <meshStandardMaterial color={frameColor} roughness={0.7} />
       </mesh>
       {!isDoor && (
         <mesh position={[0, sill - bar / 2, frameZ]}>
-          <boxGeometry args={[w + 2 * bar, bar, 0.03]} />
+          <ShowroomGeometry w={w + 2 * bar} h={bar} d={0.03} radius={0.002} />
           <meshStandardMaterial color={frameColor} roughness={0.7} />
         </mesh>
       )}
@@ -503,23 +421,46 @@ function OpeningMeshes({
             const leafW = opening.kind === 'DOOR_DOUBLE' ? w / 2 - 0.02 : w - 0.03;
             const lx = opening.kind === 'DOOR_DOUBLE' ? (side * (leafW + 0.02)) / 2 : 0;
             return (
-              <mesh key={side} position={[lx, h / 2 - 0.01, 0.004]} castShadow>
-                <boxGeometry args={[leafW, h - 0.02, 0.04]} />
-                <meshStandardMaterial color={DOOR_LEAF_COLOR} roughness={0.6} />
-              </mesh>
+              <group key={side}>
+                <mesh position={[lx, h / 2 - 0.01, 0.004]} castShadow receiveShadow>
+                  <ShowroomGeometry w={leafW} h={h - 0.02} d={0.04} radius={0.003} />
+                  <ShowroomMaterial spec={DOOR_FINISH} grainAxis="Y" />
+                </mesh>
+                <group position={[side ? side * 0.07 : w / 2 - 0.09, Math.min(1.02, h * 0.52), 0.027]}>
+                  <mesh rotation={[Math.PI / 2, 0, 0]}>
+                    <cylinderGeometry args={[0.025, 0.025, 0.006, 20]} />
+                    <meshStandardMaterial color={ROD_COLOR} roughness={0.32} metalness={0.7} />
+                  </mesh>
+                  <mesh position={[0, 0, 0.021]} rotation={[Math.PI / 2, 0, 0]}>
+                    <cylinderGeometry args={[0.008, 0.008, 0.036, 12]} />
+                    <meshStandardMaterial color={ROD_COLOR} roughness={0.32} metalness={0.7} />
+                  </mesh>
+                  <mesh position={[(side || -1) * 0.043, 0, 0.034]} rotation={[0, 0, Math.PI / 2]}>
+                    <cylinderGeometry args={[0.009, 0.009, 0.105, 12]} />
+                    <meshStandardMaterial color={ROD_COLOR} roughness={0.32} metalness={0.7} />
+                  </mesh>
+                </group>
+              </group>
             );
           })}
-          {/* clanta de alama */}
-          <mesh
-            position={[opening.kind === 'DOOR_DOUBLE' ? -0.08 : w / 2 - 0.09, 1.02, WALL_T / 2 + 0.02]}
-            rotation={[0, 0, Math.PI / 2]}
-          >
-            <cylinderGeometry args={[0.011, 0.011, 0.13, 10]} />
-            <meshStandardMaterial color={ROD_COLOR} roughness={0.35} metalness={0.7} />
-          </mesh>
         </group>
       ) : (
         <group>
+          {/* Cercevea retrasa si pervaz: cotele golului si hit-target-ul raman aceleasi. */}
+          {[-1, 1].map(side => <group key={side}>
+            <mesh position={[side * (w / 2 - 0.018), sill + h / 2, 0.018]}>
+              <ShowroomGeometry w={0.035} h={h} d={0.038} radius={0.002} />
+              <meshStandardMaterial color={FRAME_COLOR} roughness={0.55} />
+            </mesh>
+            <mesh position={[0, sill + h / 2 + side * (h / 2 - 0.018), 0.018]}>
+              <ShowroomGeometry w={w - 0.07} h={0.035} d={0.038} radius={0.002} />
+              <meshStandardMaterial color={FRAME_COLOR} roughness={0.55} />
+            </mesh>
+          </group>)}
+          <mesh position={[0, sill - bar - 0.012, 0.025]} receiveShadow>
+            <ShowroomGeometry w={w + 2 * bar} h={0.024} d={0.18} radius={0.003} />
+            <meshStandardMaterial color={FRAME_COLOR} roughness={0.5} />
+          </mesh>
           {/* geamul translucid + montant central la fereastra lata */}
           <mesh position={[0, sill + h / 2, 0]}>
             <boxGeometry args={[w - 0.04, h - 0.04, 0.015]} />
@@ -552,18 +493,22 @@ export function Walls({
   openings,
   color,
   handlers,
+  cutaway = true,
 }: {
   room: StudioRoom;
   openings: StudioOpening[];
   color: string;
   // lipsa = mod viewer (read-only): golurile nu se selecteaza si nu se trag
   handlers?: OpeningHandlers;
+  cutaway?: boolean;
 }) {
   const hs = handlers ?? NOOP_OPENING_HANDLERS;
   const refs = useRef<Partial<Record<StudioWall, Group | null>>>({});
   const camPos = useRef(new Vector3());
   const specs = useMemo(() => wallSpecs(room), [room]);
   const H = room.wallHeightM;
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => { invalidate(); }, [cutaway, invalidate]);
 
   // vizibilitatea peretilor si in state React, nu doar pe grupurile three:
   // golurile de pe peretii ascunsi isi pierd handlerele — nu se mai pot
@@ -581,7 +526,7 @@ export function Walls({
       if (!group) continue;
       const toCam =
         (camPos.current.x - spec.pos[0]) * spec.nx + (camPos.current.z - spec.pos[2]) * spec.nz;
-      const visible = toCam < 0;
+      const visible = !cutaway || toCam < 0;
       group.visible = visible;
       if (next[spec.wall] !== visible) {
         next[spec.wall] = visible;
@@ -627,7 +572,7 @@ export function Walls({
             }}
           >
             {segments.map((seg, i) => (
-              <mesh key={i} position={[seg.x, H / 2, 0]} receiveShadow>
+              <mesh key={i} position={[seg.x, H / 2, 0]} receiveShadow onPointerDown={!cutaway ? (event) => event.stopPropagation() : undefined}>
                 <boxGeometry args={[seg.w, H, WALL_T]} />
                 <meshStandardMaterial color={color} roughness={0.9} />
               </mesh>
@@ -638,13 +583,13 @@ export function Walls({
                 <group key={opening.id}>
                   {/* buiandrug + parapet doar la golurile taiate in perete */}
                   {cutout && H - top > 0.02 && (
-                    <mesh position={[cx, top + (H - top) / 2, 0]} receiveShadow>
+                    <mesh position={[cx, top + (H - top) / 2, 0]} receiveShadow onPointerDown={!cutaway ? (event) => event.stopPropagation() : undefined}>
                       <boxGeometry args={[w, H - top, WALL_T]} />
                       <meshStandardMaterial color={color} roughness={0.9} />
                     </mesh>
                   )}
                   {cutout && sill > 0.02 && (
-                    <mesh position={[cx, sill / 2, 0]} receiveShadow>
+                    <mesh position={[cx, sill / 2, 0]} receiveShadow onPointerDown={!cutaway ? (event) => event.stopPropagation() : undefined}>
                       <boxGeometry args={[w, sill, WALL_T]} />
                       <meshStandardMaterial color={color} roughness={0.9} />
                     </mesh>
@@ -664,24 +609,6 @@ export function Walls({
       })}
     </group>
   );
-}
-
-// Repozitioneaza camera cand se schimba gabaritul camerei de joc sau scena.
-function CameraRig({ w, d, sceneId }: { w: number; d: number; sceneId: string }) {
-  const camera = useThree((s) => s.camera);
-  const controls = useThree((s) => s.controls) as unknown as ControlsLike;
-  const invalidate = useThree((s) => s.invalidate);
-  useEffect(() => {
-    const dist = Math.max(w, d) * 1.05 + 1.4;
-    camera.position.set(dist * 0.8, dist * 0.75, dist);
-    camera.lookAt(0, 0.5, 0);
-    if (controls) {
-      controls.target.set(0, 0.5, 0);
-      controls.update();
-    }
-    invalidate();
-  }, [camera, controls, invalidate, w, d, sceneId]);
-  return null;
 }
 
 type DragState =
@@ -731,7 +658,7 @@ function rayToWall(
   return o.z + t * dir.z;
 }
 
-function StudioSceneView({ onDraggingChange }: { onDraggingChange: (v: boolean) => void }) {
+function StudioSceneView({ onDraggingChange, cutaway }: { onDraggingChange: (v: boolean) => void; cutaway: boolean }) {
   const scene = useActiveScene();
   const pieces = useStudioStore((s) => s.pieces);
   const selectedId = useStudioStore((s) => s.selectedId);
@@ -833,6 +760,8 @@ function StudioSceneView({ onDraggingChange }: { onDraggingChange: (v: boolean) 
       store.setDropPayload(null);
       const el = gl.domElement;
       const rect = el.getBoundingClientRect();
+      // Panourile suprapuse nu sunt tinte de plasare, chiar daca acopera canvasul.
+      if (document.elementFromPoint(ev.clientX, ev.clientY) !== el) return;
       if (
         ev.clientX < rect.left ||
         ev.clientX > rect.right ||
@@ -863,7 +792,7 @@ function StudioSceneView({ onDraggingChange }: { onDraggingChange: (v: boolean) 
       for (const spec of wallSpecs(currentRoom)) {
         const toCam =
           (ray.origin.x - spec.pos[0]) * spec.nx + (ray.origin.z - spec.pos[2]) * spec.nz;
-        if (toCam >= 0) continue; // perete ascuns (intre camera si scena)
+        if (cutaway && toCam >= 0) continue; // doar peretii ascunsi sunt exclusi
         const horizontal = spec.wall === 'N' || spec.wall === 'S';
         const denom = horizontal ? ray.direction.z : ray.direction.x;
         if (Math.abs(denom) < 1e-6) continue;
@@ -885,7 +814,7 @@ function StudioSceneView({ onDraggingChange }: { onDraggingChange: (v: boolean) 
     };
     window.addEventListener('pointerup', onDrop);
     return () => window.removeEventListener('pointerup', onDrop);
-  }, [camera, gl]);
+  }, [camera, gl, cutaway]);
 
   const onOpeningPointerDown = (e: ThreeEvent<PointerEvent>, opening: StudioOpening) => {
     if (e.button !== undefined && e.button !== 0) return;
@@ -919,6 +848,7 @@ function StudioSceneView({ onDraggingChange }: { onDraggingChange: (v: boolean) 
       </mesh>
       <FloorGrid w={room.widthM} d={room.depthM} />
       <Walls
+        cutaway={cutaway}
         room={room}
         openings={scene.openings}
         color={wallColorOf(room.wallColor)}
@@ -958,14 +888,13 @@ function StudioSceneView({ onDraggingChange }: { onDraggingChange: (v: boolean) 
   );
 }
 
-export default function RoomCanvas({ className }: { className?: string }) {
+export default function RoomCanvas({ className, cutaway = false }: { className?: string; cutaway?: boolean }) {
   const scene = useActiveScene();
-  const maxDim = Math.max(scene.room.widthM, scene.room.depthM);
   // cat timp se trage ceva, orbita camerei sta pe loc (OrbitControls asculta
   // direct pe elementul canvas — stopPropagation din scena nu ajunge la el)
   const [dragging, setDragging] = useState(false);
   return (
-    <div className={className}>
+    <div className={className} data-wall-mode={cutaway ? 'cutaway' : 'full'}>
       <Canvas
         shadows
         dpr={[1, 1.75]}
@@ -974,10 +903,11 @@ export default function RoomCanvas({ className }: { className?: string }) {
         gl={{ antialias: true }}
       >
         <color attach="background" args={['#f7f3ec']} />
-        <ambientLight intensity={0.8} />
+        <ambientLight intensity={0.7} />
+        <hemisphereLight args={['#fffaf4', '#b9af9e', 0.5]} />
         <directionalLight
           position={[6, 9, 5]}
-          intensity={1.2}
+          intensity={1.8}
           castShadow
           shadow-mapSize={[2048, 2048]}
           shadow-bias={-0.0003}
@@ -987,17 +917,16 @@ export default function RoomCanvas({ className }: { className?: string }) {
           shadow-camera-bottom={-7}
         />
         <directionalLight position={[-5, 5, -4]} intensity={0.35} />
-        <StudioSceneView onDraggingChange={setDragging} />
+        <ShowroomEnvironment overview><StudioSceneView onDraggingChange={setDragging} cutaway={cutaway} /></ShowroomEnvironment>
         <OrbitControls
           makeDefault
+          enableDamping={false}
           enabled={!dragging}
           enablePan
-          minDistance={1.6}
-          maxDistance={maxDim * 3 + 6}
           minPolarAngle={0.1}
           maxPolarAngle={Math.PI / 2 - 0.08}
         />
-        <CameraRig w={scene.room.widthM} d={scene.room.depthM} sceneId={scene.id} />
+        <RoomCameraRig w={scene.room.widthM} d={scene.room.depthM} sceneId={scene.id} />
       </Canvas>
     </div>
   );
