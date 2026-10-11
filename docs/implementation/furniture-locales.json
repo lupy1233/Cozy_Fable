@@ -1,0 +1,38 @@
+{
+  "en": {
+    "Studio": { "kinds": { "BED": "Bed", "TABLE": "Table", "BENCH": "Bench" } },
+    "Configurator": {
+      "config3d": { "furniture": {
+        "invalidSavedConfig": "This saved furniture configuration could not be read. Your data has been preserved; reopen it with a compatible app version.",
+        "beddingContext": "Mattress, pillows and throw are visual context only. The furniture request covers the bed frame; the selected mattress size stays separate from the outer frame dimensions.",
+        "visualFinish": "Visual finish",
+        "upholstered": "Upholstered frame",
+        "upholsteredSeat": "Upholstered seat",
+        "viewerHint": "Rotate the model to inspect its proportions. Dimensions show the outer furniture footprint; bed mattress size is listed separately."
+      } },
+      "flows": {
+        "PIECE_BED": { "config3d": { "title": "Create your bed", "subtitle": "Choose mattress size, frame upholstery and storage. See the result in 3D." } },
+        "PIECE_TABLE": { "config3d": { "title": "Create your table", "subtitle": "Choose its use, shape and dimensions, with a live showroom preview." } },
+        "PIECE_BENCH": { "config3d": { "title": "Create your bench", "subtitle": "Set its width, storage and seat upholstery." } }
+      }
+    }
+  },
+  "ro": {
+    "Studio": { "kinds": { "BED": "Pat", "TABLE": "Masă", "BENCH": "Băncuță" } },
+    "Configurator": {
+      "config3d": { "furniture": {
+        "invalidSavedConfig": "Configurația salvată nu a putut fi citită. Datele au fost păstrate; redeschide proiectul cu o versiune compatibilă a aplicației.",
+        "beddingContext": "Salteaua, pernele și pledul sunt doar context vizual. Cererea de mobilier include cadrul patului; mărimea saltelei rămâne separată de dimensiunile exterioare ale cadrului.",
+        "visualFinish": "Finisaj vizual",
+        "upholstered": "Cadru tapițat",
+        "upholsteredSeat": "Șezut tapițat",
+        "viewerHint": "Rotește modelul pentru a verifica proporțiile. Dimensiunile arată gabaritul exterior al mobilierului; mărimea saltelei este indicată separat."
+      } },
+      "flows": {
+        "PIECE_BED": { "config3d": { "title": "Creează patul tău", "subtitle": "Alege mărimea saltelei, tapițeria și depozitarea. Vezi rezultatul în 3D." } },
+        "PIECE_TABLE": { "config3d": { "title": "Creează masa ta", "subtitle": "Alege utilizarea, forma și dimensiunile, cu previzualizare showroom." } },
+        "PIECE_BENCH": { "config3d": { "title": "Creează băncuța ta", "subtitle": "Stabilește lățimea, depozitarea și tapițeria șezutului." } }
+      }
+    }
+  }
+}

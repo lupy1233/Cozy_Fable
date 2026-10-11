@@ -1,0 +1,287 @@
+{
+  "capturedAt": "2026-09-16T01:57:12.599Z",
+  "url": "http://127.0.0.1:3100/en/studio",
+  "mode": "headless desktop Chromium; variant single-piece editor; all APIs intercepted",
+  "captures": [
+    {
+      "kind": "BED",
+      "label": "bed-upholstered",
+      "filename": "bed-upholstered.png",
+      "dimensionsM": {
+        "width": 2.02,
+        "height": 1,
+        "depth": 2.2
+      },
+      "panels": 17,
+      "canvas": {
+        "x": 225,
+        "y": 373,
+        "width": 690,
+        "height": 418
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "BED",
+      "label": "bed-single-drawers",
+      "filename": "bed-single-drawers.png",
+      "dimensionsM": {
+        "width": 1.03,
+        "height": 1,
+        "depth": 2.2
+      },
+      "panels": 16,
+      "canvas": {
+        "x": 225,
+        "y": 389,
+        "width": 690,
+        "height": 418
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "TABLE",
+      "label": "table-round-walnut",
+      "filename": "table-round-walnut.png",
+      "dimensionsM": {
+        "width": 1.4,
+        "height": 0.75,
+        "depth": 1.4
+      },
+      "panels": 4,
+      "canvas": {
+        "x": 225,
+        "y": 374,
+        "width": 690,
+        "height": 418
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "TABLE",
+      "label": "table-extendable",
+      "filename": "table-extendable.png",
+      "dimensionsM": {
+        "width": 1.4,
+        "height": 0.75,
+        "depth": 0.8
+      },
+      "panels": 11,
+      "canvas": {
+        "x": 225,
+        "y": 324,
+        "width": 690,
+        "height": 418
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "BENCH",
+      "label": "bench-storage-linen",
+      "filename": "bench-storage-linen.png",
+      "dimensionsM": {
+        "width": 1.2,
+        "height": 0.45,
+        "depth": 0.4
+      },
+      "panels": 7,
+      "canvas": {
+        "x": 225,
+        "y": 411,
+        "width": 690,
+        "height": 418
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "BENCH",
+      "label": "bench-shoe-space",
+      "filename": "bench-shoe-space.png",
+      "dimensionsM": {
+        "width": 1.2,
+        "height": 0.45,
+        "depth": 0.4
+      },
+      "panels": 11,
+      "canvas": {
+        "x": 225,
+        "y": 411,
+        "width": 690,
+        "height": 418
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "DRESSER",
+      "label": "dresser-walnut-handles",
+      "filename": "dresser-walnut-handles.png",
+      "dimensionsM": {
+        "width": 1.2,
+        "height": 0.9,
+        "depth": 0.45
+      },
+      "panels": 18,
+      "canvas": {
+        "x": 225,
+        "y": 280.5,
+        "width": 640,
+        "height": 500
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "WARDROBE",
+      "label": "wardrobe-sage-handles",
+      "filename": "wardrobe-sage-handles.png",
+      "dimensionsM": {
+        "width": 2.4,
+        "height": 2.4,
+        "depth": 0.6
+      },
+      "panels": 23,
+      "canvas": {
+        "x": 225,
+        "y": 280.5,
+        "width": 640,
+        "height": 500
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "NIGHTSTAND",
+      "label": "nightstand-black",
+      "filename": "nightstand-black.png",
+      "dimensionsM": {
+        "width": 0.45,
+        "height": 0.55,
+        "depth": 0.4
+      },
+      "panels": 9,
+      "canvas": {
+        "x": 225,
+        "y": 324.5,
+        "width": 640,
+        "height": 500
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "BOOKCASE",
+      "label": "bookcase-white",
+      "filename": "bookcase-white.png",
+      "dimensionsM": {
+        "width": 1.6,
+        "height": 2,
+        "depth": 0.35
+      },
+      "panels": 15,
+      "canvas": {
+        "x": 225,
+        "y": 297.5,
+        "width": 640,
+        "height": 500
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    }
+  ]
+}

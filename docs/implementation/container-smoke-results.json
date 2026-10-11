@@ -1,0 +1,403 @@
+{
+  "measuredAt": "2026-09-30T12:19:12.763Z",
+  "project": "cozy-container-smoke",
+  "image": "cozy-app:implementation",
+  "checks": {
+    "health": {
+      "status": "ok"
+    },
+    "tokenHealth": {
+      "releaseSlot": "unassigned",
+      "releaseMode": "active",
+      "checks": {
+        "db": "up",
+        "redis": "up",
+        "storage": "up"
+      }
+    },
+    "backendLoopbackOnly": "loopback-only",
+    "devDependenciesInRuntime": 0,
+    "runtime": "{\"node\":\"v22.23.2\",\"platform\":\"linux\",\"arch\":\"x64\",\"uid\":1000}",
+    "artifacts": "present",
+    "slimRuntime": "passed",
+    "backendDependencies": {
+      "shared": "/app/packages/shared/dist/index.js",
+      "prismaClient": "/app/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/default.js",
+      "prismaCli": "/app/node_modules/.pnpm/prisma@5.22.0/node_modules/prisma/package.json",
+      "kinds": 10,
+      "generatedPrisma": true
+    },
+    "prismaCli": "prisma                  : 5.22.0\n@prisma/client          : 5.22.0\nComputed binaryTarget   : debian-openssl-3.0.x\nOperating System        : linux\nArchitecture            : x64\nNode.js                 : v22.23.2\nQuery Engine (Node-API) : libquery-engine 605197351a3c8bdd595af2d2a9bc3025bca48ea2 (at ../../node_modules/.pnpm/@prisma+engines@5.22.0/node_modules/@prisma/engines/libquery_engine-debian-openssl-3.0.x.so.node)\nSchema Engine           : schema-engine-cli 605197351a3c8bdd595af2d2a9bc3025bca48ea2 (at ../../node_modules/.pnpm/@prisma+engines@5.22.0/node_modules/@prisma/engines/schema-engine-debian-openssl-3.0.x)\nSchema Wasm             : @prisma/prisma-schema-wasm 5.22.0-44.605197351a3c8bdd595af2d2a9bc3025bca48ea2\nDefault Engines Hash    : 605197351a3c8bdd595af2d2a9bc3025bca48ea2\nStudio                  : 0.503.0",
+    "studioLoginReturnArtifact": "present",
+    "noEnvironmentFiles": "passed",
+    "chromium": "Chromium 154.0.8037.57 built on Debian GNU/Linux 12 (bookworm)",
+    "pdfBytes": 10532,
+    "pages": [
+      {
+        "route": "/en",
+        "status": 200,
+        "ms": 290,
+        "security": {
+          "cspNonce": true,
+          "strictDynamic": true,
+          "unsafeInlineScript": false,
+          "scripts": 61,
+          "scriptsWithoutNonce": 0,
+          "coop": "same-origin",
+          "robots": "noindex, nofollow",
+          "reportingEndpoints": "csp=\"/csp-report\""
+        },
+        "decodedBytes": 321149,
+        "wire": {
+          "status": 200,
+          "bodyBytes": 90664,
+          "encoding": "gzip"
+        }
+      },
+      {
+        "route": "/ro",
+        "status": 200,
+        "ms": 88,
+        "security": {
+          "cspNonce": true,
+          "strictDynamic": true,
+          "unsafeInlineScript": false,
+          "scripts": 60,
+          "scriptsWithoutNonce": 0,
+          "coop": "same-origin",
+          "robots": "noindex, nofollow",
+          "reportingEndpoints": "csp=\"/csp-report\""
+        },
+        "decodedBytes": 334829,
+        "wire": {
+          "status": 200,
+          "bodyBytes": 95069,
+          "encoding": "gzip"
+        }
+      },
+      {
+        "route": "/en/studio",
+        "status": 200,
+        "ms": 64,
+        "security": {
+          "cspNonce": true,
+          "strictDynamic": true,
+          "unsafeInlineScript": false,
+          "scripts": 54,
+          "scriptsWithoutNonce": 0,
+          "coop": "same-origin",
+          "robots": "noindex, nofollow",
+          "reportingEndpoints": "csp=\"/csp-report\""
+        },
+        "decodedBytes": 264422,
+        "wire": {
+          "status": 200,
+          "bodyBytes": 78124,
+          "encoding": "gzip"
+        }
+      },
+      {
+        "route": "/en/requests/new",
+        "status": 200,
+        "ms": 44,
+        "security": {
+          "cspNonce": true,
+          "strictDynamic": true,
+          "unsafeInlineScript": false,
+          "scripts": 60,
+          "scriptsWithoutNonce": 0,
+          "coop": "same-origin",
+          "robots": "noindex, nofollow",
+          "reportingEndpoints": "csp=\"/csp-report\""
+        },
+        "decodedBytes": 247364,
+        "wire": {
+          "status": 200,
+          "bodyBytes": 74235,
+          "encoding": "gzip"
+        }
+      }
+    ],
+    "staticAssets": {
+      "count": 28,
+      "decodedBytes": 1321118,
+      "status": "all 200",
+      "assets": [
+        {
+          "path": "/_next/static/css/6eab37cab68d0d70.css",
+          "decodedBytes": 68773,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 13967,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/webpack-90917cc35d3f53d3.js",
+          "decodedBytes": 4031,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 2106,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/5fdaf90f-905939c8fbe103ef.js",
+          "decodedBytes": 299,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 299,
+            "encoding": "identity"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/f1607d2e-291e139057c88aaf.js",
+          "decodedBytes": 173024,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 54365,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/6406-fd794bd2d835d95a.js",
+          "decodedBytes": 265066,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 79359,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/main-app-a645445e9c3c5aa6.js",
+          "decodedBytes": 2672,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 1282,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/3463-28ad3799214cacb8.js",
+          "decodedBytes": 39895,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 12055,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/1933-140ba129da81ce4e.js",
+          "decodedBytes": 27391,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 8555,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/6391-a66f3f1ffd45a986.js",
+          "decodedBytes": 31043,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 9624,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/6790-bf486d806c7cbb0d.js",
+          "decodedBytes": 13004,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 5029,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/7841-f821752fddd168bf.js",
+          "decodedBytes": 43505,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 13675,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/338-92088c8712da2565.js",
+          "decodedBytes": 67920,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 14844,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/7652-9b9681efac47900c.js",
+          "decodedBytes": 34724,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 9653,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/3000-97a808372d107924.js",
+          "decodedBytes": 9748,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 2973,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/2930-bcf91a9f0be312b0.js",
+          "decodedBytes": 6642,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 2466,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/3883-ca6cf5f49fa377aa.js",
+          "decodedBytes": 7447,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 3008,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/7685-e157f71339530f5a.js",
+          "decodedBytes": 9344,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 2759,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/8695-99acf53ab1e23376.js",
+          "decodedBytes": 228463,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 54080,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/8953-2374bf4b5a8f0152.js",
+          "decodedBytes": 9472,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 3499,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/6918-0ebf5b62fbec3c0b.js",
+          "decodedBytes": 9854,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 3553,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/93-d2326acc5a3436bf.js",
+          "decodedBytes": 18769,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 5685,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/app/%5Blocale%5D/studio/page-01ef7c1f3e60f5f2.js",
+          "decodedBytes": 74629,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 19371,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/app/global-error-7ebb700d854e7a4a.js",
+          "decodedBytes": 1540,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 857,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/5761-9fc0f732b27fcdf4.js",
+          "decodedBytes": 30870,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 10489,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/3866-e3495e0cc3767201.js",
+          "decodedBytes": 11714,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 4226,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/app/%5Blocale%5D/layout-c9c255683d6ca2b9.js",
+          "decodedBytes": 8483,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 3247,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/app/%5Blocale%5D/error-a3ec61b80a786a5b.js",
+          "decodedBytes": 10202,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 4122,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/polyfills-42372ed130431b0a.js",
+          "decodedBytes": 112594,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 39627,
+            "encoding": "gzip"
+          }
+        }
+      ]
+    },
+    "publicShowroomAtlases": "all 200",
+    "localeCatalogs": {
+      "en": {
+        "fileBytes": 255456,
+        "compactSerializedBytes": 200754
+      },
+      "ro": {
+        "fileBytes": 268818,
+        "compactSerializedBytes": 214116
+      }
+    },
+    "migrationCount": "57",
+    "guestDraftWrite": {
+      "status": 201,
+      "returnedDraftId": true
+    },
+    "persistedRequestCount": 1
+  },
+  "failures": [
+    "locator.waitFor: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('heading', { name: 'Your house layout', exact: true }) to be visible\u001b[22m\n"
+  ],
+  "logs": "app-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RoutesResolver\",\"msg\":\"AdminDisputesController {/api/v1/admin/disputes}:\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/disputes, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/disputes/:id/resolve, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RoutesResolver\",\"msg\":\"ClientProjectCaseController {/api/v1/requests}:\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/requests/:id/project-case, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/requests/:id/project-case, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/requests/:id/project-case/respond, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RoutesResolver\",\"msg\":\"CompanyProjectCaseController {/api/v1/company/requests}:\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/company/requests/:id/project-case, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/company/requests/:id/project-case/respond, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RoutesResolver\",\"msg\":\"AdminRequestsController {/api/v1/admin/requests}:\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/requests, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/requests/:id, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/requests/:id/close, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RoutesResolver\",\"msg\":\"AdminProjectCasesController {/api/v1/admin/project-cases}:\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/project-cases/:id/dismiss, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RoutesResolver\",\"msg\":\"NotificationsController {/api/v1/notifications}:\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/notifications, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/notifications/unread-count, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/notifications/email-preference, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/notifications/email-preference, PATCH} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/notifications/unsubscribe, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/notifications/:id/read, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/notifications/read-all, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RoutesResolver\",\"msg\":\"AdminController {/api/v1/admin}:\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/kpi, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/users, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/users/:id/block, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/users/:id/unblock, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/audit-logs, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/mail/test, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/monitoring/test-error, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/settings, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/settings/:key, PUT} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/penalty-rules, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/penalty-rules/:id, PATCH} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/credit-packages, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/credit-packages, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/credit-packages/:id, PATCH} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/plans, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/plans, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/plans/:id, PATCH} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/thresholds, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/thresholds/:id, PATCH} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/jobs, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/credits/ledger-check, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/jobs/:queue/:id/retry, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RoutesResolver\",\"msg\":\"AdminSubscriptionsController {/api/v1/admin/subscriptions}:\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/subscriptions, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/subscriptions/grant, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RoutesResolver\",\"msg\":\"AdminCalendarController {/api/v1/admin/calendar}:\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/calendar, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/calendar/check, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/calendar, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/calendar/:id, PATCH} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/calendar/:id, DELETE} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RoutesResolver\",\"msg\":\"AdminSizingController {/api/v1/admin/sizing}:\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/sizing/weights, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/sizing/preview, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/sizing/weights, PUT} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RoutesResolver\",\"msg\":\"AdminContactDetectionsController {/api/v1/admin/contact-detections}:\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/admin/contact-detections, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RoutesResolver\",\"msg\":\"LegalController {/api/v1/legal}:\"}\napp-1  | {\"level\":30,\"time\":1790770768115,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/legal/operator, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768116,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/legal/firm-rules, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768116,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/legal/accept, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768116,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RoutesResolver\",\"msg\":\"StudioController {/api/v1/studio/drafts}:\"}\napp-1  | {\"level\":30,\"time\":1790770768116,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/studio/drafts, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768116,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/studio/drafts/:id, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768116,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/studio/drafts, POST} route\"}\napp-1  | {\"level\":30,\"time\":1790770768116,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/studio/drafts/:id, PUT} route\"}\napp-1  | {\"level\":30,\"time\":1790770768116,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/studio/drafts/:id, DELETE} route\"}\napp-1  | {\"level\":30,\"time\":1790770768116,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RoutesResolver\",\"msg\":\"HealthController {/api/v1/health}:\"}\napp-1  | {\"level\":30,\"time\":1790770768116,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/health, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768116,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/health/live, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768116,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"RouterExplorer\",\"msg\":\"Mapped {/api/v1/health/ready, GET} route\"}\napp-1  | {\"level\":30,\"time\":1790770768116,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"NestApplication\",\"msg\":\"Nest application successfully started\"}\napp-1  | {\"level\":30,\"time\":1790770768136,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"MailService\",\"msg\":\"SMTP verify ok host=mailpit:1025\"}\napp-1  | {\"level\":30,\"time\":1790770768241,\"pid\":68,\"hostname\":\"d882b474eba8\",\"context\":\"LedgerCheckService\",\"msg\":\"ledger-check OK (wallets=0, demoBalanceSkipped=0)\"}\napp-1  | {\"level\":30,\"time\":1790770775896,\"pid\":68,\"hostname\":\"d882b474eba8\",\"req\":{\"id\":\"1de998a9-ebb1-45c5-a6a4-c96275ef3154\",\"method\":\"POST\",\"route\":\"/api/v1/{*path}\"},\"routePattern\":\"/api/v1/{*path}\",\"routePattern\":\"/api/v1/requests/drafts\",\"res\":{\"statusCode\":201},\"responseTime\":11,\"msg\":\"request completed\"}",
+  "cleanedUp": true
+}

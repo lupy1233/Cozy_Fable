@@ -5,6 +5,8 @@ dist/
 .env
 .env.local
 coverage/
+playwright-report/
+test-results/
 .DS_Store
 
 # generated / infra data
@@ -16,3 +18,13 @@ dev-infra/data/
 .claude/settings.local.json
 .claude/worktrees/
 apps/backend/cleanup-demo-storage-keys.txt
+
+# backup / chei (E-admin-platform-6) - nu intra niciodata in repo
+*.dump
+*.dump.age
+*.age
+*.pem
+*.key
+*.jar
+age-identity*.txt
+deploy/backup/test/out/

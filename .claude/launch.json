@@ -4,14 +4,36 @@
     {
       "name": "backend",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["-F", "backend", "dev"],
+      "runtimeArgs": [
+        "-F",
+        "backend",
+        "dev"
+      ],
       "port": 3001
     },
     {
       "name": "frontend",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["-F", "frontend", "dev"],
+      "runtimeArgs": [
+        "-F",
+        "frontend",
+        "dev"
+      ],
       "port": 3000
+    },
+    {
+      "name": "frontend-3002",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "-F",
+        "frontend",
+        "exec",
+        "next",
+        "dev",
+        "-p",
+        "3002"
+      ],
+      "port": 3002
     }
   ]
 }
