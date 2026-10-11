@@ -8,6 +8,7 @@ import type { StripeService } from './stripe.service';
 import type { PrismaService } from '../../infra/prisma/prisma.service';
 import type { SettingsService } from '../../common/settings/settings.service';
 import type { AuditService } from '../audit/audit.service';
+import type { BillingReadinessService } from './billing-readiness.service';
 import type { ConfigService } from '@nestjs/config';
 
 // L0-D — plati Stripe + confirmare race-safe + abonament prelungit.
@@ -35,10 +36,21 @@ function baseOrder(over: Partial<any> = {}) {
     paymentSource: null,
     confirmedAt: null,
     stripeSessionId: null,
+    stripeCheckoutAttempt: null,
     stripePaymentIntentId: null,
     paidAt: null,
     cancelledAt: null,
     createdAt: new Date('2026-08-19T10:00:00Z'),
+    testMode: false,
+    buyerSnapshot: null,
+    servicePeriodStart: null,
+    servicePeriodEnd: null,
+    eInvoiceStatus: null,
+    anafUploadId: null,
+    anafDownloadId: null,
+    eInvoiceUpdatedAt: null,
+    paymentClaimedAt: null,
+    transferReminderSentAt: null,
     ...over,
   };
 }
@@ -90,8 +102,8 @@ function makePrisma(order: any | null, opts: { activeSub?: any } = {}) {
       findMany: jest.fn().mockResolvedValue([]),
     },
     subscriptionPlan: {
-      findUnique: jest.fn().mockResolvedValue({ id: 'plan-gold', tier: 'GOLD', priceRon: 399, includedCredits: 50, isActive: true, marketplaceGatingDelayMin: 0 }),
-      findMany: jest.fn().mockResolvedValue([{ id: 'plan-gold', tier: 'GOLD' }]),
+      findUnique: jest.fn().mockResolvedValue({ id: 'plan-gold', tier: 'GOLD', code: 'GOLD', priceRon: 399, includedCredits: 50, isActive: true, marketplaceGatingDelayMin: 0 }),
+      findMany: jest.fn().mockResolvedValue([{ id: 'plan-gold', tier: 'GOLD', code: 'GOLD' }]),
     },
     creditPackage: {
       findUnique: jest.fn().mockResolvedValue({ id: 'pkg1', credits: 10, priceRon: 100, isActive: true }),
@@ -104,7 +116,7 @@ function makePrisma(order: any | null, opts: { activeSub?: any } = {}) {
       findMany: jest.fn().mockResolvedValue([{ userId: 'owner-1' }]),
     },
     company: {
-      findUnique: jest.fn().mockResolvedValue({ name: 'Mobila Demo SRL' }),
+      findUnique: jest.fn().mockResolvedValue({ name: 'Mobila Demo SRL', cui: 'RO40298306', regComNumber: 'J12/3/2020', addressText: 'Cluj', isVatPayer: false }),
     },
     stripeEvent: {
       findUnique: jest.fn(async ({ where }: any) => (state.events.has(where.id) ? { id: where.id } : null)),
@@ -114,6 +126,11 @@ function makePrisma(order: any | null, opts: { activeSub?: any } = {}) {
       }),
     },
   };
+  tx.mockBillingOrder.create = prisma.mockBillingOrder.create;
+  tx.mockBillingOrder.findUnique = prisma.mockBillingOrder.findUnique;
+  tx.mockBillingOrder.update = prisma.mockBillingOrder.update;
+  tx.user = prisma.user;
+  tx.companyMember = prisma.companyMember;
   return prisma;
 }
 
@@ -124,23 +141,47 @@ const settings = {
   getBool: jest.fn(async (_k: string, fb: boolean) => fb),
 } as unknown as SettingsService;
 
-function makeStripe(enabled: boolean) {
+// mode: live implicit cand Stripe e activ (comenzi fiscale); 'test' → comenzi fara numar.
+function makeStripe(enabled: boolean, mode: 'live' | 'test' | null = enabled ? 'live' : null) {
   return {
     isEnabled: jest.fn(() => enabled),
+    mode: jest.fn(() => mode),
+    assertEventMode: jest.fn((event: Stripe.Event) => {
+      if (mode && event.livemode !== (mode === 'live')) {
+        throw new HttpException({ code: 'VALIDATION_ERROR', message: 'Event mode does not match the configured Stripe key' }, 400);
+      }
+    }),
     createCheckoutSession: jest.fn().mockResolvedValue({ id: 'cs_test_1', url: 'https://checkout.stripe.com/c/pay/cs_test_1' }),
+    retrieveCheckoutSession: jest.fn().mockImplementation(async (id: string) => ({ id, status: 'open', url: `https://checkout.stripe.com/c/pay/${id}` })),
     expireSession: jest.fn().mockResolvedValue(undefined),
-  } as unknown as StripeService & { createCheckoutSession: jest.Mock; expireSession: jest.Mock };
+    ensureSessionExpired: jest.fn().mockResolvedValue(undefined),
+  } as unknown as StripeService & { createCheckoutSession: jest.Mock; expireSession: jest.Mock; retrieveCheckoutSession: jest.Mock; ensureSessionExpired: jest.Mock; assertEventMode: jest.Mock };
 }
 
 const config = { getOrThrow: jest.fn(() => 'https://app.cozyhome.ro/') } as unknown as ConfigService;
 
-function build(prisma: any, stripe: any) {
+const VALID_SELLER = {
+  name: 'Firma Reala SRL',
+  cui: 'RO12345674',
+  regCom: 'J40/1/2026',
+  address: 'Str. Reala 1, Bucuresti',
+  iban: 'RO08TEST0000000000000001',
+};
+
+function makeReadiness() {
+  return {
+    assertReady: jest.fn().mockResolvedValue(VALID_SELLER),
+    check: jest.fn().mockResolvedValue({ ready: true, problems: [], seller: VALID_SELLER }),
+  };
+}
+
+function build(prisma: any, stripe: any, readiness: any = makeReadiness()) {
   const credits = { grant: jest.fn().mockResolvedValue(undefined), ensureWallet: jest.fn() } as unknown as CreditsService & { grant: jest.Mock };
   const audit = { log: jest.fn().mockResolvedValue(undefined) } as unknown as AuditService & { log: jest.Mock };
-  const eventBus = { publish: jest.fn().mockResolvedValue(undefined) } as any;
+  const outbox = { record: jest.fn().mockResolvedValue(undefined) } as any;
   const subscriptions = new SubscriptionsService(prisma as PrismaService, settings, credits);
-  const service = new PaymentsService(prisma as PrismaService, settings, credits, subscriptions, stripe, config, audit, eventBus);
-  return { service, credits, audit, subscriptions, eventBus };
+  const service = new PaymentsService(prisma as PrismaService, settings, credits, subscriptions, stripe, config, audit, outbox, readiness as BillingReadinessService);
+  return { service, credits, audit, subscriptions, outbox, readiness };
 }
 
 function completedEvent(over: Partial<Stripe.Checkout.Session> = {}, type: string = 'checkout.session.completed', id = 'evt_1'): Stripe.Event {
@@ -151,13 +192,17 @@ function completedEvent(over: Partial<Stripe.Checkout.Session> = {}, type: strin
       object: {
         id: 'cs_test_1',
         object: 'checkout.session',
+        livemode: true,
         payment_status: 'paid',
+        amount_total: 12100,
+        currency: 'ron',
         payment_intent: 'pi_123',
         client_reference_id: ORDER_ID,
         metadata: { orderId: ORDER_ID, companyId: 'c1' },
         ...over,
       },
     },
+    livemode: over.livemode ?? true,
   } as unknown as Stripe.Event;
 }
 
@@ -174,6 +219,43 @@ describe('PaymentsService — purchase', () => {
     expect(stripe.createCheckoutSession).not.toHaveBeenCalled();
   });
 
+  it('E-company-24: fara Stripe → payment.pending (admini) + payment.transfer_instructions (doar OWNER/MANAGER)', async () => {
+    const prisma = makePrisma(null);
+    const { service, outbox } = build(prisma, makeStripe(false));
+    const res = await service.purchaseCredits('c1', 'u1', { creditPackageId: 'pkg1' });
+    expect(res.order.paymentClaimedAt).toBeNull();
+    expect(res.order.transferExpiresAt).toBeNull(); // bank_transfer_expiry_days = 0 (oprit)
+    const types = outbox.record.mock.calls.map((c: any[]) => c[2]);
+    expect(types).toEqual(['payment.pending', 'payment.transfer_instructions']);
+    const [, key, , payload, targets] = outbox.record.mock.calls[1];
+    expect(key).toBe(`payment.transfer_instructions:${ORDER_ID}`);
+    expect(payload).toEqual({ orderId: ORDER_ID, companyId: 'c1', orderType: 'CREDIT_PACKAGE' });
+    expect(targets).toEqual(['owner-1']);
+    expect(outbox.record.mock.calls[0][4]).toEqual(['admin-1']);
+    expect(prisma.companyMember.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { companyId: 'c1', role: { in: ['OWNER', 'MANAGER'] }, user: { deletedAt: null, blockedAt: null } },
+    }));
+  });
+
+  it('E-company-24: cu Stripe → nici payment.pending, nici payment.transfer_instructions', async () => {
+    const prisma = makePrisma(null);
+    const { service, outbox } = build(prisma, makeStripe(true));
+    await service.purchaseCredits('c1', 'u1', { creditPackageId: 'pkg1' });
+    expect(outbox.record).not.toHaveBeenCalled();
+  });
+
+  it('E-company-24: transferExpiresAt = created_at + N zile doar pe comenzile prin transfer nemarcate', async () => {
+    const prisma = makePrisma(null);
+    const { service } = build(prisma, makeStripe(false));
+    const bank = baseOrder();
+    expect(service.toDto(bank as any, null, 3).transferExpiresAt).toBe('2026-08-22T10:00:00.000Z');
+    expect(service.toDto(bank as any, null, 0).transferExpiresAt).toBeNull();
+    expect(service.toDto(baseOrder({ paymentClaimedAt: new Date() }) as any, null, 3).transferExpiresAt).toBeNull();
+    expect(service.toDto(baseOrder({ stripeSessionId: 'cs_1' }) as any, null, 3).transferExpiresAt).toBeNull();
+    expect(service.toDto(baseOrder({ stripeCheckoutAttempt: { idempotencyKey: 'k' } }) as any, null, 3).transferExpiresAt).toBeNull();
+    expect(service.toDto(baseOrder({ status: 'CONFIRMED' }) as any, null, 3).transferExpiresAt).toBeNull();
+  });
+
   it('cu Stripe: creeaza sesiunea Checkout cu totalul CU TVA in bani si salveaza stripe_session_id', async () => {
     const prisma = makePrisma(null);
     const stripe = makeStripe(true);
@@ -185,21 +267,78 @@ describe('PaymentsService — purchase', () => {
     expect(call.amountRon.toString()).toBe('121');
     expect(call.successUrl).toBe(`https://app.cozyhome.ro/ro/marketplace/wallet?payment=success&order=${ORDER_ID}`);
     expect(call.cancelUrl).toContain('payment=cancelled');
+    expect(call.locale).toBe('ro');
+    expect(call.description).toContain('credite marketplace');
     expect(prisma.mockBillingOrder.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: { stripeSessionId: 'cs_test_1' } }),
     );
   });
 
-  it('createCheckout re-creeaza sesiunea (expira pe cea veche) doar pentru PENDING', async () => {
+  it('cu Stripe: utilizator EN → locale en, descriere EN si URL-uri /en/', async () => {
+    const prisma = makePrisma(null);
+    prisma.user.findUnique.mockResolvedValue({ email: 'firma@demo.ro', languagePreference: 'EN' });
+    const stripe = makeStripe(true);
+    const { service } = build(prisma, stripe);
+    await service.purchaseCredits('c1', 'u1', { creditPackageId: 'pkg1' });
+    const call = stripe.createCheckoutSession.mock.calls[0][0];
+    expect(call.locale).toBe('en');
+    expect(call.successUrl).toContain('/en/marketplace/wallet');
+    expect(call.description).toContain('marketplace credits package');
+  });
+
+  it('createCheckout resumes the same open session and refuses terminal orders', async () => {
     const prisma = makePrisma(baseOrder({ stripeSessionId: 'cs_old' }));
     const stripe = makeStripe(true);
     const { service } = build(prisma, stripe);
     const res = await service.createCheckout('c1', 'u1', ORDER_ID);
-    expect(stripe.expireSession).toHaveBeenCalledWith('cs_old');
-    expect(res.checkoutUrl).toContain('cs_test_1');
+    expect(stripe.expireSession).not.toHaveBeenCalled();
+    expect(stripe.createCheckoutSession).not.toHaveBeenCalled();
+    expect(res.checkoutUrl).toContain('cs_old');
 
     prisma.state.order.status = 'CANCELLED';
     await expect(service.createCheckout('c1', 'u1', ORDER_ID)).rejects.toMatchObject({ status: 409 });
+  });
+
+  it('persists identical provider parameters across a timeout before the session ID is written', async () => {
+    const prisma = makePrisma(baseOrder());
+    const stripe = makeStripe(true);
+    const { service } = build(prisma, stripe);
+    stripe.createCheckoutSession.mockRejectedValueOnce(new Error('Timeout after provider acceptance'));
+    await expect(service.createCheckout('c1', 'u1', ORDER_ID)).rejects.toThrow('Timeout');
+    expect(prisma.state.order.stripeCheckoutAttempt.idempotencyKey).toBeTruthy();
+    const first = stripe.createCheckoutSession.mock.calls[0][0];
+    await service.createCheckout('c1', 'u1', ORDER_ID);
+    expect(stripe.createCheckoutSession.mock.calls[1][0]).toEqual(first);
+    expect(prisma.mockBillingOrder.create).not.toHaveBeenCalled();
+  });
+
+  it('never opens another checkout for a completed provider session awaiting its webhook', async () => {
+    const prisma = makePrisma(baseOrder({ stripeSessionId: 'cs_complete' }));
+    const stripe = makeStripe(true);
+    stripe.retrieveCheckoutSession.mockResolvedValue({ id: 'cs_complete', status: 'complete', url: null });
+    const { service } = build(prisma, stripe);
+    await expect(service.createCheckout('c1', 'u1', ORDER_ID)).rejects.toMatchObject({ status: 409 });
+    expect(stripe.createCheckoutSession).not.toHaveBeenCalled();
+  });
+  it('does not return a cached open checkout URL after concurrent cancellation', async () => {
+    const prisma = makePrisma(baseOrder({ stripeSessionId: 'cs_open' }));
+    const stripe = makeStripe(true);
+    stripe.retrieveCheckoutSession.mockImplementation(async () => {
+      prisma.state.order.status = 'CANCELLED';
+      return { id: 'cs_open', status: 'open', url: 'https://checkout.stripe.com/stale' };
+    });
+    const { service } = build(prisma, stripe);
+    const result = await service.createCheckout('c1', 'u1', ORDER_ID);
+    expect(result.order.status).toBe('CANCELLED');
+    expect(result.checkoutUrl).toBeNull();
+    expect(stripe.createCheckoutSession).not.toHaveBeenCalled();
+  });
+  it('refuses unknown attempts outside the fixed deduplication safety window', async () => {
+    const prisma = makePrisma(baseOrder({ stripeCheckoutAttempt: { createdAt: Math.floor(Date.now() / 1000) - 24 * 3600, expiresAt: Math.floor(Date.now() / 1000) + 3600, idempotencyKey: 'old' } }));
+    const stripe = makeStripe(true);
+    const { service } = build(prisma, stripe);
+    await expect(service.createCheckout('c1', 'u1', ORDER_ID)).rejects.toMatchObject({ status: 503 });
+    expect(stripe.createCheckoutSession).not.toHaveBeenCalled();
   });
 });
 
@@ -216,6 +355,18 @@ describe('PaymentsService — confirm (race-safe, factura sub lock)', () => {
 
     await expect(service.confirm(ORDER_ID, 'admin')).rejects.toMatchObject({ status: 409 });
     expect(credits.grant).toHaveBeenCalledTimes(1);
+  });
+
+  it('E-company-24: payment.confirmed tinteste doar OWNER/MANAGER (conturi active)', async () => {
+    const prisma = makePrisma(baseOrder());
+    prisma.companyMember.findMany.mockResolvedValue([{ userId: 'owner-1' }, { userId: 'mgr-1' }]);
+    const { service, outbox } = build(prisma, makeStripe(false));
+    await service.confirm(ORDER_ID, 'admin');
+    expect(prisma.companyMember.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { companyId: 'c1', role: { in: ['OWNER', 'MANAGER'] }, user: { deletedAt: null, blockedAt: null } },
+    }));
+    const call = outbox.record.mock.calls.find((c: any[]) => c[2] === 'payment.confirmed');
+    expect(call[4]).toEqual(['owner-1', 'mgr-1']);
   });
 
   it('race: doua confirmari care trec de pre-check — a doua pica pe updateMany count=0 (409) si nu livreaza', async () => {
@@ -271,13 +422,42 @@ describe('PaymentsService — confirm (race-safe, factura sub lock)', () => {
 });
 
 describe('PaymentsService — cancel', () => {
+  it.each([null, 'cs_previous'])('blocks cancellation of an unresolved provider attempt (%s)', async (stripeSessionId) => {
+    const prisma = makePrisma(baseOrder({ stripeSessionId, stripeCheckoutAttempt: { previousSessionId: stripeSessionId } }));
+    const stripe = makeStripe(true);
+    const { service } = build(prisma, stripe);
+    await expect(service.cancel(ORDER_ID, 'admin')).rejects.toMatchObject({ status: 409 });
+    expect(stripe.ensureSessionExpired).not.toHaveBeenCalled();
+    expect(prisma.tx.mockBillingOrder.updateMany).not.toHaveBeenCalled();
+    expect(prisma.state.order.status).toBe('PENDING');
+  });
+  it('leaves the order pending when provider expiration fails', async () => {
+    const prisma = makePrisma(baseOrder({ stripeSessionId: 'cs_open' }));
+    const stripe = makeStripe(true);
+    stripe.ensureSessionExpired.mockRejectedValue(new HttpException('Provider unavailable', 502));
+    const { service } = build(prisma, stripe);
+    await expect(service.cancel(ORDER_ID, 'admin')).rejects.toMatchObject({ status: 502 });
+    expect(prisma.tx.mockBillingOrder.updateMany).not.toHaveBeenCalled();
+    expect(prisma.state.order.status).toBe('PENDING');
+  });
+  it('rechecks an attempt created concurrently while expiring the prior session', async () => {
+    const prisma = makePrisma(baseOrder({ stripeSessionId: 'cs_old' }));
+    const stripe = makeStripe(true);
+    stripe.ensureSessionExpired.mockImplementation(async () => {
+      prisma.state.order.stripeCheckoutAttempt = { previousSessionId: 'cs_old' };
+    });
+    const { service } = build(prisma, stripe);
+    await expect(service.cancel(ORDER_ID, 'admin')).rejects.toMatchObject({ status: 409 });
+    expect(prisma.tx.mockBillingOrder.updateMany).not.toHaveBeenCalled();
+    expect(prisma.state.order.status).toBe('PENDING');
+  });
   it('PENDING → CANCELLED (admin expira sesiunea Stripe); CANCELLED idempotent; CONFIRMED → 409', async () => {
     const prisma = makePrisma(baseOrder({ stripeSessionId: 'cs_x' }));
     const stripe = makeStripe(true);
     const { service } = build(prisma, stripe);
     const dto = await service.cancel(ORDER_ID, 'admin');
     expect(dto.status).toBe('CANCELLED');
-    expect(stripe.expireSession).toHaveBeenCalledWith('cs_x');
+    expect(stripe.ensureSessionExpired).toHaveBeenCalledWith('cs_x');
     // idempotent
     expect((await service.cancel(ORDER_ID, 'admin')).status).toBe('CANCELLED');
     prisma.state.order.status = 'CONFIRMED';
@@ -285,7 +465,63 @@ describe('PaymentsService — cancel', () => {
   });
 });
 
+describe('PaymentsService — manual confirmation checkout safety', () => {
+  it('expires a known checkout before manual confirmation', async () => {
+    const prisma = makePrisma(baseOrder({ stripeSessionId: 'cs_open' }));
+    const stripe = makeStripe(true);
+    const { service, credits } = build(prisma, stripe);
+    await service.confirm(ORDER_ID, 'admin');
+    expect(stripe.ensureSessionExpired).toHaveBeenCalledWith('cs_open');
+    expect(credits.grant).toHaveBeenCalledTimes(1);
+  });
+  it('does not confirm or grant when provider expiration fails', async () => {
+    const prisma = makePrisma(baseOrder({ stripeSessionId: 'cs_open' }));
+    const stripe = makeStripe(true);
+    stripe.ensureSessionExpired.mockRejectedValue(new Error('provider unavailable'));
+    const { service, credits } = build(prisma, stripe);
+    await expect(service.confirm(ORDER_ID, 'admin')).rejects.toThrow('provider unavailable');
+    expect(credits.grant).not.toHaveBeenCalled();
+    expect(prisma.state.order.status).toBe('PENDING');
+  });
+  it.each([null, 'cs_old'])('refuses unresolved attempts before manual confirmation (%s)', async (stripeSessionId) => {
+    const prisma = makePrisma(baseOrder({ stripeSessionId, stripeCheckoutAttempt: { previousSessionId: stripeSessionId } }));
+    const { service, credits } = build(prisma, makeStripe(true));
+    await expect(service.confirm(ORDER_ID, 'admin')).rejects.toMatchObject({ status: 409 });
+    expect(credits.grant).not.toHaveBeenCalled();
+  });
+  it('rechecks checkout identity under lock after provider I/O', async () => {
+    const prisma = makePrisma(baseOrder({ stripeSessionId: 'cs_old' }));
+    const stripe = makeStripe(true);
+    stripe.ensureSessionExpired.mockImplementation(async () => { prisma.state.order.stripeSessionId = 'cs_new'; });
+    const { service, credits } = build(prisma, stripe);
+    await expect(service.confirm(ORDER_ID, 'admin')).rejects.toMatchObject({ status: 409 });
+    expect(credits.grant).not.toHaveBeenCalled();
+    expect(prisma.state.order.status).toBe('PENDING');
+  });
+});
+
 describe('PaymentsService — webhook Stripe', () => {
+  it.each([
+    { amount_total: 12099 },
+    { currency: 'eur' },
+    { metadata: { orderId: ORDER_ID, companyId: 'another-company' } },
+  ])('rejects mismatched payment identity or amount without granting benefits: %j', async (over) => {
+    const prisma = makePrisma(baseOrder({ stripeSessionId: 'cs_test_1' }));
+    const { service, credits, outbox } = build(prisma, makeStripe(true));
+    await expect(service.handleStripeEvent(completedEvent(over))).rejects.toMatchObject({ status: 400 });
+    expect(credits.grant).not.toHaveBeenCalled();
+    expect(outbox.record).not.toHaveBeenCalled();
+    expect(prisma.state.order.status).toBe('PENDING');
+    expect(prisma.stripeEvent.create).not.toHaveBeenCalled();
+  });
+  it('does not cancel a replacement attempt whose new session ID is not yet persisted', async () => {
+    const prisma = makePrisma(baseOrder({ stripeSessionId: 'cs_test_1', stripeCheckoutAttempt: { previousSessionId: 'cs_test_1' } }));
+    const { service } = build(prisma, makeStripe(true));
+    const result = await service.handleStripeEvent(completedEvent({ payment_status: 'unpaid' }, 'checkout.session.expired', 'evt_old'));
+    expect(result.handled).toBe('superseded');
+    expect(prisma.state.order.status).toBe('PENDING');
+    expect(prisma.tx.mockBillingOrder.updateMany).not.toHaveBeenCalled();
+  });
   it('checkout.session.completed (paid) → confirm source=stripe + audit + payment_intent salvat', async () => {
     const prisma = makePrisma(baseOrder({ stripeSessionId: 'cs_test_1' }));
     const { service, audit } = build(prisma, makeStripe(true));
@@ -336,7 +572,7 @@ describe('PaymentsService — webhook Stripe', () => {
   it('eveniment necunoscut → ignorat (200), dar inregistrat', async () => {
     const prisma = makePrisma(baseOrder());
     const { service } = build(prisma, makeStripe(true));
-    const res = await service.handleStripeEvent({ id: 'evt_x', type: 'payment_intent.created', data: { object: {} } } as unknown as Stripe.Event);
+    const res = await service.handleStripeEvent({ id: 'evt_x', type: 'payment_intent.created', livemode: true, data: { object: {} } } as unknown as Stripe.Event);
     expect(res).toEqual({ received: true, handled: 'ignored' });
     expect(prisma.stripeEvent.create).toHaveBeenCalled();
   });
@@ -347,6 +583,165 @@ describe('PaymentsService — webhook Stripe', () => {
     const { service } = build(prisma, makeStripe(true));
     await expect(service.handleStripeEvent(completedEvent())).rejects.toThrow('db down');
     expect(prisma.stripeEvent.create).not.toHaveBeenCalled();
+  });
+});
+
+// E-admin-platform-4 — date fiscale reale obligatorii, comenzi Stripe test fara numar fiscal,
+// cumparator inghetat, e-Factura (ruta manuala).
+describe('PaymentsService — billing readiness, test mode, e-Factura', () => {
+  const notReady = () => {
+    const readiness = makeReadiness();
+    readiness.assertReady.mockRejectedValue(new HttpException({ code: 'BILLING_NOT_CONFIGURED', message: 'Billing details are not configured' }, 503));
+    readiness.check.mockResolvedValue({ ready: false, problems: [{ field: 'iban', reason: 'PLACEHOLDER' }], seller: { ...VALID_SELLER, iban: 'RO49AAAA1B31007593840000' } });
+    return readiness;
+  };
+
+  it('confirm cu date fiscale incomplete → 503 BILLING_NOT_CONFIGURED; nimic confirmat, sesiunea Stripe nu e expirata', async () => {
+    const prisma = makePrisma(baseOrder({ stripeSessionId: 'cs_open' }));
+    const stripe = makeStripe(true);
+    const { service, credits } = build(prisma, stripe, notReady());
+    await expect(service.confirm(ORDER_ID, 'admin')).rejects.toMatchObject({ status: 503, response: { code: 'BILLING_NOT_CONFIGURED' } });
+    expect(prisma.tx.mockBillingOrder.updateMany).not.toHaveBeenCalled();
+    expect(credits.grant).not.toHaveBeenCalled();
+    expect(stripe.ensureSessionExpired).not.toHaveBeenCalled();
+    expect(prisma.state.order.status).toBe('PENDING');
+  });
+
+  it('comanda Stripe test → CONFIRMED fara numar fiscal (NOT_REQUIRED), beneficiul se acorda', async () => {
+    const prisma = makePrisma(baseOrder({ testMode: true }));
+    const { service, credits } = build(prisma, makeStripe(true, 'test'));
+    const dto = await service.confirm(ORDER_ID, 'stripe', { stripePaymentIntentId: 'pi_t' });
+    expect(dto.status).toBe('CONFIRMED');
+    expect(dto.invoiceNumber).toBeNull();
+    expect(dto.invoiceLabel).toBeNull();
+    expect(dto.testMode).toBe(true);
+    expect(prisma.state.order.eInvoiceStatus).toBe('NOT_REQUIRED');
+    expect(prisma.tx.mockBillingOrder.aggregate).not.toHaveBeenCalled();
+    expect(prisma.company.findUnique).not.toHaveBeenCalled();
+    expect(credits.grant).toHaveBeenCalledWith('c1', 10, 'CREDIT_PURCHASE', prisma.tx);
+  });
+
+  it('comanda live → numar fiscal + seller normalizat + cumparator inghetat + e-Factura PENDING', async () => {
+    const prisma = makePrisma(baseOrder());
+    prisma.company.findUnique.mockResolvedValue({ name: 'Mobila Demo SRL', cui: 'RO40298306', regComNumber: 'J12/3/2020', addressText: 'Cluj', isVatPayer: false });
+    const { service } = build(prisma, makeStripe(false));
+    const dto = await service.confirm(ORDER_ID, 'admin');
+    expect(dto.invoiceLabel).toBe('MM-42');
+    expect(prisma.state.order.invoiceNumber).toBe(42);
+    expect(prisma.state.order.eInvoiceStatus).toBe('PENDING');
+    expect(prisma.state.order.sellerSnapshot).toEqual(VALID_SELLER);
+    // snapshot v2 (E-company-19): cui fara prefix; prefixul RO salvat = platitor TVA declarat
+    expect(prisma.state.order.buyerSnapshot).toEqual({ name: 'Mobila Demo SRL', cui: '40298306', regCom: 'J12/3/2020', address: 'Cluj', isVatPayer: true });
+    // pachet de credite: fara perioada de serviciu
+    expect(prisma.state.order.servicePeriodStart).toBeNull();
+    expect(prisma.state.order.servicePeriodEnd).toBeNull();
+  });
+
+  it('E-company-19: firma neplatitoare de TVA → snapshot cu isVatPayer false si cui neschimbat', async () => {
+    const prisma = makePrisma(baseOrder());
+    prisma.company.findUnique.mockResolvedValue({ name: 'Mica Firma SRL', cui: '12345678', regComNumber: 'J22/1/2021', addressText: 'Iasi', isVatPayer: false });
+    const { service } = build(prisma, makeStripe(false));
+    await service.confirm(ORDER_ID, 'admin');
+    expect(prisma.state.order.buyerSnapshot).toEqual({ name: 'Mica Firma SRL', cui: '12345678', regCom: 'J22/1/2021', address: 'Iasi', isVatPayer: false });
+  });
+
+  it('E-company-19: abonament confirmat → perioada serviciului = noul expires_at minus 30 zile', async () => {
+    const prisma = makePrisma(baseOrder({ orderType: 'SUBSCRIPTION', planId: 'plan-gold', credits: 50 }));
+    const { service } = build(prisma, makeStripe(false));
+    await service.confirm(ORDER_ID, 'admin');
+    const expiresAt: Date = prisma.state.createdSub.expiresAt;
+    expect(prisma.state.order.servicePeriodEnd).toEqual(expiresAt);
+    expect((prisma.state.order.servicePeriodEnd as Date).getTime() - (prisma.state.order.servicePeriodStart as Date).getTime()).toBe(30 * 86_400_000);
+  });
+
+  it('E-company-19: comanda test (fara factura) nu primeste perioada de serviciu', async () => {
+    const prisma = makePrisma(baseOrder({ orderType: 'SUBSCRIPTION', planId: 'plan-gold', credits: 50, testMode: true }));
+    const { service } = build(prisma, makeStripe(true, 'test'));
+    await service.confirm(ORDER_ID, 'stripe', { stripePaymentIntentId: 'pi_t' });
+    expect(prisma.state.order.servicePeriodStart).toBeNull();
+    expect(prisma.state.order.servicePeriodEnd).toBeNull();
+  });
+
+  it('webhook cu livemode diferit de cheie → 400, evenimentul nu e inregistrat', async () => {
+    const prisma = makePrisma(baseOrder({ stripeSessionId: 'cs_test_1' }));
+    const { service, credits } = build(prisma, makeStripe(true, 'live'));
+    await expect(service.handleStripeEvent(completedEvent({ livemode: false }))).rejects.toMatchObject({ status: 400 });
+    expect(prisma.stripeEvent.findUnique).not.toHaveBeenCalled();
+    expect(prisma.stripeEvent.create).not.toHaveBeenCalled();
+    expect(credits.grant).not.toHaveBeenCalled();
+  });
+
+  it('sesiune test platita pentru o comanda live → 400 (mode mismatch)', async () => {
+    const prisma = makePrisma(baseOrder({ stripeSessionId: 'cs_test_1', testMode: false }));
+    const stripe = makeStripe(true, 'live');
+    stripe.assertEventMode.mockImplementation(() => undefined);
+    const { service } = build(prisma, stripe);
+    await expect(service.handleStripeEvent(completedEvent({ livemode: false }))).rejects.toMatchObject({ status: 400 });
+    expect(prisma.state.order.status).toBe('PENDING');
+  });
+
+  it('instructiuni de plata: Stripe dezactivat + date incomplete → fara IBAN, billingReady false', async () => {
+    const prisma = makePrisma(null);
+    const { service } = build(prisma, makeStripe(false), notReady());
+    const res = await service.getPaymentInstructions();
+    expect(res).toEqual({ stripeEnabled: false, stripeMode: null, billingReady: false, vatRate: 21, bankTransfer: null });
+  });
+
+  it('instructiuni de plata: date complete → IBAN normalizat pentru transfer', async () => {
+    const { service } = build(makePrisma(null), makeStripe(false));
+    const res = await service.getPaymentInstructions();
+    expect(res.bankTransfer).toEqual({ sellerName: VALID_SELLER.name, cui: VALID_SELLER.cui, iban: VALID_SELLER.iban });
+    expect(res.billingReady).toBe(true);
+  });
+
+  it('achizitie cu cheie Stripe test → comanda testMode true; date incomplete → 503 fara comanda', async () => {
+    const prisma = makePrisma(null);
+    const { service } = build(prisma, makeStripe(true, 'test'));
+    await service.purchaseCredits('c1', 'u1', { creditPackageId: 'pkg1' });
+    expect(prisma.mockBillingOrder.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ testMode: true }) }));
+
+    const prisma2 = makePrisma(null);
+    const { service: s2 } = build(prisma2, makeStripe(false), notReady());
+    await expect(s2.purchaseCredits('c1', 'u1', { creditPackageId: 'pkg1' })).rejects.toMatchObject({ status: 503 });
+    expect(prisma2.mockBillingOrder.create).not.toHaveBeenCalled();
+  });
+
+  it('updateEInvoice: UPLOADED fara index → 400; comanda test → 409; valid → stare + moment salvat', async () => {
+    const confirmed = { status: 'CONFIRMED', invoiceSeries: 'MM', invoiceNumber: 7, eInvoiceStatus: 'PENDING', company: { name: 'Mobila Demo SRL' } };
+    const prisma = makePrisma(baseOrder(confirmed));
+    const { service } = build(prisma, makeStripe(false));
+    await expect(service.updateEInvoice(ORDER_ID, { status: 'UPLOADED' })).rejects.toMatchObject({ status: 400 });
+
+    const res = await service.updateEInvoice(ORDER_ID, { status: 'UPLOADED', anafUploadId: '5001234567' });
+    expect(res.eInvoiceStatus).toBe('UPLOADED');
+    expect(res.anafUploadId).toBe('5001234567');
+    expect(res.eInvoiceUpdatedAt).not.toBeNull();
+    expect(res.companyName).toBe('Mobila Demo SRL');
+
+    // revenire la PENDING sterge indexurile
+    const reset = await service.updateEInvoice(ORDER_ID, { status: 'PENDING' });
+    expect(reset.anafUploadId).toBeNull();
+
+    const testPrisma = makePrisma(baseOrder({ ...confirmed, testMode: true, invoiceSeries: null, invoiceNumber: null, eInvoiceStatus: 'NOT_REQUIRED' }));
+    const { service: s2 } = build(testPrisma, makeStripe(true, 'test'));
+    await expect(s2.updateEInvoice(ORDER_ID, { status: 'UPLOADED', anafUploadId: '1' })).rejects.toMatchObject({ status: 409 });
+  });
+
+  it('adminList: confirmata cu numar dar fara stare (slot vechi) → PENDING', async () => {
+    const prisma = makePrisma(null);
+    prisma.mockBillingOrder.findMany.mockResolvedValue([baseOrder({ status: 'CONFIRMED', invoiceSeries: 'MM', invoiceNumber: 3, company: { name: 'X' } })]);
+    const { service } = build(prisma, makeStripe(false));
+    const [item] = await service.adminList();
+    expect(item.eInvoiceStatus).toBe('PENDING');
+    expect(item.testMode).toBe(false);
+  });
+
+  it('adminList: confirmata fara numar fiscal si fara stare (date demo vechi) → NOT_REQUIRED, nu null', async () => {
+    const prisma = makePrisma(null);
+    prisma.mockBillingOrder.findMany.mockResolvedValue([baseOrder({ status: 'CONFIRMED', invoiceSeries: 'MM', invoiceNumber: null, company: { name: 'X' } })]);
+    const { service } = build(prisma, makeStripe(false));
+    const [item] = await service.adminList();
+    expect(item.eInvoiceStatus).toBe('NOT_REQUIRED');
   });
 });
 
@@ -373,5 +768,61 @@ describe('SubscriptionsService — admin grant', () => {
     expect(res.daysLeft).toBe(35);
     expect(res.isTrial).toBe(false);
     expect(credits.grant).not.toHaveBeenCalled();
+  });
+});
+
+// E-admin-platform-58: plan de 0 lei necumparabil + totaluri cu TVA calculate in backend
+describe('PaymentsService — planuri ca date (E-admin-platform-58)', () => {
+  it('plan de 0 lei → 409 PLAN_NOT_PURCHASABLE, fara comanda si fara Stripe', async () => {
+    const prisma = makePrisma(null);
+    prisma.subscriptionPlan.findUnique.mockResolvedValue({ id: 'plan-free', tier: null, code: 'TEST_FREE', priceRon: 0, includedCredits: 0, isActive: true, marketplaceGatingDelayMin: 60 });
+    const stripe = makeStripe(true);
+    const { service } = build(prisma, stripe);
+    await expect(service.purchaseSubscription('c1', 'u1', { planId: 'plan-free' })).rejects.toMatchObject({
+      status: 409,
+      response: { code: 'PLAN_NOT_PURCHASABLE' },
+    });
+    expect(prisma.mockBillingOrder.create).not.toHaveBeenCalled();
+    expect(stripe.createCheckoutSession).not.toHaveBeenCalled();
+  });
+
+  it('plan platit → comanda cu planTier = codul planului', async () => {
+    const prisma = makePrisma(null);
+    const { service } = build(prisma, makeStripe(false));
+    const res = await service.purchaseSubscription('c1', 'u1', { planId: 'plan-gold' });
+    expect(res.order.planTier).toBe('GOLD');
+    expect(res.order.totalRon).toBe(482.79);
+  });
+
+  it('listPackages: TVA si total pe Decimal half-up (149 → 31,29 / 180,29; 399 → 83,79 / 482,79)', async () => {
+    const prisma = makePrisma(null);
+    prisma.creditPackage.findMany = jest.fn().mockResolvedValue([
+      { id: 'p1', credits: 15, priceRon: 149, isActive: true },
+      { id: 'p2', credits: 50, priceRon: 399, isActive: true },
+    ]);
+    const { service } = build(prisma, makeStripe(false));
+    await expect(service.listPackages()).resolves.toEqual([
+      { id: 'p1', credits: 15, priceRon: 149, vatRate: 21, vatRon: 31.29, totalRon: 180.29 },
+      { id: 'p2', credits: 50, priceRon: 399, vatRate: 21, vatRon: 83.79, totalRon: 482.79 },
+    ]);
+  });
+
+  it('listPlans: cod, nume, isFree, functii si totaluri cu TVA', async () => {
+    const prisma = makePrisma(null);
+    prisma.subscriptionPlan.findMany = jest.fn().mockResolvedValue([
+      { id: 'plan-free', code: 'TEST_FREE', tier: null, nameRo: 'Gratuit', nameEn: null, priceRon: 0, includedCredits: 0, marketplaceGatingDelayMin: 60, features: [] },
+      { id: 'plan-silver', code: 'SILVER', tier: 'SILVER', nameRo: null, nameEn: null, priceRon: 149, includedCredits: 15, marketplaceGatingDelayMin: 60, features: [{ featureKey: 'MARKETPLACE_ACCESS', enabled: true, limitValue: null }] },
+      { id: 'plan-platinum', code: 'PLATINUM', tier: 'PLATINUM', nameRo: null, nameEn: null, priceRon: 899, includedCredits: 120, marketplaceGatingDelayMin: 0, features: [{ featureKey: 'MARKETPLACE_ACCESS', enabled: true, limitValue: null }] },
+    ]);
+    const { subscriptions } = build(prisma, makeStripe(false));
+    const plans = await subscriptions.listPlans();
+    expect(prisma.subscriptionPlan.findMany).toHaveBeenCalledWith({ where: { isActive: true }, include: { features: true }, orderBy: { priceRon: 'asc' } });
+    expect(plans[0]).toEqual({
+      id: 'plan-free', tier: 'TEST_FREE', nameRo: 'Gratuit', nameEn: null, priceRon: 0, isFree: true,
+      vatRate: 21, vatRon: 0, totalRon: 0, includedCredits: 0, gatingDelayMinutes: 60,
+      features: { MARKETPLACE_ACCESS: { enabled: false, limit: null } },
+    });
+    expect(plans[1]).toMatchObject({ tier: 'SILVER', isFree: false, vatRon: 31.29, totalRon: 180.29, features: { MARKETPLACE_ACCESS: { enabled: true, limit: null } } });
+    expect(plans[2]).toMatchObject({ tier: 'PLATINUM', vatRon: 188.79, totalRon: 1087.79 });
   });
 });

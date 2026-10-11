@@ -23,9 +23,22 @@ export class NotificationsProcessor extends WorkerHost {
     const payload = job.data ?? {};
     const targets = payload.__targets;
     if (!Array.isArray(targets) || targets.length === 0) return; // eveniment broadcast → fara persistenta
-    const { __targets, ...clean } = payload;
+    const { __targets, __eventId, ...clean } = payload;
     void __targets;
-    await this.notifications.createForUsers(targets as string[], job.name, clean);
+    const users = [...new Set(targets.filter((id): id is string => typeof id === 'string'))];
+    const eventId = typeof __eventId === 'string' ? __eventId : undefined;
+    await this.notifications.createForUsers(users, job.name, clean, eventId);
+    if (eventId) {
+      const pending = await this.notifications.pendingEmailRecipients(eventId, users);
+      for (const userId of pending) {
+        await this.emails.sendForEvent(job.name, [userId], clean, true);
+        await this.notifications.markEmailDelivered(eventId, userId);
+      }
+      // E-company-24: copia pentru emailul de facturare al firmei (marcaj propriu pe outbox)
+      await this.emails.sendBillingContactCopy(eventId, job.name, clean);
+      await this.notifications.completeEvent(eventId);
+      return;
+    }
     // best-effort (erorile de email sunt doar logate — nu re-executam jobul,
     // altfel notificarile in-app s-ar duplica la retry)
     await this.emails.sendForEvent(job.name, targets as string[], clean);

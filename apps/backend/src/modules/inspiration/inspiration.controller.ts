@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { UserRole } from '@prisma/client';
 import { AccessTokenPayload } from '../auth/auth.constants';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -6,8 +7,10 @@ import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Audit } from '../audit/audit.decorator';
+import { AuditInterceptor } from '../audit/audit.interceptor';
 import {
   BoardItemDto,
+  BoardItemMetaDto,
   BoardMoveDto,
   BoardNameDto,
   ConfirmInspirationImageDto,
@@ -82,6 +85,17 @@ export class InspirationBoardsController {
     return this.boards.addItem(user.sub, id, dto.photoId);
   }
 
+  // E-client-34: notita/camera unei salvari
+  @Patch(':id/items/:photoId')
+  updateItem(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('photoId', ParseUUIDPipe) photoId: string,
+    @Body() dto: BoardItemMetaDto,
+  ) {
+    return this.boards.updateItem(user.sub, id, photoId, dto);
+  }
+
   @Delete(':id/items/:photoId')
   removeItem(
     @CurrentUser() user: AccessTokenPayload,
@@ -106,6 +120,7 @@ export class InspirationBoardsController {
 // Administrarea galeriei: doar ADMIN; scrierile sunt auditate.
 @Controller('admin/inspiration')
 @Roles(UserRole.ADMIN)
+@UseInterceptors(AuditInterceptor)
 export class InspirationAdminController {
   constructor(private readonly inspiration: InspirationService) {}
 
@@ -133,6 +148,7 @@ export class InspirationAdminController {
   }
 
   @Post(':id/image/presign')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   presignImage(@Param('id') id: string, @Body() dto: PresignInspirationImageDto) {
     return this.inspiration.presignImage(id, dto);
   }
@@ -141,5 +157,12 @@ export class InspirationAdminController {
   @Post(':id/image/confirm')
   confirmImage(@Param('id') id: string, @Body() dto: ConfirmInspirationImageDto) {
     return this.inspiration.confirmImage(id, dto.attachmentId);
+  }
+
+  @Post(':id/image/:attachmentId/complete')
+  @Audit('INSPIRATION_PHOTO_UPLOAD_COMPLETED', 'attachment')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  completeImage(@Param('id', ParseUUIDPipe) id: string, @Param('attachmentId', ParseUUIDPipe) attachmentId: string) {
+    return this.inspiration.completeImage(id, attachmentId);
   }
 }

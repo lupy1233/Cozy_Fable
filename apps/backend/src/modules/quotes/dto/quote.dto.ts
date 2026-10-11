@@ -115,6 +115,19 @@ export class RequestQuoteChangeDto {
   requestedText: string;
 }
 
+// E-client-1: versiunea afisata clientului in dialogul de confirmare
+export class AcceptQuoteDto {
+  @IsUUID()
+  quoteVersionId: string;
+}
+
+// E-company-6: confirmarea explicita a expirarii preluarii (retragere dupa SLA + gratie)
+export class WithdrawQuoteDto {
+  @IsOptional()
+  @IsBoolean()
+  acknowledgeSlaBreach?: boolean;
+}
+
 export class ExtendValidityDto {
   @IsOptional()
   @IsInt()

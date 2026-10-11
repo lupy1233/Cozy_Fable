@@ -69,6 +69,7 @@ export class InspirationService {
     const where: Prisma.InspirationPhotoWhereInput = {
       published: true,
       deletedAt: null,
+      company: { deletedAt: null },
       // fara imagine nu are ce afisa publicul
       OR: [{ imageUrl: { not: null } }, { attachmentId: { not: null } }],
       ...(roomType ? { roomType: roomType as RoomType } : {}),
@@ -90,29 +91,52 @@ export class InspirationService {
     return this.toDtos(photos);
   }
 
-  // valideaza pozele alese de client pe o cerere (publish/edit)
+  // valideaza pozele alese de client pe o cerere (publish/edit). Pozele retrase
+  // sau sterse intre timp sunt numite in details.photoIds, ca FE sa le scoata din
+  // draft si sa ceara republicarea (E-client-2).
   async assertSelectable(ids: string[]): Promise<void> {
     if (ids.length === 0) return;
-    const count = await this.prisma.inspirationPhoto.count({
-      where: { id: { in: ids }, published: true, deletedAt: null },
+    const unique = [...new Set(ids)];
+    const rows = await this.prisma.inspirationPhoto.findMany({
+      where: { id: { in: unique }, published: true, deletedAt: null, company: { deletedAt: null } },
+      select: { id: true },
     });
-    if (count !== new Set(ids).size) {
+    const found = new Set(rows.map((r) => r.id));
+    const unavailable = unique.filter((id) => !found.has(id));
+    if (unavailable.length > 0) {
       throw new BadRequestException({
-        code: ERROR_CODES.NOT_FOUND,
+        code: ERROR_CODES.INSPIRATION_UNAVAILABLE,
         message: 'One or more inspiration photos are unavailable',
+        details: { photoIds: unavailable },
       });
     }
   }
 
   // ---- admin ----
 
+  // Lista admin cu utilizarea pozei (cereri active + colectii), ca adminul sa fie
+  // avertizat inainte sa retraga/stearga o poza folosita (E-client-2).
   async listAdmin(): Promise<InspirationPhotoDto[]> {
     const photos = await this.prisma.inspirationPhoto.findMany({
       where: { deletedAt: null },
-      include: { company: { select: { id: true, name: true } } },
+      include: {
+        company: { select: { id: true, name: true } },
+        _count: {
+          select: {
+            requests: {
+              where: { request: { deletedAt: null, status: { notIn: ['COMPLETED', 'CANCELLED', 'EXPIRED'] } } },
+            },
+            boardItems: true,
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
-    return this.toDtos(photos);
+    const usage = new Map(
+      photos.map((p) => [p.id, { activeRequests: p._count.requests, boards: p._count.boardItems }]),
+    );
+    const dtos = await this.toDtos(photos);
+    return dtos.map((dto) => ({ ...dto, usage: usage.get(dto.id) }));
   }
 
   async create(dto: CreateInspirationPhotoDto): Promise<InspirationPhotoDto> {
@@ -180,13 +204,20 @@ export class InspirationService {
 
   async confirmImage(id: string, attachmentId: string): Promise<InspirationPhotoDto> {
     await this.findAlive(id);
-    await this.uploads.confirm(ENTITY_TYPE, id, attachmentId);
+    const attachment = await this.uploads.confirm(ENTITY_TYPE, id, attachmentId);
+    if (attachment.status !== 'SAFE') throw new BadRequestException({ code: ERROR_CODES.FILE_SCAN_BLOCKED, message: 'Image is not ready' });
     const photo = await this.prisma.inspirationPhoto.update({
       where: { id },
       data: { attachmentId },
       include: { company: { select: { id: true, name: true } } },
     });
     return (await this.toDtos([photo]))[0];
+  }
+
+  async completeImage(id: string, attachmentId: string) {
+    await this.findAlive(id);
+    const attachment = await this.uploads.confirm(ENTITY_TYPE, id, attachmentId);
+    return { ...attachment, downloadUrl: null };
   }
 
   // ---- helpers ----

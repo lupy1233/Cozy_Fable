@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { MOVABLE_HOLIDAYS } from '../src/infra/calendar/movable-holidays';
 
 // Seed config scoring proiect (docs/sprint-0 §7). Idempotent (upsert).
 const prisma = new PrismaClient();
@@ -91,18 +92,20 @@ const SIZING_CONFIG: { key: string; option: string; weight: number }[] = [
 // PO r5 (2026-07-13): creditCost de pe praguri NU se mai foloseste la costul
 // cererii (1 credit = 1.000 lei din bugetul minim estimat, vezi SizingService).
 // Pragurile raman doar pentru clasificarea S/M/L (SLA, filtre marketplace).
+// E-admin-platform-14: coloana legacy credit_cost e nullable si nu se mai scrie
+// (DROP COLUMN = release separat, dupa decizia PO).
 const THRESHOLDS: {
   size: 'SMALL' | 'MEDIUM' | 'LARGE';
   minScore: number;
   maxScore: number | null;
-  creditCost: number;
 }[] = [
-  { size: 'SMALL', minScore: 0, maxScore: 14, creditCost: 1 },
-  { size: 'MEDIUM', minScore: 15, maxScore: 29, creditCost: 2 },
-  { size: 'LARGE', minScore: 30, maxScore: null, creditCost: 4 },
+  { size: 'SMALL', minScore: 0, maxScore: 14 },
+  { size: 'MEDIUM', minScore: 15, maxScore: 29 },
+  { size: 'LARGE', minScore: 30, maxScore: null },
 ];
 
 // docs/04 §5.3 + 4.10/4.16 — planuri abonament (seed initial, configurabil din Admin).
+// E-admin-platform-58: identitatea = code (egal cu tier-ul legacy pentru cele 3 planuri seed-uite).
 const SUBSCRIPTION_PLANS: {
   tier: 'SILVER' | 'GOLD' | 'PLATINUM';
   priceRon: number;
@@ -121,22 +124,9 @@ const PENALTY_RULES: { ruleKey: string; points: number }[] = [
   { ruleKey: 'VOLUNTARY_WITHDRAWAL', points: 2 }, // retragere voluntara dupa gratia de 30 min
 ];
 
-// docs/02 §3.3 — sarbatori mobile RO (Paste ortodox + Rusalii), zile lucratoare care devin
-// libere, 2025–2028. isWorkingDay=false. Adminul poate adauga/override (punti) ulterior.
-const MOVABLE_HOLIDAYS: { date: string; name: string }[] = [
-  { date: '2025-04-18', name: 'Vinerea Mare' },
-  { date: '2025-04-21', name: 'A doua zi de Paste' },
-  { date: '2025-06-09', name: 'A doua zi de Rusalii' },
-  { date: '2026-04-10', name: 'Vinerea Mare' },
-  { date: '2026-04-13', name: 'A doua zi de Paste' },
-  { date: '2026-06-01', name: 'A doua zi de Rusalii' },
-  { date: '2027-04-30', name: 'Vinerea Mare' },
-  { date: '2027-05-03', name: 'A doua zi de Paste' },
-  { date: '2027-06-21', name: 'A doua zi de Rusalii' },
-  { date: '2028-04-14', name: 'Vinerea Mare' },
-  { date: '2028-04-17', name: 'A doua zi de Paste' },
-  { date: '2028-06-05', name: 'A doua zi de Rusalii' },
-];
+// docs/02 §3.3 — sarbatori mobile RO (Paste ortodox + Rusalii): lista unica in
+// src/infra/calendar/movable-holidays.ts (aplicata si prin migrare in toate mediile).
+// isWorkingDay=false. Adminul poate adauga/override (punti) ulterior.
 
 // docs/04 §5.2 + 4.16 / Î8 — pachete top-up credite (discount progresiv).
 const CREDIT_PACKAGES: { credits: number; priceRon: number }[] = [
@@ -147,12 +137,19 @@ const CREDIT_PACKAGES: { credits: number; priceRon: number }[] = [
 
 // docs/04 §5.4 — chei system_settings (seed). Toate stocate ca string.
 const SYSTEM_SETTINGS: Record<string, string> = {
-  // 4.17 — date furnizor (platforma) pentru facturile mock RO + serie factura.
-  seller_name: 'Marketplace Mobilier SRL',
-  seller_cui: 'RO12345678',
-  seller_reg_com: 'J40/1234/2020',
-  seller_address: 'Str. Exemplu nr. 1, Bucuresti, Romania',
-  seller_iban: 'RO49AAAA1B31007593840000',
+  // 4.17 — date furnizor (platforma) pentru facturile RO + serie factura.
+  // E-admin-platform-4: goale - adminul completeaza datele reale in Admin -> Setari -> Date fiscale; pana atunci cumpararile/confirmarile raspund 503 BILLING_NOT_CONFIGURED
+  seller_name: '',
+  seller_cui: '',
+  seller_reg_com: '',
+  seller_address: '',
+  seller_iban: '',
+  // E-admin-platform-2: contact juridic/GDPR + publicarea identitatii operatorului (seller_*) in Termeni/Politica/footer. 'false' pana cand PO completeaza datele reale.
+  legal_contact_email: '',
+  legal_identity_published: 'false',
+  // Hotfix 2026-10-04 (PO): re-acceptarea Termenilor pentru conturile existente — OPRITA pana la
+  // revizuirea avocatului; conturile noi accepta la inregistrare.
+  legal_reaccept_existing_users: 'false',
   invoice_series: 'MM',
   quote_validity_default_days: '14',
   consultation_invite_expiry_days: '7',
@@ -165,32 +162,71 @@ const SYSTEM_SETTINGS: Record<string, string> = {
   trial_duration_days: '30',
   trial_bonus_credits: '10',
   max_claims_per_request: '3',
+  // E-admin-platform-10: cererea ramane claimabila dupa prima oferta — OPRIT pana la decizia
+  // PO (invarianta 3.1).
+  claims_open_after_first_offer: 'false',
+  // E-company-3: contactele clientului la claim (W1) si fara prag dupa livrare — pana la
+  // decizia PO (DECIZIE NECESARA).
+  claim_contact_reveal_policy: 'ON_CLAIM',
+  completed_claim_contact_retention_days: '0',
+  // E-admin-platform-45: telefon/email/link in texte libere — MASK (ascuns firmelor fara
+  // acces) pana la decizia PO (DECIZIE NECESARA); BLOCK = publicare refuzata.
+  pre_claim_contact_text_policy: 'MASK',
+  // E-client-9: distanta pre-claim (KM | BAND), plafon locatii firma si schimbari pe 24h —
+  // pana la decizia PO (DECIZIE NECESARA).
+  marketplace_distance_display: 'KM',
+  company_locations_max: '10',
+  company_location_changes_per_day: '20',
+  // E-company-21: costul unei preluari (PO r5 V1: 1 credit = 1000 lei din bugetul minim);
+  // minim 1, fara plafon (0) pana la decizia PO (DECIZIE NECESARA: valorile min/max).
+  credit_value_ron: '1000',
+  claim_cost_min: '1',
+  claim_cost_max: '0',
+  // E-admin-platform-3: inchiderea automata a ofertelor expirate fara decizie — OPRITA pana
+  // la decizia PO (zile placeholder, rezultat credite UNSET = procesor no-op).
+  expired_offer_autoclose_enabled: 'false',
+  expired_offer_autoclose_days: '14',
+  expired_offer_autoclose_credit_outcome: 'UNSET',
+  // reminder firma inainte de data de livrare din oferta acceptata (zile calendaristice)
+  delivery_reminder_days_before: '3',
+  // E-company-24 DECIZIE NECESARA PO: 0 = oprit (reminder / anulare automata comenzi transfer bancar)
+  bank_transfer_reminder_days: '0',
+  bank_transfer_expiry_days: '0',
 };
 
 async function main() {
   for (const c of SIZING_CONFIG) {
     await prisma.projectSizingConfig.upsert({
       where: { key_option: { key: c.key, option: c.option } },
-      update: { weight: c.weight },
+      // ponderile sunt editabile din Admin -> Marime proiect; re-seed nu le suprascrie
+      update: {},
       create: c,
     });
   }
   for (const t of THRESHOLDS) {
     await prisma.projectSizeThreshold.upsert({
       where: { size: t.size },
-      update: { minScore: t.minScore, maxScore: t.maxScore, creditCost: t.creditCost },
+      update: { minScore: t.minScore, maxScore: t.maxScore },
       create: t,
     });
   }
   for (const p of SUBSCRIPTION_PLANS) {
-    await prisma.subscriptionPlan.upsert({
-      where: { tier: p.tier },
+    const plan = await prisma.subscriptionPlan.upsert({
+      where: { code: p.tier },
       update: {
+        tier: p.tier,
         priceRon: p.priceRon,
         includedCredits: p.includedCredits,
         marketplaceGatingDelayMin: p.marketplaceGatingDelayMin,
       },
-      create: p,
+      create: { ...p, code: p.tier },
+    });
+    // E-admin-platform-58: planurile seed-uite dau acces la marketplace (ca inainte de functii);
+    // update gol = nu suprascriem o alegere facuta din Admin
+    await prisma.subscriptionPlanFeature.upsert({
+      where: { planId_featureKey: { planId: plan.id, featureKey: 'MARKETPLACE_ACCESS' } },
+      update: {},
+      create: { planId: plan.id, featureKey: 'MARKETPLACE_ACCESS', enabled: true },
     });
   }
   for (const [key, value] of Object.entries(SYSTEM_SETTINGS)) {

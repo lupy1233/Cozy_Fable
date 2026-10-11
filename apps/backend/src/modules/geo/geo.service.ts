@@ -2,6 +2,7 @@ import { ERROR_CODES } from '@marketplace/shared';
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { safeErrorSummary } from '../../common/logging/safe-error';
 
 export interface GeoResult {
   lat: number;
@@ -90,7 +91,7 @@ export class GeoService {
     let result: GeoResult | null = null;
     for (let i = 0; i < attempts.length && !result; i++) {
       if (i > 0) await sleep(RETRY_DELAY_MS);
-      result = await this.tryNominatim(attempts[i], cc);
+      result = await this.tryNominatim(attempts[i], cc, i + 1, attempts.length);
     }
     if (!result) {
       throw new HttpException(
@@ -115,7 +116,7 @@ export class GeoService {
     return result;
   }
 
-  private async tryNominatim(q: string, countryCode: string): Promise<GeoResult | null> {
+  private async tryNominatim(q: string, countryCode: string, tier: number, tiers: number): Promise<GeoResult | null> {
     const url = new URL('/search', this.baseUrl);
     url.searchParams.set('q', q);
     url.searchParams.set('format', 'jsonv2');
@@ -127,16 +128,19 @@ export class GeoService {
         headers: { 'User-Agent': this.userAgent, 'Accept-Language': 'ro' },
         signal: AbortSignal.timeout(8000),
       });
-      if (!res.ok) throw new Error(`nominatim ${res.status}`);
+      if (!res.ok) throw Object.assign(new Error('nominatim http'), { status: res.status });
       const body = (await res.json()) as Array<{ lat: string; lon: string; display_name?: string }>;
       const hit = body[0];
-      if (!hit) throw new Error('no result');
+      if (!hit) throw Object.assign(new Error('no result'), { code: 'ENORESULT' });
       const lat = Number(hit.lat);
       const lng = Number(hit.lon);
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error('invalid coords');
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        throw Object.assign(new Error('invalid coords'), { code: 'EINVALIDCOORDS' });
+      }
       return { lat, lng, displayName: hit.display_name ?? null };
     } catch (err) {
-      this.logger.warn(`geocoding attempt failed for "${q}" [${countryCode}]: ${(err as Error).message}`);
+      // E-admin-platform-8: fara adresa/oras/judet in log — doar treapta, tara si clasificarea
+      this.logger.warn(`geocoding attempt failed tier=${tier}/${tiers} country=${countryCode}: ${safeErrorSummary(err)}`);
       return null;
     }
   }

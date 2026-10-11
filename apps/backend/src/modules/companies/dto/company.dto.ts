@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsEmail,
   IsEnum,
   IsIn,
   IsNumber,
@@ -13,9 +14,11 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { CompanyMemberRole, OfferFieldKey } from '@prisma/client';
+import { MIN_COVERAGE_RADIUS_KM } from '@marketplace/shared';
 
 export class OnboardCompanyDto {
   @IsString()
@@ -92,6 +95,18 @@ export class UpdateCompanyDto {
   @Min(-180)
   @Max(180)
   lng?: number;
+
+  // E-company-19: platitor TVA declarat (cod TVA RO pe facturile viitoare)
+  @IsOptional()
+  @IsBoolean()
+  isVatPayer?: boolean;
+
+  // E-company-24: email de facturare optional (ex. contabilul); null sau '' il sterge
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null && v !== '')
+  @IsEmail()
+  @MaxLength(254)
+  billingEmail?: string | null;
 }
 
 export class CompanyLocationDto {
@@ -120,9 +135,9 @@ export class CompanyLocationDto {
   @Max(180)
   lng: number;
 
-  // D-v6-10: coverage_radius_km per locatie
+  // D-v6-10: coverage_radius_km per locatie; E-client-9: minim = celula grilei de confidentialitate
   @IsNumber()
-  @Min(0.1)
+  @Min(MIN_COVERAGE_RADIUS_KM)
   @Max(1000)
   coverageRadiusKm: number;
 }
