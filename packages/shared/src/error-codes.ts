@@ -8,7 +8,10 @@ export const ERROR_CODES = {
   FORBIDDEN: 'FORBIDDEN',
   NOT_FOUND: 'NOT_FOUND',
   RATE_LIMITED: 'RATE_LIMITED',
+  DEPLOYMENT_STANDBY: 'DEPLOYMENT_STANDBY',
   IDEMPOTENCY_CONFLICT: 'IDEMPOTENCY_CONFLICT',
+  // E-company-2: Prisma P2028 (timeout tranzactie) / P2024 (pool) → 503 reincercabil
+  DATABASE_BUSY: 'DATABASE_BUSY',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
 
   // Auth
@@ -17,6 +20,8 @@ export const ERROR_CODES = {
   EMAIL_NOT_VERIFIED: 'EMAIL_NOT_VERIFIED',
   // D-L1-2 (2026-08-23): cont blocat de admin (users.blocked_at)
   ACCOUNT_BLOCKED: 'ACCOUNT_BLOCKED',
+  // E-admin-platform-5: prea multe parole gresite pe acelasi email (429, uniform)
+  LOGIN_COOLDOWN: 'LOGIN_COOLDOWN',
   REFRESH_TOKEN_INVALID: 'REFRESH_TOKEN_INVALID',
   REFRESH_TOKEN_REUSED: 'REFRESH_TOKEN_REUSED',
   SESSION_SUPERSEDED: 'SESSION_SUPERSEDED',
@@ -78,6 +83,8 @@ export const ERROR_CODES = {
   CONSULTATION_INVITE_EXPIRED: 'CONSULTATION_INVITE_EXPIRED',
   NEGOTIATION_ENDED: 'NEGOTIATION_ENDED',
   QUOTE_ACCEPT_NOT_ALLOWED: 'QUOTE_ACCEPT_NOT_ALLOWED',
+  // E-company-2: actiune de firma pe o oferta WITHDRAWN/ACCEPTED/SUPERSEDED sau slot inchis
+  QUOTE_NOT_MODIFIABLE: 'QUOTE_NOT_MODIFIABLE',
 
   // Chat / upload
   THREAD_READ_ONLY: 'THREAD_READ_ONLY',
@@ -133,6 +140,39 @@ export const ERROR_CODES = {
   // Plati Stripe (L0-D)
   PAYMENT_PROVIDER_UNAVAILABLE: 'PAYMENT_PROVIDER_UNAVAILABLE',
   PAYMENT_NOT_PENDING: 'PAYMENT_NOT_PENDING',
+  // E-admin-platform-3 — proiect acceptat blocat / oferte expirate (409)
+  PROJECT_NOT_CLOSABLE: 'PROJECT_NOT_CLOSABLE',
+  PROJECT_CASE_ALREADY_OPEN: 'PROJECT_CASE_ALREADY_OPEN',
+  PROJECT_CASE_NOT_OPEN: 'PROJECT_CASE_NOT_OPEN',
+  QUOTE_EXTENSION_NOT_REQUESTABLE: 'QUOTE_EXTENSION_NOT_REQUESTABLE',
+  // E-admin-platform-2 - versiune texte juridice depasita (409)
+  LEGAL_VERSION_MISMATCH: 'LEGAL_VERSION_MISMATCH',
+  // E-admin-platform-4 - date fiscale furnizor incomplete/placeholder (503)
+  BILLING_NOT_CONFIGURED: 'BILLING_NOT_CONFIGURED',
+  // E-client-1 - clientul a confirmat o versiune care nu mai e ultima (409)
+  QUOTE_VERSION_CHANGED: 'QUOTE_VERSION_CHANGED',
+  // E-company-6 (409) - retragere oferta dupa SLA+gratie fara confirmare explicita /
+  // rezultatul retragerii preluarii s-a schimbat fata de cel confirmat
+  QUOTE_WITHDRAW_SLA_ACK_REQUIRED: 'QUOTE_WITHDRAW_SLA_ACK_REQUIRED',
+  WITHDRAWAL_OUTCOME_CHANGED: 'WITHDRAWAL_OUTCOME_CHANGED',
+  // E-client-2 (400) - "Am deja un proiect" fara fisier de proiect SAFE /
+  // poze de inspiratie retrase sau sterse din galerie (details.photoIds)
+  REQUEST_PROJECT_FILE_REQUIRED: 'REQUEST_PROJECT_FILE_REQUIRED',
+  INSPIRATION_UNAVAILABLE: 'INSPIRATION_UNAVAILABLE',
+  // E-admin-platform-25 (409) - exista deja o zi in calendarul de lucru pentru data ceruta
+  CALENDAR_DATE_EXISTS: 'CALENDAR_DATE_EXISTS',
+  // E-admin-platform-45 (400) - politica BLOCK: telefon/email/link in texte libere;
+  // details = [{ roomIndex, stepId, messageKey } | { field: 'description', messageKey }]
+  REQUEST_CONTACT_INFO_IN_TEXT: 'REQUEST_CONTACT_INFO_IN_TEXT',
+  // E-client-9 - plafonul de locatii al firmei (409) / prea multe schimbari de
+  // locatii in ultimele 24h (429)
+  COMPANY_LOCATION_LIMIT_REACHED: 'COMPANY_LOCATION_LIMIT_REACHED',
+  COMPANY_LOCATION_CHANGE_LIMIT: 'COMPANY_LOCATION_CHANGE_LIMIT',
+  // E-admin-platform-58 - planul abonamentului activ nu include functia ceruta (403,
+  // details.feature) / plan gratuit (0 lei) cumparat online (409) / cod de plan deja folosit (409)
+  PLAN_FEATURE_REQUIRED: 'PLAN_FEATURE_REQUIRED',
+  PLAN_NOT_PURCHASABLE: 'PLAN_NOT_PURCHASABLE',
+  PLAN_CODE_TAKEN: 'PLAN_CODE_TAKEN',
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];

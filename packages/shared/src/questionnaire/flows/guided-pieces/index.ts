@@ -11,6 +11,7 @@ export { pieceTableFlow } from './piece-table';
 export { pieceShoeCabinetFlow } from './piece-shoe-cabinet';
 export { pieceNightstandFlow } from './piece-nightstand';
 export { pieceBenchFlow } from './piece-bench';
+export { pieceBedFlowV3, pieceTableFlowV3, pieceBenchFlowV3, furnitureLegacyAnswers } from './furniture-v3';
 export {
   pieceWardrobeFlowV2,
   pieceTvUnitFlowV2,
