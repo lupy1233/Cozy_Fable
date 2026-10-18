@@ -14,6 +14,9 @@ test('quota failure is announced without deleting the saved house', async ({ pag
     };
   }, fixture);
   await page.goto('/en/studio');
+  // uneltele casei sunt ascunse implicit: deschide planul casei si extinde panoul
+  await page.getByRole('button', { name: 'House', exact: true }).click();
+  await page.getByRole('button', { name: 'Expand house tools', exact: true }).click();
   const width = page.getByLabel('Door width (m)', { exact: true });
   await width.fill('1.1'); await width.blur();
   await expect(page.getByRole('alert').filter({ hasText: en.Studio.house.persistenceError })).toBeVisible();
