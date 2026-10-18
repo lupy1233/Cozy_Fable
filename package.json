@@ -25,7 +25,7 @@
       "body-parser": ">=1.20.6",
       "qs": "^6.16.0",
       "postcss": ">=8.5.23",
-      "sharp": "^0.35.4",
+      "sharp": "^0.35.5",
       "file-type": "^21.3.2",
       "fflate": "^0.8.2",
       "fast-uri": "^3.1.8",
@@ -39,7 +39,15 @@
       "js-yaml@>=4 <5": ">=4.3.2 <5",
       "glob@>=10 <11": ">=10.5.0 <11",
       "picomatch@>=4 <5": ">=4.0.4 <5",
-      "tmp": ">=0.2.6"
+      "tmp": ">=0.2.6",
+      "proxy-addr": ">=2.0.8",
+      "handlebars": ">=4.7.10",
+      "source-map-js": ">=1.2.2"
+    },
+    "auditConfig": {
+      "ignoreGhsas": [
+        "GHSA-vfj7-8cjw-p6xm"
+      ]
     }
   }
 }
