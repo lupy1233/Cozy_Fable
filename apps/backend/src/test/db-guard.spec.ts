@@ -13,9 +13,9 @@ describe('assertSafeTestDatabaseUrl', () => {
   });
 
   it.each([
-    ['postgresql://u:secretpw@db.example.invalid:5432/x', 'db.example.invalid'],
-    ['postgresql://u:secretpw@xyz.proxy.rlwy.net:12345/railway', 'xyz.proxy.rlwy.net'],
-    ['postgresql://u:secretpw@postgres.railway.internal:5432/railway', 'postgres.railway.internal'],
+    ['postgresql://u:s3cret@db.example.invalid:5432/x', 'db.example.invalid'],
+    ['postgresql://u:s3cret@xyz.proxy.rlwy.net:12345/railway', 'xyz.proxy.rlwy.net'],
+    ['postgresql://u:s3cret@postgres.railway.internal:5432/railway', 'postgres.railway.internal'],
   ])('refuza %s si numeste doar host-ul', (raw, host) => {
     let message = '';
     try {
@@ -25,12 +25,12 @@ describe('assertSafeTestDatabaseUrl', () => {
     }
     expect(message).toContain('Refuz sa rulez testele de integrare');
     expect(message).toContain(`"${host}"`);
-    expect(message).not.toContain('u:secretpw');
-    expect(message).not.toContain('secretpw');
+    expect(message).not.toContain('u:s3cret');
+    expect(message).not.toContain('s3cret');
   });
 
   it('refuza alt protocol (mysql://localhost)', () => {
-    expect(() => assertSafeTestDatabaseUrl('mysql://u:secretpw@localhost:3306/x')).toThrow(/protocolul "mysql:"/);
+    expect(() => assertSafeTestDatabaseUrl('mysql://u:s3cret@localhost:3306/x')).toThrow(/protocolul "mysql:"/);
   });
 
   it('refuza un text care nu e URL', () => {
