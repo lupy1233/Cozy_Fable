@@ -64,7 +64,7 @@ try {
     const csp = response.headers.get('content-security-policy') ?? '';
     const nonce = /'nonce-([^']+)'/.exec(csp)?.[1];
     const scriptSrc = csp.split(';').map((d) => d.trim()).find((d) => d.startsWith('script-src')) ?? '';
-    const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map((m) => m[0]);
+    const scripts = [...html.matchAll(/<script\b[^>]*>/gi)].map((m) => m[0]);
     const scriptsWithoutNonce = scripts.filter((tag) => !tag.includes(`nonce="${nonce}"`)).length;
     const security = {
       cspNonce: Boolean(nonce),

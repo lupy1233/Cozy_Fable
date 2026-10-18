@@ -409,10 +409,11 @@ export class AdminService {
     if (!existing) {
       throw new NotFoundException({ code: ERROR_CODES.SETTING_KEY_UNKNOWN, message: 'Unknown setting' });
     }
-    const rule = SETTING_VALUE_RULES[key];
+    // doar regulile proprii ale tabelei (nu 'constructor', '__proto__' etc.)
+    const rule = Object.prototype.hasOwnProperty.call(SETTING_VALUE_RULES, key) ? SETTING_VALUE_RULES[key] : undefined;
     // E-admin-platform-58: trial_plan (cod de plan) se salveaza si el fara spatii
     const stored = rule || key === 'trial_plan' ? value.trim() : value;
-    if (rule && !rule(stored)) {
+    if (typeof rule === 'function' && !rule(stored)) {
       throw new BadRequestException({ code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid value for this setting' });
     }
     // E-admin-platform-58: trial_plan = codul unui plan ACTIV existent (planurile sunt date)

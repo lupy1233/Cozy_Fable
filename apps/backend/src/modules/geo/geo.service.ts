@@ -57,7 +57,9 @@ export class GeoService {
   // bloc, scara, apartament, etaj, interfon (ex. "bl. A3, sc. 2, ap. 15, et. 4").
   private stripAddressNoise(addressText: string): string {
     return addressText
-      .replace(/,?\s*\b(bl|bloc|sc|scara|ap|apt|apartament|et|etaj|interfon)\.?\s*[\w/-]+/gi, '')
+      // fara ',?\s*' in fata: virgulele si spatiile ramase se strang la pasii urmatori
+      // (prefixul cu \s* dadea backtracking patratic pe siruri lungi de spatii)
+      .replace(/\b(bl|bloc|sc|scara|ap|apt|apartament|et|etaj|interfon)\.?\s*[\w/-]+/gi, '')
       .replace(/\s{2,}/g, ' ')
       .replace(/(\s*,\s*)+/g, ', ')
       .replace(/^[,\s]+|[,\s]+$/g, '');

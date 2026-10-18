@@ -156,7 +156,7 @@ export function isHideable(m: Pick<ContactMatch, 'kind'>): boolean {
 // iar intervalul rezultat acopera toate candidatele suprapuse (un link care
 // contine un telefon se ascunde integral).
 export function detectContactInfo(text: string): ContactMatch[] {
-  if (!text) return [];
+  if (typeof text !== 'string' || !text) return [];
   const src = text.length > MAX_SCAN_CHARS ? text.slice(0, MAX_SCAN_CHARS) : text;
   const candidates: ContactMatch[] = [];
   collect(EMAIL_RE, 'EMAIL', src, candidates);

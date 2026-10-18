@@ -7,7 +7,7 @@ const { chromium, devices } = createRequire(path.resolve(__dirname, '../apps/fro
 
 const green = 'https://app-green-production-7958.up.railway.app';
 const origin = process.env.INSPIRATION_ORIGIN || green;
-assert([green, 'http://127.0.0.1:3100'].includes(origin), 'Unexpected gallery target');
+assert(origin === green || origin === 'http://127.0.0.1:3100', 'Unexpected gallery target');
 const local = origin !== green;
 const output = path.resolve(__dirname, '../docs/implementation/screenshots', local ? 'inspiration-local' : 'inspiration-green');
 fs.mkdirSync(output, { recursive: true });

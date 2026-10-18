@@ -51,8 +51,8 @@ const nextConfig = {
         ? [
             {
               source: '/:path*',
-              // valoarea `host` e regex (Next o ancoreaza ^…$) → punctele se escapeaza
-              missing: [{ type: 'host', value: `${siteHost.replace(/\./g, '\\.')}` }],
+              // valoarea `host` e regex (Next o ancoreaza ^…$) → caracterele speciale se escapeaza
+              missing: [{ type: 'host', value: siteHost.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }],
               headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
             },
           ]
