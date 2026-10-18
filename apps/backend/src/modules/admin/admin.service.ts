@@ -90,8 +90,7 @@ function cleanPlanName(value: string | null | undefined): string | null {
 // Sprint 1 security-close: setarile noi care misca bani/notificari accepta doar valori
 // cunoscute (altfel un typo ar lasa procesorul no-op sau ar programa joburi aberante).
 const DAY_COUNT = /^(?:0|[1-9]\d{0,2})$/;
-// Map (nu obiect): o cheie ca "constructor" nu poate ajunge la o metoda din prototip
-const SETTING_VALUE_RULES = new Map(Object.entries<(value: string) => boolean>({
+const SETTING_VALUE_RULES: Partial<Record<string, (value: string) => boolean>> = {
   [SETTING_EXPIRED_OFFER_AUTOCLOSE_ENABLED]: (v) => v === 'true' || v === 'false',
   [SETTING_EXPIRED_OFFER_AUTOCLOSE_OUTCOME]: (v) => v === 'REFUND' || v === 'CONSUME' || v === 'UNSET',
   [SETTING_EXPIRED_OFFER_AUTOCLOSE_DAYS]: (v) => DAY_COUNT.test(v) && Number(v) <= 365,
@@ -125,7 +124,7 @@ const SETTING_VALUE_RULES = new Map(Object.entries<(value: string) => boolean>({
   // E-company-24: comenzi prin transfer bancar — reminder / anulare automata; 0 = oprit (DECIZIE NECESARA PO)
   [SETTING_BANK_TRANSFER_REMINDER_DAYS]: (v) => DAY_COUNT.test(v) && Number(v) <= 365,
   [SETTING_BANK_TRANSFER_EXPIRY_DAYS]: (v) => DAY_COUNT.test(v) && Number(v) <= 365,
-}));
+};
 
 // escape minimal pentru valorile interpolate in HTML-ul emailurilor
 const escHtml = (v: string) =>
@@ -410,7 +409,8 @@ export class AdminService {
     if (!existing) {
       throw new NotFoundException({ code: ERROR_CODES.SETTING_KEY_UNKNOWN, message: 'Unknown setting' });
     }
-    const rule = SETTING_VALUE_RULES.get(key);
+    // cheia din DB (deja validata mai sus), nu cea din request
+    const rule = SETTING_VALUE_RULES[existing.key];
     // E-admin-platform-58: trial_plan (cod de plan) se salveaza si el fara spatii
     const stored = rule || key === 'trial_plan' ? value.trim() : value;
     if (rule && !rule(stored)) {
