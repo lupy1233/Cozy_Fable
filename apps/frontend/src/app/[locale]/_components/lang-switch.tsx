@@ -27,7 +27,7 @@ export function LangSwitch() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         router.replace(pathname as any, { locale: next });
       }}
-      className="group inline-flex items-center rounded-full border border-border-2 bg-surface-2 p-0.5 font-mono text-[11px] uppercase transition-colors hover:border-muted-2"
+      className="group inline-flex items-center rounded-full border border-border-2 bg-surface-2 p-0.5 font-mono text-meta uppercase transition-colors hover:border-muted-2"
     >
       {locales.map((l) => (
         <span

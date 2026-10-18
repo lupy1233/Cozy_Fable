@@ -1,0 +1,1192 @@
+[
+  {
+    "kind": "BED",
+    "label": "bed-drawers",
+    "cameraPreserved": true,
+    "errors": [],
+    "animation": [
+      {
+        "time": 15871.299999999814,
+        "motions": [
+          {
+            "name": "furniture-motion:bed:drawer:L:0",
+            "progress": 0.000013002748842592592,
+            "position": [
+              -0.000007470859374999999,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:bed:drawer:L:1",
+            "progress": 0.000015731137865510456,
+            "position": [
+              -0.000009038482572007687,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:bed:drawer:R:0",
+            "progress": 0.000015731137865510456,
+            "position": [
+              0.000009038482572007687,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:bed:drawer:R:1",
+            "progress": 0.000015731137865510456,
+            "position": [
+              0.000009038482572007687,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 16063.299999999814,
+        "motions": [
+          {
+            "name": "furniture-motion:bed:drawer:L:0",
+            "progress": 0.35500258608217594,
+            "position": [
+              -0.203970285859375,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:bed:drawer:L:1",
+            "progress": 0.35500258608217594,
+            "position": [
+              -0.203970285859375,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:bed:drawer:R:0",
+            "progress": 0.35500258608217594,
+            "position": [
+              0.203970285859375,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:bed:drawer:R:1",
+            "progress": 0.35500258608217594,
+            "position": [
+              0.203970285859375,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 16266.599999999627,
+        "motions": [
+          {
+            "name": "furniture-motion:bed:drawer:L:0",
+            "progress": 0.9193843940426335,
+            "position": [
+              -0.5282414974411355,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:bed:drawer:L:1",
+            "progress": 0.9193843940426335,
+            "position": [
+              -0.5282414974411355,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:bed:drawer:R:0",
+            "progress": 0.9193843940426335,
+            "position": [
+              0.5282414974411355,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:bed:drawer:R:1",
+            "progress": 0.9195642696749212,
+            "position": [
+              0.5283448467844227,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 16453.200000000186,
+        "motions": [
+          {
+            "name": "furniture-motion:bed:drawer:L:0",
+            "progress": 1,
+            "position": [
+              -0.57456,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:bed:drawer:L:1",
+            "progress": 1,
+            "position": [
+              -0.57456,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:bed:drawer:R:0",
+            "progress": 1,
+            "position": [
+              0.57456,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:bed:drawer:R:1",
+            "progress": 1,
+            "position": [
+              0.57456,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "DRESSER",
+    "label": "dresser-drawers",
+    "cameraPreserved": true,
+    "errors": [],
+    "animation": [
+      {
+        "time": 16596.89999999944,
+        "motions": [
+          {
+            "name": "front:DRAWER_FRONT:0:0:0",
+            "progress": 0,
+            "position": [
+              -0.3205,
+              0.21199999999999997,
+              0.216
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:0:0:1",
+            "progress": 0,
+            "position": [
+              -0.3205,
+              0.48,
+              0.216
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:0:0:2",
+            "progress": 0,
+            "position": [
+              -0.3205,
+              0.748,
+              0.216
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:1:0:0",
+            "progress": 0.0013668732498824424,
+            "position": [
+              0.3205,
+              0.21199999999999997,
+              0.2164092965259448
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:1:0:1",
+            "progress": 0.0013668732498824424,
+            "position": [
+              0.3205,
+              0.48,
+              0.2164092965259448
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:1:0:2",
+            "progress": 0.0013668732498824424,
+            "position": [
+              0.3205,
+              0.748,
+              0.2164092965259448
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 16875,
+        "motions": [
+          {
+            "name": "front:DRAWER_FRONT:0:0:0",
+            "progress": 0,
+            "position": [
+              -0.3205,
+              0.21199999999999997,
+              0.216
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:0:0:1",
+            "progress": 0,
+            "position": [
+              -0.3205,
+              0.48,
+              0.216
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:0:0:2",
+            "progress": 0,
+            "position": [
+              -0.3205,
+              0.748,
+              0.216
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:1:0:0",
+            "progress": 0.804454315748865,
+            "position": [
+              0.3205,
+              0.21199999999999997,
+              0.45688580030784015
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:1:0:1",
+            "progress": 0.804454315748865,
+            "position": [
+              0.3205,
+              0.48,
+              0.45688580030784015
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:1:0:2",
+            "progress": 0.804454315748865,
+            "position": [
+              0.3205,
+              0.748,
+              0.45688580030784015
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 17213.099999999627,
+        "motions": [
+          {
+            "name": "front:DRAWER_FRONT:0:0:0",
+            "progress": 0,
+            "position": [
+              -0.3205,
+              0.21199999999999997,
+              0.216
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:0:0:1",
+            "progress": 0,
+            "position": [
+              -0.3205,
+              0.48,
+              0.216
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:0:0:2",
+            "progress": 0,
+            "position": [
+              -0.3205,
+              0.748,
+              0.216
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:1:0:0",
+            "progress": 1,
+            "position": [
+              0.3205,
+              0.21199999999999997,
+              0.51544
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:1:0:1",
+            "progress": 1,
+            "position": [
+              0.3205,
+              0.48,
+              0.51544
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:1:0:2",
+            "progress": 1,
+            "position": [
+              0.3205,
+              0.748,
+              0.51544
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "WARDROBE",
+    "label": "wardrobe-sliding",
+    "cameraPreserved": true,
+    "errors": [],
+    "animation": [
+      {
+        "time": 16658.400000000373,
+        "motions": [
+          {
+            "name": "front:DRAWER_FRONT:0:1:0",
+            "progress": 0,
+            "position": [
+              -0.8273333333333333,
+              0.3637499999999997,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:0:1:1",
+            "progress": 0,
+            "position": [
+              -0.8273333333333333,
+              0.9352499999999998,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:1:1:0",
+            "progress": 0,
+            "position": [
+              5.551115123125783e-17,
+              0.3637499999999997,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:1:1:1",
+            "progress": 0,
+            "position": [
+              5.551115123125783e-17,
+              0.9352499999999998,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:2:1:0",
+            "progress": 0,
+            "position": [
+              0.8273333333333335,
+              0.3637499999999997,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:2:1:1",
+            "progress": 0,
+            "position": [
+              0.8273333333333335,
+              0.9352499999999998,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:SLIDING_FRONT:0:0",
+            "progress": 0,
+            "position": [
+              -0.8158333333333333,
+              1.23,
+              0.285
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:SLIDING_FRONT:1:0",
+            "progress": 0.0005718735860563129,
+            "position": [
+              -0.00045997698771790553,
+              1.23,
+              0.257
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:SLIDING_FRONT:2:0",
+            "progress": 0,
+            "position": [
+              0.8158333333333334,
+              1.23,
+              0.285
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 16969.200000000186,
+        "motions": [
+          {
+            "name": "front:DRAWER_FRONT:0:1:0",
+            "progress": 0,
+            "position": [
+              -0.8273333333333333,
+              0.3637499999999997,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:0:1:1",
+            "progress": 0,
+            "position": [
+              -0.8273333333333333,
+              0.9352499999999998,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:1:1:0",
+            "progress": 0,
+            "position": [
+              5.551115123125783e-17,
+              0.3637499999999997,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:1:1:1",
+            "progress": 0,
+            "position": [
+              5.551115123125783e-17,
+              0.9352499999999998,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:2:1:0",
+            "progress": 0,
+            "position": [
+              0.8273333333333335,
+              0.3637499999999997,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:2:1:1",
+            "progress": 0,
+            "position": [
+              0.8273333333333335,
+              0.9352499999999998,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:SLIDING_FRONT:0:0",
+            "progress": 0,
+            "position": [
+              -0.8158333333333333,
+              1.23,
+              0.285
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:SLIDING_FRONT:1:0",
+            "progress": 0.5229766760514921,
+            "position": [
+              -0.42064757310408346,
+              1.23,
+              0.257
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:SLIDING_FRONT:2:0",
+            "progress": 0,
+            "position": [
+              0.8158333333333334,
+              1.23,
+              0.285
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 17330,
+        "motions": [
+          {
+            "name": "front:DRAWER_FRONT:0:1:0",
+            "progress": 0,
+            "position": [
+              -0.8273333333333333,
+              0.3637499999999997,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:0:1:1",
+            "progress": 0,
+            "position": [
+              -0.8273333333333333,
+              0.9352499999999998,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:1:1:0",
+            "progress": 0,
+            "position": [
+              5.551115123125783e-17,
+              0.3637499999999997,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:1:1:1",
+            "progress": 0,
+            "position": [
+              5.551115123125783e-17,
+              0.9352499999999998,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:2:1:0",
+            "progress": 0,
+            "position": [
+              0.8273333333333335,
+              0.3637499999999997,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:2:1:1",
+            "progress": 0,
+            "position": [
+              0.8273333333333335,
+              0.9352499999999998,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:SLIDING_FRONT:0:0",
+            "progress": 0,
+            "position": [
+              -0.8158333333333333,
+              1.23,
+              0.285
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:SLIDING_FRONT:1:0",
+            "progress": 1,
+            "position": [
+              -0.8043333333333333,
+              1.23,
+              0.257
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:SLIDING_FRONT:2:0",
+            "progress": 0,
+            "position": [
+              0.8158333333333334,
+              1.23,
+              0.285
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 17641.900000000373,
+        "motions": [
+          {
+            "name": "front:DRAWER_FRONT:0:1:0",
+            "progress": 0,
+            "position": [
+              -0.8273333333333333,
+              0.3637499999999997,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:0:1:1",
+            "progress": 0,
+            "position": [
+              -0.8273333333333333,
+              0.9352499999999998,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:1:1:0",
+            "progress": 0,
+            "position": [
+              5.551115123125783e-17,
+              0.3637499999999997,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:1:1:1",
+            "progress": 0,
+            "position": [
+              5.551115123125783e-17,
+              0.9352499999999998,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:2:1:0",
+            "progress": 0,
+            "position": [
+              0.8273333333333335,
+              0.3637499999999997,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:2:1:1",
+            "progress": 0,
+            "position": [
+              0.8273333333333335,
+              0.9352499999999998,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:SLIDING_FRONT:0:0",
+            "progress": 0,
+            "position": [
+              -0.8158333333333333,
+              1.23,
+              0.285
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:SLIDING_FRONT:1:0",
+            "progress": 1,
+            "position": [
+              -0.8043333333333333,
+              1.23,
+              0.257
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:SLIDING_FRONT:2:0",
+            "progress": 0,
+            "position": [
+              0.8158333333333334,
+              1.23,
+              0.285
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 17946.599999999627,
+        "motions": [
+          {
+            "name": "front:DRAWER_FRONT:0:1:0",
+            "progress": 0,
+            "position": [
+              -0.8273333333333333,
+              0.3637499999999997,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:0:1:1",
+            "progress": 0,
+            "position": [
+              -0.8273333333333333,
+              0.9352499999999998,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:1:1:0",
+            "progress": 0,
+            "position": [
+              5.551115123125783e-17,
+              0.3637499999999997,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:1:1:1",
+            "progress": 0,
+            "position": [
+              5.551115123125783e-17,
+              0.9352499999999998,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:2:1:0",
+            "progress": 0,
+            "position": [
+              0.8273333333333335,
+              0.3637499999999997,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:DRAWER_FRONT:2:1:1",
+            "progress": 0,
+            "position": [
+              0.8273333333333335,
+              0.9352499999999998,
+              0.21899999999999997
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:SLIDING_FRONT:0:0",
+            "progress": 0,
+            "position": [
+              -0.8158333333333333,
+              1.23,
+              0.285
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:SLIDING_FRONT:1:0",
+            "progress": 1,
+            "position": [
+              -0.8043333333333333,
+              1.23,
+              0.257
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "front:SLIDING_FRONT:2:0",
+            "progress": 0,
+            "position": [
+              0.8158333333333334,
+              1.23,
+              0.285
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

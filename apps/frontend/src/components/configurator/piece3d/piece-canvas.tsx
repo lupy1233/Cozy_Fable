@@ -2,17 +2,32 @@
 
 import {
   buildPanels,
+  buildInteriorDetails,
+  buildDrawerAssembly,
+  buildTiltTray,
   buildZoneBoxes,
   type Piece3dKind,
   type PieceConfig3d,
   type Panel3d,
   type ZoneBox3d,
 } from '@marketplace/shared';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BoxGeometry, EdgesGeometry, type Group } from 'three';
-import { finishSpecFor, HIGHLIGHT_COLOR, ROD_COLOR, type FinishSpec } from './finishes';
+import { finishSpecForConfig, HIGHLIGHT_COLOR, DRAWER_INTERIOR_SPEC, type FinishSpec } from './finishes';
+import { furnitureMotionBounds } from './furniture-motion-bounds';
+import { ShowroomGeometry, ShowroomMaterial } from './showroom-panel';
+import { boardGrainOffset } from './showroom-grain';
+import { ShowroomEnvironment } from './showroom-environment';
+import { ShowroomContactShadow } from './showroom-contact-shadow';
+import { PieceCameraRig } from './stable-orbit-camera';
+import { OPEN_DURATION_MS } from './open-tween';
+import { useOpenTween } from './use-open-tween';
+import { FurnitureMotion } from './furniture-motion';
+import { FrontDetails } from './front-details';
+import { ShowroomBatches } from './showroom-batches';
+import { useTranslations } from 'next-intl';
 
 // Scena 3D a piesei (R1 + fidelizare Tylko): carcasa parametrica generata din
 // config, lumini soft, orbita limitata, dpr limitat si frameloop="demand".
@@ -21,13 +36,6 @@ import { finishSpecFor, HIGHLIGHT_COLOR, ROD_COLOR, type FinishSpec } from './fi
 // din spatele usilor. T1: usile glisante culiseaza lateral peste coloana
 // vecina, manerele (frontStyle HANDLE) sunt bare de alama pe fronturi.
 // Geometria vine exclusiv din shared.
-
-// tip minimal pentru controalele de orbita (evitam dependinta de three-stdlib,
-// care e doar dependinta tranzitiva a drei si nu e expusa de pnpm)
-type ControlsLike = {
-  target: { set: (x: number, y: number, z: number) => void };
-  update: () => void;
-} | null;
 
 export type ZoneRef = { col: number; zone: number };
 
@@ -45,33 +53,12 @@ interface PieceCanvasProps {
   // zonele cu fronturi deschise ("col:zone") — usa rotita / sertarul tras
   openZones?: ReadonlySet<string>;
   onZoneClick?: (zone: ZoneRef) => void;
+  onFrontSettled?: (key: string, open: boolean) => void;
   onSnapshotReady?: (fn: SnapshotFn) => void;
   className?: string;
 }
 
 // culoarea cutiei sertarului (interior mesteacan deschis, ca la Tylko)
-const DRAWER_BOX_COLOR = '#d6cbb8';
-const BACKDROP_COLOR = '#262019';
-
-// Repozitioneaza camera cand se schimba gabaritul (nu si la schimbari de zone).
-function CameraRig({ config }: { config: PieceConfig3d }) {
-  const camera = useThree((s) => s.camera);
-  const controls = useThree((s) => s.controls) as unknown as ControlsLike;
-  const invalidate = useThree((s) => s.invalidate);
-  const { widthM, heightM, depthM } = config;
-
-  useEffect(() => {
-    const dist = Math.max(widthM, heightM) * 1.35 + depthM + 0.9;
-    camera.position.set(dist * 0.68, heightM * 0.7 + 0.35, dist);
-    camera.lookAt(0, heightM / 2, 0);
-    if (controls) {
-      controls.target.set(0, heightM / 2, 0);
-      controls.update();
-    }
-    invalidate();
-  }, [camera, controls, invalidate, widthM, heightM, depthM]);
-  return null;
-}
 
 // Cadru randat la cerere pentru export PNG (nu depinde de preserveDrawingBuffer).
 function SnapshotBridge({ onReady }: { onReady?: (fn: SnapshotFn) => void }) {
@@ -92,78 +79,14 @@ function SnapshotBridge({ onReady }: { onReady?: (fn: SnapshotFn) => void }) {
   return null;
 }
 
-function PanelMesh({ panel, spec }: { panel: Panel3d; spec: FinishSpec }) {
-  if (panel.role === 'ROD') {
-    return (
-      <mesh position={[panel.x, panel.y, panel.z]} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.013, 0.013, panel.w, 16]} />
-        <meshStandardMaterial color={ROD_COLOR} roughness={0.35} metalness={0.7} />
-      </mesh>
-    );
-  }
-  if (panel.role === 'LEG') {
-    // picior conic (T1: comoda "pe picioare"), in culoarea corpului
-    return (
-      <mesh position={[panel.x, panel.y, panel.z]} castShadow>
-        <cylinderGeometry args={[0.014, 0.01, panel.h, 12]} />
-        <meshStandardMaterial color={spec.body} roughness={spec.roughness} />
-      </mesh>
-    );
-  }
-  if (panel.role === 'FRONT_BACKDROP') {
-    // cavitatea din spatele fronturilor: aproape negru, mat — rosturile dintre
-    // fronturi se citesc ca linii inchise (luftul cerut de PO)
-    return (
-      <mesh position={[panel.x, panel.y, panel.z]}>
-        <boxGeometry args={[panel.w, panel.h, panel.d]} />
-        <meshStandardMaterial color={BACKDROP_COLOR} roughness={1} />
-      </mesh>
-    );
-  }
-  return (
-    <mesh position={[panel.x, panel.y, panel.z]} castShadow receiveShadow>
-      <boxGeometry args={[panel.w, panel.h, panel.d]} />
-      <meshStandardMaterial color={spec.body} roughness={spec.roughness} />
-    </mesh>
-  );
-}
-
-// Cutia sertarului (fund + laterale + spate), atasata frontului: se vede cand
-// sertarul e tras. Dimensiuni relative la front; adancimea vine din carcasa.
-function DrawerBox({ w, h, boxD, frontD }: { w: number; h: number; boxD: number; frontD: number }) {
-  const t = 0.012;
-  const sideH = Math.max(0.05, h * 0.6);
-  const sideY = -h / 2 + sideH / 2 + 0.01;
-  const zMid = -frontD / 2 - boxD / 2;
-  return (
-    <group>
-      <mesh position={[0, -h / 2 + 0.016, zMid]}>
-        <boxGeometry args={[w - 0.02, t, boxD]} />
-        <meshStandardMaterial color={DRAWER_BOX_COLOR} roughness={0.9} />
-      </mesh>
-      <mesh position={[-w / 2 + 0.012, sideY, zMid]}>
-        <boxGeometry args={[t, sideH, boxD]} />
-        <meshStandardMaterial color={DRAWER_BOX_COLOR} roughness={0.9} />
-      </mesh>
-      <mesh position={[w / 2 - 0.012, sideY, zMid]}>
-        <boxGeometry args={[t, sideH, boxD]} />
-        <meshStandardMaterial color={DRAWER_BOX_COLOR} roughness={0.9} />
-      </mesh>
-      <mesh position={[0, sideY, -frontD / 2 - boxD + t / 2]}>
-        <boxGeometry args={[w - 0.02, sideH, t]} />
-        <meshStandardMaterial color={DRAWER_BOX_COLOR} roughness={0.9} />
-      </mesh>
-    </group>
-  );
-}
-
 // unghiul maxim al usii (~105°) si al frontului rabatabil (~38°)
 const DOOR_OPEN_RAD = 1.85;
 const TILT_OPEN_RAD = 0.66;
 
 // Aplica starea de deschidere pe grupul-pivot al unui front.
-function applyFrontTransform(group: Group | null, front: Panel3d, p: number, depthM: number) {
+function applyFrontTransform(group: Group | null, front: Panel3d, p: number, drawerTravel: number) {
   if (!group) return;
+  group.userData.openProgress = p;
   // rotatia se reseteaza mereu: daca grupul e refolosit dupa o schimbare de rol
   // (usa deschisa -> sertar), unghiul de usa ar ramane aplicat pe noul front
   group.rotation.set(0, 0, 0);
@@ -179,97 +102,65 @@ function applyFrontTransform(group: Group | null, front: Panel3d, p: number, dep
     group.position.x = front.x + p * (front.slideDx ?? 0);
   } else {
     // sertar: culiseaza spre privitor
-    group.position.z = front.z + p * depthM * 0.45;
+    group.position.z = front.z + p * drawerTravel;
   }
 }
 
-// Maner de alama (T1, frontStyle HANDLE): bara cilindrica pe fata frontului.
-function FrontHandle({
-  x,
-  y,
-  z,
-  length,
-  vertical,
-}: {
-  x: number;
-  y: number;
-  z: number;
-  length: number;
-  vertical?: boolean;
-}) {
-  return (
-    <mesh position={[x, y, z]} rotation={vertical ? [0, 0, 0] : [0, 0, Math.PI / 2]}>
-      <cylinderGeometry args={[0.008, 0.008, length, 10]} />
-      <meshStandardMaterial color={ROD_COLOR} roughness={0.35} metalness={0.7} />
-    </mesh>
-  );
-}
-
-// Fronturile unei zone, cu animatie de deschidere (lerp in useFrame; in
-// frameloop="demand" cerem cadre noi doar cat dureaza animatia).
+// Durata mecanismului ramane aceeasi inclusiv dupa pauze intre cadre.
 function AnimatedFronts({
   fronts,
   open,
   depthM,
   spec,
   withHandles,
+  onClick,
+  onComplete,
+  attachments = [],
+  recessedHandles = false,
 }: {
   fronts: Panel3d[];
   open: boolean;
   depthM: number;
   spec: FinishSpec;
   withHandles: boolean;
+  onClick?: () => void;
+  onComplete?: (open: boolean) => void;
+  attachments?: Panel3d[];
+  recessedHandles?: boolean;
 }) {
-  const progress = useRef(0);
   const groups = useRef<(Group | null)[]>([]);
-  const invalidate = useThree((s) => s.invalidate);
-
-  useFrame((_, delta) => {
-    const target = open ? 1 : 0;
-    const current = progress.current;
-    if (Math.abs(current - target) < 0.001) return;
-    const step = Math.min(Math.abs(target - current), delta * 3.4);
-    progress.current = current + Math.sign(target - current) * step;
-    fronts.forEach((f, i) => applyFrontTransform(groups.current[i], f, progress.current, depthM));
-    invalidate();
-  });
-
-  // la remontare (config schimbat) aplica starea curenta + porneste animatia
-  useEffect(() => {
-    fronts.forEach((f, i) => applyFrontTransform(groups.current[i], f, progress.current, depthM));
-    invalidate();
-  }, [fronts, depthM, open, invalidate]);
-
-  const boxD = Math.max(0.12, depthM - 0.06);
+  const drawers = useMemo(() => fronts.map((front) => front.role === 'DRAWER_FRONT' ? buildDrawerAssembly(front, depthM) : null), [fronts, depthM]);
+  const tiltTrays = useMemo(() => fronts.map((front) => front.role === 'TILT_FRONT' ? buildTiltTray(front, depthM) : []), [fronts, depthM]);
+  const guides = useMemo(() => fronts.map(f => attachments.map(panel => ({ ...panel, x: panel.x - f.x, y: panel.y - f.y, z: panel.z - f.z }))), [fronts, attachments]);
+  const drawerSpec = DRAWER_INTERIOR_SPEC;
+  const role = fronts[0]?.role;
+  const duration = role === 'SLIDING_FRONT' ? OPEN_DURATION_MS.sliding
+    : role === 'DOOR_FRONT' ? OPEN_DURATION_MS.door
+      : role === 'TILT_FRONT' ? OPEN_DURATION_MS.tilt : OPEN_DURATION_MS.drawer;
+  useOpenTween(open, duration, (progress) => {
+    fronts.forEach((f, i) => applyFrontTransform(groups.current[i], f, progress, drawers[i]?.travel ?? 0));
+  }, onComplete);
 
   return (
-    <>
+    <group onClick={onClick ? (event) => { event.stopPropagation(); if (event.delta <= 3) onClick(); } : undefined}>
       {fronts.map((f, i) => {
-        const material = <meshStandardMaterial color={spec.front} roughness={spec.roughness} />;
+        const material = <ShowroomMaterial spec={spec} front grainOffset={boardGrainOffset(f)} grainAxis={f.grainAxis ?? (f.w > f.h ? 'X' : 'Y')} />;
         if (f.role === 'DOOR_FRONT') {
           const sign = f.hinge === 'R' ? 1 : -1;
           return (
             <group
               key={`${f.role}-${i}`}
+              name={`front:${f.role}:${f.col}:${f.zone}:${i}`}
               ref={(el) => {
                 groups.current[i] = el;
               }}
-              position={[f.x + (sign * f.w) / 2, f.y, f.z]}
+              position={[f.x + (sign * f.w) / 2, f.y, f.z + f.d / 2]}
             >
-              <mesh position={[(-sign * f.w) / 2, 0, 0]} castShadow>
-                <boxGeometry args={[f.w, f.h, f.d]} />
+              <mesh position={[(-sign * f.w) / 2, 0, -f.d / 2]} castShadow receiveShadow>
+                <ShowroomGeometry w={f.w} h={f.h} d={f.d} radius={f.radius} />
                 {material}
               </mesh>
-              {/* maner vertical langa muchia de deschidere (opusa balamalei) */}
-              {withHandles && (
-                <FrontHandle
-                  x={-sign * (f.w - 0.05)}
-                  y={0}
-                  z={f.d / 2 + 0.012}
-                  length={Math.min(0.32, f.h * 0.45)}
-                  vertical
-                />
-              )}
+              <FrontDetails front={f} spec={spec} withHandles={withHandles} offset={[-sign * f.w / 2, 0, -f.d / 2]} />
             </group>
           );
         }
@@ -277,78 +168,66 @@ function AnimatedFronts({
           return (
             <group
               key={`${f.role}-${i}`}
+              name={`front:${f.role}:${f.col}:${f.zone}:${i}`}
               ref={(el) => {
                 groups.current[i] = el;
               }}
-              position={[f.x, f.y - f.h / 2, f.z]}
+              position={[f.x, f.y - f.h / 2, f.z + f.d / 2]}
             >
-              <mesh position={[0, f.h / 2, 0]} castShadow>
-                <boxGeometry args={[f.w, f.h, f.d]} />
+              <mesh position={[0, f.h / 2, -f.d / 2]} castShadow receiveShadow>
+                <ShowroomGeometry w={f.w} h={f.h} d={f.d} radius={f.radius} />
                 {material}
               </mesh>
-              {withHandles && (
-                <FrontHandle
-                  x={0}
-                  y={f.h - 0.05}
-                  z={f.d / 2 + 0.012}
-                  length={Math.min(0.26, f.w * 0.4)}
-                />
-              )}
+              <group position={[0, f.h / 2, -f.d / 2]}>
+                <ShowroomBatches panels={tiltTrays[i]} spec={drawerSpec} />
+              </group>
+              <FrontDetails front={f} spec={spec} withHandles={withHandles} offset={[0, f.h / 2, -f.d / 2]} />
             </group>
           );
         }
         if (f.role === 'SLIDING_FRONT') {
           // usa glisanta: fara DrawerBox; manerul sta pe muchia opusa glisarii
-          const sign = (f.slideDx ?? 0) >= 0 ? 1 : -1;
           return (
             <group
               key={`${f.role}-${i}`}
+              name={`front:${f.role}:${f.col}:${i}`}
               ref={(el) => {
                 groups.current[i] = el;
               }}
               position={[f.x, f.y, f.z]}
             >
               <mesh castShadow>
-                <boxGeometry args={[f.w, f.h, f.d]} />
+                <ShowroomGeometry w={f.w} h={f.h} d={f.d} radius={f.radius} />
                 {material}
               </mesh>
-              {withHandles && (
-                <FrontHandle
-                  x={-sign * (f.w / 2 - 0.06)}
-                  y={0}
-                  z={f.d / 2 + 0.012}
-                  length={Math.min(0.5, f.h * 0.35)}
-                  vertical
-                />
-              )}
+              <ShowroomBatches panels={guides[i]} spec={spec} />
+              <FrontDetails front={f} spec={spec} withHandles={withHandles} />
             </group>
           );
         }
         return (
+          <group key={`${f.role}-${i}`}>
+          <group position={[f.x, f.y, f.z]}>
+            {drawers[i] && <ShowroomBatches panels={drawers[i]!.fixed} spec={drawerSpec} />}
+          </group>
           <group
-            key={`${f.role}-${i}`}
+            name={`front:${f.role}:${f.col}:${f.zone}:${i}`}
             ref={(el) => {
               groups.current[i] = el;
             }}
             position={[f.x, f.y, f.z]}
           >
             <mesh castShadow>
-              <boxGeometry args={[f.w, f.h, f.d]} />
+              <ShowroomGeometry w={f.w} h={f.h} d={f.d} radius={f.radius} />
               {material}
             </mesh>
-            {withHandles && (
-              <FrontHandle
-                x={0}
-                y={Math.max(0, f.h / 2 - 0.045)}
-                z={f.d / 2 + 0.012}
-                length={Math.min(0.28, f.w * 0.45)}
-              />
-            )}
-            <DrawerBox w={f.w} h={f.h} boxD={boxD} frontD={f.d} />
+            <FrontDetails front={f} spec={spec} withHandles={withHandles} recessed={recessedHandles} />
+            {drawers[i] && <ShowroomBatches panels={drawers[i]!.moving} spec={drawerSpec} />}
+          </group>
           </group>
         );
       })}
-    </>
+    </group>
   );
 }
 
@@ -383,7 +262,7 @@ function ZoneHotspot({
       <mesh
         onClick={(e) => {
           e.stopPropagation();
-          onClick?.({ col: box.col, zone: box.zone });
+          if (e.delta <= 3) onClick?.({ col: box.col, zone: box.zone });
         }}
         onPointerOver={(e) => {
           e.stopPropagation();
@@ -411,12 +290,21 @@ function ZoneHotspot({
 
 const FRONT_ROLES = new Set(['DRAWER_FRONT', 'DOOR_FRONT', 'TILT_FRONT', 'SLIDING_FRONT']);
 
-function PieceScene({ kind, config, activeZone, openZones, onZoneClick }: PieceCanvasProps) {
-  const { statics, frontZones } = useMemo(() => {
+function PieceScene({ kind, config, activeZone, openZones, onZoneClick, onFrontSettled, furnitureOpen, onFurnitureToggle }: PieceCanvasProps & {
+  furnitureOpen: ReadonlySet<string>; onFurnitureToggle: (key: string) => void;
+}) {
+  const { statics, frontZones, motionGroups } = useMemo(() => {
     const all = buildPanels(config, kind);
     const staticPanels: Panel3d[] = [];
     const byZone = new Map<string, Panel3d[]>();
+    const byMotion = new Map<string, Panel3d[]>();
     for (const p of all) {
+      if (p.motion) {
+        const assembly = byMotion.get(p.motion.key) ?? [];
+        assembly.push(p);
+        byMotion.set(p.motion.key, assembly);
+        continue;
+      }
       // usile glisante apartin coloanei (nu unei zone); fronturile per zona
       // se grupeaza ca pana acum, dupa "col:zone"
       const key =
@@ -433,20 +321,18 @@ function PieceScene({ kind, config, activeZone, openZones, onZoneClick }: PieceC
         staticPanels.push(p);
       }
     }
-    return { statics: staticPanels, frontZones: [...byZone.entries()] };
+    return { statics: [...staticPanels, ...buildInteriorDetails(all)], frontZones: [...byZone.entries()], motionGroups: [...byMotion.entries()] };
   }, [config, kind]);
   const zones = useMemo(() => buildZoneBoxes(config, kind), [config, kind]);
   const spec = useMemo(
-    () => finishSpecFor(config.finish, config.customColor),
-    [config.finish, config.customColor],
+    () => finishSpecForConfig(config),
+    [config],
   );
   const withHandles = config.frontStyle === 'HANDLE';
 
   return (
     <group>
-      {statics.map((p, i) => (
-        <PanelMesh key={i} panel={p} spec={spec} />
-      ))}
+      <ShowroomBatches panels={statics} spec={spec} />
       {frontZones.map(([key, fronts]) => (
         <AnimatedFronts
           key={key}
@@ -455,8 +341,14 @@ function PieceScene({ kind, config, activeZone, openZones, onZoneClick }: PieceC
           depthM={config.depthM}
           spec={spec}
           withHandles={withHandles}
+          recessedHandles={config.doorMode === 'SLIDING'}
+          onClick={onZoneClick ? () => onZoneClick({ col: fronts[0].col ?? 0, zone: fronts[0].zone ?? 0 }) : undefined}
+          onComplete={onFrontSettled ? (open) => onFrontSettled(key, open) : undefined}
+          attachments={motionGroups.find(([motionKey]) => motionKey === key)?.[1]}
         />
       ))}
+      {motionGroups.filter(([key]) => !key.startsWith('slide:')).map(([key, panels]) => <FurnitureMotion key={key} panels={panels} spec={spec}
+        open={furnitureOpen.has(key)} onToggle={() => onFurnitureToggle(key)} />)}
       {onZoneClick &&
         zones.map((b) => (
           <ZoneHotspot
@@ -472,10 +364,24 @@ function PieceScene({ kind, config, activeZone, openZones, onZoneClick }: PieceC
 
 export function PieceCanvas(props: PieceCanvasProps) {
   const { config, className, onSnapshotReady } = props;
+  const t = useTranslations('Configurator.config3d.furniture');
+  const [furnitureOpen, setFurnitureOpen] = useState<Set<string>>(new Set());
+  const motionKeys = useMemo(() => [...new Set(buildPanels(config, props.kind).flatMap(p => p.motion && !p.motion.key.startsWith('slide:') ? [p.motion.key] : []))], [config, props.kind]);
+  useEffect(() => setFurnitureOpen(previous => {
+    const next = new Set([...previous].filter(key => motionKeys.includes(key)));
+    return next.size === previous.size ? previous : next;
+  }), [motionKeys]);
+  const bedDrawers = props.kind === 'BED' && config.bed?.storage === 'DRAWERS';
+  const viewBounds = useMemo(() => furnitureMotionBounds(config, buildPanels(config, props.kind)), [config, props.kind]);
+  const toggleFurniture = (key: string) => setFurnitureOpen((previous) => {
+    const next = new Set(previous);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    return next;
+  });
   // distanta de orbita limitata la gabaritul piesei
-  const maxDim = Math.max(config.widthM, config.heightM);
+  const maxDim = Math.max(viewBounds.width, viewBounds.height, viewBounds.depth);
   return (
-    <div className={className}>
+    <div className={`relative overflow-hidden ${className ?? ''}`}>
       <Canvas
         shadows
         dpr={[1, 1.75]}
@@ -485,36 +391,40 @@ export function PieceCanvas(props: PieceCanvasProps) {
       >
         {/* fundal hartie calda — intra si in snapshotul PNG */}
         <color attach="background" args={['#f7f3ec']} />
-        <ambientLight intensity={0.85} />
+        <ambientLight intensity={0.25} />
+        <hemisphereLight args={['#fffaf4', '#b9af9e', 0.45]} />
         <directionalLight
-          position={[3.5, 6, 4.5]}
-          intensity={1.25}
+          position={[-3.5, 6, 4.5]}
+          intensity={1.8}
           castShadow
-          shadow-mapSize={[1024, 1024]}
+          shadow-mapSize={[2048, 2048]}
           shadow-bias={-0.0002}
+          shadow-normalBias={0.002}
           shadow-camera-left={-4}
           shadow-camera-right={4}
           shadow-camera-top={5}
           shadow-camera-bottom={-2}
         />
-        <directionalLight position={[-4, 3, -2]} intensity={0.3} />
-        <PieceScene {...props} />
-        {/* podea discreta care primeste umbra */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
-          <planeGeometry args={[30, 30]} />
-          <shadowMaterial opacity={0.14} />
-        </mesh>
+        <directionalLight position={[4, 3, -2]} intensity={0.65} />
+        <ShowroomEnvironment intensity={0.45}><PieceScene {...props} furnitureOpen={furnitureOpen} onFurnitureToggle={toggleFurniture} /></ShowroomEnvironment>
+        <ShowroomContactShadow dirtyKey={JSON.stringify(config)} animationKey={[...(props.openZones ?? []), ...furnitureOpen].sort().join('|')}
+          animationWindowMs={OPEN_DURATION_MS.lift + 50}
+          scale={maxDim * 3 + 1} far={Math.min(2.5, viewBounds.height + 0.2)} />
         <OrbitControls
           makeDefault
+          enableDamping={false}
           enablePan={false}
-          minDistance={Math.max(0.8, maxDim * 0.7)}
-          maxDistance={maxDim * 3 + 3}
           minPolarAngle={0.12}
           maxPolarAngle={Math.PI / 2 - 0.05}
         />
-        <CameraRig config={config} />
+        <PieceCameraRig width={viewBounds.width} height={viewBounds.height} depth={viewBounds.depth} />
         <SnapshotBridge onReady={onSnapshotReady} />
       </Canvas>
+      {motionKeys.length > 0 && <button type="button" aria-pressed={furnitureOpen.size > 0}
+        className="absolute bottom-3 left-3 min-h-11 rounded-full border border-border-2 bg-surface px-4 text-sm text-foreground shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-walnut"
+        onClick={() => setFurnitureOpen(furnitureOpen.size ? new Set() : new Set(motionKeys))}>
+        {t(bedDrawers ? (furnitureOpen.size ? 'closeDrawers' : 'openDrawers') : (furnitureOpen.size ? 'closeStorage' : 'openStorage'))}
+      </button>}
     </div>
   );
 }

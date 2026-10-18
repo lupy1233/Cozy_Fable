@@ -125,7 +125,7 @@ export function OfferBuilder(props: Props) {
       {/* pret per camera (F7, item 22): total calculat automat */}
       {rooms.length > 0 && (
         <div className="rounded-lg border border-border-2 bg-surface-2 p-3">
-          <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+          <p className="mb-2 font-mono text-meta uppercase tracking-[0.06em] text-muted-foreground">
             {t('builder.roomPrices')}
           </p>
           <div className="flex flex-col gap-2">
@@ -234,7 +234,7 @@ export function OfferBuilder(props: Props) {
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
-      <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted-foreground">{label}</span>
+      <span className="font-mono text-meta uppercase tracking-[0.06em] text-muted-foreground">{label}</span>
       {children}
       {error && <span className="text-xs text-crimson">{error}</span>}
     </label>

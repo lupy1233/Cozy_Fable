@@ -24,4 +24,11 @@ export const ROOM_ICONS: Record<RoomType, string> = {
   PIECE_SHOE_CABINET: 'footprints',
   PIECE_NIGHTSTAND: 'lamp',
   PIECE_BENCH: 'armchair',
+  PIECE_SIDEBOARD: 'archive',
+  PIECE_WALL_CABINET: 'archive',
+  PIECE_BATHROOM_VANITY: 'bath',
+  PIECE_ENTRYWAY: 'door-open',
+  PIECE_SOFA: 'sofa',
+  PIECE_ARMCHAIR: 'armchair',
+  PIECE_OTTOMAN: 'package',
 };

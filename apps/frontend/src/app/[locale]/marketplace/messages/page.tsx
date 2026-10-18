@@ -10,6 +10,12 @@ import { useTeamThread, useThreads } from '@/hooks/use-chat';
 import { useRealtimeSync } from '@/hooks/use-socket';
 import { useRelativeTime } from '@/lib/relative-time';
 import { StatusBadge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { FilterChips } from '@/components/ui/filter-chips';
+import { PageHeader } from '@/components/ui/page-header';
+import { QueryState } from '@/components/ui/query-state';
+import { SkeletonCard, SkeletonPage } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { ChatPanel } from '../../_components/chat-panel';
 import { AccessBlocked } from '../_components/access-blocked';
@@ -40,15 +46,19 @@ export default function CompanyMessagesPage() {
   const selected = list.find((th) => th.id === selectedId) ?? null;
 
   if (me.isPending || threads.isPending) {
-    return <p className="py-20 text-center text-muted-foreground">{t('loading')}</p>;
+    return (
+      <QueryState
+        pending
+        onRetry={() => void threads.refetch()}
+        skeleton={<SkeletonPage variant="list" />}
+      />
+    );
   }
   // 403/404 (firma neaprobata / suspendata / fara abonament) → ecran de blocaj, nu pagina goala
   if (threads.isError) {
     return (
       <div className="flex flex-col gap-6">
-        <div>
-          <h1 className="page-title">{t('title')}</h1>
-        </div>
+        <PageHeader title={t('title')} />
         <AccessBlocked error={threads.error} onRetry={() => void threads.refetch()} />
       </div>
     );
@@ -56,22 +66,26 @@ export default function CompanyMessagesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="page-title">{t('title')}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{t('subtitle')}</p>
-      </div>
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
-      <div className="flex gap-1.5">
-        <TabButton active={tab === 'clients'} onClick={() => setTab('clients')}>
-          {t('tabClients')}
-          {list.some((th) => th.unreadCount > 0) && <UnreadDot />}
-        </TabButton>
-        <TabButton active={tab === 'team'} onClick={() => setTab('team')}>
-          <Users className="h-3.5 w-3.5" />
-          {t('tabTeam')}
-          {(team.data?.unreadCount ?? 0) > 0 && <UnreadDot />}
-        </TabButton>
-      </div>
+      <FilterChips
+        label={t('tabsLabel')}
+        value={tab}
+        onChange={(v) => v && setTab(v)}
+        options={[
+          {
+            value: 'clients' as const,
+            label: t('tabClients'),
+            indicator: list.some((th) => th.unreadCount > 0) ? <UnreadDot /> : undefined,
+          },
+          {
+            value: 'team' as const,
+            label: t('tabTeam'),
+            icon: <Users className="h-3.5 w-3.5" />,
+            indicator: (team.data?.unreadCount ?? 0) > 0 ? <UnreadDot /> : undefined,
+          },
+        ]}
+      />
 
       {tab === 'team' ? (
         <div className="flex flex-col gap-3">
@@ -81,21 +95,17 @@ export default function CompanyMessagesPage() {
           ) : team.isError ? (
             <AccessBlocked error={team.error} onRetry={() => void team.refetch()} />
           ) : (
-            <p className="py-10 text-center text-muted-foreground">{t('loading')}</p>
+            <SkeletonCard lines={4} />
           )}
         </div>
       ) : list.length === 0 ? (
-        <p className="rounded-xl border border-border bg-surface px-4 py-10 text-center text-muted-foreground">
-          {t('empty')}
-        </p>
+        <EmptyState variant="card" title={t('empty')} />
       ) : (
         <div className="grid items-start gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
           {/* lista conversatiilor — pe mobil se ascunde cand una e deschisa */}
-          <div
-            className={cn(
-              'flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-sm',
-              selected ? 'hidden lg:flex' : 'flex',
-            )}
+          <Card
+            padding="none"
+            className={cn('flex-col overflow-hidden', selected ? 'hidden lg:flex' : 'flex')}
           >
             <ul className="divide-y divide-border-2">
               {list.map((th) => (
@@ -107,7 +117,7 @@ export default function CompanyMessagesPage() {
                 />
               ))}
             </ul>
-          </div>
+          </Card>
 
           {/* conversatia aleasa */}
           <div className={cn('flex-col gap-3', selected ? 'flex' : 'hidden lg:flex')}>
@@ -123,7 +133,7 @@ export default function CompanyMessagesPage() {
                     >
                       <ArrowLeft className="h-4 w-4" />
                     </button>
-                    <h2 className="font-serif text-lg">{selected.requestTitle || '—'}</h2>
+                    <h2 className="heading-card">{selected.requestTitle || '—'}</h2>
                     <StatusBadge
                       status={selected.claimStatus}
                       label={tm(`claimStatus.${selected.claimStatus}`)}
@@ -140,40 +150,12 @@ export default function CompanyMessagesPage() {
                 <ChatPanel threadId={selected.id} mode="company" readOnly={selected.readOnly} />
               </>
             ) : (
-              <p className="rounded-xl border border-dashed border-border-2 px-4 py-16 text-center text-sm text-muted-foreground">
-                {t('pickThread')}
-              </p>
+              <EmptyState variant="dashed" size="sm" title={t('pickThread')} className="py-10" />
             )}
           </div>
         </div>
       )}
     </div>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors',
-        active
-          ? 'border-walnut bg-walnut-soft text-walnut'
-          : 'border-border-2 bg-surface text-muted-foreground hover:border-muted-2',
-      )}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -207,13 +189,13 @@ function ThreadRow({
           <span className="flex min-w-0 items-center gap-1.5">
             <span className="truncate text-sm font-medium">{thread.requestTitle || '—'}</span>
             {thread.unreadCount > 0 && (
-              <span className="grid h-4 min-w-4 shrink-0 place-items-center rounded-full bg-crimson px-1 text-[10px] font-bold leading-none text-white">
+              <span className="grid h-4 min-w-4 shrink-0 place-items-center rounded-full bg-crimson px-1 text-micro font-bold leading-none text-white">
                 {thread.unreadCount}
               </span>
             )}
           </span>
           {last && (
-            <span className="shrink-0 text-[11px] text-muted-2">{relTime(last.createdAt)}</span>
+            <span className="shrink-0 text-meta text-muted-2">{relTime(last.createdAt)}</span>
           )}
         </span>
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -236,7 +218,7 @@ function ThreadRow({
           )}
         </span>
         {thread.readOnly && (
-          <span className="text-[11px] text-muted-2">{t('readOnly')}</span>
+          <span className="text-meta text-muted-2">{t('readOnly')}</span>
         )}
       </button>
     </li>

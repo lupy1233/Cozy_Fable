@@ -909,6 +909,20 @@ export function TableTopFigure({ round, v = {} }: { round: boolean; v?: FigureVa
   );
 }
 
+function MattressFigure({ v = {} }: { v?: FigureValues }) {
+  return (
+    <svg viewBox="0 0 470 300" className={SVG} aria-hidden="true" data-dimension-figure="mattress">
+      <g className="text-walnut" stroke="currentColor" fill="none" strokeWidth={1.6}>
+        <rect x={155} y={30} width={160} height={210} rx={12} fill="currentColor" fillOpacity={0.08} />
+        <rect x={170} y={45} width={130} height={42} rx={8} />
+        <path d="M155 98h160" opacity={0.55} />
+      </g>
+      <DimH x1={155} x2={315} y={266} letter="A" ext={-14} value={v.A} />
+      <DimV y1={30} y2={240} x={350} letter="B" ext={16} value={v.B} />
+    </svg>
+  );
+}
+
 // ---------- selectia figurii + literele per slot ----------
 
 export interface DimensionFigure {
@@ -1058,6 +1072,10 @@ export function getDimensionFigure(
       // v3: latime + inaltime per piesa; tavanul ramane etalonul H
       return rowFigure(LIVING_PIECES, slotIds, values, 'ceilingHeight');
     case 'BEDROOM':
+      if (slotIds.includes('bedCustomWidth') || slotIds.includes('bedCustomLength')) {
+        const letters = { bedCustomWidth: 'A', bedCustomLength: 'B' };
+        return { node: <MattressFigure v={byLetter(letters, values)} />, letters };
+      }
       return rowFigure(BEDROOM_PIECES, slotIds, values, 'ceilingHeight');
     case 'BATHROOM':
       return rowFigure(BATHROOM_PIECES, slotIds, values, 'ceilingHeight');

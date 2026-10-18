@@ -15,7 +15,7 @@ import { defaultPieceConfig } from './piece3d';
 import type { AnswerMap, ScoringRef } from './types';
 import { ROOM_TYPES, type RoomType } from '../enums';
 import { ROOM_KIND, ROOM_ORDER, sortByRoomOrder } from '../room-meta';
-import { CURRENT_FLOW_VERSION } from './flows';
+import { CURRENT_FLOW_VERSION, FLOW_REGISTRY } from './flows';
 
 // Un set complet valid de raspunsuri pentru bucatarie L cu insula.
 function kitchenLIslandAnswers(): AnswerMap {
@@ -257,6 +257,13 @@ describe('deriveRoom pentru toate flow-urile → forma valida', () => {
     // Record<RoomType, ...> — exhaustiv la compilare: un RoomType nou fara
     // raspunsuri minimale aici nu compileaza.
     const minimal: Record<(typeof ROOM_TYPES)[number], AnswerMap> = {
+      PIECE_SIDEBOARD: { config3d: defaultPieceConfig('SIDEBOARD'), material: 'PAL' },
+      PIECE_WALL_CABINET: { config3d: defaultPieceConfig('WALL_CABINET'), material: 'PAL' },
+      PIECE_BATHROOM_VANITY: { config3d: defaultPieceConfig('BATHROOM_VANITY'), material: 'MDF_VOPSIT' },
+      PIECE_ENTRYWAY: { config3d: defaultPieceConfig('ENTRYWAY'), material: 'PAL' },
+      PIECE_SOFA: { config3d: defaultPieceConfig('SOFA'), material: 'LEMN_MASIV' },
+      PIECE_ARMCHAIR: { config3d: defaultPieceConfig('ARMCHAIR'), material: 'LEMN_MASIV' },
+      PIECE_OTTOMAN: { config3d: defaultPieceConfig('OTTOMAN'), material: 'LEMN_MASIV' },
       KITCHEN: {
         layout: 'STRAIGHT',
         hasIsland: false,
@@ -352,8 +359,7 @@ describe('deriveRoom pentru toate flow-urile → forma valida', () => {
         material: 'PAL',
       },
       PIECE_BED: {
-        bedSize: 'Q_160',
-        storage: 'NONE',
+        config3d: defaultPieceConfig('BED'),
         material: 'PAL',
       },
       PIECE_DRESSER: {
@@ -361,10 +367,7 @@ describe('deriveRoom pentru toate flow-urile → forma valida', () => {
         material: 'PAL',
       },
       PIECE_TABLE: {
-        tableType: 'DINING',
-        shape: 'RECTANGULAR',
-        seats: 'SIX',
-        dimensions: { length: 1.6, width: 0.9 },
+        config3d: defaultPieceConfig('TABLE'),
         material: 'LEMN_MASIV',
       },
       PIECE_SHOE_CABINET: {
@@ -377,8 +380,7 @@ describe('deriveRoom pentru toate flow-urile → forma valida', () => {
         material: 'PAL',
       },
       PIECE_BENCH: {
-        style: 'WITH_STORAGE',
-        dimensions: { width: 1 },
+        config3d: defaultPieceConfig('BENCH'),
         material: 'PAL',
       },
     };
@@ -685,7 +687,9 @@ describe('v2 pentru dressing/living/bedroom/office — versiuni si compatibilita
     expect(CURRENT_FLOW_VERSION.BALCONY).toBe(2);
     // piesele-carcasa au avansat la v3 (configurator 3D, docs/10)
     expect(CURRENT_FLOW_VERSION.PIECE_WARDROBE).toBe(3);
-    expect(CURRENT_FLOW_VERSION.PIECE_BENCH).toBe(2);
+    expect(CURRENT_FLOW_VERSION.PIECE_BED).toBe(3);
+    expect(CURRENT_FLOW_VERSION.PIECE_TABLE).toBe(3);
+    expect(CURRENT_FLOW_VERSION.PIECE_BENCH).toBe(3);
     // "Alta piesa" ramane pe flow-ul v1 neschimbat
     expect(CURRENT_FLOW_VERSION.PIECES).toBe(1);
   });
@@ -851,7 +855,7 @@ describe('v2 pentru pantry/laundry/balcony + piese ghidate (item 1, aliniere buc
   });
 
   it('piesele ghidate v2: "Altul" cere text si textul ajunge in description', () => {
-    const flow = getFlow('PIECE_BENCH');
+    const flow = getFlow('PIECE_BENCH', 2);
     expect(flow.version).toBe(2);
 
     // fara ALTUL: textul liber nu e vizibil, raspunsurile v1 raman suficiente
@@ -861,16 +865,28 @@ describe('v2 pentru pantry/laundry/balcony + piese ghidate (item 1, aliniere buc
       material: 'PAL',
     };
     expect(visibleSteps(flow, plain).map((s) => s.id)).not.toContain('materialOther');
-    expect(validateRoomAnswers('PIECE_BENCH', plain, { partial: false })).toEqual({ ok: true });
+    expect(validateRoomAnswers('PIECE_BENCH', plain, { partial: false, version: 2 })).toEqual({ ok: true });
 
     // cu ALTUL: textul devine obligatoriu si intra in description
     const withOther: AnswerMap = { ...plain, material: 'ALTUL' };
     expect(visibleSteps(flow, withOther).map((s) => s.id)).toContain('materialOther');
-    expect(validateRoomAnswers('PIECE_BENCH', withOther, { partial: false }).ok).toBe(false);
+    expect(validateRoomAnswers('PIECE_BENCH', withOther, { partial: false, version: 2 }).ok).toBe(false);
     const complete: AnswerMap = { ...withOther, materialOther: 'ratan si stejar' };
-    expect(validateRoomAnswers('PIECE_BENCH', complete, { partial: false })).toEqual({ ok: true });
+    expect(validateRoomAnswers('PIECE_BENCH', complete, { partial: false, version: 2 })).toEqual({ ok: true });
     const derived = flow.deriveRoom(complete);
     expect(derived.items[0].description).toContain('Material dorit: ratan si stejar');
+  });
+
+  it('piesele showroom curente pastreaza materialul Altul si cer configuratia 3D', () => {
+    for (const kind of ['BED', 'TABLE', 'BENCH'] as const) {
+      const roomType = `PIECE_${kind}` as const;
+      const flow = getFlow(roomType);
+      const answers: AnswerMap = { config3d: defaultPieceConfig(kind), material: 'ALTUL', materialOther: 'ratan si stejar' };
+      expect(flow.version).toBe(3);
+      expect(validateRoomAnswers(roomType, answers, { partial: false })).toEqual({ ok: true });
+      expect(flow.deriveRoom(answers).items[0].description).toContain('Material dorit: ratan si stejar');
+      expect(validateRoomAnswers(roomType, { material: 'PAL' }, { partial: false }).ok).toBe(false);
+    }
   });
 
   it('piesele care colectau deja "Altul" (tv-unit) propaga acum textul la derivare', () => {
@@ -1033,5 +1049,25 @@ describe('v3 dressing + living (feedback PO 2026-07-13, docs/12 S3)', () => {
     const byName = Object.fromEntries(derived.items.map((it) => [it.name, it]));
     expect(byName['Biblioteca'].description).toContain('Cu iluminare LED');
     expect(byName['Comoda TV'].description ?? '').not.toContain('LED');
+  });
+});
+
+describe('dimension-group — sloturi strict pozitive (E-client-2)', () => {
+  // O dimensiune 0 m nu poate fi raspuns valid pe niciun flow inregistrat (inclusiv
+  // FROZEN); lungimea 0 apare doar la camerele care pot sari dimensiunile.
+  it('fiecare slot din fiecare versiune inregistrata are min > 0', () => {
+    let checked = 0;
+    for (const [roomType, versions] of Object.entries(FLOW_REGISTRY)) {
+      for (const [version, flow] of Object.entries(versions ?? {})) {
+        for (const step of flow.steps) {
+          if (step.type !== 'dimension-group') continue;
+          for (const slot of step.slots({})) {
+            checked += 1;
+            expect(slot.min, `${roomType} v${version} ${step.id}.${slot.id}`).toBeGreaterThan(0);
+          }
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
   });
 });

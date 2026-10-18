@@ -42,9 +42,9 @@ async function main() {
   const hash = await bcrypt.hash(demoPassword, 12);
   const adminHash = await bcrypt.hash(adminPassword, 12);
   const plans = {
-    SILVER: await prisma.subscriptionPlan.findFirstOrThrow({ where: { tier: 'SILVER' } }),
-    GOLD: await prisma.subscriptionPlan.findFirstOrThrow({ where: { tier: 'GOLD' } }),
-    PLATINUM: await prisma.subscriptionPlan.findFirstOrThrow({ where: { tier: 'PLATINUM' } }),
+    SILVER: await prisma.subscriptionPlan.findFirstOrThrow({ where: { code: 'SILVER' } }),
+    GOLD: await prisma.subscriptionPlan.findFirstOrThrow({ where: { code: 'GOLD' } }),
+    PLATINUM: await prisma.subscriptionPlan.findFirstOrThrow({ where: { code: 'PLATINUM' } }),
   };
 
   const mkUser = (email: string, name: string, role: 'CLIENT' | 'COMPANY_USER' | 'ADMIN') =>
@@ -92,6 +92,8 @@ async function main() {
     const company = await prisma.company.create({
       data: {
         name: s.name, cui: `RO${1000000 + Math.floor(Math.random() * 8999999)}`, regComNumber: `J40/${100 + Math.floor(Math.random() * 900)}/2021`,
+        // E-company-19: CUI demo cu prefix RO = firma platitoare de TVA (ca backfill-ul migrarii)
+        isVatPayer: true,
         status: s.status, addressText: `Str. ${s.name} nr. 1`, county: c.county, city: s.city, lat: c.lat, lng: c.lng,
         rejectedAt: s.rejectedDaysAgo ? daysAgo(s.rejectedDaysAgo) : null,
         rejectionReason: s.status === 'REJECTED' ? 'Documente incomplete' : null,
@@ -284,6 +286,8 @@ async function main() {
         baseAmountRon: base, vatRate: vat, vatAmountRon: vatAmt, totalRon: base + vatAmt,
         invoiceSeries: 'MM', invoiceNumber: num, confirmedAt: daysAgo(15), paymentSource: 'admin',
         sellerSnapshot: { name: 'Marketplace Mobilier SRL', cui: 'RO12345678' } as Prisma.InputJsonValue,
+        // E-admin-platform-4: factura emisa → de raportat in e-Factura; fara numar fiscal → nimic de raportat
+        eInvoiceStatus: num ? 'PENDING' : 'NOT_REQUIRED',
       },
     });
   }

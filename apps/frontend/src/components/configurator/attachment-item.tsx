@@ -3,6 +3,7 @@
 import { attachmentKind, type AttachmentDto } from '@marketplace/shared';
 import { FileArchive, FileText, FileWarning, Image as ImageIcon, Loader2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 // Afisarea atasamentelor (feedback PO item 10): statusul de scanare NU se mai
@@ -48,11 +49,11 @@ export function AttachmentRow({
           <AttachmentKindIcon mimeType={attachment.mimeType} className="h-4 w-4 shrink-0" />
         )}
         <span className="truncate">{attachment.filename}</span>
-        <span className="shrink-0 font-mono text-[11px] text-muted-2">
+        <span className="shrink-0 font-mono text-meta text-muted-2">
           {(attachment.sizeBytes / 1024).toFixed(0)} KB
         </span>
         {scanning && (
-          <span className="inline-flex shrink-0 items-center gap-1 font-mono text-[11px] text-muted-2">
+          <span className="inline-flex shrink-0 items-center gap-1 font-mono text-meta text-muted-2">
             <Loader2 className="h-3 w-3 animate-spin" />
             {t('uploads.scanning')}
           </span>
@@ -61,7 +62,7 @@ export function AttachmentRow({
       <span className="flex shrink-0 items-center gap-3">
         {blocked && <span className="text-xs font-medium text-crimson">{t('uploads.blockedNotice')}</span>}
         {onRemove && (
-          <button type="button" onClick={onRemove} className="text-crimson" aria-label="remove">
+          <button type="button" onClick={onRemove} className="grid h-11 w-11 place-items-center rounded-md text-crimson focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-walnut" aria-label={t('uploads.removeFile', { name: attachment.filename })}>
             <X className="h-4 w-4" />
           </button>
         )}
@@ -76,6 +77,14 @@ export function AttachmentThumb({ attachment }: { attachment: AttachmentDto }) {
   const t = useTranslations('Configurator');
   const kind = attachmentKind(attachment.mimeType);
   const blocked = attachment.status === 'BLOCKED';
+  const [failedUrl, setFailedUrl] = useState<string>();
+  const safeUrl = attachment.status === 'SAFE' ? attachment.downloadUrl : undefined;
+
+  if (attachment.status === 'PENDING_UPLOAD' || attachment.status === 'PENDING_SCAN') {
+    return <span role="status" aria-label={`${attachment.filename}: ${t('uploads.scanning')}`} className="flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-md border border-border bg-surface-2 px-1 text-center text-micro text-muted-foreground">
+      <Loader2 aria-hidden className="h-5 w-5 animate-spin" />{t('uploads.scanning')}
+    </span>;
+  }
 
   if (blocked) {
     return (
@@ -84,18 +93,19 @@ export function AttachmentThumb({ attachment }: { attachment: AttachmentDto }) {
         className="flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-md border border-crimson/40 bg-crimson/5 text-crimson"
       >
         <FileWarning className="h-5 w-5" />
-        <span className="px-1 text-center text-[9px] font-medium leading-tight">
+        <span className="px-1 text-center text-micro font-medium leading-tight">
           {t('uploads.blockedShort')}
         </span>
       </span>
     );
   }
 
-  if (kind === 'image' && attachment.downloadUrl) {
+  if (kind === 'image' && safeUrl && failedUrl !== safeUrl) {
     const img = (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={attachment.downloadUrl}
+        src={safeUrl}
+        onError={() => setFailedUrl(safeUrl)}
         alt={attachment.filename}
         loading="lazy"
         className="h-16 w-16 rounded-md border border-border object-cover"
@@ -103,7 +113,7 @@ export function AttachmentThumb({ attachment }: { attachment: AttachmentDto }) {
     );
     return (
       <a
-        href={attachment.downloadUrl}
+        href={safeUrl}
         target="_blank"
         rel="noreferrer"
         title={attachment.filename}
@@ -120,14 +130,14 @@ export function AttachmentThumb({ attachment }: { attachment: AttachmentDto }) {
       className="flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-md border border-border bg-surface-2 text-muted-foreground"
     >
       <AttachmentKindIcon mimeType={attachment.mimeType} className="h-5 w-5" />
-      <span className="w-full truncate px-1 text-center font-mono text-[9px]">
+      <span className="w-full truncate px-1 text-center font-mono text-micro">
         {attachment.filename.replace(/^(.{8}).+(\.[^.]+)$/, '$1…$2')}
       </span>
     </span>
   );
-  return attachment.downloadUrl ? (
+  return safeUrl ? (
     <a
-      href={attachment.downloadUrl}
+      href={safeUrl}
       target="_blank"
       rel="noreferrer"
       className="transition-opacity hover:opacity-85"

@@ -1,4 +1,4 @@
-import { IsArray, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { ArrayMaxSize, ArrayUnique, IsArray, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min, MinLength } from 'class-validator';
 import {
   ALLOWED_ATTACHMENT_MIME,
   MAX_ATTACHMENT_BYTES,
@@ -13,6 +13,8 @@ export class SendMessageDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(MAX_ATTACHMENTS_PER_MESSAGE)
+  @ArrayUnique()
   @IsUUID('4', { each: true })
   attachmentIds?: string[];
 }

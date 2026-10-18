@@ -13,9 +13,12 @@ import type {
   RequestDraftPatchInput,
   RequestDto,
   RequestListItemDto,
+  RequestVisibilityDto,
   RoomType,
 } from '@marketplace/shared';
+import { track } from '@/lib/analytics';
 import { api } from '@/lib/api';
+import { waitForSafeUpload } from '@/lib/upload-scan';
 
 const draftKey = (token: string) => ['request', 'draft', token] as const;
 const MINE_KEY = ['requests', 'mine'] as const;
@@ -47,6 +50,11 @@ export function useDraft(token: string | null) {
   return useQuery({
     queryKey: draftKey(token ?? ''),
     queryFn: () => api<RequestDto>(`/requests/drafts/${token}`),
+    // doar cat e CIORNA: dupa publicare tokenul da 404, polling-ul ar pica
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data?.status === 'DRAFT' && data.attachments.some((a) => a.status === 'PENDING_SCAN') ? 2000 : false;
+    },
     enabled: !!token,
     retry: false,
   });
@@ -89,35 +97,21 @@ export function usePublishDraft(token: string) {
       // instant din cache in loc sa refaca fetch-ul complet
       qc.setQueryData(['request', data.id], data);
       qc.invalidateQueries({ queryKey: MINE_KEY });
+      // E-admin-platform-8: statistica fara cookie-uri (no-op daca nu e configurata)
+      track('request_published', document.documentElement.lang === 'en' ? 'en' : 'ro');
     },
   });
 }
 
-export function useEditRequest(token: string) {
+// Repost din contul proprietarului, de pe orice device (tokenul de draft moare la publicare).
+export function useRepostRequest(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (content: ConfiguratorContentInput) =>
-      api<RequestDto>(`/requests/drafts/${token}/edit`, {
-        method: 'POST',
-        body: JSON.stringify(content),
-      }),
+    mutationFn: () => api<RequestDto>(`/requests/${id}/repost`, { method: 'POST' }),
     onSuccess: (data) => {
-      qc.setQueryData(draftKey(token), data);
       qc.setQueryData(['request', data.id], data);
       qc.invalidateQueries({ queryKey: MINE_KEY });
-    },
-  });
-}
-
-export function useRepostRequest(token: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: () =>
-      api<RequestDto>(`/requests/drafts/${token}/repost`, { method: 'POST' }),
-    onSuccess: (data) => {
-      qc.setQueryData(draftKey(token), data);
-      qc.setQueryData(['request', data.id], data);
-      qc.invalidateQueries({ queryKey: MINE_KEY });
+      qc.invalidateQueries({ queryKey: ['requests', 'dashboard-stats'] });
     },
   });
 }
@@ -143,9 +137,9 @@ export function useUploadAttachmentFor(target: AttachmentTarget) {
         body: file,
       });
       if (!put.ok) throw new Error('upload failed');
-      return api<AttachmentDto>(`${base}/${presign.attachmentId}/confirm`, { method: 'POST' });
+      return waitForSafeUpload(() => api<AttachmentDto>(`${base}/${presign.attachmentId}/confirm`, { method: 'POST' }));
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: targetQueryKey(target) }),
+    onSettled: () => qc.invalidateQueries({ queryKey: targetQueryKey(target) }),
   });
 }
 
@@ -165,13 +159,23 @@ export function useAttachmentsFor(target: AttachmentTarget): AttachmentDto[] {
   return (target.kind === 'draft' ? draft.data?.attachments : request.data?.attachments) ?? [];
 }
 
-// wrappers compat (fluxul draft existent)
-export function useUploadAttachment(token: string) {
-  return useUploadAttachmentFor({ kind: 'draft', token });
-}
-
-export function useRemoveAttachment(token: string) {
-  return useRemoveAttachmentFor({ kind: 'draft', token });
+// Aceeasi lista plus starea query-ului: curatarea referintelor la fisiere sterse
+// (E-client-2) are voie sa ruleze doar pe o lista incarcata cu succes.
+export function useAttachmentsStateFor(target: AttachmentTarget): {
+  attachments: AttachmentDto[];
+  isSuccess: boolean;
+  isFetching: boolean;
+  dataUpdatedAt: number;
+} {
+  const draft = useDraft(target.kind === 'draft' ? target.token : null);
+  const request = useRequest(target.kind === 'request' ? target.id : '');
+  const query = target.kind === 'draft' ? draft : request;
+  return {
+    attachments: query.data?.attachments ?? [],
+    isSuccess: query.isSuccess,
+    isFetching: query.isFetching,
+    dataUpdatedAt: query.dataUpdatedAt,
+  };
 }
 
 // Estimarea de buget din scorul camerelor (F5, item 18) — cheia de query e
@@ -220,7 +224,19 @@ export function useRequest(id: string) {
   return useQuery({
     queryKey: ['request', id],
     queryFn: () => api<RequestDto>(`/requests/${id}`),
+    refetchInterval: (query) => query.state.data?.attachments.some((a) => a.status === 'PENDING_SCAN') ? 2000 : false,
     enabled: !!id,
+  });
+}
+
+// E-client-9: cardul "Cine vede cererea". Cheia sub ['request', id] → invalidarile existente
+// ale cererii (claim, retragere, accept, socket) o reincarca automat.
+export function useRequestVisibility(id: string, enabled = true) {
+  return useQuery({
+    queryKey: ['request', id, 'visibility'],
+    queryFn: () => api<RequestVisibilityDto>(`/requests/${id}/visibility`),
+    enabled: !!id && enabled,
+    staleTime: 30_000,
   });
 }
 

@@ -21,10 +21,24 @@ export function Dropzone({
 }) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [over, setOver] = React.useState(false);
+  const labelId = React.useId();
+  const hintId = React.useId();
 
   return (
     <div
-      onClick={() => inputRef.current?.click()}
+      role="button"
+      tabIndex={0}
+      aria-labelledby={labelId}
+      aria-describedby={hint ? hintId : undefined}
+      onClick={(event) => {
+        if (event.target !== inputRef.current) inputRef.current?.click();
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          inputRef.current?.click();
+        }
+      }}
       onDragOver={(e) => {
         e.preventDefault();
         setOver(true);
@@ -36,21 +50,24 @@ export function Dropzone({
         if (e.dataTransfer.files?.length) onFiles?.(e.dataTransfer.files);
       }}
       className={cn(
-        'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border-2 bg-surface-2 px-6 py-8 text-center transition-colors',
+        'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border-2 bg-surface-2 px-6 py-8 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-walnut focus-visible:ring-offset-2',
         over ? 'border-walnut bg-walnut-soft' : 'hover:border-muted-2 hover:bg-walnut-soft/50',
         className,
       )}
     >
-      <UploadCloud className="h-6 w-6 text-muted-foreground" />
-      <div className="text-sm font-medium">{label}</div>
-      {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
+      <UploadCloud aria-hidden className="h-6 w-6 text-muted-foreground" />
+      <div id={labelId} className="text-sm font-medium">{label}</div>
+      {hint && <div id={hintId} className="text-xs text-muted-foreground">{hint}</div>}
       <input
         ref={inputRef}
         type="file"
         accept={accept}
         multiple={multiple}
         className="hidden"
-        onChange={(e) => e.target.files?.length && onFiles?.(e.target.files)}
+        onChange={(e) => {
+          if (e.target.files?.length) onFiles?.(e.target.files);
+          e.target.value = '';
+        }}
       />
     </div>
   );

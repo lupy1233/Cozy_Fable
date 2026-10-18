@@ -28,6 +28,13 @@ export const ROOM_KIND: Record<RoomType, 'room' | 'piece'> = {
   PIECE_SHOE_CABINET: 'piece',
   PIECE_NIGHTSTAND: 'piece',
   PIECE_BENCH: 'piece',
+  PIECE_SIDEBOARD: 'piece',
+  PIECE_WALL_CABINET: 'piece',
+  PIECE_BATHROOM_VANITY: 'piece',
+  PIECE_ENTRYWAY: 'piece',
+  PIECE_SOFA: 'piece',
+  PIECE_ARMCHAIR: 'piece',
+  PIECE_OTTOMAN: 'piece',
   PIECES: 'piece',
 };
 
@@ -56,6 +63,13 @@ export const ROOM_ORDER: Record<RoomType, number> = {
   PIECE_SHOE_CABINET: 270,
   PIECE_NIGHTSTAND: 280,
   PIECE_BENCH: 290,
+  PIECE_SIDEBOARD: 300,
+  PIECE_WALL_CABINET: 310,
+  PIECE_BATHROOM_VANITY: 320,
+  PIECE_ENTRYWAY: 330,
+  PIECE_SOFA: 340,
+  PIECE_ARMCHAIR: 350,
+  PIECE_OTTOMAN: 360,
   PIECES: 999,
 };
 

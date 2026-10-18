@@ -16,11 +16,20 @@ import { useEffect } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
 import { useCompanyDashboardStats } from '@/hooks/use-company';
+import { useMoney } from '@/hooks/use-money';
 import { useClientDashboardStats } from '@/hooks/use-requests';
 import { AppShell } from '../_components/app-shell';
+import { TodoNowCard } from '../_components/todo-now-card';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge, StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardSection } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadError, QueryState } from '@/components/ui/query-state';
+import { SkeletonCard, SkeletonPage, SkeletonStatGrid } from '@/components/ui/skeleton';
+import { StatCard } from '@/components/ui/stat-card';
+import { ApiError } from '@/lib/api';
 
 // Ruta protejata client-side: fara user → redirect la /login.
 // Clientul primeste un dashboard real (statistici cereri, activitate recenta);
@@ -37,7 +46,12 @@ export default function DashboardPage() {
   if (me.isPending || me.isError) {
     return (
       <AppShell>
-        <p className="py-20 text-center text-muted-foreground">{t('loading')}</p>
+        {/* me.isError -> efectul de mai sus face redirect la /login; skeletonul ramane pana atunci */}
+        <QueryState
+          pending
+          onRetry={() => void me.refetch()}
+          skeleton={<SkeletonPage variant="dashboard" />}
+        />
       </AppShell>
     );
   }
@@ -45,17 +59,17 @@ export default function DashboardPage() {
   return (
     <AppShell>
       <div className="mx-auto flex max-w-3xl flex-col gap-6">
-        <h1 className="page-title">{t('dashboardTitle')}</h1>
-        <div className="flex items-center gap-4 rounded-xl border border-border bg-surface p-6 shadow-sm">
+        <PageHeader title={t('dashboardTitle')} />
+        <Card padding="lg" className="flex items-center gap-4">
           <Avatar name={me.data.name} size={56} />
           <div>
-            <p className="font-serif text-xl">{me.data.name}</p>
+            <p className="heading-section">{me.data.name}</p>
             <p className="text-sm text-muted-foreground">{me.data.email}</p>
             <Badge tone="walnut" className="mt-2">
               {t(`role.${me.data.role}`)}
             </Badge>
           </div>
-        </div>
+        </Card>
 
         {me.data.role === 'CLIENT' && <ClientDashboard />}
         {me.data.role === 'COMPANY_USER' && <CompanyDashboardStats />}
@@ -68,13 +82,22 @@ export default function DashboardPage() {
 function CompanyDashboardStats() {
   const t = useTranslations('Dashboard');
   const tm = useTranslations('Marketplace');
+  const money = useMoney();
   const stats = useCompanyDashboardStats();
 
   if (stats.isPending) {
-    return <p className="py-8 text-center text-muted-foreground">{t('loading')}</p>;
+    return (
+      <div className="flex flex-col gap-6">
+        <SkeletonStatGrid count={4} />
+        <SkeletonCard />
+      </div>
+    );
   }
-  // firma inca ne-creata (onboarding) → fara statistici
-  if (stats.isError || !stats.data) return null;
+  // firma inca ne-creata (onboarding -> 404) -> fara statistici; orice alta eroare se vede, cu Reincearca
+  if (stats.isError && !(stats.error instanceof ApiError && stats.error.status === 404)) {
+    return <LoadError onRetry={() => void stats.refetch()} />;
+  }
+  if (!stats.data) return null;
 
   const s = stats.data;
   const cards = [
@@ -83,29 +106,25 @@ function CompanyDashboardStats() {
     { key: 'quotesSent', value: s.quotesSent, Icon: Inbox },
     {
       key: 'quotesTotalRon',
-      value: `${s.quotesTotalRon.toLocaleString('ro-RO')} RON`,
+      value: money(s.quotesTotalRon),
       Icon: Coins,
     },
   ] as const;
 
   return (
     <div className="flex flex-col gap-6">
+      <TodoNowCard items={s.actions ?? []} />
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map(({ key, value, Icon }) => (
-          <div key={key} className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">{t(`company.${key}`)}</span>
-              <Icon className="h-4 w-4 text-walnut" />
-            </div>
-            <p className="mt-2 font-serif text-2xl">{value}</p>
-          </div>
+          <StatCard key={key} label={t(`company.${key}`)} icon={Icon} value={value} />
         ))}
       </div>
 
       {/* credite: sold + consum recent */}
-      <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-serif text-lg">{t('company.credits')}</h2>
+      <CardSection
+        title={t('company.credits')}
+        actions={
           <Link
             href="/marketplace/wallet"
             className="flex items-center gap-1 text-sm text-walnut hover:underline"
@@ -113,7 +132,8 @@ function CompanyDashboardStats() {
             <Wallet className="h-3.5 w-3.5" />
             {t('company.walletLink')}
           </Link>
-        </div>
+        }
+      >
         <div className="grid gap-3 sm:grid-cols-4">
           {(
             [
@@ -123,21 +143,14 @@ function CompanyDashboardStats() {
               ['consumed30d', s.creditsConsumed30d],
             ] as const
           ).map(([key, value]) => (
-            <div key={key} className="rounded-lg bg-surface-2 p-3 text-center">
-              <p className="font-serif text-2xl">{value}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{t(`company.${key}`)}</p>
-            </div>
+            <StatCard key={key} variant="inline" align="center" label={t(`company.${key}`)} value={value} />
           ))}
         </div>
-      </div>
+      </CardSection>
 
       {/* claim-uri active per membru */}
       {s.perMember.length > 0 && (
-        <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-          <h2 className="mb-3 flex items-center gap-2 font-serif text-lg">
-            <Users className="h-4 w-4 text-walnut" />
-            {t('company.perMember')}
-          </h2>
+        <CardSection title={t('company.perMember')} icon={Users}>
           <ul className="flex flex-col divide-y divide-border-2">
             {s.perMember.map((m) => (
               <li key={m.userId ?? 'unassigned'} className="flex items-center justify-between py-2 text-sm">
@@ -146,13 +159,12 @@ function CompanyDashboardStats() {
               </li>
             ))}
           </ul>
-        </div>
+        </CardSection>
       )}
 
       {/* statusuri claim-uri + penalizari */}
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-          <h2 className="mb-3 font-serif text-lg">{t('company.claimsByStatus')}</h2>
+        <CardSection title={t('company.claimsByStatus')}>
           <div className="flex flex-wrap gap-2">
             {Object.entries(s.claimsByStatus).map(([status, count]) => (
               <Badge key={status} tone="muted">
@@ -160,18 +172,17 @@ function CompanyDashboardStats() {
               </Badge>
             ))}
             {Object.keys(s.claimsByStatus).length === 0 && (
-              <p className="text-sm text-muted-foreground">{t('company.noClaims')}</p>
+              <EmptyState size="sm" variant="plain" title={t('company.noClaims')} className="w-full py-2" />
             )}
           </div>
-        </div>
-        <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-          <h2 className="mb-3 flex items-center gap-2 font-serif text-lg">
-            <ShieldAlert className="h-4 w-4 text-crimson" />
-            {t('company.penalties')}
-          </h2>
-          <p className="font-serif text-2xl">{s.activePenaltyPoints}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">{t('company.penaltyPoints')}</p>
-        </div>
+        </CardSection>
+        <StatCard
+          label={t('company.penalties')}
+          icon={ShieldAlert}
+          value={s.activePenaltyPoints}
+          hint={t('company.penaltyPoints')}
+          tone={s.activePenaltyPoints > 0 ? 'warning' : 'default'}
+        />
       </div>
 
       <div className="flex gap-3">
@@ -195,9 +206,15 @@ function ClientDashboard() {
   const stats = useClientDashboardStats();
 
   if (stats.isPending) {
-    return <p className="py-8 text-center text-muted-foreground">{t('loading')}</p>;
+    return (
+      <div className="flex flex-col gap-6">
+        <SkeletonStatGrid count={3} className="lg:grid-cols-3" />
+        <SkeletonCard />
+      </div>
+    );
   }
-  if (stats.isError || !stats.data) return null;
+  if (stats.isError) return <LoadError onRetry={() => void stats.refetch()} />;
+  if (!stats.data) return null;
 
   const s = stats.data;
   const cards = [
@@ -208,23 +225,18 @@ function ClientDashboard() {
 
   return (
     <div className="flex flex-col gap-6">
+      <TodoNowCard items={s.actions ?? []} />
+
       {/* statistici principale */}
       <div className="grid gap-3 sm:grid-cols-3">
         {cards.map(({ key, value, Icon }) => (
-          <div key={key} className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">{t(`client.${key}`)}</span>
-              <Icon className="h-4 w-4 text-walnut" />
-            </div>
-            <p className="mt-2 font-serif text-3xl">{value}</p>
-          </div>
+          <StatCard key={key} label={t(`client.${key}`)} icon={Icon} value={value} />
         ))}
       </div>
 
       {/* distributia pe statusuri */}
       {Object.keys(s.byStatus).length > 0 && (
-        <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-          <h2 className="mb-3 font-serif text-lg">{t('client.byStatus')}</h2>
+        <CardSection title={t('client.byStatus')}>
           <div className="flex flex-wrap gap-2">
             {Object.entries(s.byStatus).map(([status, count]) => (
               <span key={status} className="flex items-center gap-1.5">
@@ -232,20 +244,21 @@ function ClientDashboard() {
               </span>
             ))}
           </div>
-        </div>
+        </CardSection>
       )}
 
       {/* activitate recenta */}
-      <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-serif text-lg">{t('client.recent')}</h2>
+      <CardSection
+        title={t('client.recent')}
+        actions={
           <Link href="/requests" className="flex items-center gap-1 text-sm text-walnut hover:underline">
             {t('client.allRequests')}
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
-        </div>
+        }
+      >
         {s.recent.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('client.noRequests')}</p>
+          <EmptyState size="sm" variant="plain" title={t('client.noRequests')} />
         ) : (
           <ul className="flex flex-col divide-y divide-border-2">
             {s.recent.map((r) => (
@@ -261,7 +274,7 @@ function ClientDashboard() {
             ))}
           </ul>
         )}
-      </div>
+      </CardSection>
 
       <Button asChild variant="walnut" size="lg" className="self-start">
         <Link href="/requests/new">

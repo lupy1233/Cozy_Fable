@@ -5,6 +5,7 @@ import {
   MAX_STUDIO_DRAFT_BYTES,
   STUDIO_MAX_DRAFTS_PER_USER,
   studioDraftDataSchema,
+  readStudioDraftData,
   type StudioDraftData,
   type StudioDraftDetailDto,
   type StudioDraftSummaryDto,
@@ -35,11 +36,14 @@ export class StudioService {
 
   async detail(userId: string, draftId: string): Promise<StudioDraftDetailDto> {
     const draft = await this.requireOwned(userId, draftId);
+    let data: StudioDraftData;
+    try { data = readStudioDraftData(draft.data); }
+    catch { throw new BadRequestException({ code: ERROR_CODES.STUDIO_DRAFT_INVALID, message: 'Saved studio format is not supported; original data has been preserved' }); }
     return {
       id: draft.id,
       name: draft.name,
       updatedAt: draft.updatedAt.toISOString(),
-      data: draft.data as unknown as StudioDraftData,
+      data,
     };
   }
 
@@ -88,7 +92,7 @@ export class StudioService {
 
   private validateData(raw: unknown): StudioDraftData {
     // plafon de marime INAINTE de parcurgerea zod (aparare de payload-uri mari)
-    if (JSON.stringify(raw ?? null).length > MAX_STUDIO_DRAFT_BYTES) {
+    if (Buffer.byteLength(JSON.stringify(raw ?? null), 'utf8') > MAX_STUDIO_DRAFT_BYTES) {
       throw new BadRequestException({
         code: ERROR_CODES.STUDIO_DRAFT_TOO_LARGE,
         message: 'Studio draft exceeds the size limit',

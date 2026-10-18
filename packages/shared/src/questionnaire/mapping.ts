@@ -43,7 +43,3 @@ export function linearMeters(step: DimensionGroupStep, answers: AnswerMap): numb
     .reduce((acc, s) => acc + values[s.id], 0);
 }
 
-// Gaseste step-ul dimension-group al unui flow (conventie: un singur step de dims).
-export function findDimensionStep(steps: QuestionStep[]): DimensionGroupStep | undefined {
-  return steps.find((s): s is DimensionGroupStep => s.type === 'dimension-group');
-}

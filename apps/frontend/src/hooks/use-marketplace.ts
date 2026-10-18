@@ -10,6 +10,7 @@ import type {
   SubscriptionDetailDto,
 } from '@marketplace/shared';
 import { api } from '@/lib/api';
+import { useIdempotentApi } from './use-idempotent-api';
 
 const MARKET_KEY = ['marketplace', 'requests'] as const;
 const MY_CLAIMS_KEY = ['claims', 'mine'] as const;
@@ -36,11 +37,11 @@ export function useMarketplaceDetail(id: string) {
 // Claim — POST critic cu Idempotency-Key (invarianta 3.2).
 export function useClaim() {
   const qc = useQueryClient();
+  const request = useIdempotentApi();
   return useMutation({
     mutationFn: (input: CreateClaimInput) =>
-      api<ClaimSlotDto>('/claims', {
+      request<ClaimSlotDto>('/claims', {
         method: 'POST',
-        headers: { 'Idempotency-Key': crypto.randomUUID() },
         body: JSON.stringify(input),
       }),
     onSuccess: () => {
