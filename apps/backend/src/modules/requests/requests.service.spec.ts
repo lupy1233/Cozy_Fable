@@ -85,6 +85,9 @@ describe('RequestsService.repostForClient', () => {
   it('reposts an expired request with a conditional update, one outbox event and one expiration job', async () => {
     const { service, prisma, tx, outbox, queue } = setup();
     (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest());
+    // calendarul mocat expira cererea pe 2026-10-20; ceasul testului sta INAINTE de data aceea,
+    // altfel reminderul (sarit cand now >= expiresAt) nu se mai programeaza dupa 2026-10-20
+    const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-10-13T10:00:00Z').getTime());
 
     await expect(service.repostForClient('A', EXP_ID)).resolves.toEqual({ id: EXP_ID });
 
@@ -103,6 +106,7 @@ describe('RequestsService.repostForClient', () => {
       expect.objectContaining({ requestId: EXP_ID }),
       expect.objectContaining({ jobId: `req-rem-${EXP_ID}-${new Date('2026-10-20T10:00:00Z').getTime()}` }),
     );
+    nowSpy.mockRestore();
   });
 
   it('rejects when the repost was already used', async () => {
