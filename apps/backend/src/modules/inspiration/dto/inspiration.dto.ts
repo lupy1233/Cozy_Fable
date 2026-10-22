@@ -15,7 +15,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { InspirationColor, ItemSystem, Material, RoomType } from '@prisma/client';
-import { MAX_ATTACHMENT_BYTES, MAX_BOARD_NAME_LENGTH } from '@marketplace/shared';
+import { INSPIRATION_NOTE_MAX, MAX_ATTACHMENT_BYTES, MAX_BOARD_NAME_LENGTH } from '@marketplace/shared';
 
 // Colectie de salvari (item 8): numele vine de la utilizator.
 export class BoardNameDto {
@@ -34,6 +34,18 @@ export class BoardItemDto {
 export class BoardMoveDto {
   @IsUUID()
   targetBoardId: string;
+}
+
+// E-client-34: notita/camera unei salvari; null sterge valoarea (IsOptional accepta null)
+export class BoardItemMetaDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(INSPIRATION_NOTE_MAX)
+  note?: string | null;
+
+  @IsOptional()
+  @IsEnum(RoomType)
+  roomType?: RoomType | null;
 }
 
 // Meta unei poze de inspiratie (F6, item 3) — create/update din admin.

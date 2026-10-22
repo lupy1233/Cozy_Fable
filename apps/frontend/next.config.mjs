@@ -21,35 +21,21 @@ const nextConfig = {
   // fara antetul X-Powered-By: Next (audit 2026-08-19)
   poweredByHeader: false,
   // Antete de securitate de baza pe toate raspunsurile (audit 2026-08-19 P2).
-  // Fara CSP deocamdata: Google Maps Places + CDN-ul de imagini al partenerilor
-  // cer o politica atent enumerata — vine separat.
+  // E-admin-platform-56: CSP-ul NU mai e aici — se construieste per cerere in middleware.ts
+  // (lib/csp.ts, nonce + 'strict-dynamic', raportare la /csp-report). Aici raman, doar in
+  // productie: HSTS, Cross-Origin-Opener-Policy same-origin (nu folosim window.open/opener)
+  // si X-Robots-Tag noindex pe orice host diferit de NEXT_PUBLIC_SITE_URL. Gateway-ul Caddy
+  // trimite Host-ul public mai departe, deci doar URL-urile directe ale sloturilor primesc noindex.
+  // Un NEXT_PUBLIC_SITE_URL gresit la build ar scoate productia din index → verificare in docs/08.
   async headers() {
-    // Pasul 6 (audit 2026-08-23): CSP + HSTS doar in productie — in dev API-ul e pe alt
-    // port (localhost:3001) si HMR-ul Next are nevoie de eval, deci CSP-ul ar rupe totul.
-    // Google Maps Places e singurul script extern (address-autocomplete); imaginile vin
-    // din bucketul S3 prin presigned URL (host per-mediu) → img-src https:.
-    const prodOnly =
-      process.env.NODE_ENV === 'production'
-        ? [
-            {
-              key: 'Content-Security-Policy',
-              value: [
-                "default-src 'self'",
-                "script-src 'self' 'unsafe-inline' https://maps.googleapis.com",
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-                "img-src 'self' data: blob: https:",
-                "font-src 'self' data: https://fonts.gstatic.com",
-                "connect-src 'self' https: wss: blob:",
-                "worker-src 'self' blob:",
-                "frame-ancestors 'none'",
-                "base-uri 'self'",
-                "form-action 'self'",
-                "object-src 'none'",
-              ].join('; '),
-            },
-            { key: 'Strict-Transport-Security', value: 'max-age=15552000; includeSubDomains' },
-          ]
-        : [];
+    const production = process.env.NODE_ENV === 'production';
+    const siteHost = new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').hostname;
+    const prodOnly = production
+      ? [
+          { key: 'Strict-Transport-Security', value: 'max-age=15552000; includeSubDomains' },
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+        ]
+      : [];
     return [
       {
         source: '/:path*',
@@ -61,6 +47,16 @@ const nextConfig = {
           ...prodOnly,
         ],
       },
+      ...(production
+        ? [
+            {
+              source: '/:path*',
+              // valoarea `host` e regex (Next o ancoreaza ^…$) → punctele se escapeaza
+              missing: [{ type: 'host', value: `${siteHost.replace(/\./g, '\\.')}` }],
+              headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+            },
+          ]
+        : []),
     ];
   },
   // /landing-v2 a fost doar un redirect in cod (PO 2026-08-01: continutul e pe

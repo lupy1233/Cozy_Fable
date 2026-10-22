@@ -12,8 +12,10 @@ import { dressingFlowV3 } from './dressing.v3';
 import {
   pieceBedFlow,
   pieceBedFlowV2,
+  pieceBedFlowV3,
   pieceBenchFlow,
   pieceBenchFlowV2,
+  pieceBenchFlowV3,
   pieceBookcaseFlow,
   pieceBookcaseFlowV2,
   pieceBookcaseFlowV3,
@@ -31,6 +33,7 @@ import {
   pieceShoeCabinetFlowV3,
   pieceTableFlow,
   pieceTableFlowV2,
+  pieceTableFlowV3,
   pieceTvUnitFlow,
   pieceTvUnitFlowV2,
   pieceTvUnitFlowV3,
@@ -51,6 +54,7 @@ import { officeFlowV2 } from './office.v2';
 import { pantryFlow } from './pantry';
 import { pantryFlowV2 } from './pantry.v2';
 import { piecesFlow } from './pieces';
+import { catalogFlowRegistry, catalogFlowVersions } from './guided-pieces/catalog-v1';
 
 // Registrul canonic VERSIONAT al flow-urilor. Cererile publicate raman valabile
 // contra versiunii lor originale (flow_version persistat pe request_rooms):
@@ -59,6 +63,7 @@ import { piecesFlow } from './pieces';
 // FROZEN: toate versiunile 1 (camere + piese ghidate).
 // PIECES v1 ramane CURENT ca "Alta piesa" (formular liber, fallback).
 export const FLOW_REGISTRY: Record<RoomType, Record<number, RoomFlow>> = {
+  ...catalogFlowRegistry,
   KITCHEN: { [kitchenFlow.version]: kitchenFlow, [kitchenFlowV2.version]: kitchenFlowV2 },
   DRESSING: {
     [dressingFlow.version]: dressingFlow,
@@ -101,6 +106,7 @@ export const FLOW_REGISTRY: Record<RoomType, Record<number, RoomFlow>> = {
   PIECE_BED: {
     [pieceBedFlow.version]: pieceBedFlow,
     [pieceBedFlowV2.version]: pieceBedFlowV2,
+    [pieceBedFlowV3.version]: pieceBedFlowV3,
   },
   PIECE_DRESSER: {
     [pieceDresserFlow.version]: pieceDresserFlow,
@@ -110,6 +116,7 @@ export const FLOW_REGISTRY: Record<RoomType, Record<number, RoomFlow>> = {
   PIECE_TABLE: {
     [pieceTableFlow.version]: pieceTableFlow,
     [pieceTableFlowV2.version]: pieceTableFlowV2,
+    [pieceTableFlowV3.version]: pieceTableFlowV3,
   },
   PIECE_SHOE_CABINET: {
     [pieceShoeCabinetFlow.version]: pieceShoeCabinetFlow,
@@ -124,11 +131,13 @@ export const FLOW_REGISTRY: Record<RoomType, Record<number, RoomFlow>> = {
   PIECE_BENCH: {
     [pieceBenchFlow.version]: pieceBenchFlow,
     [pieceBenchFlowV2.version]: pieceBenchFlowV2,
+    [pieceBenchFlowV3.version]: pieceBenchFlowV3,
   },
 };
 
 // Versiunea cu care pornesc camerele NOI in wizard.
 export const CURRENT_FLOW_VERSION: Record<RoomType, number> = {
+  ...catalogFlowVersions,
   KITCHEN: kitchenFlowV2.version,
   // dressing si living pornesc pe v3 (feedback PO 2026-07-13, docs/12 S3)
   DRESSING: dressingFlowV3.version,
@@ -147,12 +156,12 @@ export const CURRENT_FLOW_VERSION: Record<RoomType, number> = {
   PIECE_TV_UNIT: pieceTvUnitFlowV3.version,
   PIECE_BOOKCASE: pieceBookcaseFlowV3.version,
   PIECE_DESK: pieceDeskFlowV3.version,
-  PIECE_BED: pieceBedFlowV2.version,
+  PIECE_BED: pieceBedFlowV3.version,
   PIECE_DRESSER: pieceDresserFlowV3.version,
-  PIECE_TABLE: pieceTableFlowV2.version,
+  PIECE_TABLE: pieceTableFlowV3.version,
   PIECE_SHOE_CABINET: pieceShoeCabinetFlowV3.version,
   PIECE_NIGHTSTAND: pieceNightstandFlowV3.version,
-  PIECE_BENCH: pieceBenchFlowV2.version,
+  PIECE_BENCH: pieceBenchFlowV3.version,
 };
 
 export {

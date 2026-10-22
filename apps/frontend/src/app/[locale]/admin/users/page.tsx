@@ -6,6 +6,12 @@ import { useState } from 'react';
 import { useAdminUsers, useBlockUser } from '@/hooks/use-admin';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { FilterChips } from '@/components/ui/filter-chips';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadError } from '@/components/ui/query-state';
+import { SkeletonTable } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
@@ -30,7 +36,7 @@ export default function AdminUsersPage() {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
-      <h1 className="page-title">{t('title')}</h1>
+      <PageHeader title={t('title')} />
 
       <div className="flex flex-wrap items-center gap-2">
         <Input
@@ -40,31 +46,23 @@ export default function AdminUsersPage() {
           aria-label={t('searchPlaceholder')}
           className="max-w-xs"
         />
-        {ROLES.map((r) => (
-          <button
-            key={r}
-            onClick={() => setRole(r)}
-            className={
-              r === role
-                ? 'rounded-full bg-foreground px-3 py-1.5 text-xs font-medium text-background'
-                : 'rounded-full border border-border-2 bg-surface px-3 py-1.5 text-xs transition-colors hover:bg-secondary'
-            }
-          >
-            {t(`roleFilter.${r}`)}
-          </button>
-        ))}
+        <FilterChips
+          label={t('roleFilterLabel')}
+          size="sm"
+          value={role}
+          onChange={(v) => v && setRole(v)}
+          options={ROLES.map((r) => ({ value: r, label: t(`roleFilter.${r}`) }))}
+        />
       </div>
 
-      {users.isPending && <p className="py-10 text-center text-muted-foreground">…</p>}
-      {users.isError && <p className="py-10 text-center text-sm text-crimson">{t('loadError')}</p>}
+      {users.isPending && <SkeletonTable rows={6} cols={5} />}
+      {users.isError && <LoadError title={t('loadError')} onRetry={() => void users.refetch()} />}
       {users.isSuccess && users.data.length === 0 && (
-        <p className="rounded-xl border border-border bg-surface px-4 py-10 text-center text-sm text-muted-foreground">
-          {t('empty')}
-        </p>
+        <EmptyState variant="card" size="sm" title={t('empty')} />
       )}
 
       {users.isSuccess && users.data.length > 0 && (
-        <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm">
+        <Card padding="none" className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-surface-2 text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -119,7 +117,7 @@ export default function AdminUsersPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </Card>
       )}
       {blockUser.isError && <p className="text-sm text-crimson">{t('actionError')}</p>}
 

@@ -9,6 +9,7 @@ import { ERROR_CODES } from '@marketplace/shared';
 import type { AccessTokenPayload } from '../../modules/auth/auth.constants';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import type { RequestWithCompany } from '../company-context/company-context';
+import { activeMembershipWhere } from '../company-context/active-membership';
 
 // 4.6/4.8 — doar firme APPROVED vad cereri / dau claim. Rezolva apartenenta
 // userului si ataseaza companyContext pe request pentru guard-urile/serviciile urmatoare.
@@ -25,7 +26,7 @@ export class CompanyApprovedGuard implements CanActivate {
       throw new ForbiddenException({ code: ERROR_CODES.FORBIDDEN, message: 'Not authenticated' });
     }
 
-    const member = await this.prisma.companyMember.findUnique({ where: { userId } });
+    const member = await this.prisma.companyMember.findUnique({ where: activeMembershipWhere(userId) });
     if (!member) {
       throw new NotFoundException({
         code: ERROR_CODES.NOT_FOUND,

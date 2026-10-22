@@ -110,7 +110,7 @@ export function PartnersCarousel() {
             <div
               key={i}
               data-card
-              className={cn('h-[190px] shrink-0 animate-pulse rounded-xl border border-border bg-card', CARD_W)}
+              className={cn('h-[190px] shrink-0 animate-pulse rounded-xl border border-border bg-surface', CARD_W)}
             />
           ))}
         {items.map((p) => {
@@ -121,7 +121,7 @@ export function PartnersCarousel() {
               key={p.id}
               data-card
               className={cn(
-                'flex min-h-[190px] shrink-0 snap-start flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-sheet',
+                'flex min-h-[190px] shrink-0 snap-start flex-col rounded-xl border border-border bg-surface p-5 shadow-sm transition-shadow hover:shadow-sheet',
                 CARD_W,
               )}
             >

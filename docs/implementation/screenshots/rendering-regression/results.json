@@ -1,0 +1,128 @@
+{
+  "checkedAt": "2026-10-02T15:17:27.763Z",
+  "samples": [
+    {
+      "mount": 0,
+      "cycle": 0,
+      "id": 1,
+      "textures": 8,
+      "buffers": 39,
+      "createdTextures": 9,
+      "deletedTextures": 1,
+      "createdBuffers": 229,
+      "deletedBuffers": 190,
+      "lost": false
+    },
+    {
+      "mount": 0,
+      "cycle": 1,
+      "id": 1,
+      "textures": 8,
+      "buffers": 39,
+      "createdTextures": 9,
+      "deletedTextures": 1,
+      "createdBuffers": 379,
+      "deletedBuffers": 340,
+      "lost": false
+    },
+    {
+      "mount": 0,
+      "cycle": 2,
+      "id": 1,
+      "textures": 8,
+      "buffers": 39,
+      "createdTextures": 9,
+      "deletedTextures": 1,
+      "createdBuffers": 517,
+      "deletedBuffers": 478,
+      "lost": false
+    },
+    {
+      "mount": 0,
+      "cycle": 3,
+      "id": 1,
+      "textures": 8,
+      "buffers": 39,
+      "createdTextures": 9,
+      "deletedTextures": 1,
+      "createdBuffers": 655,
+      "deletedBuffers": 616,
+      "lost": false
+    },
+    {
+      "mount": 0,
+      "closed": true,
+      "id": 1,
+      "textures": 0,
+      "buffers": 0,
+      "createdTextures": 9,
+      "deletedTextures": 5,
+      "createdBuffers": 656,
+      "deletedBuffers": 656,
+      "lost": true
+    },
+    {
+      "mount": 1,
+      "cycle": 0,
+      "id": 2,
+      "textures": 8,
+      "buffers": 39,
+      "createdTextures": 9,
+      "deletedTextures": 1,
+      "createdBuffers": 229,
+      "deletedBuffers": 190,
+      "lost": false
+    },
+    {
+      "mount": 1,
+      "cycle": 1,
+      "id": 2,
+      "textures": 8,
+      "buffers": 39,
+      "createdTextures": 9,
+      "deletedTextures": 1,
+      "createdBuffers": 379,
+      "deletedBuffers": 340,
+      "lost": false
+    },
+    {
+      "mount": 1,
+      "cycle": 2,
+      "id": 2,
+      "textures": 8,
+      "buffers": 39,
+      "createdTextures": 9,
+      "deletedTextures": 1,
+      "createdBuffers": 517,
+      "deletedBuffers": 478,
+      "lost": false
+    },
+    {
+      "mount": 1,
+      "cycle": 3,
+      "id": 2,
+      "textures": 8,
+      "buffers": 39,
+      "createdTextures": 9,
+      "deletedTextures": 1,
+      "createdBuffers": 667,
+      "deletedBuffers": 628,
+      "lost": false
+    },
+    {
+      "mount": 1,
+      "closed": true,
+      "id": 2,
+      "textures": 0,
+      "buffers": 0,
+      "createdTextures": 9,
+      "deletedTextures": 5,
+      "createdBuffers": 668,
+      "deletedBuffers": 668,
+      "lost": true
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "note": "Native resource instrumentation, not timing benchmark. Context loss releases outstanding GPU resources; counts do not establish physical GPU byte usage."
+}

@@ -8,6 +8,7 @@ import { Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useRouter } from '@/i18n/routing';
 import { apiErrorKey } from '@/lib/error-messages';
+import { SUPPORT_EMAIL } from '@/lib/support-email';
 import { useLogin } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,8 @@ function LoginInner() {
   const apiErr = login.error ? apiErrorKey(login.error) : null;
   // L0-A: cont neconfirmat → oferim retrimiterea emailului cu adresa din formular
   const emailNotVerified = apiErr?.key === 'apiErrors.EMAIL_NOT_VERIFIED';
+  // cont blocat: adresa de suport (doar daca e configurata la build)
+  const accountBlocked = apiErr?.key === 'apiErrors.ACCOUNT_BLOCKED' && SUPPORT_EMAIL !== '';
 
   return (
     <div className="flex flex-col gap-6">
@@ -67,6 +70,18 @@ function LoginInner() {
 
         {apiErr && (
           <Alert tone="crimson">{t.has(apiErr.key) ? t(apiErr.key) : apiErr.fallback}</Alert>
+        )}
+        {accountBlocked && (
+          <p className="text-sm text-muted-foreground">
+            {t.rich('blockedContact', {
+              email: SUPPORT_EMAIL,
+              link: (chunks) => (
+                <a className="text-walnut underline" href={`mailto:${SUPPORT_EMAIL}`}>
+                  {chunks}
+                </a>
+              ),
+            })}
+          </p>
         )}
         {emailNotVerified && <ResendVerification email={getValues('email')} />}
 

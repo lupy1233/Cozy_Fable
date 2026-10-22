@@ -6,24 +6,25 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { SaveButton } from './save-button';
+import { InspirationImage } from './inspiration-image';
 
 // Pin de galerie in stil Pinterest (item 8): butonul "Salveaza" apare pe hover
 // in coltul din dreapta-sus si deschide picker-ul de colectii (cu creare
-// inline); un pin salvat arata "Salvat", iar click-ul pe el deschide meniul
-// "Muta in colectia…" / "Scoate din colectie" (idee 4 PO r2).
+// inline); un pin salvat arata "Salvat in N colectii", iar popover-ul ramane o lista cu
+// bife (E-client-34: aceeasi poza in mai multe colectii).
 
 export function InspirationPin({
   photo,
   aspectClass,
-  savedBoardId,
+  savedBoardIds,
   authed,
   onRequireAuth,
   onOpen,
 }: {
   photo: InspirationPhotoDto;
   aspectClass: string;
-  // colectia in care e salvat pin-ul (null = nesalvat)
-  savedBoardId: string | null;
+  // colectiile in care e salvat pin-ul (gol = nesalvat)
+  savedBoardIds: string[];
   authed: boolean;
   onRequireAuth: () => void;
   onOpen?: () => void;
@@ -31,14 +32,13 @@ export function InspirationPin({
   const t = useTranslations('Inspiration');
   const tc = useTranslations('Configurator');
   const [pickerOpen, setPickerOpen] = useState(false);
-  const saved = Boolean(savedBoardId);
+  const saved = savedBoardIds.length > 0;
 
   return (
     // spatierea verticala o da coloana masonry (gap-4), nu pin-ul
     <figure className="group relative overflow-hidden rounded-2xl border border-border bg-surface-2 shadow-sm">
       <button type="button" onClick={onOpen} className="block w-full cursor-zoom-in">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <InspirationImage
           src={photo.imageUrl ?? ''}
           alt={photo.title}
           loading="lazy"
@@ -65,17 +65,17 @@ export function InspirationPin({
       >
         <SaveButton
           photoId={photo.id}
-          savedBoardId={savedBoardId}
+          savedBoardIds={savedBoardIds}
           authed={authed}
           onRequireAuth={onRequireAuth}
           onOpenChange={setPickerOpen}
         />
       </div>
 
-      <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-black/65 to-transparent p-3 pt-10 text-[13px] leading-snug text-white">
+      <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-black/65 to-transparent p-3 pt-10 text-ui leading-snug text-white">
         <span className="min-w-0">
           {photo.title}
-          <span className="mt-0.5 block text-[10px] uppercase tracking-[0.12em] text-white/75">
+          <span className="mt-0.5 block text-micro uppercase tracking-[0.12em] text-white/75">
             {tc(`rooms.type.${photo.roomType}`)} · {t('byFirm', { name: photo.company.name })}
           </span>
         </span>

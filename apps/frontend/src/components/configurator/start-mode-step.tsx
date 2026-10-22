@@ -119,7 +119,7 @@ export function StartModeStep({
               </span>
 
               {mode === 'DESIGN_HELP' && (
-                <span className="absolute right-3 top-3 rounded-full bg-brass/15 px-2 py-0.5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-brass-2">
+                <span className="absolute right-3 top-3 rounded-full bg-brass/15 px-2 py-0.5 text-micro font-medium uppercase tracking-[0.08em] text-brass-2">
                   {t('start.DESIGN_HELP.badge')}
                 </span>
               )}
@@ -136,13 +136,13 @@ export function StartModeStep({
               <span className="mt-4 block font-serif text-lg leading-snug">
                 {t(`start.${mode}.title`)}
               </span>
-              <span className="mt-1.5 block text-[13px] leading-relaxed text-muted-foreground">
+              <span className="mt-1.5 block text-ui leading-relaxed text-muted-foreground">
                 {t(`start.${mode}.desc`)}
               </span>
 
               <span
                 className={cn(
-                  'mt-auto block pt-4 text-[12.5px] font-medium transition-colors',
+                  'mt-auto block pt-4 text-xs font-medium transition-colors',
                   selected ? 'text-walnut' : 'text-muted-2 group-hover:text-walnut',
                 )}
               >

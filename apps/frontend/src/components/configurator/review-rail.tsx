@@ -68,7 +68,7 @@ export function RailSection({
                 {(index || eyebrow) && (
                   <p className="flex items-baseline gap-2">
                     {index && (
-                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-2">
+                      <span className="font-mono text-micro uppercase tracking-[0.14em] text-muted-2">
                         {index}
                       </span>
                     )}

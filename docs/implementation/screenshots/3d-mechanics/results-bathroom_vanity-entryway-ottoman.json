@@ -1,0 +1,1001 @@
+[
+  {
+    "kind": "BATHROOM_VANITY",
+    "label": "vanity-drawers",
+    "cameraPreserved": true,
+    "errors": [],
+    "animation": [
+      {
+        "time": 16302.29999999702,
+        "motions": [
+          {
+            "name": "furniture-motion:vanity:drawer:0:0",
+            "progress": 0.00011669921875000002,
+            "position": [
+              0,
+              0,
+              0.00003500976562500001
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:vanity:drawer:0:1",
+            "progress": 0.00011669921875000002,
+            "position": [
+              0,
+              0,
+              0.00003500976562500001
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 16403.199999999255,
+        "motions": [
+          {
+            "name": "furniture-motion:vanity:drawer:0:0",
+            "progress": 0.12070296728041095,
+            "position": [
+              0,
+              0,
+              0.03621089018412328
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:vanity:drawer:0:1",
+            "progress": 0.12070296728041095,
+            "position": [
+              0,
+              0,
+              0.03621089018412328
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 16511.699999999255,
+        "motions": [
+          {
+            "name": "furniture-motion:vanity:drawer:0:0",
+            "progress": 0.41382186655684017,
+            "position": [
+              0,
+              0,
+              0.12414655996705204
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:vanity:drawer:0:1",
+            "progress": 0.41413021874540495,
+            "position": [
+              0,
+              0,
+              0.12423906562362148
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 16618,
+        "motions": [
+          {
+            "name": "furniture-motion:vanity:drawer:0:0",
+            "progress": 0.737679957515378,
+            "position": [
+              0,
+              0,
+              0.2213039872546134
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:vanity:drawer:0:1",
+            "progress": 0.7379586407696759,
+            "position": [
+              0,
+              0,
+              0.22138759223090276
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 16727.29999999702,
+        "motions": [
+          {
+            "name": "furniture-motion:vanity:drawer:0:0",
+            "progress": 0.9675755756646127,
+            "position": [
+              0,
+              0,
+              0.2902726726993838
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:vanity:drawer:0:1",
+            "progress": 0.9675755756646127,
+            "position": [
+              0,
+              0,
+              0.2902726726993838
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 16835.79999999702,
+        "motions": [
+          {
+            "name": "furniture-motion:vanity:drawer:0:0",
+            "progress": 1,
+            "position": [
+              0,
+              0,
+              0.3
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:vanity:drawer:0:1",
+            "progress": 1,
+            "position": [
+              0,
+              0,
+              0.3
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "BATHROOM_VANITY",
+    "label": "vanity-doors",
+    "cameraPreserved": true,
+    "errors": [],
+    "animation": [
+      {
+        "time": 12275.60000000149,
+        "motions": [
+          {
+            "name": "furniture-motion:vanity:door:0:-1",
+            "progress": 0.000013002748842592592,
+            "position": [
+              -0.544,
+              0.255,
+              0.20600000000000002
+            ],
+            "rotation": [
+              0,
+              -0.00002246713713219914,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:vanity:door:0:1",
+            "progress": 0.000013002748842592592,
+            "position": [
+              0.544,
+              0.255,
+              0.20600000000000002
+            ],
+            "rotation": [
+              0,
+              0.00002246713713219914,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 12330.60000000149,
+        "motions": [
+          {
+            "name": "furniture-motion:vanity:door:0:-1",
+            "progress": 0.03752868780551976,
+            "position": [
+              -0.544,
+              0.255,
+              0.20600000000000002
+            ],
+            "rotation": [
+              0,
+              -0.06484491744977716,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:vanity:door:0:1",
+            "progress": 0.03752868780551976,
+            "position": [
+              0.544,
+              0.255,
+              0.20600000000000002
+            ],
+            "rotation": [
+              0,
+              0.06484491744977716,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 12411.900000002235,
+        "motions": [
+          {
+            "name": "furniture-motion:vanity:door:0:-1",
+            "progress": 0.1978864113136574,
+            "position": [
+              -0.544,
+              0.255,
+              0.20600000000000002
+            ],
+            "rotation": [
+              0,
+              -0.34192317281552886,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:vanity:door:0:1",
+            "progress": 0.1978864113136574,
+            "position": [
+              0.544,
+              0.255,
+              0.20600000000000002
+            ],
+            "rotation": [
+              0,
+              0.34192317281552886,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 12507.400000002235,
+        "motions": [
+          {
+            "name": "furniture-motion:vanity:door:0:-1",
+            "progress": 0.4771945351720084,
+            "position": [
+              -0.544,
+              0.255,
+              0.20600000000000002
+            ],
+            "rotation": [
+              0,
+              -0.8245329653162679,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:vanity:door:0:1",
+            "progress": 0.4775067499906952,
+            "position": [
+              0.544,
+              0.255,
+              0.20600000000000002
+            ],
+            "rotation": [
+              0,
+              0.8250724337956684,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 12594.60000000149,
+        "motions": [
+          {
+            "name": "furniture-motion:vanity:door:0:-1",
+            "progress": 0.7404629195741291,
+            "position": [
+              -0.544,
+              0.255,
+              0.20600000000000002
+            ],
+            "rotation": [
+              0,
+              -1.2794280776143538,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:vanity:door:0:1",
+            "progress": 0.7404629195741291,
+            "position": [
+              0.544,
+              0.255,
+              0.20600000000000002
+            ],
+            "rotation": [
+              0,
+              1.2794280776143538,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 12676.400000002235,
+        "motions": [
+          {
+            "name": "furniture-motion:vanity:door:0:-1",
+            "progress": 0.9267918090820313,
+            "position": [
+              -0.544,
+              0.255,
+              0.20600000000000002
+            ],
+            "rotation": [
+              0,
+              -1.6013812863506172,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:vanity:door:0:1",
+            "progress": 0.9267918090820313,
+            "position": [
+              0.544,
+              0.255,
+              0.20600000000000002
+            ],
+            "rotation": [
+              0,
+              1.6013812863506172,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 12767.20000000298,
+        "motions": [
+          {
+            "name": "furniture-motion:vanity:door:0:-1",
+            "progress": 1,
+            "position": [
+              -0.544,
+              0.255,
+              0.20600000000000002
+            ],
+            "rotation": [
+              0,
+              -1.7278759594743864,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:vanity:door:0:1",
+            "progress": 1,
+            "position": [
+              0.544,
+              0.255,
+              0.20600000000000002
+            ],
+            "rotation": [
+              0,
+              1.7278759594743864,
+              0
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "ENTRYWAY",
+    "label": "entryway-doors",
+    "cameraPreserved": true,
+    "errors": [],
+    "animation": [
+      {
+        "time": 15616.300000000745,
+        "motions": [
+          {
+            "name": "furniture-motion:entryway:door:0",
+            "progress": 0.00036306284370702215,
+            "position": [
+              -0.7455,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -0.0006273275594197701,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:entryway:door:1",
+            "progress": 0.00036306284370702215,
+            "position": [
+              -0.2455,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -0.0006273275594197701,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:entryway:door:2",
+            "progress": 0.00037683984354280995,
+            "position": [
+              0.2545,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -0.0006511325062297104,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 15688.400000002235,
+        "motions": [
+          {
+            "name": "furniture-motion:entryway:door:0",
+            "progress": 0.0696191835912308,
+            "position": [
+              -0.7455,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -0.12029331364552139,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:entryway:door:1",
+            "progress": 0.0696191835912308,
+            "position": [
+              -0.2455,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -0.12029331364552139,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:entryway:door:2",
+            "progress": 0.06978833233868635,
+            "position": [
+              0.2545,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -0.12058558169982503,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 15773.20000000298,
+        "motions": [
+          {
+            "name": "furniture-motion:entryway:door:0",
+            "progress": 0.26595067592175614,
+            "position": [
+              -0.7455,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -0.459529779331166,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:entryway:door:1",
+            "progress": 0.26595067592175614,
+            "position": [
+              -0.2455,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -0.459529779331166,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:entryway:door:2",
+            "progress": 0.26595067592175614,
+            "position": [
+              0.2545,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -0.459529779331166,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 15863.20000000298,
+        "motions": [
+          {
+            "name": "furniture-motion:entryway:door:0",
+            "progress": 0.5384038471702909,
+            "position": [
+              -0.7455,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -0.9302950640140673,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:entryway:door:1",
+            "progress": 0.5387155196712818,
+            "position": [
+              -0.2455,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -0.9308335954357588,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:entryway:door:2",
+            "progress": 0.5387155196712818,
+            "position": [
+              0.2545,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -0.9308335954357588,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 15946.5,
+        "motions": [
+          {
+            "name": "furniture-motion:entryway:door:0",
+            "progress": 0.7834747918132999,
+            "position": [
+              -0.7455,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -1.3537472576284009,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:entryway:door:1",
+            "progress": 0.7834747918132999,
+            "position": [
+              -0.2455,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -1.3537472576284009,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:entryway:door:2",
+            "progress": 0.7834747918132999,
+            "position": [
+              0.2545,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -1.3537472576284009,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 16037,
+        "motions": [
+          {
+            "name": "furniture-motion:entryway:door:0",
+            "progress": 0.9652524116220191,
+            "position": [
+              -0.7455,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -1.6678364368663616,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:entryway:door:1",
+            "progress": 0.9652524116220191,
+            "position": [
+              -0.2455,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -1.6678364368663616,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:entryway:door:2",
+            "progress": 0.9652524116220191,
+            "position": [
+              0.2545,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -1.6678364368663616,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 16126.10000000149,
+        "motions": [
+          {
+            "name": "furniture-motion:entryway:door:0",
+            "progress": 1,
+            "position": [
+              -0.7455,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -1.7278759594743864,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:entryway:door:1",
+            "progress": 1,
+            "position": [
+              -0.2455,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -1.7278759594743864,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:entryway:door:2",
+            "progress": 1,
+            "position": [
+              0.2545,
+              0.243,
+              0.175
+            ],
+            "rotation": [
+              0,
+              -1.7278759594743864,
+              0
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "OTTOMAN",
+    "label": "ottoman-lid",
+    "cameraPreserved": true,
+    "errors": [],
+    "animation": [
+      {
+        "time": 12617.199999999255,
+        "motions": [
+          {
+            "name": "furniture-motion:ottoman:lid",
+            "progress": 0.00020388348202520827,
+            "position": [
+              0,
+              0.32999999999999996,
+              -0.45
+            ],
+            "rotation": [
+              -0.00024339716274110633,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 12658.5,
+        "motions": [
+          {
+            "name": "furniture-motion:ottoman:lid",
+            "progress": 0.011572763610782638,
+            "position": [
+              0,
+              0.32999999999999996,
+              -0.45
+            ],
+            "rotation": [
+              -0.013815625473719088,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 12740.800000000745,
+        "motions": [
+          {
+            "name": "furniture-motion:ottoman:lid",
+            "progress": 0.07960332966229289,
+            "position": [
+              0,
+              0.32999999999999996,
+              -0.45
+            ],
+            "rotation": [
+              -0.0950308695539714,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 12825.300000000745,
+        "motions": [
+          {
+            "name": "furniture-motion:ottoman:lid",
+            "progress": 0.19811080396678388,
+            "position": [
+              0,
+              0.32999999999999996,
+              -0.45
+            ],
+            "rotation": [
+              -0.23650570960875,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 12912,
+        "motions": [
+          {
+            "name": "furniture-motion:ottoman:lid",
+            "progress": 0.35411328435960526,
+            "position": [
+              0,
+              0.32999999999999996,
+              -0.45
+            ],
+            "rotation": [
+              -0.4227422832194219,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 12998.699999999255,
+        "motions": [
+          {
+            "name": "furniture-motion:ottoman:lid",
+            "progress": 0.5255900579475625,
+            "position": [
+              0,
+              0.32999999999999996,
+              -0.45
+            ],
+            "rotation": [
+              -0.6274521486422004,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 13084,
+        "motions": [
+          {
+            "name": "furniture-motion:ottoman:lid",
+            "progress": 0.6917243797787762,
+            "position": [
+              0,
+              0.32999999999999996,
+              -0.45
+            ],
+            "rotation": [
+              -0.8257841673323445,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 13167.300000000745,
+        "motions": [
+          {
+            "name": "furniture-motion:ottoman:lid",
+            "progress": 0.8346550239999999,
+            "position": [
+              0,
+              0.32999999999999996,
+              -0.45
+            ],
+            "rotation": [
+              -0.9964155148384806,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 13247.89999999851,
+        "motions": [
+          {
+            "name": "furniture-motion:ottoman:lid",
+            "progress": 0.9387390672592593,
+            "position": [
+              0,
+              0.32999999999999996,
+              -0.45
+            ],
+            "rotation": [
+              -1.1206715877889808,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 13325.10000000149,
+        "motions": [
+          {
+            "name": "furniture-motion:ottoman:lid",
+            "progress": 0.9933821047084698,
+            "position": [
+              0,
+              0.32999999999999996,
+              -0.45
+            ],
+            "rotation": [
+              -1.185904730496684,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 13401.89999999851,
+        "motions": [
+          {
+            "name": "furniture-motion:ottoman:lid",
+            "progress": 1,
+            "position": [
+              0,
+              0.32999999999999996,
+              -0.45
+            ],
+            "rotation": [
+              -1.1938052083641213,
+              0,
+              0
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,34 @@
+{
+  "en": { "Studio": { "house": {
+    "title": "Your house layout", "subtitle": "One floor. Furniture stays inside its own room as rooms move and rotate.",
+    "enable": "Arrange rooms together", "plan": "Floor plan", "3d": "Whole-house 3D cutaway",
+    "sendHint": "Send all rooms in this house with their furniture to the request. Repeating the transfer updates the same entries and preserves their material and attachment answers.",
+    "persistenceError": "This saved studio data could not be read. Its original copy has been preserved and automatic overwriting is blocked.",
+    "moveHint": "Drag rooms or use arrow keys (10 cm; Shift: 50 cm). Nearby edges snap together. Moving, rotating or resizing a connected room disconnects its door links; the openings remain. Undo restores the previous layout.",
+    "positionX": "Room X position (m)", "positionZ": "Room Z position (m)", "roomWidth": "Room width (m)", "roomDepth": "Room depth (m)", "rotate": "Rotate room 90°",
+    "connectTarget": "Connect selected room to", "chooseRoom": "Choose another room", "connectWall": "Selected room wall", "connect": "Align and add doorway",
+    "walls": { "N": "Back wall (local north)", "E": "Right wall (local east)", "S": "Front wall (local south)", "W": "Left wall (local west)" },
+    "connectHint": "Adds matching 90 cm doorways and moves the target room into alignment. Both wall centers must be clear. Existing connections and other rooms must still fit.",
+    "connectError": "The rooms or doorways do not fit there. Check existing openings, nearby rooms and the selected wall.",
+    "invalidLayout": "Some rooms overlap or door links no longer align. Correct the floor plan before saving to your account or sending the request.",
+    "disconnect": "Disconnect", "doorWidth": "Door width (m)", "doorOffset": "Door offset (m)",
+    "capacity": "{rooms}/12 rooms · {pieces}/50 furniture placements for submission. All connected rooms are included when you send to a request.",
+    "transferErrors": { "INVALID_LAYOUT": "The house layout is invalid. Check room overlap and door connections before sending.", "CAPACITY": "This transfer exceeds 12 rooms, 50 request entries or the saved-data size limit. Reduce the selection before sending; nothing was transferred.", "EMPTY": "Place at least one furniture item before sending the layout." }
+  } } },
+  "ro": { "Studio": { "house": {
+    "title": "Planul locuinței tale", "subtitle": "Un singur nivel. Mobilierul rămâne în camera sa când muți sau rotești camerele.",
+    "enable": "Aranjează camerele împreună", "plan": "Plan de sus", "3d": "Locuința 3D în secțiune",
+    "sendHint": "Trimite toate camerele locuinței cu mobilierul lor în cerere. Retrimiterea actualizează aceleași poziții și păstrează răspunsurile despre material și fișierele atașate.",
+    "persistenceError": "Datele salvate ale studioului nu au putut fi citite. Copia originală este păstrată, iar suprascrierea automată este blocată.",
+    "moveHint": "Trage camerele sau folosește săgețile (10 cm; Shift: 50 cm). Muchiile apropiate se aliniază. Mutarea, rotirea sau redimensionarea unei camere deconectează legăturile ușilor; golurile rămân. Anulează pentru a reveni la planul anterior.",
+    "positionX": "Poziția X a camerei (m)", "positionZ": "Poziția Z a camerei (m)", "roomWidth": "Lățimea camerei (m)", "roomDepth": "Adâncimea camerei (m)", "rotate": "Rotește camera 90°",
+    "connectTarget": "Conectează camera selectată la", "chooseRoom": "Alege altă cameră", "connectWall": "Peretele camerei selectate", "connect": "Aliniază și adaugă ușa",
+    "walls": { "N": "Peretele din spate (nord local)", "E": "Peretele din dreapta (est local)", "S": "Peretele din față (sud local)", "W": "Peretele din stânga (vest local)" },
+    "connectHint": "Adaugă goluri de ușă de 90 cm și mută camera țintă în aliniere. Centrele ambilor pereți trebuie să fie libere. Conexiunile existente și celelalte camere trebuie să încapă.",
+    "connectError": "Camerele sau ușile nu încap acolo. Verifică golurile existente, camerele vecine și peretele selectat.",
+    "invalidLayout": "Unele camere se suprapun sau ușile nu mai sunt aliniate. Corectează planul înainte de salvarea în cont sau trimiterea cererii.",
+    "disconnect": "Deconectează", "doorWidth": "Lățimea ușii (m)", "doorOffset": "Poziția ușii (m)",
+    "capacity": "{rooms}/12 camere · {pieces}/50 piese amplasate pentru trimitere. Toate camerele conectate sunt incluse în cerere.",
+    "transferErrors": { "INVALID_LAYOUT": "Planul locuinței nu este valid. Verifică suprapunerile camerelor și conexiunile ușilor înainte de trimitere.", "CAPACITY": "Transferul depășește 12 camere, 50 de poziții de cerere sau limita datelor salvate. Redu selecția; nu a fost transferat nimic.", "EMPTY": "Amplasează cel puțin o piesă de mobilier înainte de trimiterea planului." }
+  } } }
+}

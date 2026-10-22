@@ -8,7 +8,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ERROR_CODES } from '@marketplace/shared';
+import { ERROR_CODES, LEGAL_PRIVACY_VERSION, LEGAL_TERMS_VERSION } from '@marketplace/shared';
 import type { User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
@@ -16,10 +16,17 @@ import type Redis from 'ioredis';
 import { EventBusService } from '../../infra/event-bus/event-bus.service';
 import { MailService } from '../../infra/mail/mail.service';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { withDeletedRecords } from '../../infra/prisma/soft-delete';
+import { safeErrorSummary } from '../../common/logging/safe-error';
 import { REDIS_CLIENT } from '../../infra/redis/redis.module';
+import { SETTING_DEFAULTS } from '../../common/settings/setting-defaults';
+import { SettingsService } from '../../common/settings/settings.service';
+import { SETTING_LEGAL_REACCEPT_EXISTING_USERS } from '../legal/legal.constants';
+import { authEmailHtml } from './auth-email';
 import { EMAIL_VERIFY_TTL_SEC, PASSWORD_RESET_TTL_SEC } from './auth.constants';
 import type { LoginDto } from './dto/login.dto';
 import type { RegisterDto } from './dto/register.dto';
+import { LoginLockoutService, type LoginAttemptContext } from './login-lockout.service';
 import { TokenService } from './token.service';
 import { TwoFactorService } from './two-factor.service';
 
@@ -32,24 +39,32 @@ const DUMMY_HASH = '$2b$12$C6UzMDM.H6dfI/f/IKcEeO7ZBp4LOSAsigGqlGCk9hxEONjVrIa6y
 // invalideze tokenul anterior.
 type OneTimeTokenKind = 'email-verify' | 'pwd-reset';
 
-// escape minimal pentru valorile interpolate in HTML-ul emailurilor (nume user)
-function esc(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 export type PublicUser = Pick<
   User,
   'id' | 'email' | 'name' | 'phone' | 'role' | 'languagePreference' | 'emailVerifiedAt' | 'twoFactorEnabled'
->;
+> & { needsLegalAcceptance: boolean };
+
+// E-admin-platform-2: re-acceptare cand versiunea salvata difera de cea curenta (NULL = cont vechi).
+// Adminii sunt exceptati: personalul operatorului nu e parte la Termeni.
+// Hotfix 2026-10-04 (PO): re-acceptarea fortata ruleaza DOAR cu system_settings
+// legal_reaccept_existing_users='true' (dupa revizuirea avocatului). Cu 'false' (implicit) nimeni
+// nu e blocat; conturile noi primesc oricum versiunile curente la inregistrare.
+export function needsLegalAcceptance(
+  u: Pick<User, 'role' | 'termsVersion' | 'privacyVersion'>,
+  reacceptExistingUsers: boolean,
+): boolean {
+  if (!reacceptExistingUsers || u.role === 'ADMIN') return false;
+  return u.termsVersion !== LEGAL_TERMS_VERSION || u.privacyVersion !== LEGAL_PRIVACY_VERSION;
+}
+
+// /auth/me ruleaza la fiecare incarcare de pagina: setarea se tine in memorie 60 s (fara query
+// per cerere, ~150 ms cross-region). Comutarea din Admin -> Setari ajunge pe sloturi in max 60 s.
+export const LEGAL_REACCEPT_CACHE_MS = 60_000;
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private reacceptCache: { value: boolean; expiresAt: number } | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -59,9 +74,25 @@ export class AuthService {
     private readonly eventBus: EventBusService,
     private readonly config: ConfigService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
+    private readonly lockout: LoginLockoutService,
+    private readonly settings: SettingsService,
   ) {}
 
-  private toPublic(user: User): PublicUser {
+  private async reacceptExistingUsers(): Promise<boolean> {
+    const now = Date.now();
+    if (this.reacceptCache && this.reacceptCache.expiresAt > now) return this.reacceptCache.value;
+    const value = await this.settings.getBool(
+      SETTING_LEGAL_REACCEPT_EXISTING_USERS,
+      SETTING_DEFAULTS.legal_reaccept_existing_users,
+    );
+    this.reacceptCache = { value, expiresAt: now + LEGAL_REACCEPT_CACHE_MS };
+    return value;
+  }
+
+  private async toPublic(user: User): Promise<PublicUser> {
+    // setarea se citeste doar cand regula stricta ar cere dialogul (versiuni NULL/vechi, non-admin):
+    // userii la zi si adminii nu ating system_settings deloc
+    const outdated = needsLegalAcceptance(user, true);
     return {
       id: user.id,
       email: user.email,
@@ -71,6 +102,7 @@ export class AuthService {
       languagePreference: user.languagePreference,
       emailVerifiedAt: user.emailVerifiedAt,
       twoFactorEnabled: user.twoFactorEnabled,
+      needsLegalAcceptance: outdated && (await this.reacceptExistingUsers()),
     };
   }
 
@@ -108,32 +140,10 @@ export class AuthService {
     return userId;
   }
 
-  // --- emailuri auth (stil comun cu notification-emails; valorile userului escapate) ---
+  // --- emailuri auth (helper comun in auth-email.ts; valorile userului escapate) ---
 
   private authEmailHtml(user: Pick<User, 'name' | 'languagePreference'>, body: string, link: string, ctaLabel: string): string {
-    const ro = user.languagePreference !== 'EN';
-    return `
-      <div style="font-family: Georgia, serif; max-width: 520px; margin: 0 auto; color: #2b2b2b;">
-        <p style="letter-spacing: 0.12em; font-size: 12px; color: #8a7355;">COZY HOME</p>
-        <p>${ro ? 'Salut' : 'Hi'} ${esc(user.name)},</p>
-        <p>${body}</p>
-        <p style="margin: 24px 0;">
-          <a href="${link}" style="background: #8a7355; color: #fff; padding: 10px 22px; text-decoration: none; border-radius: 999px;">
-            ${ctaLabel}
-          </a>
-        </p>
-        <p style="font-size: 12px; color: #888;">
-          ${ro ? 'Sau deschide direct:' : 'Or open directly:'} <a href="${link}">${link}</a>
-        </p>
-        <hr style="border: none; border-top: 1px solid #e5ded4; margin: 28px 0 12px;" />
-        <p style="font-size: 11px; color: #999;">
-          ${
-            ro
-              ? 'Dacă nu ai cerut tu acest email, îl poți ignora.'
-              : 'If you did not request this email, you can ignore it.'
-          }
-        </p>
-      </div>`;
+    return authEmailHtml({ user, body, link, ctaLabel, supportEmail: this.mail.supportEmail ?? null });
   }
 
   // Email verify: token random in Redis (TTL 24h), link catre FE in limba userului
@@ -153,6 +163,7 @@ export class AuthService {
         link,
         ro ? 'Confirmă emailul' : 'Confirm email',
       ),
+      { replyToSupport: true },
     );
   }
 
@@ -171,6 +182,7 @@ export class AuthService {
         link,
         ro ? 'Alege o parolă nouă' : 'Choose a new password',
       ),
+      { replyToSupport: true },
     );
   }
 
@@ -184,7 +196,7 @@ export class AuthService {
       });
     }
     const email = dto.email.toLowerCase();
-    const existing = await this.prisma.user.findUnique({ where: { email } });
+    const existing = await withDeletedRecords('EMAIL_UNIQUENESS', () => this.prisma.user.findUnique({ where: { email } }));
     if (existing) {
       throw new ConflictException({
         code: ERROR_CODES.EMAIL_ALREADY_REGISTERED,
@@ -200,13 +212,15 @@ export class AuthService {
         role: dto.role,
         languagePreference: dto.languagePreference ?? 'RO',
         termsAcceptedAt: new Date(),
+        termsVersion: LEGAL_TERMS_VERSION,
+        privacyVersion: LEGAL_PRIVACY_VERSION,
       },
     });
     // best-effort: daca SMTP pica, contul exista si userul poate cere retrimiterea
     try {
       await this.sendVerificationEmail(user);
     } catch (e) {
-      this.logger.warn(`emailul de verificare catre ${user.id} a esuat: ${(e as Error).message}`);
+      this.logger.warn(`emailul de verificare catre ${user.id} a esuat: ${safeErrorSummary(e)}`);
     }
     return this.toPublic(user);
   }
@@ -218,7 +232,7 @@ export class AuthService {
     try {
       await this.sendVerificationEmail(user);
     } catch (e) {
-      this.logger.warn(`retrimiterea emailului de verificare catre ${user.id} a esuat: ${(e as Error).message}`);
+      this.logger.warn(`retrimiterea emailului de verificare catre ${user.id} a esuat: ${safeErrorSummary(e)}`);
     }
   }
 
@@ -246,7 +260,7 @@ export class AuthService {
     try {
       await this.sendPasswordResetEmail(user, raw);
     } catch (e) {
-      this.logger.warn(`emailul de resetare parola catre ${user.id} a esuat: ${(e as Error).message}`);
+      this.logger.warn(`emailul de resetare parola catre ${user.id} a esuat: ${safeErrorSummary(e)}`);
     }
   }
 
@@ -273,6 +287,8 @@ export class AuthService {
     // toate sesiunile cad (parola compromisa); userul se autentifica din nou
     await this.tokens.revokeAllForUser(user.id);
     this.eventBus.emitAuthExpired(user.id);
+    // E-admin-platform-5: linkul dovedeste controlul adresei → ridica si pauza de login
+    await this.lockout.clear(user.email, { includeLock: true });
   }
 
   // Schimbare parola autentificata: verifica parola curenta, revoca toate familiile
@@ -295,20 +311,25 @@ export class AuthService {
         message: 'Current password is incorrect',
       });
     }
-    await this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: user.id },
       data: { passwordHash: await bcrypt.hash(newPassword, BCRYPT_COST) },
     });
-    await this.tokens.revokeAllForUser(user.id);
-    const refreshToken = await this.tokens.issueNewFamily(user.id);
-    const accessToken = await this.tokens.signAccessToken(user);
+    const { refreshToken, familyId } = await this.tokens.issueNewFamily(user.id, updated.passwordHash);
+    const accessToken = await this.tokens.signAccessToken(updated, familyId);
     this.eventBus.emitAuthExpired(user.id);
     return { accessToken, refreshToken };
   }
 
   // --- login / sesiuni ---
 
-  async login(dto: LoginDto): Promise<{ user: PublicUser; accessToken: string; refreshToken: string }> {
+  async login(
+    dto: LoginDto,
+    ctx: LoginAttemptContext = {},
+  ): Promise<{ user: PublicUser; accessToken: string; refreshToken: string }> {
+    // E-admin-platform-5: emailul in pauza raspunde LOGIN_COOLDOWN inainte de DB si bcrypt
+    // (identic pentru conturi existente/inexistente, chiar si cu parola corecta).
+    await this.lockout.assertNotLocked(dto.email);
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email.toLowerCase() },
     });
@@ -316,11 +337,20 @@ export class AuthService {
     // compara mereu (timing uniform), apoi decide
     const passwordOk = await bcrypt.compare(dto.password, user?.passwordHash ?? DUMMY_HASH);
     if (!user || user.deletedAt || !passwordOk) {
+      // la prag arunca LOGIN_COOLDOWN chiar pe aceasta incercare
+      await this.lockout.recordFailure(dto.email, user && !user.deletedAt ? user : null, ctx);
       throw new UnauthorizedException({
         code: ERROR_CODES.INVALID_CREDENTIALS,
         message: 'Invalid email or password',
       });
     }
+    // 2FA doar cand flagul e activ si userul are 2FA pornit (3.13)
+    const totpRequired = Boolean(
+      this.twoFactor.isFeatureEnabled && user.twoFactorEnabled && user.twoFactorSecret,
+    );
+    // parola corecta: contorul de esecuri se reseteaza (inclusiv pentru cont blocat/neconfirmat);
+    // cu 2FA, abia dupa codul TOTP corect (altfel codurile gresite nu s-ar mai aduna)
+    if (!totpRequired) await this.lockout.clear(dto.email);
     // D-L1-2 (pasul 6): cont blocat de admin — mesaj explicit DOAR dupa parola corecta
     // (altfel am confirma existenta contului fara credentiale valide).
     if (user.blockedAt) {
@@ -336,8 +366,7 @@ export class AuthService {
       });
     }
 
-    // 2FA doar cand flagul e activ si userul are 2FA pornit (3.13)
-    if (this.twoFactor.isFeatureEnabled && user.twoFactorEnabled && user.twoFactorSecret) {
+    if (totpRequired && user.twoFactorSecret) {
       if (!dto.totpCode) {
         throw new UnauthorizedException({
           code: ERROR_CODES.TWO_FACTOR_REQUIRED,
@@ -345,23 +374,26 @@ export class AuthService {
         });
       }
       if (!this.twoFactor.verifyLoginCode(user.twoFactorSecret, dto.totpCode)) {
+        await this.lockout.recordFailure(dto.email, user, ctx);
         throw new UnauthorizedException({
           code: ERROR_CODES.TWO_FACTOR_INVALID_CODE,
           message: 'Invalid TOTP code',
         });
       }
+      await this.lockout.clear(dto.email);
     }
 
     // O singura sesiune activa (3.13): revoca tot, familie noua, auth_expired pe socketul vechi
-    await this.tokens.revokeAllForUser(user.id);
-    const refreshToken = await this.tokens.issueNewFamily(user.id);
-    const accessToken = await this.tokens.signAccessToken(user);
+    const { refreshToken, familyId } = await this.tokens.issueNewFamily(user.id, user.passwordHash);
+    const accessToken = await this.tokens.signAccessToken(user, familyId);
     this.eventBus.emitAuthExpired(user.id);
 
-    return { user: this.toPublic(user), accessToken, refreshToken };
+    return { user: await this.toPublic(user), accessToken, refreshToken };
   }
 
-  async refresh(rawToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+  async refresh(
+    rawToken: string,
+  ): Promise<{ accessToken: string; refreshToken: string; role: User['role'] }> {
     const rotated = await this.tokens.rotate(rawToken);
     // Pasul 6 (audit 2026-08-23): contul sters soft sau blocat NU isi mai reinnoieste
     // sesiunea (inainte un cont sters ramanea functional pana la 7 zile prin refresh).
@@ -376,13 +408,17 @@ export class AuthService {
       });
     }
     return {
-      accessToken: await this.tokens.signAccessToken(user),
+      accessToken: await this.tokens.signAccessToken(user, rotated.familyId),
       refreshToken: rotated.refreshToken,
+      role: user.role,
     };
   }
 
   async logout(rawToken: string | undefined): Promise<void> {
-    if (rawToken) await this.tokens.revokeByRawToken(rawToken);
+    if (rawToken) {
+      const userId = await this.tokens.revokeByRawToken(rawToken);
+      if (userId) this.eventBus.emitAuthExpired(userId);
+    }
   }
 
   async me(userId: string): Promise<PublicUser> {

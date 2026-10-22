@@ -6,10 +6,12 @@ import {
   type RequestClarificationInput,
 } from '@marketplace/shared';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { runTx } from '../../infra/prisma/tx';
 import { EventBusService } from '../../infra/event-bus/event-bus.service';
 import { BusinessCalendarService } from '../../infra/calendar/business-calendar.service';
 import type { CompanyContext } from '../../common/company-context/company-context';
 import { ClaimsService } from './claims.service';
+import { CLARIFICATION_SLA_EXTENSION_WORKING_DAYS } from './claims.constants';
 
 // 4.11 — clarificare ceruta de firma catre client. Pune SLA pe pauza (slaPausedAt) si extinde
 // deadline-ul cu +1 zi lucratoare; la raspunsul clientului SLA se reia.
@@ -52,8 +54,8 @@ export class ClarificationsService {
     }
 
     const base = slot.slaDeadlineAt ?? new Date();
-    const newDeadline = this.calendar.addWorkingDays(base, 1);
-    const clarification = await this.prisma.$transaction(async (tx) => {
+    const newDeadline = this.calendar.addWorkingDays(base, CLARIFICATION_SLA_EXTENSION_WORKING_DAYS);
+    const clarification = await runTx(this.prisma, 'write', async (tx) => {
       const c = await tx.clarificationRequest.create({
         data: { claimSlotId, requestedByUserId: actingUserId, questionText: dto.questionText },
       });
@@ -99,7 +101,7 @@ export class ClarificationsService {
       slot.status === 'ACTIVE' && slot.slaPausedAt && slot.slaDeadlineAt
         ? new Date(slot.slaDeadlineAt.getTime() + (now.getTime() - slot.slaPausedAt.getTime()))
         : null;
-    const updated = await this.prisma.$transaction(async (tx) => {
+    const updated = await runTx(this.prisma, 'write', async (tx) => {
       const c = await tx.clarificationRequest.update({
         where: { id: clarificationId },
         data: { status: 'ANSWERED', answerText: dto.answerText, answeredAt: now },

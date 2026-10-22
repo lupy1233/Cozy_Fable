@@ -266,6 +266,8 @@
 
 ### D-v6-1. Opțiuni partajare contact
 
+**Istoric, inlocuit la 2026-07-15:** [decizia PO r6 W1](archive/16-feedback-po-r6-sprints.md#w1--context-post-claim-complet-backend) stabileste acces la contactele furnizate doar pentru claim ocupant (`ACTIVE`, `OFFER_SENT`, `COMPLETED`), eliminat la retragere/anulare. Regula curenta este in 03, sectiunea 4.2. Textul urmator ramane doar istoricul deciziei initiale.
+
 **Decizie: **Confirmate cele 5 opțiuni din 4.2 exact cum sunt scrise.
 
 **Rationale: **Acoperă tot spectrul de la anonim total la partajare imediată; nu mai e [PROPUNERE].

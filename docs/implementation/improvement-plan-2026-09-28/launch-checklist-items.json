@@ -1,0 +1,102 @@
+[
+ {
+  "id": "a1-seller",
+  "title": "Give the real seller data for invoices"
+ },
+ {
+  "id": "a2-email",
+  "title": "Choose how email works on day 1"
+ },
+ {
+  "id": "a3-terms",
+  "title": "Decide the forced Terms re-accept"
+ },
+ {
+  "id": "a4-cleanup",
+  "title": "Approve the pre-switch data check"
+ },
+ {
+  "id": "a5-backup",
+  "title": "Choose the backup before migrations"
+ },
+ {
+  "id": "a6-commit",
+  "title": "Approve the release commit"
+ },
+ {
+  "id": "a7-stripe",
+  "title": "Tell me which Stripe key is on production"
+ },
+ {
+  "id": "a8-window",
+  "title": "Pick the deploy window"
+ },
+ {
+  "id": "b0-efactura",
+  "title": "Choose the e-Factura route with your accountant"
+ },
+ {
+  "id": "b1",
+  "title": "Is the round-4 pricing final (Start 0 / Ofertare 299 / Prioritate 599, claim cost 3..25 credits, recurring billing)? Do credits expire 3 months after the subscription ends? How does a firm get a free plan, and what does it include? What should happen to a drifted wallet? Can the credit_cost column be dropped and docs/03 and docs/07 amended?"
+ },
+ {
+  "id": "b2",
+  "title": "Should a request stay claimable after the first offer while fewer than 3 firms have claimed it (option A, which amends invariant 3.1), or does the first offer close claims (option B)?"
+ },
+ {
+  "id": "b3",
+  "title": "When a project is cancelled after acceptance, are the winner's credits refunded or consumed? Does a mutual cancel close automatically? After how many days are expired, undecided offers auto-closed, and with what outcome and penalty? Should firms get an 'Am început execuția' action?"
+ },
+ {
+  "id": "b4",
+  "title": "Firm-side rules: who may withdraw or mark delivered (only owner/manager?), when do firms see client contacts (on claim or after the 30-minute grace), how long after completion do they keep seeing them, what limits apply to the 48h and 'request modified' refunds, a fresh re-quote window after an offer is withdrawn, and can a firm cancel its own pending withdrawal?"
+ },
+ {
+  "id": "b5",
+  "title": "Client privacy and request-flow knobs: should contacts typed in text be masked or block publishing? Should distance show as km or bands? Minimum firm radius 2 or 5 km, and location caps per plan? Are inspiration notes visible pre-claim? Does a note edit consume an edit? A public collection share link? Default budget bucket without an estimate? Wipe Studio scenes on logout? Edit or duplicate an expired request?"
+ },
+ {
+  "id": "b6",
+  "title": "Should offers carry a with/without-VAT flag and payment terms, can clients accept an older offer version, and should accept be blocked while their own change request is pending?"
+ },
+ {
+  "id": "b7",
+  "title": "Which vendors for off-site EU backups, the error tracker (Sentry EU or GlitchTip), cookieless analytics (Umami or Plausible), uptime monitor and dead-man switch? Who receives backup reports and holds key escrow? Should uploads stay on MinIO? What RTO? Is an admin ops panel for queues wanted?"
+ },
+ {
+  "id": "b8",
+  "title": "Production perimeter: remove the public Railway slot domains, which header carries the real client IP, keep the Redis throttler (+150 ms cross-region) or use memory until the EU migration, allowlist inspiration image hosts, pay for GitHub branch protection, and turn on secret scanning?"
+ },
+ {
+  "id": "b9",
+  "title": "Rubber-stamp the small defaults: admin login lockout after 5 attempts (reveals admin accounts), admins exempt from re-accepting Terms, legal gate UI-only, suspended firms losing access to ongoing projects, the bridge-days wording, and Sprint 75 design choices (mono badges, 20px section heading, mm_session role hint, Studio hex left for later)?"
+ },
+ {
+  "id": "c1",
+  "title": "Set up backups: EU off-site bucket and keys, age keys with escrow, backup_reader role, two Railway cron services, BACKUP_REPORT_TO; run setup-minio-uploads.sh on prod MinIO"
+ },
+ {
+  "id": "c2",
+  "title": "Set up monitoring: pick and create the error tracker (with DPA), analytics and uptime monitor, then set SENTRY_DSN / NEXT_PUBLIC_* variables"
+ },
+ {
+  "id": "c3",
+  "title": "Perimeter settings: run the X-Real-IP spoof test on standby, then set TRUSTED_CLIENT_IP_HEADER; set HEALTH_DETAILS_TOKEN and NEXT_PUBLIC_STORAGE_ORIGIN; decide THROTTLER_STORE; remove the public slot domains; turn on GitHub secret scanning and push protection"
+ },
+ {
+  "id": "c4",
+  "title": "Deploy: take a backup, run the prod pre-check queries, apply the 20 new migrations, blue/green release behind the CI gate, and confirm both slots subscribe to calendar:holidays:changed"
+ },
+ {
+  "id": "c5",
+  "title": "Migrate Postgres and Redis to the EU region (about 150 ms per query cross-region today)"
+ },
+ {
+  "id": "c6",
+  "title": "Fix local dev: free port 3000 or add :3002 to the local FRONTEND_ORIGIN; reseed demo with DEMO_PASSWORD; use 127.0.0.1 for SMTP/Redis/S3 hosts in the local .env"
+ },
+ {
+  "id": "c7",
+  "title": "Local cleanup: delete the stray empty file F:\\Git\\x.js and the local test data (legal.test1@demo.ro, test requests and orders)"
+ }
+]

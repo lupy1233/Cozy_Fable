@@ -1,0 +1,58 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(run)",
+
+      "Bash(pnpm --version)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm typecheck:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm build:shared)",
+      "Bash(pnpm next:*)",
+      "Bash(pnpm -F shared build)",
+      "Bash(pnpm -F shared typecheck)",
+      "Bash(pnpm -F backend typecheck)",
+      "Bash(pnpm -F backend test:*)",
+      "Bash(pnpm -F frontend typecheck)",
+      "Bash(pnpm -F frontend build)",
+      "Bash(cp apps/backend/.env.example apps/backend/.env)",
+
+      "Bash(pnpm -F backend prisma:generate)",
+      "Bash(pnpm -F backend prisma generate)",
+      "Bash(pnpm -F backend exec prisma generate)",
+      "Bash(pnpm -F backend exec prisma validate)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npx prisma validate:*)",
+
+      "Bash(docker --version)",
+      "Bash(docker version:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker port:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker stop:*)",
+      "Bash(netstat -ano)",
+
+      "Bash(curl -s http://localhost:3001/api/v1/health)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/api/v1/health)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" --max-time 3 http://localhost:3001/api/v1/health)",
+
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch --show-current)",
+      "Bash(git remote -v)",
+      "Bash(git ls-remote:*)",
+      "Bash(gh --version)",
+      "Bash(gh auth status:*)",
+      "Bash(gh repo view:*)",
+
+      "PowerShell(pnpm *)",
+      "PowerShell(docker version *)",
+      "PowerShell(docker compose *)",
+      "PowerShell(docker ps *)",
+      "PowerShell(Get-Content *)"
+    ]
+  }
+}

@@ -67,6 +67,8 @@ enum RequestStatus {
   COMPLETED
   DISPUTED
   EXPIRED
+  // E-admin-platform-3: proiect anulat dupa acceptare (inchis de admin, decontare unica)
+  CANCELLED
 
   @@map("request_status")
 }
@@ -126,6 +128,13 @@ enum RoomType {
   PIECE_SHOE_CABINET
   PIECE_NIGHTSTAND
   PIECE_BENCH
+  PIECE_SIDEBOARD
+  PIECE_WALL_CABINET
+  PIECE_BATHROOM_VANITY
+  PIECE_ENTRYWAY
+  PIECE_SOFA
+  PIECE_ARMCHAIR
+  PIECE_OTTOMAN
 
   @@map("room_type")
 }
@@ -210,8 +219,52 @@ enum ClaimSlotStatus {
   COMPLETED
   // L0-B: slot nealese inchis la acceptarea altei oferte (4.14 — chat read-only imediat).
   CANCELLED_REQUEST_ACCEPTED
+  // E-admin-platform-3: slotul castigator la anularea proiectului (inchis de admin)
+  CANCELLED_PROJECT
+  // E-admin-platform-3: oferta expirata fara decizie a clientului, inchisa automat (setari)
+  CANCELLED_OFFER_EXPIRED
 
   @@map("claim_slot_status")
+}
+
+// E-admin-platform-3 — raportarea unui proiect blocat dupa acceptare (request_project_cases).
+enum ProjectCaseReason {
+  FIRM_UNRESPONSIVE
+  CLIENT_UNRESPONSIVE
+  MUTUAL_CANCEL_REQUEST
+  OTHER
+
+  @@map("project_case_reason")
+}
+
+enum ProjectCaseOpenedBy {
+  CLIENT
+  COMPANY
+
+  @@map("project_case_opened_by")
+}
+
+enum ProjectCaseStatus {
+  OPEN
+  CLOSED_PROJECT_CANCELLED
+  DISMISSED
+
+  @@map("project_case_status")
+}
+
+enum ProjectCaseResponse {
+  CONFIRMED_CANCEL
+  CONTESTED
+
+  @@map("project_case_response")
+}
+
+// Decontarea explicita a creditelor rezervate la inchiderea unui slot (admin / setari).
+enum SettlementOutcome {
+  REFUND
+  CONSUME
+
+  @@map("settlement_outcome")
 }
 
 // docs/04 §5.5 — claim_withdrawals.reason_type (verbatim, 4.15).
@@ -275,6 +328,18 @@ enum BillingOrderStatus {
   CANCELLED
 
   @@map("billing_order_status")
+}
+
+// E-admin-platform-4 — raportare e-Factura per comanda (ruta manuala pana la decizia PO).
+// NOT_REQUIRED = comanda Stripe test (fara numar fiscal).
+enum EInvoiceStatus {
+  PENDING
+  UPLOADED
+  VALIDATED
+  REJECTED
+  NOT_REQUIRED
+
+  @@map("e_invoice_status")
 }
 
 // docs/04 §5.2 request_company_exclusions — motiv excludere re-claim (4.11).
@@ -341,6 +406,9 @@ model User {
   emailVerifiedAt    DateTime? @map("email_verified_at") @db.Timestamptz()
   // L0-A: momentul acceptarii termenilor la inregistrare (NULL la conturile vechi)
   termsAcceptedAt    DateTime? @map("terms_accepted_at") @db.Timestamptz()
+  // E-admin-platform-2: versiunile Termenilor/Politicii acceptate (NULL = conturi vechi → re-acceptare)
+  termsVersion       String?   @map("terms_version") @db.VarChar(32)
+  privacyVersion     String?   @map("privacy_version") @db.VarChar(32)
   twoFactorSecret    String?   @map("two_factor_secret")
   twoFactorEnabled   Boolean   @default(false) @map("two_factor_enabled")
   // D-L1-2 (PO 2026-08-23): blocare cont de catre admin — login/refresh/me refuza cu
@@ -371,6 +439,10 @@ model Company {
   addressText     String        @map("address_text")
   county          String
   city            String
+  // E-company-19: platitor TVA (declarat: prefix RO la onboarding / PATCH me) → cod TVA RO pe factura
+  isVatPayer      Boolean       @default(false) @map("is_vat_payer")
+  // E-company-24: adresa optionala de facturare (ex. contabilul) — primeste proforma si facturile
+  billingEmail    String?       @map("billing_email") @db.VarChar(254)
   lat             Float
   lng             Float
   rejectedAt      DateTime?     @map("rejected_at") @db.Timestamptz()
@@ -541,6 +613,8 @@ model Request {
   // decizia PO 2026-08-23: livrarea nemarcata de client se confirma automat la 14 zile
   // calendaristice de la delivered_at (worker delivery-autocomplete + sweep reconciliere)
   deliveredAt        DateTime?     @map("delivered_at") @db.Timestamptz()
+  // E-admin-platform-3: momentul in care adminul a inchis proiectul (status CANCELLED)
+  cancelledAt        DateTime?     @map("cancelled_at") @db.Timestamptz()
   createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
 
@@ -553,6 +627,8 @@ model Request {
   review             Review?
   inspirationPhotos  RequestInspirationPhoto[]
   studioScenes       RequestStudioScene[]
+  projectCases       RequestProjectCase[]
+  contactDetections  RequestContactDetection[]
 
   @@index([clientUserId])
   @@index([status])
@@ -607,15 +683,21 @@ model InspirationPhoto {
 }
 
 // Pozele din galerie alese de client ca inspiratie pe o cerere (F6, item 3).
+// E-client-34: notita clientului (max 200, text liber -> screening + mascare ca descrierea)
+// si camera cererii careia ii e destinata poza (SET NULL cand camera dispare la editare).
 model RequestInspirationPhoto {
-  requestId String @map("request_id")
-  photoId   String @map("photo_id")
+  requestId     String  @map("request_id")
+  photoId       String  @map("photo_id")
+  note          String? @db.VarChar(200)
+  requestRoomId String? @map("request_room_id")
 
   request Request          @relation(fields: [requestId], references: [id], onDelete: Cascade)
   photo   InspirationPhoto @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  room    RequestRoom?     @relation(fields: [requestRoomId], references: [id], onDelete: SetNull)
 
   @@id([requestId, photoId])
   @@index([photoId])
+  @@index([requestRoomId])
   @@map("request_inspiration_photos")
 }
 
@@ -637,6 +719,33 @@ model RequestStudioScene {
 
   @@index([requestId])
   @@map("request_studio_scenes")
+}
+
+// E-admin-platform-45 (F2-16): date de contact detectate in texte libere la
+// publicare/editare. Doar fragment partial ascuns (fara valoarea bruta, fara user id);
+// valorile trigger/field/action/kinds sunt validate in aplicatie din constantele shared
+// (CONTACT_DETECTION_*), fara enum-uri Postgres. Se sterge doar prin cascada cu cererea.
+model RequestContactDetection {
+  id        String    @id @default(uuid())
+  requestId String    @map("request_id")
+  // PUBLISH | EDIT
+  trigger   String    @db.VarChar(16)
+  // TITLE | DESCRIPTION | ANSWER
+  field     String    @db.VarChar(16)
+  roomType  RoomType? @map("room_type")
+  stepId    String?   @map("step_id") @db.VarChar(80)
+  // PHONE | EMAIL | URL | HANDLE | MESSENGER
+  kinds     String[]
+  excerpt   String    @db.VarChar(240)
+  // MASKED | BLOCKED | TITLE_REPLACED | FLAGGED
+  action    String    @db.VarChar(16)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([createdAt])
+  @@map("request_contact_detections")
 }
 
 // Studio 3D (mod Sims, cerinta PO 2026-08-02): drafturile salvate in cont —
@@ -676,9 +785,12 @@ model InspirationBoard {
 }
 
 model InspirationBoardItem {
-  boardId   String   @map("board_id")
-  photoId   String   @map("photo_id")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  boardId   String    @map("board_id")
+  photoId   String    @map("photo_id")
+  // E-client-34: notita privata a utilizatorului + camera pentru care a salvat ideea
+  note      String?   @db.VarChar(200)
+  roomType  RoomType? @map("room_type")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
 
   board InspirationBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
   photo InspirationPhoto @relation(fields: [photoId], references: [id], onDelete: Cascade)
@@ -718,6 +830,8 @@ model RequestRoom {
   request     Request                 @relation(fields: [requestId], references: [id], onDelete: Cascade)
   items       RequestRoomItem[]
   quotePrices QuoteVersionRoomPrice[]
+  // E-client-34: pozele de inspiratie legate de aceasta camera
+  inspirationPhotos RequestInspirationPhoto[]
 
   @@index([requestId])
   @@map("request_rooms")
@@ -778,13 +892,13 @@ model ProjectSizingConfig {
   @@map("project_sizing_config")
 }
 
-// docs/sprint-0 §7 — praguri marime → cost credite.
+// docs/sprint-0 §7 — praguri marime S/M/L (costul in credite NU mai vine de aici, PO r5).
 model ProjectSizeThreshold {
   id         String      @id @default(uuid())
   size       ProjectSize @unique
   minScore   Int         @map("min_score")
   maxScore   Int?        @map("max_score")
-  creditCost Int         @map("credit_cost")
+  creditCost Int?        @map("credit_cost") // legacy PO r5 — necitit; nu scrie; DROP in release separat
 
   @@map("project_size_thresholds")
 }
@@ -813,18 +927,39 @@ model SystemSetting {
 }
 
 // docs/04 §5.3 + 4.10/4.16 — planuri abonament (seed configurabil din Admin).
+// E-admin-platform-58: planurile sunt date (cod + nume RO/EN + functii per plan).
 model SubscriptionPlan {
-  id                        String               @id @default(uuid())
-  tier                      SubscriptionPlanTier @unique
-  priceRon                  Int                  @map("price_ron")
-  includedCredits           Int                  @map("included_credits")
-  marketplaceGatingDelayMin Int                  @map("marketplace_gating_delay_minutes")
-  isActive                  Boolean              @default(true) @map("is_active")
-  createdAt                 DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+  id                        String                @id @default(uuid())
+  // legacy; identitatea planului = code; DROP intr-un release separat (expand/contract blue/green)
+  tier                      SubscriptionPlanTier? @unique
+  code                      String                @unique
+  nameRo                    String?               @map("name_ro")
+  nameEn                    String?               @map("name_en")
+  priceRon                  Int                   @map("price_ron")
+  includedCredits           Int                   @map("included_credits")
+  marketplaceGatingDelayMin Int                   @map("marketplace_gating_delay_minutes")
+  isActive                  Boolean               @default(true) @map("is_active")
+  createdAt                 DateTime              @default(now()) @map("created_at") @db.Timestamptz()
 
   subscriptions Subscription[]
+  features      SubscriptionPlanFeature[]
 
   @@map("subscription_plans")
+}
+
+// E-admin-platform-58: functiile unui plan (registrul cheilor = packages/shared plan-features.ts).
+// Rand lipsa = functie dezactivata; limit_value = cota viitoare (null = fara limita).
+model SubscriptionPlanFeature {
+  planId     String   @map("plan_id")
+  featureKey String   @map("feature_key")
+  enabled    Boolean  @default(false)
+  limitValue Int?     @map("limit_value")
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  plan SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@id([planId, featureKey])
+  @@map("subscription_plan_features")
 }
 
 // docs/04 §5.1 + §5.3 + 4.16 — abonament firma (o singura activa per firma).
@@ -866,6 +1001,9 @@ model CompanyCreditWallet {
 }
 
 // docs/04 §5.1 — registru miscari credite (audit + sursa de adevar a soldului).
+// E-admin-platform-15: 2 indexuri UNICE PARTIALE traiesc DOAR in SQL (20261001010000):
+// max un RESERVE si max o decontare (REFUND/CONSUME) per claim_slot_id. `reason` ramane text;
+// scrierile noi sunt tipate cu CREDIT_REASONS din packages/shared.
 model CreditTransaction {
   id          String                @id @default(uuid())
   companyId   String                @map("company_id")
@@ -912,6 +1050,7 @@ model ClaimSlot {
   quotes         Quote[]
   withdrawals    ClaimWithdrawal[]
   clarifications ClarificationRequest[]
+  projectCases   RequestProjectCase[]
 
   // O firma da claim o singura data per cerere (slot ne-anulat). Enforce in service.
   @@index([requestId, status])
@@ -1015,15 +1154,20 @@ model Quote {
   extraVersionsCount Int           @default(0) @map("extra_versions_count")
   withdrawnAt        DateTime?     @map("withdrawn_at") @db.Timestamptz()
   acceptedAt         DateTime?     @map("accepted_at") @db.Timestamptz()
+  // E-client-1: versiunea confirmata de client la accept (docs/04); NULL pe accepturile
+  // dinainte de migrare → cititorii cad pe ultima versiune
+  acceptedVersionId  String?       @unique @map("accepted_version_id")
   createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
 
   claimSlot           ClaimSlot                    @relation(fields: [claimSlotId], references: [id], onDelete: Cascade)
   request             Request                      @relation(fields: [requestId], references: [id], onDelete: Cascade)
   company             Company                      @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  versions            QuoteVersion[]
+  versions            QuoteVersion[]               @relation("QuoteVersions")
+  acceptedVersion     QuoteVersion?                @relation("QuoteAcceptedVersion", fields: [acceptedVersionId], references: [id], onDelete: SetNull)
   consultationInvites PhysicalConsultationInvite[]
 
+  // index partial unic quotes_one_live_per_claim_slot traieste DOAR in SQL (20260929213000)
   @@index([claimSlotId])
   @@index([requestId])
   @@index([companyId])
@@ -1047,8 +1191,12 @@ model QuoteVersion {
   createdByUserId String    @map("created_by_user_id")
   sentAt          DateTime  @default(now()) @map("sent_at") @db.Timestamptz()
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  // E-admin-platform-3: clientul a cerut prelungirea unei oferte EXPIRED (o singura data per versiune)
+  extensionRequestedAt DateTime? @map("extension_requested_at") @db.Timestamptz()
 
-  quote              Quote                    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  quote              Quote                    @relation("QuoteVersions", fields: [quoteId], references: [id], onDelete: Cascade)
+  // E-client-1: oferta care a acceptat aceasta versiune (docs/04)
+  acceptedByQuote    Quote?                   @relation("QuoteAcceptedVersion")
   changeRequests     QuoteChangeRequest[]
   validityExtensions QuoteValidityExtension[]
   roomPrices         QuoteVersionRoomPrice[]
@@ -1088,6 +1236,7 @@ model QuoteChangeRequest {
 
   quoteVersion QuoteVersion @relation(fields: [quoteVersionId], references: [id], onDelete: Cascade)
 
+  // index partial unic quote_change_requests_one_pending_per_version traieste DOAR in SQL (20260929213000)
   @@index([quoteVersionId])
   @@map("quote_change_requests")
 }
@@ -1165,6 +1314,40 @@ model ClaimWithdrawal {
   @@index([claimSlotId])
   @@index([status])
   @@map("claim_withdrawals")
+}
+
+// E-admin-platform-3 — caz raportat de client sau de firma castigatoare dupa acceptare
+// (proiect blocat / anulare de comun acord). Doar adminul inchide proiectul si alege
+// explicit REFUND sau CONSUME. Notele sunt text liber fara coloane PII; nu exista soft delete.
+// Indexul unic PARTIAL "request_project_cases_one_open_per_request" (un singur caz OPEN per
+// cerere) traieste DOAR in SQL (migrarea 20260929120000) — Prisma nu modeleaza indexuri
+// partiale; un `migrate dev` care reseteaza din schema l-ar pierde. Nu il sterge.
+model RequestProjectCase {
+  id                String               @id @default(uuid())
+  requestId         String               @map("request_id")
+  claimSlotId       String               @map("claim_slot_id")
+  openedBy          ProjectCaseOpenedBy  @map("opened_by")
+  openedByUserId    String               @map("opened_by_user_id")
+  reason            ProjectCaseReason
+  note              String?
+  status            ProjectCaseStatus    @default(OPEN)
+  response          ProjectCaseResponse?
+  respondedByUserId String?              @map("responded_by_user_id")
+  responseNote      String?              @map("response_note")
+  respondedAt       DateTime?            @map("responded_at") @db.Timestamptz()
+  resolvedByUserId  String?              @map("resolved_by_user_id")
+  resolvedAt        DateTime?            @map("resolved_at") @db.Timestamptz()
+  creditOutcome     SettlementOutcome?   @map("credit_outcome")
+  adminNote         String?              @map("admin_note")
+  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime             @updatedAt @map("updated_at") @db.Timestamptz()
+
+  request   Request   @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  claimSlot ClaimSlot @relation(fields: [claimSlotId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([status])
+  @@map("request_project_cases")
 }
 
 // docs/04 §5.1 + 4.11 — clarificare ceruta firmei catre client; pune SLA pe pauza (+1 zi lucr.).
@@ -1293,16 +1476,32 @@ model MockBillingOrder {
   // Stripe Checkout (decizie PO 2026-08-19): sesiunea curenta (re-creata la "Continua plata"),
   // PaymentIntent-ul la plata reusita, momentul platii si al anularii.
   stripeSessionId       String?      @unique @map("stripe_session_id")
+  stripeCheckoutAttempt Json?              @map("stripe_checkout_attempt")
   stripePaymentIntentId String?      @map("stripe_payment_intent_id")
   paidAt                DateTime?    @map("paid_at") @db.Timestamptz()
   cancelledAt           DateTime?    @map("cancelled_at") @db.Timestamptz()
   createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz()
+  // E-admin-platform-4: e-Factura (ruta manuala pana la decizia PO), cumparator inghetat, comenzi Stripe test fara numar fiscal
+  testMode          Boolean         @default(false) @map("test_mode")
+  buyerSnapshot     Json?           @map("buyer_snapshot")
+  // perioada abonamentului facturat, scrisa o data la confirm()
+  servicePeriodStart DateTime?     @map("service_period_start") @db.Timestamptz()
+  servicePeriodEnd   DateTime?     @map("service_period_end") @db.Timestamptz()
+  eInvoiceStatus    EInvoiceStatus? @map("e_invoice_status")
+  anafUploadId      String?         @map("anaf_upload_id") @db.VarChar(32)
+  anafDownloadId    String?         @map("anaf_download_id") @db.VarChar(32)
+  eInvoiceUpdatedAt DateTime?       @map("e_invoice_updated_at") @db.Timestamptz()
+  // E-company-24: transfer bancar — firma a apasat "Am platit" (nu se mai anuleaza automat) +
+  // momentul reminderului de plata (trimis o singura data)
+  paymentClaimedAt       DateTime?  @map("payment_claimed_at") @db.Timestamptz()
+  transferReminderSentAt DateTime?  @map("transfer_reminder_sent_at") @db.Timestamptz()
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@unique([invoiceSeries, invoiceNumber])
   @@index([companyId])
   @@index([status])
+  @@index([eInvoiceStatus])
   @@map("mock_billing_orders")
 }
 
@@ -1346,7 +1545,31 @@ model Notification {
   payload   Json?
   readAt    DateTime? @map("read_at") @db.Timestamptz()
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  eventId          String?   @map("event_id")
+  emailDeliveredAt DateTime? @map("email_delivered_at") @db.Timestamptz()
 
+  @@unique([eventId, userId])
   @@index([userId, readAt])
   @@map("notifications")
+}
+
+// Metadate de livrare, fara adrese email, nume de persoane sau continut de mesaje.
+model DomainEventOutbox {
+  id            String    @id @default(uuid())
+  eventKey      String    @unique @map("event_key")
+  eventType     String    @map("event_type")
+  payload       Json
+  targetUserIds String[]  @map("target_user_ids")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  dispatchedAt  DateTime? @map("dispatched_at") @db.Timestamptz()
+  completedAt   DateTime? @map("completed_at") @db.Timestamptz()
+  leaseUntil    DateTime? @map("lease_until") @db.Timestamptz()
+  attempts      Int       @default(0)
+  lastError     String?   @map("last_error")
+  // E-company-24: copia pentru emailul de facturare al firmei (contabil) trimisa o singura data
+  billingContactEmailedAt DateTime? @map("billing_contact_emailed_at") @db.Timestamptz()
+
+  @@index([dispatchedAt, leaseUntil, createdAt])
+  @@index([completedAt, dispatchedAt])
+  @@map("domain_event_outbox")
 }

@@ -1,9 +1,14 @@
+import { headers } from 'next/headers';
+
 // 404 pentru rutele din AFARA segmentului de limba (ex. /xyz sau o limba
 // necunoscuta): se randeaza fara [locale]/layout.tsx, deci fara i18n, fonturi
 // sau Providers — html/body minimale, bilingv, cu link catre "/"
 // (middleware-ul duce pe limba salvata). 404-ul "normal" (din /ro, /en) e
 // [locale]/not-found.tsx, in cadrul paginilor publice.
-export default function RootNotFound() {
+// E-admin-platform-56: headers() face 404-ul dinamic, ca scripturile Next sa primeasca
+// nonce-ul CSP-ului din middleware (o pagina statica ar avea scripturile blocate).
+export default async function RootNotFound() {
+  await headers();
   return (
     <html lang="ro">
       <body

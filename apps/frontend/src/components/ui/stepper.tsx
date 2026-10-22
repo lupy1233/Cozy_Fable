@@ -23,7 +23,7 @@ export function Stepper({
             <div
               title={s}
               className={cn(
-                'grid h-[22px] w-[22px] place-items-center rounded-[3px] border font-mono text-[10px]',
+                'grid h-[22px] w-[22px] place-items-center rounded-[3px] border font-mono text-micro',
                 done && 'border-sage bg-sage text-white',
                 active && 'border-foreground bg-foreground text-background',
                 !done && !active && 'border-border-2 text-muted-foreground',

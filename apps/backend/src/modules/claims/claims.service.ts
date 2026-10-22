@@ -8,6 +8,7 @@ import {
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   ERROR_CODES,
+  can,
   type AssignClaimInput,
   type ClaimSlotDto,
   type CreateClaimInput,
@@ -15,24 +16,33 @@ import {
 import { Prisma, type ClaimSlot, type ProjectSize, type RequestStatus } from '@prisma/client';
 import type { Queue } from 'bullmq';
 import { PrismaService } from '../../infra/prisma/prisma.service';
-import { EventBusService } from '../../infra/event-bus/event-bus.service';
+import { runTx } from '../../infra/prisma/tx';
+import { lockIdempotentOperation, saveIdempotentResult } from '../../common/idempotency/idempotent-operation';
+import { OutboxService } from '../outbox/outbox.service';
 import { SettingsService } from '../../common/settings/settings.service';
+import { SETTING_DEFAULTS } from '../../common/settings/setting-defaults';
+import { snapToPrivacyGrid } from '../../common/privacy/location-privacy';
 import { BusinessCalendarService } from '../../infra/calendar/business-calendar.service';
 import { QUEUE_CLAIM_ASSIGN, QUEUE_SLA_BREACH } from '../../infra/queues/queues.module';
 import type { CompanyContext } from '../../common/company-context/company-context';
 import { CreditsService } from '../billing/credits.service';
 import {
   ASSIGN_DEADLINE_MS,
-  CLAIMABLE_STATUSES,
-  CLAIM_TX_TIMEOUT_MS,
+  ASSIGN_WARNING_JOB,
   OCCUPYING_CLAIM_STATUSES,
+  SETTING_CLAIMS_OPEN_AFTER_FIRST_OFFER,
   SLA_DAYS,
+  SLA_GRACE_WARNING_JOB,
+  SLA_WARNING_JOB,
+  claimableStatuses,
 } from './claims.constants';
 import {
+  assignWarningJobOptions,
   haversineKm,
   recomputeRequestStatusAfterClaimChange,
   slaBreachJobOptions,
-  withSerializationRetry,
+  slaGraceWarningJobOptions,
+  slaWarningJobOptions,
 } from './claims.helpers';
 import type { ClaimAssignJob } from './claim-assign.processor';
 import type { SlaBreachJob } from './sla-breach.processor';
@@ -58,7 +68,7 @@ export class ClaimsService {
     private readonly prisma: PrismaService,
     private readonly credits: CreditsService,
     private readonly settings: SettingsService,
-    private readonly eventBus: EventBusService,
+    private readonly outbox: OutboxService,
     private readonly calendar: BusinessCalendarService,
     @InjectQueue(QUEUE_CLAIM_ASSIGN) private readonly assignQueue: Queue<ClaimAssignJob>,
     @InjectQueue(QUEUE_SLA_BREACH) private readonly slaQueue: Queue<SlaBreachJob>,
@@ -67,8 +77,26 @@ export class ClaimsService {
   // Programeaza (sau reprogrameaza) verificarea de ratare SLA la deadline + grace (12h).
   // jobId include deadline-ul ca timestamp → reprogramarea (clarificare) adauga un job nou,
   // iar cel vechi se auto-ignora in procesor (verifica deadline-ul curent al slotului).
+  // E-admin-platform-44: + avertizarea sla.expiring_soon (jobId cu termenul → un warning per termen).
+  // E-company-13: + reminderul de la inceputul gratiei (warn-sla-grace, tot per termen).
   async scheduleSlaBreach(claimSlotId: string, slaDeadlineAt: Date): Promise<void> {
-    await this.slaQueue.add('breach', { claimSlotId }, slaBreachJobOptions(claimSlotId, slaDeadlineAt));
+    await this.slaQueue.add('breach', { claimSlotId }, slaBreachJobOptions(claimSlotId, slaDeadlineAt))
+      .catch(() => this.logger.warn(`SLA schedule deferred to reconciliation for ${claimSlotId}`));
+    await this.slaQueue
+      .add(
+        SLA_WARNING_JOB,
+        { claimSlotId, slaDeadlineAt: slaDeadlineAt.toISOString() },
+        slaWarningJobOptions(claimSlotId, slaDeadlineAt),
+      )
+      .catch(() => this.logger.warn(`SLA warning schedule deferred to reconciliation for ${claimSlotId}`));
+    // E-company-13 — al doilea reminder la inceputul gratiei (la termen)
+    await this.slaQueue
+      .add(
+        SLA_GRACE_WARNING_JOB,
+        { claimSlotId, slaDeadlineAt: slaDeadlineAt.toISOString() },
+        slaGraceWarningJobOptions(claimSlotId, slaDeadlineAt),
+      )
+      .catch(() => this.logger.warn(`SLA grace warning schedule deferred to reconciliation for ${claimSlotId}`));
   }
 
   // Claim tranzactional (invarianta 3.1): Serializable + SELECT FOR UPDATE pe requests.
@@ -83,7 +111,15 @@ export class ClaimsService {
         message: 'Managed employees cannot claim',
       });
     }
-    const maxClaims = await this.settings.getInt('max_claims_per_request', 3);
+    const [maxClaims, openAfterFirstOffer] = await Promise.all([
+      this.settings.getInt('max_claims_per_request', SETTING_DEFAULTS.max_claims_per_request),
+      this.settings.getBool(
+        SETTING_CLAIMS_OPEN_AFTER_FIRST_OFFER,
+        SETTING_DEFAULTS.claims_open_after_first_offer,
+      ),
+    ]);
+    // E-admin-platform-10: 3.1 literal (flag oprit) sau + OFFERS_RECEIVED/NEGOTIATION (varianta A)
+    const claimable = claimableStatuses(openAfterFirstOffer);
     const assignToUserId = dto.assignToUserId ?? null;
 
     if (assignToUserId) {
@@ -103,125 +139,132 @@ export class ClaimsService {
     // gating-ul planului (4.10) — setat de SubscriptionActiveGuard; lipsa = fara intarziere
     const gatingMinutes = ctx.gatingDelayMinutes ?? 0;
     try {
-      // retry 1x la serialization failure (P2034): doua claim-uri simultane pe aceeasi
-      // cerere — al doilea reia si vede starea reala (sloturi pline etc.), nu 500.
-      const res = await withSerializationRetry(() =>
-        this.prisma.$transaction(
-          async (tx) => {
-            // 1. Lock pe request
-            // NB: coloana reala e size_score (map Prisma) → aliasata la project_score.
-            // id e TEXT (String @id), nu uuid → fara cast ::uuid (altfel text = uuid fail).
-            const locked = await tx.$queryRaw<LockedRequest[]>`
-              SELECT id, status, deleted_at, published_at, lat, lng, project_size,
-                     size_score AS project_score, credit_cost
-              FROM requests WHERE id = ${dto.requestId} FOR UPDATE`;
-            const req = locked[0];
-            if (!req) {
-              throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Request not found' });
-            }
-            // 2. Status claimabil + cerere nestearsa (soft delete 3.12 / 4.15)
-            if (req.deleted_at !== null || !CLAIMABLE_STATUSES.includes(req.status)) {
-              throw new HttpException(
-                { code: ERROR_CODES.CLAIM_NOT_ALLOWED, message: 'Request is not claimable' },
-                409,
-              );
-            }
-            if (
-              req.project_size === null ||
-              req.project_score === null ||
-              req.credit_cost === null ||
-              req.lat === null ||
-              req.lng === null ||
-              req.published_at === null
-            ) {
-              throw new HttpException(
-                { code: ERROR_CODES.CLAIM_NOT_ALLOWED, message: 'Request is not fully published' },
-                409,
-              );
-            }
-            // 2b. Gating per plan (4.10): published_at + delay(plan) <= now, altfel GATING_NOT_OPEN.
-            if (req.published_at.getTime() + gatingMinutes * 60_000 > Date.now()) {
-              throw new ForbiddenException({
-                code: ERROR_CODES.GATING_NOT_OPEN,
-                message: 'Request not yet visible for your subscription plan',
-              });
-            }
-            // 3. Sloturi ocupate < max
-            const occupied = await tx.claimSlot.count({
-              where: { requestId: req.id, status: { in: OCCUPYING_CLAIM_STATUSES } },
-            });
-            if (occupied >= maxClaims) {
-              throw new HttpException(
-                { code: ERROR_CODES.CLAIM_SLOTS_FULL, message: 'No claim slots left' },
-                409,
-              );
-            }
-            // 4a. Firma neexclusa (4.11)
-            const excluded = await tx.requestCompanyExclusion.findUnique({
-              where: { requestId_companyId: { requestId: req.id, companyId: ctx.companyId } },
-            });
-            if (excluded) {
-              throw new ForbiddenException({
-                code: ERROR_CODES.COMPANY_EXCLUDED_FROM_REQUEST,
-                message: 'Company excluded from this request',
-              });
-            }
-            // 4b. Firma nu a dat deja claim ocupant
-            const own = await tx.claimSlot.findFirst({
-              where: {
-                requestId: req.id,
-                companyId: ctx.companyId,
-                status: { in: OCCUPYING_CLAIM_STATUSES },
-              },
-            });
-            if (own) {
-              throw new HttpException(
-                { code: ERROR_CODES.CLAIM_ALREADY_EXISTS, message: 'Company already claimed' },
-                409,
-              );
-            }
-            // 4c. Arie de acoperire (4.8) — cel putin o locatie cu Haversine <= coverage_radius_km
-            await this.assertCoverage(tx, ctx.companyId, req.lat, req.lng);
-            // 4d. Regula 1-claim-activ-fara-oferta / cap manager (4.9)
-            await this.assertAssignmentRules(tx, ctx, actingUserId, assignToUserId);
-
-            // 5. Creeaza slot + chat + rezerva credite + update status
-            // SLA materializat la claim (4.11): zile lucratoare per marime (3/3/5).
-            const slaDeadlineAt = this.calendar.addWorkingDays(
-              new Date(),
-              SLA_DAYS[req.project_size],
-            );
-            const slot = await tx.claimSlot.create({
-              data: {
-                requestId: req.id,
-                companyId: ctx.companyId,
-                claimedByUserId: actingUserId,
-                assignedToUserId: assignToUserId,
-                status: 'ACTIVE',
-                projectSizeSnapshot: req.project_size,
-                projectScoreSnapshot: req.project_score,
-                claimCostCreditsSnapshot: req.credit_cost,
-                slaDeadlineAt,
-                assignDeadlineAt: assignToUserId
-                  ? null
-                  : new Date(Date.now() + ASSIGN_DEADLINE_MS),
-              },
-            });
-            const thread = await tx.chatThread.create({ data: { claimSlotId: slot.id } });
-            await this.credits.reserve(
-              ctx.companyId,
-              req.credit_cost,
-              'CLAIM_RESERVE',
-              slot.id,
-              tx,
-            );
-            await recomputeRequestStatusAfterClaimChange(tx, req.id, undefined, maxClaims);
-
-            return { slot, threadId: thread.id };
+      // runTx profil claim (3.1: Serializable 10 s) reincearca la serialization failure: doua
+      // claim-uri simultane pe aceeasi cerere — al doilea reia si vede starea reala (sloturi pline etc.), nu 500.
+      const res = await runTx(this.prisma, 'claim', async (tx) => {
+        await lockIdempotentOperation(tx);
+        // 1. Lock pe request
+        // NB: coloana reala e size_score (map Prisma) → aliasata la project_score.
+        // id e TEXT (String @id), nu uuid → fara cast ::uuid (altfel text = uuid fail).
+        const locked = await tx.$queryRaw<LockedRequest[]>`
+          SELECT id, status, deleted_at, published_at, lat, lng, project_size,
+                 size_score AS project_score, credit_cost
+          FROM requests WHERE id = ${dto.requestId} FOR UPDATE`;
+        const req = locked[0];
+        if (!req) {
+          throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Request not found' });
+        }
+        // 2. Status claimabil + cerere nestearsa (soft delete 3.12 / 4.15)
+        if (req.deleted_at !== null || !claimable.includes(req.status)) {
+          throw new HttpException(
+            { code: ERROR_CODES.CLAIM_NOT_ALLOWED, message: 'Request is not claimable' },
+            409,
+          );
+        }
+        if (
+          req.project_size === null ||
+          req.project_score === null ||
+          req.credit_cost === null ||
+          req.lat === null ||
+          req.lng === null ||
+          req.published_at === null
+        ) {
+          throw new HttpException(
+            { code: ERROR_CODES.CLAIM_NOT_ALLOWED, message: 'Request is not fully published' },
+            409,
+          );
+        }
+        // 2b. Gating per plan (4.10): published_at + delay(plan) <= now, altfel GATING_NOT_OPEN.
+        if (req.published_at.getTime() + gatingMinutes * 60_000 > Date.now()) {
+          throw new ForbiddenException({
+            code: ERROR_CODES.GATING_NOT_OPEN,
+            message: 'Request not yet visible for your subscription plan',
+          });
+        }
+        // 3. Sloturi ocupate < max
+        const occupied = await tx.claimSlot.count({
+          where: { requestId: req.id, status: { in: OCCUPYING_CLAIM_STATUSES } },
+        });
+        if (occupied >= maxClaims) {
+          throw new HttpException(
+            { code: ERROR_CODES.CLAIM_SLOTS_FULL, message: 'No claim slots left' },
+            409,
+          );
+        }
+        // 4a. Firma neexclusa (4.11)
+        const excluded = await tx.requestCompanyExclusion.findUnique({
+          where: { requestId_companyId: { requestId: req.id, companyId: ctx.companyId } },
+        });
+        if (excluded) {
+          throw new ForbiddenException({
+            code: ERROR_CODES.COMPANY_EXCLUDED_FROM_REQUEST,
+            message: 'Company excluded from this request',
+          });
+        }
+        // 4b. Firma nu a dat deja claim ocupant
+        const own = await tx.claimSlot.findFirst({
+          where: {
+            requestId: req.id,
+            companyId: ctx.companyId,
+            status: { in: OCCUPYING_CLAIM_STATUSES },
           },
-          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: CLAIM_TX_TIMEOUT_MS },
-        ),
-      );
+        });
+        if (own) {
+          throw new HttpException(
+            { code: ERROR_CODES.CLAIM_ALREADY_EXISTS, message: 'Company already claimed' },
+            409,
+          );
+        }
+        // 4c. Arie de acoperire (4.8) — cel putin o locatie cu Haversine <= coverage_radius_km,
+        //     masurat din punctul cererii aproximat pe grila (E-client-9, oglinda marketplace)
+        await this.assertCoverage(tx, ctx.companyId, req.lat, req.lng);
+        // 4d. Regula 1-claim-activ-fara-oferta / cap manager (4.9)
+        await this.assertAssignmentRules(tx, ctx, actingUserId, assignToUserId);
+
+        // 5. Creeaza slot + chat + rezerva credite + update status
+        // SLA materializat la claim (4.11): zile lucratoare per marime (3/3/5).
+        const slaDeadlineAt = this.calendar.addWorkingDays(
+          new Date(),
+          SLA_DAYS[req.project_size],
+        );
+        const slot = await tx.claimSlot.create({
+          data: {
+            requestId: req.id,
+            companyId: ctx.companyId,
+            claimedByUserId: actingUserId,
+            assignedToUserId: assignToUserId,
+            status: 'ACTIVE',
+            projectSizeSnapshot: req.project_size,
+            projectScoreSnapshot: req.project_score,
+            claimCostCreditsSnapshot: req.credit_cost,
+            slaDeadlineAt,
+            assignDeadlineAt: assignToUserId
+              ? null
+              : new Date(Date.now() + ASSIGN_DEADLINE_MS),
+          },
+        });
+        const thread = await tx.chatThread.create({ data: { claimSlotId: slot.id } });
+        await this.credits.reserve(
+          ctx.companyId,
+          req.credit_cost,
+          'CLAIM_RESERVE',
+          slot.id,
+          tx,
+        );
+        await recomputeRequestStatusAfterClaimChange(tx, req.id, undefined, maxClaims);
+        const display = await tx.request.findUnique({ where: { id: req.id }, select: { clientUserId: true } });
+        const members = await tx.companyMember.findMany({ where: { companyId: ctx.companyId }, select: { userId: true } });
+        const targets = members.map((member) => member.userId);
+        if (display?.clientUserId) targets.push(display.clientUserId);
+        await this.outbox.record(tx, `claim.created:${slot.id}`, 'claim.created', {
+          claimSlotId: slot.id, requestId: req.id, companyId: ctx.companyId, clientUserId: display?.clientUserId ?? null,
+        }, targets);
+        await this.outbox.record(tx, `claim.created:${slot.id}:status`, 'request.status_changed', { requestId: req.id }, []);
+
+        await saveIdempotentResult(tx, this.toDto(slot, thread.id));
+
+        return { slot, threadId: thread.id };
+      });
       createdId = res.slot.id;
       chatThreadId = res.threadId;
 
@@ -231,45 +274,18 @@ export class ClaimsService {
           'assign-deadline',
           { claimSlotId: createdId },
           { delay: ASSIGN_DEADLINE_MS, jobId: `claim-assign-${createdId}`, removeOnComplete: true },
-        );
+        ).catch(() => this.logger.warn(`assignment schedule deferred to reconciliation for ${createdId}`));
+        // E-admin-platform-44 — warning la +30 min (4.9 / D2)
+        if (res.slot.assignDeadlineAt) {
+          await this.assignQueue
+            .add(ASSIGN_WARNING_JOB, { claimSlotId: createdId }, assignWarningJobOptions(createdId, res.slot.assignDeadlineAt))
+            .catch(() => this.logger.warn(`assign warning schedule deferred to reconciliation for ${createdId}`));
+        }
       }
       // 6b. Job verificare ratare SLA la deadline + grace (4.11)
       if (res.slot.slaDeadlineAt) {
         await this.scheduleSlaBreach(createdId, res.slot.slaDeadlineAt);
       }
-      // Notificare TINTITA (client + membrii firmei): clientul afla ca un atelier
-      // i-a preluat cererea — inceputul parcursului per firma (iteme 4+5).
-      // Broadcast-ul anterior nu persista nicio notificare.
-      const [display, members] = await Promise.all([
-        this.prisma.request.findUnique({
-          where: { id: dto.requestId },
-          select: { title: true, clientUserId: true },
-        }),
-        this.prisma.companyMember.findMany({
-          where: { companyId: ctx.companyId },
-          select: { userId: true },
-        }),
-      ]);
-      const company = await this.prisma.company.findUnique({
-        where: { id: ctx.companyId },
-        select: { name: true },
-      });
-      const claimTargets = members.map((m) => m.userId);
-      if (display?.clientUserId) claimTargets.push(display.clientUserId);
-      await this.eventBus.publish(
-        'claim.created',
-        {
-          claimSlotId: createdId,
-          requestId: dto.requestId,
-          companyId: ctx.companyId,
-          requestTitle: display?.title ?? '',
-          companyName: company?.name ?? '',
-          // destinatarul emailului "cererea ta a fost preluata" (Q4, idee 5)
-          clientUserId: display?.clientUserId ?? null,
-        },
-        claimTargets,
-      );
-      await this.eventBus.publish('request.status_changed', { requestId: dto.requestId });
 
       return this.toDto(res.slot, chatThreadId);
     } catch (e) {
@@ -283,7 +299,7 @@ export class ClaimsService {
     claimSlotId: string,
     dto: AssignClaimInput,
   ): Promise<ClaimSlotDto> {
-    if (ctx.memberRole !== 'OWNER' && ctx.memberRole !== 'MANAGER') {
+    if (!can(ctx.memberRole, 'CLAIMS_ASSIGN')) {
       throw new ForbiddenException({
         code: ERROR_CODES.FORBIDDEN,
         message: 'Only owner or manager can assign',
@@ -299,7 +315,7 @@ export class ClaimsService {
       });
     }
     try {
-      const updated = await this.prisma.$transaction(async (tx) => {
+      const updated = await runTx(this.prisma, 'write', async (tx) => {
         const slot = await tx.claimSlot.findUnique({ where: { id: claimSlotId } });
         if (!slot || slot.companyId !== ctx.companyId) {
           throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Claim not found' });
@@ -370,7 +386,10 @@ export class ClaimsService {
     lng: number,
   ): Promise<void> {
     const locations = await tx.companyLocation.findMany({ where: { companyId } });
-    const covered = locations.some((l) => haversineKm(lat, lng, l.lat, l.lng) <= l.coverageRadiusKm);
+    // E-client-9: acelasi punct aproximat (grila ~2 km) ca SQL-ul din marketplace — altfel
+    // firma ar vedea cereri pe care claim-ul le refuza (sau invers).
+    const p = snapToPrivacyGrid(lat, lng);
+    const covered = locations.some((l) => haversineKm(p.lat, p.lng, l.lat, l.lng) <= l.coverageRadiusKm);
     if (!covered) {
       throw new ForbiddenException({
         code: ERROR_CODES.OUT_OF_COVERAGE_AREA,

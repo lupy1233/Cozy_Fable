@@ -1,9 +1,11 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Put, UseInterceptors } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { AccessTokenPayload } from '../auth/auth.constants';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Audit } from '../audit/audit.decorator';
+import { AuditInterceptor } from '../audit/audit.interceptor';
 import { CompaniesService } from './companies.service';
 import {
   ChangeMemberRoleDto,
@@ -45,28 +47,39 @@ export class CompaniesController {
     return this.companies.dashboardStats(user.sub);
   }
 
+  // E-company-19: profilul fiscal (isVatPayer) ajunge pe facturi → schimbarea e auditata
+  // (snapshot doar id/status/isVatPayer; numele si adresa sunt text liber, raman afara).
   @Patch('me')
+  @Audit('COMPANY_PROFILE_UPDATED', 'company')
+  @UseInterceptors(AuditInterceptor)
   updateProfile(@CurrentUser() user: AccessTokenPayload, @Body() dto: UpdateCompanyDto) {
     return this.companies.updateProfile(user.sub, dto);
   }
 
-  // Locatii
+  // Locatii — E-client-9: auditate (entityId = id-ul firmei din CompanyDto; snapshot doar
+  // id-uri + raze) si numarate pentru plafonul de schimbari pe 24h.
   @Post('me/locations')
+  @Audit('COMPANY_LOCATION_CREATED', 'company_location')
+  @UseInterceptors(AuditInterceptor)
   addLocation(@CurrentUser() user: AccessTokenPayload, @Body() dto: CompanyLocationDto) {
     return this.companies.addLocation(user.sub, dto);
   }
 
   @Put('me/locations/:id')
+  @Audit('COMPANY_LOCATION_UPDATED', 'company_location')
+  @UseInterceptors(AuditInterceptor)
   updateLocation(
     @CurrentUser() user: AccessTokenPayload,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CompanyLocationDto,
   ) {
     return this.companies.updateLocation(user.sub, id, dto);
   }
 
   @Delete('me/locations/:id')
-  deleteLocation(@CurrentUser() user: AccessTokenPayload, @Param('id') id: string) {
+  @Audit('COMPANY_LOCATION_DELETED', 'company_location')
+  @UseInterceptors(AuditInterceptor)
+  deleteLocation(@CurrentUser() user: AccessTokenPayload, @Param('id', ParseUUIDPipe) id: string) {
     return this.companies.deleteLocation(user.sub, id);
   }
 

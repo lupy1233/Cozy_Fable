@@ -3,15 +3,16 @@ import { ERROR_CODES, type CompanyPenaltyStatusDto } from '@marketplace/shared';
 import { Prisma, type PenaltyScope } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { SettingsService } from '../../common/settings/settings.service';
+import { SETTING_DEFAULTS } from '../../common/settings/setting-defaults';
 
 type Tx = Prisma.TransactionClient;
 
 // 4.12 / Î4 — fereastra rolling 180 zile; fiecare eveniment expira individual.
-const PENALTY_WINDOW_DAYS = 180;
+export const PENALTY_WINDOW_DAYS = 180;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 // Fallback puncte daca penalty_rules nu e seed-uit (seed: SLA_MISS=3, MASS_SLA_MISS=3, VOLUNTARY_WITHDRAWAL=2).
-const FALLBACK_POINTS: Record<string, number> = {
+export const PENALTY_FALLBACK_POINTS: Record<string, number> = {
   SLA_MISS: 3,
   MASS_SLA_MISS: 3,
   VOLUNTARY_WITHDRAWAL: 2,
@@ -71,10 +72,25 @@ export class PenaltiesService {
     return { pointsApplied: points, suspended: false, suspendedUntil: null };
   }
 
+  // E-company-6: previzualizare read-only (fara scrieri) pentru dialogul de retragere —
+  // punctele regulii + soldul activ + pragul/durata suspendarii, din aceleasi surse ca applyPenalty.
+  async previewCompanyPenalty(
+    companyId: string,
+    ruleKey: string,
+  ): Promise<{ points: number; activePoints: number; threshold: number; suspensionMonths: number }> {
+    const [points, activePoints, threshold, suspensionMonths] = await Promise.all([
+      this.pointsFor(ruleKey, this.prisma),
+      this.activePoints(companyId, this.prisma),
+      this.settings.getInt('company_penalty_threshold', SETTING_DEFAULTS.company_penalty_threshold),
+      this.settings.getInt('company_suspension_months', SETTING_DEFAULTS.company_suspension_months),
+    ]);
+    return { points, activePoints, threshold, suspensionMonths };
+  }
+
   private async pointsFor(ruleKey: string, db: Tx | PrismaService): Promise<number> {
     const rule = await db.penaltyRule.findUnique({ where: { ruleKey } });
     if (rule) return rule.isActive ? rule.points : 0;
-    return FALLBACK_POINTS[ruleKey] ?? 0;
+    return PENALTY_FALLBACK_POINTS[ruleKey] ?? 0;
   }
 
   // Prag firma (4.12): SUM(puncte COMPANY active) >= 12 → SUSPENDED N luni.
@@ -83,8 +99,8 @@ export class PenaltiesService {
     db: Tx | PrismaService,
   ): Promise<{ suspended: boolean; suspendedUntil: Date | null }> {
     const none = { suspended: false, suspendedUntil: null };
-    const threshold = await this.settings.getInt('company_penalty_threshold', 12);
-    const months = await this.settings.getInt('company_suspension_months', 6);
+    const threshold = await this.settings.getInt('company_penalty_threshold', SETTING_DEFAULTS.company_penalty_threshold);
+    const months = await this.settings.getInt('company_suspension_months', SETTING_DEFAULTS.company_suspension_months);
     const active = await this.activePoints(companyId, db);
     if (active < threshold) return none;
     const company = await db.company.findUnique({ where: { id: companyId } });
@@ -117,7 +133,7 @@ export class PenaltiesService {
   }
 
   async getCompanyStatus(companyId: string): Promise<CompanyPenaltyStatusDto> {
-    const threshold = await this.settings.getInt('company_penalty_threshold', 12);
+    const threshold = await this.settings.getInt('company_penalty_threshold', SETTING_DEFAULTS.company_penalty_threshold);
     const events = await this.prisma.penaltyEvent.findMany({
       where: { companyId, scope: 'COMPANY', expiresAt: { gt: new Date() } },
       orderBy: { appliedAt: 'desc' },

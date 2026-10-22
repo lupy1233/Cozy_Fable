@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Showroom answer artwork contact sheet</title>
+<style>body{font:16px system-ui;margin:32px;background:#f5f3ee;color:#292623}main{max-width:1100px;margin:auto}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}figure{margin:0;padding:12px;border:1px solid #d8d2ca;background:#fff;border-radius:12px}.art{width:160px;height:160px;margin:auto;display:flex;align-items:center;justify-content:center;overflow:hidden;mix-blend-mode:multiply}.pill{width:36px;height:36px}.anchor{width:80px;height:80px}.sizes{display:flex;align-items:center;gap:16px;margin-top:8px}figcaption{margin-top:8px}h2{margin-top:40px}</style>
+<main><h1>Showroom answer artwork</h1><p>Original PNG atlases, calibrated CSS crop windows without re-encoding. Each concept is shown at 160, 80 and 36 px. Text labels remain necessary at the smallest size.</p></main>
+<script>
+const catalogs = {
+ furniture: ['wardrobe','bed','nightstand','dresser','tv-unit','bookcase','desk','dining-table','coffee-table','console-table','shoe-cabinet','bench','coat-unit','mirror-shelf','vanity-table','glass-display'],
+ appliances: ['base-cabinet','wall-cabinet','tall-pantry','island','oven','hob','hood','dishwasher','fridge','microwave','vanity-sink','mirror-cabinet','tall-bath-storage','washer','stacked-washer-dryer','side-by-side-washer-dryer'],
+ configurations: ['bed-lift-up','bed-drawers','upholstered-bed','hanging-rod','open-shelves','shoe-rack','wardrobe-accessories','led-shelf','closed-cabinet','mixed-storage','storage-bench','shoe-bench','round-table','extendable-table','drawer-pedestal','desk-cable-port']
+};
+function art(atlas,index,size='') {
+ const rows=atlas==='furniture'?[0,.25,.49,.71,1]:atlas==='appliances'?[0,.25,.48,.72,1]:[0,.25,.49,.72,1];
+ const row=Math.floor(index/4),col=index%4;
+ const cols=atlas==='configurations'&&row===3?[0,.243,.505,.74,1]:[0,.25,.5,.75,1];
+ const x=cols[col],y=rows[row],w=cols[col+1]-x,h=rows[row+1]-y,e=Math.max(w,h);
+ return `<div class="art ${size}"><div style="width:${w/e*100}%;height:${h/e*100}%;flex-shrink:0;background-image:url('../apps/frontend/public/illustrations/showroom-${atlas}.png');background-repeat:no-repeat;background-size:${100/w}% ${100/h}%;background-position:${x/(1-w)*100}% ${y/(1-h)*100}%"></div></div>`;
+}
+for(const [atlas,concepts] of Object.entries(catalogs)) {
+ const section=document.createElement('section');
+ section.innerHTML=`<h2>${atlas}</h2><div class="grid">${concepts.map((concept,index)=>`<figure>${art(atlas,index)}<figcaption>${concept}</figcaption><div class="sizes">${art(atlas,index,'anchor')}${art(atlas,index,'pill')}</div></figure>`).join('')}</div>`;
+ document.querySelector('main').append(section);
+}
+</script></html>

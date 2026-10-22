@@ -11,6 +11,8 @@ import { ERROR_CODES } from '@marketplace/shared';
 import type { Request } from 'express';
 import { ACCESS_COOKIE, type AccessTokenPayload } from '../auth.constants';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { PrismaService } from '../../../infra/prisma/prisma.service';
+import { assertActiveSession } from '../access-session';
 
 // Guard global: valideaza access token din cookie httpOnly (sau Bearer pentru Postman)
 @Injectable()
@@ -19,6 +21,7 @@ export class JwtAuthGuard implements CanActivate {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly reflector: Reflector,
+    private readonly prisma: PrismaService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -43,6 +46,7 @@ export class JwtAuthGuard implements CanActivate {
       req.user = await this.jwt.verifyAsync<AccessTokenPayload>(token, {
         secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
       });
+      await assertActiveSession(this.prisma, req.user);
       return true;
     } catch {
       throw new UnauthorizedException({

@@ -2,21 +2,38 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ERROR_CODES } from '@marketplace/shared';
+import {
+  COMPANY_ROLE_PERMISSIONS,
+  ERROR_CODES,
+  SETTING_COMPANY_LOCATION_CHANGES_PER_DAY,
+  can,
+  type CompanyPermission,
+  SETTING_COMPANY_LOCATIONS_MAX,
+  sortDashboardActions,
+} from '@marketplace/shared';
 import type {
   AdminCompanyListItemDto,
   CompanyDashboardStatsDto,
+  DashboardActionItemDto,
   CompanyDto,
   CompanyRiskFlag,
   PartnerDto,
 } from '@marketplace/shared';
 import type { Company, CompanyMemberRole } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
-import { EventBusService } from '../../infra/event-bus/event-bus.service';
+import { runTx, runTxBatch } from '../../infra/prisma/tx';
+import { OutboxService } from '../outbox/outbox.service';
+import { randomUUID } from 'node:crypto';
+import { activeMembershipWhere } from '../../common/company-context/active-membership';
 import { SubscriptionsService } from '../billing/subscriptions.service';
+import { SettingsService } from '../../common/settings/settings.service';
+import { SETTING_DEFAULTS } from '../../common/settings/setting-defaults';
+import { REQUEST_SETTLED_STATUSES, SLA_GRACE_MS, SLA_WARNING_BEFORE_MS } from '../claims/claims.constants';
 import {
   defaultOfferFieldPermissions,
   MIN_REVIEWS_THRESHOLD,
@@ -33,15 +50,14 @@ import type {
   UpdateOfferPermissionsDto,
 } from './dto/company.dto';
 
-// Roluri care pot administra firma (profil, locatii, echipa, portofoliu, matrice)
-const MANAGEMENT_ROLES: CompanyMemberRole[] = ['OWNER', 'MANAGER'];
 
 @Injectable()
 export class CompaniesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly subscriptions: SubscriptionsService,
-    private readonly eventBus: EventBusService,
+    private readonly outbox: OutboxService,
+    private readonly settings: SettingsService,
   ) {}
 
   private normalizeCui(cui: string): string {
@@ -58,7 +74,7 @@ export class CompaniesService {
 
   // Membru curent + firma; arunca daca userul nu apartine unei firme
   private async requireMembership(userId: string) {
-    const member = await this.prisma.companyMember.findUnique({ where: { userId } });
+    const member = await this.prisma.companyMember.findUnique({ where: activeMembershipWhere(userId) });
     if (!member) {
       throw new NotFoundException({
         code: ERROR_CODES.NOT_FOUND,
@@ -68,9 +84,11 @@ export class CompaniesService {
     return member;
   }
 
-  private async requireManager(userId: string) {
+  // E-admin-platform-58: rolurile permise vin din matricea COMPANY_ROLE_PERMISSIONS (shared);
+  // azi MEMBERS_MANAGE si COMPANY_PROFILE_EDIT = OWNER/MANAGER (identic cu MANAGEMENT_ROLES vechi)
+  private async requireManager(userId: string, permission: CompanyPermission) {
     const member = await this.requireMembership(userId);
-    if (!MANAGEMENT_ROLES.includes(member.role)) {
+    if (!can(member.role, permission)) {
       throw new ForbiddenException({
         code: ERROR_CODES.FORBIDDEN,
         message: 'Only owner or manager can perform this action',
@@ -83,7 +101,7 @@ export class CompaniesService {
   // portofoliu. Ratingul Google e placeholder (integrare externa ulterioara).
   async listPartners(): Promise<PartnerDto[]> {
     const companies = await this.prisma.company.findMany({
-      where: { status: 'APPROVED' },
+      where: { status: 'APPROVED', deletedAt: null },
       select: {
         id: true,
         name: true,
@@ -118,7 +136,13 @@ export class CompaniesService {
     const since7 = new Date(now.getTime() - 7 * 86_400_000);
     const since30 = new Date(now.getTime() - 30 * 86_400_000);
 
-    const [byStatusRaw, perMemberRaw, wallet, consumed7, consumed30, penalties, quoteAgg] =
+    // E-admin-platform-44 — "De facut acum": OWNER/MANAGER vad preluarile neatribuite (doar ei
+    // pot atribui) si toate termenele SLA apropiate; angajatii doar termenele lor.
+    const isManager = can(member.role, 'CLAIMS_ASSIGN');
+    const liveRequest = { deletedAt: null, status: { notIn: REQUEST_SETTLED_STATUSES } };
+    const actionSelect = { id: true, requestId: true, request: { select: { title: true } } } as const;
+
+    const [byStatusRaw, perMemberRaw, wallet, consumed7, consumed30, penalties, quoteAgg, unassigned, slaDue] =
       await Promise.all([
         this.prisma.claimSlot.groupBy({
           by: ['status'],
@@ -152,7 +176,53 @@ export class CompaniesService {
            AND qv.version = (SELECT MAX(v2.version) FROM quote_versions v2 WHERE v2.quote_id = q.id)
           WHERE q.company_id = ${companyId} AND q.status::text IN ('SENT', 'ACCEPTED')
         `,
+        isManager
+          ? this.prisma.claimSlot.findMany({
+              where: { companyId, status: 'ACTIVE', assignedToUserId: null, request: liveRequest },
+              orderBy: { assignDeadlineAt: 'asc' },
+              take: 10,
+              select: { ...actionSelect, assignDeadlineAt: true },
+            })
+          : Promise.resolve([]),
+        this.prisma.claimSlot.findMany({
+          where: {
+            companyId,
+            status: 'ACTIVE',
+            slaPausedAt: null,
+            // include si preluarile aflate inca in perioada de gratie
+            slaDeadlineAt: {
+              gt: new Date(now.getTime() - SLA_GRACE_MS),
+              lte: new Date(now.getTime() + SLA_WARNING_BEFORE_MS),
+            },
+            request: liveRequest,
+            ...(isManager
+              ? {}
+              : { OR: [{ assignedToUserId: userId }, { assignedToUserId: null, claimedByUserId: userId }] }),
+          },
+          orderBy: { slaDeadlineAt: 'asc' },
+          take: 10,
+          select: { ...actionSelect, slaDeadlineAt: true },
+        }),
       ]);
+
+    const actions: DashboardActionItemDto[] = [
+      ...unassigned.map((c) => ({
+        kind: 'UNASSIGNED_CLAIM' as const,
+        requestId: c.requestId,
+        claimSlotId: c.id,
+        title: c.request.title ?? '',
+        count: null,
+        dueAt: c.assignDeadlineAt?.toISOString() ?? null,
+      })),
+      ...slaDue.map((c) => ({
+        kind: 'SLA_DUE_SOON' as const,
+        requestId: c.requestId,
+        claimSlotId: c.id,
+        title: c.request.title ?? '',
+        count: null,
+        dueAt: c.slaDeadlineAt?.toISOString() ?? null,
+      })),
+    ];
 
     const claimsByStatus: CompanyDashboardStatsDto['claimsByStatus'] = {};
     let claimsTotal = 0;
@@ -187,10 +257,12 @@ export class CompaniesService {
       })),
       quotesSent: quoteAgg[0]?.quotes ?? 0,
       quotesTotalRon: quoteAgg[0]?.total ?? 0,
-      wallet: { balance, reserved, available: balance - reserved },
+      // 4.8: balance exclude deja rezervarile (RESERVE muta balance -> reserved); identic cu GET /billing/wallet
+      wallet: { balance, reserved, available: balance },
       creditsConsumed7d: Math.abs(consumed7._sum.amount ?? 0),
       creditsConsumed30d: Math.abs(consumed30._sum.amount ?? 0),
       activePenaltyPoints: penalties._sum.points ?? 0,
+      actions: sortDashboardActions(actions),
     };
   }
 
@@ -234,11 +306,13 @@ export class CompaniesService {
       });
     }
 
-    const companyId = await this.prisma.$transaction(async (tx) => {
+    const companyId = await runTx(this.prisma, 'write', async (tx) => {
       const company = await tx.company.create({
         data: {
           name: dto.name.trim(),
           cui: normalizedCui,
+          // E-company-19: prefixul RO tastat = firma declarata platitoare de TVA (cui se salveaza fara prefix)
+          isVatPayer: /^RO/i.test(dto.cui.trim()),
           regComNumber: dto.regComNumber.trim().toUpperCase(),
           addressText: dto.addressText.trim(),
           county: dto.county.trim(),
@@ -256,20 +330,10 @@ export class CompaniesService {
       await tx.companyOfferFieldPermission.createMany({
         data: defaultOfferFieldPermissions().map((p) => ({ companyId: company.id, ...p })),
       });
+      const admins = await tx.user.findMany({ where: { role: 'ADMIN', deletedAt: null }, select: { id: true } });
+      await this.outbox.record(tx, `company.submitted:${company.id}`, 'company.submitted', { companyId: company.id }, admins.map((a) => a.id));
       return company.id;
     });
-
-    // Pasul 5 (audit 2026-08-23): adminul AFLA ca o firma noua asteapta verificarea —
-    // clopotel tintit adminilor (inainte descoperea doar intrand pe /admin/companies).
-    const admins = await this.prisma.user.findMany({
-      where: { role: 'ADMIN', deletedAt: null },
-      select: { id: true },
-    });
-    await this.eventBus.publish(
-      'company.submitted',
-      { companyId, companyName: dto.name.trim() },
-      admins.map((a) => a.id),
-    );
 
     return this.getMyCompany(userId, companyId);
   }
@@ -282,7 +346,7 @@ export class CompaniesService {
     const company = await this.prisma.company.findFirst({
       where: { id: member.companyId, deletedAt: null },
       include: {
-        members: { include: { user: true }, orderBy: { createdAt: 'asc' } },
+        members: { where: { user: { deletedAt: null } }, include: { user: true }, orderBy: { createdAt: 'asc' } },
         locations: { orderBy: { createdAt: 'asc' } },
         portfolioItems: { orderBy: { createdAt: 'desc' } },
         offerFieldPerms: true,
@@ -300,6 +364,9 @@ export class CompaniesService {
       name: company.name,
       cui: company.cui,
       regComNumber: company.regComNumber,
+      isVatPayer: company.isVatPayer,
+      // E-company-24: doar OWNER/MANAGER vad adresa de facturare
+      billingEmail: can(myRole, 'BILLING_MANAGE') ? company.billingEmail : null,
       status: company.status,
       addressText: company.addressText,
       county: company.county,
@@ -311,6 +378,7 @@ export class CompaniesService {
       suspendedUntil: company.suspendedUntil?.toISOString() ?? null,
       createdAt: company.createdAt.toISOString(),
       myRole,
+      permissions: [...COMPANY_ROLE_PERMISSIONS[myRole]],
       members: company.members.map((m) => ({
         id: m.id,
         userId: m.userId,
@@ -344,7 +412,7 @@ export class CompaniesService {
   }
 
   async updateProfile(userId: string, dto: UpdateCompanyDto): Promise<CompanyDto> {
-    const member = await this.requireManager(userId);
+    const member = await this.requireManager(userId, 'COMPANY_PROFILE_EDIT');
     await this.prisma.company.update({
       where: { id: member.companyId },
       data: {
@@ -354,30 +422,70 @@ export class CompaniesService {
         ...(dto.city !== undefined && { city: dto.city.trim() }),
         ...(dto.lat !== undefined && { lat: dto.lat }),
         ...(dto.lng !== undefined && { lng: dto.lng }),
+        ...(dto.isVatPayer !== undefined && { isVatPayer: dto.isVatPayer }),
+        // E-company-24: adresa de facturare normalizata; gol/null = stearsa
+        ...(dto.billingEmail !== undefined && {
+          billingEmail: dto.billingEmail ? dto.billingEmail.trim().toLowerCase() : null,
+        }),
       },
     });
     return this.getMyCompany(userId);
   }
 
   // --- Locatii (D-v6-10) ---
+  // E-client-9: plafon de schimbari pe 24h (rolling), numarate din audit_logs (randurile
+  // COMPANY_LOCATION_* scrise de AuditInterceptor cu entityId = id-ul firmei). Frana contra
+  // mutarii repetate a locatiilor pentru trilaterarea clientilor.
+  private async assertLocationChangeAllowed(companyId: string): Promise<void> {
+    const limit = await this.settings.getInt(
+      SETTING_COMPANY_LOCATION_CHANGES_PER_DAY,
+      SETTING_DEFAULTS.company_location_changes_per_day,
+    );
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const recent = await this.prisma.auditLog.count({
+      where: { entityType: 'company_location', entityId: companyId, createdAt: { gte: since } },
+    });
+    if (recent >= limit) {
+      throw new HttpException(
+        { code: ERROR_CODES.COMPANY_LOCATION_CHANGE_LIMIT, message: 'Too many location changes in the last 24 hours' },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+  }
+
   async addLocation(userId: string, dto: CompanyLocationDto): Promise<CompanyDto> {
-    const member = await this.requireManager(userId);
-    await this.prisma.companyLocation.create({
-      data: {
-        companyId: member.companyId,
-        addressText: dto.addressText.trim(),
-        county: dto.county.trim(),
-        city: dto.city.trim(),
-        lat: dto.lat,
-        lng: dto.lng,
-        coverageRadiusKm: dto.coverageRadiusKm,
-      },
+    const member = await this.requireManager(userId, 'COMPANY_PROFILE_EDIT');
+    await this.assertLocationChangeAllowed(member.companyId);
+    const max = await this.settings.getInt(SETTING_COMPANY_LOCATIONS_MAX, SETTING_DEFAULTS.company_locations_max);
+    await runTx(this.prisma, 'write', async (tx) => {
+      // lock per firma: doua adaugari simultane nu pot depasi plafonul
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`company_locations:${member.companyId}`}, 0))::text`;
+      const count = await tx.companyLocation.count({ where: { companyId: member.companyId } });
+      if (count >= max) {
+        throw new ConflictException({
+          code: ERROR_CODES.COMPANY_LOCATION_LIMIT_REACHED,
+          message: 'Company location limit reached',
+          details: { max },
+        });
+      }
+      await tx.companyLocation.create({
+        data: {
+          companyId: member.companyId,
+          addressText: dto.addressText.trim(),
+          county: dto.county.trim(),
+          city: dto.city.trim(),
+          lat: dto.lat,
+          lng: dto.lng,
+          coverageRadiusKm: dto.coverageRadiusKm,
+        },
+      });
     });
     return this.getMyCompany(userId);
   }
 
   async updateLocation(userId: string, locationId: string, dto: CompanyLocationDto): Promise<CompanyDto> {
-    const member = await this.requireManager(userId);
+    const member = await this.requireManager(userId, 'COMPANY_PROFILE_EDIT');
+    await this.assertLocationChangeAllowed(member.companyId);
     const result = await this.prisma.companyLocation.updateMany({
       where: { id: locationId, companyId: member.companyId },
       data: {
@@ -396,7 +504,8 @@ export class CompaniesService {
   }
 
   async deleteLocation(userId: string, locationId: string): Promise<CompanyDto> {
-    const member = await this.requireManager(userId);
+    const member = await this.requireManager(userId, 'COMPANY_PROFILE_EDIT');
+    await this.assertLocationChangeAllowed(member.companyId);
     const result = await this.prisma.companyLocation.deleteMany({
       where: { id: locationId, companyId: member.companyId },
     });
@@ -409,7 +518,7 @@ export class CompaniesService {
   // --- Echipa / membri (4.7) ---
   // Adauga un user existent (dupa email) la firma. Un user = o singura firma.
   async addMember(userId: string, dto: InviteMemberDto): Promise<CompanyDto> {
-    const member = await this.requireManager(userId);
+    const member = await this.requireManager(userId, 'MEMBERS_MANAGE');
     // Nota (pasul 6): rolul OWNER nu poate fi acordat aici — inviteMemberSchema din shared
     // nu il accepta; escaladarea era posibila DOAR prin changeMemberRole (garda de mai jos).
     const invitee = await this.prisma.user.findFirst({
@@ -439,7 +548,7 @@ export class CompaniesService {
     memberId: string,
     dto: ChangeMemberRoleDto,
   ): Promise<CompanyDto> {
-    const manager = await this.requireManager(userId);
+    const manager = await this.requireManager(userId, 'MEMBERS_MANAGE');
     const target = await this.prisma.companyMember.findFirst({
       where: { id: memberId, companyId: manager.companyId },
     });
@@ -472,7 +581,7 @@ export class CompaniesService {
   }
 
   async removeMember(userId: string, memberId: string): Promise<CompanyDto> {
-    const manager = await this.requireManager(userId);
+    const manager = await this.requireManager(userId, 'MEMBERS_MANAGE');
     const target = await this.prisma.companyMember.findFirst({
       where: { id: memberId, companyId: manager.companyId },
     });
@@ -496,7 +605,7 @@ export class CompaniesService {
 
   // --- Portofoliu (4.6) ---
   async addPortfolioItem(userId: string, dto: PortfolioItemDto): Promise<CompanyDto> {
-    const member = await this.requireManager(userId);
+    const member = await this.requireManager(userId, 'COMPANY_PROFILE_EDIT');
     await this.prisma.companyPortfolioItem.create({
       data: {
         companyId: member.companyId,
@@ -509,7 +618,7 @@ export class CompaniesService {
   }
 
   async deletePortfolioItem(userId: string, itemId: string): Promise<CompanyDto> {
-    const member = await this.requireManager(userId);
+    const member = await this.requireManager(userId, 'COMPANY_PROFILE_EDIT');
     const result = await this.prisma.companyPortfolioItem.deleteMany({
       where: { id: itemId, companyId: member.companyId },
     });
@@ -528,26 +637,24 @@ export class CompaniesService {
         message: 'Only owner can adjust offer field permissions',
       });
     }
-    await this.prisma.$transaction(
-      dto.permissions.map((p) =>
-        this.prisma.companyOfferFieldPermission.upsert({
-          where: {
-            companyId_role_fieldKey: {
-              companyId: member.companyId,
-              role: p.role,
-              fieldKey: p.fieldKey,
-            },
-          },
-          create: {
+    await runTxBatch(this.prisma, dto.permissions.map((p) =>
+      this.prisma.companyOfferFieldPermission.upsert({
+        where: {
+          companyId_role_fieldKey: {
             companyId: member.companyId,
             role: p.role,
             fieldKey: p.fieldKey,
-            canEdit: p.canEdit,
           },
-          update: { canEdit: p.canEdit },
-        }),
-      ),
-    );
+        },
+        create: {
+          companyId: member.companyId,
+          role: p.role,
+          fieldKey: p.fieldKey,
+          canEdit: p.canEdit,
+        },
+        update: { canEdit: p.canEdit },
+      }),
+    ));
     return this.getMyCompany(userId);
   }
 
@@ -579,7 +686,7 @@ export class CompaniesService {
     const company = await this.prisma.company.findFirst({
       where: { id: companyId, deletedAt: null },
       include: {
-        members: { include: { user: true }, orderBy: { createdAt: 'asc' } },
+        members: { where: { user: { deletedAt: null } }, include: { user: true }, orderBy: { createdAt: 'asc' } },
         locations: { orderBy: { createdAt: 'asc' } },
         portfolioItems: { orderBy: { createdAt: 'desc' } },
         offerFieldPerms: true,
@@ -601,7 +708,7 @@ export class CompaniesService {
       throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Company not found' });
     }
     const portfolioCount = await this.prisma.companyPortfolioItem.count({ where: { companyId } });
-    const updated = await this.prisma.$transaction(async (tx) => {
+    const updated = await runTx(this.prisma, 'write', async (tx) => {
       const c = await tx.company.update({
         where: { id: companyId },
         data: { status: 'APPROVED', rejectedAt: null, rejectionReason: null },
@@ -616,18 +723,10 @@ export class CompaniesService {
       });
       // 4.16 — trial Gold + bonus credite la approve (idempotent, in aceeasi tranzactie).
       await this.subscriptions.startTrialIfEnabled(companyId, tx);
+      const members = await tx.companyMember.findMany({ where: { companyId }, select: { userId: true } });
+      await this.outbox.record(tx, `company.approved:${companyId}:${randomUUID()}`, 'company.approved', { companyId }, members.map((m) => m.userId));
       return c;
     });
-    // L1 (audit 2026-08-23): firma AFLA ca a fost aprobata — clopotel + email, tintit membrilor.
-    const members = await this.prisma.companyMember.findMany({
-      where: { companyId },
-      select: { userId: true },
-    });
-    await this.eventBus.publish(
-      'company.approved',
-      { companyId, companyName: company.name },
-      members.map((m) => m.userId),
-    );
     return { id: updated.id, status: updated.status };
   }
 
@@ -642,7 +741,7 @@ export class CompaniesService {
     if (!company) {
       throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Company not found' });
     }
-    const updated = await this.prisma.$transaction(async (tx) => {
+    const updated = await runTx(this.prisma, 'write', async (tx) => {
       const c = await tx.company.update({
         where: { id: companyId },
         data: { status: 'REJECTED', rejectedAt: new Date(), rejectionReason: dto.reason.trim() },
@@ -651,18 +750,10 @@ export class CompaniesService {
         where: { companyId },
         data: { reviewedByUserId: adminUserId, reviewedAt: new Date(), decisionNote: dto.reason.trim() },
       });
+      const members = await tx.companyMember.findMany({ where: { companyId }, select: { userId: true } });
+      await this.outbox.record(tx, `company.rejected:${companyId}:${randomUUID()}`, 'company.rejected', { companyId }, members.map((m) => m.userId));
       return c;
     });
-    // L1 (audit 2026-08-23): firma AFLA ca a fost respinsa si DE CE — clopotel + email.
-    const members = await this.prisma.companyMember.findMany({
-      where: { companyId },
-      select: { userId: true },
-    });
-    await this.eventBus.publish(
-      'company.rejected',
-      { companyId, companyName: company.name, reason: dto.reason.trim() },
-      members.map((m) => m.userId),
-    );
     // Blocajul de 3 luni e enforce-uit la urmatorul onboard prin rejectedAt + CUI/email.
     return { id: updated.id, status: updated.status };
   }
@@ -670,23 +761,21 @@ export class CompaniesService {
   // Pasul 5 (audit 2026-08-23, F2): ridicarea suspendarii de catre admin — inainte nu exista
   // NICIO cale (nici automata, nici manuala); singura "portita" era adminApprove nedocumentat.
   async adminUnsuspend(companyId: string): Promise<{ id: string; status: Company['status'] }> {
-    const res = await this.prisma.company.updateMany({
+    return runTx(this.prisma, 'write', async (tx) => {
+    const res = await tx.company.updateMany({
       where: { id: companyId, status: 'SUSPENDED', deletedAt: null },
       data: { status: 'APPROVED', suspendedAt: null, suspendedUntil: null },
     });
     if (res.count === 0) {
       throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Company not suspended' });
     }
-    const company = await this.prisma.company.findUniqueOrThrow({ where: { id: companyId } });
-    const members = await this.prisma.companyMember.findMany({
+    const company = await tx.company.findUniqueOrThrow({ where: { id: companyId } });
+    const members = await tx.companyMember.findMany({
       where: { companyId },
       select: { userId: true },
     });
-    await this.eventBus.publish(
-      'company.unsuspended',
-      { companyId, companyName: company.name },
-      members.map((m) => m.userId),
-    );
+    await this.outbox.record(tx, `company.unsuspended:${companyId}:${randomUUID()}`, 'company.unsuspended', { companyId }, members.map((m) => m.userId));
     return { id: company.id, status: company.status };
+    });
   }
 }

@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { COMPANY_MEMBER_ROLES, OFFER_FIELD_KEYS } from './enums';
+import type { CompanyPermission } from './company-permissions';
+import type { DashboardActionItemDto } from './dashboard.schemas';
 
 // Scheme Zod companii — frontend (RHF) + reutilizabile in DTO.
 // Mesajele de eroare sunt chei i18n (mapate in frontend), nu text.
@@ -35,8 +37,22 @@ export const companyProfileUpdateSchema = companyOnboardingSchema.partial().exte
   // CUI si Reg.Com. nu se schimba post-onboarding in MVP
   cui: z.undefined().optional(),
   regComNumber: z.undefined().optional(),
+  // E-company-19: platitor TVA declarat de firma (OWNER/MANAGER, auditat)
+  isVatPayer: z.boolean().optional(),
+  // E-company-24: email de facturare optional (proforma + facturi, ex. contabilul); '' sau null = sters
+  billingEmail: z
+    .union([z.string().trim().toLowerCase().email('billingEmailInvalid').max(254), z.literal('')])
+    .nullable()
+    .optional(),
 });
 export type CompanyProfileUpdateInput = z.infer<typeof companyProfileUpdateSchema>;
+
+// E-client-9 (DECIZIE NECESARA PO): raza minima = celula grilei de confidentialitate
+// (~2 km) — punctele cererilor sunt aproximate pe grila, o raza mai mica nu inseamna nimic.
+export const MIN_COVERAGE_RADIUS_KM = 2;
+// Chei system_settings (E-client-9): plafon locatii per firma + schimbari pe 24h (rolling).
+export const SETTING_COMPANY_LOCATIONS_MAX = 'company_locations_max';
+export const SETTING_COMPANY_LOCATION_CHANGES_PER_DAY = 'company_location_changes_per_day';
 
 export const companyLocationSchema = z.object({
   addressText: z.string().trim().min(3, 'addressTooShort').max(300),
@@ -44,7 +60,7 @@ export const companyLocationSchema = z.object({
   city: z.string().trim().min(2, 'cityTooShort').max(100),
   lat: latSchema,
   lng: lngSchema,
-  coverageRadiusKm: z.number().positive().max(1000),
+  coverageRadiusKm: z.number().min(MIN_COVERAGE_RADIUS_KM, 'radiusTooSmall').max(1000),
 });
 export type CompanyLocationInput = z.infer<typeof companyLocationSchema>;
 
@@ -118,6 +134,10 @@ export interface CompanyDto {
   name: string;
   cui: string;
   regComNumber: string;
+  // E-company-19: platitor TVA → cod TVA (RO + cifre) pe facturi
+  isVatPayer: boolean;
+  // E-company-24: doar OWNER/MANAGER; null pentru angajati
+  billingEmail: string | null;
   status: 'PENDING_VERIFICATION' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
   addressText: string;
   county: string;
@@ -129,6 +149,8 @@ export interface CompanyDto {
   suspendedUntil: string | null;
   createdAt: string;
   myRole: (typeof COMPANY_MEMBER_ROLES)[number];
+  // E-admin-platform-58: permisiunile rolului meu (COMPANY_ROLE_PERMISSIONS); FE foloseste can()
+  permissions: CompanyPermission[];
   members: CompanyMemberDto[];
   locations: CompanyLocationDto[];
   portfolio: PortfolioItemDto[];
@@ -163,6 +185,8 @@ export interface CompanyDashboardStatsDto {
   creditsConsumed7d: number;
   creditsConsumed30d: number;
   activePenaltyPoints: number;
+  // E-admin-platform-44 — "De facut acum" (preluari neatribuite, termene SLA apropiate)
+  actions: DashboardActionItemDto[];
 }
 
 // Partener afisat public pe landing (/partners): firma APPROVED + portofoliu.

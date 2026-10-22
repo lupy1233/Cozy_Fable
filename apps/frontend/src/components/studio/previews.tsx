@@ -2,13 +2,14 @@
 
 import {
   buildPanels,
+  buildStaticHandles,
   OPENING_SPECS,
   type Piece3dKind,
   type PieceConfig3d,
   type StudioOpeningKind,
 } from '@marketplace/shared';
 import { useMemo } from 'react';
-import { finishSpecFor, ROD_COLOR } from '../configurator/piece3d/finishes';
+import { finishSpecForConfig, ROD_COLOR } from '../configurator/piece3d/finishes';
 
 // Previzualizari 2D pentru Studio (feedback PO r4): NU iconite generice, ci
 // ELEVATIA reala a piesei, desenata din acelasi model parametric ca scena 3D
@@ -34,12 +35,15 @@ export function PiecePreview({
   className?: string;
 }) {
   const panels = useMemo(
-    () => [...buildPanels(config, kind)].sort((a, b) => a.z - b.z),
+    () => {
+      const structure = buildPanels(config, kind);
+      return [...structure, ...buildStaticHandles(config, structure)].sort((a, b) => a.z - b.z);
+    },
     [config, kind],
   );
   const spec = useMemo(
-    () => finishSpecFor(config.finish, config.customColor),
-    [config.finish, config.customColor],
+    () => finishSpecForConfig(config),
+    [config],
   );
   const W = config.widthM;
   const H = config.heightM;
@@ -70,6 +74,7 @@ export function PiecePreview({
           }
           const front = FRONT_ROLES.has(p.role);
           const backdrop = p.role === 'FRONT_BACKDROP';
+          const specialColor = p.surface === 'LEG_FINISH' ? spec.legColor ?? '#a77d50' : p.surface === 'CERAMIC' || p.surface === 'STONE_LIGHT' ? '#f1efea' : p.surface === 'STONE_DARK' ? '#444742' : p.surface === 'MIRROR' ? '#cbd5d9' : null;
           return (
             <rect
               key={i}
@@ -77,7 +82,8 @@ export function PiecePreview({
               y={p.y - p.h / 2}
               width={p.w}
               height={p.h}
-              fill={backdrop ? BACKDROP : front ? spec.front : spec.body}
+              rx={p.radius ?? 0.002}
+              fill={specialColor ?? (backdrop ? BACKDROP : p.surface === 'BEDDING' ? '#f1ede4' : p.surface === 'FABRIC' ? spec.fabric ?? spec.body : p.surface === 'ACCENT' ? '#635a4b' : p.surface === 'BRASS' ? ROD_COLOR : p.surface === 'METAL' ? '#8e969c' : front ? spec.front : spec.body)}
               stroke={backdrop ? 'none' : INK}
               strokeWidth={1}
               vectorEffect="non-scaling-stroke"

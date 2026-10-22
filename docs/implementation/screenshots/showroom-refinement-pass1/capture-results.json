@@ -1,0 +1,88 @@
+{
+  "capturedAt": "2026-09-16T01:30:07.825Z",
+  "url": "http://127.0.0.1:3100/en/studio",
+  "mode": "headless desktop Chromium; default single-piece editor; all APIs intercepted",
+  "captures": [
+    {
+      "kind": "BOOKCASE",
+      "filename": "bookcase.png",
+      "dimensionsM": {
+        "width": 1.6,
+        "height": 2,
+        "depth": 0.35
+      },
+      "panels": 15,
+      "canvas": {
+        "x": 225,
+        "y": 297.5,
+        "width": 640,
+        "height": 500
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "BED",
+      "filename": "bed.png",
+      "dimensionsM": {
+        "width": 1.73,
+        "height": 1,
+        "depth": 2.2
+      },
+      "panels": 13,
+      "canvas": {
+        "x": 225,
+        "y": 389,
+        "width": 690,
+        "height": 418
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "TABLE",
+      "filename": "table.png",
+      "dimensionsM": {
+        "width": 1.4,
+        "height": 0.75,
+        "depth": 0.8
+      },
+      "panels": 7,
+      "canvas": {
+        "x": 225,
+        "y": 324,
+        "width": 690,
+        "height": 418
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    }
+  ]
+}

@@ -38,6 +38,8 @@ export interface InspirationPhotoDto {
   published: boolean;
   featured: boolean;
   createdAt: string;
+  // doar in lista admin: cate cereri active si colectii folosesc poza
+  usage?: { activeRequests: number; boards: number };
 }
 
 // Filtrele acceptate de GET /inspiration (toate optionale, combinabile).
@@ -53,6 +55,25 @@ export interface InspirationFilters {
 
 export const MAX_BOARD_NAME_LENGTH = 60;
 
+// E-client-34: plafoane comune (FE picker/store, zod, class-validator, VARCHAR(200))
+export const INSPIRATION_NOTE_MAX = 200;
+export const MAX_REQUEST_INSPIRATION_PHOTOS = 10;
+
+// PATCH /inspiration/boards/:id/items/:photoId — cel putin un camp; null = sterge
+export const boardItemMetaSchema = z
+  .object({
+    note: z.string().trim().max(INSPIRATION_NOTE_MAX, 'inspirationNoteTooLong').nullable().optional(),
+    roomType: z.enum(ROOM_TYPES).nullable().optional(),
+  })
+  .refine((v) => v.note !== undefined || v.roomType !== undefined, 'emptyPatch');
+export type BoardItemMetaInput = z.infer<typeof boardItemMetaSchema>;
+
+export interface InspirationBoardItemMetaDto {
+  photoId: string;
+  note: string | null;
+  roomType: (typeof ROOM_TYPES)[number] | null;
+}
+
 export interface InspirationBoardDto {
   id: string;
   name: string;
@@ -65,9 +86,11 @@ export interface InspirationBoardDto {
 
 export interface InspirationBoardDetailDto extends InspirationBoardDto {
   photos: InspirationPhotoDto[];
+  // E-client-34: meta per salvare (aceeasi multime ca photos, cheie photoId)
+  items: InspirationBoardItemMetaDto[];
 }
 
-// Toate salvarile utilizatorului (photoId → boardId) — starea "Salvat" pe pin-uri.
+// Toate salvarile utilizatorului: o intrare per (poza, colectie) — starea "Salvat" pe pin-uri.
 export interface InspirationSaveDto {
   photoId: string;
   boardId: string;

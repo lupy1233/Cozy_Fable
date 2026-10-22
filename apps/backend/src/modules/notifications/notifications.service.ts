@@ -12,6 +12,7 @@ export class NotificationsService {
     userIds: string[],
     type: string,
     payload: Record<string, unknown>,
+    eventId?: string,
   ): Promise<void> {
     if (userIds.length === 0) return;
     await this.prisma.notification.createMany({
@@ -19,8 +20,23 @@ export class NotificationsService {
         userId,
         type,
         payload: payload as Prisma.InputJsonValue,
+        eventId,
       })),
+      skipDuplicates: true,
     });
+  }
+
+  async pendingEmailRecipients(eventId: string, userIds: string[]): Promise<string[]> {
+    const rows = await this.prisma.notification.findMany({ where: { eventId, userId: { in: userIds }, emailDeliveredAt: null }, select: { userId: true } });
+    return rows.map((row) => row.userId);
+  }
+
+  async markEmailDelivered(eventId: string, userId: string): Promise<void> {
+    await this.prisma.notification.updateMany({ where: { eventId, userId, emailDeliveredAt: null }, data: { emailDeliveredAt: new Date() } });
+  }
+
+  async completeEvent(eventId: string): Promise<void> {
+    await this.prisma.domainEventOutbox.updateMany({ where: { id: eventId, completedAt: null }, data: { completedAt: new Date() } });
   }
 
   async listForUser(userId: string): Promise<NotificationDto[]> {

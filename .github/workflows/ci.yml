@@ -1,34 +1,55 @@
-# Pasul 7B audit #2 (2026-08-23): CI minim — portile care ruleaza si local la fiecare
-# sprint (shared build → typecheck → lint FE+BE → teste backend + shared). Fara build
-# Next complet (standalone-ul se valideaza in Docker la deploy, nu aici).
+# Verificari serializate: teste, securitate si imaginea reala de productie.
 name: CI
 
 on:
   push:
     branches: [main]
+    # release/* = gate de deploy: tools/release/require-green-ci.mjs cere CI verde pe SHA-ul exact
+    tags: ['release/*']
   pull_request:
+  workflow_dispatch:
+
+# E-admin-platform-56 (SEC2-17): tokenul GITHUB_TOKEN doar cu citire; actiunile fixate prin SHA
+# de commit (tag-urile sunt mutabile), comentariul = versiunea; Dependabot (github-actions) le urca.
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # rularile pe tag de release nu se anuleaza (sunt dovada pentru deploy)
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: pnpm/action-setup@v4
+      - name: Fara placeholdere juridice in textele publicate
+        shell: bash
+        run: |
+          if grep -nE '\[(CUI|ADRES|DENUMIRE|EMAIL)[^]]*\]' apps/frontend/src/messages/*.json; then
+            echo "::error::Placeholdere juridice ramase in apps/frontend/src/messages (Legal.*)"
+            exit 1
+          fi
+
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         # versiunea vine din packageManager (package.json)
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version-file: .node-version
           cache: pnpm
+
+      - name: Fara secrete in arbore
+        run: node tools/release/scan-secrets.mjs
 
       - name: Instalare dependinte
         run: pnpm install --frozen-lockfile
+
+      - name: Generare Prisma pentru checkout curat
+        run: pnpm -F backend exec prisma generate
 
       - name: Build shared (tipurile comune, inaintea typecheck-ului FE/BE)
         run: pnpm build:shared
@@ -39,5 +60,86 @@ jobs:
       - name: Lint (frontend + backend)
         run: pnpm lint
 
-      - name: Teste (backend jest + shared vitest)
-        run: pnpm test
+      # E-admin-platform-14: backend cu coverage + praguri per folder (billing/claims/requests,
+      # jest.config.cjs); fara TEST_DATABASE_URL specurile de integrare se sar aici
+      - name: Teste (backend, frontend si shared)
+        run: |
+          pnpm -F backend test:cov
+          pnpm -F frontend test
+          pnpm -F @marketplace/shared test
+
+      - name: Raport coverage backend
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-coverage
+          path: |
+            apps/backend/coverage/coverage-summary.json
+            apps/backend/coverage/lcov.info
+          if-no-files-found: ignore
+
+      - name: Teste unelte release
+        run: pnpm test:tools
+
+      - name: Infrastructura izolata pentru regresii reale
+        run: |
+          docker compose -p cozy-ci -f dev-infra/docker-compose.yml up -d --wait postgres redis minio
+          docker compose -p cozy-ci -f dev-infra/docker-compose.yml run --rm minio-init
+
+      - name: Migratii si concurenta PostgreSQL / storage MinIO
+        env:
+          DATABASE_URL: postgresql://marketplace:marketplace@127.0.0.1:5432/marketplace
+          TEST_DATABASE_URL: postgresql://marketplace:marketplace@127.0.0.1:5432/marketplace
+          TEST_S3_ENDPOINT: http://127.0.0.1:9000
+          NODE_OPTIONS: --experimental-vm-modules
+        run: |
+          pnpm -F backend exec prisma migrate deploy
+          pnpm -F backend exec jest --runInBand --ci --testPathPattern=integration.spec.ts
+
+      - name: Audit dependinte productie
+        run: pnpm audit --prod --audit-level high
+
+      # E-admin-platform-56 (SEC2-14): si lantul de dezvoltare/build (CLI, test runner) fara HIGH/CRITICAL
+      - name: Audit dependinte complet (inclusiv dezvoltare)
+        run: pnpm audit --audit-level high
+
+      - name: Instalare browser teste
+        run: pnpm -F frontend exec playwright install --with-deps chromium
+
+      - name: Teste browser desktop si mobil
+        run: pnpm -F frontend test:e2e
+
+      - name: Build imagine productie (frontend standalone + backend)
+        run: docker build -f Dockerfile.app -t cozy-app:ci .
+
+      # E-admin-platform-56 (SEC2-17): CVE HIGH/CRITICAL cu fix disponibil in imaginea de productie
+      # (pachete Debian + node_modules). Trivy ruleaza ca imagine fixata prin digest, nu prin
+      # actiune pe tag. Exceptii DOAR in .trivyignore.yaml, cu `statement` + `expired_at` <= 90 zile.
+      - name: Scanare imagine (Trivy HIGH/CRITICAL cu fix disponibil)
+        run: >-
+          docker run --rm
+          -v /var/run/docker.sock:/var/run/docker.sock
+          -v "$PWD/.trivyignore.yaml:/work/.trivyignore.yaml:ro"
+          aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
+          image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress
+          --ignorefile /work/.trivyignore.yaml cozy-app:ci
+
+      - name: Verificare artefacte standalone
+        run: docker run --rm --entrypoint sh cozy-app:ci -c 'test -f /app/web/apps/frontend/server.js && test -d /app/web/apps/frontend/.next/static && test -f /app/apps/backend/dist/main.js'
+
+      - name: Build imagine backup (cron zilnic + test lunar de restaurare)
+        run: |
+          docker build -t cozy-backup:ci deploy/backup
+          docker run --rm --entrypoint bash cozy-backup:ci /opt/backup/test/retention.test.sh
+
+      - name: Artefacte browser la esec
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: browser-failures
+          path: apps/frontend/test-results
+          if-no-files-found: ignore
+
+      - name: Oprire infrastructura CI
+        if: always()
+        run: docker compose -p cozy-ci -f dev-infra/docker-compose.yml down

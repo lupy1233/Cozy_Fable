@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
 import { ACCESS_COOKIE, type AccessTokenPayload } from '../auth.constants';
+import { PrismaService } from '../../../infra/prisma/prisma.service';
+import { assertActiveSession } from '../access-session';
 
 // Auth optionala: daca exista un access token valid, ataseaza req.user;
 // altfel lasa cererea sa treaca anonim. Folosit pe fluxul draft anonim cu token,
@@ -12,6 +14,7 @@ export class OptionalJwtAuthGuard implements CanActivate {
   constructor(
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -24,7 +27,9 @@ export class OptionalJwtAuthGuard implements CanActivate {
         req.user = await this.jwt.verifyAsync<AccessTokenPayload>(token, {
           secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
         });
+        await assertActiveSession(this.prisma, req.user);
       } catch {
+        delete req.user;
         // token invalid/expirat → ramane anonim
       }
     }
