@@ -409,7 +409,9 @@ export class AdminService {
     if (!existing) {
       throw new NotFoundException({ code: ERROR_CODES.SETTING_KEY_UNKNOWN, message: 'Unknown setting' });
     }
-    const rule = SETTING_VALUE_RULES[key];
+    // cheia vine de la admin: se accepta doar proprietatile proprii ale tabelului de reguli,
+    // nu `constructor`/`toString` mostenite din prototip (CodeQL: unvalidated dynamic method call)
+    const rule = Object.prototype.hasOwnProperty.call(SETTING_VALUE_RULES, key) ? SETTING_VALUE_RULES[key] : undefined;
     // E-admin-platform-58: trial_plan (cod de plan) se salveaza si el fara spatii
     const stored = rule || key === 'trial_plan' ? value.trim() : value;
     if (rule && !rule(stored)) {

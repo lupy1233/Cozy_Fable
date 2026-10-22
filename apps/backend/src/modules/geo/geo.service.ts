@@ -56,11 +56,13 @@ export class GeoService {
   // Scoate detaliile care nu exista in harta si strica free-form search-ul:
   // bloc, scara, apartament, etaj, interfon (ex. "bl. A3, sc. 2, ap. 15, et. 4").
   private stripAddressNoise(addressText: string): string {
+    // Spatiile se restrang INTAI la unul singur: regex-urile de mai jos nu mai au
+    // cuantificatori ambigui pe spatii (ReDoS polinomial semnalat de CodeQL pe text liber).
     return addressText
-      .replace(/,?\s*\b(bl|bloc|sc|scara|ap|apt|apartament|et|etaj|interfon)\.?\s*[\w/-]+/gi, '')
-      .replace(/\s{2,}/g, ' ')
-      .replace(/(\s*,\s*)+/g, ', ')
-      .replace(/^[,\s]+|[,\s]+$/g, '');
+      .replace(/\s+/g, ' ')
+      .replace(/,? ?\b(bl|bloc|sc|scara|ap|apt|apartament|et|etaj|interfon)\.? ?[\w/-]+/gi, '')
+      .replace(/( ?, ?)+/g, ', ')
+      .replace(/^[, ]+|[, ]+$/g, '');
   }
 
   async geocode(

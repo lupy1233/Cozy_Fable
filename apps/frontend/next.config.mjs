@@ -30,6 +30,8 @@ const nextConfig = {
   async headers() {
     const production = process.env.NODE_ENV === 'production';
     const siteHost = new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').hostname;
+    // valoarea `host` e regex (Next o ancoreaza ^…$): se escapeaza TOATE metacaracterele, nu doar punctul
+    const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const prodOnly = production
       ? [
           { key: 'Strict-Transport-Security', value: 'max-age=15552000; includeSubDomains' },
@@ -51,8 +53,7 @@ const nextConfig = {
         ? [
             {
               source: '/:path*',
-              // valoarea `host` e regex (Next o ancoreaza ^…$) → punctele se escapeaza
-              missing: [{ type: 'host', value: `${siteHost.replace(/\./g, '\\.')}` }],
+              missing: [{ type: 'host', value: escapeRegExp(siteHost) }],
               headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
             },
           ]

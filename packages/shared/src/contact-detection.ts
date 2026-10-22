@@ -92,8 +92,11 @@ function collectPhones(text: string, out: ContactMatch[]): void {
     const run = m[0];
     const chunks: { start: number; end: number; digits: number }[] = [];
     let lastDigit = -1;
-    for (let i = 0; i < run.length; i++) {
-      if (!/\d/.test(run[i])) continue;
+    // se parcurg doar cifrele (matchAll), nu indicii pana la `.length`: textul e
+    // controlat de utilizator (CodeQL: loop bound injection), iar intrarea e deja
+    // taiata la MAX_SCAN_CHARS in detectContactInfo
+    for (const digit of run.matchAll(/\d/g)) {
+      const i = digit.index ?? 0;
       const gap = lastDigit === -1 ? '' : run.slice(lastDigit + 1, i);
       if (lastDigit === -1 || /\s/.test(gap)) {
         chunks.push({ start: lastDigit === -1 ? 0 : i, end: i + 1, digits: 1 });
@@ -156,7 +159,7 @@ export function isHideable(m: Pick<ContactMatch, 'kind'>): boolean {
 // iar intervalul rezultat acopera toate candidatele suprapuse (un link care
 // contine un telefon se ascunde integral).
 export function detectContactInfo(text: string): ContactMatch[] {
-  if (!text) return [];
+  if (typeof text !== 'string' || !text) return [];
   const src = text.length > MAX_SCAN_CHARS ? text.slice(0, MAX_SCAN_CHARS) : text;
   const candidates: ContactMatch[] = [];
   collect(EMAIL_RE, 'EMAIL', src, candidates);
