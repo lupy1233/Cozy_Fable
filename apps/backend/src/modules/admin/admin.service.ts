@@ -90,7 +90,7 @@ function cleanPlanName(value: string | null | undefined): string | null {
 // Sprint 1 security-close: setarile noi care misca bani/notificari accepta doar valori
 // cunoscute (altfel un typo ar lasa procesorul no-op sau ar programa joburi aberante).
 const DAY_COUNT = /^(?:0|[1-9]\d{0,2})$/;
-const SETTING_VALUE_RULES: Partial<Record<string, (value: string) => boolean>> = {
+const SETTING_VALUE_RULE_TABLE: Record<string, (value: string) => boolean> = {
   [SETTING_EXPIRED_OFFER_AUTOCLOSE_ENABLED]: (v) => v === 'true' || v === 'false',
   [SETTING_EXPIRED_OFFER_AUTOCLOSE_OUTCOME]: (v) => v === 'REFUND' || v === 'CONSUME' || v === 'UNSET',
   [SETTING_EXPIRED_OFFER_AUTOCLOSE_DAYS]: (v) => DAY_COUNT.test(v) && Number(v) <= 365,
@@ -125,6 +125,9 @@ const SETTING_VALUE_RULES: Partial<Record<string, (value: string) => boolean>> =
   [SETTING_BANK_TRANSFER_REMINDER_DAYS]: (v) => DAY_COUNT.test(v) && Number(v) <= 365,
   [SETTING_BANK_TRANSFER_EXPIRY_DAYS]: (v) => DAY_COUNT.test(v) && Number(v) <= 365,
 };
+// Map, nu obiect indexat cu cheia venita de la admin: .get() nu poate ajunge la
+// membrii prototipului (CodeQL: unvalidated dynamic method call)
+const SETTING_VALUE_RULES = new Map(Object.entries(SETTING_VALUE_RULE_TABLE));
 
 // escape minimal pentru valorile interpolate in HTML-ul emailurilor
 const escHtml = (v: string) =>
@@ -409,9 +412,7 @@ export class AdminService {
     if (!existing) {
       throw new NotFoundException({ code: ERROR_CODES.SETTING_KEY_UNKNOWN, message: 'Unknown setting' });
     }
-    // cheia vine de la admin: se accepta doar proprietatile proprii ale tabelului de reguli,
-    // nu `constructor`/`toString` mostenite din prototip (CodeQL: unvalidated dynamic method call)
-    const rule = Object.prototype.hasOwnProperty.call(SETTING_VALUE_RULES, key) ? SETTING_VALUE_RULES[key] : undefined;
+    const rule = SETTING_VALUE_RULES.get(key);
     // E-admin-platform-58: trial_plan (cod de plan) se salveaza si el fara spatii
     const stored = rule || key === 'trial_plan' ? value.trim() : value;
     if (rule && !rule(stored)) {
