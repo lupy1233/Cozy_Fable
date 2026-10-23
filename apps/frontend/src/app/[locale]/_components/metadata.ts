@@ -9,7 +9,7 @@ import { routing } from '@/i18n/routing';
 
 // Originea publica a site-ului (fara slash final). Fara variabila → localhost,
 // ca linkurile absolute din sitemap/OG sa fie macar valide in dev.
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'http://localhost:3000').replace(
   /\/$/,
   '',
 );
@@ -26,12 +26,14 @@ export const PUBLIC_PATHS = [
   '/studio',
   '/terms',
   '/privacy',
+  // NU '/company-rules': robots.ts blocheaza prefixul '/company' (zona privata a firmelor)
+  '/firm-rules',
 ] as const;
 
 export type PublicPath = (typeof PUBLIC_PATHS)[number];
 
 // Cheia din Meta.pages.* pentru fiecare pagina publica care isi seteaza titlul.
-export type MetaPage = 'home' | 'partners' | 'sketchGuide' | 'inspiration' | 'boards' | 'terms' | 'privacy';
+export type MetaPage = 'home' | 'partners' | 'sketchGuide' | 'inspiration' | 'boards' | 'terms' | 'privacy' | 'firmRules';
 
 export function localizedPath(locale: string, path: string): string {
   return path === '/' ? `/${locale}` : `/${locale}${path}`;

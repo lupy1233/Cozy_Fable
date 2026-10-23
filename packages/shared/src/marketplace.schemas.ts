@@ -8,7 +8,7 @@ import {
   SUBSCRIPTION_PLAN_TIERS,
   SUBSCRIPTION_STATUSES,
 } from './enums';
-import type { AttachmentDto, RequestRoomDto } from './request.schemas';
+import type { AttachmentDto, RequestInspirationPhotoDto, RequestRoomDto } from './request.schemas';
 import type { RequestStudioSceneDto } from './studio.schemas';
 
 // Sprint 5 — marketplace (listare cereri pentru firme) + claim + portofel credite.
@@ -28,6 +28,23 @@ export const assignClaimSchema = z.object({
 });
 export type AssignClaimInput = z.infer<typeof assignClaimSchema>;
 
+// --- Distanta pre-claim (E-client-9) ---
+// Benzile de distanta aratate firmelor inainte de claim.
+export const MARKETPLACE_DISTANCE_BANDS = ['UNDER_5', 'FROM_5_TO_15', 'FROM_15_TO_30', 'OVER_30'] as const;
+export type MarketplaceDistanceBand = (typeof MARKETPLACE_DISTANCE_BANDS)[number];
+
+export function marketplaceDistanceBand(km: number): MarketplaceDistanceBand {
+  if (km < 5) return 'UNDER_5';
+  if (km < 15) return 'FROM_5_TO_15';
+  if (km < 30) return 'FROM_15_TO_30';
+  return 'OVER_30';
+}
+
+// Ce vad firmele: km intregi (KM, implicit) sau doar banda (BAND) — system_settings.
+export const MARKETPLACE_DISTANCE_DISPLAY_MODES = ['KM', 'BAND'] as const;
+export type MarketplaceDistanceDisplayMode = (typeof MARKETPLACE_DISTANCE_DISPLAY_MODES)[number];
+export const SETTING_MARKETPLACE_DISTANCE_DISPLAY = 'marketplace_distance_display';
+
 // --- DTO-uri raspuns ---
 
 // Card de cerere vizibil in marketplace pentru o firma eligibila.
@@ -43,7 +60,10 @@ export interface MarketplaceItemDto {
   creditCost: number | null;
   includesPaidDesign: boolean;
   hasOwnProject: boolean;
-  distanceKm: number;
+  // Ambele calculate din punctul APROXIMAT al cererii (grila ~2 km, E-client-9):
+  // km intregi (null cand setarea e BAND) + banda, trimisa mereu.
+  distanceKm: number | null;
+  distanceBand: MarketplaceDistanceBand;
   publishedAt: string;
   // Transparenta gating (4.10): doar timpul scurs de la publicare, fara mentiuni de plan.
   publishedAgoMinutes: number;
@@ -58,6 +78,8 @@ export interface MarketplaceDetailDto extends MarketplaceItemDto {
   rooms: RequestRoomDto[];
   // pozele de inspiratie alese de client (F6); detaliile din GET /inspiration?ids=
   inspirationPhotoIds: string[];
+  // E-client-34: aceleasi poze cu notita (mascata) si camera
+  inspirationPhotos: RequestInspirationPhotoDto[];
   // atasamentele cererii cu URL-uri presigned (PO r6): schitele per camera si
   // snapshotul PNG al pieselor 3D — continut de proiect, nu date de contact (4.2)
   attachments: AttachmentDto[];
@@ -93,26 +115,5 @@ export interface CreditWalletDto {
   available: number;
 }
 
-export interface SubscriptionDto {
-  id: string;
-  tier: (typeof SUBSCRIPTION_PLAN_TIERS)[number];
-  status: (typeof SUBSCRIPTION_STATUSES)[number];
-  isTrial: boolean;
-  startedAt: string;
-  expiresAt: string;
-  gatingDelayMinutes: number;
-}
-
 // Cererea asa cum o vede o firma cu claim (subset din RequestDto, fara contact
 // pana cand preferinta clientului permite — Sprint 6 servire date contact).
-export interface ClaimedRequestDto {
-  id: string;
-  status: (typeof REQUEST_STATUSES)[number];
-  title: string;
-  description: string;
-  budgetRange: (typeof BUDGET_RANGES)[number];
-  city: string;
-  county: string;
-  size: (typeof PROJECT_SIZES)[number] | null;
-  myClaim: ClaimSlotDto;
-}

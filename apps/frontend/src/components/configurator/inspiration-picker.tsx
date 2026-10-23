@@ -1,10 +1,18 @@
 'use client';
 
-import { useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, FolderHeart, Images, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight, Check, FolderHeart, Images } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { InspirationPhotoDto, RoomType } from '@marketplace/shared';
+import {
+  MAX_REQUEST_INSPIRATION_PHOTOS,
+  type InspirationPhotoDto,
+  type RoomType,
+} from '@marketplace/shared';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { FilterChips } from '@/components/ui/filter-chips';
+import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
@@ -16,17 +24,35 @@ import { useInspiration } from '@/hooks/use-inspiration';
 import { useBoardDetail, useBoards } from '@/hooks/use-inspiration-boards';
 import { useConfiguratorStore } from '@/stores/configurator-store';
 import { cn } from '@/lib/utils';
+import { INSPIRATION_ROOM_TYPES } from './inspiration-room-types';
+import { InspirationSelectionCard } from './inspiration-selection-card';
 
 // Alegerea pozelor de inspiratie din galerie, direct in formular (F6, item 3).
 // Selectia (max 10) intra in cerere la publish; firmele o vad pe detaliu.
 // R7 (feedback PO r3): al doilea tab cu colectiile utilizatorului (caietul de
 // idei) — pozele salvate pe boards se pot alege direct, fara re-cautare.
 
-const MAX_SELECTED = 10;
-
-const TYPE_FILTERS: RoomType[] = ['KITCHEN', 'LIVING', 'BEDROOM', 'DRESSING', 'OFFICE', 'BATHROOM', 'HALLWAY'];
+const MAX_SELECTED = MAX_REQUEST_INSPIRATION_PHOTOS;
 
 type PickerTab = 'gallery' | 'boards';
+
+// rezultatul ultimului "Adauga toata colectia" (E-client-34)
+type AddAllResult =
+  | { kind: 'all'; added: number }
+  | { kind: 'partial'; added: number; total: number }
+  | { kind: 'already' }
+  | { kind: 'cap' };
+
+// placeholder de incarcare pentru grilele de poze / colectii
+function GridSkeleton() {
+  return (
+    <LoadingRegion className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {Array.from({ length: 6 }, (_, i) => (
+        <Skeleton key={i} className="aspect-[4/3] w-full rounded-lg" />
+      ))}
+    </LoadingRegion>
+  );
+}
 
 // Grila comuna de poze cu toggle de selectie — galerie si colectii arata identic.
 function PhotoGrid({
@@ -36,7 +62,7 @@ function PhotoGrid({
 }: {
   photos: InspirationPhotoDto[];
   selected: string[];
-  onToggle: (id: string) => void;
+  onToggle: (photo: InspirationPhotoDto) => void;
 }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -46,7 +72,7 @@ function PhotoGrid({
           <button
             key={p.id}
             type="button"
-            onClick={() => onToggle(p.id)}
+            onClick={() => onToggle(p)}
             aria-pressed={isSel}
             className={cn(
               'group relative overflow-hidden rounded-lg border text-left transition-shadow',
@@ -62,7 +88,7 @@ function PhotoGrid({
             />
             <span className="block truncate px-2 py-1.5 text-xs">
               {p.title}
-              <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">
+              <span className="block text-micro uppercase tracking-wide text-muted-foreground">
                 {p.company.name}
               </span>
             </span>
@@ -78,7 +104,7 @@ function PhotoGrid({
   );
 }
 
-export function InspirationPicker() {
+export function InspirationPicker({ blockedNoteIds = [] }: { blockedNoteIds?: string[] }) {
   const t = useTranslations('Configurator');
   const tc = useTranslations('Configurator');
   const ti = useTranslations('Inspiration');
@@ -86,10 +112,16 @@ export function InspirationPicker() {
   const authed = !!me.data;
   const selected = useConfiguratorStore((s) => s.inspirationPhotoIds);
   const setSelected = useConfiguratorStore((s) => s.setInspirationPhotos);
+  const addPhotos = useConfiguratorStore((s) => s.addInspirationPhotos);
+  const setNote = useConfiguratorStore((s) => s.setInspirationNote);
+  const setRoom = useConfiguratorStore((s) => s.setInspirationRoom);
+  const meta = useConfiguratorStore((s) => s.inspirationMeta);
+  const roomInstances = useConfiguratorStore((s) => s.roomInstances);
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<PickerTab>('gallery');
   const [type, setType] = useState<RoomType | null>(null);
   const [boardId, setBoardId] = useState<string | null>(null);
+  const [addAllResult, setAddAllResult] = useState<AddAllResult | null>(null);
 
   const gallery = useInspiration({ roomType: type ?? undefined }, open && tab === 'gallery');
   // colectiile utilizatorului (caietul de idei) — doar pentru conturi logate
@@ -98,23 +130,69 @@ export function InspirationPicker() {
   // pozele deja alese, pentru thumbnails (independent de filtrul din dialog)
   const chosen = useInspiration({ ids: selected }, selected.length > 0);
 
-  const toggle = (id: string) => {
-    if (selected.includes(id)) {
-      setSelected(selected.filter((x) => x !== id));
-    } else if (selected.length < MAX_SELECTED) {
-      setSelected([...selected, id]);
+  // Pozele retrase/sterse din galerie dupa ce au fost alese nu mai vin din
+  // ?ids= — le scoatem din draft (serverul le-ar respinge la publicare cu
+  // INSPIRATION_UNAVAILABLE) si ii spunem clientului. Doar dupa un raspuns reusit,
+  // o singura data per selectie (ref), ca sa nu stergem nimic pe o eroare de retea.
+  const [unavailableCount, setUnavailableCount] = useState(0);
+  const checkedSelection = useRef<string | null>(null);
+  useEffect(() => {
+    if (!chosen.isSuccess || selected.length === 0) return;
+    const key = selected.join(',');
+    if (checkedSelection.current === key) return;
+    checkedSelection.current = key;
+    const available = new Set((chosen.data ?? []).map((p) => p.id));
+    const kept = selected.filter((id) => available.has(id));
+    if (kept.length < selected.length) {
+      setUnavailableCount(selected.length - kept.length);
+      setSelected(kept);
     }
+  }, [chosen.isSuccess, chosen.data, selected, setSelected]);
+
+  const toggle = (photo: InspirationPhotoDto) => {
+    if (selected.includes(photo.id)) {
+      setSelected(selected.filter((x) => x !== photo.id));
+    } else if (selected.length < MAX_SELECTED) {
+      // camera se sugereaza din tipul pozei (doar daca exista exact una de acel tip)
+      addPhotos([{ photoId: photo.id, roomType: photo.roomType }]);
+    }
+  };
+
+  // E-client-34: toata colectia dintr-o miscare, cu notitele si camera salvate in colectie
+  const itemsById = new Map((boardDetail.data?.items ?? []).map((i) => [i.photoId, i]));
+  const addWholeBoard = () => {
+    const photos = boardDetail.data?.photos ?? [];
+    if (photos.length === 0) return;
+    if (selected.length >= MAX_SELECTED) {
+      setAddAllResult({ kind: 'cap' });
+      return;
+    }
+    const fresh = photos.filter((p) => !selected.includes(p.id));
+    const { added, skipped } = addPhotos(
+      photos.map((p) => ({
+        photoId: p.id,
+        note: itemsById.get(p.id)?.note,
+        roomType: itemsById.get(p.id)?.roomType ?? p.roomType,
+      })),
+    );
+    if (fresh.length === 0) setAddAllResult({ kind: 'already' });
+    else if (skipped > 0) setAddAllResult({ kind: 'partial', added, total: fresh.length });
+    else setAddAllResult({ kind: 'all', added });
   };
 
   const openDialog = () => {
     setTab('gallery');
     setBoardId(null);
+    setAddAllResult(null);
     setOpen(true);
   };
 
+  const chosenById = new Map((chosen.data ?? []).map((p) => [p.id, p]));
+  const pickerRooms = roomInstances.map((r) => ({ localId: r.localId, roomType: r.roomType }));
+
   return (
     <div className="rounded-xl border border-border-2 bg-surface-2 p-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="font-serif text-lg">{t('inspirationPicker.title')}</h3>
           <p className="mt-0.5 text-sm text-muted-foreground">
@@ -127,24 +205,33 @@ export function InspirationPicker() {
         </Button>
       </div>
 
-      {/* selectia curenta */}
+      {unavailableCount > 0 && (
+        <Alert tone="amber" className="mt-3">
+          {t('inspirationPicker.unavailableRemoved', { count: unavailableCount })}
+        </Alert>
+      )}
+
+      {/* selectia curenta: poza + notita + camera (E-client-34) */}
       {selected.length > 0 && (
-        <ul className="mt-3 flex flex-wrap gap-2">
-          {(chosen.data ?? []).map((p) => (
-            <li key={p.id} className="group relative h-20 w-20 overflow-hidden rounded-lg border border-border">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.imageUrl ?? ''} alt={p.title} className="h-full w-full object-cover" />
-              <button
-                type="button"
-                aria-label={`remove ${p.title}`}
-                onClick={() => toggle(p.id)}
-                className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </li>
-          ))}
-        </ul>
+        <>
+          <p className="mt-3 text-xs text-muted-foreground">{t('inspirationPicker.notesVisibleHint')}</p>
+          <ul className="mt-2 flex flex-col gap-2">
+            {selected.map((id) => (
+              <InspirationSelectionCard
+                key={id}
+                photoId={id}
+                photo={chosenById.get(id)}
+                note={meta?.[id]?.note ?? ''}
+                roomLocalId={meta?.[id]?.roomLocalId ?? ''}
+                rooms={pickerRooms}
+                blocked={blockedNoteIds.includes(id)}
+                onNoteChange={setNote}
+                onRoomChange={setRoom}
+                onRemove={(photoId) => setSelected(selected.filter((x) => x !== photoId))}
+              />
+            ))}
+          </ul>
+        </>
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -164,9 +251,11 @@ export function InspirationPicker() {
                   <button
                     key={tb}
                     type="button"
+                    aria-pressed={tab === tb}
                     onClick={() => {
                       setTab(tb);
                       setBoardId(null);
+                      setAddAllResult(null);
                     }}
                     className={cn(
                       'flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 transition-colors',
@@ -186,35 +275,21 @@ export function InspirationPicker() {
 
             {tab === 'gallery' && (
               <>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setType(null)}
-                    className={cn(
-                      'rounded-full border px-3 py-1 text-sm',
-                      type === null ? 'border-walnut bg-walnut-soft text-walnut' : 'border-border-2 text-muted-foreground',
-                    )}
-                  >
-                    {ti('all')}
-                  </button>
-                  {TYPE_FILTERS.map((rt) => (
-                    <button
-                      key={rt}
-                      type="button"
-                      onClick={() => setType(type === rt ? null : rt)}
-                      className={cn(
-                        'rounded-full border px-3 py-1 text-sm',
-                        type === rt ? 'border-walnut bg-walnut-soft text-walnut' : 'border-border-2 text-muted-foreground',
-                      )}
-                    >
-                      {tc(`rooms.type.${rt}`)}
-                    </button>
-                  ))}
-                </div>
+                <FilterChips<'ALL' | RoomType>
+                  size="sm"
+                  allowDeselect
+                  label={ti('roomFilterLabel')}
+                  value={type ?? 'ALL'}
+                  onChange={(v) => setType(v === null || v === 'ALL' ? null : v)}
+                  options={[
+                    { value: 'ALL', label: ti('all') },
+                    ...INSPIRATION_ROOM_TYPES.map((rt) => ({ value: rt, label: tc(`rooms.type.${rt}`) })),
+                  ]}
+                />
 
-                {gallery.isPending && <p className="py-10 text-center text-muted-foreground">…</p>}
+                {gallery.isPending && <GridSkeleton />}
                 {!gallery.isPending && (gallery.data ?? []).length === 0 && (
-                  <p className="py-10 text-center text-muted-foreground">{ti('empty')}</p>
+                  <EmptyState icon={Images} title={ti('empty')} />
                 )}
                 <PhotoGrid photos={gallery.data ?? []} selected={selected} onToggle={toggle} />
               </>
@@ -222,18 +297,19 @@ export function InspirationPicker() {
 
             {tab === 'boards' && !boardId && (
               <>
-                {boards.isPending && <p className="py-10 text-center text-muted-foreground">…</p>}
+                {boards.isPending && <GridSkeleton />}
                 {!boards.isPending && (boards.data ?? []).length === 0 && (
-                  <p className="py-10 text-center text-muted-foreground">
-                    {t('inspirationPicker.boardsEmpty')}
-                  </p>
+                  <EmptyState icon={FolderHeart} title={t('inspirationPicker.boardsEmpty')} />
                 )}
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {(boards.data ?? []).map((b) => (
                     <button
                       key={b.id}
                       type="button"
-                      onClick={() => setBoardId(b.id)}
+                      onClick={() => {
+                        setBoardId(b.id);
+                        setAddAllResult(null);
+                      }}
                       className="group overflow-hidden rounded-lg border border-border-2 text-left transition-colors hover:border-walnut"
                     >
                       <div className="grid aspect-[4/3] w-full grid-cols-3 gap-0.5 bg-surface-2">
@@ -254,7 +330,7 @@ export function InspirationPicker() {
                       </div>
                       <span className="block truncate px-2 py-1.5 text-xs font-medium">
                         {b.name}
-                        <span className="block text-[10px] font-normal text-muted-foreground">
+                        <span className="block text-micro font-normal text-muted-foreground">
                           {t('inspirationPicker.boardCount', { count: b.itemsCount })}
                         </span>
                       </span>
@@ -266,16 +342,53 @@ export function InspirationPicker() {
 
             {tab === 'boards' && boardId && (
               <>
-                <div className="flex items-center gap-2">
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setBoardId(null)}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setBoardId(null);
+                      setAddAllResult(null);
+                    }}
+                  >
                     <ArrowLeft className="mr-1 h-4 w-4" />
                     {t('inspirationPicker.backToBoards')}
                   </Button>
                   <span className="font-serif">{boardDetail.data?.name ?? ''}</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="ml-auto"
+                    disabled={
+                      boardDetail.isPending ||
+                      (boardDetail.data?.photos ?? []).length === 0 ||
+                      selected.length >= MAX_SELECTED
+                    }
+                    onClick={addWholeBoard}
+                  >
+                    <FolderHeart className="mr-1.5 h-4 w-4" />
+                    {t('inspirationPicker.addWholeBoard', { count: boardDetail.data?.photos.length ?? 0 })}
+                  </Button>
                 </div>
-                {boardDetail.isPending && <p className="py-10 text-center text-muted-foreground">…</p>}
+                {addAllResult && (
+                  <Alert tone={addAllResult.kind === 'all' ? 'sage' : 'amber'} role="status">
+                    {addAllResult.kind === 'all' &&
+                      t('inspirationPicker.addedAll', { added: addAllResult.added })}
+                    {addAllResult.kind === 'partial' &&
+                      t('inspirationPicker.addedPartial', {
+                        added: addAllResult.added,
+                        total: addAllResult.total,
+                        max: MAX_SELECTED,
+                      })}
+                    {addAllResult.kind === 'already' && t('inspirationPicker.allAlreadySelected')}
+                    {addAllResult.kind === 'cap' && t('inspirationPicker.capReached', { max: MAX_SELECTED })}
+                  </Alert>
+                )}
+                {boardDetail.isPending && <GridSkeleton />}
                 {!boardDetail.isPending && (boardDetail.data?.photos ?? []).length === 0 && (
-                  <p className="py-10 text-center text-muted-foreground">{ti('empty')}</p>
+                  <EmptyState icon={Images} title={ti('empty')} />
                 )}
                 <PhotoGrid photos={boardDetail.data?.photos ?? []} selected={selected} onToggle={toggle} />
               </>

@@ -9,8 +9,10 @@ import { Eye, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useDialogFocus } from '@/hooks/use-dialog-focus';
 import { config3dChips } from './config-chips';
-import { PieceCanvas, slideKey, zoneKey, type ZoneRef } from './piece-canvas';
+import { PieceCanvas, type ZoneRef } from './piece-canvas';
+import { useCabinetFronts } from './use-cabinet-fronts';
 
 // Viewer 3D READ-ONLY (U4, PO r4): firma deschide piesa exact cum a configurat-o
 // clientul — roteste modelul, da click pe zone ca sa deschida usile/sertarele
@@ -38,10 +40,10 @@ export default function PieceViewer3dDialog({
   onClose: () => void;
 }) {
   const t = useTranslations('Configurator');
+  const dialogRef = useDialogFocus(onClose);
   const [webgl] = useState(() => hasWebGl());
   const [activeZone, setActiveZone] = useState<ZoneRef | null>(null);
-  // fronturile deschise in scena ("col:zone" / "slide:col"), ca in configurator
-  const [openZones, setOpenZones] = useState<Set<string>>(new Set());
+  const { openZones, toggleZone, onFrontSettled } = useCabinetFronts(piece, config);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -61,7 +63,6 @@ export default function PieceViewer3dDialog({
   }, []);
 
   const layout = useMemo(() => resolvePieceLayout(piece, config), [piece, config]);
-  const sliding = config.doorMode === 'SLIDING';
 
   const zone = activeZone ? config.columns[activeZone.col]?.zones[activeZone.zone] : null;
   const resolved = activeZone ? layout[activeZone.col]?.zones[activeZone.zone] : null;
@@ -71,36 +72,7 @@ export default function PieceViewer3dDialog({
   // click selecteaza zona; usile/sertarele se deschid si se inchid
   const onZoneClick = (ref: ZoneRef) => {
     setActiveZone(ref);
-    const clicked = config.columns[ref.col]?.zones[ref.zone];
-    if (sliding) {
-      setOpenZones((prev) => {
-        const door = slideKey(ref.col);
-        const next = new Set(prev);
-        if (!next.has(door)) {
-          next.add(door);
-        } else if (clicked?.type === 'DRAWERS') {
-          const key = zoneKey(ref.col, ref.zone);
-          if (next.has(key)) next.delete(key);
-          else next.add(key);
-        } else {
-          next.delete(door);
-          for (const key of [...next]) {
-            if (key.startsWith(`${ref.col}:`)) next.delete(key);
-          }
-        }
-        return next;
-      });
-      return;
-    }
-    if (clicked && (clicked.type === 'DOOR' || clicked.type === 'DRAWERS' || clicked.type === 'TILT_OUT')) {
-      setOpenZones((prev) => {
-        const key = zoneKey(ref.col, ref.zone);
-        const next = new Set(prev);
-        if (next.has(key)) next.delete(key);
-        else next.add(key);
-        return next;
-      });
-    }
+    toggleZone(ref);
   };
 
   // detaliile zonei selectate: tip + interior (cu numar) + dimensiunile rezolvate
@@ -130,6 +102,8 @@ export default function PieceViewer3dDialog({
 
   return createPortal(
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label={t('config3d.viewer.title')}
@@ -169,6 +143,7 @@ export default function PieceViewer3dDialog({
                   config={config}
                   activeZone={activeZone}
                   openZones={openZones}
+                  onFrontSettled={onFrontSettled}
                   onZoneClick={onZoneClick}
                   className="h-[300px] w-full sm:h-[420px]"
                 />
@@ -194,7 +169,7 @@ export default function PieceViewer3dDialog({
                   </div>
                 ) : (
                   <div className="rounded-xl border border-dashed border-border-2 bg-surface-2/50 p-3 text-xs leading-relaxed text-muted-foreground">
-                    {t('config3d.viewer.hint')}
+                    {t(config.bed || config.table || config.bench ? 'config3d.furniture.viewerHint' : 'config3d.viewer.hint')}
                   </div>
                 )}
                 <div className="flex flex-wrap content-start gap-1.5">

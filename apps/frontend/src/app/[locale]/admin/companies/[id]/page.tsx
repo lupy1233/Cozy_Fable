@@ -5,10 +5,14 @@ import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { Link } from '@/i18n/routing';
-import { useAdminCompany, useApproveCompany, useRejectCompany } from '@/hooks/use-company';
+import { useAdminCompany, useApproveCompany, useRejectCompany, useUnsuspendCompany } from '@/hooks/use-company';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
+import { SkeletonPage } from '@/components/ui/skeleton';
 
 export default function AdminCompanyDetailPage() {
   const t = useTranslations('AdminCompanies');
@@ -17,29 +21,38 @@ export default function AdminCompanyDetailPage() {
   const detail = useAdminCompany(id);
   const approve = useApproveCompany();
   const reject = useRejectCompany();
+  const unsuspend = useUnsuspendCompany();
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
 
   if (detail.isPending) {
-    return <p className="py-20 text-center text-muted-foreground">…</p>;
+    return <SkeletonPage variant="detail" />;
   }
   if (detail.isError || !detail.data) {
-    return <p className="py-20 text-center text-muted-foreground">{t('empty')}</p>;
+    return (
+      <EmptyState
+        variant="card"
+        title={t('empty')}
+        action={
+          <Link href="/admin/companies" className="text-sm text-walnut hover:underline">
+            ← {t('back')}
+          </Link>
+        }
+      />
+    );
   }
 
   const c = detail.data;
   const riskFlags = (c.riskFlags ?? []) as CompanyRiskFlag[];
   const pending = c.status === 'PENDING_VERIFICATION';
+  const suspended = c.status === 'SUSPENDED';
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      <Link href="/admin/companies" className="text-sm text-walnut hover:underline">
-        ← {t('back')}
-      </Link>
-      <h1 className="page-title">{t('detailTitle')}</h1>
+      <PageHeader back={{ href: '/admin/companies', label: t('back') }} title={t('detailTitle')} />
 
-      <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-        <p className="font-serif text-xl">{c.name}</p>
+      <Card>
+        <p className="heading-section">{c.name}</p>
         <p className="text-sm text-muted-foreground">
           {t('cui')}: {c.cui} · {c.regComNumber}
         </p>
@@ -59,10 +72,10 @@ export default function AdminCompanyDetailPage() {
           {t('members')}: {c.members.length} · {t('locations')}: {c.locations.length} ·{' '}
           {t('portfolio')}: {c.portfolio.length}
         </p>
-      </div>
+      </Card>
 
       {pending && (
-        <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5 shadow-sm">
+        <Card className="flex flex-col gap-3">
           {!rejecting ? (
             <div className="flex gap-3">
               <Button
@@ -95,7 +108,23 @@ export default function AdminCompanyDetailPage() {
           )}
           {approve.isSuccess && <p className="text-sm text-sage">{t('approved')}</p>}
           {reject.isSuccess && <p className="text-sm text-crimson">{t('rejected')}</p>}
-        </div>
+        </Card>
+      )}
+
+      {/* Pasul 5 (F2): ridicarea suspendarii — inainte nu exista nicio cale in produs */}
+      {suspended && (
+        <Card className="flex flex-col gap-3">
+          <p className="text-sm text-muted-foreground">{t('suspendedNote')}</p>
+          <Button
+            onClick={() => unsuspend.mutate(id)}
+            disabled={unsuspend.isPending}
+            className="self-start bg-sage text-white hover:brightness-110"
+          >
+            {t('unsuspend')}
+          </Button>
+          {unsuspend.isSuccess && <p className="text-sm text-sage">{t('unsuspended')}</p>}
+          {unsuspend.isError && <p className="text-sm text-crimson">{t('unsuspendError')}</p>}
+        </Card>
       )}
     </div>
   );

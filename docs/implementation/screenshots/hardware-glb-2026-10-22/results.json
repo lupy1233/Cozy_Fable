@@ -1,0 +1,754 @@
+{
+  "baseUrl": "http://localhost:3000",
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 1070 (0x00001B81) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "pages": [
+    {
+      "label": "dresser-legs-knob",
+      "file": "dresser-legs-knob.png",
+      "kind": "DRESSER",
+      "style": "Buton",
+      "legs": true,
+      "assets": {
+        "status": "ready",
+        "nodes": [
+          "handle_bar_096",
+          "handle_bar_128",
+          "handle_bar_160",
+          "handle_bar_192",
+          "handle_bar_256",
+          "handle_bar_320",
+          "handle_knob",
+          "handle_profile",
+          "handle_shell",
+          "hinge_cup_l",
+          "hinge_cup_r",
+          "leg_tapered"
+        ]
+      },
+      "instances": {
+        "leg_tapered": 4,
+        "handle_knob": 6
+      },
+      "config": {
+        "widthM": 1.2,
+        "heightM": 0.9,
+        "depthM": 0.45,
+        "columns": [
+          {
+            "zones": [
+              {
+                "type": "DRAWERS",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "zones": [
+              {
+                "type": "DRAWERS",
+                "count": 3
+              }
+            ]
+          }
+        ],
+        "finish": "STEJAR",
+        "frontStyle": "HANDLE",
+        "handleStyle": "KNOB",
+        "legs": true
+      }
+    },
+    {
+      "label": "dresser-legs-shell",
+      "file": "dresser-legs-shell.png",
+      "kind": "DRESSER",
+      "style": "Scoică",
+      "assets": {
+        "status": "ready",
+        "nodes": [
+          "handle_bar_096",
+          "handle_bar_128",
+          "handle_bar_160",
+          "handle_bar_192",
+          "handle_bar_256",
+          "handle_bar_320",
+          "handle_knob",
+          "handle_profile",
+          "handle_shell",
+          "hinge_cup_l",
+          "hinge_cup_r",
+          "leg_tapered"
+        ]
+      },
+      "instances": {
+        "leg_tapered": 4,
+        "handle_shell": 6
+      },
+      "config": {
+        "widthM": 1.2,
+        "heightM": 0.9,
+        "depthM": 0.45,
+        "columns": [
+          {
+            "zones": [
+              {
+                "type": "DRAWERS",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "zones": [
+              {
+                "type": "DRAWERS",
+                "count": 3
+              }
+            ]
+          }
+        ],
+        "finish": "STEJAR",
+        "frontStyle": "HANDLE",
+        "handleStyle": "SHELL",
+        "legs": true
+      }
+    },
+    {
+      "label": "dresser-legs-profile",
+      "file": "dresser-legs-profile.png",
+      "kind": "DRESSER",
+      "style": "Profil",
+      "assets": {
+        "status": "ready",
+        "nodes": [
+          "handle_bar_096",
+          "handle_bar_128",
+          "handle_bar_160",
+          "handle_bar_192",
+          "handle_bar_256",
+          "handle_bar_320",
+          "handle_knob",
+          "handle_profile",
+          "handle_shell",
+          "hinge_cup_l",
+          "hinge_cup_r",
+          "leg_tapered"
+        ]
+      },
+      "instances": {
+        "leg_tapered": 4,
+        "handle_profile": 6
+      },
+      "config": {
+        "widthM": 1.2,
+        "heightM": 0.9,
+        "depthM": 0.45,
+        "columns": [
+          {
+            "zones": [
+              {
+                "type": "DRAWERS",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "zones": [
+              {
+                "type": "DRAWERS",
+                "count": 3
+              }
+            ]
+          }
+        ],
+        "finish": "STEJAR",
+        "frontStyle": "HANDLE",
+        "handleStyle": "PROFILE",
+        "legs": true
+      }
+    },
+    {
+      "label": "wardrobe-bar",
+      "file": "wardrobe-bar.png",
+      "kind": "WARDROBE",
+      "style": "Bară",
+      "assets": {
+        "status": "ready",
+        "nodes": [
+          "handle_bar_096",
+          "handle_bar_128",
+          "handle_bar_160",
+          "handle_bar_192",
+          "handle_bar_256",
+          "handle_bar_320",
+          "handle_knob",
+          "handle_profile",
+          "handle_shell",
+          "hinge_cup_l",
+          "hinge_cup_r",
+          "leg_tapered"
+        ]
+      },
+      "instances": {
+        "handle_bar_256": 6
+      },
+      "config": {
+        "widthM": 2.4,
+        "heightM": 2.4,
+        "depthM": 0.6,
+        "columns": [
+          {
+            "zones": [
+              {
+                "type": "OPEN",
+                "fill": "HANGING",
+                "count": 1
+              },
+              {
+                "type": "DRAWERS",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "zones": [
+              {
+                "type": "OPEN",
+                "fill": "HANGING",
+                "count": 1
+              },
+              {
+                "type": "DRAWERS",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "zones": [
+              {
+                "type": "OPEN",
+                "fill": "HANGING",
+                "count": 1
+              },
+              {
+                "type": "DRAWERS",
+                "count": 2
+              }
+            ]
+          }
+        ],
+        "finish": "STEJAR",
+        "frontStyle": "HANDLE"
+      }
+    },
+    {
+      "label": "nightstand-shell",
+      "file": "nightstand-shell.png",
+      "kind": "NIGHTSTAND",
+      "style": "Scoică",
+      "assets": {
+        "status": "ready",
+        "nodes": [
+          "handle_bar_096",
+          "handle_bar_128",
+          "handle_bar_160",
+          "handle_bar_192",
+          "handle_bar_256",
+          "handle_bar_320",
+          "handle_knob",
+          "handle_profile",
+          "handle_shell",
+          "hinge_cup_l",
+          "hinge_cup_r",
+          "leg_tapered"
+        ]
+      },
+      "instances": {
+        "handle_shell": 1
+      },
+      "config": {
+        "widthM": 0.45,
+        "heightM": 0.55,
+        "depthM": 0.4,
+        "columns": [
+          {
+            "zones": [
+              {
+                "type": "DRAWERS",
+                "count": 1
+              },
+              {
+                "type": "OPEN"
+              }
+            ]
+          }
+        ],
+        "finish": "STEJAR",
+        "frontStyle": "HANDLE",
+        "handleStyle": "SHELL"
+      }
+    },
+    {
+      "label": "shoe-cabinet-bar",
+      "file": "shoe-cabinet-bar.png",
+      "kind": "SHOE_CABINET",
+      "style": "Bară",
+      "assets": {
+        "status": "ready",
+        "nodes": [
+          "handle_bar_096",
+          "handle_bar_128",
+          "handle_bar_160",
+          "handle_bar_192",
+          "handle_bar_256",
+          "handle_bar_320",
+          "handle_knob",
+          "handle_profile",
+          "handle_shell",
+          "hinge_cup_l",
+          "hinge_cup_r",
+          "leg_tapered"
+        ]
+      },
+      "instances": {
+        "hinge_cup_l": 2,
+        "hinge_cup_r": 2,
+        "handle_bar_256": 2
+      },
+      "config": {
+        "widthM": 0.8,
+        "heightM": 1.2,
+        "depthM": 0.3,
+        "columns": [
+          {
+            "zones": [
+              {
+                "type": "DOOR",
+                "fill": "SHELVES",
+                "count": 3
+              }
+            ]
+          }
+        ],
+        "finish": "STEJAR",
+        "frontStyle": "HANDLE"
+      }
+    },
+    {
+      "label": "shoe-cabinet-door-open",
+      "file": "shoe-cabinet-door-open.png",
+      "kind": "SHOE_CABINET",
+      "style": "Bară",
+      "open": true,
+      "assets": {
+        "status": "ready",
+        "nodes": [
+          "handle_bar_096",
+          "handle_bar_128",
+          "handle_bar_160",
+          "handle_bar_192",
+          "handle_bar_256",
+          "handle_bar_320",
+          "handle_knob",
+          "handle_profile",
+          "handle_shell",
+          "hinge_cup_l",
+          "hinge_cup_r",
+          "leg_tapered"
+        ]
+      },
+      "instances": {
+        "hinge_cup_l": 2,
+        "hinge_cup_r": 2,
+        "handle_bar_256": 2
+      },
+      "config": {
+        "widthM": 0.8,
+        "heightM": 1.2,
+        "depthM": 0.3,
+        "columns": [
+          {
+            "zones": [
+              {
+                "type": "DOOR",
+                "fill": "SHELVES",
+                "count": 3
+              }
+            ]
+          }
+        ],
+        "finish": "STEJAR",
+        "frontStyle": "HANDLE"
+      }
+    },
+    {
+      "label": "sideboard-legs-door-open",
+      "file": "sideboard-legs-door-open.png",
+      "kind": "SIDEBOARD",
+      "style": "Buton",
+      "open": true,
+      "legs": true,
+      "assets": {
+        "status": "ready",
+        "nodes": [
+          "handle_bar_096",
+          "handle_bar_128",
+          "handle_bar_160",
+          "handle_bar_192",
+          "handle_bar_256",
+          "handle_bar_320",
+          "handle_knob",
+          "handle_profile",
+          "handle_shell",
+          "hinge_cup_l",
+          "hinge_cup_r",
+          "leg_tapered"
+        ]
+      },
+      "instances": {
+        "hinge_cup_l": 4,
+        "hinge_cup_r": 4,
+        "leg_tapered": 4,
+        "handle_knob": 4
+      },
+      "config": {
+        "widthM": 1.8,
+        "heightM": 0.85,
+        "depthM": 0.45,
+        "columns": [
+          {
+            "zones": [
+              {
+                "type": "DOOR",
+                "fill": "SHELVES",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "zones": [
+              {
+                "type": "DOOR",
+                "fill": "SHELVES",
+                "count": 1
+              }
+            ]
+          }
+        ],
+        "finish": "STEJAR",
+        "frontStyle": "HANDLE",
+        "handleStyle": "KNOB",
+        "legs": true
+      }
+    },
+    {
+      "label": "sofa-legs",
+      "file": "sofa-legs.png",
+      "kind": "SOFA",
+      "legs": true,
+      "assets": {
+        "status": "ready",
+        "nodes": [
+          "handle_bar_096",
+          "handle_bar_128",
+          "handle_bar_160",
+          "handle_bar_192",
+          "handle_bar_256",
+          "handle_bar_320",
+          "handle_knob",
+          "handle_profile",
+          "handle_shell",
+          "hinge_cup_l",
+          "hinge_cup_r",
+          "leg_tapered"
+        ]
+      },
+      "instances": {
+        "leg_tapered": 4
+      },
+      "config": {
+        "widthM": 2.2,
+        "heightM": 0.85,
+        "depthM": 0.95,
+        "columns": [],
+        "finish": "STEJAR",
+        "upholstery": {
+          "fabric": "WOVEN",
+          "color": "#a69d8e",
+          "firmness": "MEDIUM",
+          "base": "OAK"
+        },
+        "sofa": {
+          "seats": 3,
+          "layout": "STRAIGHT",
+          "bodyDepthM": 0.95,
+          "arms": "SLIM",
+          "cushions": "SPLIT",
+          "chaiseDepthM": 1.6
+        }
+      }
+    },
+    {
+      "label": "dresser-legs-knob-open",
+      "file": "dresser-legs-knob-open.png",
+      "kind": "DRESSER",
+      "style": "Buton",
+      "open": true,
+      "legs": true,
+      "assets": {
+        "status": "ready",
+        "nodes": [
+          "handle_bar_096",
+          "handle_bar_128",
+          "handle_bar_160",
+          "handle_bar_192",
+          "handle_bar_256",
+          "handle_bar_320",
+          "handle_knob",
+          "handle_profile",
+          "handle_shell",
+          "hinge_cup_l",
+          "hinge_cup_r",
+          "leg_tapered"
+        ]
+      },
+      "instances": {
+        "leg_tapered": 4,
+        "handle_knob": 6
+      },
+      "config": {
+        "widthM": 1.2,
+        "heightM": 0.9,
+        "depthM": 0.45,
+        "columns": [
+          {
+            "zones": [
+              {
+                "type": "DRAWERS",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "zones": [
+              {
+                "type": "DRAWERS",
+                "count": 3
+              }
+            ]
+          }
+        ],
+        "finish": "STEJAR",
+        "frontStyle": "HANDLE",
+        "handleStyle": "KNOB",
+        "legs": true
+      }
+    },
+    {
+      "label": "dresser-legs-knob-snapshot",
+      "file": "dresser-legs-knob-snapshot.png",
+      "kind": "DRESSER",
+      "style": "Buton",
+      "snapshot": true
+    },
+    {
+      "label": "viewer-dresser-legs-knob",
+      "file": "viewer-dresser-legs-knob.png",
+      "kind": "DRESSER",
+      "style": "Buton",
+      "viewer": true,
+      "assets": {
+        "status": "ready",
+        "nodes": [
+          "handle_bar_096",
+          "handle_bar_128",
+          "handle_bar_160",
+          "handle_bar_192",
+          "handle_bar_256",
+          "handle_bar_320",
+          "handle_knob",
+          "handle_profile",
+          "handle_shell",
+          "hinge_cup_l",
+          "hinge_cup_r",
+          "leg_tapered"
+        ]
+      },
+      "instances": {
+        "leg_tapered": 4,
+        "handle_knob": 6
+      },
+      "config": {
+        "widthM": 1.2,
+        "heightM": 0.9,
+        "depthM": 0.45,
+        "columns": [
+          {
+            "zones": [
+              {
+                "type": "DRAWERS",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "zones": [
+              {
+                "type": "DRAWERS",
+                "count": 3
+              }
+            ]
+          }
+        ],
+        "finish": "STEJAR",
+        "frontStyle": "HANDLE",
+        "handleStyle": "KNOB",
+        "legs": true
+      }
+    },
+    {
+      "label": "studio-room",
+      "file": "studio-room.png",
+      "studio": true,
+      "pieces": [
+        "DRESSER legs+knob NUC",
+        "NIGHTSTAND shell"
+      ],
+      "assets": {
+        "status": "ready",
+        "nodes": [
+          "handle_bar_096",
+          "handle_bar_128",
+          "handle_bar_160",
+          "handle_bar_192",
+          "handle_bar_256",
+          "handle_bar_320",
+          "handle_knob",
+          "handle_profile",
+          "handle_shell",
+          "hinge_cup_l",
+          "hinge_cup_r",
+          "leg_tapered"
+        ]
+      },
+      "instances": {
+        "leg_tapered": 4,
+        "handle_knob": 6,
+        "handle_shell": 1
+      },
+      "config": null
+    },
+    {
+      "label": "dresser-legs-shell-fallback",
+      "file": "dresser-legs-shell-fallback.png",
+      "kind": "DRESSER",
+      "style": "Scoică",
+      "fallback": true,
+      "legs": true,
+      "assets": {
+        "status": "error",
+        "nodes": []
+      },
+      "instances": {},
+      "config": {
+        "widthM": 1.2,
+        "heightM": 0.9,
+        "depthM": 0.45,
+        "columns": [
+          {
+            "zones": [
+              {
+                "type": "DRAWERS",
+                "count": 3
+              }
+            ]
+          },
+          {
+            "zones": [
+              {
+                "type": "DRAWERS",
+                "count": 3
+              }
+            ]
+          }
+        ],
+        "finish": "STEJAR",
+        "frontStyle": "HANDLE",
+        "handleStyle": "SHELL",
+        "legs": true
+      }
+    }
+  ],
+  "errors": [],
+  "failedResponses": [
+    {
+      "url": "/api/v1/auth/me",
+      "status": 401
+    },
+    {
+      "url": "/api/v1/auth/refresh",
+      "status": 401
+    },
+    {
+      "url": "/api/v1/auth/me",
+      "status": 401
+    },
+    {
+      "url": "/api/v1/legal/operator",
+      "status": 401
+    },
+    {
+      "url": "/api/v1/auth/refresh",
+      "status": 401
+    },
+    {
+      "url": "/api/v1/auth/me",
+      "status": 401
+    },
+    {
+      "url": "/api/v1/auth/refresh",
+      "status": 401
+    }
+  ],
+  "assetResponses": [
+    {
+      "url": "/3d/hardware.glb",
+      "status": 200,
+      "type": "model/gltf-binary"
+    },
+    {
+      "url": "/draco/draco_wasm_wrapper.js",
+      "status": 200,
+      "type": "application/javascript; charset=UTF-8"
+    },
+    {
+      "url": "/draco/draco_decoder.wasm",
+      "status": 200,
+      "type": "application/wasm"
+    },
+    {
+      "url": "/3d/hardware.glb",
+      "status": 200,
+      "type": "model/gltf-binary"
+    },
+    {
+      "url": "/draco/draco_wasm_wrapper.js",
+      "status": 200,
+      "type": "application/javascript; charset=UTF-8"
+    },
+    {
+      "url": "/draco/draco_decoder.wasm",
+      "status": 200,
+      "type": "application/wasm"
+    }
+  ],
+  "pageErrors": [
+    "error: Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "error: Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "error: Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "error: Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "error: Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "error: Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "error: Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "error: Failed to load resource: net::ERR_FAILED",
+    "warning: [piece3d] hardware.glb indisponibil, raman primitivele de rezerva TypeError: Failed to fetch\n    at FileLoader.load (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/three@0.169.0/node_modules/three/build/three.module.js:27841:9)\n    at GLTFLoader.load (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/three@0.169.0/node_modules/three/examples/jsm/loaders/GLTFLoader.js:181:10)\n    at load (webpack-internal:///(app-pages-browser)/./src/components/configurator/piece3d/hardware-assets.ts:43:12)\n    at subscribe (webpack-internal:///(app-pages-browser)/./src/components/configurator/piece3d/hardware-assets.ts:65:5)\n    at qu (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:9329:24)\n    at Object.react_stack_bottom_frame (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:13140:44)\n    at B (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:7902:70)\n    at ca (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:10919:101)\n    at Yp (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:10953:32)\n    at sh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11723:47)\n    at Jr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11712:21)\n    at sh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11735:25)\n    at Jr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11712:21)\n    at sh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11735:25)\n    at Jr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11712:21)\n    at sh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11723:25)\n    at Jr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11712:21)\n    at sh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11735:25)\n    at Jr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11712:21)\n    at sh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11723:25)\n    at Jr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11712:21)\n    at sh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11735:25)\n    at Jr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11712:21)\n    at sh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11723:25)\n    at Jr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11712:21)\n    at lh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11699:210)\n    at wr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11662:21)\n    at lh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11694:359)\n    at wr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11662:21)\n    at lh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11674:191)\n    at wr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11662:21)\n    at lh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11705:25)\n    at wr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11662:21)\n    at lh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11705:25)\n    at wr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11662:21)\n    at lh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11705:25)\n    at wr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11662:21)\n    at lh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11705:25)\n    at wr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11662:21)\n    at lh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11705:25)\n    at wr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11662:21)\n    at lh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11705:25)\n    at wr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11662:21)\n    at lh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11705:25)\n    at wr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11662:21)\n    at lh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11705:25)\n    at wr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11662:21)\n    at lh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11705:25)\n    at wr (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11662:21)\n    at lh (webpack-internal:///(app-pages-browser)/../../node_modules/.pnpm/@react-three+fiber@9.7.0_@types+react@19.2.18_react-dom@19.2.8_react@19.2.8__react@19.2.8_three@0.169.0/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js:11705:25)"
+  ]
+}

@@ -1,0 +1,400 @@
+{
+ "accomplished": [
+  {
+   "sprint": "Sprint 1 - Stop fee-dodging after acceptance (P0)",
+   "headline": "Winning firms can no longer quit after client accepts",
+   "what_you_get": "Withdraw and delivery locked after acceptance; stalled projects get report, confirm/contest, and admin close with refund-or-consume.",
+   "try_it": "Open /ro/admin/requests, filter 'Cazuri deschise', open a project and see the close dialog."
+  },
+  {
+   "sprint": "Sprint 2 - Real email and legal identity (P0)",
+   "headline": "Real email and complete legal pages are launch-ready",
+   "what_you_get": "Production refuses fake SMTP; Terms and Privacy complete; users re-accept new versions once; admin test-email button.",
+   "try_it": "Admin > Setări > 'Email tranzacțional': send a test, then find it in Mailpit (localhost:8025)."
+  },
+  {
+   "sprint": "Sprint 3 - Legal invoicing and firm terms",
+   "headline": "Firm rules published; invoicing blocked until real fiscal data",
+   "what_you_get": "/firm-rules shows live penalty and SLA numbers; payments refuse placeholder seller data; e-Factura status tracked per invoice.",
+   "try_it": "Visit localhost:3002/ro/firm-rules, then /ro/admin/payments for the e-Factura column and monthly export."
+  },
+  {
+   "sprint": "Sprint 4 - Production safety net",
+   "headline": "Backups, release gate and error monitoring are in place",
+   "what_you_get": "Encrypted daily off-site backups with monthly restore test, green-CI release gate, live/ready health, opt-in error tracking.",
+   "try_it": "curl localhost:3001/api/v1/health/ready; read the backup and restore runbook in docs/08."
+  },
+  {
+   "sprint": "Sprint 5 - Offer concurrency and three competing offers",
+   "headline": "Simultaneous offer actions can no longer corrupt data",
+   "what_you_get": "Locked, rule-checked offer changes; one live offer per claim; busy DB gives retryable 503; 'stay open' flag.",
+   "try_it": "Admin > Setări: find claims_open_after_first_offer (off); /ro/firm-rules states which rule applies."
+  },
+  {
+   "sprint": "Sprint 6 - Informed accept and guarded firm actions",
+   "headline": "Clients accept exactly the offer version they saw",
+   "what_you_get": "Accept dialog shows version, total, delivery; firms see credit and penalty consequences before every irreversible action.",
+   "try_it": "As ana.popescu, open a received offer and click Acceptă: the dialog shows version and total."
+  },
+  {
+   "sprint": "Sprint 7 - Client publish and repost reliability",
+   "headline": "Publishing and reposting requests no longer fail silently",
+   "what_you_get": "Budget matches estimate, errors name room and step, repost from account, logout clears previous user's drafts.",
+   "try_it": "As ana, open an expired request: 'Republică' works once, then shows 'Începe o cerere nouă'."
+  },
+  {
+   "sprint": "Sprint 8 - Abuse and fraud hardening",
+   "headline": "Login brute force and refund abuse are blocked",
+   "what_you_get": "Per-email login lockout, Redis rate limit by real IP, auto-refunds need proof, client contact reveal configurable.",
+   "try_it": "POST 10 wrong logins for a made-up email to /api/v1/auth/login; the 10th returns LOGIN_COOLDOWN."
+  },
+  {
+   "sprint": "Sprint 19 - Fair deadlines and pre-loss warnings",
+   "headline": "Deadlines skip holidays and firms get warned first",
+   "what_you_get": "All Romanian holidays in deadlines, admin calendar/sizing editors, SLA warnings before loss, 'To do now' dashboard card.",
+   "try_it": "Open /ro/admin/calendar and use the working-days calculator; see 'De făcut acum' on /ro/dashboard."
+  },
+  {
+   "sprint": "Sprint 20 - Pre-claim privacy",
+   "headline": "Firms can no longer locate or contact clients pre-claim",
+   "what_you_get": "Phones and emails in free text masked, distance snapped to 2 km grid, photo GPS and filenames stripped.",
+   "try_it": "Open /ro/admin/contact-detections to see masked contact attempts found in client texts."
+  },
+  {
+   "sprint": "Sprint 21 - Money-path tests and transaction policy",
+   "headline": "Money paths tested on real Postgres, one transaction policy",
+   "what_you_get": "All 63 transactions use named profiles, DB-busy auto-retries once, 17 real-DB money tests, CI coverage floors.",
+   "try_it": "Run pnpm -F backend test:cov and watch billing, claims and requests coverage floors pass."
+  },
+  {
+   "sprint": "Sprint 22 - Settle-once credits and credit rules",
+   "headline": "Every credit reservation now settles exactly once",
+   "what_you_get": "One settlement service, database unique guards, daily ledger check alerting admins, admin claim-cost min/max settings.",
+   "try_it": "As admin, GET localhost:3001/api/v1/admin/credits/ledger-check; both mismatch lists should be empty."
+  },
+  {
+   "sprint": "Sprint 23 - Invoice and payment correctness",
+   "headline": "Invoices and bank transfers are fiscally correct end-to-end",
+   "what_you_get": "Proper invoice PDF with VAT and paid status, proforma plus 'Am plătit' for transfers, read-only employee wallet.",
+   "try_it": "As owner.a, open /ro/marketplace/wallet and download an invoice; it saves as factura-MM-n.pdf."
+  },
+  {
+   "sprint": "Sprint 73 - Pricing data model (P3)",
+   "headline": "Subscription plans are now data, not code",
+   "what_you_get": "Admins create plans and feature flags; server computes VAT totals; free plans can't be bought; role permission matrix.",
+   "try_it": "Admin > Setări: see plan rows and the 'Plan nou' form; GET /api/v1/billing/entitlements as owner.a."
+  },
+  {
+   "sprint": "Sprint 74 - Perimeter and supply chain (P3)",
+   "headline": "Public attack surface and dependencies are locked down",
+   "what_you_get": "Health shows status only, CSP nonces, zero audit vulnerabilities, NestJS 11, pinned CI actions, CodeQL, Trivy-clean image.",
+   "try_it": "curl localhost:3001/api/v1/health returns only {\"status\":\"ok\"}; pnpm audit reports zero findings."
+  },
+  {
+   "sprint": "Sprint 75 - Design primitives and tokens (P3)",
+   "headline": "Screens share one design system, no loading flicker",
+   "what_you_get": "Shared cards, skeletons, retry states, filter chips, Radix popovers; account menu shows firm and role; header never jumps.",
+   "try_it": "As owner.a open /ro/marketplace/wallet: skeletons while loading; top-right account menu shows firm and role."
+  },
+  {
+   "sprint": "Sprint 76 - Collections into requests (P3)",
+   "headline": "Clients attach whole collections with notes per room",
+   "what_you_get": "Add whole collection (max 10) with per-photo note and room; firms see it by room; multi-collection save.",
+   "try_it": "In /ro/requests/new inspiration picker, open 'Colecțiile mele' and click 'Adaugă toată colecția'."
+  }
+ ],
+ "left_decisions": [
+  {
+   "question": "Who is the legal operator (name, CUI, J number, address, contact/DPO email), is it the same entity as the invoice seller, and are the Terms, Privacy and firm-rules texts approved by a lawyer? Also: which vendors and data region should Privacy name, and must it mention that backups keep deleted data for 12 months?",
+   "default_now": "Operator identity is hidden (legal_identity_published=false). Draft Terms (11 sections), Privacy (10) and /firm-rules ship built from docs facts, with generic processor wording ('EU-hosted provider', data may be outside the EEA). The legal version is not bumped.",
+   "packages": [
+    "E-admin-platform-2",
+    "E-company-9",
+    "E-admin-platform-8",
+    "E-admin-platform-6",
+    "E-client-9"
+   ],
+   "blocks": "Production launch: legal pages have no real identity, and the lawyer sign-off is an unchecked item in the CHANGELOG."
+  },
+  {
+   "question": "Which final domain and EU email provider (Brevo, Postmark EU or Amazon SES), which monitored SUPPORT_EMAIL mailbox, which emails carry Reply-To support, and what goes in security.txt?",
+   "default_now": "The code is provider-agnostic and configured only through env. Production refuses to boot on Mailpit or other fake SMTP. Reply-To support is set only on auth, account and billing emails. security.txt uses the support email and expires 180 days after the build.",
+   "packages": [
+    "E-admin-platform-1",
+    "E-admin-platform-2"
+   ],
+   "blocks": "Any production deploy: both slots abort boot until real SMTP_*, MAIL_FROM and SUPPORT_EMAIL are set."
+  },
+  {
+   "question": "Which e-Factura route (provider API such as SmartBill/Oblio, direct ANAF SPV, or a monthly accountant export)? Storno or backfill for invoices already issued? How is a firm's VAT-payer status verified? Should bank-transfer orders get reminder and auto-cancel days?",
+   "default_now": "Manual accountant route: per-order e-Factura status plus a monthly CSV export. No storno and no buyer_snapshot backfill (the SQL is ready in the CHANGELOG). VAT status is self-declared (an RO prefix sets it, and owners can toggle it). Bank-transfer reminder and expiry are both 0 (off). Stripe test keys are refused in prod unless a staging flag is set.",
+   "packages": [
+    "E-admin-platform-4",
+    "E-company-19",
+    "E-company-24"
+   ],
+   "blocks": "Taking real money: payments return 503 BILLING_NOT_CONFIGURED until real seller data is entered, and there is no automated SPV reporting."
+  },
+  {
+   "question": "Is the round-4 pricing final (Start 0 / Ofertare 299 / Prioritate 599, claim cost 3..25 credits, recurring billing)? Do credits expire 3 months after the subscription ends? How does a firm get a free plan, and what does it include? What should happen to a drifted wallet? Can the credit_cost column be dropped and docs/03 and docs/07 amended?",
+   "default_now": "The three existing plans are unchanged and now stored as data. Claim cost min 1 with no cap. Credits never expire. Checkout stays one-off (30 days per purchase). A free plan is admin-grant only, with access chosen per plan. A drifted wallet skips settlement and alerts the admin. credit_cost is only made nullable, not dropped.",
+   "packages": [
+    "E-admin-platform-58",
+    "E-company-21",
+    "E-admin-platform-14",
+    "E-admin-platform-15",
+    "E-company-9",
+    "E-company-22"
+   ],
+   "blocks": "Launching the new pricing tiers and Ofertare Rapida plan features. docs/07 stays inconsistent with the code on claim cost."
+  },
+  {
+   "question": "Should a request stay claimable after the first offer while fewer than 3 firms have claimed it (option A, which amends invariant 3.1), or does the first offer close claims (option B)?",
+   "default_now": "Option A is built behind claims_open_after_first_offer=false, so today's rule applies: the first offer closes claims. /firm-rules states whichever rule is active.",
+   "packages": [
+    "E-admin-platform-10"
+   ],
+   "blocks": "The 'three competing offers' goal. Enabling it also needs an invariant 3.1 amendment and a docs/07 entry."
+  },
+  {
+   "question": "When a project is cancelled after acceptance, are the winner's credits refunded or consumed? Does a mutual cancel close automatically? After how many days are expired, undecided offers auto-closed, and with what outcome and penalty? Should firms get an 'Am început execuția' action?",
+   "default_now": "Only an admin closes a project, choosing REFUND or CONSUME explicitly with a note. Mutual confirmation just notifies the admins. Auto-close of expired offers is built but OFF (14-day placeholder). No penalty at expiry. No IN_EXECUTION action.",
+   "packages": [
+    "E-admin-platform-3",
+    "E-company-1"
+   ],
+   "blocks": "Automatic unsticking of stalled projects: every case needs manual admin work."
+  },
+  {
+   "question": "Firm-side rules: who may withdraw or mark delivered (only owner/manager?), when do firms see client contacts (on claim or after the 30-minute grace), how long after completion do they keep seeing them, what limits apply to the 48h and 'request modified' refunds, a fresh re-quote window after an offer is withdrawn, and can a firm cancel its own pending withdrawal?",
+   "default_now": "Withdraw and deliver: OWNER/MANAGER, plus the claimer or assignee within the 30-minute grace. Contacts ON_CLAIM, retention 0 (no cutoff). The 48h refund needs a firm message with 48h of client silence. A 'modified' refund works only until the firm sends an offer. Withdrawing an offer re-arms the original SLA. No self-cancel of a pending withdrawal.",
+   "packages": [
+    "E-company-1",
+    "E-company-2",
+    "E-company-3",
+    "E-company-6"
+   ],
+   "blocks": "The docs/07 entry for the contact and refund rule (E-company-3 done_when stays open). Stricter settings are already switchable in Admin."
+  },
+  {
+   "question": "Client privacy and request-flow knobs: should contacts typed in text be masked or block publishing? Should distance show as km or bands? Minimum firm radius 2 or 5 km, and location caps per plan? Are inspiration notes visible pre-claim? Does a note edit consume an edit? A public collection share link? Default budget bucket without an estimate? Wipe Studio scenes on logout? Edit or duplicate an expired request?",
+   "default_now": "MASK, KM, 2 km radius, 10 locations and 20 changes per day. Masked notes are shown pre-claim. A note edit consumes an edit. No share link. UNDER_5K stays the default. Studio scenes are kept on logout. An expired request that was already reposted links to a new request.",
+   "packages": [
+    "E-admin-platform-45",
+    "E-client-9",
+    "E-client-34",
+    "E-client-2",
+    "E-client-3"
+   ],
+   "blocks": "Nothing hard: all defaults are live and most are Admin settings. It only confirms the product stance."
+  },
+  {
+   "question": "Should offers carry a with/without-VAT flag and payment terms, can clients accept an older offer version, and should accept be blocked while their own change request is pending?",
+   "default_now": "No new offer fields; the accept dialog shows a neutral VAT hint. Only the latest version can be accepted (409 QUOTE_VERSION_CHANGED otherwise). Accept is allowed while a change request is pending.",
+   "packages": [
+    "E-client-1"
+   ],
+   "blocks": "A richer offer model. docs/03 4.13 ('any existing variant') is not fully honoured."
+  },
+  {
+   "question": "Which vendors for off-site EU backups, the error tracker (Sentry EU or GlitchTip), cookieless analytics (Umami or Plausible), uptime monitor and dead-man switch? Who receives backup reports and holds key escrow? Should uploads stay on MinIO? What RTO? Is an admin ops panel for queues wanted?",
+   "default_now": "Everything is env-driven and OFF until configured. Backups go to any S3 endpoint through rclone. RPO 24h, RTO 'proposed 4h'. MinIO stays (decision 8). Log retention follows the Railway plan. No ops panel is built.",
+   "packages": [
+    "E-admin-platform-6",
+    "E-admin-platform-8"
+   ],
+   "blocks": "Real backups, alerting and analytics in production: none run until vendors and accounts exist."
+  },
+  {
+   "question": "Production perimeter: remove the public Railway slot domains, which header carries the real client IP, keep the Redis throttler (+150 ms cross-region) or use memory until the EU migration, allowlist inspiration image hosts, pay for GitHub branch protection, and turn on secret scanning?",
+   "default_now": "Health is status-only with a token for details, and noindex applies on non-canonical hosts. TRUSTED_CLIENT_IP_HEADER is unset (req.ip as before). THROTTLER_STORE=redis with memory fallback. CSP img-src is narrowed only when the storage origin build arg is set. The CI gate plus require-green-ci replaces branch protection. CodeQL is added.",
+   "packages": [
+    "E-admin-platform-56",
+    "E-admin-platform-5",
+    "E-admin-platform-6"
+   ],
+   "blocks": "Full rate-limit accuracy and closing the old slot URLs. verify-slot fails releases until the IP header is set, unless run with --rate-limit-check off."
+  },
+  {
+   "question": "Rubber-stamp the small defaults: admin login lockout after 5 attempts (reveals admin accounts), admins exempt from re-accepting Terms, legal gate UI-only, suspended firms losing access to ongoing projects, the bridge-days wording, and Sprint 75 design choices (mono badges, 20px section heading, mm_session role hint, Studio hex left for later)?",
+   "default_now": "All implemented as described. Each is a one-line or one-constant change if the PO disagrees.",
+   "packages": [
+    "E-admin-platform-5",
+    "E-admin-platform-2",
+    "E-company-9",
+    "E-admin-platform-25",
+    "E-admin-platform-57"
+   ],
+   "blocks": "Nothing. These only need a yes/no."
+  }
+ ],
+ "left_work": [
+  {
+   "item": "Manual browser walkthrough of every sprint's screens (RO/EN, 1280 and 375 px)",
+   "why": "Many UI flows were checked only by unit tests and curl: firm views, accept dialog, wallet, popovers, collection picker, admin calendar/sizing and contact detections. Browser login on :3002 fails because of CORS.",
+   "size": "1.5-2 days",
+   "source": "R10, R40, R58, R75, R92, R106, R120, R143, N22, N32, N37, N53, N59, N83, N94; Sprint 75/76 not_done"
+  },
+  {
+   "item": "Reseed demo accounts and repair demo wallet data, then run the employee and second-firm live checks",
+   "why": "managed.a, trusted*.a, owner.b..h and radu/elena do not accept the demo password, and demo wallets are under-reserved (admin close returned 500). So employee 403s, the read-only wallet and cross-firm checks were never run live.",
+   "size": "0.5-1 day",
+   "source": "R1, R7, R8, R86, R142, R144, R160, N1, N7, N60, N70, N111, N112, N118, N124"
+  },
+  {
+   "item": "Fix the CI secret-scan failure in apps/backend/src/test/db-guard.spec.ts",
+   "why": "scan-secrets still reports 3 db_url_remote findings (re-run today), so the 'Fara secrete in arbore' CI step fails on the first push.",
+   "size": "1 hour",
+   "source": "R166, N131"
+  },
+  {
+   "item": "Fix ClaimsService.mapUniqueViolation and the CLAIM_SLOTS_FULL code",
+   "why": "Prisma P2002 reports columns, not index names, so CLAIM_ALREADY_EXISTS and ASSIGNED_USER_HAS_ACTIVE_CLAIM never fire (still unfixed in claims.service.ts:452). A full request returns CLAIM_NOT_ALLOWED.",
+   "size": "2-3 hours",
+   "source": "R127, R128, N101"
+  },
+  {
+   "item": "Bound row-lock waits in claim transactions (lock_timeout)",
+   "why": "A claim waited 24.6 s behind a row lock before its 503, which breaks the 10 s budget of invariant 3.1.",
+   "size": "0.5-1 day",
+   "source": "R119"
+  },
+  {
+   "item": "Correct error responses: CORS denial 500 to 403, health 503 bodies lose checks, /admin/jobs leaks raw Prisma text with file paths, reserved-below-zero 500",
+   "why": "Wrong status codes and a path leak in the admin UI. It also breaks local browser login diagnostics.",
+   "size": "0.5 day",
+   "source": "Sprint 75 remaining (main.ts:51-53), R42, R134, R54"
+  },
+  {
+   "item": "Idempotency-Key on the remaining firm quote routes, and no duplicate audit row on idempotent replay",
+   "why": "Withdraw offer, extend validity, change requests and invite can indirectly consume credits. A replayed accept writes a second QUOTE_ACCEPTED audit row.",
+   "size": "1 day",
+   "source": "N38, N49, Sprint 6 security remaining"
+  },
+  {
+   "item": "Close authorization gaps for EMPLOYEE_MANAGED on chat and quote reads",
+   "why": "Managed employees can still read chat threads on colleagues' claims, and locationAddress leaks through GET /quotes/:id and /quotes/mine.",
+   "size": "1 day",
+   "source": "R89, N74"
+  },
+  {
+   "item": "Make e2e and the production container smoke test green",
+   "why": "The smoke test exits 1 (Studio house fixture heading) and 3 resilience e2e specs fail. The stock e2e config was never run in full.",
+   "size": "0.5-1 day",
+   "source": "R165, N127, N128, N12, R19"
+  },
+  {
+   "item": "Design system phase 2: migrate the remaining pages to the primitives and remove the Studio hex colours",
+   "why": "Studio, offer card, project case panel, requests/[id], offers, boards, company page, change-password and the configurator still use ad-hoc styles.",
+   "size": "3-4 days",
+   "source": "Sprint 75 not_done (plan 5.9/5.11)"
+  },
+  {
+   "item": "Refresh the Codex notes for sprints 1-76 and fix the nestjs-module skill text",
+   "why": "The map of the app is stale for claims, quotes, requests, billing, auth, admin, health and FE. The skill still says to use prisma.$transaction instead of runTx.",
+   "size": "0.5-1 day",
+   "source": "R124, N98, Sprint 75/76 not_done, HANDOFF step 3"
+  },
+  {
+   "item": "Copy and UX follow-ups",
+   "why": "The request.expired email promises a repost even after it was used. The mail-test 429 shows a generic toast. EN says '{points} of penalty'. Double back arrows. Money helper missing on admin pages. Quote PDF and CSV lack session-refresh download. /firm-rules is cached 5-10 minutes after a change.",
+   "size": "1 day",
+   "source": "R77, N64, R14, R67, R145, N114, N117, R17, R55, R26, N82"
+  },
+  {
+   "item": "Minor backend robustness",
+   "why": "Error flush is not wired into shutdown. readMaxClaims and getInt disagree on '0'. The contact scan stops at 20k chars. Claim-cost min/max and the location-change limit have check-then-act races. The per-IP throttler can starve the admin mail test. Inspiration photo order is not deterministic.",
+   "size": "0.5-1 day",
+   "source": "R44, R56, R109, R138, R115, R13, Sprint 76 remaining"
+  },
+  {
+   "item": "Blue/green contract release and data hygiene",
+   "why": "Drop the legacy columns credit_cost and tier once the PO agrees and a release has passed. Remember to strip the SQL-only partial indexes from future migrate diffs. Clean up the extra expired ACTIVE subscription rows.",
+   "size": "0.5 day",
+   "source": "N99, N126, R52, R161, R162"
+  },
+  {
+   "item": "Deferred features from the skipped findings",
+   "why": "Admin alert on failed jobs and an ops panel, a drifted-wallet repair script, an admin 'false positive' unmask, deep masking of Studio labels, PDF/ZIP metadata stripping, OP proof upload, auto-rejecting a pending withdrawal on accept, and the WITHDRAWAL_ALREADY_DECIDED text.",
+   "size": "4-6 days",
+   "source": "N106, #39, N85, N84, N91, N120, N4, N3, R5"
+  }
+ ],
+ "left_ops": [
+  {
+   "item": "Check Railway (cozy-fable > green-mail > Deployments, about 2026-09-29 22:55) for the deploy triggered by the accidental 'railway up', and roll it back if needed",
+   "owner": "PO",
+   "size": "15 min (urgent)"
+  },
+  {
+   "item": "Commit the 681 uncommitted working-tree entries (proposed messages per sprint are in sprint-reports.json close.commit_message), push to GitHub and confirm CI is green",
+   "owner": "PO",
+   "size": "1-2 hours"
+  },
+  {
+   "item": "Provide the legal entity data (name, CUI, J, address, contact email) in Admin > Setări, get the lawyer review of Terms, Privacy and firm rules, then set legal_identity_published=true",
+   "owner": "PO + lawyer",
+   "size": "30 min entry + lawyer turnaround"
+  },
+  {
+   "item": "Choose the final domain and EU email provider; set SMTP_*, MAIL_FROM, SUPPORT_EMAIL and NEXT_PUBLIC_SUPPORT_EMAIL; configure SPF/DKIM/DMARC and the legacy-host 301",
+   "owner": "PO/ops",
+   "size": "0.5-1 day"
+  },
+  {
+   "item": "Choose the e-Factura route with the accountant, enter the real seller fiscal data and IBAN (unlocks the billing readiness gate), and set Stripe live keys and webhook",
+   "owner": "PO + accountant",
+   "size": "1-2 days"
+  },
+  {
+   "item": "Set up backups: EU off-site bucket and keys, age keys with escrow, backup_reader role, two Railway cron services, BACKUP_REPORT_TO; run setup-minio-uploads.sh on prod MinIO",
+   "owner": "ops",
+   "size": "0.5-1 day"
+  },
+  {
+   "item": "Set up monitoring: pick and create the error tracker (with DPA), analytics and uptime monitor, then set SENTRY_DSN / NEXT_PUBLIC_* variables",
+   "owner": "PO/ops",
+   "size": "0.5 day"
+  },
+  {
+   "item": "Perimeter settings: run the X-Real-IP spoof test on standby, then set TRUSTED_CLIENT_IP_HEADER; set HEALTH_DETAILS_TOKEN and NEXT_PUBLIC_STORAGE_ORIGIN; decide THROTTLER_STORE; remove the public slot domains; turn on GitHub secret scanning and push protection",
+   "owner": "ops",
+   "size": "0.5 day"
+  },
+  {
+   "item": "Deploy: take a backup, run the prod pre-check queries, apply the 20 new migrations, blue/green release behind the CI gate, and confirm both slots subscribe to calendar:holidays:changed",
+   "owner": "ops",
+   "size": "0.5-1 day"
+  },
+  {
+   "item": "Migrate Postgres and Redis to the EU region (about 150 ms per query cross-region today)",
+   "owner": "ops",
+   "size": "2-3 days"
+  },
+  {
+   "item": "Fix local dev: free port 3000 or add :3002 to the local FRONTEND_ORIGIN; reseed demo with DEMO_PASSWORD; use 127.0.0.1 for SMTP/Redis/S3 hosts in the local .env",
+   "owner": "PO",
+   "size": "15-30 min"
+  },
+  {
+   "item": "Local cleanup: delete the stray empty file F:\\Git\\x.js and the local test data (legal.test1@demo.ro, test requests and orders)",
+   "owner": "PO",
+   "size": "10 min"
+  },
+  {
+   "item": "Run the 12-decision triage session (86 open questions in open-items.json)",
+   "owner": "PO",
+   "size": "2-3 hours"
+  }
+ ],
+ "numbers": {
+  "packages_done": 32,
+  "packages_total": 32,
+  "sprints_done": 17,
+  "files_changed": 681,
+  "migrations": 20,
+  "backend_tests": 1272,
+  "frontend_tests": 408,
+  "shared_tests": 401
+ }
+}

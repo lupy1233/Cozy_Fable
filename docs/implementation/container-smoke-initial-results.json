@@ -1,0 +1,305 @@
+{
+  "measuredAt": "2026-09-15T19:54:15.396Z",
+  "project": "cozy-container-smoke",
+  "image": "cozy-app:implementation",
+  "checks": {
+    "health": {
+      "status": "ok",
+      "checks": {
+        "db": "up",
+        "redis": "up",
+        "storage": "up"
+      },
+      "timestamp": "2026-09-15T19:55:25.379Z"
+    },
+    "runtime": "{\"node\":\"v22.23.2\",\"platform\":\"linux\",\"arch\":\"x64\",\"uid\":1000}",
+    "artifacts": "present",
+    "noEnvironmentFiles": "passed",
+    "chromium": "Chromium 152.0.7977.82 built on Debian GNU/Linux 12 (bookworm)",
+    "pages": [
+      {
+        "route": "/en",
+        "status": 200,
+        "decodedBytes": 254141,
+        "wire": {
+          "status": 200,
+          "bodyBytes": 70529,
+          "encoding": "gzip"
+        }
+      },
+      {
+        "route": "/ro",
+        "status": 200,
+        "decodedBytes": 264439,
+        "wire": {
+          "status": 200,
+          "bodyBytes": 73926,
+          "encoding": "gzip"
+        }
+      },
+      {
+        "route": "/en/studio",
+        "status": 200,
+        "decodedBytes": 202689,
+        "wire": {
+          "status": 200,
+          "bodyBytes": 58668,
+          "encoding": "gzip"
+        }
+      },
+      {
+        "route": "/en/requests/new",
+        "status": 200,
+        "decodedBytes": 181228,
+        "wire": {
+          "status": 200,
+          "bodyBytes": 54497,
+          "encoding": "gzip"
+        }
+      }
+    ],
+    "staticAssets": {
+      "count": 24,
+      "decodedBytes": 1082051,
+      "status": "all 200",
+      "assets": [
+        {
+          "path": "/_next/static/css/5ced14382c5df38e.css",
+          "decodedBytes": 66296,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 13316,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/webpack-bff34db778e9a0e6.js",
+          "decodedBytes": 3886,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 2041,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/a5a71236-521d91c806721881.js",
+          "decodedBytes": 173024,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 54363,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/456-91354372644f41a0.js",
+          "decodedBytes": 173672,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 46303,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/main-app-567699a47429382c.js",
+          "decodedBytes": 523,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 523,
+            "encoding": "identity"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/450-734b20cc434b5fe1.js",
+          "decodedBytes": 39894,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 12055,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/7531-e31ecdee246edfe5.js",
+          "decodedBytes": 13000,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 5010,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/2313-0300fa9ee4fb2b33.js",
+          "decodedBytes": 27391,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 8559,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/1175-2942e22720a0e62a.js",
+          "decodedBytes": 19588,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 6291,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/3723-0a3c68333081ad50.js",
+          "decodedBytes": 11535,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 4001,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/9357-3c444eca361e3ee8.js",
+          "decodedBytes": 7355,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 3185,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/2794-c97f22d041532aa9.js",
+          "decodedBytes": 67918,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 15127,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/1756-d9a40d10a7e93d25.js",
+          "decodedBytes": 6965,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 2245,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/2723-82cdf828cd00241a.js",
+          "decodedBytes": 33955,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 9349,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/8615-bf151301ba858d98.js",
+          "decodedBytes": 6642,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 2464,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/5983-f236b59e7687babe.js",
+          "decodedBytes": 200390,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 44418,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/9160-dc5cb62c37675482.js",
+          "decodedBytes": 10525,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 3772,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/646-61bf7f1cbffaadad.js",
+          "decodedBytes": 8536,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 3173,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/6388-21a63c79530d979e.js",
+          "decodedBytes": 17323,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 5885,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/app/%5Blocale%5D/studio/page-5ed9630fcc21fbbb.js",
+          "decodedBytes": 60829,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 15805,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/app/global-error-3ecfcb971a209be0.js",
+          "decodedBytes": 1456,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 798,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/app/%5Blocale%5D/layout-4ee3b7a84c18a3bf.js",
+          "decodedBytes": 8591,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 2890,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/app/%5Blocale%5D/error-ae7c36862063cf75.js",
+          "decodedBytes": 10163,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 4100,
+            "encoding": "gzip"
+          }
+        },
+        {
+          "path": "/_next/static/chunks/polyfills-42372ed130431b0a.js",
+          "decodedBytes": 112594,
+          "wire": {
+            "status": 200,
+            "bodyBytes": 39627,
+            "encoding": "gzip"
+          }
+        }
+      ]
+    },
+    "publicShowroomAtlases": "all 200",
+    "localeCatalogs": {
+      "en": {
+        "fileBytes": 202636,
+        "compactSerializedBytes": 150131
+      },
+      "ro": {
+        "fileBytes": 212631,
+        "compactSerializedBytes": 160126
+      }
+    },
+    "migrationCount": "38",
+    "guestDraftWrite": {
+      "status": 201,
+      "returnedDraftId": true
+    },
+    "persistedRequestCount": 1,
+    "image": "sha256:a402a2731a2b0fa3998fcb4dbccfb0dc11a1cb2cef591b88a703f79927e1f61c linux/amd64 853497118 bytes"
+  },
+  "failures": [],
+  "cleanedUp": true
+}

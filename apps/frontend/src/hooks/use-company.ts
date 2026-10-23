@@ -20,10 +20,11 @@ const MY_COMPANY_KEY = ['company', 'me'] as const;
 const ADMIN_LIST_KEY = ['admin', 'companies'] as const;
 
 // --- Firma proprie ---
-export function useMyCompany() {
+export function useMyCompany(enabled = true) {
   return useQuery({
     queryKey: MY_COMPANY_KEY,
     queryFn: () => api<CompanyDto>('/companies/me'),
+    enabled,
     retry: false,
     staleTime: 30_000,
   });
@@ -64,7 +65,8 @@ export function useOnboardCompany() {
   );
 }
 
-export function useUpdateCompany() {
+// PATCH /companies/me (OWNER/MANAGER) — E-company-24: si emailul de facturare
+export function useUpdateCompanyProfile() {
   return useCompanyMutation((input: CompanyProfileUpdateInput) =>
     api<CompanyDto>('/companies/me', { method: 'PATCH', body: JSON.stringify(input) }),
   );
@@ -73,15 +75,6 @@ export function useUpdateCompany() {
 export function useAddLocation() {
   return useCompanyMutation((input: CompanyLocationInput) =>
     api<CompanyDto>('/companies/me/locations', { method: 'POST', body: JSON.stringify(input) }),
-  );
-}
-
-export function useUpdateLocation() {
-  return useCompanyMutation((input: CompanyLocationInput & { id: string }) =>
-    api<CompanyDto>(`/companies/me/locations/${input.id}`, {
-      method: 'PUT',
-      body: JSON.stringify(input),
-    }),
   );
 }
 
@@ -170,5 +163,18 @@ export function useRejectCompany() {
         body: JSON.stringify({ reason: input.reason }),
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ADMIN_LIST_KEY }),
+  });
+}
+
+// Pasul 5 (audit 2026-08-23, F2): ridicarea suspendarii de catre admin.
+export function useUnsuspendCompany() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ id: string; status: string }>(`/admin/companies/${id}/unsuspend`, { method: 'POST' }),
+    onSuccess: (_d, id) => {
+      qc.invalidateQueries({ queryKey: ADMIN_LIST_KEY });
+      qc.invalidateQueries({ queryKey: ['admin', 'companies', 'detail', id] });
+    },
   });
 }

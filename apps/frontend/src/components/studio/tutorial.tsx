@@ -446,7 +446,7 @@ export function StudioTutorial({
       ) : (
         <>
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            <span className="text-meta font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               {t('tutorial.missionLabel', { n: stepIdx + 1, total: TUTORIAL_STEPS.length })}
             </span>
             <button
@@ -471,7 +471,7 @@ export function StudioTutorial({
                 {t(`tutorial.steps.${step.key}.body`)}
               </p>
               {step.key === 'undo' && !canUndo && (
-                <p className="mt-1.5 rounded-lg bg-amber-soft/60 px-2 py-1.5 text-[11px] leading-relaxed text-foreground/80">
+                <p className="mt-1.5 rounded-lg bg-amber-soft/60 px-2 py-1.5 text-meta leading-relaxed text-foreground/80">
                   {t('tutorial.steps.undo.hint')}
                 </p>
               )}
@@ -487,7 +487,7 @@ export function StudioTutorial({
             <button
               type="button"
               onClick={() => nextStep(stepIdx)}
-              className="shrink-0 text-[11px] text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
+              className="shrink-0 text-meta text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
             >
               {t('tutorial.skipStep')}
             </button>

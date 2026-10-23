@@ -128,7 +128,7 @@ MVP-ul trebuie să arate și să funcționeze ca o aplicație reală. Integrări
 
 - Backend: NestJS (latest stable). ORM: Prisma. DB: PostgreSQL 16+.
 
-- Frontend: Next.js 14+ (App Router). UI: Tailwind CSS + shadcn/ui. Forms: React Hook Form + Zod.
+- Frontend: Next.js 15.5 (App Router), React 19, next-intl 4. UI: Tailwind CSS + shadcn/ui. Forms: React Hook Form + Zod. Runtime minim: Node 22.22.2; versiunile exacte sunt in lockfile si `.node-version`.
 
 - Server state: TanStack Query v5. UI/global state: Zustand. i18n: next-intl (RO + EN).
 

@@ -9,6 +9,7 @@ import {
   useUploadChatAttachment,
   type ChatMode,
 } from '@/hooks/use-chat';
+import { SkeletonList } from '@/components/ui/skeleton';
 
 export function ChatPanel({
   threadId,
@@ -77,7 +78,7 @@ export function ChatPanel({
       className="flex flex-col rounded-xl border border-border bg-surface shadow-sm"
     >
       <div className="flex max-h-80 min-h-40 flex-col gap-2 overflow-y-auto p-4">
-        {messages.isPending && <p className="text-sm text-muted-2">{t('loading')}</p>}
+        {messages.isPending && <SkeletonList rows={3} variant="bubbles" />}
         {messages.isSuccess && messages.data.length === 0 && (
           <p className="text-sm text-muted-2">{t('empty')}</p>
         )}
@@ -101,7 +102,7 @@ export function ChatPanel({
                 📎 {a.filename}
               </a>
             ))}
-            <p className="mt-0.5 text-[10px] opacity-60">
+            <p className="mt-0.5 text-micro opacity-60">
               {new Date(m.createdAt).toLocaleTimeString()}
             </p>
           </div>

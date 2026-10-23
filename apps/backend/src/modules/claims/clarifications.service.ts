@@ -6,10 +6,12 @@ import {
   type RequestClarificationInput,
 } from '@marketplace/shared';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { runTx } from '../../infra/prisma/tx';
 import { EventBusService } from '../../infra/event-bus/event-bus.service';
 import { BusinessCalendarService } from '../../infra/calendar/business-calendar.service';
 import type { CompanyContext } from '../../common/company-context/company-context';
 import { ClaimsService } from './claims.service';
+import { CLARIFICATION_SLA_EXTENSION_WORKING_DAYS } from './claims.constants';
 
 // 4.11 — clarificare ceruta de firma catre client. Pune SLA pe pauza (slaPausedAt) si extinde
 // deadline-ul cu +1 zi lucratoare; la raspunsul clientului SLA se reia.
@@ -52,8 +54,8 @@ export class ClarificationsService {
     }
 
     const base = slot.slaDeadlineAt ?? new Date();
-    const newDeadline = this.calendar.addWorkingDays(base, 1);
-    const clarification = await this.prisma.$transaction(async (tx) => {
+    const newDeadline = this.calendar.addWorkingDays(base, CLARIFICATION_SLA_EXTENSION_WORKING_DAYS);
+    const clarification = await runTx(this.prisma, 'write', async (tx) => {
       const c = await tx.clarificationRequest.create({
         data: { claimSlotId, requestedByUserId: actingUserId, questionText: dto.questionText },
       });
@@ -89,18 +91,31 @@ export class ClarificationsService {
         409,
       );
     }
-    const updated = await this.prisma.$transaction(async (tx) => {
+    // Pasul 5 (audit 2026-08-23, F6): timpul NU curge in pauza — la raspuns, deadline-ul se
+    // muta inainte cu durata pauzei si verificarea de breach se REprogrameaza. Inainte, un
+    // raspuns venit dupa ce jobul vechi rulase no-op lasa slotul ACTIVE fara niciun ceas
+    // (ratarea nu se mai aplica niciodata) sau, invers, breach-ul lovea nedrept imediat.
+    const slot = clarification.claimSlot;
+    const now = new Date();
+    const shiftedDeadline =
+      slot.status === 'ACTIVE' && slot.slaPausedAt && slot.slaDeadlineAt
+        ? new Date(slot.slaDeadlineAt.getTime() + (now.getTime() - slot.slaPausedAt.getTime()))
+        : null;
+    const updated = await runTx(this.prisma, 'write', async (tx) => {
       const c = await tx.clarificationRequest.update({
         where: { id: clarificationId },
-        data: { status: 'ANSWERED', answerText: dto.answerText, answeredAt: new Date() },
+        data: { status: 'ANSWERED', answerText: dto.answerText, answeredAt: now },
       });
-      // SLA se reia (deadline-ul a fost deja extins cu +1 zi la cerere).
       await tx.claimSlot.update({
         where: { id: clarification.claimSlotId },
-        data: { slaPausedAt: null },
+        data: { slaPausedAt: null, ...(shiftedDeadline ? { slaDeadlineAt: shiftedDeadline } : {}) },
       });
       return c;
     });
+    if (shiftedDeadline) {
+      // jobId nou (include deadline-ul) → jobul vechi se auto-ignora pe deadline-ul mutat
+      await this.claims.scheduleSlaBreach(clarification.claimSlotId, shiftedDeadline);
+    }
     return this.toDto(updated);
   }
 

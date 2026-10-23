@@ -11,10 +11,9 @@ const nextConfig = {
   transpilePackages: ['@marketplace/shared'],
   // Build self-contained pentru Docker (server.js + node_modules trasate)
   output: 'standalone',
-  experimental: {
-    // monorepo pnpm: traseaza dependentele de la radacina workspace-ului
-    outputFileTracingRoot: path.join(__dirname, '../../'),
-  },
+  // monorepo pnpm: traseaza dependentele de la radacina workspace-ului
+  // (Next 15: mutat din experimental la nivelul radacina)
+  outputFileTracingRoot: path.join(__dirname, '../../'),
   // Fara asta, Next face 308 de la /socket.io/ la /socket.io INAINTE de rewrites, iar
   // engine.io serveste doar pe calea cu slash → 404. Pe polling s-ar pierde doar un
   // round-trip, dar handshake-ul WebSocket nu urmeaza redirecturi, deci realtime-ul moare.
@@ -22,9 +21,23 @@ const nextConfig = {
   // fara antetul X-Powered-By: Next (audit 2026-08-19)
   poweredByHeader: false,
   // Antete de securitate de baza pe toate raspunsurile (audit 2026-08-19 P2).
-  // Fara CSP deocamdata: Google Maps Places + CDN-ul de imagini al partenerilor
-  // cer o politica atent enumerata — vine separat.
+  // E-admin-platform-56: CSP-ul NU mai e aici — se construieste per cerere in middleware.ts
+  // (lib/csp.ts, nonce + 'strict-dynamic', raportare la /csp-report). Aici raman, doar in
+  // productie: HSTS, Cross-Origin-Opener-Policy same-origin (nu folosim window.open/opener)
+  // si X-Robots-Tag noindex pe orice host diferit de NEXT_PUBLIC_SITE_URL. Gateway-ul Caddy
+  // trimite Host-ul public mai departe, deci doar URL-urile directe ale sloturilor primesc noindex.
+  // Un NEXT_PUBLIC_SITE_URL gresit la build ar scoate productia din index → verificare in docs/08.
   async headers() {
+    const production = process.env.NODE_ENV === 'production';
+    const siteHost = new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').hostname;
+    // valoarea `host` e regex (Next o ancoreaza ^…$): se escapeaza TOATE metacaracterele, nu doar punctul
+    const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const prodOnly = production
+      ? [
+          { key: 'Strict-Transport-Security', value: 'max-age=15552000; includeSubDomains' },
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+        ]
+      : [];
     return [
       {
         source: '/:path*',
@@ -33,8 +46,18 @@ const nextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          ...prodOnly,
         ],
       },
+      ...(production
+        ? [
+            {
+              source: '/:path*',
+              missing: [{ type: 'host', value: escapeRegExp(siteHost) }],
+              headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+            },
+          ]
+        : []),
     ];
   },
   // /landing-v2 a fost doar un redirect in cod (PO 2026-08-01: continutul e pe

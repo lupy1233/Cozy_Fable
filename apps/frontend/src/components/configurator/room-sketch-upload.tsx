@@ -11,6 +11,7 @@ import {
   useUploadAttachmentFor,
   type AttachmentTarget,
 } from '@/hooks/use-requests';
+import { useConfiguratorStore } from '@/stores/configurator-store';
 import { AttachmentRow } from './attachment-item';
 import { SketchGuide } from './sketch-guide';
 
@@ -39,6 +40,7 @@ export function RoomSketchUpload({
   const allAttachments = useAttachmentsFor(target);
   const upload = useUploadAttachmentFor(target);
   const remove = useRemoveAttachmentFor(target);
+  const forgetAttachment = useConfiguratorStore((s) => s.forgetAttachment);
 
   const mine = allAttachments.filter((a) => value.includes(a.id));
   const globalRemaining = maxAttachmentsForRequest(roomCount) - allAttachments.length;
@@ -60,7 +62,11 @@ export function RoomSketchUpload({
   // reciproc lista de id-uri (closure pe aceeasi valoare veche)
   const onFiles = async (files: FileList) => {
     const room = Math.min(localRemaining, globalRemaining);
-    let ids = value;
+    // id-urile unor fisiere sterse intre timp nu se mai poarta mai departe
+    // (lista incarcata = sursa de adevar; goala = inca necunoscuta)
+    let ids = allAttachments.length > 0
+      ? value.filter((id) => allAttachments.some((a) => a.id === id))
+      : value;
     for (const file of Array.from(files).slice(0, Math.max(0, room))) {
       try {
         const att = await upload.mutateAsync(file);
@@ -95,7 +101,7 @@ export function RoomSketchUpload({
               key={a.id}
               attachment={a}
               onRemove={() => {
-                remove.mutate(a.id);
+                remove.mutate(a.id, { onSuccess: () => forgetAttachment(a.id) });
                 onChange(value.filter((id) => id !== a.id));
               }}
             />

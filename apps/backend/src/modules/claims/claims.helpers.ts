@@ -1,33 +1,25 @@
-import { HttpException } from '@nestjs/common';
-import { ERROR_CODES } from '@marketplace/shared';
 import { Prisma } from '@prisma/client';
-import { DEFAULT_MAX_CLAIMS, OCCUPYING_CLAIM_STATUSES, SLA_GRACE_MS } from './claims.constants';
+import { SETTING_DEFAULTS } from '../../common/settings/setting-defaults';
+import {
+  ASSIGN_WARNING_BEFORE_DEADLINE_MS,
+  OCCUPYING_CLAIM_STATUSES,
+  SLA_GRACE_MS,
+  SLA_WARNING_BEFORE_MS,
+} from './claims.constants';
 
 type Tx = Prisma.TransactionClient;
 
-// Prisma P2034: "Transaction failed due to a write conflict or a deadlock" (Serializable).
-export function isSerializationFailure(e: unknown): boolean {
-  return e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2034';
+// E-admin-platform-10 — max_claims_per_request citit IN tranzactie (4.8). Valoare lipsa,
+// nenumerica sau < 1 → fallback SETTING_DEFAULTS (acelasi cu pagina publica /firm-rules).
+export async function readMaxClaims(tx: Tx): Promise<number> {
+  const row = await tx.systemSetting.findUnique({ where: { key: 'max_claims_per_request' } });
+  const n = row ? Number.parseInt(row.value, 10) : NaN;
+  return Number.isFinite(n) && n >= 1 ? n : SETTING_DEFAULTS.max_claims_per_request;
 }
 
-// L0-B — ruleaza o tranzactie Serializable cu retry la serialization failure (P2034);
-// daca si ultima incercare pica → 409 CONCURRENT_MODIFICATION (nu 500). Folosit la claim
-// si la acceptarea ofertei (3.1: ambele schimba sloturile active sub lock pe cerere).
-export async function withSerializationRetry<T>(fn: () => Promise<T>, retries = 1): Promise<T> {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      return await fn();
-    } catch (e) {
-      if (!isSerializationFailure(e)) throw e;
-      if (attempt >= retries) {
-        throw new HttpException(
-          { code: ERROR_CODES.CONCURRENT_MODIFICATION, message: 'Concurrent modification, please retry' },
-          409,
-        );
-      }
-    }
-  }
-}
+// E-admin-platform-54: helperii de retry au trecut in infra/prisma/tx.ts (runTx pe profile);
+// re-exportati aici pentru importurile existente.
+export { isSerializationFailure, SERIALIZATION_RETRIES, withSerializationRetry } from '../../infra/prisma/tx';
 
 // Optiunile jobului de verificare SLA (4.11): jobId include deadline-ul ca timestamp →
 // reprogramarea (clarificare / retragere oferta) adauga un job nou, iar cel vechi se
@@ -38,6 +30,72 @@ export function slaBreachJobOptions(claimSlotId: string, slaDeadlineAt: Date) {
     jobId: `sla-${claimSlotId}-${slaDeadlineAt.getTime()}`,
     removeOnComplete: true as const,
   };
+}
+
+// E-admin-platform-44 — avertizarea sla.expiring_soon (SLA_WARNING_BEFORE_MS inainte de termen).
+// jobId include termenul: o clarificare care muta termenul programeaza un warning nou.
+export function slaWarningJobOptions(claimSlotId: string, slaDeadlineAt: Date) {
+  return {
+    delay: Math.max(0, slaDeadlineAt.getTime() - SLA_WARNING_BEFORE_MS - Date.now()),
+    jobId: `sla-warn-${claimSlotId}-${slaDeadlineAt.getTime()}`,
+    removeOnComplete: true as const,
+    removeOnFail: 1000,
+  };
+}
+
+// E-company-13 — reminderul de la inceputul gratiei (la sla_deadline_at). jobId fara ':'
+// (BullMQ) si cu termenul: o clarificare care muta termenul programeaza un reminder nou.
+export function slaGraceWarningJobOptions(claimSlotId: string, slaDeadlineAt: Date) {
+  return {
+    delay: Math.max(0, slaDeadlineAt.getTime() - Date.now()),
+    jobId: `sla-grace-warn-${claimSlotId}-${slaDeadlineAt.getTime()}`,
+    removeOnComplete: true as const,
+    removeOnFail: 1000,
+  };
+}
+
+// E-company-13 — cheia outbox a reminderului de gratie (un singur rand per slot + termen).
+export const slaGraceWarningEventKey = (claimSlotId: string, deadlineMs: number) =>
+  `sla.expiring_soon:grace:${claimSlotId}:${deadlineMs}`;
+
+// E-admin-platform-44 — avertizarea claim.assign_warning la +30 min (4.9 / D2).
+export function assignWarningJobOptions(claimSlotId: string, assignDeadlineAt: Date) {
+  return {
+    delay: Math.max(0, assignDeadlineAt.getTime() - ASSIGN_WARNING_BEFORE_DEADLINE_MS - Date.now()),
+    jobId: `claim-assign-warn-${claimSlotId}`,
+    removeOnComplete: true as const,
+    removeOnFail: 1000,
+  };
+}
+
+// E-admin-platform-44 — cine primeste avertizarile de termen: OWNER/MANAGER (doar ei pot
+// atribui) + cine a preluat; cu includeAssignee si responsabilul. Fara duplicate.
+// Doar membrii CURENTI ai firmei: un fost angajat (scos din firma) nu mai primeste nimic.
+export async function claimAlertTargets(
+  db: Pick<Tx, 'companyMember'>,
+  claim: { companyId: string; claimedByUserId: string | null; assignedToUserId: string | null },
+  includeAssignee: boolean,
+): Promise<string[]> {
+  const extra = [claim.claimedByUserId, includeAssignee ? claim.assignedToUserId : null]
+    .filter((id): id is string => !!id);
+  const members = await db.companyMember.findMany({
+    where: {
+      companyId: claim.companyId,
+      OR: [{ role: { in: ['OWNER', 'MANAGER'] } }, ...(extra.length ? [{ userId: { in: extra } }] : [])],
+    },
+    select: { userId: true, role: true },
+  });
+  const current = new Set(members.map((m) => m.userId));
+  const ids = members.filter((m) => m.role === 'OWNER' || m.role === 'MANAGER').map((m) => m.userId);
+  for (const id of extra) if (current.has(id)) ids.push(id);
+  return [...new Set(ids)];
+}
+
+// E-company-6: momentul in care procesorul SLA expira preluarea (termen + 12h gratie).
+// null cand nu exista termen sau SLA e pe pauza (procesorul sare peste sloturile pe pauza).
+export function slaBreachAt(deadline: Date | null, pausedAt: Date | null): Date | null {
+  if (!deadline || pausedAt) return null;
+  return new Date(deadline.getTime() + SLA_GRACE_MS);
 }
 
 // L0-B — cand un slot OFFER_SENT se inchide (retragere auto/admin, voluntar, accept pe alta
@@ -73,25 +131,63 @@ export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: numb
 
 // Recalcul status cerere dupa o schimbare de claim (3.1):
 //  occupied == max → CLAIMED_FULL; 0 < occupied < max → CLAIMED_PARTIAL; 0 → IN_MARKETPLACE.
-// Doar daca cererea e intr-un status de claim (nu suprascrie ACCEPTED/EXPIRED/etc.).
+// Pasul 5 (audit 2026-08-23, F4/F5) — acopera si OFFERS_RECEIVED/NEGOTIATION:
+//  - 0 ocupanti → cererea REVINE in piata; cu opts.republishExpiresAt primeste si ceas NOU
+//    de expirare (inainte ramanea zombie: nu revenea, nu expira, firmele n-o vedeau).
+//    APELANTUL programeaza jobul de expirare DUPA commit, cu valoarea intoarsa.
+//  - ocupanti dar nicio oferta deschisa (SENT/EXPIRED) pe sloturi vii → coboara la CLAIMED_*.
+// Nu suprascrie ACCEPTED/EXPIRED/DELIVERED/etc.
+// E-admin-platform-10: fara maxClaims explicit, pragul CLAIMED_FULL vine din system_settings
+// (citit LENES, doar cand chiar se scrie un CLAIMED_* — bugetul de 10 s al tranzactiei).
 export async function recomputeRequestStatusAfterClaimChange(
   tx: Tx,
   requestId: string,
-  maxClaims: number = DEFAULT_MAX_CLAIMS,
-): Promise<void> {
+  opts?: { republishExpiresAt?: Date },
+  maxClaims?: number,
+): Promise<{ republishedExpiresAt: Date | null }> {
+  const none = { republishedExpiresAt: null };
   const request = await tx.request.findUnique({ where: { id: requestId } });
-  if (!request) return;
-  const claimStates = ['IN_MARKETPLACE', 'CLAIMED_PARTIAL', 'CLAIMED_FULL'] as const;
-  if (!claimStates.includes(request.status as (typeof claimStates)[number])) return;
+  if (!request || request.deletedAt) return none;
+  const claimStates = [
+    'IN_MARKETPLACE',
+    'CLAIMED_PARTIAL',
+    'CLAIMED_FULL',
+    'OFFERS_RECEIVED',
+    'NEGOTIATION',
+  ] as const;
+  if (!claimStates.includes(request.status as (typeof claimStates)[number])) return none;
 
   const occupied = await tx.claimSlot.count({
     where: { requestId, status: { in: OCCUPYING_CLAIM_STATUSES } },
   });
-  const next =
-    occupied >= maxClaims ? 'CLAIMED_FULL' : occupied > 0 ? 'CLAIMED_PARTIAL' : 'IN_MARKETPLACE';
+
+  if (occupied === 0) {
+    if (request.status === 'IN_MARKETPLACE') return none;
+    const expiresAt = opts?.republishExpiresAt ?? null;
+    await tx.request.update({
+      where: { id: requestId },
+      data: { status: 'IN_MARKETPLACE', ...(expiresAt ? { expiresAt } : {}) },
+    });
+    return { republishedExpiresAt: expiresAt };
+  }
+
+  if (request.status === 'OFFERS_RECEIVED' || request.status === 'NEGOTIATION') {
+    const openQuotes = await tx.quote.count({
+      where: {
+        requestId,
+        status: { in: ['SENT', 'EXPIRED'] },
+        claimSlot: { status: { in: OCCUPYING_CLAIM_STATUSES } },
+      },
+    });
+    if (openQuotes > 0) return none; // raman oferte vii → statusul de negociere ramane
+  }
+
+  const max = maxClaims ?? (await readMaxClaims(tx));
+  const next = occupied >= max ? 'CLAIMED_FULL' : 'CLAIMED_PARTIAL';
   if (next !== request.status) {
     await tx.request.update({ where: { id: requestId }, data: { status: next } });
   }
+  return none;
 }
 
 // 4.11 / Î20 / D-v6-13 — dupa ce un claim rateaza SLA, daca cererea nu mai are claim activ:
@@ -103,8 +199,16 @@ export async function republishAfterMassBreach(
   newExpiresAt: Date,
 ): Promise<boolean> {
   const request = await tx.request.findUnique({ where: { id: requestId } });
-  if (!request) return false;
-  const claimStates = ['IN_MARKETPLACE', 'CLAIMED_PARTIAL', 'CLAIMED_FULL'] as const;
+  if (!request || request.deletedAt) return false;
+  // Pasul 5 (F4): si OFFERS_RECEIVED/NEGOTIATION se pot goli de ocupanti (retragere de
+  // oferta + SLA ratat) — fara ele, re-publicarea promisa de 4.11 nu se intampla niciodata.
+  const claimStates = [
+    'IN_MARKETPLACE',
+    'CLAIMED_PARTIAL',
+    'CLAIMED_FULL',
+    'OFFERS_RECEIVED',
+    'NEGOTIATION',
+  ] as const;
   if (!claimStates.includes(request.status as (typeof claimStates)[number])) return false;
 
   const occupied = await tx.claimSlot.count({

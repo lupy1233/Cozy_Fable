@@ -4,10 +4,11 @@
 // valoare (materiale/sisteme, valabile in orice camera) → null (fallback icon lucide).
 import type { RoomType } from '@marketplace/shared';
 import { IlluNo, IlluYes, type IllustrationProps } from './common';
+import { showroomPhoto, type ShowroomConcept } from './showroom-atlas';
+import { optionPhoto } from './option-photo';
 import {
   PhotoAltMaterial,
   PhotoAventos,
-  PhotoGlisante,
   PhotoGola,
   PhotoLemnMasiv,
   PhotoManer,
@@ -86,7 +87,6 @@ import {
   IlluOtherPiece,
   IlluShoeCabinet,
   IlluShoeRack,
-  IlluSideBySide,
   IlluSinkUnit,
   IlluStacked,
   IlluTvComplexUnit,
@@ -135,7 +135,88 @@ import {
 
 export type Illustration = React.ComponentType<IllustrationProps>;
 
+const SHOWROOM_REPLACEMENTS = new Map<Illustration, Illustration>(
+  ([
+    [IlluWardrobe, 'wardrobe'], [IlluBed, 'bed'], [IlluBedNoStorage, 'bed'],
+    [IlluNightstand, 'nightstand'], [IlluNightstandOne, 'nightstand'], [IlluDresser, 'dresser'],
+    [IlluTvUnit, 'tv-unit'], [IlluBookshelf, 'bookcase'], [IlluDesk, 'desk'],
+    [IlluTableDining, 'dining-table'], [IlluCoffeeTable, 'coffee-table'], [IlluTableConsole, 'console-table'],
+    [IlluShoeCabinet, 'shoe-cabinet'], [IlluBench, 'bench'], [IlluBenchSimple, 'bench'],
+    [IlluCoatUnit, 'coat-unit'], [IlluMirrorShelf, 'mirror-shelf'], [IlluVanityTable, 'vanity-table'], [IlluDisplayCabinet, 'glass-display'],
+    [IlluBaseUnits, 'base-cabinet'], [IlluWallUnits, 'wall-cabinet'], [IlluTallPantry, 'tall-pantry'],
+    [IlluIsland, 'island'], [IlluIslandUnits, 'island'], [IlluOven, 'oven'], [IlluHob, 'hob'],
+    [IlluHood, 'hood'], [IlluDishwasher, 'dishwasher'], [IlluFridge, 'fridge'], [IlluMicrowave, 'microwave'],
+    [IlluVanityUnit, 'vanity-sink'], [IlluMirrorCabinet, 'mirror-cabinet'], [IlluTallStorage, 'tall-bath-storage'],
+    [IlluWasher, 'washer'], [IlluStacked, 'stacked-washer-dryer'],
+    // Diagramele pastreaza detaliile absente din atlas: sertare laterale, polite suspendate si LED interior.
+    [IlluBedLiftUp, 'bed-lift-up'], [IlluUpholstered, 'upholstered-bed'],
+    [IlluHangingRods, 'hanging-rod'], [IlluOpenShelves, 'open-shelves'],
+    [IlluShoeRack, 'shoe-rack'], [IlluAccessories, 'wardrobe-accessories'], [IlluLedLighting, 'led-shelf'],
+    [IlluClosedCabinets, 'closed-cabinet'], [IlluOfficeStorage, 'closed-cabinet'], [IlluLaundryStorage, 'closed-cabinet'],
+    [IlluMixedStorage, 'mixed-storage'], [IlluBenchStorage, 'storage-bench'], [IlluBenchShoes, 'shoe-bench'],
+    [IlluTableRound, 'round-table'], [IlluTableExtendable, 'extendable-table'], [IlluDrawerUnit, 'drawer-pedestal'],
+    [IlluCableManagement, 'desk-cable-port'],
+  ] satisfies [Illustration, ShowroomConcept][]).map(([original, concept]) => [original, showroomPhoto(concept)]),
+);
+
+export function showroomIllustration(original: Illustration): Illustration {
+  return SHOWROOM_REPLACEMENTS.get(original) ?? original;
+}
+
 type StepMap = Record<string, Record<string, Illustration>>;
+
+const optionPhotos = (concepts: Record<string, string>): Record<string, Illustration> =>
+  Object.fromEntries(Object.entries(concepts).map(([value, concept]) => [value, optionPhoto(concept)]));
+
+const WARDROBE_DOOR_PHOTOS = optionPhotos({ SLIDING: 'sliding-doors', HINGED: 'wardrobe-hinged' });
+const MATTRESS_PHOTOS = optionPhotos({ S_90: 'mattress-90', M_140: 'mattress-140', Q_160: 'mattress-160', K_180: 'mattress-180', CUSTOM: 'mattress-custom' });
+const DESK_SHAPE_PHOTOS = optionPhotos({ STRAIGHT: 'desk-straight', L_SHAPE: 'desk-l', U_SHAPE: 'desk-u' });
+const VENTILATION_PHOTOS = optionPhotos({ WINDOW: 'ventilation-window', FAN: 'ventilation-fan', NONE: 'ventilation-none' });
+
+// Imaginile de forma depind de camera: aceeasi litera L nu inseamna acelasi mobilier.
+export const ROOM_OPTION_PHOTOS: Partial<Record<RoomType, StepMap>> = {
+  KITCHEN: {
+    layout: optionPhotos({ STRAIGHT: 'kitchen-layout-straight', L_SHAPE: 'kitchen-layout-l', U_SHAPE: 'kitchen-layout-u' }),
+    countertop: optionPhotos({ PAL: 'countertop-pal', HPL: 'countertop-hpl', QUARTZ: 'countertop-quartz', GRANITE: 'countertop-granite' }),
+  },
+  DRESSING: {
+    layout: optionPhotos({ LINEAR: 'dressing-layout-linear', L_SHAPE: 'dressing-layout-l', U_SHAPE: 'dressing-layout-u', WALK_IN: 'dressing-layout-walk-in' }),
+    doorType: { ...WARDROBE_DOOR_PHOTOS, ...optionPhotos({ OPEN: 'wardrobe-open' }) },
+    interiorModules: optionPhotos({ LED_LIGHTING: 'wardrobe-led' }),
+    lighting: optionPhotos({ YES: 'wardrobe-led' }),
+  },
+  LIVING: {
+    piecesNeeded: optionPhotos({ WALL_SHELVES: 'wall-shelves' }),
+    tvStyle: optionPhotos({ FLOATING: 'tv-floating', ON_FLOOR: 'tv-on-floor', COMPLEX_UNIT: 'tv-complex' }),
+    ledPieces: optionPhotos({ WALL_SHELVES: 'wall-shelves' }),
+  },
+  BEDROOM: {
+    wardrobeDoorType: WARDROBE_DOOR_PHOTOS,
+    bedSize: MATTRESS_PHOTOS,
+    bedStorage: optionPhotos({ DRAWERS: 'bed-side-drawers' }),
+    nightstandsCount: optionPhotos({ TWO: 'nightstands-pair' }),
+  },
+  OFFICE: {
+    piecesNeeded: optionPhotos({ WALL_SHELVES: 'wall-shelves' }),
+    deskShape: DESK_SHAPE_PHOTOS,
+  },
+  BATHROOM: { ventilation: VENTILATION_PHOTOS },
+  LAUNDRY: {
+    piecesNeeded: optionPhotos({ APPLIANCE_HOUSING: 'laundry-appliance-housing', COUNTERTOP: 'laundry-worktop', SINK_UNIT: 'laundry-sink-unit' }),
+    ventilation: VENTILATION_PHOTOS,
+  },
+  PANTRY: {
+    wallsUsed: optionPhotos({ ONE_WALL: 'pantry-layout-one-wall', L_SHAPE: 'pantry-layout-l', U_SHAPE: 'pantry-layout-u' }),
+  },
+  BALCONY: {
+    enclosed: optionPhotos({ ENCLOSED: 'balcony-enclosed', OPEN: 'balcony-open' }),
+    piecesNeeded: optionPhotos({ WORKTOP: 'balcony-worktop' }),
+  },
+  PIECE_WARDROBE: { doorType: WARDROBE_DOOR_PHOTOS },
+  PIECE_DESK: { shape: DESK_SHAPE_PHOTOS },
+  PIECE_BED: { bedSize: MATTRESS_PHOTOS, storage: optionPhotos({ DRAWERS: 'bed-side-drawers' }) },
+  PIECE_NIGHTSTAND: { count: optionPhotos({ TWO: 'nightstands-pair' }) },
+};
 
 const KITCHEN_MAP: StepMap = {
   layout: {
@@ -192,6 +273,7 @@ const DRESSING_MAP: StepMap = {
     WALK_IN: IlluWalkIn,
   },
   doorType: {
+    OPEN: IlluWalkIn,
     SLIDING: IlluWardrobeSliding,
     HINGED: IlluWardrobeHinged,
   },
@@ -293,7 +375,7 @@ const LAUNDRY_MAP: StepMap = {
   applianceSetup: {
     WASHER_ONLY: IlluWasher,
     STACKED: IlluStacked,
-    SIDE_BY_SIDE: IlluSideBySide,
+    SIDE_BY_SIDE: showroomPhoto('side-by-side-washer-dryer'),
   },
   piecesNeeded: {
     APPLIANCE_HOUSING: IlluApplianceHousing,
@@ -483,7 +565,7 @@ const COMMON_BY_VALUE: Record<string, Illustration> = {
   LEMN_MASIV: PhotoLemnMasiv,
   ALTUL: PhotoAltMaterial,
   PUSH: PhotoPush,
-  GLISANTE: PhotoGlisante,
+  GLISANTE: optionPhoto('sliding-doors'),
   BUTON_PRESIUNE: PhotoPush,
   MANER: PhotoManer,
   GOLA: PhotoGola,
@@ -495,8 +577,10 @@ export function getIllustration(
   stepId: string,
   optionValue: string,
 ): Illustration | null {
+  const option = ROOM_OPTION_PHOTOS[roomType]?.[stepId]?.[optionValue];
+  if (option) return option;
   const room = ROOM_MAPS[roomType]?.[stepId]?.[optionValue];
-  if (room) return room;
+  if (room) return showroomIllustration(room);
   return COMMON_BY_VALUE[optionValue] ?? null;
 }
 

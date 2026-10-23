@@ -1,4 +1,4 @@
-import { IsIn, IsUUID } from 'class-validator';
+import { IsUUID } from 'class-validator';
 
 export class PurchaseCreditsDto {
   @IsUUID()
@@ -10,10 +10,3 @@ export class PurchaseSubscriptionDto {
   planId: string;
 }
 
-export class PaymentWebhookDto {
-  @IsUUID()
-  orderId: string;
-
-  @IsIn(['CONFIRMED', 'CANCELLED'])
-  status: 'CONFIRMED' | 'CANCELLED';
-}

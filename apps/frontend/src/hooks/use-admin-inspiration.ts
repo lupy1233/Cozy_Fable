@@ -1,8 +1,9 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { InspirationPhotoDto, InspirationPhotoInput, PresignUploadResultDto } from '@marketplace/shared';
+import type { AttachmentDto, InspirationPhotoDto, InspirationPhotoInput, PresignUploadResultDto } from '@marketplace/shared';
 import { api } from '@/lib/api';
+import { waitForSafeUpload } from '@/lib/upload-scan';
 
 // Administrarea galeriei de inspiratie (F6, item 3).
 
@@ -69,6 +70,7 @@ export function useUploadInspirationImage() {
         body: file,
       });
       if (!put.ok) throw new Error('upload failed');
+      await waitForSafeUpload(() => api<AttachmentDto>(`/admin/inspiration/${id}/image/${presign.attachmentId}/complete`, { method: 'POST' }));
       return api<InspirationPhotoDto>(`/admin/inspiration/${id}/image/confirm`, {
         method: 'POST',
         body: JSON.stringify({ attachmentId: presign.attachmentId }),

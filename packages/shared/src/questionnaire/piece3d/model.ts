@@ -17,6 +17,9 @@ import {
   type PieceConfig3d,
   type ResolvedZone3d,
 } from './config';
+import { isFurnitureKind } from './furniture-config';
+import { buildFurniturePanels } from './furniture-model';
+import { legAsset } from './hardware-assets';
 
 // Modelul parametric (docs/10 §2): mobila e GENERATA din config — carcasa din
 // panouri, coloane, polite/sertare/usi per zona. Functiile sunt PURE si
@@ -25,6 +28,7 @@ import {
 // fata piesei la z=+depth/2 (metri, ca answers).
 
 export type Panel3dRole =
+  | 'FURNITURE'
   | 'SIDE'
   | 'TOP'
   | 'BOTTOM'
@@ -36,7 +40,7 @@ export type Panel3dRole =
   | 'DRAWER_FRONT'
   | 'DOOR_FRONT'
   | 'TILT_FRONT'
-  // T1: usa glisanta pe toata inaltimea unei coloane, pe sina in fata carcasei
+  // Usa glisanta incadrata intre laterale, plafon si fund, pe doua sine.
   | 'SLIDING_FRONT'
   // T1: picior conic (comoda "pe picioare"); FE il deseneaza ca cilindru
   | 'LEG'
@@ -46,7 +50,44 @@ export type Panel3dRole =
   // se citeste ca linie inchisa, stil Tylko
   | 'FRONT_BACKDROP';
 
+// Prototip 2026-10-22: feronerie din modele GLB (apps/frontend/public/3d/
+// hardware.glb). Panoul-ancora poarta `asset` (unde se monteaza modelul);
+// primitivele de rezerva ale aceleiasi feronerii poarta `assetFallback` cu
+// numele nodului si se deseneaza DOAR cand modelul nu e incarcat sau nodul
+// lipseste. Randare pura: nu intra in config, BOM sau pret.
+export type Panel3dAssetId = 'HANDLE_BAR' | 'HANDLE_SHELL' | 'HANDLE_KNOB' | 'HANDLE_PROFILE' | 'LEG_TAPERED' | 'HINGE_CUP';
+export interface Panel3dAsset {
+  id: Panel3dAssetId;
+  // numele nodului din GLB (ex. handle_bar_160, leg_tapered, hinge_cup_r)
+  node: string;
+  // punctul de montaj = originea modelului (m, in coordonatele listei de panouri):
+  // fata frontului la manere, spatele usii la balamale, partea de sus la picioare
+  mount: [number, number, number];
+  // rotatie in jurul lui Z (rad): 0 = orizontal, ±π/2 = vertical pe usi
+  rotationZ?: number;
+  // scalare pe axele modelului (profilul de 1 m pe X, piciorul canonic pe toate); lipsa = 1
+  scale?: [number, number, number];
+  // materialul instantei; lipsa = finisajul corpului (ex. picioarele comodei)
+  surface?: Panel3d['surface'];
+}
+
 export interface Panel3d {
+  asset?: Panel3dAsset;
+  assetFallback?: string;
+  radius?: number;
+  surface?: 'FABRIC' | 'BEDDING' | 'ACCENT' | 'METAL' | 'BRASS' | 'HANGER_WOOD' | 'LEG_FINISH' | 'CERAMIC' | 'STONE_LIGHT' | 'STONE_DARK' | 'MIRROR';
+  // Metadate derivate exclusiv pentru randare; nu intra in configuratia salvata.
+  shape?: 'ELLIPSE' | 'CUSHION' | 'PIPING' | 'PEDESTAL' | 'CYLINDER' | 'BED_PILLOW' | 'BED_DUVET' | 'BED_THROW' | 'HEADBOARD_PAD' | 'HANGER' | 'HANGER_HOOK' | 'TAPERED_LEG' | 'TABLETOP' | 'SEAT_CUSHION' | 'ROUND_CUSHION' | 'BASIN' | 'ROUND_SHELL';
+  axis?: 'X' | 'Y' | 'Z';
+  seamRadius?: number;
+  grainAxis?: 'X' | 'Y' | 'Z';
+  motion?: {
+    key: string;
+    type: 'SLIDE' | 'ROTATE_X' | 'ROTATE_Y';
+    travel?: [number, number, number];
+    pivot?: [number, number, number];
+    angle?: number;
+  };
   role: Panel3dRole;
   // centrul panoului
   x: number;
@@ -81,6 +122,12 @@ export interface ZoneBox3d {
 }
 
 const T = PANEL_T;
+const SLIDING_RECESS = 0.072;
+const SLIDING_TRACK_H = 0.012;
+
+function interiorFront(config: PieceConfig3d): number {
+  return config.depthM / 2 - (config.doorMode === 'SLIDING' ? SLIDING_RECESS : 0);
+}
 
 interface ColumnLayout {
   // marginea stanga interioara a coloanei
@@ -98,10 +145,14 @@ function zonePanels(
   slices: ResolvedZone3d[],
   colIndex: number,
   panels: Panel3d[],
+  depthInset = 0,
 ): void {
   const column = config.columns[colIndex];
   const D = config.depthM;
-  const innerD = D - BACK_T;
+  const rear = -D / 2 + BACK_T + depthInset;
+  const frontEdge = interiorFront(config) - depthInset;
+  const innerD = frontEdge - rear;
+  const innerZ = (rear + frontEdge) / 2;
   const cx = layout.left + layout.width / 2;
 
   column.zones.forEach((zone, j) => {
@@ -114,7 +165,7 @@ function zonePanels(
         role: 'ZONE_SEP',
         x: cx,
         y: bottom - T / 2,
-        z: BACK_T / 2,
+        z: innerZ,
         w: layout.width,
         h: T,
         d: innerD,
@@ -134,7 +185,7 @@ function zonePanels(
         role,
         x,
         y,
-        z: D / 2 - T / 2,
+        z: frontEdge - T / 2,
         w: w ?? layout.width - 2 * FRONT_GAP,
         h,
         d: T,
@@ -143,31 +194,18 @@ function zonePanels(
         ...(hinge ? { hinge } : {}),
       });
 
-    // fundal intunecat in spatele fronturilor — luftul se citeste ca rost
-    const backdrop = () =>
-      panels.push({
-        role: 'FRONT_BACKDROP',
-        x: cx,
-        y: (top + bottom) / 2,
-        z: D / 2 - T - 0.004,
-        w: layout.width,
-        h: zoneH,
-        d: 0.002,
-        col: colIndex,
-        zone: j,
-      });
-
     // polite orizontale distribuite egal in zona (si in spatele usilor)
     const shelves = (count: number) => {
+      const shelfFront = frontEdge - (zone.type === 'DOOR' ? T + 0.006 : 0.01);
       for (let s = 1; s <= count; s++) {
         panels.push({
           role: 'SHELF',
           x: cx,
           y: bottom + (s * zoneH) / (count + 1),
-          z: BACK_T / 2,
+          z: (rear + shelfFront) / 2,
           w: layout.width,
           h: T,
-          d: innerD - 0.01,
+          d: shelfFront - rear,
           col: colIndex,
           zone: j,
         });
@@ -209,7 +247,6 @@ function zonePanels(
         const count = zone.count ?? 1;
         const role = zone.type === 'DRAWERS' ? 'DRAWER_FRONT' : 'TILT_FRONT';
         const each = zoneH / count;
-        backdrop();
         for (let s = 0; s < count; s++) {
           front(role, bottom + (s + 0.5) * each, each - 2 * FRONT_GAP);
         }
@@ -342,13 +379,28 @@ function deskPanels(config: PieceConfig3d, resolved: ResolvedZone3d[][]): Panel3
       h: layout.top - layout.bottom,
       d: BACK_T,
     });
-    zonePanels(config, layout, resolved[i] ?? [], i, panels);
+    zonePanels(config, layout, resolved[i] ?? [], i, panels, 0.02);
   });
   return panels;
 }
 
 // Genereaza panourile piesei din config (docs/10: buildPanels(config) → Panel[]).
 export function buildPanels(config: PieceConfig3d, kind: Piece3dKind): Panel3d[] {
+  return buildStructuralPanels(config, kind).map((panel) => {
+    const front = ['DRAWER_FRONT', 'DOOR_FRONT', 'TILT_FRONT', 'SLIDING_FRONT'].includes(panel.role);
+    const horizontal = ['TOP', 'BOTTOM', 'SHELF', 'ZONE_SEP', 'DESK_TOP'].includes(panel.role);
+    const vertical = ['SIDE', 'DIVIDER', 'LEG'].includes(panel.role);
+    const radius = front ? 0.0015 : panel.role === 'DESK_TOP' ? 0.0035 : horizontal ? 0.0012 : 0.0008;
+    return {
+      ...panel,
+      radius: Math.min(panel.radius ?? radius, panel.w / 4, panel.h / 4, panel.d / 4),
+      grainAxis: panel.grainAxis ?? (horizontal ? 'X' : vertical ? 'Y' : panel.w >= panel.h ? 'X' : 'Y'),
+    };
+  });
+}
+
+function buildStructuralPanels(config: PieceConfig3d, kind: Piece3dKind): Panel3d[] {
+  if (isFurnitureKind(kind)) return buildFurniturePanels(config, kind);
   const resolved = resolvePieceLayout(kind, config);
   if (kind === 'DESK')
     return deskPanels(
@@ -387,18 +439,17 @@ export function buildPanels(config: PieceConfig3d, kind: Piece3dKind): Panel3d[]
       [lx, -lz],
       [lx, lz],
     ] as const) {
-      panels.push({ role: 'LEG', x, y: base / 2, z, w: 0.05, h: base, d: 0.05 });
+      panels.push({ role: 'LEG', x, y: base / 2, z, w: 0.05, h: base, d: 0.05, ...legAsset(x, base, z, 0.05, base, 0.05) });
     }
   } else if (base > 0) {
-    panels.push({
-      role: 'PLINTH',
-      x: 0,
-      y: base / 2,
-      z: D / 2 - 0.03 - T / 2,
-      w: W - 2 * T,
-      h: base,
-      d: T,
-    });
+    const baseW = W - 0.06;
+    const baseD = D - 0.06;
+    for (const sign of [-1, 1]) {
+      panels.push({ role: 'PLINTH', x: 0, y: base / 2, z: sign * (baseD - T) / 2,
+        w: baseW, h: base, d: T });
+      panels.push({ role: 'PLINTH', x: sign * (baseW - T) / 2, y: base / 2, z: 0,
+        w: T, h: base, d: baseD - 2 * T });
+    }
   }
 
   const layouts = carcassColumnLayouts(
@@ -412,10 +463,10 @@ export function buildPanels(config: PieceConfig3d, kind: Piece3dKind): Panel3d[]
       role: 'DIVIDER',
       x: layouts[i].left + layouts[i].width + T / 2,
       y: (layouts[i].bottom + layouts[i].top) / 2,
-      z: BACK_T / 2,
+      z: (interiorFront(config) - D / 2 + BACK_T) / 2,
       w: T,
       h: layouts[i].top - layouts[i].bottom,
-      d: D - BACK_T,
+      d: interiorFront(config) + D / 2 - BACK_T,
     });
   }
   layouts.forEach((layout, i) => zonePanels(config, layout, resolved[i]?.zones ?? [], i, panels));
@@ -425,10 +476,8 @@ export function buildPanels(config: PieceConfig3d, kind: Piece3dKind): Panel3d[]
   return panels;
 }
 
-// Usile glisante (T1): cate o usa pe toata inaltimea per coloana, pe doua
-// sine alternante IN FATA carcasei; usa acopera si jumatatile despartitoarelor
-// vecine. Directia de deschidere e per usa (slideTo), capetele doar spre
-// interior; distanta de glisare = latimea coloanei vecine (usa ajunge peste ea).
+// Doua canale incadrate in carcasa. Interioarele se opresc in spatele sinelor;
+// deplasarea este limitata de laterale si pentru coloane de latimi diferite.
 function slidingDoorPanels(
   config: PieceConfig3d,
   layouts: ColumnLayout[],
@@ -436,28 +485,62 @@ function slidingDoorPanels(
 ): void {
   const { widthM: W, heightM: H, depthM: D } = config;
   const n = layouts.length;
+  const openingLeft = -W / 2 + T;
+  const openingRight = W / 2 - T;
+  const bottom = layouts[0].bottom;
+  const top = H - T;
+  const tracks = [D / 2 - T / 2 - 0.006, D / 2 - T / 2 - 0.034];
+  const trackRear = tracks[1] - T / 2 - 0.005;
+  const trackFront = tracks[0] + T / 2 + 0.004;
+  const leafEdges = layouts.map((layout) => ({
+    left: Math.max(openingLeft + FRONT_GAP, layout.left - T / 2 - 0.01),
+    right: Math.min(openingRight - FRONT_GAP, layout.left + layout.width + T / 2 + 0.01),
+  }));
+  for (const y of [bottom + 0.002, top - 0.002]) {
+    panels.push({ role: 'FURNITURE', surface: 'METAL', x: 0, y,
+      z: (trackRear + trackFront) / 2, w: openingRight - openingLeft, h: 0.004, d: trackFront - trackRear });
+  }
+  for (const track of tracks) for (const sign of [-1, 1]) {
+    for (const y of [bottom + SLIDING_TRACK_H / 2, top - SLIDING_TRACK_H / 2]) {
+      panels.push({ role: 'FURNITURE', surface: 'METAL', x: 0, y,
+        z: track + sign * (T / 2 + 0.003), w: openingRight - openingLeft, h: SLIDING_TRACK_H, d: 0.002 });
+    }
+  }
   layouts.forEach((layout, i) => {
-    const left = Math.max(-W / 2, layout.left - T);
-    const right = Math.min(W / 2, layout.left + layout.width + T);
-    // sine alternante: usile vecine stau pe adancimi diferite ca sa se
-    // poata suprapune la deschidere
-    const z = D / 2 + T / 2 + (i % 2 === 0 ? T + 0.006 : 0.003);
+    const { left, right } = leafEdges[i];
+    const z = tracks[i % 2];
     const dir: Piece3dSlideDirection =
       i === 0 ? 'R' : i === n - 1 ? 'L' : config.columns[i]?.slideTo ?? 'L';
     const neighbor = dir === 'R' ? layouts[i + 1] : layouts[i - 1];
-    const dx = (neighbor ? neighbor.width + T : layout.width) * (dir === 'R' ? 1 : -1);
+    const requested = neighbor ? neighbor.left + neighbor.width / 2 - (left + right) / 2 : 0;
+    let minTravel = openingLeft + FRONT_GAP - left;
+    let maxTravel = openingRight - FRONT_GAP - right;
+    leafEdges.forEach((other, j) => {
+      if (j % 2 !== i % 2 || j === i) return;
+      if (j < i) minTravel = Math.max(minTravel, other.right + FRONT_GAP - left);
+      else maxTravel = Math.min(maxTravel, other.left - FRONT_GAP - right);
+    });
+    const dx = Math.max(minTravel, Math.min(maxTravel, requested));
+    const leafBottom = bottom + SLIDING_TRACK_H + 0.003;
+    const leafTop = top - SLIDING_TRACK_H - 0.003;
     panels.push({
       role: 'SLIDING_FRONT',
       x: (left + right) / 2,
-      y: H / 2,
+      y: (leafTop + leafBottom) / 2,
       z,
       w: right - left,
-      h: H - 0.02,
+      h: leafTop - leafBottom,
       d: T,
       col: i,
       slide: dir,
       slideDx: dx,
     });
+    // Patine prinse de canat, ghidate intre buzele profilului de sus/jos.
+    for (const x of [left + 0.045, right - 0.045]) for (const y of [leafBottom - 0.003, leafTop + 0.003]) {
+      panels.push({ role: 'FURNITURE', surface: 'METAL', x, y, z,
+        w: 0.024, h: 0.016, d: T - 0.003,
+        motion: { key: `slide:${i}`, type: 'SLIDE', travel: [dx, 0, 0] } });
+    }
   });
 }
 
@@ -485,12 +568,10 @@ export function nextZoneType(kind: Piece3dKind, current: Piece3dZoneType): Piece
 }
 
 // Verificare rapida de sanitate folosita in teste si dev: niciun panou in
-// afara gabaritului declarat. Usile glisante sunt exceptate pe adancime —
-// stau pe sine IN FATA carcasei, deci ies legitim din gabaritul de adancime.
+// afara gabaritului declarat, inclusiv usile glisante si feroneria.
 export function panelsWithinBounds(config: PieceConfig3d, panels: Panel3d[]): boolean {
   const eps = 1e-6;
   return panels.every((p) => {
-    if (p.role === 'SLIDING_FRONT') return true;
     return (
       p.x - p.w / 2 >= -config.widthM / 2 - eps &&
       p.x + p.w / 2 <= config.widthM / 2 + eps &&

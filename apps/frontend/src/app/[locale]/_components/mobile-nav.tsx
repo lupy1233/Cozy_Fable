@@ -80,7 +80,7 @@ export function MobileNav({
                   key={l.href}
                   href={l.href}
                   className={cn(
-                    'rounded-md px-3 py-2.5 text-[15px] transition-colors',
+                    'rounded-md px-3 py-2.5 text-lead transition-colors',
                     active
                       ? 'bg-walnut-soft font-medium text-walnut-deep'
                       : 'text-foreground hover:bg-secondary',
