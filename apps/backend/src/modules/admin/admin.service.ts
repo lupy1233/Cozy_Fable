@@ -415,7 +415,8 @@ export class AdminService {
     const rule = SETTING_VALUE_RULES.get(key);
     // E-admin-platform-58: trial_plan (cod de plan) se salveaza si el fara spatii
     const stored = rule || key === 'trial_plan' ? value.trim() : value;
-    if (rule && !rule(stored)) {
+    // typeof: garda recunoscuta de CodeQL pentru apelul unei functii alese dupa cheia de la admin
+    if (typeof rule === 'function' && !rule(stored)) {
       throw new BadRequestException({ code: ERROR_CODES.VALIDATION_ERROR, message: 'Invalid value for this setting' });
     }
     // E-admin-platform-58: trial_plan = codul unui plan ACTIV existent (planurile sunt date)
