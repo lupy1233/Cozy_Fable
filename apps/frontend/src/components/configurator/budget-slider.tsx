@@ -65,7 +65,7 @@ export function BudgetSlider({
             className="accent-walnut"
             aria-label={t('field.budgetRange')}
           />
-          <div className="flex justify-between text-[11px] text-muted-foreground">
+          <div className="flex justify-between text-meta text-muted-foreground">
             <span>{fmtRon(estimate.minRon)}</span>
             <span>{fmtRon(Math.round((estimate.minRon + estimate.maxRon) / 2 / RON_STEP) * RON_STEP)}</span>
             <span>{fmtRon(estimate.maxRon)}</span>
@@ -84,7 +84,7 @@ export function BudgetSlider({
             className="accent-walnut"
             aria-label={t('field.budgetRange')}
           />
-          <div className="flex justify-between text-[11px] text-muted-foreground">
+          <div className="flex justify-between text-meta text-muted-foreground">
             {STEPS.map((s, i) => (
               <button
                 key={s}

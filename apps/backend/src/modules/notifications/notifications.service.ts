@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ERROR_CODES, type NotificationDto, type UnreadCountDto } from '@marketplace/shared';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
@@ -12,6 +12,7 @@ export class NotificationsService {
     userIds: string[],
     type: string,
     payload: Record<string, unknown>,
+    eventId?: string,
   ): Promise<void> {
     if (userIds.length === 0) return;
     await this.prisma.notification.createMany({
@@ -19,8 +20,23 @@ export class NotificationsService {
         userId,
         type,
         payload: payload as Prisma.InputJsonValue,
+        eventId,
       })),
+      skipDuplicates: true,
     });
+  }
+
+  async pendingEmailRecipients(eventId: string, userIds: string[]): Promise<string[]> {
+    const rows = await this.prisma.notification.findMany({ where: { eventId, userId: { in: userIds }, emailDeliveredAt: null }, select: { userId: true } });
+    return rows.map((row) => row.userId);
+  }
+
+  async markEmailDelivered(eventId: string, userId: string): Promise<void> {
+    await this.prisma.notification.updateMany({ where: { eventId, userId, emailDeliveredAt: null }, data: { emailDeliveredAt: new Date() } });
+  }
+
+  async completeEvent(eventId: string): Promise<void> {
+    await this.prisma.domainEventOutbox.updateMany({ where: { id: eventId, completedAt: null }, data: { completedAt: new Date() } });
   }
 
   async listForUser(userId: string): Promise<NotificationDto[]> {
@@ -58,12 +74,5 @@ export class NotificationsService {
       where: { userId, readAt: null },
       data: { readAt: new Date() },
     });
-  }
-
-  // Guard de tip: aruncat daca cineva incearca sa marcheze notificarea altcuiva (defensiv).
-  assertOwner(ownerId: string, userId: string): void {
-    if (ownerId !== userId) {
-      throw new ForbiddenException({ code: ERROR_CODES.FORBIDDEN, message: 'Not your notification' });
-    }
   }
 }

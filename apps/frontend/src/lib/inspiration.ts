@@ -5,14 +5,6 @@
 
 export type FurnitureType = 'kitchen' | 'living' | 'bedroom' | 'dressing' | 'office';
 
-export const FURNITURE_TYPES: FurnitureType[] = [
-  'kitchen',
-  'living',
-  'bedroom',
-  'dressing',
-  'office',
-];
-
 // sursa externa (CDN-ul Webflow al partenerului Mobila Unicat) — vezi audit
 // 2026-08-19, 01-public-pages A1 P1: mutarea pe storage propriu asteapta
 // acordul PO pentru gazduire (nu doar afisare).

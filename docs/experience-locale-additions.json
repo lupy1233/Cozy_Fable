@@ -1,0 +1,44 @@
+{
+  "en": {
+    "Accessibility": { "close": "Close" },
+    "Configurator": {
+      "phone": { "countryCode": "Phone country code", "nationalNumber": "Phone number without country code" },
+      "uploads": { "removeFile": "Remove {name}" },
+      "review": {
+        "filesTitle": "Project files",
+        "facts": {
+          "notProvided": "Not provided",
+          "estimate": "Your estimated budget: {amount} — not a company quote",
+          "deadline": "Desired timeframe",
+          "location": "Installation location",
+          "contact": "Contact channels",
+          "designHelp": "Help planning the furniture",
+          "description": "Project details",
+          "contactVisibility": "Your address and contact details are shared with companies working on your request after they claim it."
+        },
+        "rooms": { "edit": "Edit {room}", "allAnswers": "View all answers" }
+      }
+    }
+  },
+  "ro": {
+    "Accessibility": { "close": "Închide" },
+    "Configurator": {
+      "phone": { "countryCode": "Prefixul țării pentru telefon", "nationalNumber": "Numărul de telefon fără prefixul țării" },
+      "uploads": { "removeFile": "Elimină {name}" },
+      "review": {
+        "filesTitle": "Fișierele proiectului",
+        "facts": {
+          "notProvided": "Necompletat",
+          "estimate": "Bugetul tău estimat: {amount} — nu reprezintă oferta unei firme",
+          "deadline": "Termenul dorit",
+          "location": "Locul montajului",
+          "contact": "Canale de contact",
+          "designHelp": "Ajutor pentru planificarea mobilierului",
+          "description": "Detaliile proiectului",
+          "contactVisibility": "Adresa și datele tale de contact sunt transmise firmelor care lucrează la cerere după ce o preiau."
+        },
+        "rooms": { "edit": "Editează {room}", "allAnswers": "Vezi toate răspunsurile" }
+      }
+    }
+  }
+}

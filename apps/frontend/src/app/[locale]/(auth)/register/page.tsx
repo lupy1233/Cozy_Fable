@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Alert } from '@/components/ui/alert';
+import { firmRulesChunk } from '../../_components/firm-rules-link';
 import { ResendVerification } from '../_components/resend-verification';
 
 function RegisterInner() {
@@ -30,12 +31,15 @@ function RegisterInner() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     defaultValues: { role: initialRole, languagePreference: locale === 'en' ? 'EN' : 'RO' },
   });
 
+  // E-company-9: firmele accepta si "Regulile pentru firme" (link in tab nou, sa nu piarda formularul)
+  const role = watch('role');
   const onSubmit = handleSubmit((values) => registerMutation.mutate(values));
 
   const apiErr = registerMutation.error ? apiErrorKey(registerMutation.error) : null;
@@ -79,7 +83,7 @@ function RegisterInner() {
         </Field>
 
         <fieldset className="flex flex-col gap-2">
-          <legend className="mb-1 font-mono text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+          <legend className="mb-1 font-mono text-meta uppercase tracking-[0.06em] text-muted-foreground">
             {t('accountType')}
           </legend>
           <label className="flex items-center gap-2 text-sm">
@@ -101,7 +105,7 @@ function RegisterInner() {
               {...register('termsAccepted')}
             />
             <span>
-              {t.rich('termsLabel', {
+              {t.rich(role === 'COMPANY_USER' ? 'termsLabelCompany' : 'termsLabel', {
                 terms: (chunks) => (
                   <Link href="/terms" target="_blank" className="text-walnut underline">
                     {chunks}
@@ -112,6 +116,7 @@ function RegisterInner() {
                     {chunks}
                   </Link>
                 ),
+                rules: firmRulesChunk(undefined, true),
               })}
             </span>
           </label>

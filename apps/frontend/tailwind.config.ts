@@ -19,6 +19,7 @@ const config: Config = {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         // surfaces / ink steps portate din prototip
+        // `surface` = tokenul unic pentru suprafete in cod (bg-surface)
         surface: 'hsl(var(--card))',
         'surface-2': 'hsl(var(--surface-2))',
         'surface-3': 'hsl(var(--surface-3))',
@@ -49,18 +50,13 @@ const config: Config = {
           DEFAULT: 'hsl(var(--popover))',
           foreground: 'hsl(var(--popover-foreground))',
         },
+        // `card` ramane DOAR pentru contractul shadcn (components.json):
+        // nu folosi `bg-card` in cod (regula ESLint), foloseste `bg-surface`
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // brand palette (limbaj "PLANSA" — birou de proiectare)
-        // `plan` = albastru-plan (cerneala de trasat). `walnut` e numele
-        // istoric al aceluiasi var, pastrat pentru cele ~40 fisiere vechi.
-        plan: {
-          DEFAULT: 'hsl(var(--walnut))',
-          deep: 'hsl(var(--walnut-deep))',
-          soft: 'hsl(var(--walnut-soft))',
-        },
+        // paleta de brand ATELIER: nuc (walnut), salvie, chihlimbar, alama, carmin, info
         walnut: {
           DEFAULT: 'hsl(var(--walnut))',
           deep: 'hsl(var(--walnut-deep))',
@@ -86,6 +82,26 @@ const config: Config = {
           DEFAULT: 'hsl(var(--info))',
           soft: 'hsl(var(--info-soft))',
         },
+        'on-walnut': 'hsl(var(--on-walnut))',
+        // panglici de plan (TierBadge)
+        tier: {
+          'platinum-from': 'hsl(var(--tier-platinum-from))',
+          'platinum-to': 'hsl(var(--tier-platinum-to))',
+          'platinum-fg': 'hsl(var(--tier-platinum-fg))',
+          'gold-from': 'hsl(var(--tier-gold-from))',
+          'gold-to': 'hsl(var(--tier-gold-to))',
+          'gold-fg': 'hsl(var(--tier-gold-fg))',
+          'silver-from': 'hsl(var(--tier-silver-from))',
+          'silver-to': 'hsl(var(--tier-silver-to))',
+          'silver-fg': 'hsl(var(--tier-silver-fg))',
+        },
+      },
+      // scala tipografica mica (restul: xs 12, sm 14, base 16, lg 18, xl 20, 2xl 24, 3xl 30 din Tailwind)
+      fontSize: {
+        micro: ['10px', { lineHeight: '15px' }],
+        meta: ['11px', { lineHeight: '16px' }],
+        ui: ['13px', { lineHeight: '18px' }],
+        lead: ['15px', { lineHeight: '22px' }],
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
@@ -93,7 +109,9 @@ const config: Config = {
         mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
       },
       borderRadius: {
-        // croiala calma: rotunjire mica, nu bombata
+        // croiala calma: rotunjire mica, nu bombata.
+        // card = rounded-xl (14px); tile in interiorul unui card = rounded-lg;
+        // control = rounded-md; pastila = rounded-full
         xl: '14px',
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',

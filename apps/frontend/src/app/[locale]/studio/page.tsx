@@ -6,7 +6,7 @@ import { StudioPage } from '@/components/studio/studio-page';
 // aranjezi intr-o camera 3D; de acolo pot pleca direct in cerere.
 export default function StudioRoutePage() {
   return (
-    <PublicShell>
+    <PublicShell studio>
       <StudioPage />
     </PublicShell>
   );

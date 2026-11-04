@@ -7,6 +7,11 @@ import { useMe } from '@/hooks/use-auth';
 import { useAdminDisputes, useResolveDispute } from '@/hooks/use-fulfillment';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadError } from '@/components/ui/query-state';
+import { SkeletonList, SkeletonPage } from '@/components/ui/skeleton';
 
 export default function AdminDisputesPage() {
   const t = useTranslations('AdminDisputes');
@@ -21,20 +26,20 @@ export default function AdminDisputesPage() {
     else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
   }, [me.isError, me.data, router]);
 
-  if (me.isPending) return <p className="py-20 text-center text-muted-foreground">{t('loading')}</p>;
+  if (me.isPending) return <SkeletonPage variant="list" />;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
-      <h1 className="page-title">{t('title')}</h1>
+      <PageHeader title={t('title')} />
+      {list.isPending && <SkeletonList rows={3} variant="cards" />}
+      {list.isError && <LoadError onRetry={() => void list.refetch()} />}
       {list.isSuccess && list.data.length === 0 && (
-        <p className="rounded-xl border border-border bg-surface px-4 py-6 text-center text-sm text-muted-foreground">
-          {t('empty')}
-        </p>
+        <EmptyState variant="card" size="sm" title={t('empty')} />
       )}
       {list.data?.map((d) => (
-        <div key={d.id} className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-5 text-sm shadow-sm">
+        <Card key={d.id} className="flex flex-col gap-2 text-sm">
           <div className="flex justify-between">
-            <span className="font-serif text-lg">{d.companyName}</span>
+            <span className="heading-card">{d.companyName}</span>
             <span className="text-brass">
               {'★'.repeat(d.rating)}
               {'☆'.repeat(5 - d.rating)}
@@ -62,7 +67,7 @@ export default function AdminDisputesPage() {
               {t('dismiss')}
             </Button>
           </div>
-        </div>
+        </Card>
       ))}
     </div>
   );

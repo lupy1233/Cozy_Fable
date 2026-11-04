@@ -11,6 +11,7 @@ import type {
   TeamThreadDto,
 } from '@marketplace/shared';
 import { api } from '@/lib/api';
+import { waitForSafeUpload } from '@/lib/upload-scan';
 
 export type ChatMode = 'client' | 'company';
 
@@ -89,10 +90,10 @@ export function useUploadChatAttachment(threadId: string, mode: ChatMode) {
         body: file,
       });
       if (!put.ok) throw new Error('upload failed');
-      await api<AttachmentDto>(
+      await waitForSafeUpload(() => api<AttachmentDto>(
         `${prefix(mode)}/threads/${threadId}/attachments/${presign.attachmentId}/confirm`,
         { method: 'POST' },
-      );
+      ));
       return presign.attachmentId;
     },
   });

@@ -2,6 +2,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import type { Job } from 'bullmq';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { runTx } from '../../infra/prisma/tx';
 import { QUEUE_CONSULTATION_EXPIRY } from '../../infra/queues/queues.module';
 import { QuotesService } from './quotes.service';
 
@@ -24,16 +25,17 @@ export class ConsultationExpiryProcessor extends WorkerHost {
 
   async process(job: Job<ConsultationExpiryJob>): Promise<void> {
     const { inviteId } = job.data;
-    const quoteId = await this.prisma.$transaction(async (tx) => {
+    const quoteId = await runTx(this.prisma, 'write', async (tx) => {
       const invite = await tx.physicalConsultationInvite.findUnique({ where: { id: inviteId } });
       if (!invite || invite.status !== 'PENDING_CLIENT') return null;
       if (invite.expiresAt.getTime() > Date.now()) return null;
-      await tx.physicalConsultationInvite.update({ where: { id: inviteId }, data: { status: 'EXPIRED' } });
+      const updated = await tx.physicalConsultationInvite.updateMany({ where: { id: inviteId, status: 'PENDING_CLIENT', expiresAt: { lte: new Date() } }, data: { status: 'EXPIRED' } });
+      if (!updated.count) return null;
+      await this.quotes.publishQuoteUpdated(invite.quoteId, tx);
       return invite.quoteId;
     });
 
     if (quoteId) {
-      await this.quotes.publishQuoteUpdated(quoteId);
       this.logger.debug(`consultation invite ${inviteId} expired`);
     }
   }

@@ -5,10 +5,11 @@ import { pageMetadata } from '../../_components/metadata';
 // Colectiile sunt personale (cer login) → titlu propriu, dar noindex; acelasi
 // titlu si pentru /boards/[id] (numele colectiei vine din API, client-side).
 export async function generateMetadata({
-  params: { locale },
+  params,
 }: {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
+  const { locale } = await params;
   return pageMetadata(locale, 'boards', '/inspiration/boards', { noIndex: true });
 }
 

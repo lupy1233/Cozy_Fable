@@ -16,8 +16,9 @@ import { pageMetadata } from './_components/metadata';
 // paginii e mini-configuratorul FUNCTIONAL din hero (hero-demo.tsx) — produsul
 // insusi, nu o poveste despre el. Urmeaza "Drumul cererii" (mozaic cu imbinari
 // de alama, statia 1 legata live de demo), caietul de idei, "Pentru cine" si
-// banda CTA. Vechiul landing (hero-sheets + process-section + partners) a fost
-// inlocuit; componentele lui raman in _components pentru refolosire.
+// banda CTA. Vechiul landing a fost inlocuit; hero-sheets/process-section au
+// fost sterse la curatenia L2 (pasul 7 audit #2) — a supravietuit doar
+// partners-carousel, refolosit mai jos.
 
 // ritmul masonry al caietului de idei: inaltimi variate, ciclice
 const PIN_ASPECTS = ['aspect-[3/4]', 'aspect-square', 'aspect-[4/5]'] as const;
@@ -34,10 +35,11 @@ function SectionRule() {
 
 // titlul complet al site-ului (fara sablonul '%s · Cozy Home') + canonical/hreflang/OG
 export async function generateMetadata({
-  params: { locale },
+  params,
 }: {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
+  const { locale } = await params;
   return pageMetadata(locale, 'home', '/', { absoluteTitle: true });
 }
 
@@ -63,7 +65,7 @@ export default function LandingPage() {
             <div className="flex flex-col items-start gap-4">
               <span className="kicker">{t('eyebrow')}</span>
               <h1 className="page-title max-w-xl">{t('title')}</h1>
-              <p className="max-w-lg text-[15px] leading-relaxed text-muted-foreground">
+              <p className="max-w-lg text-lead leading-relaxed text-muted-foreground">
                 {t('subtitle')}
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-3">
@@ -77,7 +79,7 @@ export default function LandingPage() {
               {/* promisiunile concrete, pe hairline — nu metrice umflate */}
               <ul className="mt-3 flex flex-col gap-1.5 border-t border-border pt-3.5 sm:flex-row sm:flex-wrap sm:gap-x-6">
                 {proofs.map((p) => (
-                  <li key={p} className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+                  <li key={p} className="flex items-center gap-1.5 text-ui text-muted-foreground">
                     <Check className="h-3.5 w-3.5 shrink-0 text-sage" />
                     {p}
                   </li>
@@ -128,9 +130,9 @@ export default function LandingPage() {
                     PIN_ASPECTS[i % PIN_ASPECTS.length],
                   )}
                 />
-                <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3 pt-8 text-[12.5px] leading-snug text-white">
+                <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3 pt-8 text-xs leading-snug text-white">
                   {ti(`pins.${pin.id}`)}
-                  <span className="mt-0.5 block text-[10px] uppercase tracking-[0.12em] text-white/70">
+                  <span className="mt-0.5 block text-micro uppercase tracking-[0.12em] text-white/70">
                     {ti(`types.${pin.type}`)}
                   </span>
                 </span>
@@ -204,7 +206,7 @@ export default function LandingPage() {
                 <div className="mt-5 border-t border-border-2 pt-4">
                   <Link
                     href={panel.href}
-                    className="group inline-flex items-center gap-1 text-[13.5px] font-medium text-walnut hover:text-walnut-deep"
+                    className="group inline-flex items-center gap-1 text-ui font-medium text-walnut hover:text-walnut-deep"
                   >
                     {panel.cta}
                     <span aria-hidden className="transition-transform group-hover:translate-x-0.5">→</span>
@@ -231,7 +233,7 @@ export default function LandingPage() {
           />
           <div className="relative flex flex-col items-start gap-4 sm:max-w-2xl">
             <h2 className="serif text-3xl sm:text-4xl">{t('bandTitle')}</h2>
-            <p className="text-[15px] leading-relaxed text-background/75">{t('bandBody')}</p>
+            <p className="text-lead leading-relaxed text-background/75">{t('bandBody')}</p>
             <div className="mt-2 flex flex-wrap gap-3">
               <Button asChild size="lg" className="bg-background text-foreground hover:bg-background/90">
                 <Link href="/requests/new">{t('bandCtaClient')}</Link>

@@ -15,6 +15,7 @@ import {
 } from '@marketplace/shared';
 import { Info, Plus, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useId } from 'react';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -29,6 +30,7 @@ import { getDimensionFigure } from './dimension-figures';
 import { Configurator3dStep } from './piece3d/dynamic';
 import { PlayingCard } from './playing-card';
 import { RoomSketchUpload } from './room-sketch-upload';
+import { ContactInTextHint } from './contact-in-text-hint';
 
 interface StepRendererProps {
   step: QuestionStep;
@@ -74,7 +76,7 @@ function StepShell({
   // vizat de intrebarea de material/deschidere
   const targets = inline ? null : getQuestionTargets(roomType, step, answers, flowVersion);
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4" data-question-id={step.id} data-room-type={roomType}>
       <div>
         <div className="flex items-center gap-3">
           {/* vizualul piesei la care se refera intrebarea (feedback PO F4) */}
@@ -86,7 +88,7 @@ function StepShell({
           {inline ? (
             <h3 className="font-serif text-lg tracking-[-0.01em]">{t(step.titleKey)}</h3>
           ) : (
-            <h2 className="font-serif text-[26px] leading-[1.15] tracking-[-0.02em] sm:text-3xl">
+            <h2 className="font-serif text-2xl leading-[1.15] tracking-[-0.02em] sm:text-3xl">
               {t(step.titleKey)}
             </h2>
           )}
@@ -94,7 +96,7 @@ function StepShell({
             <button
               type="button"
               onClick={() => onInfo(step.info!)}
-              aria-label="info"
+              aria-label={t('info.showInfo')}
               className="grid h-6 w-6 place-items-center rounded-full text-muted-foreground hover:bg-walnut-soft hover:text-walnut"
             >
               <Info className="h-4 w-4" />
@@ -120,6 +122,7 @@ const cnUnit = (active: boolean) =>
   (active ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground');
 
 export function StepRenderer(props: StepRendererProps) {
+  const inputId = useId();
   const {
     step,
     answers,
@@ -167,6 +170,7 @@ export function StepRenderer(props: StepRendererProps) {
   // secundare ale pieselor ghidate. Pastreaza butonul Info per optiune.
   const optionPill = (opt: ChoiceOption, selected: boolean, onSelect: () => void) => {
     const recommended = opt.recommendedIf ? evalCondition(opt.recommendedIf, answers) : false;
+    const Illustration = getIllustration(roomType, step.id, opt.value);
     return (
       <div
         key={opt.value}
@@ -181,16 +185,16 @@ export function StepRenderer(props: StepRendererProps) {
           type="button"
           onClick={onSelect}
           aria-pressed={selected}
-          className="flex items-center gap-1.5 py-1.5 pl-3 font-medium last:pr-3 [&:not(:last-child)]:pr-2"
+          className="flex min-h-11 items-center gap-1.5 py-1.5 pl-3 font-medium last:pr-3 [&:not(:last-child)]:pr-2"
         >
-          {opt.icon && (
+          {Illustration ? <span className="h-9 w-9 shrink-0"><Illustration /></span> : opt.icon && (
             <span className="text-current [&_svg]:h-4 [&_svg]:w-4">
               <ConfiguratorIcon name={opt.icon} />
             </span>
           )}
           {t(opt.labelKey)}
           {recommended && (
-            <span className="rounded-full bg-sage/15 px-1.5 py-0.5 text-[10px] font-semibold text-sage">
+            <span className="rounded-full bg-sage/15 px-1.5 py-0.5 text-micro font-semibold text-sage">
               {t('info.recommended')}
             </span>
           )}
@@ -199,7 +203,7 @@ export function StepRenderer(props: StepRendererProps) {
           <button
             type="button"
             onClick={() => onInfo(opt.info!)}
-            aria-label={`info ${t(opt.labelKey)}`}
+            aria-label={t('info.showInfoFor', { option: t(opt.labelKey) })}
             className="self-stretch border-l border-border-2/60 px-2 text-muted-foreground transition-colors hover:text-walnut"
           >
             <Info className="h-3.5 w-3.5" />
@@ -328,7 +332,7 @@ export function StepRenderer(props: StepRendererProps) {
       }
     }
     const figure =
-      step.id === 'dimensions'
+      step.id === 'dimensions' || step.id === 'bedCustomSize'
         ? getDimensionFigure(roomType, answers, slots.map((s) => s.id), valueLabels)
         : null;
     const letterOf = (slotId: string) => figure?.letters[slotId];
@@ -351,7 +355,7 @@ export function StepRenderer(props: StepRendererProps) {
         )}
         {/* comutator unitate de masura — valorile raman in metri in answers */}
         <div className="flex justify-end">
-          <div className="inline-flex items-center rounded-full border border-border-2 bg-surface-2 p-0.5 font-mono text-[11px]">
+          <div className="inline-flex items-center rounded-full border border-border-2 bg-surface-2 p-0.5 font-mono text-meta">
             {(['m', 'cm', 'mm'] as const).map((u) => (
               <button
                 key={u}
@@ -375,10 +379,11 @@ export function StepRenderer(props: StepRendererProps) {
             return (
               <Field
                 key={slot.id}
+                htmlFor={`${inputId}-${slot.id}`}
                 label={
                   letter ? (
                     <span className="inline-flex items-center gap-1.5">
-                      <span className="grid h-5 w-5 place-items-center rounded-full border border-brass/60 font-mono text-[11px] font-bold text-brass">
+                      <span className="grid h-5 w-5 place-items-center rounded-full border border-brass/60 font-mono text-meta font-bold text-brass">
                         {letter}
                       </span>
                       {t(slot.labelKey)}
@@ -390,6 +395,7 @@ export function StepRenderer(props: StepRendererProps) {
               >
                 <div className="relative">
                   <Input
+                    id={`${inputId}-${slot.id}`}
                     type="number"
                     inputMode="decimal"
                     step={fmtNum((slot.step ?? 0.1) * factor)}
@@ -412,11 +418,11 @@ export function StepRenderer(props: StepRendererProps) {
                 </div>
                 {/* validare imediata per camp, nu doar la Continua */}
                 {outOfRange ? (
-                  <p className="mt-1 text-[11px] text-crimson">
+                  <p className="mt-1 text-meta text-crimson">
                     {t('validation.dimensionRange', { range: rangeText })}
                   </p>
                 ) : (
-                  <p className="mt-1 text-[11px] text-muted-foreground">{rangeText}</p>
+                  <p className="mt-1 text-meta text-muted-foreground">{rangeText}</p>
                 )}
               </Field>
             );
@@ -460,6 +466,7 @@ export function StepRenderer(props: StepRendererProps) {
             onChange={(e) => onChange(e.target.value)}
           />
         )}
+        <ContactInTextHint value={typeof value === 'string' ? value : ''} />
       </StepShell>
     );
   }
@@ -511,6 +518,7 @@ export function StepRenderer(props: StepRendererProps) {
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               <Field label={t('pieces.name')} className="col-span-2">
                 <Input value={piece.name} onChange={(e) => setPiece(i, { name: e.target.value })} />
+                <ContactInTextHint value={piece.name} />
               </Field>
               <Field label={t('pieces.material')}>
                 <Select

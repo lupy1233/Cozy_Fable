@@ -2,7 +2,7 @@ name: marketplace-mobilier
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:16bc17c64a573ef34162af9298258d1aec548232985b33ed7b1eac33ba35c229
     ports:
       - "5432:5432"
     environment:
@@ -18,7 +18,7 @@ services:
       retries: 10
 
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
     ports:
       - "6379:6379"
     healthcheck:
@@ -28,7 +28,9 @@ services:
       retries: 10
 
   minio:
-    image: minio/minio:latest
+    # minio/minio si minio/mc nu mai exista pe Docker Hub; pgsty/minio = fork comunitar
+    # mentinut, acelasi layout (include si `mc`, folosit si de minio-init)
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
@@ -45,7 +47,7 @@ services:
       retries: 10
 
   minio-init:
-    image: minio/mc:latest
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372
     depends_on:
       minio:
         condition: service_healthy
@@ -56,7 +58,7 @@ services:
       exit 0"
 
   mailpit:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit@sha256:3bd7c2f2696deb35a4780d152b404dceec99cb041b942c0877b3b22384714f85
     ports:
       - "1025:1025"
       - "8025:8025"

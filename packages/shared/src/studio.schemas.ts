@@ -1,7 +1,9 @@
 import { z } from 'zod';
+import { studioHouseSchema, houseLayoutErrors, type StudioHouse } from './studio-house';
 import {
   PIECE3D_KINDS,
   pieceConfig3dSchema,
+  normalizePieceConfig,
   type Piece3dKind,
   type PieceConfig3d,
 } from './questionnaire/piece3d';
@@ -141,10 +143,11 @@ export interface StudioScene {
 // Snapshotul complet al studioului — forma din localStorage si din
 // studio_drafts.data (versionata pentru migrari viitoare).
 export interface StudioDraftData {
-  version: 2;
+  version: 3;
   pieces: Record<string, StudioPiece>;
   scenes: StudioScene[];
   activeSceneId: string;
+  house?: StudioHouse;
 }
 
 const idSchema = z.string().min(1).max(40);
@@ -240,13 +243,20 @@ const studioSceneSchema: z.ZodType<StudioScene> = z
 
 export const studioDraftDataSchema: z.ZodType<StudioDraftData> = z
   .object({
-    version: z.literal(2),
+    version: z.literal(3),
     pieces: z.record(studioPieceSchema),
     scenes: z.array(studioSceneSchema).min(1).max(STUDIO_MAX_SCENES),
     activeSceneId: idSchema,
+    house: studioHouseSchema.optional(),
   })
   .strict()
   .superRefine((data, ctx) => {
+    if (data.house && houseLayoutErrors(data.house, data.scenes).length) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'invalid house layout', path: ['house'] });
+    }
+    if (!data.scenes.some((s) => s.id === data.activeSceneId) || new Set(data.scenes.map((s) => s.id)).size !== data.scenes.length) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'invalid scene identities', path: ['scenes'] });
+    }
     if (Object.keys(data.pieces).length > STUDIO_MAX_PIECES) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -266,6 +276,31 @@ export const studioDraftDataSchema: z.ZodType<StudioDraftData> = z
     }
   }) as unknown as z.ZodType<StudioDraftData>;
 
+// Citire pura: datele istorice nu sunt inlocuite in loc.
+export function readStudioDraftData(raw: unknown, allowIncompleteLayout = false): StudioDraftData {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('Invalid studio draft');
+  const data = raw as Record<string, unknown>;
+  if (data.version === 3) {
+    if (allowIncompleteLayout && data.house) {
+      const { house: rawHouse, ...rest } = data;
+      const base = studioDraftDataSchema.parse(rest);
+      const house = studioHouseSchema.parse(rawHouse);
+      if (houseLayoutErrors(house, base.scenes).includes('ROOM_REFERENCES')) throw new Error('Invalid room references');
+      return { ...base, house };
+    }
+    return studioDraftDataSchema.parse(raw);
+  }
+  if (data.version !== 2) throw new Error('Unsupported studio draft version');
+  const pieces = data.pieces as Record<string, StudioPiece> | undefined;
+  if (!pieces || typeof pieces !== 'object' || Array.isArray(pieces)) throw new Error('Invalid studio pieces');
+  const migrated: Record<string, StudioPiece> = {};
+  for (const [id, piece] of Object.entries(pieces)) {
+    if (!piece || !PIECE3D_KINDS.includes(piece.kind)) throw new Error('Unsupported furniture kind');
+    migrated[id] = { ...piece, config: normalizePieceConfig(piece.kind, piece.config) };
+  }
+  return studioDraftDataSchema.parse({ ...data, version: 3, pieces: migrated });
+}
+
 // DTO-urile endpointurilor /studio/drafts
 export interface StudioDraftSummaryDto {
   id: string;
@@ -281,17 +316,23 @@ export interface StudioDraftDetailDto extends StudioDraftSummaryDto {
 // din studio impreuna cu piesele, firmele o vad read-only in detaliul cererii
 // (click pe piesa → viewerul de dimensiuni). O scena + doar piesele folosite.
 
-export const REQUEST_STUDIO_SCENES_MAX = 6;
+export const REQUEST_STUDIO_SCENES_MAX = 12;
 
 export interface RequestStudioSceneData {
   scene: StudioScene;
   pieces: Record<string, StudioPiece>;
+  house?: StudioHouse;
+  requestEntryIds?: Record<string, string>;
+  requestEntryIdKind?: 'LOCAL' | 'PERSISTED';
 }
 
 export const requestStudioSceneDataSchema: z.ZodType<RequestStudioSceneData> = z
   .object({
     scene: studioSceneSchema,
     pieces: z.record(studioPieceSchema),
+    house: studioHouseSchema.optional(),
+    requestEntryIds: z.record(z.string().min(1).max(60)).optional(),
+    requestEntryIdKind: z.enum(['LOCAL', 'PERSISTED']).optional(),
   })
   .strict()
   .superRefine((data, ctx) => {
@@ -311,4 +352,20 @@ export interface RequestStudioSceneDto {
   id: string;
   name: string;
   data: RequestStudioSceneData;
+}
+
+// Snapshoturile publicate anterior nu aveau versiune sau mapare spre cerere.
+// Doar acestea primesc normalizarea istorica; payloadurile noi raman stricte.
+export function readRequestStudioSceneData(raw: unknown): RequestStudioSceneData {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('Invalid studio scene');
+  const data = raw as Record<string, unknown>;
+  if ('requestEntryIds' in data || 'requestEntryIdKind' in data || 'house' in data) return requestStudioSceneDataSchema.parse(raw);
+  const pieces = data.pieces as Record<string, StudioPiece> | undefined;
+  if (!pieces || typeof pieces !== 'object' || Array.isArray(pieces)) throw new Error('Invalid studio pieces');
+  const normalized: Record<string, StudioPiece> = {};
+  for (const [id, piece] of Object.entries(pieces)) {
+    if (!piece || !PIECE3D_KINDS.includes(piece.kind)) throw new Error('Unsupported furniture kind');
+    normalized[id] = { ...piece, config: normalizePieceConfig(piece.kind, piece.config) };
+  }
+  return requestStudioSceneDataSchema.parse({ ...data, pieces: normalized });
 }

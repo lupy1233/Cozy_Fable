@@ -10,7 +10,7 @@ const buttonVariants = cva(
       variant: {
         default:
           'bg-primary text-primary-foreground shadow hover:bg-primary/90 active:translate-y-px',
-        // "walnut" = accentul de brand (istoric); acum albastru-plan.
+        // "walnut" = accentul de brand (nuc).
         // Umbra colorata + lift la hover: actiunea principala iese in fata
         // fara sa schimbe paleta (feedback PO 2026-07-31, "butoane mai vizibile").
         walnut:

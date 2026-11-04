@@ -113,7 +113,7 @@ function MomentRequest({ t }: { t: Tr }) {
         <Check className="h-2 w-2 text-background" strokeWidth={4} />
       </span>
       <span className="flex h-12 items-center justify-center text-walnut">{content}</span>
-      <p className="mt-1.5 truncate text-center text-[10.5px] font-medium leading-tight">{label}</p>
+      <p className="mt-1.5 truncate text-center text-micro font-medium leading-tight">{label}</p>
     </div>
   );
 
@@ -146,12 +146,12 @@ function MomentRequest({ t }: { t: Tr }) {
           varLabel[variant],
           'var',
         )}
-        <span className="mb-1 rounded-full border border-brass/40 bg-brass/10 px-2 py-0.5 font-mono text-[10px] tabular-nums text-brass-2">
+        <span className="mb-1 rounded-full border border-brass/40 bg-brass/10 px-2 py-0.5 font-mono text-micro tabular-nums text-brass-2">
           {cm} cm
         </span>
       </div>
       {/* semnul ca statia e legata de configuratorul de sus */}
-      <p className="mt-2.5 flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
+      <p className="mt-2.5 flex items-center gap-1.5 text-micro text-muted-foreground">
         <span aria-hidden className="h-1.5 w-1.5 animate-pulse rounded-full bg-sage" />
         {t('m1Live')}
       </p>
@@ -176,7 +176,7 @@ function MomentClaim({ t, on }: { t: Tr; on: boolean }) {
           <span className="h-1.5 w-16 rounded-full bg-surface-2" />
           <span
             className={cn(
-              'ml-auto flex items-center gap-1 text-[11px] font-medium text-sage transition-all duration-300',
+              'ml-auto flex items-center gap-1 text-meta font-medium text-sage transition-all duration-300',
               on ? 'scale-100 opacity-100' : 'scale-50 opacity-0',
             )}
             style={{ transitionDelay: `${500 + i * 450}ms` }}
@@ -188,8 +188,8 @@ function MomentClaim({ t, on }: { t: Tr; on: boolean }) {
       ))}
       <div className="flex items-center gap-2.5 rounded-lg border border-dashed border-border-2 bg-surface-2/40 px-3 py-1.5">
         <span className="h-6 w-7" />
-        <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-muted-2">{t('m2Free')}</span>
-        <span className="ml-auto font-mono text-[10.5px] tabular-nums text-muted-2">2/3</span>
+        <span className="font-mono text-micro uppercase tracking-[0.12em] text-muted-2">{t('m2Free')}</span>
+        <span className="ml-auto font-mono text-micro tabular-nums text-muted-2">2/3</span>
       </div>
     </div>
   );
@@ -217,7 +217,7 @@ function MomentOffers({ t, on }: { t: Tr; on: boolean }) {
       </div>
       <div className="flex items-center gap-2 rounded-full border border-border-2 bg-surface px-3 py-1.5 shadow-sm">
         <MessageCircle className="h-3.5 w-3.5 shrink-0 text-walnut" />
-        <span className="truncate text-[11px] text-muted-foreground">{t('m3Chat')}</span>
+        <span className="truncate text-meta text-muted-foreground">{t('m3Chat')}</span>
         <span className="ml-auto h-1.5 w-10 shrink-0 rounded-full bg-walnut/25" />
       </div>
     </div>
@@ -260,7 +260,7 @@ function MomentInstall({ t, on }: { t: Tr; on: boolean }) {
             />
           ))}
         </span>
-        <span className="rounded-full border border-border-2 bg-surface px-2.5 py-0.5 text-[10.5px] font-medium text-muted-foreground">
+        <span className="rounded-full border border-border-2 bg-surface px-2.5 py-0.5 text-micro font-medium text-muted-foreground">
           {t('m4Review')}
         </span>
       </div>
@@ -383,7 +383,7 @@ export function ProcessBand() {
                     <CellHeader no={no} phase={t(`${key}.phase`)} />
                     <div className="flex min-h-[6.5rem] flex-1 items-center">{moment}</div>
                     <div>
-                      <h3 className="font-serif text-[19px] leading-snug">{t(`${key}.title`)}</h3>
+                      <h3 className="font-serif text-xl leading-snug">{t(`${key}.title`)}</h3>
                       <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{t(`${key}.body`)}</p>
                     </div>
                   </div>

@@ -5,20 +5,31 @@ import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Link } from '@/i18n/routing';
 import { CozyHomeMark } from '@/components/brand/logo';
-import { useMe } from '@/hooks/use-auth';
+import { useMe, useSessionRole } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
-import { NotificationBell } from '../_components/notification-bell';
+import { Card } from '@/components/ui/card';
+import { AccountMenu } from '../_components/account-menu';
+import { BellPlaceholder, NotificationBell } from '../_components/notification-bell';
 import { LangSwitch } from '../_components/lang-switch';
+import { BillingReadinessBanner } from './_components/billing-readiness-banner';
 
 const NAV = [
   { href: '/admin', key: 'dashboard' },
   { href: '/admin/companies', key: 'companies' },
+  // E-admin-platform-3: proiectele acceptate (cazuri raportate, intarziate, inchidere)
+  { href: '/admin/requests', key: 'requests' },
+  { href: '/admin/users', key: 'users' },
   { href: '/admin/inspiration', key: 'inspiration' },
   { href: '/admin/disputes', key: 'disputes' },
   { href: '/admin/payments', key: 'payments' },
   { href: '/admin/withdrawals', key: 'withdrawals' },
   { href: '/admin/audit', key: 'audit' },
+  // E-admin-platform-45: date de contact gasite in texte libere (read-only)
+  { href: '/admin/contact-detections', key: 'contactDetections' },
   { href: '/admin/settings', key: 'settings' },
+  // E-admin-platform-25: calendarul de lucru (punti) si punctele optiunilor din chestionar
+  { href: '/admin/calendar', key: 'calendar' },
+  { href: '/admin/sizing', key: 'sizing' },
   { href: '/admin/jobs', key: 'jobs' },
 ] as const;
 
@@ -26,6 +37,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const t = useTranslations('Admin');
   const pathname = usePathname();
   const me = useMe();
+  const { role, user } = useSessionRole();
 
   return (
     <div className="grid min-h-screen grid-cols-[260px_1fr]">
@@ -34,19 +46,17 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <Link href="/admin" className="flex items-center gap-2.5 border-b border-border px-2 pb-4">
           <CozyHomeMark className="h-[30px] w-[30px] shrink-0" />
           <span>
-            <span className="block whitespace-nowrap font-serif text-[15px] uppercase leading-none tracking-[0.14em]">
+            <span className="block whitespace-nowrap font-serif text-lead uppercase leading-none tracking-[0.14em]">
               Cozy Home
             </span>
-            <span className="mt-1 block font-mono text-[9.5px] uppercase tracking-[0.12em] text-muted-foreground">
+            <span className="mt-1 block font-mono text-micro uppercase tracking-[0.12em] text-muted-foreground">
               {t('console')}
             </span>
           </span>
         </Link>
 
         <nav className="flex flex-col gap-0.5">
-          <div className="px-2.5 pb-1 pt-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-2">
-            Admin
-          </div>
+          <div className="label px-2.5 pb-1 pt-1.5">{t('navHeading')}</div>
           {NAV.map((n) => {
             const active = n.href === '/admin' ? pathname.endsWith('/admin') : pathname.includes(n.href);
             return (
@@ -54,7 +64,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 key={n.href}
                 href={n.href}
                 className={cn(
-                  'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13.5px] transition-colors',
+                  'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-ui transition-colors',
                   active
                     ? 'bg-gradient-to-r from-foreground to-ink-2 text-background shadow-sm'
                     : 'text-ink-2 hover:bg-surface-3',
@@ -69,9 +79,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        <div className="mt-auto rounded-lg border border-border bg-surface-2 p-3 text-xs text-muted-foreground">
-          Plan · panou operational
-        </div>
+        <Card tone="muted" padding="sm" className="mt-auto text-xs text-muted-foreground">
+          {t('sidebarNote')}
+        </Card>
       </aside>
 
       {/* Continut */}
@@ -79,11 +89,16 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-surface/80 px-8 py-3 backdrop-blur-md backdrop-saturate-150">
           <div className="ml-auto flex items-center gap-2.5">
             <LangSwitch />
-            {/* B6: clopotelul doar pentru sesiuni active */}
-            {me.data && <NotificationBell />}
+            {/* B6: clopotelul doar pentru sesiuni active; adminul are acum si meniul de cont (logout) */}
+            {user ? <NotificationBell /> : role ? <BellPlaceholder /> : null}
+            {role && <AccountMenu role={role} />}
           </div>
         </div>
-        <div className="min-w-0 flex-1 p-8">{children}</div>
+        <div className="min-w-0 flex-1 p-8">
+          {/* E-admin-platform-4: date fiscale / mod test Stripe / e-Factura de raportat */}
+          {me.data?.role === 'ADMIN' && <BillingReadinessBanner />}
+          {children}
+        </div>
       </div>
     </div>
   );

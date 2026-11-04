@@ -1,0 +1,211 @@
+{
+  "generatedBy": "built-in image_gen",
+  "date": "2026-09-16",
+  "assets": [
+    {
+      "concept": "sliding-doors",
+      "file": "apps/frontend/public/illustrations/options/sliding-doors.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-f949c3ed-aab4-43a8-af3b-54f1c6a60e0d.png"
+    },
+    {
+      "concept": "kitchen-layout-straight",
+      "file": "apps/frontend/public/illustrations/options/kitchen-layout-straight.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-ee19a60a-d365-4cb3-9099-87eeeb334cbd.png"
+    },
+    {
+      "concept": "kitchen-layout-l",
+      "file": "apps/frontend/public/illustrations/options/kitchen-layout-l.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-1b62cb49-1938-4e33-adce-a145e8512897.png"
+    },
+    {
+      "concept": "kitchen-layout-u",
+      "file": "apps/frontend/public/illustrations/options/kitchen-layout-u.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-191a5db2-fbcb-4e9d-9404-2b90fe5fe087.png"
+    },
+    {
+      "concept": "countertop-pal",
+      "file": "apps/frontend/public/illustrations/options/countertop-pal.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-0e9107b0-69d2-478a-8be9-2d243805a7c5.png"
+    },
+    {
+      "concept": "countertop-hpl",
+      "file": "apps/frontend/public/illustrations/options/countertop-hpl.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-04b46b8a-e81f-40a0-b4b2-55631e1c3bf5.png"
+    },
+    {
+      "concept": "countertop-quartz",
+      "file": "apps/frontend/public/illustrations/options/countertop-quartz.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-0459e313-f1ce-4077-af65-195c2dab9532.png"
+    },
+    {
+      "concept": "countertop-granite",
+      "file": "apps/frontend/public/illustrations/options/countertop-granite.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-df2b818e-08be-48e6-879f-8dd723dc7981.png"
+    },
+    {
+      "concept": "dressing-layout-linear",
+      "file": "apps/frontend/public/illustrations/options/dressing-layout-linear.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-dd75f12f-cc6c-46eb-a739-41149dd255f2.png"
+    },
+    {
+      "concept": "dressing-layout-l",
+      "file": "apps/frontend/public/illustrations/options/dressing-layout-l.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-12e53ac9-7e16-42a2-8926-ecc7475f50a9.png"
+    },
+    {
+      "concept": "dressing-layout-u",
+      "file": "apps/frontend/public/illustrations/options/dressing-layout-u.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-6188042f-055d-4595-bd69-797bf6cc9946.png"
+    },
+    {
+      "concept": "dressing-layout-walk-in",
+      "file": "apps/frontend/public/illustrations/options/dressing-layout-walk-in.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-e93d9d72-b712-4aba-ac4a-461c4205afbc.png"
+    },
+    {
+      "concept": "wardrobe-open",
+      "file": "apps/frontend/public/illustrations/options/wardrobe-open.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-b8b7bae4-a3f1-4f43-8cce-3439cd0743b1.png"
+    },
+    {
+      "concept": "wardrobe-hinged",
+      "file": "apps/frontend/public/illustrations/options/wardrobe-hinged.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-ec8cec4b-5847-4274-ad7b-e1165785baad.png"
+    },
+    {
+      "concept": "wardrobe-led",
+      "file": "apps/frontend/public/illustrations/options/wardrobe-led.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-e9c4d0a2-adbd-4646-82cb-acdc5168b37d.png"
+    },
+    {
+      "concept": "wall-shelves",
+      "file": "apps/frontend/public/illustrations/options/wall-shelves.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-788ea663-ae0a-4b94-acff-22ddcff3559d.png"
+    },
+    {
+      "concept": "tv-floating",
+      "file": "apps/frontend/public/illustrations/options/tv-floating.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-a7a0cfcd-9c0c-4151-a67c-c9be91000766.png"
+    },
+    {
+      "concept": "tv-on-floor",
+      "file": "apps/frontend/public/illustrations/options/tv-on-floor.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-5c034689-cb88-4633-b3ac-d72207c58886.png"
+    },
+    {
+      "concept": "tv-complex",
+      "file": "apps/frontend/public/illustrations/options/tv-complex.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-be77380d-2840-4388-b3ac-6218987d14d1.png"
+    },
+    {
+      "concept": "mattress-90",
+      "file": "apps/frontend/public/illustrations/options/mattress-90.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-dc328b31-badc-49bc-9056-cfe3ce66b159.png"
+    },
+    {
+      "concept": "mattress-140",
+      "file": "apps/frontend/public/illustrations/options/mattress-140.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-1676a794-4655-43b7-ac2c-6a50cf6dd619.png"
+    },
+    {
+      "concept": "mattress-160",
+      "file": "apps/frontend/public/illustrations/options/mattress-160.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-96d65cb1-6c16-4033-8254-902655fc23f5.png"
+    },
+    {
+      "concept": "mattress-180",
+      "file": "apps/frontend/public/illustrations/options/mattress-180.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-05fc56f5-8c9d-47df-8705-ea2e4a024c40.png"
+    },
+    {
+      "concept": "mattress-custom",
+      "file": "apps/frontend/public/illustrations/options/mattress-custom.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-ebc95e02-b70c-438c-bb3a-8f059fe100ab.png"
+    },
+    {
+      "concept": "bed-side-drawers",
+      "file": "apps/frontend/public/illustrations/options/bed-side-drawers.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-10153687-d20a-43c0-a020-2e48babc1e3e.png"
+    },
+    {
+      "concept": "nightstands-pair",
+      "file": "apps/frontend/public/illustrations/options/nightstands-pair.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-5e130543-25ef-4a60-935a-d4bdc8425b65.png"
+    },
+    {
+      "concept": "desk-straight",
+      "file": "apps/frontend/public/illustrations/options/desk-straight.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-76b45ed1-a4bf-475b-bf73-d0e8f0581c10.png"
+    },
+    {
+      "concept": "desk-l",
+      "file": "apps/frontend/public/illustrations/options/desk-l.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-e5fa541d-6dea-44eb-848a-57007107af64.png"
+    },
+    {
+      "concept": "desk-u",
+      "file": "apps/frontend/public/illustrations/options/desk-u.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-7a186cc0-937f-4b6a-8e85-df7de6f662ba.png"
+    },
+    {
+      "concept": "ventilation-window",
+      "file": "apps/frontend/public/illustrations/options/ventilation-window.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-199a12a5-b93f-4366-a9bb-8197c70776a8.png"
+    },
+    {
+      "concept": "ventilation-fan",
+      "file": "apps/frontend/public/illustrations/options/ventilation-fan.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-b592638b-2f3f-4f5a-8db1-59e749f5dbb0.png"
+    },
+    {
+      "concept": "ventilation-none",
+      "file": "apps/frontend/public/illustrations/options/ventilation-none.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-58c4ac99-3d01-47b6-a87a-978cebb4d202.png"
+    },
+    {
+      "concept": "laundry-appliance-housing",
+      "file": "apps/frontend/public/illustrations/options/laundry-appliance-housing.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-36b4d76a-4769-4b0f-9093-edb46e7d8808.png"
+    },
+    {
+      "concept": "laundry-worktop",
+      "file": "apps/frontend/public/illustrations/options/laundry-worktop.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-9dfcceba-abd6-4e45-9cd0-3be3600c189f.png"
+    },
+    {
+      "concept": "laundry-sink-unit",
+      "file": "apps/frontend/public/illustrations/options/laundry-sink-unit.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-42d3fc84-b729-4b89-9a98-092aa48d4772.png"
+    },
+    {
+      "concept": "pantry-layout-one-wall",
+      "file": "apps/frontend/public/illustrations/options/pantry-layout-one-wall.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-11e54d5c-b49a-4067-936b-2ea1f52cafa1.png"
+    },
+    {
+      "concept": "pantry-layout-l",
+      "file": "apps/frontend/public/illustrations/options/pantry-layout-l.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-c6ba15d6-96e0-4324-b953-92f2672a29ec.png"
+    },
+    {
+      "concept": "pantry-layout-u",
+      "file": "apps/frontend/public/illustrations/options/pantry-layout-u.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-237898bf-cf68-427c-9753-15acd2afb535.png"
+    },
+    {
+      "concept": "balcony-enclosed",
+      "file": "apps/frontend/public/illustrations/options/balcony-enclosed.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-6dc56eff-3c83-48e3-b953-7c2079176f83.png"
+    },
+    {
+      "concept": "balcony-open",
+      "file": "apps/frontend/public/illustrations/options/balcony-open.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-d229ef6a-37b5-45bd-9c0e-a79713ee0f8b.png"
+    },
+    {
+      "concept": "balcony-worktop",
+      "file": "apps/frontend/public/illustrations/options/balcony-worktop.png",
+      "source": "C:\\Users\\Wolf\\.codex\\generated_images\\01a0a9e8-2b37-76f1-aae8-9326c702d948\\exec-d3ecb0c1-6381-48ae-8fcc-bbea76d3bb32.png"
+    }
+  ]
+}

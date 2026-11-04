@@ -2,10 +2,32 @@
 
 import {
   normalizePieceConfig,
+  defaultStudioHouse,
+  syncHouseRooms,
+  houseConnectionValid,
+  connectHouseRooms,
+  resolveHouseRoomPlacement,
+  houseRoomPlacementCollisions,
+  houseTransformSchema,
+  readStudioDraftData,
+  updateHouseDoor,
+  placementHalfExtents,
+  studioFootprintsOverlap,
+  studioFootprint,
+  pieceElevation,
+  studioSceneFootprints,
+  studioRoomPosition,
+  studioPlacementReason,
+  findStudioFreePosition,
+  resolveStudioMove,
+  type StudioCollisionReason,
+  type StudioHouse,
+  type HouseTransform,
   OPENING_DIM_LIMITS,
   openingSize,
   OPENING_SPECS,
   STUDIO_MAX_SCENES,
+  STUDIO_MAX_PLACEMENTS_PER_SCENE,
   STUDIO_OPENING_KINDS,
   STUDIO_ROOM_LIMITS,
   STUDIO_WALLS,
@@ -22,7 +44,8 @@ import {
   type StudioWall,
 } from '@marketplace/shared';
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import { studioVersionedStorage } from './studio-persistence';
 
 // Studio 3D ("modul Sims") — joc SEPARAT de formular: biblioteca de piese
 // create in configuratorul 3D + camere (scene) in care piesele se aseaza
@@ -34,6 +57,7 @@ import { persist } from 'zustand/middleware';
 
 // re-export: componentele studio importa modelul prin store, nu direct din shared
 export {
+  placementHalfExtents,
   OPENING_DIM_LIMITS,
   openingSize,
   OPENING_SPECS,
@@ -69,18 +93,6 @@ const DEFAULT_ROOM: StudioRoom = {
 
 const round3 = (v: number) => Math.round(v * 1000) / 1000;
 
-// Gabaritul pe podea al unei asezari (jumatati de latura, dupa rotatie).
-export function placementHalfExtents(
-  config: PieceConfig3d,
-  rotation: StudioRotation,
-): { hx: number; hz: number } {
-  const swap = rotation === 90 || rotation === 270;
-  return {
-    hx: (swap ? config.depthM : config.widthM) / 2,
-    hz: (swap ? config.widthM : config.depthM) / 2,
-  };
-}
-
 export function clampToRoom(
   room: StudioRoom,
   config: PieceConfig3d,
@@ -92,8 +104,8 @@ export function clampToRoom(
   const maxX = Math.max(0, room.widthM / 2 - hx);
   const maxZ = Math.max(0, room.depthM / 2 - hz);
   return {
-    x: round3(Math.min(maxX, Math.max(-maxX, x))),
-    z: round3(Math.min(maxZ, Math.max(-maxZ, z))),
+    x: Math.min(maxX, Math.max(-maxX, x)),
+    z: Math.min(maxZ, Math.max(-maxZ, z)),
   };
 }
 
@@ -179,16 +191,6 @@ function findOpeningSpot(
   return null;
 }
 
-interface Footprint {
-  x: number;
-  z: number;
-  hx: number;
-  hz: number;
-}
-
-const overlaps = (a: Footprint, b: Footprint) =>
-  Math.abs(a.x - b.x) < a.hx + b.hx - 1e-6 && Math.abs(a.z - b.z) < a.hz + b.hz - 1e-6;
-
 // Id-urile asezarilor care se suprapun cu alta piesa (evidentiate in scena).
 export function overlappingPlacements(
   placements: StudioPlacement[],
@@ -197,48 +199,18 @@ export function overlappingPlacements(
   const boxes = placements.flatMap((p) => {
     const piece = pieces[p.pieceId];
     if (!piece) return [];
-    const { hx, hz } = placementHalfExtents(piece.config, p.rotation);
-    return [{ id: p.id, x: p.x, z: p.z, hx, hz }];
+    return [{ ...studioFootprint(piece.config, p), id: p.id }];
   });
   const bad = new Set<string>();
   for (let i = 0; i < boxes.length; i++) {
     for (let j = i + 1; j < boxes.length; j++) {
-      if (overlaps(boxes[i], boxes[j])) {
+      if (studioFootprintsOverlap(boxes[i], boxes[j])) {
         bad.add(boxes[i].id);
         bad.add(boxes[j].id);
       }
     }
   }
   return bad;
-}
-
-// Primul loc liber pentru o piesa noua: centrul, apoi inele concentrice pe
-// grila — piesa "cade" in camera fara sa se aseze peste alta.
-function findFreeSpot(
-  room: StudioRoom,
-  placements: StudioPlacement[],
-  pieces: Record<string, StudioPiece>,
-  config: PieceConfig3d,
-): { x: number; z: number } {
-  const { hx, hz } = placementHalfExtents(config, 0);
-  const taken = placements.flatMap((p) => {
-    const piece = pieces[p.pieceId];
-    if (!piece) return [];
-    const half = placementHalfExtents(piece.config, p.rotation);
-    return [{ x: p.x, z: p.z, hx: half.hx, hz: half.hz }];
-  });
-  const step = 0.25;
-  for (let ring = 0; ring * step <= Math.max(room.widthM, room.depthM); ring++) {
-    for (let ix = -ring; ix <= ring; ix++) {
-      for (let iz = -ring; iz <= ring; iz++) {
-        if (Math.max(Math.abs(ix), Math.abs(iz)) !== ring) continue;
-        const spot = clampToRoom(room, config, 0, snapToGrid(ix * step), snapToGrid(iz * step));
-        const box = { x: spot.x, z: spot.z, hx, hz };
-        if (!taken.some((t) => overlaps(box, t))) return spot;
-      }
-    }
-  }
-  return { x: 0, z: 0 };
 }
 
 function newId(prefix: string): string {
@@ -276,6 +248,16 @@ function fitSceneToRoom(scene: StudioScene, pieces: Record<string, StudioPiece>)
 }
 
 interface StudioStore {
+  house?: StudioHouse;
+  persistenceError: boolean;
+  collisionReason: StudioCollisionReason | 'HOUSE_ROOMS' | null;
+  cutawayWalls: boolean;
+  setCutawayWalls: (value: boolean) => void;
+  clearCollision: () => void;
+  enableHouse: () => void;
+  moveHouseRoom: (id: string, transform: Partial<HouseTransform>, snap?: boolean) => boolean;
+  connectRooms: (a: string, b: string, wall: StudioWall) => boolean;
+  disconnectRooms: (id: string) => void;
   pieces: Record<string, StudioPiece>;
   scenes: StudioScene[];
   activeSceneId: string;
@@ -286,6 +268,7 @@ interface StudioStore {
   // deci pastrarea referintelor e sigura
   history: StudioDraftData[];
   future: StudioDraftData[];
+  gestureHistoryPending: boolean;
   // drag & drop din paleta in camera (nepersistat): pagina seteaza payload-ul
   // la ridicare, canvas-ul il consuma la eliberare
   dropPayload: StudioDropPayload | null;
@@ -309,7 +292,7 @@ interface StudioStore {
     name: string;
     kind: Piece3dKind;
     config: PieceConfig3d;
-  }) => StudioPiece;
+  }) => StudioPiece | null;
   deletePiece: (id: string) => void;
 
   addScene: (name: string) => void;
@@ -319,12 +302,12 @@ interface StudioStore {
   duplicateScene: (id: string, name: string) => void;
   setActiveScene: (id: string) => void;
 
-  placePiece: (pieceId: string) => void;
+  placePiece: (pieceId: string) => boolean;
   // asezare EXACT unde a fost lasata piesa la drag & drop (clamp + snap)
-  placePieceAt: (pieceId: string, x: number, z: number) => void;
-  movePlacement: (id: string, x: number, z: number) => void;
-  rotatePlacement: (id: string) => void;
-  duplicatePlacement: (id: string) => void;
+  placePieceAt: (pieceId: string, x: number, z: number) => boolean;
+  movePlacement: (id: string, x: number, z: number) => boolean;
+  rotatePlacement: (id: string) => boolean;
+  duplicatePlacement: (id: string) => boolean;
   removePlacement: (id: string) => void;
   clearPlacements: () => void;
 
@@ -338,12 +321,12 @@ interface StudioStore {
   cycleOpeningWall: (id: string) => void;
   removeOpening: (id: string) => void;
 
-  setRoom: (patch: Partial<StudioRoom>) => void;
+  setRoom: (patch: Partial<StudioRoom>) => boolean;
   setSelected: (id: string | null) => void;
   setSelectedOpening: (id: string | null) => void;
 
   // undo/redo: actiunile discrete inregistreaza singure; gesturile continue
-  // (drag, slidere) apeleaza recordHistory O DATA, la inceputul gestului
+  // (drag, slidere) armeaza istoricul O DATA; prima schimbare reala il confirma
   recordHistory: () => void;
   undo: () => void;
   redo: () => void;
@@ -363,15 +346,21 @@ export type StudioDropPayload =
   | { type: 'opening'; kind: StudioOpeningKind };
 
 // continutul curent ca snapshot (referinte — starea e imutabila)
-function currentData(s: Pick<StudioStore, 'pieces' | 'scenes' | 'activeSceneId'>): StudioDraftData {
-  return { version: 2, pieces: s.pieces, scenes: s.scenes, activeSceneId: s.activeSceneId };
+function currentData(s: Pick<StudioStore, 'pieces' | 'scenes' | 'activeSceneId' | 'house'>): StudioDraftData {
+  const house = s.house ? syncHouseRooms(s.house, s.scenes) : undefined;
+  return { version: 3, pieces: s.pieces, scenes: s.scenes, activeSceneId: s.activeSceneId, ...(house ? { house } : {}) };
 }
 
 const HISTORY_CAP = 60;
 
 // patch-ul de istorie inclus in actiunile care schimba continutul
-function remember(s: StudioStore): Pick<StudioStore, 'history' | 'future'> {
-  return { history: [...s.history.slice(-(HISTORY_CAP - 1)), currentData(s)], future: [] };
+function remember(s: StudioStore): Pick<StudioStore, 'history' | 'future' | 'gestureHistoryPending'> {
+  return { history: [...s.history.slice(-(HISTORY_CAP - 1)), currentData(s)], future: [], gestureHistoryPending: false };
+}
+
+// Un gest blocat nu consuma undo/redo; dupa undo, prima editare deschide alta ramura.
+function rememberGesture(s: StudioStore): Partial<StudioStore> {
+  return s.gestureHistoryPending || s.future.length > 0 ? remember(s) : {};
 }
 
 // Patch pe scena activa — toate mutatiile de continut trec pe aici.
@@ -382,11 +371,70 @@ function patchActive(
   return s.scenes.map((scene) => (scene.id === s.activeSceneId ? fn(scene) : scene));
 }
 
+function sceneChangeReason(before: StudioScene, after: StudioScene, oldPieces: Record<string, StudioPiece>, pieces: Record<string, StudioPiece>): StudioCollisionReason | null {
+  const changedRoom = before.room.widthM !== after.room.widthM || before.room.depthM !== after.room.depthM || before.room.wallHeightM !== after.room.wallHeightM;
+  const previous = new Map(before.placements.map((p) => [p.id, p]));
+  for (const placement of after.placements) {
+    const piece = pieces[placement.pieceId], old = previous.get(placement.id), oldPiece = old && oldPieces[old.pieceId];
+    if (!piece) continue;
+    const changed = changedRoom || !old || !oldPiece || old.x !== placement.x || old.z !== placement.z || old.rotation !== placement.rotation ||
+      oldPiece.config.widthM !== piece.config.widthM || oldPiece.config.depthM !== piece.config.depthM || oldPiece.config.heightM !== piece.config.heightM || pieceElevation(oldPiece.config) !== pieceElevation(piece.config);
+    if (changed && studioPlacementReason(after.room, piece.config, placement, []) === 'ROOM_BOUNDS') return 'ROOM_BOUNDS';
+  }
+  const oldFootprints = new Map(studioSceneFootprints(before.placements, oldPieces).map((p) => [p.id, p]));
+  const next = studioSceneFootprints(after.placements, pieces);
+  const overlapArea = (a: typeof next[number], b: typeof next[number]) =>
+    Math.max(0, Math.min(a.yMax ?? Infinity, b.yMax ?? Infinity) - Math.max(a.yMin ?? 0, b.yMin ?? 0)) *
+    Math.max(0, Math.min(a.x + a.hx, b.x + b.hx) - Math.max(a.x - a.hx, b.x - b.hx)) *
+    Math.max(0, Math.min(a.z + a.hz, b.z + b.hz) - Math.max(a.z - a.hz, b.z - b.hz));
+  for (let i = 0; i < next.length; i++) for (let j = i + 1; j < next.length; j++) {
+    if (!studioFootprintsOverlap(next[i], next[j])) continue;
+    const a = oldFootprints.get(next[i].id), b = oldFootprints.get(next[j].id);
+    if (!a || !b || overlapArea(next[i], next[j]) > overlapArea(a, b) + 1e-7) return 'FURNITURE';
+  }
+  return null;
+}
+
 export const useStudioStore = create<StudioStore>()(
   persist(
     (set, get) => {
       const initial = newScene('Camera 1');
       return {
+        house: undefined,
+        persistenceError: false,
+        collisionReason: null,
+        cutawayWalls: false,
+        setCutawayWalls: (value) => set({ cutawayWalls: value === true }),
+        clearCollision: () => set({ collisionReason: null }),
+        enableHouse: () => set((s) => s.house ? s : ({ house: defaultStudioHouse(s.scenes), ...remember(s) })),
+        moveHouseRoom: (id, patch, snap = true) => {
+          let accepted = false;
+          set((s) => {
+          const house = syncHouseRooms(s.house ?? defaultStudioHouse(s.scenes), s.scenes);
+          const scene = s.scenes.find((sc) => sc.id === id);
+          if (!scene || !house.roomTransforms[id]) return s;
+          const proposed = { ...house.roomTransforms[id], ...patch };
+          if (!houseTransformSchema.safeParse(proposed).success || !house.floors.some((floor) => floor.id === proposed.floorId)) return s;
+          const result = resolveHouseRoomPlacement(scene, proposed, house, s.scenes, { snap });
+          if (!result.transform) return { collisionReason: 'HOUSE_ROOMS' };
+          const transform = result.transform;
+          const next = { ...house, roomTransforms: { ...house.roomTransforms, [id]: transform } };
+          next.connections = next.connections.filter((c) => houseConnectionValid(c, next, s.scenes));
+          const previous = house.roomTransforms[id];
+          accepted = true;
+          if (s.house && transform.x === previous.x && transform.z === previous.z && transform.rotation === previous.rotation && transform.floorId === previous.floorId && next.connections.length === house.connections.length) return { collisionReason: null };
+          return { house: next, collisionReason: null, ...rememberGesture(s) };
+          });
+          return accepted;
+        },
+        connectRooms: (a, b, wall) => {
+          const s = get();
+          const result = connectHouseRooms(syncHouseRooms(s.house ?? defaultStudioHouse(s.scenes), s.scenes), s.scenes, a, b, wall, newId('link'));
+          if (!result) return false;
+          set({ ...result, ...remember(s) });
+          return true;
+        },
+        disconnectRooms: (id) => set((s) => !s.house ? s : ({ house: { ...s.house, connections: s.house.connections.filter((c) => c.id !== id) }, ...remember(s) })),
         pieces: {},
         scenes: [initial],
         activeSceneId: initial.id,
@@ -394,6 +442,7 @@ export const useStudioStore = create<StudioStore>()(
         selectedOpeningId: null,
         history: [],
         future: [],
+        gestureHistoryPending: false,
         accountDraft: null,
         dropPayload: null,
         panelPos: null,
@@ -408,6 +457,7 @@ export const useStudioStore = create<StudioStore>()(
             config: normalizePieceConfig(kind, config),
             updatedAt: Date.now(),
           };
+          let accepted = false;
           set((s) => {
             const pieces = { ...s.pieces, [piece.id]: piece };
             // piesa editata poate fi mai mare — asezarile ei din TOATE camerele
@@ -420,9 +470,14 @@ export const useStudioStore = create<StudioStore>()(
                   : p,
               ),
             }));
-            return { pieces, scenes, ...remember(s) };
+            for (let i = 0; i < scenes.length; i++) {
+              const reason = sceneChangeReason(s.scenes[i], scenes[i], s.pieces, pieces);
+              if (reason) return { collisionReason: reason };
+            }
+            accepted = true;
+            return { pieces, scenes, collisionReason: null, ...remember(s) };
           });
-          return piece;
+          return accepted ? piece : null;
         },
 
         deletePiece: (id) =>
@@ -503,12 +558,15 @@ export const useStudioStore = create<StudioStore>()(
               : s,
           ),
 
-        placePiece: (pieceId) =>
+        placePiece: (pieceId) => {
+          let accepted = false;
           set((s) => {
             const piece = s.pieces[pieceId];
             const active = s.scenes.find((sc) => sc.id === s.activeSceneId);
             if (!piece || !active) return s;
-            const spot = findFreeSpot(active.room, active.placements, s.pieces, piece.config);
+            if (active.placements.length >= STUDIO_MAX_PLACEMENTS_PER_SCENE) return { collisionReason: 'NO_SPACE' };
+            const spot = findStudioFreePosition(active.room, piece.config, 0, studioSceneFootprints(active.placements, s.pieces));
+            if (!spot) return { collisionReason: studioRoomPosition(active.room, piece.config, 0, { x: 0, z: 0 }) ? 'NO_SPACE' : 'ROOM_BOUNDS' };
             const placement: StudioPlacement = {
               id: newId('pl'),
               pieceId,
@@ -516,7 +574,9 @@ export const useStudioStore = create<StudioStore>()(
               z: spot.z,
               rotation: 0,
             };
+            accepted = true;
             return {
+              collisionReason: null,
               scenes: patchActive(s, (scene) => ({
                 ...scene,
                 placements: [...scene.placements, placement],
@@ -525,14 +585,21 @@ export const useStudioStore = create<StudioStore>()(
               selectedOpeningId: null,
               ...remember(s),
             };
-          }),
+          });
+          return accepted;
+        },
 
-        placePieceAt: (pieceId, x, z) =>
+        placePieceAt: (pieceId, x, z) => {
+          let accepted = false;
           set((s) => {
             const piece = s.pieces[pieceId];
             const active = s.scenes.find((sc) => sc.id === s.activeSceneId);
             if (!piece || !active) return s;
-            const spot = clampToRoom(active.room, piece.config, 0, snapToGrid(x), snapToGrid(z));
+            if (active.placements.length >= STUDIO_MAX_PLACEMENTS_PER_SCENE) return { collisionReason: 'NO_SPACE' };
+            const spot = studioRoomPosition(active.room, piece.config, 0, { x: snapToGrid(x), z: snapToGrid(z) });
+            if (!spot) return { collisionReason: 'ROOM_BOUNDS' };
+            const reason = studioPlacementReason(active.room, piece.config, { ...spot, rotation: 0 }, studioSceneFootprints(active.placements, s.pieces));
+            if (reason) return { collisionReason: reason };
             const placement: StudioPlacement = {
               id: newId('pl'),
               pieceId,
@@ -540,7 +607,9 @@ export const useStudioStore = create<StudioStore>()(
               z: spot.z,
               rotation: 0,
             };
+            accepted = true;
             return {
+              collisionReason: null,
               scenes: patchActive(s, (scene) => ({
                 ...scene,
                 placements: [...scene.placements, placement],
@@ -549,54 +618,57 @@ export const useStudioStore = create<StudioStore>()(
               selectedOpeningId: null,
               ...remember(s),
             };
-          }),
+          });
+          return accepted;
+        },
 
-        movePlacement: (id, x, z) =>
-          set((s) => ({
-            scenes: patchActive(s, (scene) => {
-              const placement = scene.placements.find((p) => p.id === id);
-              const piece = placement && s.pieces[placement.pieceId];
-              if (!placement || !piece) return scene;
-              const next = clampToRoom(
-                scene.room,
-                piece.config,
-                placement.rotation,
-                snapToGrid(x),
-                snapToGrid(z),
-              );
-              return {
-                ...scene,
-                placements: scene.placements.map((p) => (p.id === id ? { ...p, ...next } : p)),
-              };
-            }),
-          })),
+        movePlacement: (id, x, z) => {
+          let accepted = false;
+          set((s) => {
+            const scene = s.scenes.find((sc) => sc.id === s.activeSceneId);
+            const placement = scene?.placements.find((p) => p.id === id);
+            const piece = placement && s.pieces[placement.pieceId];
+            if (!scene || !placement || !piece) return s;
+            const result = resolveStudioMove(scene.room, piece.config, placement.rotation, placement,
+              { x: snapToGrid(x), z: snapToGrid(z) }, studioSceneFootprints(scene.placements, s.pieces, id));
+            accepted = Math.abs(result.position.x - placement.x) + Math.abs(result.position.z - placement.z) > 1e-7;
+            if (!accepted) return { collisionReason: result.reason };
+            return { collisionReason: result.reason, ...rememberGesture(s), scenes: patchActive(s, (active) => ({ ...active,
+              placements: active.placements.map((p) => p.id === id ? { ...p, ...result.position } : p),
+            })) };
+          });
+          return accepted;
+        },
 
-        rotatePlacement: (id) =>
-          set((s) => ({
-            ...remember(s),
-            scenes: patchActive(s, (scene) => {
-              const placement = scene.placements.find((p) => p.id === id);
-              const piece = placement && s.pieces[placement.pieceId];
-              if (!placement || !piece) return scene;
-              const rotation = ((placement.rotation + 90) % 360) as StudioRotation;
-              // dupa rotire piesa poate iesi din camera — o tragem inapoi
-              const pos = clampToRoom(scene.room, piece.config, rotation, placement.x, placement.z);
-              return {
-                ...scene,
-                placements: scene.placements.map((p) =>
-                  p.id === id ? { ...p, rotation, ...pos } : p,
-                ),
-              };
-            }),
-          })),
+        rotatePlacement: (id) => {
+          let accepted = false;
+          set((s) => {
+            const scene = s.scenes.find((sc) => sc.id === s.activeSceneId);
+            const placement = scene?.placements.find((p) => p.id === id);
+            const piece = placement && s.pieces[placement.pieceId];
+            if (!scene || !placement || !piece) return s;
+            const rotation = ((placement.rotation + 90) % 360) as StudioRotation;
+            const pos = studioRoomPosition(scene.room, piece.config, rotation, placement);
+            if (!pos) return { collisionReason: 'ROOM_BOUNDS' };
+            const next = { ...scene, placements: scene.placements.map((p) => p.id === id ? { ...p, rotation, ...pos } : p) };
+            const reason = sceneChangeReason(scene, next, s.pieces, s.pieces);
+            if (reason) return { collisionReason: reason };
+            accepted = true;
+            return { collisionReason: null, scenes: patchActive(s, () => next), ...remember(s) };
+          });
+          return accepted;
+        },
 
-        duplicatePlacement: (id) =>
+        duplicatePlacement: (id) => {
+          let accepted = false;
           set((s) => {
             const active = s.scenes.find((sc) => sc.id === s.activeSceneId);
             const placement = active?.placements.find((p) => p.id === id);
             const piece = placement && s.pieces[placement.pieceId];
             if (!active || !placement || !piece) return s;
-            const spot = findFreeSpot(active.room, active.placements, s.pieces, piece.config);
+            if (active.placements.length >= STUDIO_MAX_PLACEMENTS_PER_SCENE) return { collisionReason: 'NO_SPACE' };
+            const spot = findStudioFreePosition(active.room, piece.config, placement.rotation, studioSceneFootprints(active.placements, s.pieces), placement);
+            if (!spot) return { collisionReason: studioRoomPosition(active.room, piece.config, placement.rotation, placement) ? 'NO_SPACE' : 'ROOM_BOUNDS' };
             const copy: StudioPlacement = {
               id: newId('pl'),
               pieceId: placement.pieceId,
@@ -604,7 +676,9 @@ export const useStudioStore = create<StudioStore>()(
               z: spot.z,
               rotation: placement.rotation,
             };
+            accepted = true;
             return {
+              collisionReason: null,
               scenes: patchActive(s, (scene) => ({
                 ...scene,
                 placements: [...scene.placements, copy],
@@ -612,7 +686,9 @@ export const useStudioStore = create<StudioStore>()(
               selectedId: copy.id,
               ...remember(s),
             };
-          }),
+          });
+          return accepted;
+        },
 
         removePlacement: (id) =>
           set((s) => ({
@@ -690,28 +766,45 @@ export const useStudioStore = create<StudioStore>()(
           return added;
         },
 
-        moveOpening: (id, offset) =>
-          set((s) => ({
-            scenes: patchActive(s, (scene) => {
-              const opening = scene.openings.find((o) => o.id === id);
-              if (!opening) return scene;
-              const next = clampOpeningOffset(
-                scene.room,
-                scene.openings,
-                opening,
-                snapToGrid(offset),
-              );
-              return {
-                ...scene,
-                openings: scene.openings.map((o) => (o.id === id ? { ...o, offset: next } : o)),
-              };
-            }),
-          })),
+        moveOpening: (id, offset) => {
+          const state = get();
+          const connection = state.house?.connections.find((c) => c.openingA === id || c.openingB === id);
+          if (connection && state.house) {
+            const opening = state.scenes.flatMap((scene) => scene.openings).find((o) => o.id === id);
+            if (opening?.offset === offset) return;
+            const scenes = updateHouseDoor(state.house, state.scenes, connection.id, id, { offset });
+            if (scenes) set({ scenes, ...rememberGesture(state) });
+            return;
+          }
+          set((s) => {
+            const scene = s.scenes.find((sc) => sc.id === s.activeSceneId);
+            const opening = scene?.openings.find((o) => o.id === id);
+            if (!scene || !opening) return s;
+            const next = clampOpeningOffset(scene.room, scene.openings, opening, snapToGrid(offset));
+            if (next === opening.offset) return s;
+            return {
+              ...rememberGesture(s),
+              scenes: patchActive(s, (active) => ({ ...active,
+                openings: active.openings.map((o) => (o.id === id ? { ...o, offset: next } : o)),
+              })),
+            };
+          });
+        },
 
         resizeOpening: (id, patch) => {
+          const state = get();
+          const connection = state.house?.connections.find((c) => c.openingA === id || c.openingB === id);
+          if (connection && state.house) {
+            const opening = state.scenes.flatMap((scene) => scene.openings).find((o) => o.id === id);
+            if (opening && Object.entries(patch).every(([key, value]) => value === undefined || value === openingSize(opening)[key as keyof ReturnType<typeof openingSize>])) return true;
+            const scenes = updateHouseDoor(state.house, state.scenes, connection.id, id, patch);
+            if (scenes) set({ scenes, ...rememberGesture(state) });
+            return !!scenes;
+          }
           let applied = false;
-          set((s) => ({
-            scenes: patchActive(s, (scene) => {
+          set((s) => {
+            let changed = false;
+            const scenes = patchActive(s, (scene) => {
               const opening = scene.openings.find((o) => o.id === id);
               if (!opening) return scene;
               const lim = OPENING_DIM_LIMITS[opening.kind];
@@ -735,17 +828,22 @@ export const useStudioStore = create<StudioStore>()(
               });
               if (overlapping) return scene;
               applied = true;
+              const previousSize = openingSize(opening);
+              if (offset === opening.offset && size.w === previousSize.w && size.h === previousSize.h && size.sill === previousSize.sill) return scene;
+              changed = true;
               return {
                 ...scene,
                 openings: scene.openings.map((o) => (o.id === id ? { ...next, offset } : o)),
               };
-            }),
-          }));
+            });
+            return changed ? { scenes, ...rememberGesture(s) } : s;
+          });
           return applied;
         },
 
         cycleOpeningWall: (id) =>
           set((s) => ({
+            house: s.house ? { ...s.house, connections: s.house.connections.filter((c) => c.openingA !== id && c.openingB !== id) } : undefined,
             ...remember(s),
             scenes: patchActive(s, (scene) => {
               const opening = scene.openings.find((o) => o.id === id);
@@ -774,6 +872,7 @@ export const useStudioStore = create<StudioStore>()(
 
         removeOpening: (id) =>
           set((s) => ({
+            house: s.house ? { ...s.house, connections: s.house.connections.filter((c) => c.openingA !== id && c.openingB !== id) } : undefined,
             scenes: patchActive(s, (scene) => ({
               ...scene,
               openings: scene.openings.filter((o) => o.id !== id),
@@ -782,33 +881,51 @@ export const useStudioStore = create<StudioStore>()(
             ...remember(s),
           })),
 
-        setRoom: (patch) =>
-          set((s) => ({
-            scenes: patchActive(s, (scene) => {
-              const room: StudioRoom = {
-                ...scene.room,
-                ...patch,
-                widthM: clampDim(patch.widthM ?? scene.room.widthM, STUDIO_ROOM_LIMITS.width),
-                depthM: clampDim(patch.depthM ?? scene.room.depthM, STUDIO_ROOM_LIMITS.depth),
-              };
-              return fitSceneToRoom({ ...scene, room }, s.pieces);
-            }),
-          })),
+        setRoom: (patch) => {
+          let accepted = false;
+          set((s) => {
+            const scene = s.scenes.find((sc) => sc.id === s.activeSceneId);
+            if (!scene) return s;
+            if ([patch.widthM, patch.depthM, patch.wallHeightM].some((value) => value !== undefined && !Number.isFinite(value))) return { collisionReason: 'ROOM_BOUNDS' };
+            const room: StudioRoom = { ...scene.room, ...patch,
+              widthM: clampDim(patch.widthM ?? scene.room.widthM, STUDIO_ROOM_LIMITS.width),
+              depthM: clampDim(patch.depthM ?? scene.room.depthM, STUDIO_ROOM_LIMITS.depth),
+              wallHeightM: clampDim(patch.wallHeightM ?? scene.room.wallHeightM, STUDIO_ROOM_LIMITS.wallHeight),
+            };
+            const resized = room.widthM !== scene.room.widthM || room.depthM !== scene.room.depthM || room.wallHeightM !== scene.room.wallHeightM;
+            const next = resized ? fitSceneToRoom({ ...scene, room }, s.pieces) : { ...scene, room };
+            if (s.house && (room.widthM !== scene.room.widthM || room.depthM !== scene.room.depthM)) {
+              const house = syncHouseRooms(s.house, s.scenes);
+              if (houseRoomPlacementCollisions(next, house.roomTransforms[scene.id], house, s.scenes).length) return { collisionReason: 'HOUSE_ROOMS' };
+            }
+            const reason = resized ? sceneChangeReason(scene, next, s.pieces, s.pieces) : null;
+            if (reason) return { collisionReason: reason };
+            accepted = true;
+            if (!resized && room.wallColor === scene.room.wallColor && room.floorColor === scene.room.floorColor) return { collisionReason: null };
+            return { collisionReason: null, ...rememberGesture(s),
+              house: s.house && (room.widthM !== scene.room.widthM || room.depthM !== scene.room.depthM) ? { ...s.house, connections: s.house.connections.filter((c) => c.sceneA !== s.activeSceneId && c.sceneB !== s.activeSceneId) } : s.house,
+              scenes: patchActive(s, () => next),
+            };
+          });
+          return accepted;
+        },
 
         setSelected: (id) => set({ selectedId: id, ...(id ? { selectedOpeningId: null } : {}) }),
         setSelectedOpening: (id) =>
           set({ selectedOpeningId: id, ...(id ? { selectedId: null } : {}) }),
 
-        recordHistory: () => set((s) => remember(s)),
+        recordHistory: () => set({ gestureHistoryPending: true }),
 
         undo: () =>
           set((s) => {
             const prev = s.history[s.history.length - 1];
-            if (!prev) return s;
+            if (!prev) return { gestureHistoryPending: false };
             return {
+              gestureHistoryPending: false,
               pieces: prev.pieces,
               scenes: prev.scenes,
               activeSceneId: prev.activeSceneId,
+              house: prev.house,
               history: s.history.slice(0, -1),
               future: [...s.future.slice(-(HISTORY_CAP - 1)), currentData(s)],
               selectedId: null,
@@ -820,11 +937,13 @@ export const useStudioStore = create<StudioStore>()(
         redo: () =>
           set((s) => {
             const next = s.future[s.future.length - 1];
-            if (!next) return s;
+            if (!next) return { gestureHistoryPending: false };
             return {
+              gestureHistoryPending: false,
               pieces: next.pieces,
               scenes: next.scenes,
               activeSceneId: next.activeSceneId,
+              house: next.house,
               future: s.future.slice(0, -1),
               history: [...s.history.slice(-(HISTORY_CAP - 1)), currentData(s)],
               selectedId: null,
@@ -839,18 +958,11 @@ export const useStudioStore = create<StudioStore>()(
         setPanelPos: (pos) => set({ panelPos: pos }),
         setTutorialSeen: (seen) => set({ tutorialSeen: seen }),
 
-        snapshot: () => {
-          const s = get();
-          return {
-            version: 2,
-            pieces: s.pieces,
-            scenes: s.scenes,
-            activeSceneId: s.activeSceneId,
-          };
-        },
+        snapshot: () => currentData(get()),
 
         loadSnapshot: (snapshot) =>
           set((s) => {
+            snapshot = readStudioDraftData(snapshot);
             // apararea la incarcare: configurile trec prin normalize (regulile
             // geometrice curente), iar scenele prin fit (clamp in camera)
             const pieces: Record<string, StudioPiece> = {};
@@ -870,6 +982,7 @@ export const useStudioStore = create<StudioStore>()(
               pieces,
               scenes,
               activeSceneId,
+              house: snapshot.house,
               selectedId: null,
               selectedOpeningId: null,
               bulkOps: s.bulkOps + 1,
@@ -879,9 +992,12 @@ export const useStudioStore = create<StudioStore>()(
       };
     },
     {
-      name: 'mm_studio_v1',
+      name: 'mm_studio_v3',
       // v2: o singura camera → scene multiple (Camera 1 pastreaza tot) + goluri
-      version: 2,
+      version: 3,
+      storage: createJSONStorage(() => studioVersionedStorage(localStorage, () => {
+        queueMicrotask(() => useStudioStore.setState({ persistenceError: true }));
+      })),
       migrate: (persisted, version) => {
         if (version >= 2) return persisted;
         const old = persisted as {
@@ -900,9 +1016,11 @@ export const useStudioStore = create<StudioStore>()(
         pieces: s.pieces,
         scenes: s.scenes,
         activeSceneId: s.activeSceneId,
+        house: currentData(s).house,
         accountDraft: s.accountDraft,
         panelPos: s.panelPos,
         tutorialSeen: s.tutorialSeen,
+        cutawayWalls: s.cutawayWalls,
       }),
     },
   ),

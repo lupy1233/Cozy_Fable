@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHmac } from 'crypto';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { auditSnapshot, auditUserAgent } from './audit-snapshot';
 
 export interface AuditEntry {
   userId?: string | null;
@@ -43,9 +44,9 @@ export class AuditService {
         entityType: entry.entityType ?? null,
         entityId: entry.entityId ?? null,
         ipHash: this.hashIp(entry.ip),
-        userAgent: entry.userAgent ?? null,
-        before: (entry.before ?? undefined) as never,
-        after: (entry.after ?? undefined) as never,
+        userAgent: auditUserAgent(entry.userAgent),
+        before: auditSnapshot(entry.before),
+        after: auditSnapshot(entry.after),
       },
     });
   }

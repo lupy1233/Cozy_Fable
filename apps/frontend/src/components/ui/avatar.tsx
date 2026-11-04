@@ -27,7 +27,7 @@ export function Avatar({
   return (
     <div
       className={cn(
-        'grid shrink-0 place-items-center rounded-full font-serif text-[#FBF6EC]',
+        'grid shrink-0 place-items-center rounded-full font-serif text-on-walnut',
         TONE_BG[tone],
         className,
       )}

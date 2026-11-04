@@ -1,24 +1,33 @@
 'use client';
 
-import type { AdminBillingOrderItemDto } from '@marketplace/shared';
+import type { AdminBillingOrderItemDto, EInvoiceStatus } from '@marketplace/shared';
 import { Info } from 'lucide-react';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
+import { useMoney } from '@/hooks/use-money';
+import { formatAmount } from '@/lib/money';
 import { useAdminCompanies } from '@/hooks/use-company';
 import { useAdminPlans } from '@/hooks/use-admin';
+import { planDisplayName } from '@/lib/plan-label';
 import {
   useAdminPayments,
   useAdminSubscriptions,
   useCancelPayment,
   useConfirmPayment,
   useGrantSubscription,
+  useUpdateEInvoice,
 } from '@/hooks/use-billing';
-import { ApiError } from '@/lib/api';
+import { ApiError, apiBlob } from '@/lib/api';
+import { saveBlob } from '@/lib/download';
 import { Alert } from '@/components/ui/alert';
 import { Badge, TierBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
+import { SkeletonPage, SkeletonTable } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
@@ -39,11 +48,31 @@ import { toast } from '@/components/ui/toaster';
 type StatusTab = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'all';
 type PendingAction = { kind: 'confirm' | 'cancel'; order: AdminBillingOrderItemDto };
 
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+
+// E-admin-platform-4 — e-Factura (ruta manuala pana la decizia PO)
+const E_INVOICE_TONE: Record<EInvoiceStatus, 'amber' | 'info' | 'sage' | 'crimson' | 'muted'> = {
+  PENDING: 'amber',
+  UPLOADED: 'info',
+  VALIDATED: 'sage',
+  REJECTED: 'crimson',
+  NOT_REQUIRED: 'muted',
+};
+const EDITABLE_E_INVOICE = ['PENDING', 'UPLOADED', 'VALIDATED', 'REJECTED'] as const;
+type EditableEInvoice = (typeof EDITABLE_E_INVOICE)[number];
+
+function currentMonth(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 // Plati + abonamente (consola admin). Platile Stripe se confirma automat prin webhook;
 // confirmarea manuala e DOAR pentru transfer bancar (comenzi PENDING fara sesiune Stripe).
 export default function AdminPaymentsPage() {
   const t = useTranslations('AdminPayments');
   const format = useFormatter();
+  const locale = useLocale();
+  const money = useMoney();
   const router = useRouter();
   const me = useMe();
   const [tab, setTab] = useState<StatusTab>('PENDING');
@@ -51,15 +80,28 @@ export default function AdminPaymentsPage() {
   const confirm = useConfirmPayment();
   const cancel = useCancelPayment();
   const [action, setAction] = useState<PendingAction | null>(null);
+  const [eInvoiceOrder, setEInvoiceOrder] = useState<AdminBillingOrderItemDto | null>(null);
+  // E-company-19: PDF-ul facturii prin sesiune (refresh la 401) + nume factura-{serie}-{numar}.pdf
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  async function downloadInvoice(o: AdminBillingOrderItemDto) {
+    setDownloadingId(o.id);
+    try {
+      const blob = await apiBlob(`/admin/payments/${o.id}/invoice`);
+      saveBlob(blob, `factura-${o.invoiceLabel}.pdf`);
+    } catch {
+      toast.error(t('eInvoice.pdfFailed'));
+    } finally {
+      setDownloadingId(null);
+    }
+  }
 
   useEffect(() => {
     if (me.isError) router.replace('/login');
     else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
   }, [me.isError, me.data, router]);
 
-  if (me.isPending) return <p className="py-20 text-center text-muted-foreground">{t('loading')}</p>;
+  if (me.isPending) return <SkeletonPage variant="table" />;
 
-  const money = (n: number) => `${format.number(n, { maximumFractionDigits: 2 })} lei`;
   const detailOf = (o: AdminBillingOrderItemDto) =>
     o.orderType === 'SUBSCRIPTION'
       ? t('planLabel', { tier: o.planTier ?? '' })
@@ -91,14 +133,20 @@ export default function AdminPaymentsPage() {
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
-      <div>
-        <h1 className="page-title">{t('title')}</h1>
-        <p className="mt-2 flex items-start gap-2 text-sm text-muted-foreground">
-          <Info className="mt-0.5 h-4 w-4 shrink-0" /> {t('stripeNote')}
-        </p>
-      </div>
+      <PageHeader
+        title={t('title')}
+        subtitle={
+          <span className="flex items-start gap-2">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" /> {t('stripeNote')}
+          </span>
+        }
+      />
+
+      <MonthlyExport />
 
       <Tabs
+        panelId="admin-payment-results"
+        label={t('title')}
         current={tab}
         onChange={(v) => setTab(v as StatusTab)}
         tabs={(['PENDING', 'CONFIRMED', 'CANCELLED', 'all'] as const).map((v) => ({
@@ -107,15 +155,14 @@ export default function AdminPaymentsPage() {
         }))}
       />
 
-      {list.isPending && <p className="py-10 text-center text-muted-foreground">{t('loading')}</p>}
+      <div id="admin-payment-results" role="tabpanel" aria-labelledby={`admin-payment-results-tab-${tab}`} tabIndex={0}>
+      {list.isPending && <SkeletonTable rows={6} cols={7} />}
       {list.isError && <Alert tone="crimson">{errorText(list.error)}</Alert>}
       {list.isSuccess && list.data.length === 0 && (
-        <p className="rounded-xl border border-border bg-surface px-4 py-6 text-center text-sm text-muted-foreground">
-          {t('empty')}
-        </p>
+        <EmptyState variant="card" size="sm" title={t('empty')} />
       )}
       {list.data && list.data.length > 0 && (
-        <div className="rounded-xl border border-border bg-surface shadow-sm">
+        <Card padding="none">
           <Table>
             <THead>
               <TR>
@@ -125,6 +172,7 @@ export default function AdminPaymentsPage() {
                 <TH>{t('col.date')}</TH>
                 <TH>{t('col.source')}</TH>
                 <TH>{t('col.status')}</TH>
+                <TH>{t('col.eInvoice')}</TH>
                 <TH />
               </TR>
             </THead>
@@ -135,7 +183,7 @@ export default function AdminPaymentsPage() {
                   <TR key={o.id}>
                     <TD>
                       <span className="font-medium">{o.companyName}</span>
-                      <span className="block font-mono text-[11px] text-muted-foreground">#{o.id.slice(0, 8).toUpperCase()}</span>
+                      <span className="block font-mono text-meta text-muted-foreground">#{o.id.slice(0, 8).toUpperCase()}</span>
                     </TD>
                     <TD>
                       <span className="block">{t(`orderType.${o.orderType}`)}</span>
@@ -143,8 +191,8 @@ export default function AdminPaymentsPage() {
                     </TD>
                     <TD className="text-right font-mono">
                       <span className="block">{money(o.totalRon)}</span>
-                      <span className="text-[11px] text-muted-foreground">
-                        {t('vatIncluded', { base: format.number(o.baseAmountRon), rate: o.vatRate })}
+                      <span className="text-meta text-muted-foreground">
+                        {t('vatIncluded', { base: formatAmount(o.baseAmountRon, locale), rate: o.vatRate })}
                       </span>
                     </TD>
                     <TD className="whitespace-nowrap text-muted-foreground">
@@ -162,8 +210,52 @@ export default function AdminPaymentsPage() {
                       >
                         {t(`status.${o.status}`)}
                       </Badge>
+                      {o.testMode && (
+                        <Badge tone="amber" className="ml-1">
+                          {t('testOrder')}
+                        </Badge>
+                      )}
+                      {/* E-company-24: firma a apasat "Am platit" — de verificat in extrasul bancar */}
+                      {o.status === 'PENDING' && o.paymentClaimedAt && (
+                        <Badge tone="info" className="mt-1 block w-fit">
+                          {t('paymentReported', {
+                            date: format.dateTime(new Date(o.paymentClaimedAt), { dateStyle: 'medium', timeStyle: 'short' }),
+                          })}
+                        </Badge>
+                      )}
                       {o.invoiceLabel && (
-                        <span className="block font-mono text-[11px] text-muted-foreground">{o.invoiceLabel}</span>
+                        <span className="block font-mono text-meta text-muted-foreground">
+                          {o.invoiceLabel}
+                          {o.status === 'CONFIRMED' && (
+                            <>
+                              {' · '}
+                              <button
+                                type="button"
+                                className="text-walnut hover:underline disabled:opacity-50"
+                                disabled={downloadingId === o.id}
+                                aria-busy={downloadingId === o.id}
+                                onClick={() => void downloadInvoice(o)}
+                              >
+                                {t('eInvoice.pdf')}
+                              </button>
+                            </>
+                          )}
+                        </span>
+                      )}
+                    </TD>
+                    <TD>
+                      {o.status === 'CONFIRMED' && o.eInvoiceStatus && (
+                        <div className="flex flex-col items-start gap-1">
+                          <Badge tone={E_INVOICE_TONE[o.eInvoiceStatus]}>{t(`eInvoice.status.${o.eInvoiceStatus}`)}</Badge>
+                          {o.anafUploadId && (
+                            <span className="font-mono text-meta text-muted-foreground">{o.anafUploadId}</span>
+                          )}
+                          {!o.testMode && o.invoiceLabel && (
+                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setEInvoiceOrder(o)}>
+                              {t('eInvoice.update')}
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </TD>
                     <TD className="whitespace-nowrap text-right">
@@ -189,7 +281,7 @@ export default function AdminPaymentsPage() {
                         </Button>
                       )}
                       {o.status === 'PENDING' && o.hasStripeSession && (
-                        <span className="block text-[11px] text-muted-foreground">{t('awaitingStripe')}</span>
+                        <span className="block text-meta text-muted-foreground">{t('awaitingStripe')}</span>
                       )}
                     </TD>
                   </TR>
@@ -197,10 +289,16 @@ export default function AdminPaymentsPage() {
               })}
             </TBody>
           </Table>
-        </div>
+        </Card>
       )}
 
+      </div>
+
       <SubscriptionsSection />
+
+      {eInvoiceOrder && (
+        <EInvoiceDialog key={eInvoiceOrder.id} order={eInvoiceOrder} onClose={() => setEInvoiceOrder(null)} errorText={errorText} />
+      )}
 
       {/* Confirmare actiune (ireversibila la confirm: emite factura + livreaza) */}
       <Dialog open={action !== null} onOpenChange={(open) => !open && !isBusy && setAction(null)}>
@@ -239,10 +337,133 @@ export default function AdminPaymentsPage() {
   );
 }
 
+// Registrul lunar (CSV) pentru contabil — facturile confirmate din luna aleasa (Europe/Bucharest).
+function MonthlyExport() {
+  const t = useTranslations('AdminPayments');
+  const [month, setMonth] = useState(currentMonth);
+  const valid = /^\d{4}-(0[1-9]|1[0-2])$/.test(month);
+  return (
+    <Card as="section" className="flex flex-wrap items-end gap-4">
+      <div className="min-w-[220px] flex-1">
+        <h2 className="heading-card">{t('eInvoice.exportTitle')}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{t('eInvoice.exportHint')}</p>
+      </div>
+      <Input
+        type="month"
+        value={month}
+        onChange={(e) => setMonth(e.target.value)}
+        className="w-44"
+        aria-label={t('eInvoice.exportTitle')}
+      />
+      <a
+        href={valid ? `${API}/admin/billing/e-invoice-export?month=${month}` : undefined}
+        aria-disabled={!valid}
+        className="inline-flex h-10 items-center rounded-md bg-foreground px-4 text-sm font-medium text-background transition-colors hover:bg-ink-2 aria-disabled:pointer-events-none aria-disabled:opacity-50"
+      >
+        {t('eInvoice.exportButton')}
+      </a>
+    </Card>
+  );
+}
+
+// Actualizare stare e-Factura: ce a facut contabilul in SPV (index incarcare / descarcare).
+function EInvoiceDialog({
+  order,
+  onClose,
+  errorText,
+}: {
+  order: AdminBillingOrderItemDto;
+  onClose: () => void;
+  errorText: (err: unknown) => string;
+}) {
+  const t = useTranslations('AdminPayments');
+  const update = useUpdateEInvoice();
+  const initial = (EDITABLE_E_INVOICE as readonly string[]).includes(order.eInvoiceStatus ?? '')
+    ? (order.eInvoiceStatus as EditableEInvoice)
+    : 'PENDING';
+  const [status, setStatus] = useState<EditableEInvoice>(initial);
+  const [uploadId, setUploadId] = useState(order.anafUploadId ?? '');
+  const [downloadId, setDownloadId] = useState(order.anafDownloadId ?? '');
+  const needsUpload = status === 'UPLOADED' || status === 'VALIDATED';
+  const digits = (v: string) => v === '' || /^\d{1,20}$/.test(v);
+  const canSave = !update.isPending && digits(uploadId) && digits(downloadId) && (!needsUpload || uploadId !== '');
+
+  const save = () => {
+    if (!canSave) return;
+    update.mutate(
+      {
+        orderId: order.id,
+        status,
+        anafUploadId: uploadId || undefined,
+        anafDownloadId: downloadId || undefined,
+      },
+      {
+        onSuccess: () => {
+          toast.success(t('eInvoice.updated'));
+          onClose();
+        },
+        onError: (err) => toast.error(errorText(err)),
+      },
+    );
+  };
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && !update.isPending && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t('eInvoice.dialogTitle')}</DialogTitle>
+          <DialogDescription>
+            {order.companyName} · {order.invoiceLabel}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-3">
+          <Field label={t('col.eInvoice')}>
+            <Select value={status} onChange={(e) => setStatus(e.target.value as EditableEInvoice)}>
+              {EDITABLE_E_INVOICE.map((s) => (
+                <option key={s} value={s}>
+                  {t(`eInvoice.status.${s}`)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label={t('eInvoice.uploadId')}>
+            <Input
+              inputMode="numeric"
+              maxLength={20}
+              className="font-mono"
+              value={uploadId}
+              onChange={(e) => setUploadId(e.target.value.replace(/\D/g, ''))}
+            />
+          </Field>
+          <Field label={t('eInvoice.downloadId')}>
+            <Input
+              inputMode="numeric"
+              maxLength={20}
+              className="font-mono"
+              value={downloadId}
+              onChange={(e) => setDownloadId(e.target.value.replace(/\D/g, ''))}
+            />
+          </Field>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" disabled={update.isPending} onClick={onClose}>
+            {t('no')}
+          </Button>
+          <Button variant="walnut" disabled={!canSave} onClick={save}>
+            {t('eInvoice.save')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // Abonamente: acordare/prelungire manuala (vanzare asistata) + lista.
 function SubscriptionsSection() {
   const t = useTranslations('AdminPayments');
   const format = useFormatter();
+  const locale = useLocale();
+  const money = useMoney();
   const companies = useAdminCompanies('APPROVED');
   const plans = useAdminPlans();
   const subs = useAdminSubscriptions();
@@ -254,7 +475,12 @@ function SubscriptionsSection() {
   const [includeCredits, setIncludeCredits] = useState(false);
   const [note, setNote] = useState('');
 
+  // E-admin-platform-58: planurile gratuite (0 lei) se acorda tot de aici
   const activePlans = useMemo(() => (plans.data ?? []).filter((p) => p.isActive), [plans.data]);
+  const planName = (planId: string, code: string) => {
+    const p = plans.data?.find((x) => x.id === planId);
+    return p ? planDisplayName(p, locale) : code;
+  };
   const canSubmit = !!companyId && !!planId && days >= 1 && days <= 366 && !grant.isPending;
 
   const submit = () => {
@@ -280,9 +506,9 @@ function SubscriptionsSection() {
   };
 
   return (
-    <section className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5 shadow-sm">
+    <Card as="section" className="flex flex-col gap-4">
       <div>
-        <h2 className="font-serif text-xl">{t('grant.title')}</h2>
+        <h2 className="heading-section">{t('grant.title')}</h2>
         <p className="mt-1 text-sm text-muted-foreground">{t('grant.hint')}</p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -301,7 +527,7 @@ function SubscriptionsSection() {
             <option value="">{t('grant.pickPlan')}</option>
             {activePlans.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.tier} · {p.priceRon} lei · {p.includedCredits} cr.
+                {planDisplayName(p, locale)} · {p.isFree ? t('grant.freePlan') : money(p.priceRon)} · {p.includedCredits} cr.
               </option>
             ))}
           </Select>
@@ -350,7 +576,7 @@ function SubscriptionsSection() {
                 <TD className="font-medium">{s.companyName}</TD>
                 <TD>
                   <span className="flex items-center gap-2">
-                    <TierBadge tier={s.tier} />
+                    <TierBadge tier={s.tier} label={planName(s.planId, s.tier)} />
                     {s.isTrial && <Badge tone="amber">{t('subscriptions.trial')}</Badge>}
                   </span>
                 </TD>
@@ -372,6 +598,6 @@ function SubscriptionsSection() {
           </TBody>
         </Table>
       )}
-    </section>
+    </Card>
   );
 }

@@ -5,10 +5,11 @@ import { pageMetadata } from '../_components/metadata';
 // Pagina e client component ('use client' in page.tsx), deci titlul/SEO vin
 // din acest layout de trecere (audit 2026-08-19 P1).
 export async function generateMetadata({
-  params: { locale },
+  params,
 }: {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
+  const { locale } = await params;
   return pageMetadata(locale, 'partners', '/partners');
 }
 

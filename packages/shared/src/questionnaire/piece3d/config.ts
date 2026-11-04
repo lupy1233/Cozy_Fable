@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { NEW_PIECE_RULES, upholsterySchema, sofaSchema, armchairSchema, ottomanSchema, vanitySchema, entrywaySchema, validCatalogOptions, describeCatalogOptions, type Upholstery3d, type Sofa3d, type Armchair3d, type Ottoman3d, type Vanity3d, type Entryway3d } from './catalog-config';
+import { bedOptionsSchema, tableOptionsSchema, benchOptionsSchema, defaultFurnitureConfig, isFurnitureKind, normalizeFurnitureConfig, validFurnitureConfig, type BedOptions3d, type TableOptions3d, type BenchOptions3d } from './furniture-config';
 
 // Configuratorul 3D de piese (stil Tylko) — docs/10, sprinturile R1-R6.
 // Config-ul e serializabil si intra in answers ca orice raspuns de step;
@@ -14,6 +16,10 @@ export const PIECE3D_KINDS = [
   'DRESSER',
   'NIGHTSTAND',
   'DESK',
+  'BED',
+  'TABLE',
+  'BENCH',
+  'SIDEBOARD', 'WALL_CABINET', 'BATHROOM_VANITY', 'ENTRYWAY', 'SOFA', 'ARMCHAIR', 'OTTOMAN',
 ] as const;
 export type Piece3dKind = (typeof PIECE3D_KINDS)[number];
 
@@ -133,6 +139,16 @@ export interface Piece3dColumn {
 }
 
 export interface PieceConfig3d {
+  mountingHeightM?: number;
+  upholstery?: Upholstery3d;
+  sofa?: Sofa3d;
+  armchair?: Armchair3d;
+  ottoman?: Ottoman3d;
+  vanity?: Vanity3d;
+  entryway?: Entryway3d;
+  bed?: BedOptions3d;
+  table?: TableOptions3d;
+  bench?: BenchOptions3d;
   widthM: number;
   heightM: number;
   depthM: number;
@@ -198,6 +214,28 @@ export interface Piece3dRules {
 const col = (...zones: Piece3dZone[]): Piece3dColumn => ({ zones });
 
 export const PIECE3D_RULES: Record<Piece3dKind, Piece3dRules> = {
+  ...NEW_PIECE_RULES,
+  BED: {
+    width: { min: 1.03, max: 2.02, default: 1.73 },
+    height: { min: 1, max: 1, default: 1 },
+    depth: { min: 2.2, max: 2.2, default: 2.2 },
+    zoneTypes: [], maxZonesPerColumn: 0, maxColumns: 0, minColumns: 0,
+    hasPlinth: false, itemName: 'Pat', defaultColumn: () => col(),
+  },
+  TABLE: {
+    width: { min: 0.5, max: 3, default: 1.4 },
+    height: { min: 0.45, max: 0.8, default: 0.75 },
+    depth: { min: 0.4, max: 1.8, default: 0.8 },
+    zoneTypes: [], maxZonesPerColumn: 0, maxColumns: 0, minColumns: 0,
+    hasPlinth: false, itemName: 'Masa', defaultColumn: () => col(),
+  },
+  BENCH: {
+    width: { min: 0.6, max: 2, default: 1.2 },
+    height: { min: 0.45, max: 0.45, default: 0.45 },
+    depth: { min: 0.4, max: 0.4, default: 0.4 },
+    zoneTypes: [], maxZonesPerColumn: 0, maxColumns: 0, minColumns: 0,
+    hasPlinth: false, itemName: 'Bancuta', defaultColumn: () => col(),
+  },
   BOOKCASE: {
     width: { min: 0.4, max: 4, default: 1.6 },
     height: { min: 0.8, max: 2.8, default: 2.0 },
@@ -342,6 +380,7 @@ export function suggestedColumns(kind: Piece3dKind, widthM: number): number {
 
 // Limiteaza n la un numar de coloane cu latime valida pentru piesa data.
 export function clampColumns(kind: Piece3dKind, widthM: number, n: number): number {
+  if (isFurnitureKind(kind)) return 0;
   const rules = PIECE3D_RULES[kind];
   let v = Math.max(rules.minColumns || 1, Math.min(rules.maxColumns, Math.round(n)));
   if (kind === 'DESK') {
@@ -452,6 +491,7 @@ export function resolvePieceLayout(kind: Piece3dKind, config: PieceConfig3d): Re
 
 // Config-ul implicit al unei piese noi.
 export function defaultPieceConfig(kind: Piece3dKind): PieceConfig3d {
+  if (isFurnitureKind(kind)) return defaultFurnitureConfig(kind);
   const rules = PIECE3D_RULES[kind];
   const n = suggestedColumns(kind, rules.width.default);
   return {
@@ -460,6 +500,7 @@ export function defaultPieceConfig(kind: Piece3dKind): PieceConfig3d {
     depthM: rules.depth.default,
     columns: Array.from({ length: n }, () => rules.defaultColumn()),
     finish: 'STEJAR',
+    ...(kind === 'WALL_CABINET' ? { mountingHeightM: 1.2 } : {}),
   };
 }
 
@@ -469,6 +510,7 @@ const round3 = (v: number) => Math.round(v * 1000) / 1000;
 // existente unde se poate, migreaza formele vechi (pre-R5.3), corecteaza
 // count-urile/blocajele si aplica regulile geometrice (bara/sertare).
 export function normalizePieceConfig(kind: Piece3dKind, config: PieceConfig3d): PieceConfig3d {
+  if (isFurnitureKind(kind)) return normalizeFurnitureConfig(kind, config);
   const rules = PIECE3D_RULES[kind];
   const clampDim = (v: number, r: DimRule) => round3(Math.max(r.min, Math.min(r.max, v)));
   const widthM = clampDim(config.widthM, rules.width);
@@ -559,6 +601,7 @@ export function normalizePieceConfig(kind: Piece3dKind, config: PieceConfig3d): 
     finish,
   };
   if (customColor) next.customColor = customColor;
+  if (kind === 'WALL_CABINET') next.mountingHeightM = round3(Math.max(0.3, Math.min(2.2, Number.isFinite(config.mountingHeightM) ? config.mountingHeightM! : 1.2)));
   if (config.frontStyle && PIECE3D_FRONT_STYLES.includes(config.frontStyle)) {
     next.frontStyle = config.frontStyle;
   }
@@ -669,6 +712,12 @@ export function pieceConfig3dSchema(kind: Piece3dKind): z.ZodType<PieceConfig3d>
         .min(rules.depth.min, 'validation.dimensionOutOfRange')
         .max(rules.depth.max, 'validation.dimensionOutOfRange'),
       columns: z.array(columnSchema).min(rules.minColumns).max(rules.maxColumns),
+      bed: bedOptionsSchema.optional(),
+      table: tableOptionsSchema.optional(),
+      bench: benchOptionsSchema.optional(),
+      mountingHeightM: z.number().min(0.1).max(2.2).optional(),
+      upholstery: upholsterySchema.optional(), sofa: sofaSchema.optional(), armchair: armchairSchema.optional(),
+      ottoman: ottomanSchema.optional(), vanity: vanitySchema.optional(), entryway: entrywaySchema.optional(),
       finish: z.enum(PIECE3D_FINISHES, {
         errorMap: () => ({ message: 'validation.answerInvalid' }),
       }),
@@ -694,6 +743,10 @@ export function pieceConfig3dSchema(kind: Piece3dKind): z.ZodType<PieceConfig3d>
     .superRefine((config, ctx) => {
       const bad = () =>
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'validation.answerInvalid' });
+      if (!validCatalogOptions(kind, config as PieceConfig3d) || !validFurnitureConfig(kind, config as PieceConfig3d)) {
+        bad();
+        return;
+      }
       const layout = resolvePieceLayout(kind, config as PieceConfig3d);
       // casetierele biroului nu au voie sa se suprapuna (docs/12 S6)
       if (kind === 'DESK' && config.columns.length > deskMaxColumns(config.widthM)) {
@@ -852,6 +905,17 @@ export function pieceConfigTotals(config: PieceConfig3d): Piece3dTotals {
       }
     }
   });
+  if (config.vanity) {
+    const units = config.vanity.basins === 'DOUBLE' ? 2 : 1;
+    if (config.vanity.storage === 'DRAWERS') totals.drawers += units * 2;
+    if (config.vanity.storage === 'DOORS') totals.doors += units * 2;
+    if (config.vanity.storage === 'OPEN') totals.open += units;
+  }
+  if (config.entryway) {
+    if (config.entryway.shoeStorage === 'DOORS') totals.doors += Math.ceil(config.widthM / 0.6);
+    else totals.open += Math.ceil(config.widthM / 0.6);
+    totals.shelves += (config.entryway.upperShelf ? 1 : 0) + 1;
+  }
   return totals;
 }
 
@@ -876,8 +940,9 @@ export function describePieceConfig(kind: Piece3dKind, config: PieceConfig3d): s
   const totals = pieceConfigTotals(config);
   const parts = [
     `Configurat 3D: ${cm(config.widthM)} x ${cm(config.heightM)} x ${cm(config.depthM)} cm`,
+    ...describeCatalogOptions(config),
   ];
-  if (kind !== 'DESK' || totals.columns > 0) {
+  if (!isFurnitureKind(kind) && (kind !== 'DESK' || totals.columns > 0)) {
     parts.push(totals.columns === 1 ? '1 coloana' : `${totals.columns} coloane`);
   }
   if (totals.hanging > 0) {
@@ -908,7 +973,7 @@ export function describePieceConfig(kind: Piece3dKind, config: PieceConfig3d): s
   if (config.legs) parts.push('pe picioare');
   if (config.frontStyle === 'HANDLE') parts.push('fronturi cu maner');
   else if (config.frontStyle === 'PUSH') parts.push('deschidere push');
-  parts.push(
+  if (!config.upholstery) parts.push(
     config.finish === 'CUSTOM' && config.customColor
       ? `finisaj personalizat (${config.customColor})`
       : `finisaj ${FINISH_LABEL_RO[config.finish]}`,

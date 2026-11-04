@@ -1,6 +1,7 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { safeErrorSummary } from '../../common/logging/safe-error';
 
 // Criptare la stocare pentru corpul mesajelor (PO r6): AES-256-GCM cu cheie de
 // server (MESSAGE_ENCRYPTION_KEY, 32 bytes hex). Formatul stocat:
@@ -58,7 +59,7 @@ export class MessageCryptoService {
       return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
     } catch (e) {
       // continut corupt sau cheie gresita — nu propaga eroarea in tot chatul
-      this.logger.error(`decriptare mesaj esuata: ${(e as Error).message}`);
+      this.logger.error(`decriptare mesaj esuata: ${safeErrorSummary(e)}`);
       return null;
     }
   }

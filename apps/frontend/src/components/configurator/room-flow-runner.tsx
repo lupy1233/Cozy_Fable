@@ -1,52 +1,17 @@
 'use client';
 
-import {
-  getFlow,
-  stepAnswerSchema,
-  visibleSteps,
-  type AnswerMap,
-  type InfoContentRef,
-  type QuestionStep,
-} from '@marketplace/shared';
+import type { InfoContentRef } from '@marketplace/shared';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check, Copy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import type { AttachmentTarget } from '@/hooks/use-requests';
 import { useConfiguratorStore } from '@/stores/configurator-store';
 import { InfoDialog } from './info-dialog';
+import { isStudioNightstand, roomScreens, validateStep } from './room-screens';
 import { StepRenderer } from './step-renderer';
-
-// Valideaza raspunsul unui pas; intoarce cheia i18n a erorii sau undefined.
-// Erorile care nu apartin namespace-ului Configurator.validation (ex. mesajele
-// interne requestItemSchema pentru pieces) sunt normalizate la answerInvalid,
-// ca sa nu apara chei i18n lipsa in UI.
-function validateStep(step: QuestionStep, answers: AnswerMap): string | undefined {
-  const val = answers[step.id];
-  if (val === undefined) return step.optional ? undefined : 'validation.answerRequired';
-  const parsed = stepAnswerSchema(step, answers).safeParse(val);
-  if (!parsed.success) {
-    const msg = parsed.error.issues[0]?.message;
-    return msg && msg.startsWith('validation.') ? msg : 'validation.answerInvalid';
-  }
-  return undefined;
-}
-
-// Grupeaza step-urile vizibile consecutive cu acelasi screenGroup pe un singur
-// ecran (ex. layout + insula la bucatarie). Validarea ramane per-step.
-function groupScreens(steps: QuestionStep[]): QuestionStep[][] {
-  const screens: QuestionStep[][] = [];
-  for (const s of steps) {
-    const last = screens[screens.length - 1];
-    if (last && s.screenGroup && last[0]?.screenGroup === s.screenGroup) {
-      last.push(s);
-    } else {
-      screens.push([s]);
-    }
-  }
-  return screens;
-}
 
 export function RoomFlowRunner({
   uploadTarget,
@@ -93,18 +58,9 @@ export function RoomFlowRunner({
     return null;
   }
 
-  const flow = getFlow(room.roomType, room.flowVersion);
-  // step-urile hidden (ex. snapshot3d, scris programatic) nu primesc ecran;
-  // cu proiect propriu (PO 2026-07-31) sar si pasii de dimensiuni + schite —
-  // proiectul incarcat la pasul Fisiere e sursa de adevar, validarea de publish
-  // ii trateaza ca optionali (ownProject in engine)
-  const screens = groupScreens(
-    visibleSteps(flow, room.answers).filter(
-      (s) =>
-        !s.hidden &&
-        !(hasOwnProject && (s.type === 'dimension-group' || s.type === 'upload')),
-    ),
-  );
+  // step-urile hidden nu primesc ecran; cu proiect propriu sar dimensiunile +
+  // schitele (ownProject in engine); la noptiera din Studio sare "cate bucati"
+  const screens = roomScreens(room, hasOwnProject);
   const screenIndex = Math.min(activeStepIndex, screens.length - 1);
   const screen = screens[screenIndex];
 
@@ -178,7 +134,7 @@ export function RoomFlowRunner({
                 type="button"
                 onClick={() => setActiveRoom(i)}
                 className={
-                  'flex items-center gap-1.5 rounded-[3px] border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.1em] transition-colors ' +
+                  'flex items-center gap-1.5 rounded-[3px] border px-2.5 py-1 font-mono text-micro uppercase tracking-[0.1em] transition-colors ' +
                   (i === activeRoomIndex
                     ? 'border-ink/40 bg-surface-2 text-foreground'
                     : 'border-border-2 text-muted-foreground hover:border-muted-2')
@@ -210,11 +166,13 @@ export function RoomFlowRunner({
               className="absolute inset-0 bg-[repeating-linear-gradient(to_right,transparent,transparent_7px,hsl(var(--card))_7px,hsl(var(--card))_8px)]"
             />
           </div>
-          <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+          <span className="font-mono text-meta tabular-nums text-muted-foreground">
             {String(screenIndex + 1).padStart(2, '0')}/{String(screens.length).padStart(2, '0')}
           </span>
         </div>
       </div>
+
+      {isStudioNightstand(room) && <Alert tone="info">{t('studioNightstandNote')}</Alert>}
 
       {copySource && (
         <button

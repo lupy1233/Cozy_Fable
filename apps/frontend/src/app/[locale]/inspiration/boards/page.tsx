@@ -65,7 +65,7 @@ export default function BoardsPage() {
               onKeyDown={(e) => e.key === 'Enter' && submit()}
               placeholder={t('newBoardPlaceholder')}
               maxLength={60}
-              className="h-10 min-w-0 flex-1 rounded-lg border border-border-2 bg-card px-3 text-sm outline-none focus:border-walnut"
+              className="h-10 min-w-0 flex-1 rounded-lg border border-border-2 bg-surface px-3 text-sm outline-none focus:border-walnut"
             />
             <Button variant="walnut" onClick={submit} disabled={create.isPending || !name.trim()}>
               {create.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t('createBoardCta')}
@@ -98,7 +98,7 @@ export default function BoardsPage() {
           />
         )}
         {boards.isSuccess && boards.data.length === 0 && !creating && (
-          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border-2 bg-card px-6 py-16 text-center">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border-2 bg-surface px-6 py-16 text-center">
             <span className="grid h-12 w-12 place-items-center rounded-full bg-walnut-soft text-walnut">
               <FolderHeart className="h-6 w-6" />
             </span>

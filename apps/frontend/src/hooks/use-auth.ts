@@ -2,25 +2,54 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AuthUser, LoginInput, RegisterInput } from '@marketplace/shared';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
+import { adoptLocalOwner, clearUserLocalData, forgetLocalOwner } from '@/lib/session-cleanup';
+import { useSessionHint, useSetSessionHint } from '@/lib/session-hint-context';
 
 const AUTH_KEY = ['auth', 'me'] as const;
+
+// SEC2-11 (E-admin-platform-5): fara cookie-uri de sesiune serverul raspunde 200 { user: null },
+// deci vizitatorul anonim nu mai declanseaza un /auth/refresh esuat. Transformam null intr-un
+// ApiError 401 local ca garzile existente (me.isError → /login) sa ramana neschimbate.
+export async function fetchMe(): Promise<AuthUser> {
+  const { user } = await api<{ user: AuthUser | null }>('/auth/me');
+  if (!user) throw new ApiError('UNAUTHORIZED', 401, 'No session');
+  return user;
+}
 
 export function useMe() {
   return useQuery({
     queryKey: AUTH_KEY,
-    queryFn: () => api<{ user: AuthUser }>('/auth/me').then((r) => r.user),
+    queryFn: fetchMe,
     retry: false,
     staleTime: 60_000,
   });
 }
 
+// Rolul pentru randarea headerului: cat useMe e pending, indiciul venit de pe server; dupa
+// eroare (401) nu mai exista rol, deci nici navigatie.
+export function useSessionRole() {
+  const me = useMe();
+  const hint = useSessionHint();
+  return {
+    role: me.data?.role ?? (me.isPending ? hint : null),
+    user: me.data ?? null,
+    pending: me.isPending,
+  };
+}
+
 export function useLogin() {
   const qc = useQueryClient();
+  const setHint = useSetSessionHint();
   return useMutation({
     mutationFn: (input: LoginInput) =>
       api<{ user: AuthUser }>('/auth/login', { method: 'POST', body: JSON.stringify(input) }),
-    onSuccess: ({ user }) => qc.setQueryData(AUTH_KEY, user),
+    // alt cont logat anterior in acest browser → curatenie INAINTE de setarea noului user
+    onSuccess: ({ user }) => {
+      void adoptLocalOwner(qc, user.id);
+      qc.setQueryData(AUTH_KEY, user);
+      setHint(user.role);
+    },
   });
 }
 
@@ -36,9 +65,17 @@ export function useRegister() {
 
 export function useLogout() {
   const qc = useQueryClient();
+  const setHint = useSetSessionHint();
   return useMutation({
     mutationFn: () => api<{ loggedOut: boolean }>('/auth/logout', { method: 'POST' }),
-    onSuccess: () => qc.removeQueries({ queryKey: ['auth'] }),
+    // onSettled: si un logout esuat pe un calculator partajat sterge datele locale.
+    // qc.clear acopera si ['auth']; guard-urile redirectioneaza pe me.isError (401).
+    onSettled: () => {
+      void clearUserLocalData(qc);
+      forgetLocalOwner();
+      // altfel, dupa qc.clear(), me redevine pending si indiciul vechi ar reaparea o clipa
+      setHint(null);
+    },
   });
 }
 

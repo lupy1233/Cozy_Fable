@@ -446,11 +446,10 @@ describe('buildPanels', () => {
     expect(pieceConfigTotals(config).hanging).toBe(2);
   });
 
-  it('sertarele primesc fundal intunecat pentru rosturi (FRONT_BACKDROP)', () => {
+  it('golul sertarului ramane deschis, fara un panou fals peste interior', () => {
     const panels = buildPanels(bookcaseConfig(), 'BOOKCASE');
     const backdrops = panels.filter((p) => p.role === 'FRONT_BACKDROP');
-    expect(backdrops.length).toBe(1);
-    expect(backdrops[0].col).toBe(0);
+    expect(backdrops).toEqual([]);
   });
 
   it('politele din spatele usilor intra in totalul de polite', () => {
@@ -606,13 +605,13 @@ describe('T1: usi glisante la dulap', () => {
     expect(config.columns[2].zones[0]).toEqual({ type: 'OPEN', fill: 'SHELVES', count: 4 });
     expect(pieceConfig3dSchema('WARDROBE').safeParse(config).success).toBe(true);
 
-    // o usa glisanta per coloana, pe doua sine alternante, in fata carcasei
+    // o usa glisanta per coloana, pe doua sine alternante, incadrate in carcasa
     const doors = buildPanels(config, 'WARDROBE').filter((p) => p.role === 'SLIDING_FRONT');
     expect(doors.length).toBe(3);
     expect(doors[0].slide).toBe('R');
     expect(doors[2].slide).toBe('L');
     expect(new Set(doors.map((d) => d.z)).size).toBe(2);
-    expect(doors.every((d) => d.z > config.depthM / 2)).toBe(true);
+    expect(doors.every((d) => d.z + d.d / 2 < config.depthM / 2)).toBe(true);
 
     // schema: glisant pe 1 coloana sau pe alta piesa → respins
     const one: PieceConfig3d = {

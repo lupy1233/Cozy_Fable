@@ -29,7 +29,7 @@ function rawFetch(path: string, init?: RequestInit): Promise<Response> {
 // Refresh dedupe — un singur refresh in zbor pentru toate requesturile concurente (grace 30s backend)
 let refreshInFlight: Promise<boolean> | null = null;
 
-function tryRefresh(): Promise<boolean> {
+export function refreshSession(): Promise<boolean> {
   refreshInFlight ??= rawFetch('/auth/refresh', { method: 'POST' })
     .then((r) => r.ok)
     .catch(() => false)
@@ -55,7 +55,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
   // 401 → o singura incercare de refresh + retry (rotation invarianta 3.13)
   if (res.status === 401 && !NO_RETRY_PATHS.includes(path)) {
-    const refreshed = await tryRefresh();
+    const refreshed = await refreshSession();
     if (refreshed) res = await rawFetch(path, init);
   }
 
@@ -66,4 +66,15 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   if (res.status === 204) return undefined as T;
   const text = await res.text();
   return (text ? JSON.parse(text) : undefined) as T;
+}
+
+// E-company-19: descarcare binara prin sesiune (401 → refresh + retry, ca api()). Un <a href>
+// direct pica cu 401 JSON dupa expirarea access token-ului (15 min).
+export async function apiBlob(path: string): Promise<Blob> {
+  let res = await rawFetch(path);
+  if (res.status === 401) {
+    if (await refreshSession()) res = await rawFetch(path);
+  }
+  if (!res.ok) throw await parseError(res);
+  return res.blob();
 }

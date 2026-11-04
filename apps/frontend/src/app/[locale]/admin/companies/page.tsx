@@ -6,8 +6,13 @@ import { useEffect, useState } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
 import { useAdminCompanies } from '@/hooks/use-company';
-import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { FilterChips } from '@/components/ui/filter-chips';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadError, QueryState } from '@/components/ui/query-state';
+import { SkeletonPage, SkeletonTable } from '@/components/ui/skeleton';
 import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/table';
 
 const COMPANY_STATUS_TONE: Record<string, 'muted' | 'sage' | 'crimson' | 'amber'> = {
@@ -38,31 +43,27 @@ export default function AdminCompaniesPage() {
   }, [me.isError, me.data, router]);
 
   if (me.isPending || me.data?.role !== 'ADMIN') {
-    return <p className="py-20 text-center text-muted-foreground">…</p>;
+    return (
+      <QueryState pending onRetry={() => void me.refetch()} skeleton={<SkeletonPage variant="table" />} />
+    );
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="page-title">{t('title')}</h1>
+      <PageHeader title={t('title')} />
 
-      <div className="flex flex-wrap gap-2">
-        {STATUSES.map((s) => (
-          <button
-            key={s.key}
-            onClick={() => setStatus(s.key)}
-            className={cn(
-              'rounded-full px-3 py-1 font-mono text-[11px] uppercase tracking-[0.04em] transition-colors',
-              status === s.key
-                ? 'bg-foreground text-background'
-                : 'bg-surface-2 text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {t(s.label)}
-          </button>
-        ))}
-      </div>
+      <FilterChips
+        label={t('filterLabel')}
+        value={status}
+        onChange={(v) => setStatus(v ?? '')}
+        options={STATUSES.map((s) => ({ value: s.key as string, label: t(s.label) }))}
+      />
 
-      <div className="rounded-xl border border-border bg-surface shadow-sm">
+      {list.isPending && <SkeletonTable rows={6} cols={6} />}
+      {list.isError && <LoadError onRetry={() => void list.refetch()} />}
+
+      {list.isSuccess && (
+      <Card padding="none">
         <Table>
           <THead>
             <TR>
@@ -77,8 +78,8 @@ export default function AdminCompaniesPage() {
           <TBody>
             {list.data?.length === 0 && (
               <TR>
-                <TD colSpan={6} className="py-10 text-center text-muted-foreground">
-                  {t('empty')}
+                <TD colSpan={6}>
+                  <EmptyState size="sm" variant="plain" title={t('empty')} />
                 </TD>
               </TR>
             )}
@@ -106,7 +107,8 @@ export default function AdminCompaniesPage() {
             ))}
           </TBody>
         </Table>
-      </div>
+      </Card>
+      )}
     </div>
   );
 }

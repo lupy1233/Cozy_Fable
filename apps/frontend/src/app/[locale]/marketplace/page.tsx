@@ -2,13 +2,20 @@
 
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Inbox } from 'lucide-react';
 import { Link, useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
 import { useMarketplace, useWallet } from '@/hooks/use-marketplace';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
+import { QueryState } from '@/components/ui/query-state';
+import { SkeletonList, SkeletonPage } from '@/components/ui/skeleton';
 import { SlotTrack } from '@/components/ui/slot-track';
+import { ContactSafeText } from '@/components/ui/contact-safe-text';
 import { useRelativeTime } from '@/lib/relative-time';
+import { distanceLabel } from '@/lib/marketplace-distance';
 import { AccessBlocked } from './_components/access-blocked';
 
 export default function MarketplacePage() {
@@ -27,44 +34,43 @@ export default function MarketplacePage() {
   }, [me.isError, me.data, router]);
 
   if (me.isPending) {
-    return <p className="py-20 text-center text-muted-foreground">{t('loading')}</p>;
+    return <QueryState pending onRetry={() => void me.refetch()} skeleton={<SkeletonPage variant="list" />} />;
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="page-title">{t('title')}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{t('subtitle')}</p>
-        </div>
-        <Link
-          href="/marketplace/wallet"
-          className="inline-flex items-center gap-1.5 text-sm text-walnut hover:underline"
-        >
-          {wallet.data ? t('availableCredits', { n: wallet.data.available }) : t('walletLink')}
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
+      <PageHeader
+        title={t('title')}
+        subtitle={t('subtitle')}
+        actions={
+          <Link
+            href="/marketplace/wallet"
+            className="inline-flex items-center gap-1.5 text-sm text-walnut hover:underline"
+          >
+            {wallet.data ? t('availableCredits', { n: wallet.data.available }) : t('walletLink')}
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        }
+      />
 
-      {list.isPending && <p className="py-10 text-center text-muted-foreground">{t('loading')}</p>}
+      {list.isPending && <SkeletonList variant="cards" rows={4} className="lg:grid-cols-2" />}
       {/* 403/404 (firma neaprobata / suspendata / fara abonament) → ecran de blocaj cu CTA */}
       {list.isError && <AccessBlocked error={list.error} onRetry={() => void list.refetch()} />}
       {list.isSuccess && list.data.length === 0 && (
-        <p className="rounded-xl border border-border bg-surface px-4 py-10 text-center text-muted-foreground">
-          {t('empty')}
-        </p>
+        <EmptyState variant="card" icon={Inbox} title={t('empty')} />
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         {list.data?.map((r) => (
-          <Link
-            key={r.id}
-            href={`/marketplace/${r.id}`}
-            className="grid grid-cols-[1fr_auto] gap-4 rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all duration-200 ease-ease hover:-translate-y-0.5 hover:border-border-2 hover:shadow"
-          >
+          <Card key={r.id} asChild interactive className="grid grid-cols-[1fr_auto] gap-4">
+          <Link href={`/marketplace/${r.id}`}>
             <div className="min-w-0">
-              <h2 className="font-serif text-xl tracking-[-0.01em]">{r.title}</h2>
-              <p className="mt-1.5 line-clamp-2 text-[13px] text-muted-foreground">{r.description}</p>
+              <h2 className="heading-section">
+                <ContactSafeText text={r.title} />
+              </h2>
+              <p className="mt-1.5 line-clamp-2 text-ui text-muted-foreground">
+                <ContactSafeText text={r.description} />
+              </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Badge tone="muted">
                   {r.city}, {r.county}
@@ -80,17 +86,19 @@ export default function MarketplacePage() {
               </div>
             </div>
             <div className="flex flex-col items-end justify-between gap-3 text-right">
-              <Badge tone="outline">{t('distance', { km: r.distanceKm.toFixed(1) })}</Badge>
+              <span title={t('distanceHint')}>
+                <Badge tone="outline">{distanceLabel(r, t)}</Badge>
+              </span>
               <div className="flex flex-col items-end gap-1.5">
                 <SlotTrack
                   filled={r.activeClaims}
                   total={r.maxClaims}
                   warn={r.activeClaims >= r.maxClaims}
                 />
-                <span className="font-mono text-[11px] text-muted-foreground">
+                <span className="font-mono text-meta text-muted-foreground">
                   {t('slots', { active: r.activeClaims, max: r.maxClaims })}
                 </span>
-                <span className="font-mono text-[11px] text-muted-2">
+                <span className="font-mono text-meta text-muted-2">
                   {relTime(r.publishedAt)}
                 </span>
                 {r.alreadyClaimedByMyCompany && (
@@ -101,6 +109,7 @@ export default function MarketplacePage() {
               </div>
             </div>
           </Link>
+          </Card>
         ))}
       </div>
     </div>

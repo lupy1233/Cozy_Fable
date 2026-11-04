@@ -12,7 +12,11 @@ import { StatusBadge } from '@/components/ui/badge';
 import { ConfiguratorIcon } from '@/lib/configurator-icons';
 import { ROOM_ICONS } from '@/lib/room-icons';
 import { useRelativeTime } from '@/lib/relative-time';
-import { cn } from '@/lib/utils';
+import { EmptyState } from '@/components/ui/empty-state';
+import { FilterChips } from '@/components/ui/filter-chips';
+import { PageHeader } from '@/components/ui/page-header';
+import { QueryState } from '@/components/ui/query-state';
+import { SkeletonPage } from '@/components/ui/skeleton';
 
 // "Cererile mele" pe carduri vii (feedback PO item 12), in limbajul cardurilor
 // din marketplace: camere cu iconite, statusul, ateliere active + oferte, CTA
@@ -37,7 +41,8 @@ const TAB_STATUSES: Record<Exclude<RequestTab, 'ALL'>, RequestStatus[]> = {
   ],
   // oferta acceptata → executie → livrare (inclusiv disputa deschisa)
   IN_PROGRESS: ['ACCEPTED', 'IN_EXECUTION', 'DELIVERED_BY_COMPANY', 'DISPUTED'],
-  DONE: ['COMPLETED'],
+  // E-admin-platform-3: proiectul anulat de echipa Cozy Home e istoric (fara republicare)
+  DONE: ['COMPLETED', 'CANCELLED'],
   EXPIRED: ['EXPIRED'],
 };
 
@@ -63,68 +68,61 @@ export default function MyRequestsPage() {
     [all, tab],
   );
 
-  if (me.isPending || list.isPending) {
-    return <p className="py-20 text-center text-muted-foreground">{t('loading')}</p>;
+  if (me.isPending || me.isError || list.isPending || list.isError) {
+    // me.isError → efectul de mai sus face redirect la /login; skeletonul ramane pana atunci
+    return (
+      <QueryState
+        pending={me.isPending || me.isError || list.isPending}
+        error={list.error}
+        onRetry={() => void list.refetch()}
+        skeleton={<SkeletonPage variant="list" />}
+      />
+    );
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="page-title">{t('myRequests')}</h1>
-          {all.length > 0 && (
-            <p className="mt-2 text-sm text-muted-foreground">{t('myRequestsSubtitle')}</p>
-          )}
-        </div>
-        <Button asChild variant="walnut">
-          <Link href="/requests/new">{t('newTitle')}</Link>
-        </Button>
-      </div>
+      <PageHeader
+        title={t('myRequests')}
+        subtitle={all.length > 0 ? t('myRequestsSubtitle') : undefined}
+        actions={
+          <Button asChild variant="walnut">
+            <Link href="/requests/new">{t('newTitle')}</Link>
+          </Button>
+        }
+      />
 
       {/* taburi de filtrare dupa stadiu (idee 2 PO r2) */}
       {all.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {TABS.map((tb) => {
-            const n = countFor(tb);
-            return (
-              <button
-                key={tb}
-                type="button"
-                onClick={() => setTab(tb)}
-                aria-pressed={tab === tb}
-                className={cn(
-                  'rounded-full border px-3.5 py-1.5 text-sm transition-colors',
-                  tab === tb
-                    ? 'border-walnut bg-walnut text-primary-foreground'
-                    : 'border-border-2 bg-card text-muted-foreground hover:border-muted-2 hover:text-foreground',
-                  n === 0 && tab !== tb && 'opacity-50',
-                )}
-              >
-                {t(`tabs.${tb}`)}
-                <span className="ml-1.5 font-mono text-xs opacity-75">{n}</span>
-              </button>
-            );
-          })}
-        </div>
+        <FilterChips
+          label={t('tabsLabel')}
+          value={tab}
+          onChange={(v) => v && setTab(v)}
+          options={TABS.map((tb) => ({
+            value: tb,
+            label: t(`tabs.${tb}`),
+            count: countFor(tb),
+            dimmed: countFor(tb) === 0,
+          }))}
+        />
       )}
 
       {all.length > 0 && rows.length === 0 && (
-        <p className="rounded-xl border border-dashed border-border-2 bg-surface px-4 py-10 text-center text-sm text-muted-foreground">
-          {t('tabEmpty')}
-        </p>
+        <EmptyState variant="dashed" size="sm" title={t('tabEmpty')} />
       )}
 
       {all.length === 0 && (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border-2 bg-surface px-6 py-16 text-center">
-          <span className="grid h-12 w-12 place-items-center rounded-full bg-walnut-soft text-walnut">
-            <Plus className="h-6 w-6" />
-          </span>
-          <p className="font-serif text-xl">{t('emptyTitle')}</p>
-          <p className="max-w-sm text-sm text-muted-foreground">{t('emptyHint')}</p>
-          <Button asChild variant="walnut" className="mt-2">
-            <Link href="/requests/new">{t('newTitle')}</Link>
-          </Button>
-        </div>
+        <EmptyState
+          variant="dashed"
+          icon={Plus}
+          title={t('emptyTitle')}
+          hint={t('emptyHint')}
+          action={
+            <Button asChild variant="walnut" className="mt-2">
+              <Link href="/requests/new">{t('newTitle')}</Link>
+            </Button>
+          }
+        />
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">

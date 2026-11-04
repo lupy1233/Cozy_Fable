@@ -3,9 +3,10 @@ import { BillingModule } from '../billing/billing.module';
 import { AdminCompaniesController } from './admin-companies.controller';
 import { CompaniesController } from './companies.controller';
 import { CompaniesService } from './companies.service';
+import { OutboxModule } from '../outbox/outbox.module';
 
 @Module({
-  imports: [BillingModule],
+  imports: [BillingModule, OutboxModule],
   controllers: [CompaniesController, AdminCompaniesController],
   providers: [CompaniesService],
   exports: [CompaniesService],

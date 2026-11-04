@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   CONTACT_CHANNELS,
   DEADLINE_BUCKETS,
+  budgetRangeFromRon,
   configuratorContentSchema,
   type DeadlineBucket,
 } from '@marketplace/shared';
@@ -29,6 +30,7 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { ContactInTextHint } from './contact-in-text-hint';
 import { useMe } from '@/hooks/use-auth';
 import { useBudgetEstimate } from '@/hooks/use-requests';
 import { cn } from '@/lib/utils';
@@ -115,6 +117,7 @@ export function DetailsStep({
   const city = watch('city');
   const country = watch('country') ?? 'RO';
   const contactValues = watch('contactPreferences');
+  const description = watch('description');
 
   // numele localizate ale tarilor, din motorul Intl al browserului
   const regionNames = new Intl.DisplayNames([locale], { type: 'region' });
@@ -137,17 +140,23 @@ export function DetailsStep({
   }, [accountEmail]);
 
   // cand soseste estimarea: initializeaza valoarea pe baza (sau clameaza una
-  // salvata care a iesit din interval dupa editarea camerelor)
+  // salvata care a iesit din interval dupa editarea camerelor). Bucket-ul se
+  // deriva mereu din RON (aceeasi regula ca serverul) — repara si drafturile
+  // vechi in care eticheta ramasese pe "Sub 5.000 RON" langa 33.000 RON.
   useEffect(() => {
     const est = estimate.data;
     if (!est || est.minRon <= 0 || budget === 'UNDISCLOSED') return;
     const current = budgetRon;
+    const setRon = (ron: number) => {
+      setValue('budgetEstimateRon', ron, { shouldValidate: true });
+      setValue('budgetRange', budgetRangeFromRon(ron), { shouldValidate: true });
+    };
     if (typeof current !== 'number') {
-      setValue('budgetEstimateRon', est.minRon, { shouldValidate: true });
+      setRon(est.minRon);
     } else if (current < est.minRon || current > est.maxRon) {
-      setValue('budgetEstimateRon', Math.min(Math.max(current, est.minRon), est.maxRon), {
-        shouldValidate: true,
-      });
+      setRon(Math.min(Math.max(current, est.minRon), est.maxRon));
+    } else if (budget !== budgetRangeFromRon(current)) {
+      setValue('budgetRange', budgetRangeFromRon(current), { shouldValidate: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estimate.data]);
@@ -187,6 +196,7 @@ export function DetailsStep({
         error={vmsg(errors.description?.message)}
       >
         <Textarea rows={4} {...register('description')} />
+        <ContactInTextHint value={description} />
       </Field>
 
       <Field label={t('field.budgetRange')}>

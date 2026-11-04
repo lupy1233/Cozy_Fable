@@ -12,25 +12,37 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
+import { companyCan } from '@/lib/company-permissions';
 import { useMe } from '@/hooks/use-auth';
 import { useMyCompany } from '@/hooks/use-company';
 import { useAssignClaim } from '@/hooks/use-marketplace';
 import { useClaimContext } from '@/hooks/use-quotes';
 import { useMarkDelivered } from '@/hooks/use-fulfillment';
+import { isFirmRules, useFirmRules } from '@/hooks/use-legal';
 import { useRealtimeSync } from '@/hooks/use-socket';
+import { useNow } from '@/hooks/use-now';
 import { useRelativeTime } from '@/lib/relative-time';
+import { slaPhase, slaPhaseClass, useDurationLeft, useSlaDateFormat } from '@/lib/sla-deadline';
 import { AttachmentThumb } from '@/components/configurator/attachment-item';
-import { RequestInspirationStrip } from '@/components/configurator/request-inspiration-strip';
+import { RequestInspirationByRoom } from '@/components/configurator/request-inspiration-by-room';
 import { RoomSpecCard, RoomSpecNav } from '@/components/configurator/room-spec-card';
 import { StudioScenesButton } from '@/components/studio/scene-button';
 import { StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
+import { SkeletonPage } from '@/components/ui/skeleton';
+import { ContactSafeText } from '@/components/ui/contact-safe-text';
 import { Select } from '@/components/ui/select';
 import { ChatPanel } from '../../../_components/chat-panel';
+import { AgreementCard } from '../../../_components/agreement-card';
 import { ClaimLifecyclePanel } from '../../../_components/claim-lifecycle-panel';
+import { ActionConfirmDialog } from '../../../_components/action-confirm-dialog';
+import { ProjectCasePanel } from '../../../_components/project-case-panel';
 import { OfferBuilder } from '../../../_components/offer-builder';
 import { OfferCard } from '../../../_components/offer-card';
 
@@ -46,6 +58,7 @@ export default function CompanyClaimPage() {
   const router = useRouter();
   const me = useMe();
   const ctx = useClaimContext(claimSlotId);
+  const company = useMyCompany();
   useRealtimeSync();
 
   useEffect(() => {
@@ -54,24 +67,40 @@ export default function CompanyClaimPage() {
   }, [me.isError, me.data, router]);
 
   if (ctx.isPending) {
-    return <p className="py-20 text-center text-muted-foreground">{t('loading')}</p>;
+    return <SkeletonPage variant="detail" />;
   }
   if (ctx.isError || !ctx.data) {
-    return <p className="py-20 text-center text-muted-foreground">{t('notFound')}</p>;
+    return (
+      <EmptyState
+        variant="card"
+        tone="error"
+        title={t('notFound')}
+        action={
+          <Link href="/marketplace/claims" className="text-sm text-walnut hover:underline">
+            ← {t('backToClaims')}
+          </Link>
+        }
+      />
+    );
   }
 
   const c = ctx.data;
+  const isManager = company.data?.myRole === 'OWNER' || company.data?.myRole === 'MANAGER';
+  // E-company-3: preluare inchisa sau cerere stearsa → doar rezumatul (lipsa = FULL, imagine veche)
+  if (c.visibility === 'REDACTED' || c.visibility === 'TOMBSTONE') {
+    return <ClosedClaimSummary ctx={c} />;
+  }
+  // E-admin-platform-3: castigatorul vede acordul si poate raporta un proiect blocat
+  const isWinner = c.quote?.status === 'ACCEPTED';
+  const projectActive = c.requestStatus === 'ACCEPTED' || c.requestStatus === 'IN_EXECUTION';
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/marketplace/claims" className="text-sm text-walnut hover:underline">
-          ← {t('backToClaims')}
-        </Link>
-        <StatusBadge status={c.claimStatus} label={tm(`claimStatus.${c.claimStatus}`)} />
-      </div>
-
-      <h1 className="page-title">{c.requestTitle}</h1>
+      <PageHeader
+        back={{ href: '/marketplace/claims', label: t('backToClaims') }}
+        meta={<StatusBadge status={c.claimStatus} label={tm(`claimStatus.${c.claimStatus}`)} />}
+        title={<ContactSafeText text={c.requestTitle} />}
+      />
 
       <WorkBar ctx={c} />
 
@@ -81,13 +110,16 @@ export default function CompanyClaimPage() {
           <ClientCard ctx={c} />
 
           <section className="flex flex-col gap-3">
-            <h2 className="font-serif text-xl">{t('offerSection')}</h2>
+            <h2 className="heading-section">{t('offerSection')}</h2>
+            {isWinner && c.quote && <AgreementCard quote={c.quote} requestStatus={c.requestStatus} mode="company" />}
             {c.quote ? (
               <OfferCard
                 quote={c.quote}
                 mode="company"
                 includesPaidDesign={c.includesPaidDesign}
                 rooms={c.rooms}
+                firmActions={c.firmActions}
+                slaPaused={c.slaPaused}
               />
             ) : (
               <OfferBuilder
@@ -97,12 +129,26 @@ export default function CompanyClaimPage() {
                 rooms={c.rooms}
               />
             )}
-            {c.quote?.status === 'ACCEPTED' && <DeliverButton requestId={c.requestId} />}
+            {/* E-company-1: livrarea o marcheaza doar OWNER/MANAGER, pe castigator inca deschis */}
+            {c.quote?.status === 'ACCEPTED' &&
+              c.claimStatus === 'OFFER_SENT' &&
+              (c.requestStatus === 'ACCEPTED' || c.requestStatus === 'IN_EXECUTION') &&
+              isManager && (
+                <DeliverButton requestId={c.requestId} />
+              )}
+            {isWinner && (projectActive || c.projectCase?.status === 'CLOSED_PROJECT_CANCELLED') && (
+              <ProjectCasePanel
+                requestId={c.requestId}
+                mode="company"
+                projectCase={c.projectCase}
+                canAct={isManager && projectActive}
+              />
+            )}
           </section>
 
           {c.threadId && (
             <section className="flex flex-col gap-3">
-              <h2 className="font-serif text-xl">{t('chatSection')}</h2>
+              <h2 className="heading-section">{t('chatSection')}</h2>
               <ChatPanel threadId={c.threadId} mode="company" />
             </section>
           )}
@@ -114,7 +160,7 @@ export default function CompanyClaimPage() {
           <ProjectCard ctx={c} />
 
           <section className="flex flex-col gap-3">
-            <h2 className="font-serif text-xl">{t('workspace.roomsSection')}</h2>
+            <h2 className="heading-section">{t('workspace.roomsSection')}</h2>
             {/* camera 3D din Studio (feedback PO r3) — amplasarea clientului */}
             <StudioScenesButton scenes={c.detail.studioScenes} />
             <RoomSpecNav rooms={c.detail.rooms} />
@@ -128,11 +174,62 @@ export default function CompanyClaimPage() {
             ))}
           </section>
 
-          <GeneralFiles ctx={c} />
+          {/* inspiratia clientului, grupata pe camere, langa camere (E-client-34) */}
+          <RequestInspirationByRoom photos={c.detail.inspirationPhotos} rooms={c.detail.rooms} />
 
-          <RequestInspirationStrip ids={c.detail.inspirationPhotoIds} />
+          <GeneralFiles ctx={c} />
         </div>
       </div>
+    </div>
+  );
+}
+
+// E-company-3 (docs/03 4.2): preluarea nu mai ocupa locul (REDACTED) sau clientul a sters
+// cererea (TOMBSTONE) — titlul, localitatea, stadiul si oferta proprie, fara actiuni, chat,
+// date de contact, camere sau fisiere.
+function ClosedClaimSummary({ ctx: c }: { ctx: ClaimQuoteContextDto }) {
+  const t = useTranslations('Quotes');
+  const tm = useTranslations('Marketplace');
+  const isWinner = c.quote?.status === 'ACCEPTED';
+  const place = [c.detail.city, c.detail.county].filter(Boolean).join(', ');
+  return (
+    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+      <PageHeader
+        back={{ href: '/marketplace/claims', label: t('backToClaims') }}
+        meta={<StatusBadge status={c.claimStatus} label={tm(`claimStatus.${c.claimStatus}`)} />}
+        title={<ContactSafeText text={c.requestTitle} />}
+        subtitle={
+          place ? (
+            <span className="inline-flex items-center gap-1.5">
+              <MapPin className="h-4 w-4 shrink-0" />
+              {place}
+            </span>
+          ) : undefined
+        }
+      />
+
+      <Card tone="muted" padding="sm" className="text-sm text-muted-foreground">
+        {t(c.visibility === 'TOMBSTONE' ? 'workspace.tombstoneNotice' : 'workspace.redactedNotice')}
+      </Card>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="heading-section">{t('offerSection')}</h2>
+        {isWinner && c.quote && <AgreementCard quote={c.quote} requestStatus={c.requestStatus} mode="company" />}
+        {c.quote ? (
+          <OfferCard
+            quote={c.quote}
+            mode="company"
+            includesPaidDesign={c.includesPaidDesign}
+            rooms={c.rooms}
+            readOnly
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">{t('workspace.noOwnOffer')}</p>
+        )}
+        {isWinner && c.projectCase && (
+          <ProjectCasePanel requestId={c.requestId} mode="company" projectCase={c.projectCase} canAct={false} />
+        )}
+      </section>
     </div>
   );
 }
@@ -143,24 +240,38 @@ function WorkBar({ ctx }: { ctx: ClaimQuoteContextDto }) {
   const t = useTranslations('Quotes');
   const tm = useTranslations('Marketplace');
   const relTime = useRelativeTime();
+  const fmtSla = useSlaDateFormat();
+  const durationLeft = useDurationLeft();
+  // E-company-13: re-randare la 30 s → numaratorile ("în 42 de min") si fazele SLA avanseaza singure
+  const now = useNow(30_000);
   const company = useMyCompany();
   const assign = useAssignClaim();
 
-  const canAssign =
-    ctx.claimStatus === 'ACTIVE' &&
-    (company.data?.myRole === 'OWNER' || company.data?.myRole === 'MANAGER');
+  const active = ctx.claimStatus === 'ACTIVE';
+  // E-admin-platform-58: aceeasi regula ca ClaimsService.assign (CLAIMS_ASSIGN = OWNER/MANAGER)
+  const canAssign = active && companyCan(company.data, 'CLAIMS_ASSIGN');
   const unassigned = !ctx.assignment.assignedTo;
   const err = assign.error instanceof ApiError ? assign.error.code : null;
+  const assignDue =
+    ctx.assignment.assignDeadlineAt != null && Date.parse(ctx.assignment.assignDeadlineAt) <= now;
+  // SLA conteaza doar cat slotul e ACTIVE (procesorul SLA iese altfel) si nu e pe pauza
+  const phase =
+    active && ctx.slaDeadlineAt && !ctx.slaPaused
+      ? slaPhase(ctx.slaDeadlineAt, ctx.firmActions.slaBreachAt, now)
+      : null;
+  const late = phase === 'GRACE' || phase === 'BREACHED';
 
   return (
-    <section
+    <Card
+      as="section"
+      padding="sm"
       className={
-        'grid gap-4 rounded-xl border bg-surface p-4 shadow-sm sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-border-2 ' +
-        (unassigned && ctx.claimStatus === 'ACTIVE' ? 'border-amber/50' : 'border-border')
+        'grid gap-4 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-border-2 ' +
+        (late ? 'border-crimson/50' : unassigned && active ? 'border-amber/50' : '')
       }
     >
       <div className="flex flex-col gap-1.5 sm:pr-4">
-        <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-2">
+        <span className="flex items-center gap-1.5 label">
           <Users className="h-3 w-3" />
           {t('workspace.assignLabel')}
         </span>
@@ -188,10 +299,16 @@ function WorkBar({ ctx }: { ctx: ClaimQuoteContextDto }) {
             {ctx.assignment.assignedTo?.name ?? t('workspace.unassigned')}
           </p>
         )}
-        {unassigned && ctx.claimStatus === 'ACTIVE' && ctx.assignment.assignDeadlineAt && (
-          <p className="flex items-center gap-1 text-xs text-amber">
+        {unassigned && active && ctx.assignment.assignDeadlineAt && (
+          <p
+            className={
+              'flex items-center gap-1 text-xs ' + (assignDue ? 'text-crimson' : 'text-amber')
+            }
+          >
             <Timer className="h-3.5 w-3.5" />
-            {t('workspace.autoCancel', { time: relTime(ctx.assignment.assignDeadlineAt) })}
+            {assignDue
+              ? t('workspace.autoCancelDue')
+              : t('workspace.autoCancel', { time: relTime(ctx.assignment.assignDeadlineAt) })}
           </p>
         )}
         {err && (
@@ -207,26 +324,45 @@ function WorkBar({ ctx }: { ctx: ClaimQuoteContextDto }) {
       </div>
 
       <div className="flex flex-col gap-1.5 sm:px-4">
-        <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-2">
+        <span className="flex items-center gap-1.5 label">
           <CalendarClock className="h-3 w-3" />
           {t('workspace.slaLabel')}
         </span>
-        <p className="text-sm font-medium">
-          {ctx.slaDeadlineAt ? new Date(ctx.slaDeadlineAt).toLocaleString() : '—'}
-        </p>
-        {ctx.slaDeadlineAt && (
-          <p className="text-xs text-muted-foreground">{relTime(ctx.slaDeadlineAt)}</p>
+        {!active ? (
+          // oferta trimisa / preluare inchisa: termenul SLA nu mai are obiect
+          <p className="text-sm text-muted-foreground">
+            {ctx.claimStatus === 'OFFER_SENT' || ctx.claimStatus === 'COMPLETED'
+              ? t('workspace.slaOfferSent')
+              : '—'}
+          </p>
+        ) : (
+          <>
+            <p className="text-sm font-medium">{ctx.slaDeadlineAt ? fmtSla(ctx.slaDeadlineAt) : '—'}</p>
+            {ctx.slaPaused && <p className="text-xs text-amber">{t('workspace.slaPaused')}</p>}
+            {ctx.slaDeadlineAt && phase && (phase === 'RUNNING' || phase === 'SOON') && (
+              <p className={'text-xs ' + slaPhaseClass[phase]}>{relTime(ctx.slaDeadlineAt)}</p>
+            )}
+            {phase === 'GRACE' && ctx.firmActions.slaBreachAt && (
+              <p className="text-xs font-medium text-crimson">
+                {t('workspace.slaGrace', {
+                  left: durationLeft(Date.parse(ctx.firmActions.slaBreachAt) - now),
+                })}
+              </p>
+            )}
+            {phase === 'BREACHED' && (
+              <p className="text-xs font-medium text-crimson">{t('workspace.slaBreached')}</p>
+            )}
+          </>
         )}
-        {ctx.slaPaused && <p className="text-xs text-amber">{t('workspace.slaPaused')}</p>}
       </div>
 
       <div className="flex flex-col gap-1.5 sm:pl-4">
-        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-2">
+        <span className="label">
           {t('workspace.budgetLabel')}
         </span>
         <BudgetLine ctx={ctx} />
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -251,14 +387,31 @@ function BudgetLine({ ctx }: { ctx: ClaimQuoteContextDto }) {
 }
 
 // Cardul clientului (PO r6): numele si caile de contact alese in cerere —
-// vizibile DOAR cat timp claim-ul e activ pe cerere.
+// vizibile DOAR cat timp claim-ul e activ pe cerere si doar membrilor care au voie (E-company-3).
 function ClientCard({ ctx }: { ctx: ClaimQuoteContextDto }) {
   const t = useTranslations('Quotes');
+  const relTime = useRelativeTime();
   if (!ctx.client) {
+    let text: string;
+    switch (ctx.clientHiddenReason) {
+      case 'NOT_ASSIGNED_TO_YOU':
+        text = t('workspace.clientHiddenNotAssigned');
+        break;
+      case 'REVEAL_PENDING':
+        text = ctx.clientVisibleFrom
+          ? t('workspace.clientHiddenRevealPending', { time: relTime(ctx.clientVisibleFrom) })
+          : t('workspace.clientHidden');
+        break;
+      case 'RETENTION_EXPIRED':
+        text = t('workspace.clientHiddenRetention');
+        break;
+      default:
+        text = t('workspace.clientHidden');
+    }
     return (
-      <p className="rounded-xl border border-border bg-surface-2 px-4 py-3 text-sm text-muted-foreground">
-        {t('workspace.clientHidden')}
-      </p>
+      <Card tone="muted" padding="sm" className="text-sm text-muted-foreground">
+        {text}
+      </Card>
     );
   }
   const initials = ctx.client.name
@@ -269,16 +422,16 @@ function ClientCard({ ctx }: { ctx: ClaimQuoteContextDto }) {
     .join('')
     .toUpperCase();
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+    <Card as="section" padding="none" className="overflow-hidden">
       <div className="flex items-center gap-3 border-b border-border bg-surface-2 px-4 py-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-walnut-soft font-serif text-sm text-walnut">
           {initials || <UserRound className="h-5 w-5" />}
         </span>
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-2">
+          <p className="label">
             {t('workspace.clientSection')}
           </p>
-          <h2 className="font-serif text-lg leading-tight">{ctx.client.name || '—'}</h2>
+          <h2 className="heading-card leading-tight">{ctx.client.name || '—'}</h2>
         </div>
       </div>
       <ul className="flex flex-col gap-2 p-4 text-sm">
@@ -309,7 +462,7 @@ function ClientCard({ ctx }: { ctx: ClaimQuoteContextDto }) {
           </li>
         )}
       </ul>
-    </section>
+    </Card>
   );
 }
 
@@ -320,12 +473,14 @@ function ProjectCard({ ctx }: { ctx: ClaimQuoteContextDto }) {
   const d = ctx.detail;
   if (!d.description && !ctx.includesPaidDesign && !d.hasOwnProject) return null;
   return (
-    <section className="rounded-xl border border-border bg-surface p-4 shadow-sm">
-      <h2 className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-2">
+    <Card as="section" padding="sm">
+      <h2 className="label mb-2">
         {t('workspace.descriptionLabel')}
       </h2>
       {d.description ? (
-        <p className="whitespace-pre-wrap text-sm">{d.description}</p>
+        <p className="whitespace-pre-wrap text-sm">
+          <ContactSafeText text={d.description} />
+        </p>
       ) : (
         <p className="text-sm text-muted-2">{t('workspace.noDescription')}</p>
       )}
@@ -343,7 +498,7 @@ function ProjectCard({ ctx }: { ctx: ClaimQuoteContextDto }) {
           )}
         </div>
       )}
-    </section>
+    </Card>
   );
 }
 
@@ -361,7 +516,7 @@ function GeneralFiles({ ctx }: { ctx: ClaimQuoteContextDto }) {
   if (general.length === 0) return null;
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="font-serif text-xl">{t('workspace.filesSection')}</h2>
+      <h2 className="heading-section">{t('workspace.filesSection')}</h2>
       <div className="flex flex-wrap gap-2">
         {general.map((a) => (
           <AttachmentThumb key={a.id} attachment={a} />
@@ -373,15 +528,46 @@ function GeneralFiles({ ctx }: { ctx: ClaimQuoteContextDto }) {
 
 function DeliverButton({ requestId }: { requestId: string }) {
   const t = useTranslations('Fulfillment');
+  const tu = useTranslations('Legal.firmRules.units');
   const deliver = useMarkDelivered();
+  // E-company-6: marcarea e ireversibila din aplicatie → dialog cu consecintele (D-L1-1)
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const firmRules = useFirmRules();
+  const rules = isFirmRules(firmRules.data) ? firmRules.data : null;
+  const err = deliver.error instanceof ApiError ? deliver.error.code : null;
+  const errText = err ? (t.has(`apiErrors.${err}`) ? t(`apiErrors.${err}`) : t('apiErrors.INTERNAL_ERROR')) : null;
   return (
-    <Button
-      variant="walnut"
-      className="self-start"
-      onClick={() => deliver.mutate(requestId)}
-      disabled={deliver.isPending || deliver.isSuccess}
-    >
-      {deliver.isSuccess ? t('markedDelivered') : t('markDelivered')}
-    </Button>
+    <div className="flex flex-col gap-2">
+      <Button
+        variant="walnut"
+        className="self-start"
+        onClick={() => {
+          deliver.reset();
+          setConfirmOpen(true);
+        }}
+        disabled={deliver.isPending || deliver.isSuccess}
+      >
+        {deliver.isSuccess ? t('markedDelivered') : t('markDelivered')}
+      </Button>
+      {errText && <p className="text-sm text-crimson">{errText}</p>}
+      <ActionConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={t('deliverConfirmTitle')}
+        confirmLabel={t('deliverConfirmCta')}
+        cancelLabel={t('deliverConfirmCancel')}
+        pendingLabel={t('deliverConfirmPending')}
+        pending={deliver.isPending}
+        error={errText}
+        onConfirm={() => deliver.mutate(requestId, { onSuccess: () => setConfirmOpen(false) })}
+      >
+        <p>
+          {rules
+            ? t('deliverConfirmBody', { days: tu('day', { n: rules.delivery.autoCompleteDays }) })
+            : t('deliverConfirmBodyNoDays')}
+        </p>
+        <p className="font-medium">{t('deliverConfirmIrreversible')}</p>
+      </ActionConfirmDialog>
+    </div>
   );
 }

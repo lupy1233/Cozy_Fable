@@ -1,4 +1,21 @@
 {
   "extends": "next/core-web-vitals",
-  "plugins": ["@typescript-eslint"]
+  "plugins": ["@typescript-eslint"],
+  "rules": {
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "Literal[value=/text-\\[[0-9.]+px\\]/]",
+        "message": "Scala tipografica: foloseste text-micro/meta/xs/ui/sm/lead/base/lg/xl sau heading-section/heading-card (docs/design-tokens.md), nu text-[..px]."
+      },
+      {
+        "selector": "TemplateElement[value.raw=/text-\\[[0-9.]+px\\]/]",
+        "message": "Scala tipografica: foloseste tokenii din docs/design-tokens.md, nu text-[..px]."
+      },
+      {
+        "selector": "Literal[value=/\\bbg-card\\b/]",
+        "message": "Foloseste bg-surface (tokenul unic pentru suprafete), nu bg-card."
+      }
+    ]
+  }
 }

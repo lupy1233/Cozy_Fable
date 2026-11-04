@@ -9,8 +9,9 @@ export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 export const alt = 'Cozy Home';
 
-export default async function OpenGraphImage({ params }: { params: { locale: string } }) {
-  const t = await getTranslations({ locale: params.locale, namespace: 'Meta' });
+export default async function OpenGraphImage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'Meta' });
   return new ImageResponse(
     (
       <div

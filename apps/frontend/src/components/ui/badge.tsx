@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 
 // Badge — portat din prototip (.badge). Font mono, uppercase, pill.
 const badgeVariants = cva(
-  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.05em] leading-5 whitespace-nowrap',
+  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-mono text-micro uppercase tracking-[0.05em] leading-5 whitespace-nowrap',
   {
     variants: {
       tone: {
@@ -72,23 +72,26 @@ export function StatusBadge({
 }
 
 // TierBadge — ribbon cu gradient pentru planuri.
+// E-admin-platform-58: planurile sunt date — codurile necunoscute (planuri noi) primesc un stil
+// neutru, iar textul afisat e numele planului (label) sau codul.
 const TIER_CLASS: Record<string, string> = {
-  PLATINUM: 'bg-gradient-to-br from-[#2E2A24] to-[#5C534A] text-[#F4EFE6]',
-  GOLD: 'bg-gradient-to-br from-[#B07F1E] to-[#D4A547] text-[#FFF8E6]',
-  SILVER: 'bg-gradient-to-br from-[#8A8378] to-[#B0A99B] text-[#F4EFE6]',
+  PLATINUM: 'bg-gradient-to-br from-tier-platinum-from to-tier-platinum-to text-tier-platinum-fg',
+  GOLD: 'bg-gradient-to-br from-tier-gold-from to-tier-gold-to text-tier-gold-fg',
+  SILVER: 'bg-gradient-to-br from-tier-silver-from to-tier-silver-to text-tier-silver-fg',
 };
+const TIER_NEUTRAL = 'bg-secondary text-foreground border border-border-2';
 
-export function TierBadge({ tier, className }: { tier: string; className?: string }) {
+export function TierBadge({ tier, label, className }: { tier: string; label?: string; className?: string }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.05em] leading-5',
-        TIER_CLASS[tier] ?? TIER_CLASS.SILVER,
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-mono text-micro uppercase tracking-[0.05em] leading-5',
+        TIER_CLASS[tier] ?? TIER_NEUTRAL,
         className,
       )}
     >
       <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      {tier}
+      {label || tier}
     </span>
   );
 }

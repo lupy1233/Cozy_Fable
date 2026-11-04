@@ -11,6 +11,7 @@ import {
   HANGING_MIN_ZONE_H,
   hangingCountFor,
   isPieceConfig3d,
+  isFurnitureKind,
   normalizePieceConfig,
   PIECE3D_FINISHES,
   PIECE3D_RULES,
@@ -43,7 +44,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { FINISH_SPECS } from './finishes';
-import { PieceCanvas, slideKey, zoneKey, type SnapshotFn, type ZoneRef } from './piece-canvas';
+import { PieceCanvas, zoneKey, type SnapshotFn, type ZoneRef } from './piece-canvas';
+import { FurnitureControls } from './furniture-controls';
+import { CatalogControls } from './catalog-controls';
+import { useCabinetFronts } from './use-cabinet-fronts';
 
 // Step-ul configurator-3d (R2/R3): model 3D live + controale directe.
 // D-3D-2 (aprobat): 3D si "campurile clasice" COEXISTA ca doua moduri de UI
@@ -107,7 +111,7 @@ function DimensionControl({
     <div>
       <div className="mb-1 flex items-baseline justify-between gap-2">
         <span className="text-sm font-medium">{label}</span>
-        <span className="text-[11px] text-muted-foreground">
+        <span className="text-meta text-muted-foreground">
           {cm(min)}–{cm(max)} cm
         </span>
       </div>
@@ -126,6 +130,7 @@ function DimensionControl({
           <Input
             type="number"
             inputMode="numeric"
+            aria-label={label}
             value={draft ?? cm(valueM)}
             onChange={(e) => setDraft(e.target.value)}
             onBlur={(e) => commit(e.target.value)}
@@ -265,7 +270,7 @@ function LockableSize({
           aria-label={label}
           className="h-8 pr-7 text-right text-sm"
         />
-        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
+        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-micro text-muted-foreground">
           cm
         </span>
       </div>
@@ -327,7 +332,11 @@ function ZoneCountInput({
   );
 }
 
-export default function Configurator3dStepUI({
+export default function Configurator3dStepUI(props: Configurator3dStepUIProps) {
+  return isFurnitureKind(props.piece) ? <FurnitureControls {...props} /> : <CabinetControls {...props} />;
+}
+
+function CabinetControls({
   piece,
   value,
   onChange,
@@ -338,11 +347,10 @@ export default function Configurator3dStepUI({
   const [webgl] = useState(() => hasWebGl());
   const [mode, setMode] = useState<'3d' | 'fields'>(webgl ? '3d' : 'fields');
   const [activeZone, setActiveZone] = useState<ZoneRef | null>(null);
-  // zonele cu usa/sertar deschise in scena ("col:zone")
-  const [openZones, setOpenZones] = useState<Set<string>>(new Set());
   const snapshotFn = useRef<SnapshotFn | null>(null);
 
   const config = isPieceConfig3d(value) ? value : null;
+  const { openZones, setOpenZones, toggleZone, onFrontSettled } = useCabinetFronts(piece, config);
 
   // raspunsul exista mereu dupa montare — configul implicit al piesei
   useEffect(() => {
@@ -664,6 +672,7 @@ export default function Configurator3dStepUI({
   // in modul cu campuri raman 3 pe rand ca inainte
   const dimensionControls = (
     <div className={mode === '3d' ? 'grid gap-3 sm:grid-cols-3 lg:grid-cols-1' : 'grid gap-3 sm:grid-cols-3'}>
+      <CatalogControls kind={piece} config={config} apply={(patch) => apply({ ...config, ...patch })} />
       <DimensionControl
         label={t('config3d.width')}
         min={rules.width.min}
@@ -815,7 +824,7 @@ export default function Configurator3dStepUI({
       )}
       {/* la 1 sau 4+ coloane optiunea de glisare nu exista — explicam de ce */}
       {rules.slidingDoors && !sliding && !canSlide && (
-        <p className="text-[11px] text-muted-foreground">{t('config3d.slidingNeeds')}</p>
+        <p className="text-meta text-muted-foreground">{t('config3d.slidingNeeds')}</p>
       )}
     </div>
   );
@@ -1038,43 +1047,12 @@ export default function Configurator3dStepUI({
               config={config}
               activeZone={validActiveZone}
               openZones={openZones}
+              onFrontSettled={onFrontSettled}
               onZoneClick={(ref) => {
                 // click pe zona: o selecteaza; daca are usa/sertare, le deschide
                 // sau le inchide (NU mai cicleaza tipul — tipul se alege din bara)
                 setActiveZone(ref);
-                const zone = config.columns[ref.col]?.zones[ref.zone];
-                if (sliding) {
-                  // T1: primul click gliseaza usa coloanei; cu usa deschisa,
-                  // click pe sertare le trage, click in alta parte o inchide
-                  setOpenZones((prev) => {
-                    const door = slideKey(ref.col);
-                    const next = new Set(prev);
-                    if (!next.has(door)) {
-                      next.add(door);
-                    } else if (zone?.type === 'DRAWERS') {
-                      const key = zoneKey(ref.col, ref.zone);
-                      if (next.has(key)) next.delete(key);
-                      else next.add(key);
-                    } else {
-                      // inchide usa si sertarele ramase deschise in coloana
-                      next.delete(door);
-                      for (const key of [...next]) {
-                        if (key.startsWith(`${ref.col}:`)) next.delete(key);
-                      }
-                    }
-                    return next;
-                  });
-                  return;
-                }
-                if (zone && (zone.type === 'DOOR' || zone.type === 'DRAWERS' || zone.type === 'TILT_OUT')) {
-                  setOpenZones((prev) => {
-                    const key = zoneKey(ref.col, ref.zone);
-                    const next = new Set(prev);
-                    if (next.has(key)) next.delete(key);
-                    else next.add(key);
-                    return next;
-                  });
-                }
+                toggleZone(ref);
               }}
               onSnapshotReady={(fn) => {
                 snapshotFn.current = fn;

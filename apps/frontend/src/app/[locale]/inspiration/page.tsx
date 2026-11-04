@@ -13,8 +13,11 @@ import {
 } from '@marketplace/shared';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { FilterChips } from '@/components/ui/filter-chips';
 import { Input } from '@/components/ui/input';
+import { INSPIRATION_ROOM_TYPES } from '@/components/configurator/inspiration-room-types';
 import { MasonryColumns } from '@/components/ui/masonry-columns';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useMe } from '@/hooks/use-auth';
 import { useInfiniteInspiration } from '@/hooks/use-inspiration';
 import { useSavedRefs } from '@/hooks/use-inspiration-boards';
@@ -33,15 +36,7 @@ const PIN_ASPECTS = ['aspect-[3/4]', 'aspect-square', 'aspect-[4/5]'] as const;
 const PIN_RATIOS = [4 / 3, 1, 5 / 4] as const;
 
 // tipurile afisate ca filtre (subsetul cu continut probabil in galerie)
-const TYPE_FILTERS: RoomType[] = [
-  'KITCHEN',
-  'LIVING',
-  'BEDROOM',
-  'DRESSING',
-  'OFFICE',
-  'BATHROOM',
-  'HALLWAY',
-];
+const TYPE_FILTERS = INSPIRATION_ROOM_TYPES;
 
 // linkurile vechi de pe landing folosesc ?type=kitchen (minuscule) — le mapam
 const LEGACY_TYPE: Record<string, RoomType> = {
@@ -101,42 +96,31 @@ function FilterGroup({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        className={cn(
-          'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors',
-          count > 0 || open
-            ? 'border-walnut/50 bg-walnut-soft/60 text-foreground'
-            : 'border-border-2 bg-surface text-muted-foreground hover:border-muted-2 hover:text-foreground',
-        )}
-      >
-        <span className="font-semibold uppercase tracking-[0.1em]">{label}</span>
-        {preview}
-        {count > 0 && (
-          <span className="grid h-4 min-w-4 place-items-center rounded-full bg-walnut px-1 text-[10px] font-semibold text-primary-foreground">
-            {count}
-          </span>
-        )}
-        <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', open && 'rotate-180')} />
-      </button>
-      {open && (
-        <>
-          <button
-            type="button"
-            aria-label={label}
-            onClick={onClose}
-            className="fixed inset-0 z-10 cursor-default"
-            tabIndex={-1}
-          />
-          <div className="absolute left-0 z-20 mt-2 w-max max-w-[min(21rem,calc(100vw-2.5rem))] rounded-xl border border-border bg-surface p-2.5 shadow-lg">
-            {children}
-          </div>
-        </>
-      )}
-    </div>
+    <Popover open={open} onOpenChange={(o) => (o ? onToggle() : onClose())}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors',
+            count > 0 || open
+              ? 'border-walnut/50 bg-walnut-soft/60 text-foreground'
+              : 'border-border-2 bg-surface text-muted-foreground hover:border-muted-2 hover:text-foreground',
+          )}
+        >
+          <span className="font-semibold uppercase tracking-[0.1em]">{label}</span>
+          {preview}
+          {count > 0 && (
+            <span className="grid h-4 min-w-4 place-items-center rounded-full bg-walnut px-1 text-micro font-semibold text-primary-foreground">
+              {count}
+            </span>
+          )}
+          <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', open && 'rotate-180')} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" width="auto" className="max-w-[min(21rem,calc(100vw-2.5rem))] p-2.5">
+        {children}
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -158,7 +142,7 @@ function PanelOption({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-colors',
+        'flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-ui transition-colors',
         active ? 'bg-walnut-soft/70 text-foreground' : 'text-muted-foreground hover:bg-surface-2 hover:text-foreground',
       )}
     >
@@ -184,32 +168,6 @@ export default function InspirationPage() {
     <Suspense fallback={null}>
       <InspirationGallery />
     </Suspense>
-  );
-}
-
-function FilterPill({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        'rounded-full border px-3.5 py-1.5 text-sm transition-colors',
-        active
-          ? 'border-walnut bg-walnut text-primary-foreground'
-          : 'border-border-2 bg-card text-muted-foreground hover:border-muted-2 hover:text-foreground',
-      )}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -266,11 +224,12 @@ function InspirationGallery() {
     return () => obs.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // photoId → boardId (starea "Salvat" per pin)
-  const savedByPhoto = useMemo(
-    () => new Map((savedRefs.data ?? []).map((s) => [s.photoId, s.boardId])),
-    [savedRefs.data],
-  );
+  // photoId → colectiile in care e salvata (starea "Salvat" per pin; o poza poate fi in mai multe)
+  const savedByPhoto = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const s of savedRefs.data ?? []) map.set(s.photoId, [...(map.get(s.photoId) ?? []), s.boardId]);
+    return map;
+  }, [savedRefs.data]);
   const authed = !!me.data;
   const requireAuth = () => router.push('/login?redirect=/inspiration');
 
@@ -283,7 +242,7 @@ function InspirationGallery() {
           {/* colectiile mele — vizibil oricui; neautentificat → login */}
           <Link
             href={authed ? '/inspiration/boards' : '/login?redirect=/inspiration/boards'}
-            className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border-2 bg-card px-3.5 py-1.5 text-sm text-muted-foreground transition-colors hover:border-walnut hover:text-walnut sm:absolute sm:right-0 sm:top-1 sm:mt-0"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border-2 bg-surface px-3.5 py-1.5 text-sm text-muted-foreground transition-colors hover:border-walnut hover:text-walnut sm:absolute sm:right-0 sm:top-1 sm:mt-0"
           >
             <FolderHeart className="h-4 w-4" />
             {t('myBoards')}
@@ -293,7 +252,7 @@ function InspirationGallery() {
         {/* consola de filtre: cautare + camere + panouri compacte (culoare cu
             esantioane, material, deschidere) — inlocuieste cele 4 randuri de
             pill-uri centrate */}
-        <div className="mx-auto flex w-full max-w-4xl flex-col gap-3 rounded-2xl border border-border bg-card/80 p-4 shadow-sm">
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-3 rounded-2xl border border-border bg-surface/80 p-4 shadow-sm">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-2" />
             <Input
@@ -306,16 +265,17 @@ function InspirationGallery() {
           </div>
 
           {/* tip camera — filtrul principal, un singur rand (scroll pe mobil) */}
-          <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 sm:flex-wrap sm:justify-center sm:overflow-visible">
-            <FilterPill active={type === null} onClick={() => setType(null)}>
-              {t('all')}
-            </FilterPill>
-            {TYPE_FILTERS.map((rt) => (
-              <FilterPill key={rt} active={type === rt} onClick={() => setType(type === rt ? null : rt)}>
-                {tc(`rooms.type.${rt}`)}
-              </FilterPill>
-            ))}
-          </div>
+          <FilterChips<'ALL' | RoomType>
+            label={t('roomFilterLabel')}
+            allowDeselect
+            className="-mx-1 flex-nowrap gap-1.5 overflow-x-auto px-1 pb-0.5 sm:flex-wrap sm:justify-center sm:overflow-visible"
+            value={type ?? 'ALL'}
+            onChange={(v) => setType(v === null || v === 'ALL' ? null : v)}
+            options={[
+              { value: 'ALL', label: t('all') },
+              ...TYPE_FILTERS.map((rt) => ({ value: rt, label: tc(`rooms.type.${rt}`) })),
+            ]}
+          />
 
           <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
             <FilterGroup
@@ -444,7 +404,7 @@ function InspirationGallery() {
               key={photo.id}
               photo={photo}
               aspectClass={PIN_ASPECTS[i % PIN_ASPECTS.length]}
-              savedBoardId={savedByPhoto.get(photo.id) ?? null}
+              savedBoardIds={savedByPhoto.get(photo.id) ?? []}
               authed={authed}
               onRequireAuth={requireAuth}
               onOpen={() => setOpenIndex(i)}
@@ -459,7 +419,7 @@ function InspirationGallery() {
               type="button"
               onClick={() => fetchNextPage()}
               disabled={isFetchingNextPage}
-              className="inline-flex items-center gap-2 rounded-full border border-border-2 bg-card px-5 py-2 text-sm text-muted-foreground transition-colors hover:border-walnut hover:text-walnut disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-full border border-border-2 bg-surface px-5 py-2 text-sm text-muted-foreground transition-colors hover:border-walnut hover:text-walnut disabled:opacity-60"
             >
               {isFetchingNextPage && <Loader2 className="h-4 w-4 animate-spin" />}
               {t('loadMore')}

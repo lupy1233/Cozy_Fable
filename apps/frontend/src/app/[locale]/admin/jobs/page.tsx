@@ -3,6 +3,11 @@
 import { useTranslations } from 'next-intl';
 import { useAdminJobs, useRetryJob } from '@/hooks/use-admin';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadError } from '@/components/ui/query-state';
+import { SkeletonList } from '@/components/ui/skeleton';
 
 export default function AdminJobsPage() {
   const t = useTranslations('Admin');
@@ -11,16 +16,18 @@ export default function AdminJobsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="page-title">{t('nav.jobs')}</h1>
+      <PageHeader title={t('nav.jobs')} />
+      {jobs.isPending && <SkeletonList rows={3} variant="cards" />}
+      {jobs.isError && <LoadError onRetry={() => void jobs.refetch()} />}
       {jobs.isSuccess && jobs.data.length === 0 && (
-        <p className="rounded-xl border border-border bg-surface px-4 py-6 text-center text-sm text-muted-foreground">
-          {t('jobs.empty')}
-        </p>
+        <EmptyState variant="card" size="sm" title={t('jobs.empty')} />
       )}
       {jobs.data?.map((j) => (
-        <div
+        <Card
           key={`${j.queue}-${j.id}`}
-          className="flex items-center justify-between rounded-xl border border-crimson/25 bg-crimson-soft p-4 text-sm"
+          tone="crimson"
+          padding="sm"
+          className="flex items-center justify-between text-sm"
         >
           <div>
             <p className="font-mono font-medium">
@@ -39,7 +46,7 @@ export default function AdminJobsPage() {
           >
             {t('jobs.retry')}
           </Button>
-        </div>
+        </Card>
       ))}
     </div>
   );

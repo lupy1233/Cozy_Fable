@@ -1,12 +1,14 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, type RoomType } from '@prisma/client';
 import {
   ERROR_CODES,
   type InspirationBoardDetailDto,
   type InspirationBoardDto,
+  type InspirationBoardItemMetaDto,
   type InspirationSaveDto,
 } from '@marketplace/shared';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { runTxBatch } from '../../infra/prisma/tx';
 import { InspirationService } from './inspiration.service';
 
 // Colectiile de salvari ale utilizatorului (item 8, stil Pinterest).
@@ -25,8 +27,9 @@ export class InspirationBoardsService {
       where: { userId },
       orderBy: { updatedAt: 'desc' },
       include: {
-        _count: { select: { items: true } },
+        _count: { select: { items: { where: { photo: { deletedAt: null, published: true, company: { deletedAt: null } } } } } },
         items: {
+          where: { photo: { deletedAt: null, published: true, company: { deletedAt: null } } },
           orderBy: { createdAt: 'desc' },
           take: 3,
           include: { photo: { include: { company: { select: { id: true, name: true } } } } },
@@ -51,7 +54,7 @@ export class InspirationBoardsService {
   async detail(userId: string, boardId: string): Promise<InspirationBoardDetailDto> {
     const board = await this.requireOwned(userId, boardId);
     const items = await this.prisma.inspirationBoardItem.findMany({
-      where: { boardId },
+      where: { boardId, photo: { deletedAt: null, published: true, company: { deletedAt: null } } },
       orderBy: { createdAt: 'desc' },
       include: { photo: { include: { company: { select: { id: true, name: true } } } } },
     });
@@ -64,6 +67,8 @@ export class InspirationBoardsService {
       createdAt: board.createdAt.toISOString(),
       updatedAt: board.updatedAt.toISOString(),
       photos,
+      // E-client-34: meta per salvare (aceleasi poze ca in photos — acelasi query)
+      items: items.map((i) => ({ photoId: i.photoId, note: i.note, roomType: i.roomType })),
     };
   }
 
@@ -101,7 +106,7 @@ export class InspirationBoardsService {
   async addItem(userId: string, boardId: string, photoId: string): Promise<void> {
     await this.requireOwned(userId, boardId);
     await this.inspiration.assertSelectable([photoId]);
-    await this.prisma.$transaction([
+    await runTxBatch(this.prisma, [
       this.prisma.inspirationBoardItem.upsert({
         where: { boardId_photoId: { boardId, photoId } },
         create: { boardId, photoId },
@@ -110,6 +115,31 @@ export class InspirationBoardsService {
       // updatedAt reordoneaza colectia in lista (cea mai activa prima)
       this.prisma.inspirationBoard.update({ where: { id: boardId }, data: { updatedAt: new Date() } }),
     ]);
+  }
+
+  // E-client-34: notita (max 200) si camera unei salvari; null sterge valoarea
+  async updateItem(
+    userId: string,
+    boardId: string,
+    photoId: string,
+    patch: { note?: string | null; roomType?: RoomType | null },
+  ): Promise<InspirationBoardItemMetaDto> {
+    await this.requireOwned(userId, boardId);
+    if (patch.note === undefined && patch.roomType === undefined) {
+      throw new BadRequestException({ code: ERROR_CODES.VALIDATION_ERROR, message: 'Nothing to update' });
+    }
+    const data: Prisma.InspirationBoardItemUpdateManyMutationInput = {};
+    if (patch.note !== undefined) data.note = patch.note === null ? null : patch.note.trim() || null;
+    if (patch.roomType !== undefined) data.roomType = patch.roomType;
+    const res = await this.prisma.inspirationBoardItem.updateMany({ where: { boardId, photoId }, data });
+    if (res.count === 0) {
+      throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Board item not found' });
+    }
+    const item = await this.prisma.inspirationBoardItem.findUniqueOrThrow({
+      where: { boardId_photoId: { boardId, photoId } },
+      select: { photoId: true, note: true, roomType: true },
+    });
+    return item;
   }
 
   async removeItem(userId: string, boardId: string, photoId: string): Promise<void> {
@@ -128,11 +158,16 @@ export class InspirationBoardsService {
     if (boardId === targetBoardId) return;
     await this.requireOwned(userId, boardId);
     await this.requireOwned(userId, targetBoardId);
-    await this.prisma.$transaction([
+    // E-client-34: notita + camera merg cu pinul; o destinatie care il are deja isi pastreaza notita
+    const source = await this.prisma.inspirationBoardItem.findUnique({
+      where: { boardId_photoId: { boardId, photoId } },
+      select: { note: true, roomType: true },
+    });
+    await runTxBatch(this.prisma, [
       this.prisma.inspirationBoardItem.deleteMany({ where: { boardId, photoId } }),
       this.prisma.inspirationBoardItem.upsert({
         where: { boardId_photoId: { boardId: targetBoardId, photoId } },
-        create: { boardId: targetBoardId, photoId },
+        create: { boardId: targetBoardId, photoId, note: source?.note ?? null, roomType: source?.roomType ?? null },
         update: {},
       }),
       this.prisma.inspirationBoard.update({

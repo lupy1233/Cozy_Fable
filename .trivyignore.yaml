@@ -1,0 +1,9 @@
+# E-admin-platform-56: exceptii pentru scanarea Trivy a imaginii de productie (ci.yml).
+# Regula: o intrare se adauga DOAR cand nu exista inca o versiune reparata utilizabila si
+# riscul e analizat. Fiecare intrare are obligatoriu `statement` (de ce e acceptat riscul) si
+# `expired_at` la cel mult 90 de zile de la adaugare; dupa expirare scanarea pica din nou.
+# Exemplu:
+#   - id: CVE-2026-00000
+#     statement: "pachet folosit doar la build; fara cale de atac in runtime"
+#     expired_at: 2026-12-31
+vulnerabilities: []

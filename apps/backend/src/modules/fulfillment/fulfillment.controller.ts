@@ -15,10 +15,12 @@ import { CreateReviewDto, ResolveDisputeDto } from './dto/fulfillment.dto';
 @Controller('company/requests')
 @Roles(UserRole.COMPANY_USER)
 @UseGuards(CompanyApprovedGuard)
+@UseInterceptors(AuditInterceptor)
 export class CompanyDeliveryController {
   constructor(private readonly fulfillment: FulfillmentService) {}
 
   @Post(':id/deliver')
+  @Audit('DELIVERY_MARKED', 'request')
   deliver(@CurrentCompany() ctx: CompanyContext, @Param('id', ParseUUIDPipe) id: string) {
     return this.fulfillment.markDelivered(ctx, id);
   }
@@ -27,15 +29,18 @@ export class CompanyDeliveryController {
 // Clientul confirma livrarea + lasa review (4.18).
 @Controller('requests')
 @Roles(UserRole.CLIENT)
+@UseInterceptors(AuditInterceptor)
 export class ClientFulfillmentController {
   constructor(private readonly fulfillment: FulfillmentService) {}
 
   @Post(':id/confirm-delivery')
+  @Audit('DELIVERY_CONFIRMED', 'request')
   confirm(@CurrentUser() user: AccessTokenPayload, @Param('id', ParseUUIDPipe) id: string) {
     return this.fulfillment.confirmDelivery(user.sub, id);
   }
 
   @Post(':id/review')
+  @Audit('REVIEW_CREATED', 'review')
   review(
     @CurrentUser() user: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,

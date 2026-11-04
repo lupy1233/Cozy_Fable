@@ -9,6 +9,15 @@ export const QUEUE_QUOTE_VALIDITY = 'quote-validity';
 export const QUEUE_CONSULTATION_EXPIRY = 'consultation-expiry';
 export const QUEUE_SLA_BREACH = 'sla-breach';
 export const QUEUE_WITHDRAWAL_REMINDER = 'withdrawal-reminder';
+export const QUEUE_SUBSCRIPTION_EXPIRY = 'subscription-expiry';
+export const QUEUE_DELIVERY_AUTOCOMPLETE = 'delivery-autocomplete';
+export const QUEUE_RECONCILIATION = 'reconciliation';
+export const QUEUE_UPLOADS = 'uploads';
+export const QUEUE_DOMAIN_EVENTS = 'domain-events';
+// E-admin-platform-3: inchiderea automata (gated prin setari) a ofertelor expirate fara decizie
+export const QUEUE_OFFER_EXPIRY_SETTLEMENT = 'offer-expiry-settlement';
+// E-admin-platform-3: reminder firma inainte de data livrarii + anunt de termen depasit
+export const QUEUE_PROJECT_DEADLINES = 'project-deadlines';
 
 @Global()
 @Module({
@@ -16,6 +25,7 @@ export const QUEUE_WITHDRAWAL_REMINDER = 'withdrawal-reminder';
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
+        defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 2000 }, removeOnFail: 1000 },
         connection: {
           host: config.getOrThrow<string>('REDIS_HOST'),
           port: config.getOrThrow<number>('REDIS_PORT'),
@@ -31,6 +41,13 @@ export const QUEUE_WITHDRAWAL_REMINDER = 'withdrawal-reminder';
     BullModule.registerQueue({ name: QUEUE_CONSULTATION_EXPIRY }),
     BullModule.registerQueue({ name: QUEUE_SLA_BREACH }),
     BullModule.registerQueue({ name: QUEUE_WITHDRAWAL_REMINDER }),
+    BullModule.registerQueue({ name: QUEUE_SUBSCRIPTION_EXPIRY }),
+    BullModule.registerQueue({ name: QUEUE_DELIVERY_AUTOCOMPLETE }),
+    BullModule.registerQueue({ name: QUEUE_RECONCILIATION }),
+    BullModule.registerQueue({ name: QUEUE_UPLOADS }),
+    BullModule.registerQueue({ name: QUEUE_DOMAIN_EVENTS }),
+    BullModule.registerQueue({ name: QUEUE_OFFER_EXPIRY_SETTLEMENT }),
+    BullModule.registerQueue({ name: QUEUE_PROJECT_DEADLINES }),
   ],
   exports: [BullModule],
 })

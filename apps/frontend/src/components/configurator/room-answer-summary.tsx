@@ -20,6 +20,8 @@ export function RoomAnswerSummary({
   answers,
   flowVersion,
   attachments,
+  hideFilePreviews = false,
+  stepIds,
 }: {
   roomType: RoomType;
   answers: Record<string, unknown>;
@@ -27,9 +29,12 @@ export function RoomAnswerSummary({
   flowVersion?: number | null;
   // atasamentele cererii/draftului — optionale; fara ele, pasii upload arata doar numarul
   attachments?: AttachmentDto[];
+  hideFilePreviews?: boolean;
+  // Preview-ul Review pastreaza intrebarile principale; lista completa ramane in disclosure.
+  stepIds?: readonly string[];
 }) {
   const t = useTranslations('Configurator');
-  const entries = summarizeAnswers(roomType, answers as AnswerMap, flowVersion ?? 1);
+  const entries = summarizeAnswers(roomType, answers as AnswerMap, flowVersion ?? 1).filter((entry) => !stepIds || stepIds.includes(entry.stepId));
 
   if (entries.length === 0) return null;
 
@@ -62,13 +67,16 @@ export function RoomAnswerSummary({
             {e.kind === 'pieces' && (
               <ul className="flex flex-col gap-0.5">
                 {e.pieces.map((p, i) => (
-                  <li key={i}>{pieceLine(p)}</li>
+                  <li key={i}>
+                    <p>{pieceLine(p)}</p>
+                    {p.description && <p className="whitespace-pre-wrap text-muted-foreground">{p.description}</p>}
+                  </li>
                 ))}
               </ul>
             )}
             {e.kind === 'files' &&
               (() => {
-                const files = filesFor(e.stepId);
+                const files = hideFilePreviews ? [] : filesFor(e.stepId);
                 if (files.length === 0) {
                   return (
                     <span className="text-muted-foreground">

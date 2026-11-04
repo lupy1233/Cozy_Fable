@@ -1,0 +1,287 @@
+{
+  "capturedAt": "2026-09-16T01:56:03.681Z",
+  "url": "http://127.0.0.1:3100/en/studio",
+  "mode": "headless desktop Chromium; default single-piece editor; all APIs intercepted",
+  "captures": [
+    {
+      "kind": "BOOKCASE",
+      "label": "bookcase",
+      "filename": "bookcase.png",
+      "dimensionsM": {
+        "width": 1.6,
+        "height": 2,
+        "depth": 0.35
+      },
+      "panels": 15,
+      "canvas": {
+        "x": 225,
+        "y": 297.5,
+        "width": 640,
+        "height": 500
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "WARDROBE",
+      "label": "wardrobe",
+      "filename": "wardrobe.png",
+      "dimensionsM": {
+        "width": 2.4,
+        "height": 2.4,
+        "depth": 0.6
+      },
+      "panels": 23,
+      "canvas": {
+        "x": 225,
+        "y": 280.5,
+        "width": 640,
+        "height": 500
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "TV_UNIT",
+      "label": "tv_unit",
+      "filename": "tv_unit.png",
+      "dimensionsM": {
+        "width": 1.8,
+        "height": 0.45,
+        "depth": 0.4
+      },
+      "panels": 7,
+      "canvas": {
+        "x": 225,
+        "y": 297.5,
+        "width": 640,
+        "height": 500
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "SHOE_CABINET",
+      "label": "shoe_cabinet",
+      "filename": "shoe_cabinet.png",
+      "dimensionsM": {
+        "width": 0.8,
+        "height": 1.2,
+        "depth": 0.3
+      },
+      "panels": 11,
+      "canvas": {
+        "x": 225,
+        "y": 297.5,
+        "width": 640,
+        "height": 500
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "DRESSER",
+      "label": "dresser",
+      "filename": "dresser.png",
+      "dimensionsM": {
+        "width": 1.2,
+        "height": 0.9,
+        "depth": 0.45
+      },
+      "panels": 15,
+      "canvas": {
+        "x": 225,
+        "y": 280.5,
+        "width": 640,
+        "height": 500
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "NIGHTSTAND",
+      "label": "nightstand",
+      "filename": "nightstand.png",
+      "dimensionsM": {
+        "width": 0.45,
+        "height": 0.55,
+        "depth": 0.4
+      },
+      "panels": 9,
+      "canvas": {
+        "x": 225,
+        "y": 324.5,
+        "width": 640,
+        "height": 500
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "DESK",
+      "label": "desk",
+      "filename": "desk.png",
+      "dimensionsM": {
+        "width": 1.4,
+        "height": 0.75,
+        "depth": 0.6
+      },
+      "panels": 11,
+      "canvas": {
+        "x": 225,
+        "y": 297.5,
+        "width": 640,
+        "height": 500
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "BED",
+      "label": "bed",
+      "filename": "bed.png",
+      "dimensionsM": {
+        "width": 1.73,
+        "height": 1,
+        "depth": 2.2
+      },
+      "panels": 16,
+      "canvas": {
+        "x": 225,
+        "y": 389,
+        "width": 690,
+        "height": 418
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "TABLE",
+      "label": "table",
+      "filename": "table.png",
+      "dimensionsM": {
+        "width": 1.4,
+        "height": 0.75,
+        "depth": 0.8
+      },
+      "panels": 10,
+      "canvas": {
+        "x": 225,
+        "y": 324,
+        "width": 690,
+        "height": 418
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "kind": "BENCH",
+      "label": "bench",
+      "filename": "bench.png",
+      "dimensionsM": {
+        "width": 1.2,
+        "height": 0.45,
+        "depth": 0.4
+      },
+      "panels": 10,
+      "canvas": {
+        "x": 225,
+        "y": 411,
+        "width": 690,
+        "height": 418
+      },
+      "pageErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/me"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh"
+        }
+      ]
+    }
+  ]
+}

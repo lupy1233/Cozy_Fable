@@ -1,14 +1,17 @@
 import { z } from 'zod';
 import type { RequestStudioSceneDto } from './studio.schemas';
+import type { ProjectCaseDto } from './project-case.schemas';
 import {
   CONSULTATION_INVITE_STATUSES,
   CURRENCIES,
   QUOTE_CHANGE_REQUEST_STATUSES,
   QUOTE_STATUSES,
+  REQUEST_STATUSES,
 } from './enums';
 import type {
   AttachmentDto,
   ContactPreferenceDto,
+  RequestInspirationPhotoDto,
   RequestRoomDto,
 } from './request.schemas';
 
@@ -91,10 +94,14 @@ export const extendValiditySchema = z.object({
 });
 export type ExtendValidityInput = z.infer<typeof extendValiditySchema>;
 
-// Firma incheie negocierea online (chat read-only pentru ambii; D3).
-export const endNegotiationSchema = z.object({});
-export type EndNegotiationInput = z.infer<typeof endNegotiationSchema>;
+// E-company-6: firma confirma explicit ca retragerea ofertei dupa termenul SLA + gratie
+// expira imediat preluarea (altfel 409 QUOTE_WITHDRAW_SLA_ACK_REQUIRED).
+export const withdrawQuoteSchema = z.object({
+  acknowledgeSlaBreach: z.boolean().optional(),
+});
+export type WithdrawQuoteInput = z.infer<typeof withdrawQuoteSchema>;
 
+// Firma incheie negocierea online (chat read-only pentru ambii; D3).
 // Invitatie la sediu pentru consultanta fizica (block dupa v3; D-v6-8).
 export const createConsultationInviteSchema = z.object({
   locationAddress: z.string().trim().min(3, 'addressTooShort').max(300),
@@ -110,6 +117,13 @@ export const respondConsultationInviteSchema = z.object({
 });
 export type RespondConsultationInviteInput = z.infer<typeof respondConsultationInviteSchema>;
 
+// E-client-1: clientul accepta exact versiunea vazuta in dialogul de confirmare;
+// daca intre timp firma a trimis alta versiune → 409 QUOTE_VERSION_CHANGED.
+export const acceptQuoteSchema = z.object({
+  quoteVersionId: z.string().uuid(),
+});
+export type AcceptQuoteInput = z.infer<typeof acceptQuoteSchema>;
+
 // --- DTO-uri raspuns (server → client) ---
 
 export interface QuoteVersionDto {
@@ -124,13 +138,20 @@ export interface QuoteVersionDto {
   priceEur: number;
   designFeeRon: number | null;
   designFeeEur: number | null;
+  // E-client-1: total = pret + proiectare (docs/03: design fee face parte din oferta acceptata)
+  total: number;
+  totalRon: number;
+  totalEur: number;
   deliveryTerm: string | null;
   deliveryDate: string | null;
   warranty: string | null;
   description: string | null;
   validUntil: string;
+  // E-admin-platform-3: doar ofertele SENT/EXPIRED pot fi "expirate" (ACCEPTED nu)
   isExpired: boolean;
   validityExtensionsUsed: number;
+  // E-admin-platform-3: clientul a cerut prelungirea acestei versiuni (oferta EXPIRED)
+  extensionRequestedAt: string | null;
   createdByUserId: string;
   sentAt: string;
   changeRequest: QuoteChangeRequestDto | null;
@@ -193,6 +214,8 @@ export interface ClaimRequestDetailDto {
   rooms: RequestRoomDto[];
   attachments: AttachmentDto[];
   inspirationPhotoIds: string[];
+  // E-client-34: notita bruta doar cu acces la contacte, altfel mascata; goala in REDACTED/TOMBSTONE
+  inspirationPhotos: RequestInspirationPhotoDto[];
   // camerele 3D din Studio atasate la publish (feedback PO r3) — read-only
   studioScenes?: RequestStudioSceneDto[];
 }
@@ -215,6 +238,23 @@ export interface ClaimAssignmentDto {
 // formularului de oferta (includes_paid_design) + thread-ul de chat.
 // PO r6: workspace-ul post-claim primeste TOT contextul dintr-un singur apel —
 // detaliul cererii, contactul clientului si atribuirea.
+// E-company-3: FULL = fisa de lucru completa; REDACTED = preluare care nu mai ocupa slotul
+// (doar titlu, localitate, statusuri, ofertele proprii); TOMBSTONE = cererea a fost stearsa.
+export const CLAIM_CONTEXT_VISIBILITIES = ['FULL', 'REDACTED', 'TOMBSTONE'] as const;
+export type ClaimContextVisibility = (typeof CLAIM_CONTEXT_VISIBILITIES)[number];
+// E-company-3: de ce lipsesc contactele clientului (client = null) pe fisa de lucru.
+export const CLAIM_CLIENT_HIDDEN_REASONS = [
+  'NOT_OCCUPYING',
+  'NOT_ASSIGNED_TO_YOU',
+  'REVEAL_PENDING',
+  'RETENTION_EXPIRED',
+  'REQUEST_DELETED',
+] as const;
+export type ClaimClientHiddenReason = (typeof CLAIM_CLIENT_HIDDEN_REASONS)[number];
+// E-company-3: system_settings.claim_contact_reveal_policy (DECIZIE NECESARA PO; implicit ON_CLAIM = W1).
+export const CLAIM_CONTACT_REVEAL_POLICIES = ['ON_CLAIM', 'AFTER_GRACE'] as const;
+export type ClaimContactRevealPolicy = (typeof CLAIM_CONTACT_REVEAL_POLICIES)[number];
+
 export interface ClaimQuoteContextDto {
   claimSlotId: string;
   requestId: string;
@@ -223,15 +263,39 @@ export interface ClaimQuoteContextDto {
   threadId: string | null;
   // status + SLA pe slot (Sprint 7) pentru panoul de SLA/retragere/clarificari.
   claimStatus: string;
+  // E-company-1: FE ascunde retragerea/livrarea dupa accept si in afara gratiei de 30 min
+  requestStatus: (typeof REQUEST_STATUSES)[number];
+  claimedAt: string;
   slaDeadlineAt: string | null;
   slaPaused: boolean;
   // camerele cererii, pentru formularul de pret per camera (F7, item 22)
   rooms: { id: string; roomType: string }[];
   quote: QuoteDto | null;
   detail: ClaimRequestDetailDto;
-  // null cand slotul nu mai e ocupant (anulat/retras) — contactul nu se mai arata
+  // null cand slotul nu mai e ocupant (anulat/retras) SAU cand acest membru nu are voie
+  // sa vada contactele (E-company-3) — motivul e in clientHiddenReason
   client: ClaimClientDto | null;
   assignment: ClaimAssignmentDto;
+  // E-admin-platform-3: ultimul caz raportat pe proiect (doar pentru firma castigatoare)
+  projectCase: ProjectCaseDto | null;
+  // E-company-6: date pentru dialogurile de confirmare ale firmei (cost, SLA, fereastra de retragere)
+  firmActions: ClaimFirmActionsDto;
+  // E-company-3: lipsa (imagine veche) = FULL
+  visibility: ClaimContextVisibility;
+  clientHiddenReason: ClaimClientHiddenReason | null;
+  // doar pentru REVEAL_PENDING: momentul in care contactele devin vizibile
+  clientVisibleFrom: string | null;
+}
+
+// E-company-6: ce pierde firma la actiunile ireversibile de pe fisa de lucru.
+export interface ClaimFirmActionsDto {
+  claimCostCredits: number;
+  // sla_deadline_at + 12h; null daca SLA e pe pauza sau lipseste
+  slaBreachAt: string | null;
+  // doar oferta SENT/EXPIRED: ultima versiune trimisa + 1 zi lucratoare
+  quoteWithdrawWindowEndsAt: string | null;
+  // N zile per prelungire (quote_validity_default_days)
+  validityExtensionDays: number;
 }
 
 export interface QuoteDto {
@@ -250,4 +314,8 @@ export interface QuoteDto {
   versions: QuoteVersionDto[];
   consultationInvites: ConsultationInviteDto[];
   createdAt: string;
+  // E-admin-platform-3: momentul acceptarii (null pana la accept)
+  acceptedAt: string | null;
+  // E-client-1: versiunea acceptata (null pana la accept si pe ofertele acceptate inainte de migrare)
+  acceptedVersionId: string | null;
 }

@@ -2,7 +2,7 @@
 
 import { useFormatter, useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
-import { useEffect, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
 import { useDeleteRequest, useRepostRequest, useRequest } from '@/hooks/use-requests';
@@ -10,8 +10,9 @@ import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/badge';
 import { AttachmentThumb } from '@/components/configurator/attachment-item';
 import { RoomSpecCard, RoomSpecNav } from '@/components/configurator/room-spec-card';
-import { RequestInspirationStrip } from '@/components/configurator/request-inspiration-strip';
+import { RequestInspirationByRoom } from '@/components/configurator/request-inspiration-by-room';
 import { StudioScenesButton } from '@/components/studio/scene-button';
+import { RequestVisibilitySection } from '../../_components/request-visibility-card';
 
 export default function RequestDetailPage() {
   const t = useTranslations('Requests');
@@ -19,11 +20,6 @@ export default function RequestDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
   const detail = useRequest(id);
-  const [token, setToken] = useState<string | null>(null);
-
-  useEffect(() => {
-    setToken(localStorage.getItem(`mm_req_token_${id}`));
-  }, [id]);
 
   if (detail.isPending) {
     return <p className="py-20 text-center text-muted-foreground">{t('loading')}</p>;
@@ -40,9 +36,12 @@ export default function RequestDetailPage() {
     'OFFERS_RECEIVED',
     'NEGOTIATION',
     'ACCEPTED',
+    'IN_EXECUTION',
     'DELIVERED_BY_COMPANY',
     'COMPLETED',
     'DISPUTED',
+    // E-admin-platform-3: proiect anulat — ofertele si conversatiile raman ca istoric
+    'CANCELLED',
   ].includes(r.status);
 
   return (
@@ -119,6 +118,9 @@ export default function RequestDetailPage() {
         </div>
       </div>
 
+      {/* E-client-9: cine vede proiectul si cine detine datele de contact */}
+      {r.status !== 'DRAFT' && <RequestVisibilitySection requestId={id} />}
+
       {/* Camere — prezentare structurata per camera (item 6) */}
       <div className="flex flex-col gap-3">
         <SectionHeading>{t('sectionRooms')}</SectionHeading>
@@ -143,9 +145,9 @@ export default function RequestDetailPage() {
       )}
 
       {/* inspiratia aleasa din galerie (F6) */}
-      <RequestInspirationStrip ids={r.inspirationPhotoIds} />
+      <RequestInspirationByRoom photos={r.inspirationPhotos} rooms={r.rooms} />
 
-      {r.status === 'EXPIRED' && token && <RepostButton id={id} token={token} />}
+      <RepostSection id={id} status={r.status} repostUsed={r.repostUsed} />
 
       {['DRAFT', 'IN_MARKETPLACE', 'CLAIMED_PARTIAL', 'CLAIMED_FULL', 'OFFERS_RECEIVED', 'NEGOTIATION', 'EXPIRED'].includes(
         r.status,
@@ -234,12 +236,28 @@ function DeleteRequestButton({ id }: { id: string }) {
   );
 }
 
-function RepostButton({ id, token }: { id: string; token: string }) {
+// Repost (docs/03 4.4: o singura data, manual) din contul proprietarului, fara token
+// local. Montat mereu: mesajul de succes ramane vizibil dupa ce statusul devine
+// IN_MARKETPLACE; dupa un repost folosit, explicatie + cerere noua (C4-4/WF1-12).
+function RepostSection({ id, status, repostUsed }: { id: string; status: string; repostUsed: boolean }) {
   const t = useTranslations('Requests');
-  const repost = useRepostRequest(token);
+  const repost = useRepostRequest(id);
+  if (repost.isSuccess) return <p className="text-sm text-sage">{t('reposted')}</p>;
+  if (status !== 'EXPIRED') return null;
+  if (repostUsed) {
+    return (
+      <div className="flex flex-col gap-2">
+        <p className="text-sm text-muted-foreground">{t('repostUsedNote')}</p>
+        <Button asChild variant="outline" size="sm" className="self-start">
+          <Link href="/requests/new">{t('repostStartNew')}</Link>
+        </Button>
+      </div>
+    );
+  }
   const apiErr = repost.error instanceof ApiError ? repost.error.code : null;
   return (
     <div className="flex flex-col gap-2">
+      <p className="text-sm text-muted-foreground">{t('repostHint')}</p>
       <Button
         variant="walnut"
         className="self-start"
@@ -253,7 +271,6 @@ function RepostButton({ id, token }: { id: string; token: string }) {
           {t.has(`apiErrors.${apiErr}`) ? t(`apiErrors.${apiErr}`) : t('apiErrors.INTERNAL_ERROR')}
         </p>
       )}
-      {repost.isSuccess && <p className="text-sm text-sage">{t('reposted')}</p>}
     </div>
   );
 }

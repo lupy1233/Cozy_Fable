@@ -1,8 +1,34 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
-import { Bell, Check, FileText, Handshake, Mail, MessageSquare, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import {
+  AlarmClock,
+  AlertTriangle,
+  Ban,
+  BadgeCheck,
+  Bell,
+  CalendarClock,
+  CalendarX,
+  Check,
+  Clock,
+  CreditCard,
+  Flag,
+  FileText,
+  Gavel,
+  Handshake,
+  Hourglass,
+  Mail,
+  MessageSquare,
+  PackageCheck,
+  RefreshCw,
+  ShieldAlert,
+  Star,
+  Truck,
+  Undo2,
+  UserPlus,
+  XCircle,
+} from 'lucide-react';
 import { useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
 import {
@@ -16,10 +42,11 @@ import {
 import { useRealtimeSync } from '@/hooks/use-socket';
 import { useRelativeTime } from '@/lib/relative-time';
 import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 // Clopotelul de notificari (item 5): titlu clar per tip + contextul actiunii
-// (atelier · cerere) din payload, click = citit + navigare la resursa,
-// inchidere la click in afara, "marcheaza toate citite".
+// (firma · cerere) din payload, click = citit + navigare la resursa,
+// inchidere la click in afara / Escape (Popover Radix), "marcheaza toate citite".
 
 const TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   'quote.created': FileText,
@@ -27,6 +54,46 @@ const TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   'quote.accepted': Check,
   'message.created': MessageSquare,
   'claim.created': Handshake,
+  'claim.withdrawn': Undo2,
+  'delivery.marked': Truck,
+  'delivery.confirmed': PackageCheck,
+  'company.approved': BadgeCheck,
+  'company.rejected': XCircle,
+  'company.suspended': ShieldAlert,
+  'company.unsuspended': BadgeCheck,
+  'company.submitted': Handshake,
+  'delivery.autocompleted': PackageCheck,
+  'dispute.opened': AlertTriangle,
+  'dispute.decided': Gavel,
+  'payment.pending': CreditCard,
+  'penalty.applied': AlertTriangle,
+  'review.created': Star,
+  'withdrawal.decided': Gavel,
+  'withdrawal.reminder': Clock,
+  'payment.confirmed': CreditCard,
+  'subscription.expiring': CalendarClock,
+  // E-company-24: plata prin transfer bancar
+  'payment.transfer_instructions': CreditCard,
+  'payment.transfer_reminder': CreditCard,
+  'payment.auto_cancelled': CreditCard,
+  'payment.marked_paid': CreditCard,
+  'request.expired': Hourglass,
+  // E-admin-platform-3
+  'project.case_opened': Flag,
+  'project.case_responded': MessageSquare,
+  'project.case_dismissed': Gavel,
+  'project.cancelled': Ban,
+  'project.delivery_reminder': CalendarClock,
+  'project.overdue': CalendarX,
+  'quote.expired': Hourglass,
+  'quote.expired_closed': Undo2,
+  'quote.extension_requested': RefreshCw,
+  // E-admin-platform-44: termene apropiate
+  'request.expiry_reminder': Hourglass,
+  'claim.assign_warning': UserPlus,
+  'sla.expiring_soon': AlarmClock,
+  // E-admin-platform-15: verificarea zilnica ledger vs portofel (doar admini)
+  'credits.ledger_mismatch': AlertTriangle,
 };
 
 type Payload = Record<string, unknown> | null;
@@ -36,18 +103,59 @@ const str = (p: Payload, key: string): string | null => {
   return typeof v === 'string' && v.trim() ? v : null;
 };
 
+// Varianta de titlu per payload (ex. motivul inchiderii claimului, decizia admin) —
+// cheia `type.<tip>_<varianta>` cu fallback pe `type.<tip>`.
+function titleVariant(type: string, payload: Payload): string | null {
+  if (type === 'claim.withdrawn') return str(payload, 'reason');
+  if (type === 'withdrawal.decided') return payload?.approved === true ? 'APPROVED' : 'REJECTED';
+  if (type === 'dispute.decided') return payload?.dismissed === true ? 'DISMISSED' : 'RESOLVED';
+  // E-company-13: reminderul de la inceputul gratiei (phase=GRACE); fara phase → eticheta de baza
+  if (type === 'sla.expiring_soon') return str(payload, 'phase');
+  return null;
+}
+
 // Deep-link-ul notificarii, in functie de rolul contului.
 function hrefFor(type: string, payload: Payload, role: string | undefined): string | null {
   const requestId = str(payload, 'requestId');
+  const claimSlotId = str(payload, 'claimSlotId');
   if (role === 'CLIENT') {
     if (!requestId) return null;
-    if (type === 'request.status_changed') return `/requests/${requestId}`;
+    if (type === 'request.status_changed' || type === 'request.expired' || type === 'request.expiry_reminder') {
+      return `/requests/${requestId}`;
+    }
     return `/requests/${requestId}/offers`;
   }
   if (role === 'COMPANY_USER') {
-    // mesajele (client sau echipa) duc in mesagerie; restul pe pagina de claims
+    // mesajele (client sau echipa) duc in mesagerie
     if (type === 'message.created') return '/marketplace/messages';
-    return '/marketplace/claims';
+    if (
+      type === 'payment.confirmed' ||
+      type === 'subscription.expiring' ||
+      type === 'payment.transfer_instructions' ||
+      type === 'payment.transfer_reminder' ||
+      type === 'payment.auto_cancelled'
+    ) {
+      return '/marketplace/wallet';
+    }
+    if (type === 'company.approved' || type === 'company.unsuspended') return '/marketplace';
+    if (type === 'company.rejected' || type === 'company.suspended' || type === 'penalty.applied' || type === 'review.created' || type === 'dispute.decided') {
+      return '/company';
+    }
+    // preluari, oferte, livrari, retrageri → fisa de lucru daca avem slotul
+    return claimSlotId ? `/marketplace/claims/${claimSlotId}` : '/marketplace/claims';
+  }
+  if (role === 'ADMIN') {
+    if (type === 'withdrawal.reminder') return '/admin/withdrawals';
+    if (type === 'company.submitted') return '/admin/companies';
+    if (type === 'payment.pending' || type === 'payment.marked_paid') return '/admin/payments';
+    if (type === 'dispute.opened') return '/admin/disputes';
+    // E-admin-platform-15: raportul zilnic de credite → pagina de joburi (operare)
+    if (type === 'credits.ledger_mismatch') return '/admin/jobs';
+    // E-admin-platform-3: rapoartele pe proiecte acceptate → detaliul proiectului
+    if ((type === 'project.case_opened' || type === 'project.case_responded') && requestId) {
+      return `/admin/requests/${requestId}`;
+    }
+    return null;
   }
   return null;
 }
@@ -64,45 +172,28 @@ export function NotificationBell() {
   const emailPref = useEmailPreference(open);
   const setEmailPref = useSetEmailPreference();
   const relTime = useRelativeTime();
-  const rootRef = useRef<HTMLDivElement>(null);
   useRealtimeSync();
-
-  // inchidere la click in afara / Escape
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
 
   const count = unread.data?.unread ?? 0;
 
   return (
-    <div ref={rootRef} className="relative">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="relative grid h-8 w-8 place-items-center rounded-md border border-border-2 bg-surface-2 text-muted-foreground transition-colors hover:text-foreground"
-        aria-label={t('title')}
-        aria-expanded={open}
-      >
-        <Bell className="h-3.5 w-3.5" />
-        {count > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-crimson px-1 text-[10px] font-bold text-background">
-            {count > 9 ? '9+' : count}
-          </span>
-        )}
-      </button>
-      {open && (
-        <div className="absolute right-0 z-20 mt-2 w-[22rem] overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="relative grid h-8 w-8 place-items-center rounded-md border border-border-2 bg-surface-2 text-muted-foreground transition-colors hover:text-foreground"
+          aria-label={t('title')}
+        >
+          <Bell className="h-3.5 w-3.5" />
+          {count > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-crimson px-1 text-micro font-bold text-background">
+              {count > 9 ? '9+' : count}
+            </span>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent width="lg" align="end" className="p-0">
+        <div>
           <div className="flex items-center justify-between border-b border-border px-3 py-2">
             <span className="text-sm font-semibold">{t('title')}</span>
             {count > 0 && (
@@ -154,9 +245,15 @@ export function NotificationBell() {
                   <span className="min-w-0 flex-1">
                     <span className="flex items-baseline justify-between gap-2">
                       <span className="font-medium">
-                        {t.has(`type.${n.type}`) ? t(`type.${n.type}`) : n.type}
+                        {(() => {
+                          const variant = titleVariant(n.type, n.payload);
+                          if (variant && t.has(`type.${n.type}_${variant}`)) {
+                            return t(`type.${n.type}_${variant}`);
+                          }
+                          return t.has(`type.${n.type}`) ? t(`type.${n.type}`) : n.type;
+                        })()}
                       </span>
-                      <span className="shrink-0 font-mono text-[10px] text-muted-2">
+                      <span className="shrink-0 font-mono text-micro text-muted-2">
                         {relTime(n.createdAt)}
                       </span>
                     </span>
@@ -188,7 +285,19 @@ export function NotificationBell() {
             </label>
           )}
         </div>
-      )}
-    </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// Loc rezervat pentru clopotel cat useMe e pending (latimea barei nu sare)
+export function BellPlaceholder() {
+  return (
+    <span
+      aria-hidden
+      className="grid h-8 w-8 place-items-center rounded-md border border-border-2 bg-surface-2 text-muted-foreground"
+    >
+      <Bell className="h-3.5 w-3.5" />
+    </span>
   );
 }

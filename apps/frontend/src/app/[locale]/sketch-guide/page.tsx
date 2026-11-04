@@ -176,13 +176,13 @@ export default function SketchGuidePage() {
         <div className="max-w-2xl">
           <span className="kicker">{t('kicker')}</span>
           <h1 className="page-title mt-3">{t('title')}</h1>
-          <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">{t('subtitle')}</p>
+          <p className="mt-3 text-lead leading-relaxed text-muted-foreground">{t('subtitle')}</p>
         </div>
 
         <div className="mt-10 grid gap-10 lg:grid-cols-2 lg:gap-14">
           {/* plansa exemplu — rama + passe-partout + placuta, ca pe landing */}
           <div className="self-start lg:sticky lg:top-8">
-            <div className="rounded-md border border-border bg-card p-3 shadow-lg">
+            <div className="rounded-md border border-border bg-surface p-3 shadow-lg">
               <div className="border border-brass/40 px-4 pb-1 pt-3">
                 <KitchenSketchExample label={t('sheetTitle')} />
                 <div className="mt-1 flex items-center justify-center gap-3 border-t border-brass/30 py-3">
@@ -210,11 +210,11 @@ export default function SketchGuidePage() {
                   {ROMAN[i]}.
                 </span>
                 <div>
-                  <h2 className="font-serif text-[21px]">{t(`steps.${key}.title`)}</h2>
+                  <h2 className="heading-section">{t(`steps.${key}.title`)}</h2>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                     {t(`steps.${key}.body`)}
                   </p>
-                  <p className="mt-2 flex items-baseline gap-2 text-[13px] text-muted-2">
+                  <p className="mt-2 flex items-baseline gap-2 text-ui text-muted-2">
                     <span aria-hidden className="text-brass">—</span>
                     {t(`steps.${key}.tip`)}
                   </p>
@@ -236,7 +236,7 @@ export default function SketchGuidePage() {
           />
           <div className="relative flex flex-col items-start gap-3 sm:max-w-xl">
             <h2 className="serif text-2xl sm:text-3xl">{t('ctaTitle')}</h2>
-            <p className="text-[15px] leading-relaxed text-background/75">{t('ctaHint')}</p>
+            <p className="text-lead leading-relaxed text-background/75">{t('ctaHint')}</p>
             <Button
               asChild
               size="lg"

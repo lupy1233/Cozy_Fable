@@ -2,8 +2,10 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
+  BoardItemMetaInput,
   InspirationBoardDetailDto,
   InspirationBoardDto,
+  InspirationBoardItemMetaDto,
   InspirationSaveDto,
 } from '@marketplace/shared';
 import { api } from '@/lib/api';
@@ -80,19 +82,31 @@ export function useDeleteBoard() {
 
 // Optimistic update pe starea "Salvat" (invarianta 3.6: onMutate/onError prin
 // TanStack) — butonul reactioneaza instant, serverul confirma prin onSettled.
+// E-client-34: o poza poate fi in mai multe colectii, deci starea e o multime de perechi
+// (photoId, boardId) si rollback-ul e INVERSUL operatiei pe acea pereche — nu restaurarea
+// unui snapshot, ca doua bife rapide sa nu se anuleze reciproc.
 const SAVED_KEY = [...KEY, 'saved'] as const;
+
+type Pair = { photoId: string; boardId: string };
+
+const samePair = (a: Pair, b: Pair) => a.photoId === b.photoId && a.boardId === b.boardId;
+const withPair = (refs: InspirationSaveDto[], p: Pair): InspirationSaveDto[] =>
+  refs.some((r) => samePair(r, p)) ? refs : [...refs, { photoId: p.photoId, boardId: p.boardId }];
+const withoutPair = (refs: InspirationSaveDto[], p: Pair): InspirationSaveDto[] =>
+  refs.filter((r) => !samePair(r, p));
 
 function useOptimisticSaved() {
   const qc = useQueryClient();
+  const change = (update: (refs: InspirationSaveDto[]) => InspirationSaveDto[]) =>
+    qc.setQueryData<InspirationSaveDto[]>(SAVED_KEY, (old) => update(old ?? []));
   return {
     async apply(update: (refs: InspirationSaveDto[]) => InspirationSaveDto[]) {
       await qc.cancelQueries({ queryKey: SAVED_KEY });
-      const prev = qc.getQueryData<InspirationSaveDto[]>(SAVED_KEY);
-      qc.setQueryData<InspirationSaveDto[]>(SAVED_KEY, (old) => update(old ?? []));
-      return { prev };
+      change(update);
     },
-    rollback(ctx: { prev?: InspirationSaveDto[] } | undefined) {
-      if (ctx?.prev) qc.setQueryData(SAVED_KEY, ctx.prev);
+    // inversul operatiei pe perechea afectata (la eroare)
+    undo(update: (refs: InspirationSaveDto[]) => InspirationSaveDto[]) {
+      change(update);
     },
     settle() {
       void qc.invalidateQueries({ queryKey: KEY });
@@ -108,12 +122,8 @@ export function useSavePhoto() {
         method: 'POST',
         body: JSON.stringify({ photoId: v.photoId }),
       }),
-    onMutate: (v) =>
-      opt.apply((refs) => [
-        ...refs.filter((r) => r.photoId !== v.photoId),
-        { photoId: v.photoId, boardId: v.boardId },
-      ]),
-    onError: (_e, _v, ctx) => opt.rollback(ctx),
+    onMutate: (v) => opt.apply((refs) => withPair(refs, v)),
+    onError: (_e, v) => opt.undo((refs) => withoutPair(refs, v)),
     onSettled: () => opt.settle(),
   });
 }
@@ -123,11 +133,8 @@ export function useUnsavePhoto() {
   return useMutation({
     mutationFn: (v: { boardId: string; photoId: string }) =>
       api<void>(`/inspiration/boards/${v.boardId}/items/${v.photoId}`, { method: 'DELETE' }),
-    onMutate: (v) =>
-      opt.apply((refs) =>
-        refs.filter((r) => !(r.photoId === v.photoId && r.boardId === v.boardId)),
-      ),
-    onError: (_e, _v, ctx) => opt.rollback(ctx),
+    onMutate: (v) => opt.apply((refs) => withoutPair(refs, v)),
+    onError: (_e, v) => opt.undo((refs) => withPair(refs, v)),
     onSettled: () => opt.settle(),
   });
 }
@@ -142,12 +149,36 @@ export function useMovePhoto() {
         method: 'POST',
         body: JSON.stringify({ targetBoardId: v.targetBoardId }),
       }),
+    // scoate doar perechea (poza, colectia sursa); alte colectii ale pozei raman
     onMutate: (v) =>
-      opt.apply((refs) => [
-        ...refs.filter((r) => r.photoId !== v.photoId),
-        { photoId: v.photoId, boardId: v.targetBoardId },
-      ]),
-    onError: (_e, _v, ctx) => opt.rollback(ctx),
+      opt.apply((refs) =>
+        withPair(withoutPair(refs, { photoId: v.photoId, boardId: v.boardId }), {
+          photoId: v.photoId,
+          boardId: v.targetBoardId,
+        }),
+      ),
+    onError: (_e, v) =>
+      opt.undo((refs) =>
+        withPair(withoutPair(refs, { photoId: v.photoId, boardId: v.targetBoardId }), {
+          photoId: v.photoId,
+          boardId: v.boardId,
+        }),
+      ),
     onSettled: () => opt.settle(),
+  });
+}
+
+// E-client-34: notita / camera unei salvari din colectie (PATCH), null sterge valoarea.
+export function useUpdateBoardItem(boardId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { photoId: string } & BoardItemMetaInput) => {
+      const { photoId, ...patch } = v;
+      return api<InspirationBoardItemMetaDto>(`/inspiration/boards/${boardId}/items/${photoId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+      });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...KEY, 'detail', boardId] }),
   });
 }

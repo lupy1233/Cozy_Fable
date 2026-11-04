@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/routing';
 import { CozyHomeLogo } from '@/components/brand/logo';
 import { Button } from '@/components/ui/button';
-import { useMe } from '@/hooks/use-auth';
+import { useSessionRole } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { LangSwitch } from './lang-switch';
 import { MobileNav, activeHref } from './mobile-nav';
@@ -36,14 +36,16 @@ export const PUBLIC_LINKS = [
 ] as const;
 
 const mobileLinkCls =
-  'block rounded-md px-3 py-2.5 text-[15px] text-foreground transition-colors hover:bg-secondary';
+  'block rounded-md px-3 py-2.5 text-lead text-foreground transition-colors hover:bg-secondary';
 
 export function PublicHeader() {
   const tn = useTranslations('Nav');
   const pathname = usePathname();
-  const me = useMe();
+  // rol din indiciul de sesiune cat useMe e pending: fara saltul Login/Register → „Contul meu"
+  const { role } = useSessionRole();
+  const signedIn = role !== null;
 
-  const showCta = !me.data || me.data.role === 'CLIENT';
+  const showCta = !role || role === 'CLIENT';
   const current = activeHref(
     pathname,
     PUBLIC_LINKS.map((l) => l.href),
@@ -63,7 +65,7 @@ export function PublicHeader() {
                 key={l.href}
                 href={l.href}
                 className={cn(
-                  'whitespace-nowrap rounded-md px-2 py-1.5 text-[13px] transition-colors xl:px-2.5 xl:text-sm',
+                  'whitespace-nowrap rounded-md px-2 py-1.5 text-ui transition-colors xl:px-2.5 xl:text-sm',
                   l.href === current
                     ? 'bg-walnut-soft font-medium text-walnut-deep'
                     : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
@@ -83,7 +85,7 @@ export function PublicHeader() {
               <Link href="/requests/new">{tn('createRequest')}</Link>
             </Button>
           )}
-          {me.data ? (
+          {signedIn ? (
             <Button asChild variant="outline" size="sm" className="hidden lg:inline-flex">
               <Link href="/dashboard">{tn('dashboard')}</Link>
             </Button>
@@ -102,7 +104,7 @@ export function PublicHeader() {
             links={PUBLIC_LINKS.map((l) => ({ href: l.href, label: tn(l.key) }))}
             footer={
               <div className="flex flex-col gap-0.5">
-                {me.data ? (
+                {signedIn ? (
                   <Link href="/dashboard" className={mobileLinkCls}>
                     {tn('dashboard')}
                   </Link>

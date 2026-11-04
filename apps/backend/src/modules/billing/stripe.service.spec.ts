@@ -54,6 +54,29 @@ describe('StripeService', () => {
     expect(event.type).toBe('checkout.session.completed');
   });
 
+  it('mode(): test/live dupa prefixul cheii, null fara chei', () => {
+    expect(new StripeService(makeConfig({ STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_WEBHOOK_SECRET: SECRET })).mode()).toBe('test');
+    expect(new StripeService(makeConfig({ STRIPE_SECRET_KEY: 'sk_live_x', STRIPE_WEBHOOK_SECRET: SECRET })).mode()).toBe('live');
+    expect(new StripeService(makeConfig({ STRIPE_SECRET_KEY: 'rk_live_x', STRIPE_WEBHOOK_SECRET: SECRET })).mode()).toBe('live');
+    expect(new StripeService(makeConfig({})).mode()).toBeNull();
+  });
+
+  it('assertEventMode: respinge evenimentele cu livemode diferit de cheie (400), accepta potrivirea', () => {
+    const live = new StripeService(makeConfig({ STRIPE_SECRET_KEY: 'sk_live_x', STRIPE_WEBHOOK_SECRET: SECRET }));
+    const test = new StripeService(makeConfig({ STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_WEBHOOK_SECRET: SECRET }));
+    const event = (livemode: boolean) => ({ id: 'evt_m', livemode } as unknown as Stripe.Event);
+    expect(() => live.assertEventMode(event(true))).not.toThrow();
+    expect(() => test.assertEventMode(event(false))).not.toThrow();
+    try {
+      live.assertEventMode(event(false));
+      throw new Error('should have thrown');
+    } catch (e) {
+      expect((e as HttpException).getStatus()).toBe(400);
+      expect((e as HttpException).getResponse()).toMatchObject({ code: 'VALIDATION_ERROR' });
+    }
+    expect(() => test.assertEventMode(event(true))).toThrow(HttpException);
+  });
+
   it('toMinorUnits: Decimal RON → bani, rotunjire half-up explicita', () => {
     expect(StripeService.toMinorUnits(new Prisma.Decimal('121.00'))).toBe(12100);
     expect(StripeService.toMinorUnits(new Prisma.Decimal('482.79'))).toBe(48279);

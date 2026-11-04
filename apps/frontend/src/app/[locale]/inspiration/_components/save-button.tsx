@@ -2,24 +2,26 @@
 
 import { Check, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
-import { useMovePhoto, useSavePhoto, useUnsavePhoto } from '@/hooks/use-inspiration-boards';
+import { useState } from 'react';
+import { useSavePhoto, useUnsavePhoto } from '@/hooks/use-inspiration-boards';
+import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { BoardPicker } from './board-picker';
 
 // Butonul "Salveaza"/"Salvat" cu popover — partajat de pin si lightbox.
-// Nesalvat: click deschide picker-ul de colectii. Salvat: click deschide
-// meniul "Muta in colectia…" + "Scoate din colectie" (idee 4 PO r2).
+// E-client-34: popover-ul e o lista de colectii cu bife — o poza se salveaza in mai multe
+// colectii deodata (bifa = salveaza, debifare = scoate); ramane deschis intre bife.
+// Mutarea intre colectii ramane pe detaliul colectiei.
 export function SaveButton({
   photoId,
-  savedBoardId,
+  savedBoardIds,
   authed,
   onRequireAuth,
   onOpenChange,
 }: {
   photoId: string;
-  // colectia in care e salvat pin-ul (null = nesalvat)
-  savedBoardId: string | null;
+  // colectiile in care e salvata poza (gol = nesalvata)
+  savedBoardIds: string[];
   authed: boolean;
   onRequireAuth: () => void;
   // pin-ul isi tine valul de hover vizibil cat timp popover-ul e deschis
@@ -27,86 +29,83 @@ export function SaveButton({
 }) {
   const t = useTranslations('Inspiration');
   const [open, setOpenRaw] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
   const save = useSavePhoto();
   const unsave = useUnsavePhoto();
-  const move = useMovePhoto();
+  // colectiile cu o bifa in curs de confirmare (spinner pe rand)
+  const [pending, setPending] = useState<string[]>([]);
 
   const setOpen = (o: boolean) => {
     setOpenRaw(o);
     onOpenChange?.(o);
   };
 
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  const saved = savedBoardIds.length > 0;
+  const busy = pending.length > 0;
 
-  const saved = Boolean(savedBoardId);
-  const busy = save.isPending || unsave.isPending || move.isPending;
+  // eroarea se anuleaza in hook (rollback pe perechea afectata); aici doar urmarim "in curs"
+  const toggleBoard = async (boardId: string, checked: boolean) => {
+    if (pending.includes(boardId)) return;
+    setPending((p) => [...p, boardId]);
+    try {
+      await (checked ? save : unsave).mutateAsync({ boardId, photoId });
+    } catch {
+      // revenit de onError
+    } finally {
+      setPending((p) => p.filter((id) => id !== boardId));
+    }
+  };
 
-  const onClick = () => {
-    if (!authed) return onRequireAuth();
-    setOpen(!open);
+  // neautentificat: nu deschide picker-ul, ci cere login-ul
+  const onOpenChangeRaw = (o: boolean) => {
+    if (o && !authed) return onRequireAuth();
+    setOpen(o);
   };
 
   return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={busy}
-        className={cn(
-          'flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold shadow-md transition-colors',
-          saved
-            ? 'bg-foreground text-background hover:bg-ink-2'
-            : 'bg-crimson text-white hover:brightness-110',
-        )}
+    <Popover open={open} onOpenChange={onOpenChangeRaw}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            'flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold shadow-md transition-colors',
+            saved
+              ? 'bg-foreground text-background hover:bg-ink-2'
+              : 'bg-crimson text-white hover:brightness-110',
+          )}
+        >
+          {busy ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : saved ? (
+            <Check className="h-4 w-4" />
+          ) : null}
+          {saved ? t('savedInCount', { count: savedBoardIds.length }) : t('save')}
+        </button>
+      </PopoverTrigger>
+
+      {/* Escape inchide doar pickerul, nu si lightbox-ul (care asculta keydown pe document) */}
+      <PopoverContent
+        width="md"
+        align="end"
+        className="p-0"
+        onEscapeKeyDown={(e) => e.stopPropagation()}
       >
-        {busy ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : saved ? (
-          <Check className="h-4 w-4" />
-        ) : null}
-        {saved ? t('saved') : t('save')}
-      </button>
-
-      {open && !saved && (
         <BoardPicker
-          onPick={(boardId) => {
-            save.mutate({ boardId, photoId });
-            setOpen(false);
-          }}
-        />
-      )}
-
-      {open && saved && savedBoardId && (
-        <BoardPicker
-          title={t('moveTo')}
-          excludeBoardId={savedBoardId}
-          onPick={(targetBoardId) => {
-            move.mutate({ boardId: savedBoardId, photoId, targetBoardId });
-            setOpen(false);
-          }}
+          title={t('saveToBoards')}
+          checkedBoardIds={savedBoardIds}
+          pendingBoardIds={pending}
+          onToggle={toggleBoard}
           footer={
-            <button
-              type="button"
-              onClick={() => {
-                unsave.mutate({ boardId: savedBoardId, photoId });
-                setOpen(false);
-              }}
-              className="block w-full border-t border-border px-3 py-2 text-left text-sm font-medium text-crimson transition-colors hover:bg-secondary"
-            >
-              {t('removeFromBoard')}
-            </button>
+            <PopoverClose asChild>
+              <button
+                type="button"
+                className="block w-full border-t border-border px-3 py-2 text-left text-sm font-medium text-walnut transition-colors hover:bg-secondary"
+              >
+                {t('done')}
+              </button>
+            </PopoverClose>
           }
         />
-      )}
-    </div>
+      </PopoverContent>
+    </Popover>
   );
 }

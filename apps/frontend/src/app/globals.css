@@ -3,14 +3,13 @@
 @tailwind utilities;
 
 /* ============================================================
-   Plan — Marketplace Mobilier — design tokens "ATELIER"
+   Cozy Home — design tokens "ATELIER"
    Limbaj vizual: atelierul premium. Paleta calda originala
    (ivorie + espresso + nuc), cu detalii de alama si tipografie
    de galerie (Marcellus). Din limbajul "plansa" pastram doar
    schita care se traseaza singura si cotele — ca piesa de arta,
    nu ca document tehnic.
    shadcn consuma hsl(var(--x)) cu triplete "H S% L%".
-   NOTA: aliasul tailwind `plan` = acelasi var ca `walnut`.
    ============================================================ */
 
 @layer base {
@@ -27,7 +26,8 @@
     --secondary: 39 44% 92%;           /* surface-3 */
     --secondary-foreground: 30 13% 9%;
     --muted: 38 52% 96%;               /* surface-2 */
-    --muted-foreground: 35 9% 43%;     /* #766E63 */
+    /* pasul 6 (audit A16): 43% dadea 4.13:1 pe ivorie — sub AA; 39% ≈ 4.8:1 */
+    --muted-foreground: 35 9% 39%;     /* #6F675D */
     --accent: 39 44% 92%;              /* hover */
     --accent-foreground: 30 13% 9%;
     --destructive: 7 54% 40%;          /* #9C3A2E */
@@ -47,7 +47,7 @@
     --hairline: 26 13% 8%;
 
     /* paleta de brand (atelier: nuc, alama, salvie) */
-    --walnut: 23 45% 36%;              /* nuc #855232 (alias: plan) */
+    --walnut: 23 45% 36%;              /* nuc #855232 */
     --walnut-deep: 26 46% 25%;         /* #5C3B22 */
     --walnut-soft: 34 45% 89%;         /* #F0E5D7 */
     --sage: 111 17% 41%;
@@ -60,6 +60,18 @@
     --crimson-soft: 10 58% 90%;
     --info: 204 40% 39%;
     --info-soft: 203 35% 90%;
+
+    /* text pe fundal nuc (avatar) si panglici de plan — conversie exacta a hex-urilor vechi */
+    --on-walnut: 40 65% 95%;
+    --tier-platinum-from: 36 12% 16%;
+    --tier-platinum-to: 30 11% 33%;
+    --tier-platinum-fg: 39 39% 93%;
+    --tier-gold-from: 40 71% 40%;
+    --tier-gold-to: 40 62% 55%;
+    --tier-gold-fg: 43 100% 95%;
+    --tier-silver-from: 37 7% 51%;
+    --tier-silver-to: 40 12% 65%;
+    --tier-silver-fg: 39 39% 93%;
   }
 
   .dark {
@@ -253,6 +265,34 @@
     letter-spacing: 0.01em;
     font-weight: 400;
   }
+  /* scala tipografica (docs/design-tokens.md). Nume fara prefix h-/text-:
+     tailwind-merge le-ar confunda cu height/culoare si le-ar sterge. */
+  .heading-section {
+    font-family: var(--font-serif), Georgia, serif;
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 1.25;
+    letter-spacing: 0.005em;
+  }
+  .heading-card {
+    font-family: var(--font-serif), Georgia, serif;
+    font-weight: 400;
+    font-size: 18px;
+    line-height: 1.3;
+    letter-spacing: 0.005em;
+  }
+  .meta-text {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-size: 11px;
+    line-height: 16px;
+    letter-spacing: 0.02em;
+    color: hsl(var(--muted-foreground));
+  }
+  .data-mono {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
 
   /* schita care se traseaza singura (pathLength=1), delay per
      element prin --d (ms) — lenta, ca o mana care deseneaza. */
@@ -327,6 +367,15 @@
   }
 }
 @keyframes planFade {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes choiceCardIn {
+  from {
+    opacity: 0;
+  }
   to {
     opacity: 1;
   }

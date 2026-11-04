@@ -1,14 +1,19 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   ERROR_CODES,
+  resolvePlanFeatures,
   type AdminSubscriptionItemDto,
   type SubscriptionDetailDto,
   type SubscriptionPlanDto,
 } from '@marketplace/shared';
 import { Prisma, type Subscription } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { runTx } from '../../infra/prisma/tx';
 import { SettingsService } from '../../common/settings/settings.service';
+import { SETTING_DEFAULTS } from '../../common/settings/setting-defaults';
 import { CreditsService } from './credits.service';
+import { activeSubscriptionWhere } from '../entitlements/entitlements.service';
+import { VAT_RATE_DEFAULT, VAT_RATE_SETTING, priceWithVat } from './vat';
 
 type Tx = Prisma.TransactionClient;
 
@@ -29,7 +34,7 @@ export class SubscriptionsService {
   // 4.16 — la approve firma: trial Gold gratuit + bonus credite, daca trial_enabled.
   // Ruleaza in tranzactia approve (tx furnizat). Idempotent: nu dubleaza daca exista deja.
   async startTrialIfEnabled(companyId: string, tx: Tx): Promise<void> {
-    const enabled = await this.settings.getBool('trial_enabled', true);
+    const enabled = await this.settings.getBool('trial_enabled', SETTING_DEFAULTS.trial_enabled);
     if (!enabled) {
       await this.credits.ensureWallet(companyId, tx);
       return;
@@ -37,13 +42,12 @@ export class SubscriptionsService {
     const existing = await tx.subscription.findFirst({ where: { companyId } });
     if (existing) return; // deja are abonament (re-approve)
 
-    const planTier = await this.settings.getString('trial_plan', 'GOLD');
-    const durationDays = await this.settings.getInt('trial_duration_days', 30);
-    const bonusCredits = await this.settings.getInt('trial_bonus_credits', 10);
+    // E-admin-platform-58: trial_plan = codul planului (validat la salvare in Admin)
+    const planCode = await this.settings.getString('trial_plan', SETTING_DEFAULTS.trial_plan);
+    const durationDays = await this.settings.getInt('trial_duration_days', SETTING_DEFAULTS.trial_duration_days);
+    const bonusCredits = await this.settings.getInt('trial_bonus_credits', SETTING_DEFAULTS.trial_bonus_credits);
 
-    const plan = await tx.subscriptionPlan.findUnique({
-      where: { tier: planTier as 'SILVER' | 'GOLD' | 'PLATINUM' },
-    });
+    const plan = await tx.subscriptionPlan.findUnique({ where: { code: planCode } });
     if (!plan) {
       // fara plan seed-uit nu putem porni trialul; asiguram macar portofelul
       await this.credits.ensureWallet(companyId, tx);
@@ -76,7 +80,7 @@ export class SubscriptionsService {
   async grantOrExtend(companyId: string, planId: string, days: number, tx: Tx): Promise<Subscription> {
     const now = new Date();
     const active = await tx.subscription.findFirst({
-      where: { companyId, status: 'ACTIVE', expiresAt: { gt: now } },
+      where: { companyId, ...activeSubscriptionWhere(now) },
       orderBy: { expiresAt: 'desc' },
     });
     if (active) {
@@ -100,7 +104,7 @@ export class SubscriptionsService {
 
   async getActive(companyId: string): Promise<SubscriptionDetailDto | null> {
     const sub = await this.prisma.subscription.findFirst({
-      where: { companyId, status: 'ACTIVE', expiresAt: { gt: new Date() } },
+      where: { companyId, ...activeSubscriptionWhere() },
       include: { plan: true },
       orderBy: { expiresAt: 'desc' },
     });
@@ -108,7 +112,7 @@ export class SubscriptionsService {
     return {
       id: sub.id,
       planId: sub.planId,
-      tier: sub.plan.tier,
+      tier: sub.plan.code,
       status: sub.status,
       isTrial: sub.isTrial,
       startedAt: sub.startedAt.toISOString(),
@@ -119,17 +123,27 @@ export class SubscriptionsService {
   }
 
   // Planurile active, vizibile firmei (pret fara TVA; TVA-ul se adauga la comanda).
+  // E-admin-platform-58: + TVA/total calculate ca pe comanda (buildAmounts), nume, functii, isFree.
   async listPlans(): Promise<SubscriptionPlanDto[]> {
-    const rows = await this.prisma.subscriptionPlan.findMany({
-      where: { isActive: true },
-      orderBy: { priceRon: 'asc' },
-    });
+    const [rows, vatRate] = await Promise.all([
+      this.prisma.subscriptionPlan.findMany({
+        where: { isActive: true },
+        include: { features: true },
+        orderBy: { priceRon: 'asc' },
+      }),
+      this.settings.getNumber(VAT_RATE_SETTING, VAT_RATE_DEFAULT),
+    ]);
     return rows.map((p) => ({
       id: p.id,
-      tier: p.tier,
+      tier: p.code,
+      nameRo: p.nameRo,
+      nameEn: p.nameEn,
       priceRon: p.priceRon,
+      isFree: p.priceRon === 0,
+      ...priceWithVat(p.priceRon, vatRate),
       includedCredits: p.includedCredits,
       gatingDelayMinutes: p.marketplaceGatingDelayMin,
+      features: resolvePlanFeatures(p.features),
     }));
   }
 
@@ -151,7 +165,7 @@ export class SubscriptionsService {
     if (!plan) {
       throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Plan not found' });
     }
-    const sub = await this.prisma.$transaction(async (tx) => {
+    const sub = await runTx(this.prisma, 'write', async (tx) => {
       const row = await this.grantOrExtend(input.companyId, input.planId, input.days, tx);
       if (input.includeCredits && plan.includedCredits > 0) {
         await this.credits.grant(input.companyId, plan.includedCredits, 'SUBSCRIPTION_CREDITS', tx);
@@ -172,7 +186,7 @@ export class SubscriptionsService {
   }
 
   private toAdminDto(
-    s: Subscription & { plan: { tier: 'SILVER' | 'GOLD' | 'PLATINUM' }; company: { name: string } },
+    s: Subscription & { plan: { code: string }; company: { name: string } },
   ): AdminSubscriptionItemDto {
     const now = new Date();
     return {
@@ -180,7 +194,7 @@ export class SubscriptionsService {
       companyId: s.companyId,
       companyName: s.company.name,
       planId: s.planId,
-      tier: s.plan.tier,
+      tier: s.plan.code,
       status: s.status,
       isTrial: s.isTrial,
       startedAt: s.startedAt.toISOString(),

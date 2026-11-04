@@ -1,0 +1,72 @@
+# Numai verificare locala, fara volume sau porturi ale infrastructurii dev.
+services:
+  postgres:
+    image: postgres:16-alpine@sha256:16bc17c64a573ef34162af9298258d1aec548232985b33ed7b1eac33ba35c229
+    environment:
+      POSTGRES_USER: smoke
+      POSTGRES_PASSWORD: ${SMOKE_DB_PASSWORD:?set ephemeral smoke password}
+      POSTGRES_DB: smoke
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U smoke']
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  redis:
+    image: redis:7-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  minio:
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: smoke
+      MINIO_ROOT_PASSWORD: ${SMOKE_S3_PASSWORD:?set ephemeral storage password}
+    healthcheck:
+      test: [CMD, mc, ready, local]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  minio-init:
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      SMOKE_S3_PASSWORD: ${SMOKE_S3_PASSWORD}
+    entrypoint: [/bin/sh, -c]
+    command: ['mc alias set local http://minio:9000 smoke "$${SMOKE_S3_PASSWORD}" >/dev/null && mc mb --ignore-existing local/uploads']
+  mailpit:
+    image: axllent/mailpit@sha256:3bd7c2f2696deb35a4780d152b404dceec99cb041b942c0877b3b22384714f85
+  app:
+    image: cozy-app:implementation
+    ports:
+      - '127.0.0.1:3210:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://smoke:${SMOKE_DB_PASSWORD}@postgres:5432/smoke
+      FRONTEND_ORIGIN: http://127.0.0.1:3210
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: smoke
+      S3_SECRET_KEY: ${SMOKE_S3_PASSWORD}
+      S3_BUCKET: uploads
+      S3_REGION: eu-central-1
+      SMTP_HOST: mailpit
+      SMTP_PORT: '1025'
+      SMTP_ALLOW_DEV_HOST: 'true'
+      MAIL_FROM: smoke@example.invalid
+      JWT_ACCESS_SECRET: ${SMOKE_JWT_ACCESS:?set ephemeral JWT secret}
+      JWT_REFRESH_SECRET: ${SMOKE_JWT_REFRESH:?set ephemeral refresh secret}
+      IP_HASH_SALT: ${SMOKE_IP_SALT:?set ephemeral salt}
+      MESSAGE_ENCRYPTION_KEY: ${SMOKE_CHAT_KEY:?set ephemeral encryption key}
+      HEALTH_DETAILS_TOKEN: ${SMOKE_HEALTH_TOKEN:?set ephemeral health token}

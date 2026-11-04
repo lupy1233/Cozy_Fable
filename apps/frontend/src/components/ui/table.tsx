@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-// Table — portat din prototip (.table). Header mono uppercase, rand hover.
+// Table — portat din prototip (.table). Header sans uppercase spatiat (.label), rand hover.
 export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
   return (
     <div className="w-full overflow-x-auto">
-      <table className={cn('w-full border-separate border-spacing-0 text-[13.5px]', className)} {...props} />
+      <table className={cn('w-full border-separate border-spacing-0 text-ui', className)} {...props} />
     </div>
   );
 }
@@ -35,7 +35,7 @@ export function TH({ className, ...props }: React.ThHTMLAttributes<HTMLTableCell
   return (
     <th
       className={cn(
-        'border-b border-border px-3.5 py-2.5 text-left font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground',
+        'border-b border-border px-3.5 py-2.5 text-left text-micro font-medium uppercase tracking-[0.08em] text-muted-foreground',
         className,
       )}
       {...props}

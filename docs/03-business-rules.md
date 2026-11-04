@@ -16,19 +16,17 @@ Formular generic structurat pe camere și piese. Câmpuri (derivate din categori
 
 **CONFIRMAT (D-v6-2): **câmpurile exacte ale formularului se finalizează de către agent în Sprint 0, împreună cu seed-ul de scoring, și se prezintă utilizatorului pentru revizuire. Structura de mai sus e baza obligatorie.
 
-## 4.2 Partajare date contact (CONFIRMAT, D-v6-1)
+## 4.2 Partajare date contact (W1, 2026-07-15)
 
-Clientul alege cum și când se partajează datele de contact către firmele cu claim. Stocat în request_contact_preferences; enforce la nivel API (datele nu sunt servite firmelor decât conform opțiunii alese). Cele 5 opțiuni confirmate:
+Regula actuala aprobata in [feedback PO r6, W1](archive/16-feedback-po-r6-sprints.md#w1--context-post-claim-complet-backend) inlocuieste cele cinci optiuni istorice D-v6-1. Contactele furnizate in cerere sunt vizibile numai firmei cu un claim ocupant (`ACTIVE`, `OFFER_SENT`, `COMPLETED`). Retragerea sau anularea elimina accesul. Verificarea se face in API, nu doar prin ascunderea UI.
 
-- (1) Doar chat în aplicație, fără telefon/email.
+Clientul alege canalele furnizate (email/telefon); materialele si scenele 3D de proiect nu sunt date de contact si urmeaza autorizarea detaliului de proiect.
 
-- (2) Nume + chat, fără telefon/email.
+Actualizare 2026-09-30 (E-company-3): in interiorul firmei, un membru `EMPLOYEE_MANAGED` vede contactele si adresa completa doar pe preluarile luate de el sau atribuite lui (OWNER/MANAGER/EMPLOYEE_TRUSTED le vad pe orice claim ocupant). O firma al carei claim nu mai e ocupant vede doar un rezumat (titlu, localitate, statusuri, ofertele proprii), fara materiale, raspunsuri, scene 3D, chat sau contacte; dupa ce clientul sterge cererea ramane doar o „piatra funerara" (titlu, statusuri, oferta proprie). Doua comutatoare in `system_settings`, ambele DECIZIE NECESARA PO: `claim_contact_reveal_policy` (implicit `ON_CLAIM` = regula W1 de mai sus; `AFTER_GRACE` ascunde contactele in primele 30 min de gratie) si `completed_claim_contact_retention_days` (implicit 0 = fara prag; N > 0 = la N zile dupa livrare, contactele proiectelor finalizate raman doar la OWNER/MANAGER).
 
-- (3) Telefon + email după ce firma dă claim.
+Nota de implementare 2026-10-01 (E-admin-platform-45, F2-16): regula se aplica si datelor de contact scrise de client in texte libere (titlu, "Mesaj pentru firme", raspunsurile text, numele/descrierea pieselor, numele scenelor din Studio). Textul ramane salvat exact cum l-a scris clientul; firmele fara acces la contacte (marketplace, inclusiv firma care a preluat deja; pe fisa de lucru membrii cu `clientVisible = false`) vad `⟦contact⟧` in locul telefonului/emailului/linkului/contului. Un titlu manual cu contact e inlocuit cu titlul automat (titlul ajunge in notificari). DECIZIE NECESARA PO: `system_settings.pre_claim_contact_text_policy` — `MASK` (implicit: publicarea trece, contactele sunt ascunse) sau `BLOCK` (publicarea/editarea e refuzata cu `REQUEST_CONTACT_INFO_IN_TEXT` pana cand clientul scoate contactele). Fiecare detectare se logheaza cu fragment partial ascuns (Admin -> Contacte detectate).
 
-- (4) Telefon + email doar după acceptarea unei oferte.
-
-- (5) Partajare completă imediat la publicare.
+Nota de implementare 2026-10-01 (E-client-9, C7-3/C7-16): inainte de preluare firmele verificate din zona vad proiectul (titlu, descriere, camere, fisiere, scena 3D, oras, judet, distanta aproximativa), NU numele, adresa sau contactele. Fotografiile (JPEG/PNG/WEBP) sunt re-encodate la scanare, fara EXIF/GPS; PDF/ZIP raman neatinse (clientul e avertizat la pasul Fisiere). Firmele primesc fisierele cererii cu nume neutre (`attachment-N.ext`, si in Content-Disposition), iar cheile de storage nu mai contin numele original. Clientul vede pe pagina cererii cardul "Cine vede cererea": daca proiectul e in lista firmelor si ce firme detin numele/adresa/contactele (sloturi ACTIVE/OFFER_SENT/COMPLETED, cu "din {ora}" cand `claim_contact_reveal_policy = AFTER_GRACE`) — `GET /requests/:id/visibility`, calculat cu aceeasi functie ca fisa de lucru.
 
 ## 4.3 Editare cerere
 
@@ -45,6 +43,7 @@ Clientul alege cum și când se partajează datele de contact către firmele cu 
 - O cerere publicată fără claim expiră după 5 zile lucrătoare (calendar Europe/Bucharest, 3.3).
 
 - Reminder la clientul cererii la 3 zile lucrătoare.
+  - _Implementare (E-admin-platform-44): reminder la 09:00 București în prima din ultimele 2 zile lucrătoare înainte de expires_at, doar cât cererea e IN_MARKETPLACE; eveniment request.expiry_reminder (clopoțel + email)._
 
 - Repost permis o singură dată (manual, de către client).
 
@@ -63,6 +62,8 @@ Sistemul calculează automat mărimea (SMALL/MEDIUM/LARGE) din alegerile clientu
 **Seed cost claim (D-v6-5): **SMALL = 1 credit, MEDIUM = 2 credite, LARGE = 4 credite. Valorile sunt seed inițial în project_size_thresholds.claim_cost_credits, ajustabile din Admin.
 
 **Sprint 0: **Agentul propune un seed inițial de categorii + puncte (camera × dimensiune, material PAL/MDF/lemn masiv, sisteme push/glisante/buton presiune etc.), pe care utilizatorul îl revizuiește. Punctele se ajustează ulterior din Admin Settings.
+
+Nota de implementare 2026-10-01 (E-company-21): costul unei preluari NU mai vine din praguri. Este regula PO r5 V1 (docs/archive/15): `ceil(bugetul minim estimat / credit_value_ron)`, limitat la [`claim_cost_min`, `claim_cost_max`] (0 = fara plafon), cu valorile din `system_settings` (implicit 1000 / 1 / 0 = comportamentul de dinainte), editabile din Admin → Setari fara deploy; formula unica in shared (`creditCostFromBaseScore` + `resolveClaimCostRules`), folosita de SizingService si de previzualizarea din /admin/sizing. Seed-ul 1/2/4 pe praguri (D-v6-5) e legacy: coloana `project_size_thresholds.credit_cost` nu mai e citita. O schimbare a setarilor se aplica doar cererilor publicate sau editate dupa; `claim_cost_credits_snapshot` ramane inghetat. DECIZIE NECESARA PO: valorile min/max (propunerea 3..25 neaprobata).
 
 ## 4.6 Verificare firmă și risk flags
 
@@ -90,11 +91,17 @@ Sistemul calculează automat mărimea (SMALL/MEDIUM/LARGE) din alegerile clientu
 
 - La claim se rezervă credite (credit_transaction RESERVE), cost = claim_cost_credits per mărimea proiectului (snapshot, 4.5; seed 1/2/4).
 
+  Nota 2026-10-01 (E-company-21): costul efectiv = `credit_cost` al cererii, calculat la publicare/editare dupa regula PO r5 V1 (1 credit = `credit_value_ron` lei din bugetul minim estimat, rotunjit in sus), limitat la [`claim_cost_min`, `claim_cost_max`] din `system_settings` (0 = fara plafon); vezi nota din 4.5. DECIZIE NECESARA PO: valorile min/max (propunerea 3..25 neaprobata).
+
 - Refund la editare cerere post-claim sau la anulări valide (4.15). Creditele se consumă definitiv conform regulilor de anulare/finalizare.
 
 - Eligibilitate la claim: firmă APPROVED + abonament activ (SubscriptionActiveGuard) + credite suficiente + arie de acoperire îndeplinită + gating-ul planului (4.10) deja deschis + firma NU e în request_company_exclusions pentru cererea respectivă.
 
+  Nota de implementare 2026-10-01 (E-admin-platform-58): „abonament activ” = `status = ACTIVE` si `expires_at > now` (predicatul unic `activeSubscriptionWhere`, folosit de garda, SubscriptionsService, workerul de expirare si KPI-ul admin) SI planul abonamentului include functia `MARKETPLACE_ACCESS` (`subscription_plan_features`). Fara abonament → 403 `SUBSCRIPTION_INACTIVE` (neschimbat); abonament pe un plan fara acces → 403 `PLAN_FEATURE_REQUIRED`. Cele 3 planuri existente au accesul activ (backfill) — comportament identic cu cel de dinainte.
+
 **Arie de acoperire (D-v6-10): **fiecare company_location are coverage_radius_km (NUMERIC, default seed 50). O cerere este eligibilă pentru firmă dacă distanța Haversine dintre adresa cererii și cel puțin O locație a firmei ≤ coverage_radius_km al acelei locații. Filtrul rulează în SQL (3.8).
+
+Nota de implementare 2026-10-01 (E-client-9, C7-2): distanta si acoperirea se masoara de la locatia firmei pana la punctul cererii APROXIMAT pe o grila fixa de ~2 km (centrul celulei: 0,018° lat × 0,026° lng, `floor` + 0,5 — aceeasi formula in SQL-ul marketplace si in tranzactia de claim, deci o cerere vizibila ramane claimabila). Doar punctul cererii se aproximeaza; locatiile firmei raman exacte. Firmele vad distanta in km intregi (minim 1) sau doar banda (sub 5 / 5–15 / 15–30 / peste 30 km), dupa `system_settings.marketplace_distance_display` (`KM` implicit | `BAND`). Raza minima a unei locatii = 2 km (`MIN_COVERAGE_RADIUS_KM`, doar la creare/editare; randurile existente nu se rescriu). Plafon de locatii per firma `company_locations_max` (implicit 10 → 409 `COMPANY_LOCATION_LIMIT_REACHED`) si de schimbari de locatii pe 24h `company_location_changes_per_day` (implicit 20, numarate din `audit_logs` COMPANY_LOCATION_* → 429 `COMPANY_LOCATION_CHANGE_LIMIT`). DECIZIE NECESARA PO: KM vs benzi, raza minima (2 vs 5 km), valorile plafoanelor (globale, nu per plan).
 
 ## 4.9 Regula „1 claim activ fără ofertă” + manager
 
@@ -103,6 +110,7 @@ Sistemul calculează automat mărimea (SMALL/MEDIUM/LARGE) din alegerile clientu
 - **Cap manager: **managerul poate avea claim-uri neatribuite simultan ≤ numărul de angajați liberi. Validare: count(activeUnassignedClaimsByManager) + 1 ≤ count(workersWithoutActiveUnofferedClaim). Managerul se numără și el ca worker disponibil.
 
 - **Atribuire în 1h (oră calendaristică, 3.3): **BullMQ delayed job la +1h; dacă assigned_to = NULL → auto-cancel (status CANCELLED_UNASSIGNED) + refund + notificare. Warning la +30 min.
+  - _Warning la +30 min implementat (E-admin-platform-44): claim.assign_warning către OWNER/MANAGER + cine a preluat._
 
 - **Atribuire eșuată: **dacă angajatul țintă are deja claim activ fără ofertă → eroare ASSIGNED_USER_HAS_ACTIVE_CLAIM.
 
@@ -114,11 +122,15 @@ Sistemul calculează automat mărimea (SMALL/MEDIUM/LARGE) din alegerile clientu
 
 - Transparență: firma vede DOAR timpul scurs de la publicare („publicată acum X”), fără mențiuni despre alte planuri. CTA-ul de upgrade stă pe dashboard/pagina de prețuri, nu pe cardul cererii.
 
+  Nota de implementare 2026-10-01 (E-admin-platform-58): planurile sunt date editabile din Admin → Setari (cod unic imuabil, nume RO/EN optionale, pret >= 0, credite incluse, intarziere de gating, activ, acces la marketplace). Planurile noi pornesc FARA acces la marketplace pana cand adminul il bifeaza explicit. Nu s-a schimbat niciun pret, numar de credite sau intarziere.
+
 ## 4.11 SLA (mapare CONFIRMATĂ, D-v6-4)
 
 - **Durată SLA: **SMALL = 3 zile lucrătoare; MEDIUM = 3 zile lucrătoare; LARGE = 5 zile lucrătoare. Materializat în claim_slots.sla_deadline_at la momentul claim-ului.
 
 - Grace period 12h (calendaristice) peste deadline înainte de penalizare.
+  - _Implementare (E-admin-platform-44): sla.expiring_soon cu 24h înainte de sla_deadline_at (fără pauză), către responsabil + OWNER/MANAGER (clopoțel + email)._
+  - _E-company-13: al doilea reminder la începutul grației (la sla_deadline_at), același eveniment sla.expiring_soon cu phase=GRACE, aceleași ținte; re-armat de sweep._
 
 - O clarificare cerută firmei (clarification_requests) pune SLA pe pauză și adaugă +1 zi lucrătoare (sla_paused_at + recalcul via worker).
 
@@ -184,8 +196,8 @@ Anularea cu refund se auto-aprobă dacă motivul e în lista predefinită (cu va
 
 | **reason_type** | **Validare automată / efect** |
 | --- | --- |
-| CLIENT_UNRESPONSIVE_48H | messages.last_client_message_at > 48h → AUTO_APPROVED + refund. |
-| REQUEST_MODIFIED_POST_CLAIM | requests.last_edit_at > claim_slots.created_at → AUTO_APPROVED + refund. |
+| CLIENT_UNRESPONSIVE_48H | ultimul mesaj al firmei in chat sau ultima clarificare ceruta de firma are ≥ 48h si clientul nu a mai scris / nu a raspuns dupa el → AUTO_APPROVED + refund (E-company-3: fara mesaj al firmei motivul nu se aplica). |
+| REQUEST_MODIFIED_POST_CLAIM | requests.last_edit_at > claim_slots.created_at si firma nu a trimis nicio versiune de oferta dupa last_edit_at → AUTO_APPROVED + refund (E-company-3). |
 | CLIENT_CONTACT_INVALID | log bounce email automat sau upload dovadă → AUTO_APPROVED + refund. |
 | CLIENT_REQUESTED_CANCELLATION | confirmare client în chat (quick reply) → AUTO_APPROVED + refund. |
 | VOLUNTARY_NO_REASON | < 30 min de la claim: refund integral + 0 penalizare; ≥ 30 min: fără refund + slot eliberat + 2 puncte. |
@@ -201,7 +213,13 @@ Anularea cu refund se auto-aprobă dacă motivul e în lista predefinită (cu va
 
 - Creditele rămân valabile 3 luni după expirarea abonamentului.
 
+  Nota 2026-10-01 (E-company-21): regula de valabilitate 3 luni NU e implementata (creditele nu expira in cod; se pot folosi doar cu abonament activ - SubscriptionActiveGuard; portofelul afiseaza aceasta nota firmelor fara abonament activ). DECIZIE NECESARA PO: pastrare (EXPIRE + job + avertizari 30/7 zile + clauza in Termeni) / post-MVP / renuntare.
+
 - Trial firme noi: 1 lună Gold gratuit + 10 credite, activat la admin approve, toggleable din Admin (subscriptions.is_trial + trial_ends_at; system_settings: trial_enabled, trial_plan, trial_duration_days, trial_bonus_credits).
+
+  Nota de implementare 2026-10-01 (E-admin-platform-58): `trial_plan` = codul unui plan ACTIV (validat la salvare; implicit ramane `GOLD`). Un plan de 0 lei este permis ca DATE, dar nu se cumpara online (409 `PLAN_NOT_PURCHASABLE`, fara comanda si fara factura): firma il primeste doar prin acordarea adminului (`POST /admin/subscriptions/grant`) sau daca adminul il pune in `trial_plan`. Plata ramane Stripe Checkout `mode: 'payment'` + prelungire cu 30 de zile (D-L0-1 / D-L0-2). Preturile listate (planuri si pachete) vin cu TVA calculat in backend, cu aceeasi formula ca pe comanda.
+
+  DECIZIE NECESARA PO (E-admin-platform-58): (1) grila de preturi „runda 4” (Start 0 / Ofertare 299 / Prioritate 599, cost claim 3..25 credite) NU este inregistrata in docs/07; daca devine finala, PO trebuie sa inlocuiasca explicit Î7, Î8, D-v6-5 si D-L0-2 (docs/07 nu a fost modificat); (2) facturare recurenta Stripe (subscription / anual) in locul platii unice + 30 de zile — contrazice D-L0-1/D-L0-2, nerealizata; (3) cum ajunge o firma pe planul gratuit: automat la aprobare (in locul trialului Gold), automat cand nu are abonament (plan implicit) sau doar prin acordarea adminului (azi: doar admin / `trial_plan`); (4) ce functii de unealta (Ofertare Rapida, citiri AI pe luna) intra in fiecare plan — registrul contine azi doar `MARKETPLACE_ACCESS`, coloana `limit_value` e pregatita pentru cote.
 
 ## 4.17 Facturare (mock, conformă RO)
 
@@ -214,6 +232,8 @@ Factura mock generată local (PDF), cu structură conformă Codului Fiscal RO. S
 - TVA standard RO = 21% (din 1 aug 2025), stocat configurabil în system_settings (snapshot vat_rate pe factură). Câmpuri: bază impozabilă + valoare TVA + total, monedă RON.
 
 - Conținut: serie+număr, dată, furnizor, client, descriere serviciu, baza+TVA+total.
+
+_Implementare (E-company-24, 2026-09-30): când Stripe e oprit (D-L0-1), plata prin transfer bancar primește o **factură proformă** (PDF atașat emailului „Datele pentru plata prin transfer” și descărcabil din portofel) — document fără valoare fiscală, identificat prin referința comenzii „Comanda {REF}”, care NU consumă număr din seria facturilor (numărul se alocă doar la plata confirmată). Factura fiscală se atașează emailului „Plata a fost confirmată”. Firma poate apăsa „Am plătit” (marcaj + notificare către admini; fără dovadă atașată). Emailurile și notificările de facturare ajung doar la OWNER/MANAGER, plus o copie a documentelor la emailul de facturare opțional al firmei (contabil). Reminderul și anularea automată a comenzilor neplătite sunt controlate de `bank_transfer_reminder_days` / `bank_transfer_expiry_days` (zile calendaristice de la plasarea comenzii; 0 = oprit, implicit) — DECIZIE NECESARĂ PO: numărul de zile și ce se întâmplă cu un transfer sosit după anularea automată (azi: confirmarea unei comenzi anulate = 409, rezolvare manuală). Comenzile marcate „Am plătit” nu se anulează automat._
 
 ## 4.18 Review și dispute
 

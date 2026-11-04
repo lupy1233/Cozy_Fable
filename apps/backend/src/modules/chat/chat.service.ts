@@ -16,7 +16,8 @@ import {
   type TeamThreadDto,
 } from '@marketplace/shared';
 import { PrismaService } from '../../infra/prisma/prisma.service';
-import { EventBusService } from '../../infra/event-bus/event-bus.service';
+import { runTx } from '../../infra/prisma/tx';
+import { OutboxService } from '../outbox/outbox.service';
 import { UploadsService, type PresignInput } from '../uploads/uploads.service';
 import { MessageCryptoService } from './message-crypto.service';
 
@@ -44,7 +45,7 @@ export class ChatService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly uploads: UploadsService,
-    private readonly eventBus: EventBusService,
+    private readonly outbox: OutboxService,
     private readonly crypto: MessageCryptoService,
   ) {}
 
@@ -250,7 +251,8 @@ export class ChatService {
       });
     }
 
-    const message = await this.prisma.$transaction(async (tx) => {
+    const targets = await this.participantUserIds(ctx);
+    const message = await runTx(this.prisma, 'write', async (tx) => {
       // corpul se cripteaza la stocare (PO r6) — DTO-ul intoarce mereu clarul
       const created = await tx.message.create({
         data: { chatThreadId: threadId, senderUserId: userId, body: this.crypto.encrypt(body) },
@@ -266,31 +268,14 @@ export class ChatService {
           data: { lastClientMessageAt: created.createdAt },
         });
       }
+      await this.outbox.record(tx, `message.created:${created.id}`, 'message.created', {
+        threadId, messageId: created.id, senderUserId: userId, senderRole: role,
+        requestId: ctx.requestId, companyId: ctx.companyId, teamChat: ctx.threadType === 'TEAM', clientUserId: ctx.clientUserId,
+      }, targets);
       return created;
     });
 
     const [dtoMsg] = await this.mapMessages([message], userId);
-    const targets = await this.participantUserIds(ctx);
-    // payload cu context afisabil (titlul cererii + firma + rolul expeditorului):
-    // notificarile pot construi un titlu clar si un deep-link (item 5).
-    // TEAM: fara cerere/client → emailul de "mesaj nou" nu pleaca (clientUserId
-    // null), notificarile in-app merg la ceilalti membri.
-    await this.eventBus.publish(
-      'message.created',
-      {
-        threadId,
-        messageId: message.id,
-        senderUserId: userId,
-        senderRole: role,
-        requestId: ctx.requestId,
-        requestTitle: ctx.requestTitle,
-        companyName: ctx.companyName,
-        teamChat: ctx.threadType === 'TEAM',
-        // emailul de "mesaj nou" merge doar la partea cealalta (Q4, idee 5)
-        clientUserId: ctx.clientUserId,
-      },
-      targets,
-    );
     return dtoMsg;
   }
 

@@ -60,7 +60,7 @@ export function CozyHomeLogo({
       <span
         className={cn(
           'whitespace-nowrap font-serif uppercase leading-none tracking-[0.18em]',
-          size === 'lg' ? 'text-[19px]' : 'text-[15px]',
+          size === 'lg' ? 'text-xl' : 'text-lead',
         )}
       >
         Cozy&nbsp;Home

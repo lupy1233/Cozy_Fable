@@ -2,6 +2,8 @@ import { Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
 import type { Browser } from 'puppeteer';
 import type { QuoteDto, QuoteVersionDto } from '@marketplace/shared';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { withDeletedRecords } from '../../infra/prisma/soft-delete';
+import { formatBucharestDate, formatDateOnly } from '../../infra/calendar/bucharest-format';
 import type { CompanyContext } from '../../common/company-context/company-context';
 import { QuotesService } from './quotes.service';
 
@@ -12,7 +14,8 @@ const loadPuppeteer = new Function('return import("puppeteer")') as () => Promis
 >;
 
 // Sprint 6 — PDF oferta (decizie Sprint-0 §9: puppeteer). Dubla afisare RON/EUR (D-v6-12),
-// linie design_fee (D-v6-11). Documentul reflecta versiunea curenta a ofertei.
+// linie design_fee (D-v6-11) + total oferta (E-client-1). Documentul reflecta versiunea
+// acceptata (sau ultima, pe ofertele neacceptate / acceptate inainte de migrare).
 @Injectable()
 export class QuotePdfService implements OnModuleDestroy {
   private readonly logger = new Logger(QuotePdfService.name);
@@ -49,15 +52,17 @@ export class QuotePdfService implements OnModuleDestroy {
   }
 
   private async render(dto: QuoteDto): Promise<Buffer> {
-    const request = await this.prisma.request.findUnique({
+    const request = await withDeletedRecords('AUTHORIZED_QUOTE_DOCUMENT', () => this.prisma.request.findUnique({
       where: { id: dto.requestId },
       select: { title: true, addressText: true, city: true, county: true },
-    });
-    const company = await this.prisma.company.findUnique({
+    }));
+    const company = await withDeletedRecords('AUTHORIZED_QUOTE_DOCUMENT', () => this.prisma.company.findUnique({
       where: { id: dto.companyId },
       select: { name: true, cui: true, regComNumber: true, addressText: true },
-    });
-    const current = dto.versions.reduce((a, b) => (b.version > a.version ? b : a));
+    }));
+    const latest = dto.versions.reduce((a, b) => (b.version > a.version ? b : a));
+    const current =
+      (dto.acceptedVersionId && dto.versions.find((v) => v.id === dto.acceptedVersionId)) || latest;
     const html = this.buildHtml(dto, current, {
       requestTitle: request?.title ?? '',
       requestLocation: [request?.city, request?.county].filter(Boolean).join(', '),
@@ -136,7 +141,7 @@ export class QuotePdfService implements OnModuleDestroy {
     </div>
     <div style="text-align:right">
       <div class="tag">Curs informativ 1 EUR = ${dto.eurRonRate} RON</div>
-      <div class="muted" style="margin-top:6px">Valabil până la: ${new Date(v.validUntil).toLocaleDateString('ro-RO')}</div>
+      <div class="muted" style="margin-top:6px">Valabil până la: ${formatBucharestDate(v.validUntil)}</div>
     </div>
   </div>
 
@@ -155,8 +160,9 @@ export class QuotePdfService implements OnModuleDestroy {
     <table>
       <tr><td>Preț lucrare</td><td class="num">${priceMain}<div class="alt">${priceAlt}</div></td></tr>
       ${designRow}
+      <tr class="total"><td>Total ofertă</td><td class="num">${this.money(v.total, dto.currency)}<div class="alt">${this.money(dto.currency === 'RON' ? v.totalEur : v.totalRon, altCurrency)}</div></td></tr>
       <tr><td>Termen livrare</td><td class="num">${esc(v.deliveryTerm) || '—'}</td></tr>
-      <tr><td>Dată livrare estimată</td><td class="num">${v.deliveryDate ? new Date(v.deliveryDate).toLocaleDateString('ro-RO') : '—'}</td></tr>
+      <tr><td>Dată livrare estimată</td><td class="num">${formatDateOnly(v.deliveryDate) || '—'}</td></tr>
       <tr><td>Garanție</td><td class="num">${esc(v.warranty) || '—'}</td></tr>
     </table>
   </div>

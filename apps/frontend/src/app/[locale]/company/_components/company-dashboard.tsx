@@ -2,7 +2,9 @@
 
 import {
   COMPANY_MEMBER_ROLES,
+  MIN_COVERAGE_RADIUS_KM,
   OFFER_FIELD_KEYS,
+  companyProfileUpdateSchema,
   type CompanyDto,
   type CompanyLocationInput,
   type CompanyMemberInviteInput,
@@ -14,12 +16,17 @@ import { useFormatter, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Link } from '@/i18n/routing';
 import { useSubscription } from '@/hooks/use-marketplace';
+import { FirmRulesLink } from '../../_components/firm-rules-link';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { CardSection } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { toast } from '@/components/ui/toaster';
+import { apiErrorKey } from '@/lib/error-messages';
+import { companyCan } from '@/lib/company-permissions';
 import {
   useAddLocation,
   useAddMember,
@@ -28,14 +35,19 @@ import {
   useDeleteLocation,
   useDeletePortfolioItem,
   useRemoveMember,
+  useUpdateCompanyProfile,
   useUpdateOfferPermissions,
 } from '@/hooks/use-company';
 
 export function CompanyDashboard({ company }: { company: CompanyDto }) {
   const t = useTranslations('Company');
   const format = useFormatter();
+  // matricea de permisiuni (offerFieldPermissions) ramane doar a proprietarului — verificare inline
   const isOwner = company.myRole === 'OWNER';
-  const canManage = company.myRole === 'OWNER' || company.myRole === 'MANAGER';
+  // E-admin-platform-58: permisiunile vin din CompanyDto.permissions (aceleasi roluri ca inainte)
+  const canEditProfile = companyCan(company, 'COMPANY_PROFILE_EDIT');
+  const canManageMembers = companyCan(company, 'MEMBERS_MANAGE');
+  const canManageBilling = companyCan(company, 'BILLING_MANAGE');
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -47,11 +59,13 @@ export function CompanyDashboard({ company }: { company: CompanyDto }) {
               {t('marketplaceLink')} →
             </Link>
           )}
-          <span className="rounded-full bg-surface-2 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.04em] text-muted-foreground">
+          <span className="rounded-full bg-surface-2 px-3 py-1 font-mono text-meta uppercase tracking-[0.04em] text-muted-foreground">
             {t('status')}: {t(`statusValue.${company.status}`)}
           </span>
         </div>
       </header>
+
+      <FirmRulesLink className="-mt-3 text-sm text-walnut hover:underline">{t('rulesLink')}</FirmRulesLink>
 
       {company.status === 'PENDING_VERIFICATION' && (
         <p className="rounded-lg border border-amber/25 bg-amber-soft px-4 py-3 text-sm text-amber">
@@ -60,32 +74,45 @@ export function CompanyDashboard({ company }: { company: CompanyDto }) {
       )}
       {company.status === 'REJECTED' && (
         <p className="rounded-lg border border-crimson/25 bg-crimson-soft px-4 py-3 text-sm text-crimson">
-          {t('rejectedNotice', { reason: company.rejectionReason ?? '' })}
+          {t('rejectedNotice', { reason: company.rejectionReason ?? '' })}{' '}
+          <FirmRulesLink anchor="verification" className="underline">
+            {t('rulesReapplyLink')}
+          </FirmRulesLink>
         </p>
       )}
       {company.status === 'SUSPENDED' && company.suspendedUntil && (
         <p className="rounded-lg border border-crimson/25 bg-crimson-soft px-4 py-3 text-sm text-crimson">
           {t('suspendedNotice', {
             until: format.dateTime(new Date(company.suspendedUntil), { dateStyle: 'medium' }),
-          })}
+          })}{' '}
+          <FirmRulesLink anchor="suspension" className="underline">
+            {t('rulesSuspensionLink')}
+          </FirmRulesLink>
         </p>
       )}
 
       {company.status === 'APPROVED' && <SubscriptionBanner />}
 
-      <Section title={t('profile')}>
+      <CardSection titleSize="section" bodyClassName="gap-3" title={t('profile')}>
         <p className="font-serif text-lg">{company.name}</p>
         <p className="text-sm text-muted-foreground">
-          {t('cui')}: {company.cui} · {t('regComNumber')}: {company.regComNumber}
+          {t('cui')}: {company.isVatPayer ? 'RO' : ''}
+          {company.cui.replace(/^RO/i, '')} · {t('regComNumber')}: {company.regComNumber}
+          {company.isVatPayer && (
+            <Badge tone="muted" className="ml-2 align-middle">
+              {t('vatPayer')}
+            </Badge>
+          )}
         </p>
         <p className="text-sm text-muted-foreground">
           {company.addressText}, {company.city}, {company.county}
         </p>
-      </Section>
+        {canManageBilling && <BillingEmailForm company={company} />}
+      </CardSection>
 
-      <LocationsSection company={company} canManage={canManage} />
-      <TeamSection company={company} canManage={canManage} />
-      <PortfolioSection company={company} canManage={canManage} />
+      <LocationsSection company={company} canManage={canEditProfile} />
+      <TeamSection company={company} canManage={canManageMembers} />
+      <PortfolioSection company={company} canManage={canEditProfile} />
       <OfferPermissionsSection company={company} isOwner={isOwner} />
     </div>
   );
@@ -119,15 +146,6 @@ function SubscriptionBanner() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5 shadow-sm">
-      <h2 className="font-serif text-xl">{title}</h2>
-      {children}
-    </section>
-  );
-}
-
 const EMPTY_LOCATION: CompanyLocationInput = {
   addressText: '',
   county: '',
@@ -137,6 +155,73 @@ const EMPTY_LOCATION: CompanyLocationInput = {
   coverageRadiusKm: 50,
 };
 
+// E-company-24: adresa de facturare optionala (ex. contabilul) — primeste proforma si facturile.
+const billingEmailSchema = companyProfileUpdateSchema.pick({ billingEmail: true });
+
+function BillingEmailForm({ company }: { company: CompanyDto }) {
+  const t = useTranslations('Company');
+  const update = useUpdateCompanyProfile();
+  const saved = company.billingEmail ?? '';
+  const [value, setValue] = useState(saved);
+  const [invalid, setInvalid] = useState(false);
+  const apiErr = update.error ? apiErrorKey(update.error) : null;
+  const dirty = value.trim().toLowerCase() !== saved;
+
+  const save = () => {
+    const parsed = billingEmailSchema.safeParse({ billingEmail: value });
+    if (!parsed.success) {
+      setInvalid(true);
+      return;
+    }
+    setInvalid(false);
+    // gol = stergere
+    update.mutate(
+      { billingEmail: parsed.data.billingEmail || null },
+      {
+        onSuccess: (c) => {
+          setValue(c.billingEmail ?? '');
+          toast.success(t('billingEmail.saved'));
+        },
+      },
+    );
+  };
+
+  return (
+    <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
+      <Field
+        label={t('billingEmail.label')}
+        hint={t('billingEmail.hint')}
+        error={invalid ? t('billingEmail.invalid') : undefined}
+      >
+        <Input
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          maxLength={254}
+          placeholder={t('billingEmail.placeholder')}
+          value={value}
+          aria-invalid={invalid || undefined}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setInvalid(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && dirty && !update.isPending) save();
+          }}
+        />
+      </Field>
+      {apiErr && (
+        <Alert tone="crimson" icon={<AlertTriangle />}>
+          {t.has(apiErr.key) ? t(apiErr.key) : t('apiErrors.INTERNAL_ERROR')}
+        </Alert>
+      )}
+      <Button size="sm" className="self-start" onClick={save} disabled={update.isPending || !dirty}>
+        {t('billingEmail.save')}
+      </Button>
+    </div>
+  );
+}
+
 function LocationsSection({ company, canManage }: { company: CompanyDto; canManage: boolean }) {
   const t = useTranslations('Company');
   const add = useAddLocation();
@@ -144,9 +229,18 @@ function LocationsSection({ company, canManage }: { company: CompanyDto; canMana
   // formularul apare doar la apasarea butonului "+ Adauga locatie"
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState<CompanyLocationInput>(EMPTY_LOCATION);
+  // E-client-9: raza minima (grila de confidentialitate) + plafoanele de locatii/schimbari
+  const radiusTooSmall = form.coverageRadiusKm < MIN_COVERAGE_RADIUS_KM;
+  const mutationError = add.error ?? del.error;
+  const apiErr = mutationError ? apiErrorKey(mutationError) : null;
 
   return (
-    <Section title={t('locations')}>
+    <CardSection titleSize="section" bodyClassName="gap-3" title={t('locations')}>
+      {apiErr && (
+        <Alert tone="crimson" icon={<AlertTriangle />}>
+          {t.has(apiErr.key) ? t(apiErr.key) : t('apiErrors.INTERNAL_ERROR')}
+        </Alert>
+      )}
       {company.locations.length === 0 && <p className="text-sm text-muted-foreground">{t('noLocations')}</p>}
       <ul className="flex flex-col gap-2">
         {company.locations.map((l) => (
@@ -207,10 +301,15 @@ function LocationsSection({ company, canManage }: { company: CompanyDto; canMana
                 onChange={(e) => setForm({ ...form, lng: Number(e.target.value) })}
               />
             </Field>
-            <Field label={t('coverageRadiusKm')} hint={t('coverageRadiusHint')}>
+            <Field
+              label={t('coverageRadiusKm')}
+              hint={t('coverageRadiusHint', { min: MIN_COVERAGE_RADIUS_KM })}
+              error={radiusTooSmall ? t('validation.radiusTooSmall', { min: MIN_COVERAGE_RADIUS_KM }) : undefined}
+            >
               <Input
                 type="number"
                 step="any"
+                min={MIN_COVERAGE_RADIUS_KM}
                 value={form.coverageRadiusKm}
                 onChange={(e) => setForm({ ...form, coverageRadiusKm: Number(e.target.value) })}
               />
@@ -227,7 +326,7 @@ function LocationsSection({ company, canManage }: { company: CompanyDto; canMana
                   },
                 })
               }
-              disabled={add.isPending}
+              disabled={add.isPending || radiusTooSmall}
             >
               {t('addLocation')}
             </Button>
@@ -238,7 +337,7 @@ function LocationsSection({ company, canManage }: { company: CompanyDto; canMana
           </div>
         </div>
       )}
-    </Section>
+    </CardSection>
   );
 }
 
@@ -259,7 +358,7 @@ function TeamSection({ company, canManage }: { company: CompanyDto; canManage: b
   const [form, setForm] = useState<CompanyMemberInviteInput>({ email: '', role: 'EMPLOYEE_MANAGED' });
 
   return (
-    <Section title={t('team')}>
+    <CardSection titleSize="section" bodyClassName="gap-3" title={t('team')}>
       <ul className="flex flex-col gap-2">
         {company.members.map((m) => (
           <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-surface-2 px-3 py-2 text-sm">
@@ -335,7 +434,7 @@ function TeamSection({ company, canManage }: { company: CompanyDto; canManage: b
           </div>
         </div>
       )}
-    </Section>
+    </CardSection>
   );
 }
 
@@ -346,7 +445,7 @@ function PortfolioSection({ company, canManage }: { company: CompanyDto; canMana
   const [form, setForm] = useState<PortfolioItemInput>({ title: '', description: '', imageUrl: '' });
 
   return (
-    <Section title={t('portfolio')}>
+    <CardSection titleSize="section" bodyClassName="gap-3" title={t('portfolio')}>
       {company.portfolio.length === 0 && <p className="text-sm text-muted-foreground">{t('noPortfolio')}</p>}
       <ul className="flex flex-col gap-2">
         {company.portfolio.map((p) => (
@@ -393,7 +492,7 @@ function PortfolioSection({ company, canManage }: { company: CompanyDto; canMana
           </button>
         </div>
       )}
-    </Section>
+    </CardSection>
   );
 }
 
@@ -429,7 +528,7 @@ function OfferPermissionsSection({ company, isOwner }: { company: CompanyDto; is
   };
 
   return (
-    <Section title={t('offerPermissions')}>
+    <CardSection titleSize="section" bodyClassName="gap-3" title={t('offerPermissions')}>
       <p className="text-sm text-muted-foreground">{t('offerPermissionsHint')}</p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -487,6 +586,6 @@ function OfferPermissionsSection({ company, isOwner }: { company: CompanyDto; is
           )}
         </div>
       )}
-    </Section>
+    </CardSection>
   );
 }

@@ -125,6 +125,8 @@ export function RoomCartStep({
       </div>
 
       <Tabs
+        panelId="request-cart-options"
+        label={t('cart.title')}
         className="mb-0"
         current={tab}
         onChange={(v) => setTab(v as 'rooms' | 'pieces')}
@@ -140,7 +142,7 @@ export function RoomCartStep({
         <div className="mb-2 flex items-center gap-2">
           <ShoppingBasket className="h-4 w-4 text-walnut" />
           <span className="text-sm font-medium">{t('cart.basketTitle')}</span>
-          <span className="ml-auto font-mono text-[11px] tabular-nums text-muted-foreground">
+          <span className="ml-auto font-mono text-meta tabular-nums text-muted-foreground">
             {t('cart.totalRooms', { count: total })}
           </span>
         </div>
@@ -174,6 +176,7 @@ export function RoomCartStep({
         )}
       </div>
 
+      <div id="request-cart-options" role="tabpanel" aria-labelledby={`request-cart-options-tab-${tab}`} tabIndex={0}>
       {tab === 'rooms' && (
         <div className="grid gap-3 sm:grid-cols-2">
           {GRID_ROOM_TYPES.map((rt) => (
@@ -243,6 +246,8 @@ export function RoomCartStep({
           </div>
         </div>
       )}
+
+      </div>
 
       {/* proiect pentru toata locuinta → pasii de dimensiuni/schita se sar;
           irelevant pe fluxul "am nevoie de ajutor" (proiectarea o face atelierul) */}

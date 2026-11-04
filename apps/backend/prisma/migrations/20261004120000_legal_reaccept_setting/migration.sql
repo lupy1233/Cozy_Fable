@@ -1,0 +1,3 @@
+-- Hotfix pre-deploy 2026-10-04 (decizie PO): re-acceptarea fortata a Termenilor/Politicii pentru conturile existente e AMANATA pana dupa revizuirea avocatului. 'false' = doar conturile noi accepta la inregistrare; 'true' = re-acceptare pentru orice versiune salvata NULL/veche (E-admin-platform-2). Strict aditiv (blue/green safe).
+INSERT INTO "system_settings" ("key", "value", "updated_at") VALUES ('legal_reaccept_existing_users', 'false', now()) ON CONFLICT ("key") DO NOTHING;
+-- Rollback: redeploy imaginea anterioara; apoi DELETE FROM "system_settings" WHERE "key" = 'legal_reaccept_existing_users';

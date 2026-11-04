@@ -27,7 +27,7 @@ function bookcaseAnswers(overrides: Partial<AnswerMap> = {}): AnswerMap {
 }
 
 describe('piesele-carcasa pornesc pe v3', () => {
-  it('CURRENT_FLOW_VERSION e 3 pentru cele 7 piese si 2 pentru pat/masa/bancuta', () => {
+  it('CURRENT_FLOW_VERSION e 3 pentru toate cele 10 piese', () => {
     for (const rt of [
       'PIECE_BOOKCASE',
       'PIECE_WARDROBE',
@@ -39,9 +39,9 @@ describe('piesele-carcasa pornesc pe v3', () => {
     ] as const) {
       expect(CURRENT_FLOW_VERSION[rt], rt).toBe(3);
     }
-    expect(CURRENT_FLOW_VERSION.PIECE_BED).toBe(2);
-    expect(CURRENT_FLOW_VERSION.PIECE_TABLE).toBe(2);
-    expect(CURRENT_FLOW_VERSION.PIECE_BENCH).toBe(2);
+    expect(CURRENT_FLOW_VERSION.PIECE_BED).toBe(3);
+    expect(CURRENT_FLOW_VERSION.PIECE_TABLE).toBe(3);
+    expect(CURRENT_FLOW_VERSION.PIECE_BENCH).toBe(3);
   });
 });
 

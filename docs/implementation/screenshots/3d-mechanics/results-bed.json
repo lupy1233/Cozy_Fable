@@ -1,0 +1,132 @@
+[
+  {
+    "kind": "BED",
+    "label": "bed-drawers",
+    "cameraPreserved": true,
+    "errors": [],
+    "animation": [
+      {
+        "time": 17422.800000000745,
+        "motions": [
+          {
+            "name": "furniture-motion:bed:drawer:L:0",
+            "progress": 0.00021763380710755528,
+            "position": [
+              -0.00012504368021171695,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:bed:drawer:L:1",
+            "progress": 0.00020717592592592592,
+            "position": [
+              -0.00011903499999999999,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:bed:drawer:R:0",
+            "progress": 0.00020717592592592592,
+            "position": [
+              0.00011903499999999999,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:bed:drawer:R:1",
+            "progress": 0.00020717592592592592,
+            "position": [
+              0.00011903499999999999,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "time": 17988.800000000745,
+        "motions": [
+          {
+            "name": "furniture-motion:bed:drawer:L:0",
+            "progress": 1,
+            "position": [
+              -0.57456,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:bed:drawer:L:1",
+            "progress": 1,
+            "position": [
+              -0.57456,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:bed:drawer:R:0",
+            "progress": 1,
+            "position": [
+              0.57456,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "furniture-motion:bed:drawer:R:1",
+            "progress": 1,
+            "position": [
+              0.57456,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

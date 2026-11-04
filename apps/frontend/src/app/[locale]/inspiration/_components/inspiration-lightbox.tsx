@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { SaveButton } from './save-button';
+import { InspirationImage } from './inspiration-image';
 
 // Pragul de la care un gest orizontal conteaza ca "swipe la poza urmatoare".
 const SWIPE_THRESHOLD_PX = 60;
@@ -30,7 +31,7 @@ export function InspirationLightbox({
   index: number;
   onClose: () => void;
   onNavigate: (index: number) => void;
-  savedByPhoto: Map<string, string>;
+  savedByPhoto: Map<string, string[]>;
   authed: boolean;
   onRequireAuth: () => void;
 }) {
@@ -203,8 +204,7 @@ export function InspirationLightbox({
                   : { transition: 'transform 220ms ease-out' }
               }
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <InspirationImage
                 src={photo.imageUrl ?? ''}
                 alt={photo.title}
                 className="h-full w-full object-contain"
@@ -268,7 +268,7 @@ export function InspirationLightbox({
             </div>
             <SaveButton
               photoId={photo.id}
-              savedBoardId={savedByPhoto.get(photo.id) ?? null}
+              savedBoardIds={savedByPhoto.get(photo.id) ?? []}
               authed={authed}
               onRequireAuth={onRequireAuth}
             />
@@ -291,8 +291,7 @@ export function InspirationLightbox({
                     }}
                     className="group relative overflow-hidden rounded-lg border border-border"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <InspirationImage
                       src={p.imageUrl ?? ''}
                       alt={p.title}
                       loading="lazy"

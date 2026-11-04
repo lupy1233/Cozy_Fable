@@ -12,6 +12,7 @@ import { Layers, MoveDiagonal, NotebookPen, Paperclip, Rotate3d } from 'lucide-r
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { ContactSafeText } from '@/components/ui/contact-safe-text';
 import { ConfiguratorIcon } from '@/lib/configurator-icons';
 import { ROOM_ICONS } from '@/lib/room-icons';
 import { AttachmentThumb } from './attachment-item';
@@ -106,7 +107,11 @@ export function RoomSpecCard({
         </div>
         <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
           <MoveDiagonal className="h-3.5 w-3.5" />
-          {fmtDim(room.lengthM)} × {fmtDim(room.widthM)} × {fmtDim(room.heightM)} m
+          {/* proiect propriu / brief de proiectare: dimensiunile pot lipsi (0 m) —
+              nu afisam un gabarit fals de tip "0 × 0.6 × 2.6 m" */}
+          {room.lengthM <= 0 || room.widthM <= 0 || room.heightM <= 0
+            ? t('roomSpec.dimsUnknown')
+            : `${fmtDim(room.lengthM)} × ${fmtDim(room.widthM)} × ${fmtDim(room.heightM)} m`}
         </span>
       </div>
 
@@ -175,7 +180,7 @@ export function RoomSpecCard({
         {/* corpurile derivate: material + sisteme per corp — esenta pentru oferta */}
         {room.items.length > 0 && (
           <div>
-            <h4 className="mb-1.5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-2">
+            <h4 className="mb-1.5 flex items-center gap-1.5 font-mono text-micro uppercase tracking-[0.14em] text-muted-2">
               <Layers className="h-3 w-3" />
               {tr('specItems')}
             </h4>
@@ -189,14 +194,16 @@ export function RoomSpecCard({
                   >
                     <span className="font-medium">
                       {it.quantity > 1 && <span className="mr-1 font-mono text-xs text-muted-2">{it.quantity}×</span>}
-                      {it.name}
+                      <ContactSafeText text={it.name} />
                     </span>
                     <span className="flex flex-wrap items-center gap-1.5">
                       <Badge tone="walnut">{line.material}</Badge>
                       {line.systems && <Badge tone="muted">{line.systems}</Badge>}
                     </span>
                     {it.description && (
-                      <span className="w-full text-xs text-muted-foreground">{it.description}</span>
+                      <span className="w-full text-xs text-muted-foreground">
+                        <ContactSafeText text={it.description} />
+                      </span>
                     )}
                   </li>
                 );
@@ -220,7 +227,9 @@ export function RoomSpecCard({
                 <NotebookPen className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-2" />
                 <span>
                   <span className="text-muted-2">{t(e.labelKey)}: </span>
-                  <span className="whitespace-pre-wrap">{e.value}</span>
+                  <span className="whitespace-pre-wrap">
+                    <ContactSafeText text={e.value} />
+                  </span>
                 </span>
               </p>
             ))}
@@ -230,7 +239,7 @@ export function RoomSpecCard({
         {/* fisierele camerei: thumbnails cand avem atasamentele, altfel doar numarul */}
         {filesCount > 0 && (
           <div>
-            <h4 className="mb-1.5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-2">
+            <h4 className="mb-1.5 flex items-center gap-1.5 font-mono text-micro uppercase tracking-[0.14em] text-muted-2">
               <Paperclip className="h-3 w-3" />
               {tr('specFiles')}
             </h4>
@@ -265,7 +274,7 @@ export function RoomSpecNav({ rooms }: { rooms: RequestRoomDto[] }) {
         <a
           key={room.id}
           href={`#room-${i + 1}`}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:bg-walnut-soft hover:text-walnut"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 font-mono text-meta uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:bg-walnut-soft hover:text-walnut"
         >
           <span className="[&_svg]:h-3.5 [&_svg]:w-3.5">
             <ConfiguratorIcon name={ROOM_ICONS[room.roomType]} />

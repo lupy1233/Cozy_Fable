@@ -13,6 +13,7 @@ import { useRouter } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
 import { useMe } from '@/hooks/use-auth';
 import { useMyCompany, useOnboardCompany } from '@/hooks/use-company';
+import { firmRulesChunk } from '../_components/firm-rules-link';
 import { CompanyDashboard } from './_components/company-dashboard';
 
 export default function CompanyPage() {
@@ -65,7 +66,7 @@ function OnboardingForm() {
     step?: string;
   }) => (
     <label className="flex flex-col gap-1.5 text-sm">
-      <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+      <span className="font-mono text-meta uppercase tracking-[0.06em] text-muted-foreground">
         {t(name)}
       </span>
       <input
@@ -93,6 +94,7 @@ function OnboardingForm() {
           <Field name="cui" />
           <Field name="regComNumber" />
         </div>
+        <p className="-mt-2 text-xs text-muted-foreground">{t('cuiVatHint')}</p>
         <Field name="addressText" />
         <div className="grid grid-cols-2 gap-4">
           <Field name="county" />
@@ -108,6 +110,8 @@ function OnboardingForm() {
             {t.has(`apiErrors.${apiErr}`) ? t(`apiErrors.${apiErr}`) : t('apiErrors.INTERNAL_ERROR')}
           </p>
         )}
+
+        <p className="text-sm text-muted-foreground">{t.rich('rulesNotice', { rules: firmRulesChunk(undefined, true) })}</p>
 
         <button
           type="submit"

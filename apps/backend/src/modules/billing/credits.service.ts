@@ -1,5 +1,11 @@
 import { HttpException, Injectable } from '@nestjs/common';
-import { ERROR_CODES, type CreditWalletDto } from '@marketplace/shared';
+import {
+  ERROR_CODES,
+  type CreditGrantReason,
+  type CreditReserveReason,
+  type CreditSettlementReason,
+  type CreditWalletDto,
+} from '@marketplace/shared';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 
@@ -26,7 +32,7 @@ export class CreditsService {
     });
   }
 
-  async grant(companyId: string, amount: number, reason: string, tx: Tx): Promise<void> {
+  async grant(companyId: string, amount: number, reason: CreditGrantReason, tx: Tx): Promise<void> {
     await this.ensureWallet(companyId, tx);
     await tx.companyCreditWallet.update({
       where: { companyId },
@@ -41,7 +47,7 @@ export class CreditsService {
   async reserve(
     companyId: string,
     amount: number,
-    reason: string,
+    reason: CreditReserveReason,
     claimSlotId: string,
     tx: Tx,
   ): Promise<void> {
@@ -62,37 +68,46 @@ export class CreditsService {
   }
 
   // Refund la anulare valida / edit post-claim: reserved → balance.
+  // E-admin-platform-15: apelat DOAR din ClaimSettlementService (regula ESLint).
+  // updateMany CONDITIONAT pe reserved >= amount: portofel deviat → false, fara rand in
+  // ledger (nu mai arunca pe CHECK-ul reserved >= 0; raportul zilnic semnaleaza deviatia).
   async refund(
     companyId: string,
     amount: number,
-    reason: string,
+    reason: CreditSettlementReason,
     claimSlotId: string,
     tx: Tx,
-  ): Promise<void> {
-    await tx.companyCreditWallet.update({
-      where: { companyId },
+  ): Promise<boolean> {
+    const res = await tx.companyCreditWallet.updateMany({
+      where: { companyId, reserved: { gte: amount } },
       data: { reserved: { decrement: amount }, balance: { increment: amount } },
     });
+    if (res.count === 0) return false;
     await tx.creditTransaction.create({
       data: { companyId, type: 'REFUND', amount, reason, claimSlotId },
     });
+    return true;
   }
 
   // Consum definitiv la finalizare: scade din reserved fara intoarcere.
+  // E-admin-platform-15: apelat DOAR din ClaimSettlementService (regula ESLint); acelasi
+  // update conditionat ca la refund.
   async consume(
     companyId: string,
     amount: number,
-    reason: string,
+    reason: CreditSettlementReason,
     claimSlotId: string,
     tx: Tx,
-  ): Promise<void> {
-    await tx.companyCreditWallet.update({
-      where: { companyId },
+  ): Promise<boolean> {
+    const res = await tx.companyCreditWallet.updateMany({
+      where: { companyId, reserved: { gte: amount } },
       data: { reserved: { decrement: amount } },
     });
+    if (res.count === 0) return false;
     await tx.creditTransaction.create({
       data: { companyId, type: 'CONSUME', amount, reason, claimSlotId },
     });
+    return true;
   }
 
   async getWallet(companyId: string): Promise<CreditWalletDto> {

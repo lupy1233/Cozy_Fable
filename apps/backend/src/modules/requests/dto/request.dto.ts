@@ -21,9 +21,13 @@ import {
 import { BudgetRange, ContactChannel, DesiredDeadlineBucket, RoomType } from '@prisma/client';
 import {
   ALLOWED_ATTACHMENT_MIME,
+  INSPIRATION_NOTE_MAX,
   MAX_ATTACHMENT_BYTES,
   MAX_BUDGET_RON,
+  MAX_REQUEST_INSPIRATION_PHOTOS,
   MAX_REQUEST_ROOMS,
+  REQUEST_STUDIO_SCENES_MAX,
+  type RequestStudioSceneData,
 } from '@marketplace/shared';
 
 // O camera in payload-ul configuratorului: raspunsuri brute + versiunea flow-ului.
@@ -31,6 +35,12 @@ import {
 // semantica (step-uri, sloturi, conditii) se face cu validateRoomAnswers in
 // ConfiguratorService. Whitelist-ul trece pentru ca `answers` e proprietate declarata.
 export class ConfiguratorRoomInputDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(60)
+  sourceLocalId?: string;
+
   @IsEnum(RoomType)
   roomType: RoomType;
 
@@ -54,10 +64,34 @@ export class ContactPreferenceInputDto {
   value: string;
 }
 
+// E-client-34: poza de inspiratie cu notita + camera (validarea camerei: in service)
+export class RequestInspirationPhotoInputDto {
+  @IsUUID('4')
+  photoId: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(INSPIRATION_NOTE_MAX)
+  note?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(60)
+  roomLocalId?: string;
+}
+
 // Continut complet — la publicare si la editare.
 // Titlul e optional: lipseste in fluxul configurator (generat automat pe server
 // din camere + oras); description e mesaj liber optional.
 export class CreateRequestContentDto {
+  // Validarea completa a scenelor foloseste schema partajata in service.
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(REQUEST_STUDIO_SCENES_MAX)
+  @IsObject({ each: true })
+  studioScenes?: RequestStudioSceneData[];
+
   @IsOptional()
   @IsString()
   @MinLength(4)
@@ -113,9 +147,17 @@ export class CreateRequestContentDto {
   // pozele din galerie alese ca inspiratie (F6, item 3)
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(10)
+  @ArrayMaxSize(MAX_REQUEST_INSPIRATION_PHOTOS)
   @IsUUID('4', { each: true })
   inspirationPhotoIds?: string[];
+
+  // E-client-34: poze de inspiratie cu notita + camera (alternativa la inspirationPhotoIds)
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_REQUEST_INSPIRATION_PHOTOS)
+  @ValidateNested({ each: true })
+  @Type(() => RequestInspirationPhotoInputDto)
+  inspirationPhotos?: RequestInspirationPhotoInputDto[];
 
   @IsArray()
   @ArrayMinSize(1)

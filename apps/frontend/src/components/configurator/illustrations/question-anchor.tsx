@@ -16,7 +16,7 @@ import {
 } from '@marketplace/shared';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
-import { getIllustration, type Illustration } from './index';
+import { getIllustration, showroomIllustration, type Illustration } from './index';
 import { IlluVanityUnit } from './bathroom';
 import { IlluBaseUnits, IlluIslandUnits, IlluWallUnits } from './kitchen';
 import {
@@ -161,7 +161,7 @@ export function getQuestionTargets(
   }
 
   const single = SINGLE_TARGET[roomType]?.[step.id];
-  if (single) return { items: [{ key: 'main', Illu: single }], active: 'main' };
+  if (single) return { items: [{ key: 'main', Illu: showroomIllustration(single) }], active: 'main' };
   return null;
 }
 
@@ -195,7 +195,7 @@ export function QuestionTargetStrip({ data }: { data: TargetStrip }) {
             {labelKey && (
               <span
                 className={cn(
-                  'text-center text-[11px] leading-tight',
+                  'text-center text-meta leading-tight',
                   active ? 'font-medium' : 'text-muted-foreground',
                 )}
               >

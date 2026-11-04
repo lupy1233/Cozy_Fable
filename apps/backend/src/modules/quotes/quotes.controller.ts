@@ -1,8 +1,11 @@
+import { Audit } from '../audit/audit.decorator';
+import { AuditInterceptor } from '../audit/audit.interceptor';
 import {
   Body,
   Controller,
   Get,
   Header,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Post,
@@ -23,6 +26,7 @@ import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.int
 import { QuotesService } from './quotes.service';
 import { QuotePdfService } from './quote-pdf.service';
 import {
+  AcceptQuoteDto,
   CreateConsultationInviteDto,
   CreateQuoteDto,
   ExtendValidityDto,
@@ -31,12 +35,14 @@ import {
   RequestQuoteChangeDto,
   RespondConsultationInviteDto,
   ReviseQuoteDto,
+  WithdrawQuoteDto,
 } from './dto/quote.dto';
 
 // Ofertare — firma (4.13). Membru non-managed; permisiunile pe campuri se verifica in service.
 @Controller('quotes')
 @Roles(UserRole.COMPANY_USER)
 @UseGuards(CompanyApprovedGuard)
+@UseInterceptors(AuditInterceptor)
 export class QuotesController {
   constructor(
     private readonly quotes: QuotesService,
@@ -45,7 +51,8 @@ export class QuotesController {
 
   // POST critic — Idempotency-Key (invarianta 3.2).
   @Post()
-  @Idempotent()
+  @Audit('QUOTE_CREATED', 'quote')
+  @Idempotent({ transactional: true })
   @UseInterceptors(IdempotencyInterceptor)
   create(
     @CurrentCompany() ctx: CompanyContext,
@@ -63,9 +70,11 @@ export class QuotesController {
   @Get('by-claim/:claimSlotId')
   claimContext(
     @CurrentCompany() ctx: CompanyContext,
+    @CurrentUser() user: AccessTokenPayload,
     @Param('claimSlotId', ParseUUIDPipe) claimSlotId: string,
   ) {
-    return this.quotes.getClaimContext(ctx, claimSlotId);
+    // E-company-3: vizibilitatea contactelor depinde de membrul care citeste
+    return this.quotes.getClaimContext(ctx, user.sub, claimSlotId);
   }
 
   @Get(':id')
@@ -81,7 +90,8 @@ export class QuotesController {
   }
 
   @Post(':id/revise')
-  @Idempotent()
+  @Audit('QUOTE_REVISED', 'quote')
+  @Idempotent({ transactional: true })
   @UseInterceptors(IdempotencyInterceptor)
   revise(
     @CurrentCompany() ctx: CompanyContext,
@@ -93,7 +103,8 @@ export class QuotesController {
   }
 
   @Post(':id/extra')
-  @Idempotent()
+  @Audit('QUOTE_EXTRA_VERSION_CREATED', 'quote')
+  @Idempotent({ transactional: true })
   @UseInterceptors(IdempotencyInterceptor)
   extra(
     @CurrentCompany() ctx: CompanyContext,
@@ -105,7 +116,8 @@ export class QuotesController {
   }
 
   @Post(':id/reoffer')
-  @Idempotent()
+  @Audit('QUOTE_REOFFERED', 'quote')
+  @Idempotent({ transactional: true })
   @UseInterceptors(IdempotencyInterceptor)
   reoffer(
     @CurrentCompany() ctx: CompanyContext,
@@ -117,6 +129,7 @@ export class QuotesController {
   }
 
   @Post(':id/extend-validity')
+  @Audit('QUOTE_VALIDITY_EXTENDED', 'quote')
   extend(
     @CurrentCompany() ctx: CompanyContext,
     @CurrentUser() user: AccessTokenPayload,
@@ -127,16 +140,23 @@ export class QuotesController {
   }
 
   @Post(':id/withdraw')
-  withdraw(@CurrentCompany() ctx: CompanyContext, @Param('id', ParseUUIDPipe) id: string) {
-    return this.quotes.withdrawQuote(ctx, id);
+  @Audit('QUOTE_WITHDRAWN', 'quote')
+  withdraw(
+    @CurrentCompany() ctx: CompanyContext,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: WithdrawQuoteDto,
+  ) {
+    return this.quotes.withdrawQuote(ctx, id, dto);
   }
 
   @Post(':id/end-negotiation')
+  @Audit('QUOTE_NEGOTIATION_ENDED', 'quote')
   endNegotiation(@CurrentCompany() ctx: CompanyContext, @Param('id', ParseUUIDPipe) id: string) {
     return this.quotes.endNegotiation(ctx, id);
   }
 
   @Post(':id/changes/:changeId/reject')
+  @Audit('QUOTE_CHANGE_REJECTED', 'quote')
   rejectChange(
     @CurrentCompany() ctx: CompanyContext,
     @Param('id', ParseUUIDPipe) id: string,
@@ -146,6 +166,7 @@ export class QuotesController {
   }
 
   @Post(':id/consultation-invites')
+  @Audit('CONSULTATION_INVITED', 'quote')
   invite(
     @CurrentCompany() ctx: CompanyContext,
     @Param('id', ParseUUIDPipe) id: string,
@@ -178,6 +199,7 @@ export class QuotesController {
 // Ofertare — client (4.13). Clientul autentificat care detine cererea.
 @Controller('client/quotes')
 @Roles(UserRole.CLIENT)
+@UseInterceptors(AuditInterceptor)
 export class ClientQuotesController {
   constructor(
     private readonly quotes: QuotesService,
@@ -205,18 +227,34 @@ export class ClientQuotesController {
   }
 
   @Post('changes')
+  @Audit('QUOTE_CHANGE_REQUESTED', 'quote')
   requestChange(@CurrentUser() user: AccessTokenPayload, @Body() dto: RequestQuoteChangeDto) {
     return this.quotes.requestChange(user.sub, dto);
   }
 
   @Post(':id/accept')
-  @Idempotent()
+  @Audit('QUOTE_ACCEPTED', 'quote')
+  @Idempotent({ transactional: true })
   @UseInterceptors(IdempotencyInterceptor)
-  accept(@CurrentUser() user: AccessTokenPayload, @Param('id', ParseUUIDPipe) id: string) {
-    return this.quotes.acceptQuote(user.sub, id);
+  accept(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AcceptQuoteDto,
+  ) {
+    // E-client-1: clientul confirma exact versiunea vazuta (409 QUOTE_VERSION_CHANGED altfel)
+    return this.quotes.acceptQuote(user.sub, id, dto.quoteVersionId);
+  }
+
+  // E-admin-platform-3: clientul cere firmei prelungirea unei oferte EXPIRED (idempotent).
+  @Post(':id/request-extension')
+  @HttpCode(200)
+  @Audit('QUOTE_EXTENSION_REQUESTED', 'quote')
+  requestExtension(@CurrentUser() user: AccessTokenPayload, @Param('id', ParseUUIDPipe) id: string) {
+    return this.quotes.requestExtension(user.sub, id);
   }
 
   @Post('consultation-invites/:inviteId/respond')
+  @Audit('CONSULTATION_RESPONDED', 'consultation_invite')
   respondInvite(
     @CurrentUser() user: AccessTokenPayload,
     @Param('inviteId', ParseUUIDPipe) inviteId: string,

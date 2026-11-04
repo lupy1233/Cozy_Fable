@@ -59,4 +59,6 @@ export interface AuthUser {
   languagePreference: 'RO' | 'EN';
   emailVerifiedAt: string | null;
   twoFactorEnabled: boolean;
+  // E-admin-platform-2: true daca userul nu a acceptat versiunea curenta a Termenilor/Politicii (admin exceptat)
+  needsLegalAcceptance: boolean;
 }

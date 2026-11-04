@@ -1,0 +1,24 @@
+{
+  admin off
+  auto_https off
+}
+
+:{$PORT:8080} {
+  encode zstd gzip
+
+  # Domeniul final: hosturile vechi (ex. backend-production-2813.up.railway.app) -> 301 spre CANONICAL_HOST.
+  # Fara variabile, matcherul tinteste un host rezervat (.invalid) -> niciun redirect. Healthcheck-ul Railway (alt host) nu e afectat.
+  # LEGACY_HOSTS = lista separata prin spatii.
+  @legacy_host host {$LEGACY_HOSTS:legacy.invalid}
+  redir @legacy_host https://{$CANONICAL_HOST:legacy.invalid}{uri} permanent
+
+  # E-admin-platform-8: HEALTH_URI=/api/v1/health/live DOAR dupa ce ambele sloturi il expun
+  # (verify-slot arata live=200 pe blue SI green, vezi docs/08). La rollback spre un slot fara
+  # /live, sterge intai variabila — altfel singurul upstream primeste 404 si site-ul cade.
+  # Deploy-ul (railway.json) ramane pe /api/v1/health strict.
+  reverse_proxy {$ACTIVE_UPSTREAM} {
+    health_uri {$HEALTH_URI:/api/v1/health}
+    health_interval 10s
+    health_timeout 5s
+  }
+}

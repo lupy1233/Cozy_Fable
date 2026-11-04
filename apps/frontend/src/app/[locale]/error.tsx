@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { CozyHomeLogo } from '@/components/brand/logo';
 import { Button } from '@/components/ui/button';
+import { reportClientError } from '@/lib/monitoring';
 
 // Error boundary pentru orice pagina din /ro|/en (audit 2026-08-19 P1):
 // inlocuieste ecranul generic Next cu un cadru in limbajul platformei —
@@ -21,8 +22,9 @@ export default function ErrorPage({
   const t = useTranslations('ErrorPage');
 
   useEffect(() => {
-    // vizibil in consola/loguri; fara serviciu extern de raportare deocamdata
+    // E-admin-platform-8: raportat in trackerul de erori (daca e configurat), cu digest si ruta mascata
     console.error(error);
+    reportClientError(error, 'locale');
   }, [error]);
 
   return (
@@ -34,7 +36,7 @@ export default function ErrorPage({
         <h1 className="page-title">{t('title')}</h1>
         <p className="text-muted-foreground">{t('body')}</p>
         {error.digest && (
-          <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted-foreground">
+          <p className="font-mono text-meta uppercase tracking-[0.04em] text-muted-foreground">
             {t('reference', { id: error.digest })}
           </p>
         )}

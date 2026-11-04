@@ -1,0 +1,238 @@
+[
+ {
+  "id": "E-admin-platform-57",
+  "sprint": 75,
+  "sprint_name": "Sprint 75 - Design primitives and tokens (P3)",
+  "title": "Build shared layout primitives and clean up design tokens",
+  "headline": "Make app screens look consistent with shared building blocks",
+  "side": "platform",
+  "severity": "P3",
+  "effort_days": 7.5,
+  "goal": "Add shared cards, empty states, skeletons, headers, filter chips and dropdowns, and tidy the type scale and colour tokens, so screens look consistent.",
+  "value": "Clients, firms and admins see matching cards, loading placeholders, filters and menus, and know which account is active.",
+  "do_first": "Show the user's name, email and firm name in the account menu header.",
+  "steps": [
+   "Add shared card, stat card, empty state, skeleton and page header components with one card radius.",
+   "Migrate dashboard, wallet, admin and marketplace to them, replacing 'Se încarcă…' with skeletons and a retry on timeout.",
+   "Render the signed-in header from the session cookie so it does not swap after loading.",
+   "Add shared filter chips that announce selection to screen readers, plus Radix popover and dropdown wrappers; migrate existing ones.",
+   "Define a small type scale with a lint rule, add the wallet h1, remove the 'plan' alias, tokenize tier colours."
+  ],
+  "done_when": [
+   "Wallet, dashboard, admin and marketplace show skeletons while loading, not 'Se încarcă…'.",
+   "Account menu shows your name, email and firm.",
+   "Header no longer switches from minimal to full app menu after load."
+  ],
+  "decision_needed": "",
+  "dependencies": [
+   "E-admin-platform-30"
+  ],
+  "risks": "Migration touches many pages, so it should go page by page to avoid visual regressions.",
+  "acceptance": [
+   "ui/card, stat-card, empty-state, skeleton, page-header, filter-chips, popover and dropdown-menu exist and dashboard, wallet, admin and marketplace use them",
+   "The account menu shows name, email and firm",
+   "A small type scale replaces arbitrary text-[..px] sizes, enforced by a lint rule",
+   "The dead 'plan' alias and stale comments are removed and tier/avatar colours are tokens"
+  ],
+  "findings": [
+   {
+    "id": "UI1-7",
+    "title": "No Card / StatCard / EmptyState / Skeleton / PageHeader primitives, so about 160 hand-rolled containers drift in radius, border and state styling",
+    "severity": "P3",
+    "effort": "L",
+    "area": "design",
+    "description": "apps/frontend/src/components/ui has no Card, StatCard, EmptyState, Skeleton or PageHeader primitive. About 160 card containers are hand-typed in more than 20 radius, border and background combinations (for example 60x 'rounded-xl border border-border bg-surface', 26x 'rounded-md border border-border-2 bg-surface', 13x 'rounded-lg ...'). KPI tiles are copied at least four times with different value sizes (text-2xl vs text-3xl), and local Section/SectionHeading helpers are duplicated. Loading and empty states are 24 bare 'py-20 text-center text-muted-foreground' paragraphs, some showing only an ellipsis, and there are no skeletons outside the landing page. Adding shared primitives and migrating the dashboard, wallet, admin and marketplace pages first would stop the drift from growing.",
+    "proposed_fix": "Add ui/card.tsx (Card, CardHeader, CardTitle, CardBody, tone variants), ui/stat-card.tsx (label/value/icon/trend/href), ui/empty-state.tsx (icon, title, hint, action), ui/skeleton.tsx (plus list/card skeleton presets), ui/page-header.tsx (back link, kicker, title, subtitle, actions). Pick one card radius (rounded-xl) and migrate page by page, starting with dashboard, wallet, admin and marketplace.",
+    "evidence": [
+     "apps/frontend/src/components/ui/ - no card.tsx, skeleton.tsx, empty-state.tsx, stat-card.tsx, page-header.tsx",
+     "grep: 61× 'rounded-xl border border-border bg-surface', 29× 'rounded-md border border-border-2 bg-surface', 22× 'rounded-lg border border-border-2 bg-surface', 8× 'rounded-2xl border border-border bg-surface' (+8 more variants)",
+     "apps/frontend/src/app/[locale]/admin/page.tsx:46-57 Card; marketplace/wallet/page.tsx:519-528 Metric; dashboard/page.tsx:93-101 and 212-221 inline KPI cards",
+     "apps/frontend/src/app/[locale]/admin/settings/page.tsx:70 and company/_components/company-dashboard.tsx:122 - duplicate local Section()",
+     "grep: 24× className=\"py-20 text-center text-muted-foreground\" loading text; 'animate-pulse' only in partners-carousel.tsx and process-band.tsx",
+     "apps/frontend/tailwind.config.ts:98-104 - radius 8px documented but xl=14px, 2xl=16px used for cards",
+     "apps/frontend/src/components/ui/ - only alert, avatar, badge, button, dialog, dropzone, field, input, label, masonry-columns, select, slot-track, stepper, switch, table, tabs, textarea, toaster; no card/skeleton/empty-state/stat-card/page-header; components/ has only brand, configurator, studio, ui",
+     "apps/frontend/src/app/[locale]/admin/page.tsx:46 - local Card() KPI tile, rounded-xl p-4, font-serif text-3xl",
+     "apps/frontend/src/app/[locale]/marketplace/wallet/page.tsx:519 - local Metric() with a different borderless layout, text-3xl",
+     "apps/frontend/src/app/[locale]/dashboard/page.tsx:96-101 - company KPI cards use text-2xl; lines 213-219 client KPI cards use text-3xl for the same pattern",
+     "apps/frontend/src/app/[locale]/admin/settings/page.tsx:70 and company/_components/company-dashboard.tsx:122 - identical local function Section({title, children}); requests/[id]/page.tsx:171 SectionHeading",
+     "apps/frontend/src/app/[locale]/admin/companies/page.tsx:41 - loading state is just <p className=\"py-20 text-center text-muted-foreground\">…</p> (24 occurrences of this class string)",
+     "grep animate-pulse/Skeleton in src - only app/[locale]/_components/partners-carousel.tsx and process-band.tsx; no loading.tsx route files exist",
+     "apps/frontend/tailwind.config.ts:95-100 - borderRadius xl: '14px' set on purpose; lg = var(--radius); globals.css:39 --radius: 0.5rem (8px)"
+    ]
+   },
+   {
+    "id": "UI1-21",
+    "title": "Typography scale has drifted: 13 arbitrary font sizes, 34 ad-hoc micro-labels, inconsistent h2/h3 sizes, and mono used where the system says sans",
+    "severity": "P3",
+    "effort": "M",
+    "area": "design",
+    "description": "The frontend has no enforced type scale. Beyond .page-title/.label/.kicker it uses 13 arbitrary text-[..px] sizes (text-[11px]×53, text-[10px]×31) and 10 arbitrary tracking values. About 30 hand-written 'font-mono text-[10-11px] uppercase tracking-[..]' micro-labels duplicate .label with different sizes and colours, and h2s range from a 10px mono label to text-4xl. globals.css says labels are sans and not mono, yet Badge, table headers and Tabs are mono uppercase, and pages like the wallet have no h1 (it starts at h2 and AppShell adds none). Fix by defining a few heading and meta utility classes (or a Heading helper), moving Badge/TH/Tabs to the .label style, adding an h1 to the wallet page, and optionally linting arbitrary text-[..px] sizes.",
+    "proposed_fix": "Define a small type scale in globals.css/tailwind (display = .page-title; .h-section serif 22px; .h-card serif 18px; .meta 11px sans tracking .08em; .data mono 12px) and a <Heading level size> helper. Switch Badge/TH/Tabs to the .label style (keep mono for IDs and amounts only). Add an h1 to the wallet. Lint arbitrary text-[..px] with an ESLint tailwind plugin rule.",
+    "evidence": [
+     "grep: text-[11px]×53, text-[10px]×31, text-[13px]×11, text-[15px]×10, text-[10.5px]×10, text-[12.5px], [13.5px], [9px], [19px], [12px], [9.5px], [26px], [21px]",
+     "apps/frontend/src/app/globals.css:222-232 - .label 'sans spatiat, nu mono tehnic'",
+     "apps/frontend/src/components/ui/badge.tsx:7 - font-mono uppercase; ui/table.tsx:39 TH font-mono; ui/tabs.tsx:55 font-mono",
+     "apps/frontend/src/app/[locale]/marketplace/claims/[claimSlotId]/page.tsx:324 - <h2 className=\"mb-2 font-mono text-[10px] uppercase ...\">",
+     "apps/frontend/src/app/[locale]/marketplace/wallet/page.tsx:161 - first heading is <h2> (no h1 on the page)",
+     "apps/frontend/src/app/globals.css:233-240 - .label comment 'sans spatiat, nu mono tehnic', font-size 11px, letter-spacing .08em",
+     "apps/frontend/src/components/ui/badge.tsx:7 - 'font-mono text-[10.5px] uppercase tracking-[0.05em]'",
+     "apps/frontend/src/components/ui/table.tsx:38 - TH 'font-mono text-[10.5px] font-medium uppercase tracking-[0.08em]'",
+     "apps/frontend/src/components/ui/tabs.tsx:56 - tab trigger 'font-mono text-[11px] uppercase tracking-[0.04em]'",
+     "apps/frontend/src/app/[locale]/marketplace/claims/[claimSlotId]/page.tsx:324 - <h2 className=\"mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-2\"> while sibling h2s on lines 84/105/117/364 are font-serif text-xl and line 281 is text-lg",
+     "apps/frontend/src/app/[locale]/marketplace/wallet/page.tsx:161 - first heading is <h2 className=\"font-serif text-xl\">; no <h1> in the page, and marketplace/layout.tsx -> _components/app-shell.tsx has no <h1> either",
+     "grep over apps/frontend/src: h2 sizes = text-xl×21, text-lg×17, text-2xl×7, text-3xl×7, text-4xl×5, text-sm, text-[10px], text-[21px], text-[26px]",
+     "apps/frontend/.eslintrc.json exists, but package.json has no eslint tailwind plugin, so arbitrary sizes are not linted"
+    ]
+   },
+   {
+    "id": "UI1-22",
+    "title": "Filter chips and segmented controls are reimplemented at least five times, while ui/Tabs is used in only two places",
+    "severity": "P3",
+    "effort": "S",
+    "area": "ui",
+    "description": "Filter pills are hand-built at least six times with no shared component. /requests and inspiration each copy the same walnut-filled pill, messages and inspiration-picker use walnut-soft, room-viewer uses a smaller walnut pill, and admin/companies (mono uppercase) and admin/users (sans text-xs) use bg-foreground. aria-pressed is set only on requests, inspiration and messages; admin companies/users, inspiration-picker and room-viewer don't expose which option is selected to assistive tech. Extract a ui/filter-chips component (single select, optional count, aria-pressed, one walnut active style) and swap it in, keeping ui/Tabs (used only in admin/payments and room-cart-step) for switching views.",
+    "proposed_fix": "Add ui/filter-chips.tsx (single/multi select, optional count, aria-pressed or radiogroup semantics, walnut active state) and use it on requests, messages, inspiration and admin companies/users. Reserve ui/Tabs for view switching.",
+    "evidence": [
+     "apps/frontend/src/app/[locale]/requests/page.tsx:89-104 - walnut active pills with aria-pressed and count",
+     "apps/frontend/src/app/[locale]/admin/companies/page.tsx:50-62 - mono uppercase, bg-foreground active, no aria-pressed",
+     "apps/frontend/src/app/[locale]/admin/users/page.tsx:42-52 - sans, bg-foreground active, no aria-pressed",
+     "apps/frontend/src/app/[locale]/marketplace/messages/page.tsx:166-170 and inspiration/page.tsx:203-206 - two more variants",
+     "grep components/ui/tabs importers: admin/payments/page.tsx, components/configurator/room-cart-step.tsx",
+     "apps/frontend/src/app/[locale]/requests/page.tsx:90-105 - walnut filled pill, aria-pressed, mono count badge",
+     "apps/frontend/src/app/[locale]/admin/companies/page.tsx:50-60 - font-mono text-[11px] uppercase, active bg-foreground, no aria-pressed, no type=button",
+     "apps/frontend/src/app/[locale]/admin/users/page.tsx:44-54 - sans text-xs py-1.5, active bg-foreground, inactive bordered, no aria-pressed",
+     "apps/frontend/src/app/[locale]/marketplace/messages/page.tsx:153-177 - local TabButton, active border-walnut bg-walnut-soft text-walnut, font-medium, aria-pressed",
+     "apps/frontend/src/app/[locale]/inspiration/page.tsx:190-213 - local FilterPill, classes identical to requests pills (duplicated code)",
+     "apps/frontend/src/components/configurator/inspiration-picker.tsx:190-211 - another variant (walnut-soft, py-1, no aria-pressed)",
+     "apps/frontend/src/components/studio/room-viewer.tsx:158-166 - another variant (walnut filled, text-xs py-1, no aria-pressed)",
+     "apps/frontend/src/components/ui/tabs.tsx:6-65 - role=tablist, roving tabIndex, Home/End/Arrow keys; imported only by admin/payments/page.tsx:35 and configurator/room-cart-step.tsx:15",
+     "apps/frontend/src/components/ui/ - no chip/segmented/filter component exists"
+    ]
+   },
+   {
+    "id": "UI1-23",
+    "title": "Five hand-rolled dropdowns/popovers with no shared primitive; the account menu doesn't show who is signed in",
+    "severity": "P3",
+    "effort": "M",
+    "area": "ui",
+    "description": "Five popovers each handle open state, dismissal and styling their own way: the account menu, the notification bell, the inspiration save/board picker, the board-detail move menu and the inspiration filter groups. Four use a document mousedown listener and the filter uses a fixed inset-0 backdrop button. Only the account menu and the bell close on Escape. The account menu has role=\"menu\"/menuitem but no arrow-key navigation or focus management, and its header shows only the role label ('Firmă'/'Client'), not the user's name, email or firm, even though useMe() already returns name and email. Proposal: add Radix Popover/DropdownMenu wrappers in components/ui, migrate the five popovers to them, and show avatar, name, email and (for company users) the company name from useMyCompany in the account menu header.",
+    "proposed_fix": "Add @radix-ui/react-popover and @radix-ui/react-dropdown-menu wrappers in components/ui with the shared panel style, and migrate the five instances. Show avatar, name, email and (for firms) the company name in the account menu header.",
+    "evidence": [
+     "apps/frontend/src/app/[locale]/_components/app-header.tsx:70-83 (mousedown/Escape), :132-167 role=\"menu\" panel showing only roleLabel",
+     "apps/frontend/src/app/[locale]/_components/notification-bell.tsx:146-149, 170 - separate outside-click + panel",
+     "apps/frontend/src/app/[locale]/inspiration/_components/save-button.tsx:45-46 and inspiration/boards/[id]/page.tsx:46-47 - more copies",
+     "apps/frontend/package.json - only @radix-ui/react-dialog and react-slot installed",
+     "apps/frontend/src/app/[locale]/_components/app-header.tsx:72-84 - mousedown + Escape listener; :133-141 role=\"menu\" panel whose header renders only {roleLabel}; no onKeyDown/arrow handling or focus() anywhere in the file",
+     "packages/shared/src/auth.schemas.ts:53-62 - AuthUser (from useMe) already has name and email; there is no company name, so that needs useMyCompany (apps/frontend/src/hooks/use-company.ts:23)",
+     "apps/frontend/src/app/[locale]/_components/notification-bell.tsx:138-152 - separate mousedown + Escape handler; :170 its own panel classes (w-[22rem] rounded-lg shadow-lg)",
+     "apps/frontend/src/app/[locale]/inspiration/_components/save-button.tsx:40-47 - mousedown only, no Escape",
+     "apps/frontend/src/app/[locale]/inspiration/boards/[id]/page.tsx:41-48 - mousedown only, no Escape",
+     "apps/frontend/src/app/[locale]/inspiration/page.tsx:124-137 - FilterGroup uses a fixed inset-0 backdrop button instead (a fifth dismissal pattern), no Escape",
+     "apps/frontend/src/app/[locale]/dashboard/page.tsx:50-53 - name and email appear only on the dashboard card, not in the global header menu",
+     "apps/frontend/package.json:17-18 - only @radix-ui/react-dialog and react-slot are dependencies"
+    ]
+   },
+   {
+    "id": "UI1-25",
+    "title": "Design-token hygiene: dead 'plan' alias, stale 'albastru-plan' comments, duplicate surface/card tokens, hardcoded hex values",
+    "severity": "P3",
+    "effort": "S",
+    "area": "design",
+    "description": "tailwind.config.ts defines a `plan` colour alias (same var as `walnut`) that no class uses. Its comment, plus comments in button.tsx and globals.css, still describe the brand colour as \"albastru-plan\" (PLANSA identity), but --walnut is brown #855232 under ATELIER. `surface` duplicates `card` (both hsl(var(--card))), and Avatar/TierBadge hardcode hex colours outside the token system (text-[#FBF6EC], tier gradients #B07F1E/#D4A547 etc.). Fix: remove the alias, correct the comments, standardise component code on one of surface/card, and move the tier/avatar colours into CSS variables.",
+    "proposed_fix": "Remove the plan alias and fix the stale comments. Pick one of surface/card for component code. Move tier and avatar colours into CSS variables (--tier-gold-from/to, --on-walnut). Add a short docs/design-tokens.md (or a Codex note) listing the ATELIER tokens and their intended use.",
+    "evidence": [
+     "apps/frontend/tailwind.config.ts:50-56 - 'plan = albastru-plan ... pastrat pentru cele ~40 fisiere vechi' (grep: 0 uses of *-plan classes)",
+     "apps/frontend/src/components/ui/button.tsx:12 - '\"walnut\" = accentul de brand (istoric); acum albastru-plan'",
+     "apps/frontend/src/app/globals.css:6 - 'Plan — Marketplace Mobilier — design tokens'",
+     "apps/frontend/src/components/ui/avatar.tsx:31 - text-[#FBF6EC]; ui/badge.tsx:77-80 hex gradients",
+     "grep: bg-card ×12 vs bg-surface ×270",
+     "apps/frontend/tailwind.config.ts:55-62 - comment 'limbaj PLANSA', 'plan = albastru-plan', '~40 fisiere vechi'; plan alias -> hsl(var(--walnut))",
+     "apps/frontend/tailwind.config.ts:22 - surface: 'hsl(var(--card))' duplicates card.DEFAULT at :52",
+     "apps/frontend/src/app/globals.css:6,13 - header 'Plan — Marketplace Mobilier' and 'NOTA: aliasul tailwind plan = acelasi var ca walnut'",
+     "apps/frontend/src/app/globals.css:51 - --walnut: 23 45% 36% /* nuc #855232 (alias: plan) */ (brown, not blue)",
+     "apps/frontend/src/components/ui/button.tsx:13 - comment 'acum albastru-plan'",
+     "grep apps/frontend/src: 0 matches for (bg|text|border|...)-plan classes; bg-surface x270, bg-card x12",
+     "apps/frontend/src/components/ui/avatar.tsx:30 - text-[#FBF6EC] hardcoded",
+     "apps/frontend/src/components/ui/badge.tsx:77-80 - TIER_CLASS hex gradients; TierBadge used in admin/payments/page.tsx:358 and marketplace/wallet/page.tsx:184,229",
+     "grep: 14 arbitrary hex classes total, in only 4 files (avatar, badge, studio-page, tutorial), so the hex cleanup is small"
+    ]
+   },
+   {
+    "id": "LIVE-14",
+    "title": "Every page uses a bare 'Se încarcă…' text as its loading state and swaps headers while loading",
+    "severity": "P3",
+    "effort": "M",
+    "area": "ui",
+    "description": "Requests list, request detail, worksheets, wallet, messages and admin pages all show a centered 'Se încarcă…' string, and the header first renders the minimal public variant (logo + RO/EN) before switching to the app navigation once /auth/me resolves. On slower connections this reads as a broken page and causes layout shift.",
+    "proposed_fix": "Skeleton components per page type, server-rendered header state from the session cookie, and a timeout that turns loading into an error with retry.",
+    "evidence": [
+     "Screenshots 2026-09-28 of /ro/requests, /ro/marketplace, /ro/marketplace/wallet, /ro/marketplace/messages, /ro/admin: 'Se încarcă…' with minimal header, then full header"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "E-client-34",
+  "sprint": 76,
+  "sprint_name": "Sprint 76 - Collections into requests (P3)",
+  "title": "Let clients attach a whole collection, with notes, to a request",
+  "headline": "Let clients attach whole collections with notes to a cerere",
+  "side": "client",
+  "severity": "P3",
+  "effort_days": 4,
+  "goal": "Clients can add a whole collection to a request and note what they like about each photo and which room it is for.",
+  "value": "Firms see which photos the client likes, why, and for which room.",
+  "do_first": "Add optional note and room fields to board items and request inspiration photos in the schema.",
+  "steps": [
+   "Migrate board items and request inspiration photos to hold an optional note (max 200 chars) and room link.",
+   "Add 'Adaugă toată colecția' in the configurator picker, up to the cap, carrying notes over.",
+   "Show notes and photos grouped by room to the claiming firma.",
+   "Let the gallery save button save one photo into several boards using ticks."
+  ],
+  "done_when": [
+   "Picker offers 'Adaugă toată colecția' and keeps the notes.",
+   "Firm view of a cerere shows photo notes grouped by room.",
+   "One photo can be saved into two collections at once."
+  ],
+  "decision_needed": "",
+  "dependencies": [
+   "E-client-20"
+  ],
+  "risks": "Schema changes are needed (a note and a room link on request_inspiration_photos and board items). Share links raise privacy questions.",
+  "acceptance": [
+   "The picker offers 'Adaugă toată colecția' up to the cap and carries notes over.",
+   "The firm sees notes and photos grouped by room.",
+   "The SaveButton can save a photo to several boards."
+  ],
+  "findings": [
+   {
+    "id": "R2-INSPO-ADMIN-11",
+    "title": "Collections are a dead end for the request: a board cannot be attached, pins have no notes, and firms get only ≤10 bare thumbnails",
+    "severity": "P3",
+    "effort": "L",
+    "area": "business",
+    "description": "Inspiration photos reach a request only as a bare list of up to 10 IDs (request_inspiration_photos has no note or room link), and firms see only image, title and company in RequestInspirationStrip. So a client cannot say what they like about a specific photo or which room it is for, except in the request's general description. The boards tab in the configurator picker only toggles photos one by one (no \"add whole board\", and the board name is not carried over). The gallery SaveButton models a photo as living in one board only (move/remove), although the backend supports several boards, and boards have no read-only share link.",
+    "proposed_fix": "Add an optional note (≤200 chars) on board items and on request_inspiration_photos, plus an optional room link (request room id). In the picker, add 'Adaugă toată colecția' (up to the cap) that carries the notes over. Show notes and room grouping to the claiming firm. Let the SaveButton save into additional boards (a list of boards with ticks), and consider a read-only share link per board.",
+    "evidence": [
+     "apps/frontend/src/components/configurator/inspiration-picker.tsx:20-25,94-99 - boards tab picks individual photos; MAX_SELECTED = 10",
+     "apps/backend/prisma/schema.prisma:610-620 - RequestInspirationPhoto(requestId, photoId) with no note or room link",
+     "apps/backend/prisma/schema.prisma:662-689 - InspirationBoard / InspirationBoardItem: no note, visibility or share token",
+     "apps/frontend/src/components/configurator/request-inspiration-strip.tsx:18-28 - firm view shows only image, title and company",
+     "apps/frontend/src/app/[locale]/inspiration/_components/save-button.tsx:79-106 - saved photo only allows move or remove, no second board",
+     "apps/backend/src/modules/inspiration/boards.service.ts:102-113 - server upserts per (boardId, photoId), so multiple boards are supported",
+     "apps/frontend/src/components/configurator/inspiration-picker.tsx:25 - MAX_SELECTED = 10; toggle() at 98-104 adds single ids only",
+     "apps/frontend/src/components/configurator/inspiration-picker.tsx:278-293 - board detail view reuses PhotoGrid with per-photo toggle, no bulk add and no board name persisted",
+     "apps/backend/prisma/schema.prisma:610-620 - RequestInspirationPhoto has only requestId/photoId",
+     "apps/backend/prisma/schema.prisma:662-689 - InspirationBoard/InspirationBoardItem: no note, visibility or share token",
+     "apps/frontend/src/components/configurator/request-inspiration-strip.tsx:17-27 - firm/client strip renders image, title, company only",
+     "apps/frontend/src/app/[locale]/marketplace/claims/[claimSlotId]/page.tsx:133 - firm workspace uses the same bare strip",
+     "apps/frontend/src/app/[locale]/inspiration/page.tsx:270-271 - savedByPhoto is Map(photoId -> boardId), collapsing multi-board saves to one",
+     "apps/frontend/src/app/[locale]/inspiration/_components/save-button.tsx:88-106 - saved state offers only move (excludeBoardId) or remove",
+     "apps/backend/src/modules/inspiration/boards.service.ts:102-113 - addItem upserts per (boardId, photoId), so the backend supports many boards per photo",
+     "apps/frontend/src/app/[locale]/marketplace/claims/[claimSlotId]/page.tsx:327-328 - request description free text is shown to the firm (partial workaround)",
+     "docs/04-data-model.md:68-70 - documented model is intentionally minimal (max 10, no notes); docs/07 has no decision against adding notes/share"
+    ]
+   }
+  ]
+ }
+]

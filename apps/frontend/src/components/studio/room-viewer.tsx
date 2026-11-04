@@ -1,25 +1,28 @@
 'use client';
 
-import type { RequestStudioSceneDto, StudioPiece, StudioPlacement } from '@marketplace/shared';
-import { Canvas, useThree } from '@react-three/fiber';
+import { readRequestStudioSceneData, type RequestStudioSceneDto, type StudioPiece, type StudioPlacement } from '@marketplace/shared';
+import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { Eye, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import dynamic from 'next/dynamic';
+import { useDialogFocus } from '@/hooks/use-dialog-focus';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { ContactSafeText } from '@/components/ui/contact-safe-text';
+import { FilterChips } from '@/components/ui/filter-chips';
 import { PieceViewer3dDialog } from '@/components/configurator/piece3d/dynamic';
 import { floorColorOf, wallColorOf } from './palette';
+import { ShowroomEnvironment } from '../configurator/piece3d/showroom-environment';
+import { RoomCameraRig } from '../configurator/piece3d/stable-orbit-camera';
 import { FloorGrid, FLOOR_T, PieceMeshes, WALL_T, Walls } from './room-canvas';
+const HouseCanvas = dynamic(() => import('./house-canvas'), { ssr: false });
 
 // Viewerul READ-ONLY al camerei 3D atasate cererii (feedback PO r3): firma
 // (marketplace + fisa de lucru) si clientul vad amplasarea exact cum a
 // construit-o clientul in Studio — orbita libera, ZERO editare. Click pe o
 // piesa deschide viewerul de configuratie existent (U4), cu dimensiunile ei.
-
-type ControlsLike = {
-  target: { set: (x: number, y: number, z: number) => void };
-  update: () => void;
-} | null;
 
 function hasWebGl(): boolean {
   try {
@@ -28,23 +31,6 @@ function hasWebGl(): boolean {
   } catch {
     return false;
   }
-}
-
-function CameraRig({ w, d, sceneId }: { w: number; d: number; sceneId: string }) {
-  const camera = useThree((s) => s.camera);
-  const controls = useThree((s) => s.controls) as unknown as ControlsLike;
-  const invalidate = useThree((s) => s.invalidate);
-  useEffect(() => {
-    const dist = Math.max(w, d) * 1.05 + 1.4;
-    camera.position.set(dist * 0.8, dist * 0.75, dist);
-    camera.lookAt(0, 0.5, 0);
-    if (controls) {
-      controls.target.set(0, 0.5, 0);
-      controls.update();
-    }
-    invalidate();
-  }, [camera, controls, invalidate, w, d, sceneId]);
-  return null;
 }
 
 // Piesa din camera, clicabila: click scurt → configuratia ei (viewerul U4).
@@ -85,7 +71,20 @@ function ViewerPiece({
   );
 }
 
-export default function RoomViewer3dDialog({
+export default function RoomViewer3dDialog(props: { scenes: RequestStudioSceneDto[]; onClose: () => void }) {
+  const t = useTranslations('Configurator');
+  const studio = useTranslations('Studio');
+  const normalized = useMemo(() => {
+    try { return props.scenes.map((scene) => ({ ...scene, data: readRequestStudioSceneData(scene.data) })); }
+    catch { return null; }
+  }, [props.scenes]);
+  if (!normalized) return <Dialog open onOpenChange={(open) => { if (!open) props.onClose(); }}><DialogContent>
+    <DialogTitle>{studio('roomViewer.title')}</DialogTitle><DialogDescription>{t('config3d.furniture.invalidSavedConfig')}</DialogDescription>
+  </DialogContent></Dialog>;
+  return <ValidatedRoomViewer scenes={normalized} onClose={props.onClose} />;
+}
+
+function ValidatedRoomViewer({
   scenes,
   onClose,
 }: {
@@ -93,9 +92,11 @@ export default function RoomViewer3dDialog({
   onClose: () => void;
 }) {
   const t = useTranslations('Studio');
+  const dialogRef = useDialogFocus(onClose);
   const [webgl] = useState(() => hasWebGl());
   const [index, setIndex] = useState(0);
   const [openPiece, setOpenPiece] = useState<StudioPiece | null>(null);
+  const [wholeHouse, setWholeHouse] = useState(() => scenes.some((s) => s.data.house));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -116,10 +117,13 @@ export default function RoomViewer3dDialog({
   const entry = scenes[Math.min(index, scenes.length - 1)];
   if (!entry) return null;
   const { scene, pieces } = entry.data;
-  const maxDim = Math.max(scene.room.widthM, scene.room.depthM);
+  const house = scenes.find((s) => s.data.house)?.data.house;
+  const allPieces = Object.assign({}, ...scenes.map((s) => s.data.pieces)) as Record<string, StudioPiece>;
 
   return createPortal(
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label={t('roomViewer.title')}
@@ -149,26 +153,24 @@ export default function RoomViewer3dDialog({
         </div>
 
         <div className="min-h-0 overflow-y-auto p-4">
+          {house && <button type="button" className="mb-3 min-h-11 rounded-full border border-border-2 px-4 text-sm" aria-pressed={wholeHouse} onClick={() => setWholeHouse((v) => !v)}>{t('house.3d')}</button>}
           {scenes.length > 1 && (
-            <div className="mb-3 flex flex-wrap items-center gap-1.5">
-              {scenes.map((s, i) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setIndex(i)}
-                  className={
-                    i === index
-                      ? 'rounded-full bg-walnut px-3 py-1 text-xs font-medium text-primary-foreground'
-                      : 'rounded-full border border-border-2 bg-surface px-3 py-1 text-xs text-muted-foreground hover:text-foreground'
-                  }
-                >
-                  {s.name}
-                </button>
-              ))}
-            </div>
+            <FilterChips
+              size="sm"
+              className="mb-3 items-center gap-1.5"
+              label={t('sceneChipsLabel')}
+              value={scenes[index]?.id ?? null}
+              onChange={(id) => {
+                const i = scenes.findIndex((sc) => sc.id === id);
+                if (i < 0) return;
+                setIndex(i);
+                setWholeHouse(false);
+              }}
+              options={scenes.map((s) => ({ value: s.id, label: <ContactSafeText text={s.name} /> }))}
+            />
           )}
 
-          {webgl ? (
+          {webgl && wholeHouse && house ? <HouseCanvas house={house} scenes={scenes.map((s) => s.data.scene)} pieces={allPieces} onPiece={setOpenPiece} /> : webgl ? (
             <div className="h-[320px] w-full overflow-hidden rounded-xl border border-border-2 sm:h-[460px]">
               <Canvas
                 shadows
@@ -178,10 +180,11 @@ export default function RoomViewer3dDialog({
                 gl={{ antialias: true }}
               >
                 <color attach="background" args={['#f7f3ec']} />
-                <ambientLight intensity={0.8} />
+                <ambientLight intensity={0.7} />
+                <hemisphereLight args={['#fffaf4', '#b9af9e', 0.5]} />
                 <directionalLight
                   position={[6, 9, 5]}
-                  intensity={1.2}
+                  intensity={1.8}
                   castShadow
                   shadow-mapSize={[1024, 1024]}
                   shadow-bias={-0.0003}
@@ -198,7 +201,7 @@ export default function RoomViewer3dDialog({
                   <meshStandardMaterial color={floorColorOf(scene.room.floorColor)} roughness={0.85} />
                 </mesh>
                 <FloorGrid w={scene.room.widthM} d={scene.room.depthM} />
-                <Walls
+                <ShowroomEnvironment overview><Walls
                   room={scene.room}
                   openings={scene.openings}
                   color={wallColorOf(scene.room.wallColor)}
@@ -209,16 +212,15 @@ export default function RoomViewer3dDialog({
                   return (
                     <ViewerPiece key={p.id} placement={p} piece={piece} onOpen={setOpenPiece} />
                   );
-                })}
+                })}</ShowroomEnvironment>
                 <OrbitControls
                   makeDefault
+                  enableDamping={false}
                   enablePan
-                  minDistance={1.6}
-                  maxDistance={maxDim * 3 + 6}
                   minPolarAngle={0.1}
                   maxPolarAngle={Math.PI / 2 - 0.08}
                 />
-                <CameraRig w={scene.room.widthM} d={scene.room.depthM} sceneId={scene.id} />
+                <RoomCameraRig w={scene.room.widthM} d={scene.room.depthM} sceneId={scene.id} />
               </Canvas>
             </div>
           ) : (

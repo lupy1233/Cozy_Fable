@@ -66,7 +66,7 @@ export default function Piece3dDevPage() {
           <img src={snapshot} alt="snapshot" className="w-64 rounded-lg border border-border-2" />
         </figure>
       )}
-      <pre className="overflow-x-auto rounded-lg border border-border-2 bg-surface-2 p-3 text-[11px] leading-relaxed">
+      <pre className="overflow-x-auto rounded-lg border border-border-2 bg-surface-2 p-3 text-meta leading-relaxed">
         {JSON.stringify(configs[kind], null, 2)}
       </pre>
     </main>

@@ -9,4 +9,9 @@ docs/*.docx
 **/.env
 **/.env.local
 **/.env.production
+**/.env.*
+!**/.env.example
 dev-infra
+**/test-results
+**/playwright-report
+**/e2e

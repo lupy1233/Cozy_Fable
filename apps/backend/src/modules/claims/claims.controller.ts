@@ -1,3 +1,5 @@
+import { Audit } from '../audit/audit.decorator';
+import { AuditInterceptor } from '../audit/audit.interceptor';
 import {
   Body,
   Controller,
@@ -25,13 +27,15 @@ import { AssignClaimDto, CreateClaimDto } from './dto/claim.dto';
 @Controller('claims')
 @Roles(UserRole.COMPANY_USER)
 @UseGuards(CompanyApprovedGuard, SubscriptionActiveGuard)
+@UseInterceptors(AuditInterceptor)
 export class ClaimsController {
   constructor(private readonly claims: ClaimsService) {}
 
   // POST critic — Idempotency-Key (3.2) + rate limit 10/min (3.13).
   @Post()
+  @Audit('CLAIM_CREATED', 'claim_slot')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  @Idempotent()
+  @Idempotent({ transactional: true })
   @UseInterceptors(IdempotencyInterceptor)
   create(
     @CurrentCompany() ctx: CompanyContext,
@@ -47,6 +51,7 @@ export class ClaimsController {
   }
 
   @Post(':id/assign')
+  @Audit('CLAIM_ASSIGNED', 'claim_slot')
   assign(
     @CurrentCompany() ctx: CompanyContext,
     @Param('id', ParseUUIDPipe) id: string,

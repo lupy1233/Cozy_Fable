@@ -1,0 +1,39 @@
+-- PRE-CHECK 0 (state): SHOW server_version;  -- must be >= 13
+
+SELECT count(*) AS applied, count(*) FILTER (WHERE finished_at IS NULL OR rolled_back_at IS NOT NULL) AS bad, max(migration_name) FROM _prisma_migrations;  -- expect applied=38, bad=0, max=20260916012000_checkout_recovery (or the latest of the 38)
+
+SELECT pid, now()-xact_start AS age, state, left(query,80) FROM pg_stat_activity WHERE datname = current_database() AND xact_start < now() - interval '30 seconds' ORDER BY xact_start;  -- expect no rows right before applying
+
+SELECT relname, n_live_tup FROM pg_stat_user_tables WHERE relname IN ('requests','quotes','quote_versions','quote_change_requests','credit_transactions','company_credit_wallets','companies','users','mock_billing_orders','domain_event_outbox','subscription_plans','request_inspiration_photos','inspiration_board_items') ORDER BY 2 DESC;
+
+-- PRE-CHECK 213000 (must be 0 rows): SELECT claim_slot_id, count(*) FROM quotes WHERE status IN ('SENT','EXPIRED') GROUP BY 1 HAVING count(*) > 1;
+
+SELECT quote_version_id, count(*) FROM quote_change_requests WHERE status = 'PENDING' GROUP BY 1 HAVING count(*) > 1;  -- must be 0 rows
+
+-- PRE-CHECK 010000 (must be 0 rows): SELECT claim_slot_id, count(*) FROM credit_transactions WHERE type = 'RESERVE' AND claim_slot_id IS NOT NULL GROUP BY 1 HAVING count(*) > 1;
+
+SELECT claim_slot_id, count(*) FROM credit_transactions WHERE type IN ('REFUND','CONSUME') AND claim_slot_id IS NOT NULL GROUP BY 1 HAVING count(*) > 1;  -- must be 0 rows
+
+-- PRE-CHECK 011000 (must be 0): SELECT count(*) FROM company_credit_wallets WHERE balance < 0 OR reserved < 0;
+
+-- PRE-CHECK 060000 (must be 0 / tiers distinct): SELECT count(*) FILTER (WHERE tier IS NULL) AS null_tier, count(*) AS plans, count(DISTINCT tier) AS distinct_tiers FROM subscription_plans;
+
+-- PRE-CHECK 233000/settings (info; existing rows are kept, not overwritten): SELECT date, name, is_working_day FROM business_calendar_holidays WHERE date IN ('2025-04-18','2025-04-21','2025-06-09','2026-04-10','2026-04-13','2026-06-01','2027-04-30','2027-05-03','2027-06-21','2028-04-14','2028-04-17','2028-06-05','2029-04-06','2029-04-09','2029-05-28','2030-04-26','2030-04-29','2030-06-17');
+
+SELECT key, value FROM system_settings WHERE key IN ('expired_offer_autoclose_enabled','expired_offer_autoclose_days','expired_offer_autoclose_credit_outcome','delivery_reminder_days_before','legal_contact_email','legal_identity_published','claims_open_after_first_offer','claim_contact_reveal_policy','completed_claim_contact_retention_days','pre_claim_contact_text_policy','marketplace_distance_display','company_locations_max','company_location_changes_per_day','credit_value_ron','claim_cost_min','claim_cost_max','bank_transfer_reminder_days','bank_transfer_expiry_days');  -- info: pre-existing keys keep their current value
+
+-- IMPACT 190000: SELECT count(*) AS rows_changed, count(*) FILTER (WHERE status IN ('IN_MARKETPLACE','CLAIMED_PARTIAL','EXPIRED') AND size_score IS NOT NULL) AS rescored FROM requests WHERE deleted_at IS NULL AND budget_estimate_ron IS NOT NULL AND budget_range IS NOT NULL AND budget_range <> 'UNDISCLOSED' AND budget_range::text <> (CASE WHEN budget_estimate_ron < 5000 THEN 'UNDER_5K' WHEN budget_estimate_ron <= 15000 THEN 'FROM_5K_TO_15K' ELSE 'OVER_15K' END);
+
+SELECT option, weight FROM project_sizing_config WHERE key = 'BUDGET' ORDER BY option;  -- expect UNDER_5K/FROM_5K_TO_15K/OVER_15K/UNDISCLOSED
+
+-- IMPACT 200000: SELECT count(*) AS tokens_cleared, count(*) FILTER (WHERE status = 'EXPIRED' AND NOT repost_used AND deleted_at IS NULL) AS old_repost_button_broken FROM requests WHERE draft_token_hash IS NOT NULL AND (status <> 'DRAFT' OR deleted_at IS NOT NULL);
+
+-- IMPACT 170000/040000: SELECT count(*) FROM mock_billing_orders WHERE status = 'CONFIRMED' AND invoice_number IS NOT NULL;  SELECT count(*) FROM companies WHERE cui ~* '^RO';
+
+-- POST-SWITCH drift (expect 0): SELECT count(*) FROM mock_billing_orders WHERE status = 'CONFIRMED' AND invoice_number IS NOT NULL AND e_invoice_status IS NULL;
+
+-- POST-SWITCH drift (expect 0): SELECT count(*) FROM companies WHERE cui ~* '^RO' AND NOT is_vat_payer;
+
+-- POST-SWITCH drift (expect 0): SELECT count(*) FROM requests WHERE deleted_at IS NULL AND budget_estimate_ron IS NOT NULL AND budget_range IS NOT NULL AND budget_range <> 'UNDISCLOSED' AND budget_range::text <> (CASE WHEN budget_estimate_ron < 5000 THEN 'UNDER_5K' WHEN budget_estimate_ron <= 15000 THEN 'FROM_5K_TO_15K' ELSE 'OVER_15K' END);
+
+-- ROLLBACK-GATE before any switch back to Blue (all must be 0): SELECT (SELECT count(*) FROM requests WHERE status = 'CANCELLED') AS req_cancelled, (SELECT count(*) FROM claim_slots WHERE status IN ('CANCELLED_PROJECT','CANCELLED_OFFER_EXPIRED')) AS slot_new_status, (SELECT count(*) FROM subscription_plans WHERE tier IS NULL) AS plans_null_tier, (SELECT count(*) FROM subscription_plan_features WHERE feature_key = 'MARKETPLACE_ACCESS' AND NOT enabled) AS gated_plans, (SELECT count(*) FROM project_size_thresholds WHERE credit_cost IS NULL) AS null_credit_cost;

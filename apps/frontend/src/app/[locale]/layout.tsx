@@ -2,9 +2,13 @@ import type { Metadata } from 'next';
 import { DM_Sans, IBM_Plex_Mono, Marcellus } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
+import { cookies, headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { Providers } from '@/lib/providers';
+import { SESSION_HINT_COOKIE, parseSessionHint } from '@/lib/session-hint';
+import { SessionHintProvider } from '@/lib/session-hint-context';
+import { LegalAcceptanceGate } from './_components/legal-acceptance-gate';
 import { SITE_NAME, SITE_URL, ogLocale } from './_components/metadata';
 import '../globals.css';
 
@@ -36,10 +40,11 @@ const mono = IBM_Plex_Mono({
 // prin pageMetadata() — aici nu punem canonical, ca sa nu se mosteneasca
 // gresit pe rutele de cont.
 export async function generateMetadata({
-  params: { locale },
+  params,
 }: {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
+  const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'Meta' });
   return {
     metadataBase: new URL(SITE_URL),
@@ -62,21 +67,33 @@ export function generateStaticParams() {
 
 export default async function LocaleLayout({
   children,
-  params: { locale },
+  params,
 }: {
   children: React.ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
   if (!routing.locales.includes(locale as 'ro' | 'en')) {
     notFound();
   }
   const messages = await getMessages();
+  // E-admin-platform-56: citirea headerelor forteaza randarea dinamica, de care are nevoie
+  // CSP-ul cu nonce (middleware.ts). Nu avem <Script> propriu; unul nou primeste
+  // nonce={(await headers()).get('x-nonce') ?? undefined}.
+  await headers();
+  // indiciu de rol (cookie mm_session) pentru headerul randat pe server; doar UI, nu authz
+  const hint = parseSessionHint((await cookies()).get(SESSION_HINT_COOKIE)?.value);
 
   return (
     <html lang={locale} className={`${sans.variable} ${serif.variable} ${mono.variable}`}>
       <body className="min-h-screen">
         <NextIntlClientProvider messages={messages}>
-          <Providers>{children}</Providers>
+          <Providers>
+            <SessionHintProvider initialRole={hint}>
+              {children}
+              <LegalAcceptanceGate />
+            </SessionHintProvider>
+          </Providers>
         </NextIntlClientProvider>
       </body>
     </html>

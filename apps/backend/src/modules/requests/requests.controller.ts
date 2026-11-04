@@ -4,9 +4,11 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { UserRole } from '@prisma/client';
@@ -15,6 +17,8 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Audit } from '../audit/audit.decorator';
+import { AuditInterceptor } from '../audit/audit.interceptor';
 import {
   CreateRequestContentDto,
   EstimateRequestDto,
@@ -47,22 +51,26 @@ export class RequestsController {
 
   @Public()
   @Get('drafts/:token')
-  getDraft(@Param('token') token: string) {
-    return this.requests.getDraft(token);
+  getDraft(@CurrentUser() user: AccessTokenPayload | undefined, @Param('token') token: string) {
+    return this.requests.getDraft(token, user?.sub ?? null);
   }
 
   @Public()
   @Patch('drafts/:token')
-  patchDraft(@Param('token') token: string, @Body() dto: PatchDraftDto) {
-    return this.requests.patchDraft(token, dto);
+  patchDraft(
+    @CurrentUser() user: AccessTokenPayload | undefined,
+    @Param('token') token: string,
+    @Body() dto: PatchDraftDto,
+  ) {
+    return this.requests.patchDraft(token, dto, user?.sub ?? null);
   }
 
   // "Incepe o cerere noua": ciorna abandonata se arunca (soft delete). Tokenul
   // e secretul de acces, ca la patch — fara el nu poti sterge nimic.
   @Public()
   @Delete('drafts/:token')
-  discardDraft(@Param('token') token: string) {
-    return this.requests.discardDraft(token);
+  discardDraft(@CurrentUser() user: AccessTokenPayload | undefined, @Param('token') token: string) {
+    return this.requests.discardDraft(token, user?.sub ?? null);
   }
 
   // Publicarea necesita autentificare (decizie: "fill as guest, login to publish").
@@ -78,43 +86,40 @@ export class RequestsController {
     return this.requests.publish(token, dto, user?.sub ?? null);
   }
 
-  @Public()
-  @Post('drafts/:token/edit')
-  edit(@Param('token') token: string, @Body() dto: CreateRequestContentDto) {
-    return this.requests.edit(token, dto);
-  }
-
-  @Public()
-  @Post('drafts/:token/repost')
-  repost(@Param('token') token: string) {
-    return this.requests.repost(token);
-  }
+  // Tokenul deschide doar o CIORNA (SEC2-4): editarea si repostul dupa publicare
+  // se fac pe rutele autentificate :id/edit si :id/repost.
 
   // --- atasamente (Public, scope-uite pe token) ---
 
   @Public()
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Post('drafts/:token/attachments')
-  presignAttachment(@Param('token') token: string, @Body() dto: PresignAttachmentDto) {
-    return this.requests.presignAttachment(token, dto);
+  presignAttachment(
+    @CurrentUser() user: AccessTokenPayload | undefined,
+    @Param('token') token: string,
+    @Body() dto: PresignAttachmentDto,
+  ) {
+    return this.requests.presignAttachment(token, dto, user?.sub ?? null);
   }
 
   @Public()
   @Post('drafts/:token/attachments/:attachmentId/confirm')
   confirmAttachment(
+    @CurrentUser() user: AccessTokenPayload | undefined,
     @Param('token') token: string,
     @Param('attachmentId') attachmentId: string,
   ) {
-    return this.requests.confirmAttachment(token, attachmentId);
+    return this.requests.confirmAttachment(token, attachmentId, user?.sub ?? null);
   }
 
   @Public()
   @Delete('drafts/:token/attachments/:attachmentId')
   removeAttachment(
+    @CurrentUser() user: AccessTokenPayload | undefined,
     @Param('token') token: string,
     @Param('attachmentId') attachmentId: string,
   ) {
-    return this.requests.removeAttachment(token, attachmentId);
+    return this.requests.removeAttachment(token, attachmentId, user?.sub ?? null);
   }
 
   // --- liste client autenticat ---
@@ -138,6 +143,13 @@ export class RequestsController {
     return this.requests.getForClient(user.sub, id);
   }
 
+  // E-client-9: cardul "Cine vede cererea" — doar citire, proprietarul cererii.
+  @Roles(UserRole.CLIENT)
+  @Get(':id/visibility')
+  visibility(@CurrentUser() user: AccessTokenPayload, @Param('id', ParseUUIDPipe) id: string) {
+    return this.requests.getVisibilityForClient(user.sub, id);
+  }
+
   // Editare autentificata (proprietar, orice device — tokenul draftului e doar hash).
   @Roles(UserRole.CLIENT)
   @Post(':id/edit')
@@ -147,6 +159,17 @@ export class RequestsController {
     @Body() dto: CreateRequestContentDto,
   ) {
     return this.requests.editForClient(user.sub, id, dto);
+  }
+
+  // Repost autentificat (proprietar, orice device) — inlocuieste ruta cu token (C4-4/WF1-12).
+  // Fara @Idempotent: nu sunt bani; garda e updateMany-ul conditionat din service.
+  // Audit doar la succes (snapshot whitelist: id/status/date, fara PII).
+  @Roles(UserRole.CLIENT)
+  @UseInterceptors(AuditInterceptor)
+  @Audit('REQUEST_REPOSTED', 'request')
+  @Post(':id/repost')
+  repostById(@CurrentUser() user: AccessTokenPayload, @Param('id') id: string) {
+    return this.requests.repostForClient(user.sub, id);
   }
 
   // Atasamente pe cererea proprie (echivalentul autentificat al rutelor cu token).
