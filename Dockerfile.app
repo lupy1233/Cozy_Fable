@@ -4,7 +4,7 @@
 # (LISTEN_HOST=127.0.0.1 in start-combined.sh, E-admin-platform-56).
 # Build context = radacina monorepo-ului: docker build -f Dockerfile.app .
 
-FROM node:22-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5 AS build
+FROM node:26-bookworm-slim@sha256:bc0a2afd3b74ce12222fc8bab99271e66257f021078f5f4a5d687a77d280c1d9 AS build
 ENV PUPPETEER_SKIP_DOWNLOAD=1
 # openssl INAINTE de install/generate — altfel Prisma descarca engine openssl-1.1.x
 RUN apt-get update && apt-get install -y --no-install-recommends openssl \
@@ -64,7 +64,7 @@ RUN mkdir -p apps/frontend/public \
 # E-admin-platform-56 (SEC2-14): doar dependintele de PRODUCTIE ale backendului (+ shared) pentru
 # runtime — fara vitest/jest/@nestjs/cli/typescript-eslint in imagine. prisma e in dependencies
 # (migrate deploy din start-combined.sh), deci clientul se genereaza si aici.
-FROM node:22-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5 AS proddeps
+FROM node:26-bookworm-slim@sha256:bc0a2afd3b74ce12222fc8bab99271e66257f021078f5f4a5d687a77d280c1d9 AS proddeps
 ENV PUPPETEER_SKIP_DOWNLOAD=1
 RUN apt-get update && apt-get install -y --no-install-recommends openssl \
   && rm -rf /var/lib/apt/lists/*
@@ -78,7 +78,7 @@ COPY apps/backend/prisma/schema.prisma apps/backend/prisma/schema.prisma
 RUN pnpm install --frozen-lockfile --prod --filter backend... \
   && pnpm -F backend exec prisma generate
 
-FROM node:22-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5
+FROM node:26-bookworm-slim@sha256:bc0a2afd3b74ce12222fc8bab99271e66257f021078f5f4a5d687a77d280c1d9
 # Chromium de sistem pentru Puppeteer (PDF oferte/facturi).
 # E-admin-platform-56: `apt-get upgrade` aduce fixurile de securitate Debian intre bump-urile de
 # digest (poarta Trivy HIGH/CRITICAL din CI); npm/npx/corepack globale ale imaginii node nu sunt
