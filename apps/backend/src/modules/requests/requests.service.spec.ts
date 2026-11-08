@@ -8,6 +8,9 @@ import { RequestsService } from './requests.service';
 type AnyMock = jest.Mock;
 
 const EXP_ID = 'req-1';
+// expires_at-ul re-publicarii trebuie sa fie in viitor, altfel reminderul (4.4) nu se
+// programeaza; o data fixa (2026-10-20) facea testul sa pice dupa acea zi.
+const REPOST_EXPIRES_AT = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
 function baseRequest(over: Record<string, unknown> = {}) {
   return {
@@ -46,7 +49,7 @@ function setup() {
   };
   const inspiration = { assertSelectable: jest.fn().mockResolvedValue(undefined) };
   const calendar = {
-    addWorkingDays: jest.fn().mockReturnValue(new Date('2026-10-20T10:00:00Z')),
+    addWorkingDays: jest.fn().mockReturnValue(REPOST_EXPIRES_AT),
     // E-admin-platform-44: reminderul 4.4 programat langa jobul de expirare
     workingDateBefore: jest.fn().mockReturnValue('2026-10-19'),
     bucharestWallClock: jest.fn().mockReturnValue(new Date('2026-10-19T06:00:00Z')),
@@ -101,7 +104,7 @@ describe('RequestsService.repostForClient', () => {
     expect(queue.add).toHaveBeenCalledWith(
       'remind-expiry',
       expect.objectContaining({ requestId: EXP_ID }),
-      expect.objectContaining({ jobId: `req-rem-${EXP_ID}-${new Date('2026-10-20T10:00:00Z').getTime()}` }),
+      expect.objectContaining({ jobId: `req-rem-${EXP_ID}-${REPOST_EXPIRES_AT.getTime()}` }),
     );
   });
 
