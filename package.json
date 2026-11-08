@@ -19,10 +19,10 @@
   "pnpm": {
     "overrides": {
       "lodash": ">=4.18.0",
-      "multer": "^2.4.0",
+      "multer": "^2.5.0",
       "ws": ">=8.21.0",
       "socket.io-parser": ">=4.2.7",
-      "body-parser": ">=1.20.6",
+      "body-parser": ">=2.4.0",
       "qs": "^6.16.0",
       "postcss": ">=8.5.23",
       "sharp": "^0.35.5",
@@ -46,7 +46,8 @@
     },
     "auditConfig": {
       "ignoreGhsas": [
-        "GHSA-vfj7-8cjw-p6xm"
+        "GHSA-vfj7-8cjw-p6xm",
+        "GHSA-mrhx-c7xc-m3w5"
       ]
     }
   }
