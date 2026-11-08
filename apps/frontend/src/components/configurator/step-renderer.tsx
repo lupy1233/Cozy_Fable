@@ -262,6 +262,28 @@ export function StepRenderer(props: StepRendererProps) {
   }
 
   if (step.type === 'boolean') {
+    // bifa compacta (kitchen v3 "materiale diferite pe zone"): o alegere secundara
+    // pe un ecran cu multe carduri nu merita un cartonas mare
+    if (step.toggleStyle === 'checkbox') {
+      const on = value === true;
+      return (
+        <label
+          data-question-id={step.id}
+          className="flex cursor-pointer items-start gap-3 rounded-lg border border-border-2 bg-surface-2/50 px-4 py-3"
+        >
+          <input
+            type="checkbox"
+            checked={on}
+            onChange={() => onChange(!on)}
+            className="mt-0.5 h-5 w-5 shrink-0 accent-[hsl(var(--walnut))]"
+          />
+          <span className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium">{t(step.cardLabelKey ?? step.titleKey)}</span>
+            {step.subtitleKey && <span className="text-meta text-muted-foreground">{t(step.subtitleKey)}</span>}
+          </span>
+        </label>
+      );
+    }
     // inline (add-on pe acelasi ecran, ex. insula): acelasi card "carte de joc"
     // ca optiunile intrebarii principale, dar cu bifa de checkbox (U1, PO r4) —
     // aliniat in aceeasi grila ca sa citeasca drept "inca un cartonas"

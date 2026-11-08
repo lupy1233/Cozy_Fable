@@ -3219,6 +3219,17 @@
         "notes": {
           "title": "Alte detalii?",
           "subtitle": "Opțional — orice preferință sau observație pentru firme."
+        },
+        "separateFrontMaterials": {
+          "title": "Materiale diferite pe zone",
+          "subtitle": "Bifează dacă vrei alt material la corpurile de sus sau la insulă.",
+          "cardLabel": "Vreau materiale diferite pentru corpurile de jos, de sus și insulă"
+        },
+        "v3": {
+          "frontMaterial": {
+            "title": "Ce material vrei pentru fronturi?",
+            "subtitle": "Îl folosim la toată bucătăria. Mai jos poți alege materiale diferite pe zone."
+          }
         }
       },
       "PIECES": {

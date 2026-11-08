@@ -43,6 +43,7 @@ export interface TargetItem {
 
 export interface TargetStrip {
   items: TargetItem[];
+  // '*' = toate corpurile sunt vizate (bucataria v3: acelasi material peste tot)
   active: string;
 }
 
@@ -147,7 +148,9 @@ export function getQuestionTargets(
       ...it,
       labelKey: it.labelKey ?? `anchors.kitchenZones.${it.key}`,
     }));
-    if (items.length > 0) return { items, active: zone };
+    // v3: fara "materiale diferite pe zone", materialul de baza e pentru toata bucataria
+    const allZones = step.id === 'frontMaterialBase' && (flowVersion ?? 0) >= 3 && answers.separateFrontMaterials !== true;
+    if (items.length > 0) return { items, active: allZones ? '*' : zone };
   }
 
   // debaraua v2: rafturi deschise vs dulapuri inchise, dupa stilul ales
@@ -177,7 +180,7 @@ export function QuestionTargetStrip({ data }: { data: TargetStrip }) {
       )}
     >
       {data.items.map(({ key, Illu, labelKey }) => {
-        const active = key === data.active;
+        const active = data.active === '*' || key === data.active;
         return (
           <div
             key={key}

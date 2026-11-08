@@ -44,6 +44,7 @@ import {
 import { hallwayFlow } from './hallway';
 import { kitchenFlow } from './kitchen';
 import { kitchenFlowV2 } from './kitchen.v2';
+import { kitchenFlowV3 } from './kitchen.v3';
 import { laundryFlow } from './laundry';
 import { laundryFlowV2 } from './laundry.v2';
 import { livingFlow } from './living';
@@ -64,7 +65,11 @@ import { catalogFlowRegistry, catalogFlowVersions } from './guided-pieces/catalo
 // PIECES v1 ramane CURENT ca "Alta piesa" (formular liber, fallback).
 export const FLOW_REGISTRY: Record<RoomType, Record<number, RoomFlow>> = {
   ...catalogFlowRegistry,
-  KITCHEN: { [kitchenFlow.version]: kitchenFlow, [kitchenFlowV2.version]: kitchenFlowV2 },
+  KITCHEN: {
+    [kitchenFlow.version]: kitchenFlow,
+    [kitchenFlowV2.version]: kitchenFlowV2,
+    [kitchenFlowV3.version]: kitchenFlowV3,
+  },
   DRESSING: {
     [dressingFlow.version]: dressingFlow,
     [dressingFlowV2.version]: dressingFlowV2,
@@ -138,7 +143,8 @@ export const FLOW_REGISTRY: Record<RoomType, Record<number, RoomFlow>> = {
 // Versiunea cu care pornesc camerele NOI in wizard.
 export const CURRENT_FLOW_VERSION: Record<RoomType, number> = {
   ...catalogFlowVersions,
-  KITCHEN: kitchenFlowV2.version,
+  // bucataria porneste pe v3: 6 sectiuni fixe (Laws of UX, PO 2026-11-08)
+  KITCHEN: kitchenFlowV3.version,
   // dressing si living pornesc pe v3 (feedback PO 2026-07-13, docs/12 S3)
   DRESSING: dressingFlowV3.version,
   LIVING: livingFlowV3.version,
@@ -167,6 +173,7 @@ export const CURRENT_FLOW_VERSION: Record<RoomType, number> = {
 export {
   kitchenFlow,
   kitchenFlowV2,
+  kitchenFlowV3,
   dressingFlow,
   dressingFlowV2,
   dressingFlowV3,

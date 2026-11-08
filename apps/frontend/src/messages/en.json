@@ -3219,6 +3219,17 @@
         "notes": {
           "title": "Anything else?",
           "subtitle": "Optional — any preference or note for the companies."
+        },
+        "separateFrontMaterials": {
+          "title": "Different materials per zone",
+          "subtitle": "Tick this if you want a different material for the wall units or the island.",
+          "cardLabel": "I want different materials for base units, wall units and island"
+        },
+        "v3": {
+          "frontMaterial": {
+            "title": "Which material do you want for the fronts?",
+            "subtitle": "We use it for the whole kitchen. Below you can pick different materials per zone."
+          }
         }
       },
       "PIECES": {

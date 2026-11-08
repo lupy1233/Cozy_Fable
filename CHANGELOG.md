@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## Laws of UX: formularul de bucatarie in 6 sectiuni (kitchen v3) — 2026-11-08
+- **Obiectiv** (decizie PO 2026-11-08, card "Da, fara recomanda firma"): bucataria L + insula trece de la 11 ecrane la 6 sectiuni fixe: Forma, Dimensiuni, Fronturi, Blat, Electrocasnice, Schita.
+- **Module / tabele**: `packages/shared` (flow nou `kitchen.v3.ts`, `toggleStyle` pe BooleanStep), frontend (bifa compacta, banda-tinta). Tabele: niciuna. Fara migrari.
+- **Presupuneri**: implicit acelasi material la toate zonele; firma vede in continuare un item per zona (baza / suspendate / insula). Optiunea "Nu stiu, sa-mi recomande firma" NU e inclusa (decizia PO).
+- **Schimbari**:
+  - `kitchen.v3.ts`: ecranul "Fronturi" grupeaza materialul, bifa `separateFrontMaterials` si sistemele de deschidere pentru toate zonele. `frontMaterialWall/Island` apar doar cu bifa; altfel `deriveRoom` copiaza materialul de baza. Aceleasi id-uri si categorii de scor ca v2, deci itemii si costul in credite raman identice pentru aceleasi alegeri (test dedicat).
+  - Insula nu mai adauga ecrane: progresul ramane 6/6 si nu mai sare inapoi.
+  - `CURRENT_FLOW_VERSION.KITCHEN` = 3. v2 ramane inregistrata si neschimbata (cererile publicate si drafturile vechi se valideaza pe v2).
+  - Frontend: `toggleStyle: 'checkbox'` → bifa compacta in `step-renderer.tsx`; banda-tinta evidentiaza toate zonele cand materialul e comun.
+  - i18n RO+EN: `flows.KITCHEN.separateFrontMaterials.*`, `flows.KITCHEN.v3.frontMaterial.*`.
+- **Teste**: shared 634 trecute (7 noi pentru v3; testele v2 fixate pe versiunea 2), frontend 508, backend 1297 trecute; typecheck si lint 0. Captura ecranului Fronturi cu API simulat.
+- **Checklist de acceptare**:
+  - [x] L + insula = 6 ecrane; fara insula tot 6.
+  - [x] Fara bifa: un singur material, aplicat la toate zonele.
+  - [x] Cu bifa: material separat pentru suspendate si insula, obligatoriu la publicare.
+  - [x] Aceleasi alegeri dau aceiasi itemi ca v2 (credite neschimbate).
+  - [ ] Pe prod: o cerere noua de bucatarie se publica pe v3 (dupa deploy).
+
 ## Laws of UX: landing F + oferte, marketplace, cerere noua — 2026-11-08
 - **Obiectiv** (PO 2026-11-08, thread "Redesign Cozy Home dupa Laws of UX"): landing-ul ales de PO (varianta F din canvasul de design) si recomandarile Laws of UX pentru oferte, marketplace si primul pas din cerere. Doar frontend; fara schimbari de API, DB sau shared.
 - **Module / tabele**: frontend (landing, oferte client, marketplace firma, wizard cerere). Tabele afectate: niciuna.
