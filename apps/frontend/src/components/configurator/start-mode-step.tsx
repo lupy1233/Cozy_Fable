@@ -118,6 +118,12 @@ export function StartModeStep({
                 {selected && <Check className="h-3 w-3 text-background" strokeWidth={3} />}
               </span>
 
+              {/* Laws of UX (2026-11-08): o varianta recomandata scurteaza alegerea (Hick) */}
+              {mode === 'STANDARD' && (
+                <span className="absolute right-3 top-3 rounded-full bg-sage-soft px-2 py-0.5 text-micro font-medium uppercase tracking-[0.08em] text-sage">
+                  {t('start.recommended')}
+                </span>
+              )}
               {mode === 'DESIGN_HELP' && (
                 <span className="absolute right-3 top-3 rounded-full bg-brass/15 px-2 py-0.5 text-micro font-medium uppercase tracking-[0.08em] text-brass-2">
                   {t('start.DESIGN_HELP.badge')}

@@ -2,16 +2,19 @@ import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Stepper — casete numerotate in stil cartus de plansa tehnica.
-// Etichetele raman doar pentru screen-readere (numele fazei active e afisat
-// separat, in cartusul wizard-ului); vizual: patratele mono legate cu hairline.
+// Implicit etichetele raman doar pentru screen-readere; cu `labeled` (wizardul
+// de cerere, Laws of UX 2026-11-08) fiecare pas isi arata numele de la `lg`,
+// iar pasul activ mereu — utilizatorul vede ce urmeaza, nu doar un numar.
 export function Stepper({
   steps,
   current,
   className,
+  labeled = false,
 }: {
   steps: string[];
   current: number;
   className?: string;
+  labeled?: boolean;
 }) {
   return (
     <div className={cn('flex items-center gap-1.5', className)}>
@@ -30,8 +33,19 @@ export function Stepper({
               )}
             >
               {done ? <Check className="h-3 w-3" /> : i + 1}
-              <span className="sr-only">{s}</span>
+              {!labeled && <span className="sr-only">{s}</span>}
             </div>
+            {labeled && (
+              <span
+                aria-current={active ? 'step' : undefined}
+                className={cn(
+                  'whitespace-nowrap text-xs',
+                  active ? 'font-medium text-foreground' : 'sr-only text-muted-foreground lg:not-sr-only',
+                )}
+              >
+                {s}
+              </span>
+            )}
             {i < steps.length - 1 && <div className="h-px w-4 bg-border-2" />}
           </div>
         );

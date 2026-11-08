@@ -17,11 +17,14 @@ import { ChatPanel } from '../../../_components/chat-panel';
 import { ClientClarifications } from '../../../_components/client-clarifications';
 import { ClientFulfillment } from '../../../_components/client-fulfillment';
 import { OfferCard } from '../../../_components/offer-card';
+import { OffersComparison, RequestJourney, UnreadBanner } from '../../../_components/offers-comparison';
 
 // Parcursul cererii per atelier (feedback PO item 4): TOATE conversatiile cu
 // firmele care au preluat cererea — inclusiv cele care au scris DOAR pe chat,
 // fara oferta (inainte, chat-ul aparea doar sub oferte si mesajele lor erau
 // invizibile). Fiecare firma are sectiunea ei: status parcurs + oferta + chat.
+// Laws of UX (PO 2026-11-08): deasupra sectiunilor stau drumul cererii, firmele
+// cu mesaje noi si tabelul de comparatie; acceptarea ramane in cardul ofertei.
 
 type ThreadStage = 'DISCUSSION' | 'OFFER_SENT' | 'ACCEPTED' | 'CLOSED';
 
@@ -84,7 +87,7 @@ export default function RequestOffersPage() {
   const includesPaidDesign = request.data?.includesPaidDesign ?? false;
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <div className="mx-auto flex max-w-4xl flex-col gap-6">
       <Link href={`/requests/${id}`} className="text-sm text-walnut hover:underline">
         ← {t('backToRequest')}
       </Link>
@@ -92,6 +95,12 @@ export default function RequestOffersPage() {
         <h1 className="page-title">{t('offersTitle')}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{t('offersSubtitle')}</p>
       </div>
+
+      {request.data && <RequestJourney status={request.data.status} />}
+
+      <UnreadBanner threads={requestThreads} />
+
+      <OffersComparison threads={requestThreads} quoteByClaim={quoteByClaim} />
 
       <ClientClarifications requestId={id} />
 

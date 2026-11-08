@@ -3,83 +3,67 @@
     "close": "Close"
   },
   "LandingV2": {
-    "eyebrow": "Custom furniture platform",
-    "title": "Say what you want. Furniture companies compete for you.",
-    "subtitle": "You configure the request visually — rooms, materials, dimensions — and verified companies send comparable offers. You just choose.",
-    "ctaPrimary": "Start a request",
-    "ctaSecondary": "See the request's journey",
-    "proof1": "Free for clients",
-    "proof2": "Verified companies",
-    "proof3": "At most 3 offers per request",
-    "demo": {
-      "kicker": "Try the configurator",
-      "qPiece": "What are we furnishing?",
-      "pieceWardrobe": "Wardrobe",
-      "pieceBookcase": "Bookcase",
-      "pieceTv": "TV unit",
-      "qSize": "How wide?",
-      "qMaterial": "Which finish?",
-      "matWhite": "Matte white",
-      "matWood": "Oak veneer",
-      "matSage": "Sage green",
-      "qOpening": "How does it open?",
-      "qBottom": "The lower part?",
-      "openHandle": "Handles",
-      "openPush": "Push-to-open",
-      "openSliding": "Sliding doors",
-      "openShelves": "Open shelves",
-      "doorsBelow": "Doors below",
-      "specLabel": "Your request would read",
-      "cta": "Configure for real"
+    "eyebrow": "Custom furniture, from verified workshops",
+    "title1": "Three workshops.",
+    "title2": "Three offers.",
+    "title3": "Side by side.",
+    "subtitle": "Describe your furniture once. Verified furniture workshops reply with offers on the same fields, so you can compare them fairly.",
+    "ctaPrimary": "Get 3 offers for free",
+    "ctaNote": "No obligation. Choose only if you want to.",
+    "compare": {
+      "title": "L-shaped kitchen with island",
+      "example": "Example",
+      "firmA": "Workshop A",
+      "firmB": "Workshop B",
+      "firmC": "Workshop C",
+      "rowPrice": "Price",
+      "rowTerm": "Lead time",
+      "rowWarranty": "Warranty",
+      "lowest": "lowest",
+      "fastest": "fastest",
+      "weeks": "{n} wks",
+      "months": "{n} months",
+      "caption": "Illustrative example. Real offers appear in your account, in the same table."
     },
-    "m1Live": "Taken live from the configurator above — play and watch it change.",
-    "m2Taken": "taken",
-    "m2Free": "open",
-    "m3Chat": "Direct chat with the company",
-    "m4Review": "Public review",
-    "ideasKicker": "Inspiration",
-    "ideasTitle": "The idea book",
-    "ideasSub": "Not sure what you want yet? Start from a picture — any idea in the book can become a request.",
-    "ideasCta": "Open the idea book",
-    "processKicker": "The request's journey",
-    "processTitle": "Four stations, one thread",
-    "processSub": "From the first sketch to installation, everything stays in one place — nothing over the phone, nothing lost.",
+    "journeyKicker": "How it works",
+    "journeyTitle": "The road to your furniture",
     "p1": {
       "phase": "The request",
-      "title": "You describe it visually",
-      "body": "Illustrated cards, dimensions on drawing sheets, pieces configured in 3D. No project yet? The company builds it with you."
+      "title": "Describe it visually",
+      "body": "Pick from pictures and put the measurements on a sketch. No technical terms needed.",
+      "who": "You · a few minutes"
     },
     "p2": {
       "phase": "The claim",
-      "title": "Companies take it on",
-      "body": "At most three verified companies pay credits to see your request — real interest, not spam."
+      "title": "Up to 3 workshops take it",
+      "body": "Only verified workshops, who pay to work on your request.",
+      "who": "Workshops · you pay nothing"
     },
     "p3": {
       "phase": "The offers",
       "title": "Compare in black and white",
-      "body": "Structured offers and a chat with each company, with the history kept. You agree the price directly."
+      "body": "Offers sit side by side, on the same fields, with a chat for each workshop.",
+      "who": "You · choose or decline"
     },
     "p4": {
-      "phase": "The installation",
-      "title": "Your furniture, your measurements",
-      "body": "You accept the offer, the company builds and installs, and your review stays for the next clients."
+      "phase": "Home",
+      "title": "Your furniture, installed",
+      "body": "Made to your measurements. At the end you leave a review for the next clients.",
+      "who": "Chosen workshop · you pay them directly"
     },
-    "forKicker": "Who it's for",
-    "forTitle": "Two sides, the same table",
-    "forClientsTitle": "You're a client",
-    "client1": "Publish your request free, in minutes",
-    "client2": "Offers come only from verified companies",
-    "client3": "Compare prices, timelines and portfolios in one place",
-    "clientCta": "Start a request",
-    "forWorkshopsTitle": "You run a furniture company",
-    "ws1": "Sized requests, with clear materials and budget",
-    "ws2": "Pay credits only for the projects you claim",
-    "ws3": "Offers, chat and teamwork — all inside the platform",
-    "wsCta": "Register your company",
-    "bandTitle": "Ready to start?",
-    "bandBody": "Publish your first request in minutes — or register your company and receive qualified requests.",
-    "bandCtaClient": "Start a request",
-    "bandCtaCompany": "For companies"
+    "materialsKicker": "Before you ask for offers",
+    "materialsTitle": "Materials, explained simply",
+    "materialsSub": "Tap a material. You will find the same explanations in the form.",
+    "materialsPrice": "Indicative price for fronts",
+    "materialsPro": "Upside",
+    "materialsCon": "Downside",
+    "ideasKicker": "Idea book",
+    "ideasTitle": "Inspiration from real projects",
+    "ideasSub": "Save what you like and attach the ideas to your request. Workshops see exactly what you want.",
+    "ideasCta": "See all ideas",
+    "bandTitle": "Find out what your furniture costs, from three workshops.",
+    "bandCta": "Get 3 offers for free",
+    "bandCompany": "Run a furniture workshop? Sign up"
   },
   "Landing": {
     "footerTagline": "The marketplace for custom furniture",
@@ -127,7 +111,7 @@
     "dashboard": "My account",
     "myRequests": "My requests",
     "newRequest": "New request",
-    "createRequest": "Create a request",
+    "createRequest": "Get offers",
     "marketplace": "Marketplace",
     "claims": "Claims",
     "messages": "Messages",
@@ -1024,7 +1008,6 @@
   "Marketplace": {
     "title": "Marketplace",
     "subtitle": "Requests eligible for your company",
-    "walletLink": "Wallet",
     "availableCredits": "{n} credits",
     "empty": "No requests available right now.",
     "distanceApprox": "≈{km} km",
@@ -1167,7 +1150,23 @@
     "claimConfirmGrace": "You can withdraw for free within the first {minutes}; after that the credits are consumed and the firm receives {points} of penalty.",
     "claimConfirmPayToPlay": "If you send an offer and the client picks another firm, the credits are not refunded.",
     "claimConfirmCta": "Yes, claim the request",
-    "claimConfirmCancel": "Back"
+    "claimConfirmCancel": "Back",
+    "balanceLabel": "Available credits",
+    "buyCredits": "Buy credits",
+    "filterLabel": "Filter requests",
+    "filter": {
+      "all": "All",
+      "open": "With free slots",
+      "mine": "Claimed by your company"
+    },
+    "sortLabel": "Sort by",
+    "sort": {
+      "newest": "Newest",
+      "cheapest": "Lowest credit cost"
+    },
+    "emptyFiltered": "No requests for this filter.",
+    "notEnoughCredits": "Not enough credits",
+    "viewAndClaim": "View and claim"
   },
   "Chat": {
     "empty": "No messages yet. Write the first one.",
@@ -1378,6 +1377,30 @@
       "endNegCta": "Yes, end the negotiation",
       "cancel": "Back",
       "pending": "Sending…"
+    },
+    "unreadFrom": "{company} wrote to you: {n, plural, =1 {one new message} other {# new messages}}",
+    "journey": {
+      "label": "Request progress",
+      "published": "Published",
+      "claimed": "Claimed by workshops",
+      "offers": "Offers received",
+      "chosen": "Offer chosen",
+      "done": "Furniture delivered"
+    },
+    "compare": {
+      "title": "Offers, side by side",
+      "hint": "The same fields for every workshop",
+      "field": "Field",
+      "total": "Total",
+      "term": "Lead time",
+      "warranty": "Warranty",
+      "status": "Validity",
+      "details": "Details",
+      "lowest": "lowest",
+      "pending": "offer in progress",
+      "validUntil": "until {date}",
+      "openAndChoose": "View and choose",
+      "openChat": "View conversation"
     }
   },
   "Lifecycle": {
@@ -2315,7 +2338,8 @@
         "title": "I'm not sure what I want — I need help",
         "badge": "Paid design",
         "desc": "You only pick the rooms and publish the request with Paid design: the company that claims it builds the design together with you, for a fee."
-      }
+      },
+      "recommended": "Recommended"
     },
     "cart": {
       "title": "Which rooms do you want furnished?",

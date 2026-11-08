@@ -398,7 +398,7 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
                 {phaseLabels[phaseIndex]}
               </span>
             </div>
-            <Stepper steps={phaseLabels} current={phaseIndex} />
+            <Stepper steps={phaseLabels} current={phaseIndex} labeled />
           </div>
 
           <motion.div

@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## Laws of UX: landing F + oferte, marketplace, cerere noua — 2026-11-08
+- **Obiectiv** (PO 2026-11-08, thread "Redesign Cozy Home dupa Laws of UX"): landing-ul ales de PO (varianta F din canvasul de design) si recomandarile Laws of UX pentru oferte, marketplace si primul pas din cerere. Doar frontend; fara schimbari de API, DB sau shared.
+- **Module / tabele**: frontend (landing, oferte client, marketplace firma, wizard cerere). Tabele afectate: niciuna.
+- **Presupuneri**: tabelul-exemplu din hero arata doar rubrici care exista in oferta (pret, termen, garantie); "montaj inclus" nu e camp structurat (DECIZIE NECESARA deschisa, vezi mai jos). Varianta "Stiu ce vreau" e marcata Recomandat.
+- **Schimbari**:
+  - Landing (`app/[locale]/page.tsx`): hero "Trei firme. Trei oferte. Una langa alta." cu tabel-exemplu, "Drumul pana la mobila ta" in 4 statii (cine face pasul si cine plateste), `material-explainer.tsx` (aceleasi texte si preturi ca formularul, din `Configurator.common.materials`), preview din Caietul de idei, banda CTA unica. Sterse `hero-demo.tsx` si `process-band.tsx` (nefolosite). `partners-carousel.tsx` ramane in cod, nefolosit pe landing.
+  - Header public: un singur CTA ("Cere oferte") + Autentificare; butonul Inregistrare scos de pe desktop (ramane in meniul mobil si din pagina de login).
+  - Oferte (`requests/[id]/offers`): `offers-comparison.tsx` cu drumul cererii in 5 pasi, banner pentru firmele cu mesaje noi si tabelul ofertelor una langa alta (total, termen, garantie, valabilitate, eticheta "cel mai mic" doar cand e unic). Acceptarea ramane in cardul ofertei (dialogul existent).
+  - Marketplace: card cu soldul + "Cumpara credite", filtre (toate / cu locuri libere / preluate de firma ta) si sortare (noi / cost mic), costul in credite mare langa "Vezi si preia", rosu + "Nu ai destule credite" cand soldul nu ajunge, cererile pline estompate.
+  - Cerere noua: stepper-ul arata numele pasilor (`Stepper labeled`), "Stiu ce vreau" are eticheta Recomandat.
+  - i18n RO+EN: `LandingV2` rescris, chei noi in `Quotes`, `Marketplace`, `Configurator.start.recommended`; `Nav.createRequest` = "Cere oferte"; `Marketplace.walletLink` sters (nefolosit).
+- **Nu e inclus** (DECIZIE NECESARA): (1) camp structurat "montaj inclus / cost montaj" in oferta; (2) restructurarea intrebarilor de bucatarie in 6 sectiuni + optiunea "Nu stiu, sa-mi recomande firma" (lipseste din enum-ul de material si atinge formula costului in credite).
+- **Teste**: `pnpm typecheck` 0, `pnpm lint` 0, `pnpm -F frontend test` 68 fisiere / 508 teste trecute (nou: `offers-comparison.test.tsx`, 6 teste). Capturi cu API simulat: landing, oferte, marketplace, cerere noua.
+- **Checklist de acceptare**:
+  - [x] Landing: un singur CTA primar, acelasi nume in hero si in banda finala.
+  - [x] Materialele afiseaza textul, avantajul, dezavantajul si pretul din formular.
+  - [x] Oferte: tabelul apare de la 2 oferte, cu link spre fiecare firma.
+  - [x] Marketplace: costul in credite e vizibil pe fiecare card; cererile pline nu par preluabile.
+  - [x] Wizard: numele pasilor sunt vizibile pe desktop.
+  - [ ] Pe prod: pozele Caietului de idei (CDN Webflow) se vad pe landing — nu se pot verifica din mediul cloud.
+
 ## Hotfix pre-deploy (plan 2026-09-28): re-accept Termeni amanat pentru conturile existente — 2026-10-04
 - **Obiectiv** (decizie PO 2026-10-04): re-acceptarea fortata a Termenilor/Politicii (E-admin-platform-2) e amanata. Doar conturile noi accepta textele 2026-09-29, la inregistrare. Conturile existente vor fi intrebate abia dupa revizuirea avocatului. Comutarea se face din setari, fara release nou.
 - **Comportament**:

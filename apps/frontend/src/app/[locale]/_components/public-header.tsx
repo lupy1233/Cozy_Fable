@@ -24,8 +24,8 @@ import { MobileNav, activeHref } from './mobile-nav';
 // Latimi (audit 2026-08-19, P0): sub `lg` (1024px) logo + 4 linkuri + lang +
 // 3 butoane NU incap (RO: ~1070px) si headerul se rupea pe 2-3 randuri cu
 // scroll orizontal. Acum: linkurile + lang + login/register stau in hamburger
-// pana la `lg`; intre `lg` si `xl` ramane doar "Autentificare" (Inregistrare e
-// la un click, din pagina de login) ca sa incapa (~990px estimat); de la `xl` tot.
+// pana la `lg`. Pe desktop: un singur CTA + "Autentificare" (Laws of UX, Hick,
+// 2026-11-08); Inregistrarea e la un click, din pagina de login.
 // Aceleasi inaltime (py-2.5) si prag (lg) ca AppHeader — headerul nu "sare"
 // la trecerea landing ↔ cont.
 export const PUBLIC_LINKS = [
@@ -90,14 +90,9 @@ export function PublicHeader() {
               <Link href="/dashboard">{tn('dashboard')}</Link>
             </Button>
           ) : (
-            <>
-              <Button asChild variant="ghost" size="sm" className="hidden lg:inline-flex">
-                <Link href="/login">{tn('login')}</Link>
-              </Button>
-              <Button asChild variant="outline" size="sm" className="hidden xl:inline-flex">
-                <Link href="/register">{tn('register')}</Link>
-              </Button>
-            </>
+            <Button asChild variant="ghost" size="sm" className="hidden lg:inline-flex">
+              <Link href="/login">{tn('login')}</Link>
+            </Button>
           )}
           <MobileNav
             className="lg:hidden"
