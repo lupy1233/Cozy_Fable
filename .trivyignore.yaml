@@ -6,4 +6,13 @@
 #   - id: CVE-2026-00000
 #     statement: "pachet folosit doar la build; fara cale de atac in runtime"
 #     expired_at: 2026-12-31
-vulnerabilities: []
+vulnerabilities:
+  # zod 3.x (GHSA-mrhx-c7xc-m3w5): fix doar in zod >= 4.6.6 (major nou, API schimbat).
+  # Decizia Ciprian 2026-11-08: exceptie temporara, migrarea la zod v4 e task separat.
+  # Aceeasi exceptie e in package.json pnpm.auditConfig.ignoreGhsas.
+  - id: CVE-2023-54404
+    statement: "zod v3 fara fix pe linia 3.x; migrarea la zod v4 e task separat (decizie 2026-11-08)"
+    expired_at: 2027-02-05
+  - id: GHSA-mrhx-c7xc-m3w5
+    statement: "alias GHSA pentru CVE-2023-54404; aceeasi exceptie temporara"
+    expired_at: 2027-02-05
