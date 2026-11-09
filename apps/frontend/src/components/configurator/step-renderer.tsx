@@ -269,6 +269,7 @@ export function StepRenderer(props: StepRendererProps) {
       return (
         <label
           data-question-id={step.id}
+          data-room-type={roomType}
           className="flex cursor-pointer items-start gap-3 rounded-lg border border-border-2 bg-surface-2/50 px-4 py-3"
         >
           <input
