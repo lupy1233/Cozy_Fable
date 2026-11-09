@@ -38,6 +38,20 @@
   - [x] Marketplace: costul in credite e vizibil pe fiecare card; cererile pline nu par preluabile.
   - [x] Wizard: numele pasilor sunt vizibile pe desktop.
   - [ ] Pe prod: pozele Caietului de idei (CDN Webflow) se vad pe landing — nu se pot verifica din mediul cloud.
+## Securitate: dependinte vulnerabile (audit HIGH/CRITICAL) — 2026-11-08
+- **Obiectiv**: `pnpm audit --audit-level high` pica pe main si bloca PR-urile. Doar actualizari de dependinte, fara schimbari de functionalitate.
+- **Modificari**:
+  - `next` ~15.5.25 → ~15.5.29 (CRITICAL GHSA-2464-fhr4-w9xw RCE in Image Optimization, HIGH GHSA-p3m5-59mp-jv5r DoS App Router).
+  - `vite` ^6.4.3 → ^6.4.5 (GHSA-587h-7wmj-h5pm), in frontend si shared.
+  - Override-uri pnpm: `body-parser` >=2.4.0 (GHSA-27r3-jxmh-p828), `multer` ^2.5.0 (GHSA-q7qp-rjg7-q26m), ambele prin `@nestjs/platform-express`.
+  - `zod` 3.x (GHSA-mrhx-c7xc-m3w5 / CVE-2023-54404): fix doar in zod >= 4.6.6. Decizie Ciprian 2026-11-08: exceptie temporara in `pnpm.auditConfig.ignoreGhsas` si `.trivyignore.yaml` (expira 2027-02-05). Migrarea la zod v4 e task separat.
+  - Test `requests.service.spec.ts` (repost): ceas fixat la 2026-10-06; testul depindea de data curenta si pica dupa 2026-10-20 (independent de dependinte).
+- **Teste**: typecheck, lint 0; backend 1297 trecute, frontend 502, shared 627, unelte release 34; `pnpm -F frontend build` OK; `pnpm audit --audit-level high` exit 0.
+- **Checklist de acceptare**:
+  - [x] Audit HIGH/CRITICAL curat (cu exceptia zod documentata).
+  - [ ] CI verde pe PR.
+  - [ ] Productie: deploy manual (`railway up`) pe slotul standby, apoi comutare. Merge-ul nu deployeaza.
+  - [ ] Task separat: migrare zod v4, inainte de 2027-02-05.
 
 ## Hotfix pre-deploy (plan 2026-09-28): re-accept Termeni amanat pentru conturile existente — 2026-10-04
 - **Obiectiv** (decizie PO 2026-10-04): re-acceptarea fortata a Termenilor/Politicii (E-admin-platform-2) e amanata. Doar conturile noi accepta textele 2026-09-29, la inregistrare. Conturile existente vor fi intrebate abia dupa revizuirea avocatului. Comutarea se face din setari, fara release nou.
