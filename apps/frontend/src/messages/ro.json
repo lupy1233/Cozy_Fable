@@ -3,83 +3,67 @@
     "close": "Închide"
   },
   "LandingV2": {
-    "eyebrow": "Platformă pentru mobilier la comandă",
-    "title": "Spui ce vrei. Firmele de mobilier concurează pentru tine.",
-    "subtitle": "Configurezi vizual cererea — camere, materiale, dimensiuni — iar firme verificate îți trimit oferte comparabile. Tu doar alegi.",
-    "ctaPrimary": "Începe o cerere",
-    "ctaSecondary": "Vezi drumul cererii",
-    "proof1": "Gratuit pentru clienți",
-    "proof2": "Firme verificate",
-    "proof3": "Cel mult 3 oferte per cerere",
-    "demo": {
-      "kicker": "Probează configuratorul",
-      "qPiece": "Ce mobilăm?",
-      "pieceWardrobe": "Dulap",
-      "pieceBookcase": "Bibliotecă",
-      "pieceTv": "Comodă TV",
-      "qSize": "Cât de lat?",
-      "qMaterial": "Ce finisaj?",
-      "matWhite": "Alb mat",
-      "matWood": "Furnir stejar",
-      "matSage": "Verde salvie",
-      "qOpening": "Cum se deschide?",
-      "qBottom": "Partea de jos?",
-      "openHandle": "Mânere",
-      "openPush": "Push-to-open",
-      "openSliding": "Uși glisante",
-      "openShelves": "Rafturi deschise",
-      "doorsBelow": "Uși jos",
-      "specLabel": "Cererea ta ar suna așa",
-      "cta": "Configurează pe bune"
+    "eyebrow": "Mobilier la comandă, de la firme verificate",
+    "title1": "Trei firme.",
+    "title2": "Trei oferte.",
+    "title3": "Una lângă alta.",
+    "subtitle": "Descrii mobila o singură dată. Firmele de mobilier verificate răspund cu oferte pe aceleași rubrici, ca să le poți compara cinstit.",
+    "ctaPrimary": "Cere 3 oferte gratuit",
+    "ctaNote": "Fără obligații. Alegi doar dacă vrei.",
+    "compare": {
+      "title": "Bucătărie în L cu insulă",
+      "example": "Exemplu",
+      "firmA": "Atelier A",
+      "firmB": "Atelier B",
+      "firmC": "Atelier C",
+      "rowPrice": "Preț",
+      "rowTerm": "Termen",
+      "rowWarranty": "Garanție",
+      "lowest": "cel mai mic",
+      "fastest": "cel mai rapid",
+      "weeks": "{n} săpt.",
+      "months": "{n} luni",
+      "caption": "Exemplu ilustrativ. Ofertele reale apar în contul tău, în același tabel."
     },
-    "m1Live": "Preluat live din configuratorul de sus — joacă-te și vezi cum se schimbă.",
-    "m2Taken": "ocupat",
-    "m2Free": "liber",
-    "m3Chat": "Chat direct cu firma",
-    "m4Review": "Recenzie publică",
-    "ideasKicker": "Inspirație",
-    "ideasTitle": "Caietul de idei",
-    "ideasSub": "Nu știi încă exact ce vrei? Pornește de la o imagine — orice idee din caiet poate deveni o cerere.",
-    "ideasCta": "Deschide caietul de idei",
-    "processKicker": "Drumul cererii",
-    "processTitle": "Patru stații, un singur fir",
-    "processSub": "De la prima schiță până la montaj, totul rămâne în același loc — nimic pe telefon, nimic pierdut.",
+    "journeyKicker": "Cum funcționează",
+    "journeyTitle": "Drumul până la mobila ta",
     "p1": {
       "phase": "Cererea",
       "title": "O descrii vizual",
-      "body": "Carduri ilustrate, dimensiuni pe planșe, piese configurate în 3D. Nu ai un proiect? Firma îl construiește împreună cu tine."
+      "body": "Alegi din imagini și pui dimensiunile pe schiță. Nu trebuie să știi termeni tehnici.",
+      "who": "Tu · câteva minute"
     },
     "p2": {
       "phase": "Preluarea",
-      "title": "Firmele o preiau",
-      "body": "Cel mult trei firme verificate plătesc credite ca să-ți vadă cererea — interes real, nu spam."
+      "title": "Până la 3 firme o preiau",
+      "body": "Doar firme verificate, care plătesc ca să lucreze pe cererea ta.",
+      "who": "Firmele · tu nu plătești nimic"
     },
     "p3": {
       "phase": "Ofertele",
       "title": "Compari negru pe alb",
-      "body": "Oferte structurate și chat cu fiecare firmă, cu istoricul păstrat. Prețul îl stabilești direct."
+      "body": "Ofertele stau una lângă alta, pe aceleași rubrici, cu chat pentru fiecare firmă.",
+      "who": "Tu · alegi sau refuzi"
     },
     "p4": {
-      "phase": "Montajul",
-      "title": "Mobila ta, pe cotele tale",
-      "body": "Accepți oferta, firma execută și montează, iar recenzia ta rămâne pentru următorii clienți."
+      "phase": "Acasă",
+      "title": "Mobila ta, montată",
+      "body": "Pe cotele tale. La final lași o recenzie pentru următorii clienți.",
+      "who": "Firma aleasă · o plătești direct"
     },
-    "forKicker": "Pentru cine",
-    "forTitle": "Două părți, aceeași masă de lucru",
-    "forClientsTitle": "Ești client",
-    "client1": "Publici cererea gratuit, în câteva minute",
-    "client2": "Primești oferte doar de la firme verificate",
-    "client3": "Compari prețuri, termene și portofolii în același loc",
-    "clientCta": "Începe o cerere",
-    "forWorkshopsTitle": "Conduci o firmă de mobilier",
-    "ws1": "Cereri dimensionate, cu materiale și buget clar",
-    "ws2": "Plătești credite doar pentru proiectele pe care le preiei",
-    "ws3": "Ofertare, chat și lucru în echipă — totul în platformă",
-    "wsCta": "Înscrie-ți firma",
-    "bandTitle": "Pregătit să începi?",
-    "bandBody": "Publică prima cerere în câteva minute — sau înscrie-ți firma și primește cereri calificate.",
-    "bandCtaClient": "Începe o cerere",
-    "bandCtaCompany": "Pentru firme"
+    "materialsKicker": "Înainte să ceri oferte",
+    "materialsTitle": "Materialele, explicate simplu",
+    "materialsSub": "Apasă pe un material. Aceleași explicații le găsești și în formular.",
+    "materialsPrice": "Preț orientativ pentru fronturi",
+    "materialsPro": "Avantaj",
+    "materialsCon": "Dezavantaj",
+    "ideasKicker": "Caietul de idei",
+    "ideasTitle": "Inspirație din proiecte reale",
+    "ideasSub": "Salvează ce-ți place și atașează ideile la cerere. Firmele văd exact ce vrei.",
+    "ideasCta": "Vezi toate ideile",
+    "bandTitle": "Află cât costă mobila ta, de la trei firme.",
+    "bandCta": "Cere 3 oferte gratuit",
+    "bandCompany": "Ai o firmă de mobilier? Înscrie-te"
   },
   "Landing": {
     "footerTagline": "Marketplace pentru mobilier la comandă",
@@ -127,7 +111,7 @@
     "dashboard": "Contul meu",
     "myRequests": "Cererile mele",
     "newRequest": "Cerere nouă",
-    "createRequest": "Creează o cerere",
+    "createRequest": "Cere oferte",
     "marketplace": "Marketplace",
     "claims": "Revendicări",
     "messages": "Mesaje",
@@ -1024,7 +1008,6 @@
   "Marketplace": {
     "title": "Marketplace",
     "subtitle": "Cereri eligibile pentru firma ta",
-    "walletLink": "Portofel",
     "availableCredits": "{n} credite",
     "empty": "Nicio cerere disponibilă momentan.",
     "distanceApprox": "≈{km} km",
@@ -1167,7 +1150,23 @@
     "claimConfirmGrace": "Te poți retrage gratuit în primele {minutes}; după aceea creditele se consumă și firma primește {points} de penalizare.",
     "claimConfirmPayToPlay": "Dacă trimiți o ofertă și clientul alege altă firmă, creditele nu se restituie.",
     "claimConfirmCta": "Da, preiau cererea",
-    "claimConfirmCancel": "Înapoi"
+    "claimConfirmCancel": "Înapoi",
+    "balanceLabel": "Credite disponibile",
+    "buyCredits": "Cumpără credite",
+    "filterLabel": "Filtrează cererile",
+    "filter": {
+      "all": "Toate",
+      "open": "Cu locuri libere",
+      "mine": "Preluate de firma ta"
+    },
+    "sortLabel": "Ordonează",
+    "sort": {
+      "newest": "Cele mai noi",
+      "cheapest": "Cost mic în credite"
+    },
+    "emptyFiltered": "Nicio cerere pentru filtrul ales.",
+    "notEnoughCredits": "Nu ai destule credite",
+    "viewAndClaim": "Vezi și preia"
   },
   "Chat": {
     "empty": "Niciun mesaj încă. Scrie primul.",
@@ -1378,6 +1377,30 @@
       "endNegCta": "Da, închei negocierea",
       "cancel": "Înapoi",
       "pending": "Se trimite…"
+    },
+    "unreadFrom": "{company} ți-a scris: {n, plural, =1 {un mesaj nou} other {# mesaje noi}}",
+    "journey": {
+      "label": "Drumul cererii",
+      "published": "Publicată",
+      "claimed": "Preluată de firme",
+      "offers": "Oferte primite",
+      "chosen": "Ofertă aleasă",
+      "done": "Mobilă livrată"
+    },
+    "compare": {
+      "title": "Ofertele, una lângă alta",
+      "hint": "Aceleași rubrici pentru fiecare firmă",
+      "field": "Rubrică",
+      "total": "Total",
+      "term": "Termen",
+      "warranty": "Garanție",
+      "status": "Valabilitate",
+      "details": "Detalii",
+      "lowest": "cel mai mic",
+      "pending": "ofertă în lucru",
+      "validUntil": "până la {date}",
+      "openAndChoose": "Vezi și alege",
+      "openChat": "Vezi conversația"
     }
   },
   "Lifecycle": {
@@ -2315,7 +2338,8 @@
         "title": "Nu știu exact ce vreau — am nevoie de ajutor",
         "badge": "Proiectare plătită",
         "desc": "Alegi doar camerele și publici cererea cu Proiectare plătită: firma care o preia face proiectul împreună cu tine, contra cost."
-      }
+      },
+      "recommended": "Recomandat"
     },
     "cart": {
       "title": "Ce camere vrei să mobilezi?",
@@ -3195,6 +3219,17 @@
         "notes": {
           "title": "Alte detalii?",
           "subtitle": "Opțional — orice preferință sau observație pentru firme."
+        },
+        "separateFrontMaterials": {
+          "title": "Materiale diferite pe zone",
+          "subtitle": "Bifează dacă vrei alt material la corpurile de sus sau la insulă.",
+          "cardLabel": "Vreau materiale diferite pentru corpurile de jos, de sus și insulă"
+        },
+        "v3": {
+          "frontMaterial": {
+            "title": "Ce material vrei pentru fronturi?",
+            "subtitle": "Îl folosim la toată bucătăria. Mai jos poți alege materiale diferite pe zone."
+          }
         }
       },
       "PIECES": {

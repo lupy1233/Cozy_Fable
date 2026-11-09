@@ -114,6 +114,9 @@ export type BooleanStep = BaseStep & {
   type: 'boolean';
   scoringWhenTrue?: ScoringRef;
   cardLabelKey?: string;
+  // pur prezentational (kitchen v3, Laws of UX 2026-11-08): 'checkbox' randeaza
+  // step-ul inline ca o bifa compacta, nu ca un cartonas mare.
+  toggleStyle?: 'card' | 'checkbox';
 };
 // Sloturile sunt FUNCTIE de raspunsurile anterioare (genuin dinamice) — permis
 // pentru ca definitia e cod TS partajat FE/BE, nu config DB.

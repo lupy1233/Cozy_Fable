@@ -3,6 +3,7 @@ import {
   collectScoreEntries,
   evalCondition,
   getFlow,
+  isFlowVersionRegistered,
   pruneAnswers,
   stepAnswerSchema,
   summarizeAnswers,
@@ -269,7 +270,6 @@ describe('deriveRoom pentru toate flow-urile → forma valida', () => {
         hasIsland: false,
         dimensions: { runA: 3, ceilingHeight: 2.6 },
         frontMaterialBase: 'PAL',
-        frontMaterialWall: 'PAL',
         openingSystemsBase: ['PUSH'],
         openingSystemsWall: ['PUSH'],
         countertop: 'PAL',
@@ -421,9 +421,10 @@ describe('kitchen v2 — insula ca add-on, intrebari per zona', () => {
     };
   }
 
-  it('versiunea curenta pentru bucatarie este 2 (PARALLEL eliminat)', () => {
-    const flow = getFlow('KITCHEN');
+  it('v2 ramane inregistrata (PARALLEL eliminat)', () => {
+    const flow = getFlow('KITCHEN', 2);
     expect(flow.version).toBe(2);
+    expect(isFlowVersionRegistered('KITCHEN', 2)).toBe(true);
     const layout = flow.steps.find((s) => s.id === 'layout');
     if (layout?.type !== 'single-choice') throw new Error('missing layout');
     expect(layout.options.map((o) => o.value)).toEqual(['STRAIGHT', 'L_SHAPE', 'U_SHAPE']);
@@ -432,7 +433,7 @@ describe('kitchen v2 — insula ca add-on, intrebari per zona', () => {
   });
 
   it('hasIsland e toggle optional pe acelasi ecran cu formele (feedback PO 2026-07-13)', () => {
-    const flow = getFlow('KITCHEN');
+    const flow = getFlow('KITCHEN', 2);
     const layout = flow.steps.find((s) => s.id === 'layout');
     const island = flow.steps.find((s) => s.id === 'hasIsland');
     expect(layout?.screenGroup).toBe('layoutScreen');
@@ -442,7 +443,7 @@ describe('kitchen v2 — insula ca add-on, intrebari per zona', () => {
   });
 
   it('intrebarile sunt grupate pe partea de mobilier: material apoi deschidere per zona', () => {
-    const flow = getFlow('KITCHEN');
+    const flow = getFlow('KITCHEN', 2);
     const ids = flow.steps.map((s) => s.id);
     const order = [
       'frontMaterialBase',
@@ -457,7 +458,7 @@ describe('kitchen v2 — insula ca add-on, intrebari per zona', () => {
   });
 
   it('sistemele per zona: jos/insula = maner/push/Gola, suspendate + Aventos', () => {
-    const flow = getFlow('KITCHEN');
+    const flow = getFlow('KITCHEN', 2);
     const values = (id: string) => {
       const s = flow.steps.find((st) => st.id === id);
       return s?.type === 'multi-choice' ? s.options.map((o) => o.value) : [];
@@ -473,18 +474,18 @@ describe('kitchen v2 — insula ca add-on, intrebari per zona', () => {
       frontMaterialBase: 'ALTUL',
     };
     // fara text → stepul conditional devine vizibil si obligatoriu
-    const invalid = validateRoomAnswers('KITCHEN', withOther, { partial: false });
+    const invalid = validateRoomAnswers('KITCHEN', withOther, { partial: false, version: 2 });
     expect(invalid.ok).toBe(false);
     withOther.frontMaterialBaseOther = 'sticla mata';
-    expect(validateRoomAnswers('KITCHEN', withOther, { partial: false })).toEqual({ ok: true });
-    const derived = getFlow('KITCHEN').deriveRoom(withOther);
+    expect(validateRoomAnswers('KITCHEN', withOther, { partial: false, version: 2 })).toEqual({ ok: true });
+    const derived = getFlow('KITCHEN', 2).deriveRoom(withOther);
     const base = derived.items.find((it) => it.name === 'Corpuri baza');
     expect(base?.material).toBe('ALTUL');
     expect(base?.description).toBe('Material dorit: sticla mata');
   });
 
   it('set complet v2 trece validarea la publish; fara insula, intrebarile de insula dispar', () => {
-    expect(validateRoomAnswers('KITCHEN', kitchenV2Answers(), { partial: false })).toEqual({
+    expect(validateRoomAnswers('KITCHEN', kitchenV2Answers(), { partial: false, version: 2 })).toEqual({
       ok: true,
     });
     const noIsland: AnswerMap = {
@@ -497,15 +498,15 @@ describe('kitchen v2 — insula ca add-on, intrebari per zona', () => {
       openingSystemsWall: ['PUSH'],
       countertop: 'HPL',
     };
-    expect(validateRoomAnswers('KITCHEN', noIsland, { partial: false })).toEqual({ ok: true });
-    const flow = getFlow('KITCHEN');
+    expect(validateRoomAnswers('KITCHEN', noIsland, { partial: false, version: 2 })).toEqual({ ok: true });
+    const flow = getFlow('KITCHEN', 2);
     const ids = visibleSteps(flow, noIsland).map((s) => s.id);
     expect(ids).not.toContain('frontMaterialIsland');
     expect(ids).not.toContain('openingSystemsIsland');
   });
 
   it('deriveRoom v2 produce un item per zona cu materialul si sistemele proprii', () => {
-    const derived = getFlow('KITCHEN').deriveRoom(kitchenV2Answers());
+    const derived = getFlow('KITCHEN', 2).deriveRoom(kitchenV2Answers());
     expect(derived.items).toHaveLength(3);
     const byName = Object.fromEntries(derived.items.map((it) => [it.name, it]));
     expect(byName['Corpuri baza'].material).toBe('PAL');
@@ -521,8 +522,88 @@ describe('kitchen v2 — insula ca add-on, intrebari per zona', () => {
       validateRoomAnswers('KITCHEN', kitchenLIslandAnswers(), { partial: false, version: 1 }),
     ).toEqual({ ok: true });
     // dar NU trec pe v2 (cabinetZones/frontMaterial nu mai exista)
-    const onV2 = validateRoomAnswers('KITCHEN', kitchenLIslandAnswers(), { partial: false });
+    const onV2 = validateRoomAnswers('KITCHEN', kitchenLIslandAnswers(), { partial: false, version: 2 });
     expect(onV2.ok).toBe(false);
+  });
+});
+
+describe('kitchen v3 — 6 sectiuni fixe, acelasi material implicit (PO 2026-11-08)', () => {
+  const base: AnswerMap = {
+    layout: 'L_SHAPE',
+    hasIsland: true,
+    dimensions: { runA: 2.4, runB: 1.8, ceilingHeight: 2.6, islandLength: 2.0, islandDepth: 0.9 },
+    frontMaterialBase: 'MDF_VOPSIT',
+    openingSystemsBase: ['PUSH'],
+    openingSystemsWall: ['AVENTOS'],
+    openingSystemsIsland: ['GOLA'],
+    countertop: 'QUARTZ',
+  };
+  const screenGroups = (answers: AnswerMap) => {
+    const groups: string[] = [];
+    for (const s of visibleSteps(getFlow('KITCHEN', 3), answers)) {
+      const key = s.screenGroup ?? s.id;
+      if (groups[groups.length - 1] !== key) groups.push(key);
+    }
+    return groups;
+  };
+
+  it('bucataria noua porneste pe v3', () => {
+    expect(CURRENT_FLOW_VERSION.KITCHEN).toBe(3);
+    expect(getFlow('KITCHEN').version).toBe(3);
+  });
+
+  it('6 ecrane, indiferent de insula sau de materialele pe zone', () => {
+    const six = ['layoutScreen', 'dimensions', 'fronts', 'countertop', 'appliances', 'sketch'];
+    expect(screenGroups(base)).toEqual(six);
+    expect(screenGroups({ ...base, hasIsland: false })).toEqual(six);
+    expect(screenGroups({ ...base, separateFrontMaterials: true })).toEqual(six);
+  });
+
+  it('implicit: un singur material, publicabil, copiat pe toate zonele', () => {
+    expect(validateRoomAnswers('KITCHEN', base, { partial: false, version: 3 })).toEqual({ ok: true });
+    const ids = visibleSteps(getFlow('KITCHEN', 3), base).map((s) => s.id);
+    expect(ids).not.toContain('frontMaterialWall');
+    expect(ids).not.toContain('frontMaterialIsland');
+    const items = getFlow('KITCHEN', 3).deriveRoom(base).items;
+    expect(items.map((it) => it.material)).toEqual(['MDF_VOPSIT', 'MDF_VOPSIT', 'MDF_VOPSIT']);
+    expect(items.map((it) => it.systems)).toEqual([['PUSH'], ['AVENTOS'], ['GOLA']]);
+  });
+
+  it('itemii derivati sunt identici cu v2 pentru aceleasi alegeri (formula de credite neschimbata)', () => {
+    const v2Answers: AnswerMap = { ...base, frontMaterialWall: 'MDF_VOPSIT', frontMaterialIsland: 'MDF_VOPSIT' };
+    const v2Derived = getFlow('KITCHEN', 2).deriveRoom(v2Answers);
+    const v3Derived = getFlow('KITCHEN', 3).deriveRoom(base);
+    expect(v3Derived).toEqual(v2Derived);
+  });
+
+  it('cu materiale diferite: zonele isi cer materialul si il pastreaza', () => {
+    const separate: AnswerMap = { ...base, separateFrontMaterials: true };
+    expect(validateRoomAnswers('KITCHEN', separate, { partial: false, version: 3 }).ok).toBe(false);
+    const full: AnswerMap = { ...separate, frontMaterialWall: 'PAL', frontMaterialIsland: 'LEMN_MASIV' };
+    expect(validateRoomAnswers('KITCHEN', full, { partial: false, version: 3 })).toEqual({ ok: true });
+    const byName = Object.fromEntries(getFlow('KITCHEN', 3).deriveRoom(full).items.map((it) => [it.name, it]));
+    expect(byName['Corpuri baza'].material).toBe('MDF_VOPSIT');
+    expect(byName['Corpuri suspendate'].material).toBe('PAL');
+    expect(byName['Insula bucatarie'].material).toBe('LEMN_MASIV');
+  });
+
+  it('debifarea sterge materialele pe zone (pruneAnswers), "Altul" de baza se aplica peste tot', () => {
+    const pruned = pruneAnswers(getFlow('KITCHEN', 3), {
+      ...base,
+      separateFrontMaterials: false,
+      frontMaterialWall: 'PAL',
+      frontMaterialIsland: 'PAL',
+    });
+    expect(pruned.frontMaterialWall).toBeUndefined();
+    expect(pruned.frontMaterialIsland).toBeUndefined();
+    const other: AnswerMap = { ...base, frontMaterialBase: 'ALTUL', frontMaterialBaseOther: 'sticla mata' };
+    const items = getFlow('KITCHEN', 3).deriveRoom(other).items;
+    expect(items.every((it) => it.material === 'ALTUL' && it.description === 'Material dorit: sticla mata')).toBe(true);
+  });
+
+  it('v2 nu se schimba: drafturile vechi se valideaza in continuare pe v2', () => {
+    expect(getFlow('KITCHEN', 2).steps.find((s) => s.id === 'separateFrontMaterials')).toBeUndefined();
+    expect(getFlow('KITCHEN', 2).steps.find((s) => s.id === 'frontMaterialBase')?.screenGroup).toBe('frontBase');
   });
 });
 

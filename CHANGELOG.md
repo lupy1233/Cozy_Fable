@@ -1,5 +1,43 @@
 # CHANGELOG
 
+## Laws of UX: formularul de bucatarie in 6 sectiuni (kitchen v3) — 2026-11-08
+- **Obiectiv** (decizie PO 2026-11-08, card "Da, fara recomanda firma"): bucataria L + insula trece de la 11 ecrane la 6 sectiuni fixe: Forma, Dimensiuni, Fronturi, Blat, Electrocasnice, Schita.
+- **Module / tabele**: `packages/shared` (flow nou `kitchen.v3.ts`, `toggleStyle` pe BooleanStep), frontend (bifa compacta, banda-tinta). Tabele: niciuna. Fara migrari.
+- **Presupuneri**: implicit acelasi material la toate zonele; firma vede in continuare un item per zona (baza / suspendate / insula). Optiunea "Nu stiu, sa-mi recomande firma" NU e inclusa (decizia PO).
+- **Schimbari**:
+  - `kitchen.v3.ts`: ecranul "Fronturi" grupeaza materialul, bifa `separateFrontMaterials` si sistemele de deschidere pentru toate zonele. `frontMaterialWall/Island` apar doar cu bifa; altfel `deriveRoom` copiaza materialul de baza. Aceleasi id-uri si categorii de scor ca v2, deci itemii si costul in credite raman identice pentru aceleasi alegeri (test dedicat).
+  - Insula nu mai adauga ecrane: progresul ramane 6/6 si nu mai sare inapoi.
+  - `CURRENT_FLOW_VERSION.KITCHEN` = 3. v2 ramane inregistrata si neschimbata (cererile publicate si drafturile vechi se valideaza pe v2).
+  - Frontend: `toggleStyle: 'checkbox'` → bifa compacta in `step-renderer.tsx`; banda-tinta evidentiaza toate zonele cand materialul e comun.
+  - i18n RO+EN: `flows.KITCHEN.separateFrontMaterials.*`, `flows.KITCHEN.v3.frontMaterial.*`.
+- **Teste**: shared 634 trecute (7 noi pentru v3; testele v2 fixate pe versiunea 2), frontend 508, backend 1297 trecute; typecheck si lint 0. Captura ecranului Fronturi cu API simulat.
+- **Checklist de acceptare**:
+  - [x] L + insula = 6 ecrane; fara insula tot 6.
+  - [x] Fara bifa: un singur material, aplicat la toate zonele.
+  - [x] Cu bifa: material separat pentru suspendate si insula, obligatoriu la publicare.
+  - [x] Aceleasi alegeri dau aceiasi itemi ca v2 (credite neschimbate).
+  - [ ] Pe prod: o cerere noua de bucatarie se publica pe v3 (dupa deploy).
+
+## Laws of UX: landing F + oferte, marketplace, cerere noua — 2026-11-08
+- **Obiectiv** (PO 2026-11-08, thread "Redesign Cozy Home dupa Laws of UX"): landing-ul ales de PO (varianta F din canvasul de design) si recomandarile Laws of UX pentru oferte, marketplace si primul pas din cerere. Doar frontend; fara schimbari de API, DB sau shared.
+- **Module / tabele**: frontend (landing, oferte client, marketplace firma, wizard cerere). Tabele afectate: niciuna.
+- **Presupuneri**: tabelul-exemplu din hero arata doar rubrici care exista in oferta (pret, termen, garantie); "montaj inclus" nu e camp structurat (DECIZIE NECESARA deschisa, vezi mai jos). Varianta "Stiu ce vreau" e marcata Recomandat.
+- **Schimbari**:
+  - Landing (`app/[locale]/page.tsx`): hero "Trei firme. Trei oferte. Una langa alta." cu tabel-exemplu, "Drumul pana la mobila ta" in 4 statii (cine face pasul si cine plateste), `material-explainer.tsx` (aceleasi texte si preturi ca formularul, din `Configurator.common.materials`), preview din Caietul de idei, banda CTA unica. Sterse `hero-demo.tsx` si `process-band.tsx` (nefolosite). `partners-carousel.tsx` ramane in cod, nefolosit pe landing.
+  - Header public: un singur CTA ("Cere oferte") + Autentificare; butonul Inregistrare scos de pe desktop (ramane in meniul mobil si din pagina de login).
+  - Oferte (`requests/[id]/offers`): `offers-comparison.tsx` cu drumul cererii in 5 pasi, banner pentru firmele cu mesaje noi si tabelul ofertelor una langa alta (total, termen, garantie, valabilitate, eticheta "cel mai mic" doar cand e unic). Acceptarea ramane in cardul ofertei (dialogul existent).
+  - Marketplace: card cu soldul + "Cumpara credite", filtre (toate / cu locuri libere / preluate de firma ta) si sortare (noi / cost mic), costul in credite mare langa "Vezi si preia", rosu + "Nu ai destule credite" cand soldul nu ajunge, cererile pline estompate.
+  - Cerere noua: stepper-ul arata numele pasilor (`Stepper labeled`), "Stiu ce vreau" are eticheta Recomandat.
+  - i18n RO+EN: `LandingV2` rescris, chei noi in `Quotes`, `Marketplace`, `Configurator.start.recommended`; `Nav.createRequest` = "Cere oferte"; `Marketplace.walletLink` sters (nefolosit).
+- **Nu e inclus** (DECIZIE NECESARA): (1) camp structurat "montaj inclus / cost montaj" in oferta; (2) restructurarea intrebarilor de bucatarie in 6 sectiuni + optiunea "Nu stiu, sa-mi recomande firma" (lipseste din enum-ul de material si atinge formula costului in credite).
+- **Teste**: `pnpm typecheck` 0, `pnpm lint` 0, `pnpm -F frontend test` 68 fisiere / 508 teste trecute (nou: `offers-comparison.test.tsx`, 6 teste). Capturi cu API simulat: landing, oferte, marketplace, cerere noua.
+- **Checklist de acceptare**:
+  - [x] Landing: un singur CTA primar, acelasi nume in hero si in banda finala.
+  - [x] Materialele afiseaza textul, avantajul, dezavantajul si pretul din formular.
+  - [x] Oferte: tabelul apare de la 2 oferte, cu link spre fiecare firma.
+  - [x] Marketplace: costul in credite e vizibil pe fiecare card; cererile pline nu par preluabile.
+  - [x] Wizard: numele pasilor sunt vizibile pe desktop.
+  - [ ] Pe prod: pozele Caietului de idei (CDN Webflow) se vad pe landing — nu se pot verifica din mediul cloud.
 ## Securitate: dependinte vulnerabile (audit HIGH/CRITICAL) — 2026-11-08
 - **Obiectiv**: `pnpm audit --audit-level high` pica pe main si bloca PR-urile. Doar actualizari de dependinte, fara schimbari de functionalitate.
 - **Modificari**:

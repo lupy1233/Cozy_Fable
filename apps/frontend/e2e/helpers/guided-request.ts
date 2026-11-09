@@ -67,6 +67,13 @@ const preferred: Record<string, string> = {
 };
 async function answerQuestion(block: Locator, step: QuestionStep, answers: AnswerMap, locale: Locale, images: Set<string>) {
   const t = (key: string) => textFor(locale, `Configurator.${key}`);
+  // bifa compacta (kitchen v3): fara titlu propriu, doar eticheta bifei
+  if (step.type === 'boolean' && step.toggleStyle === 'checkbox') {
+    await expect(block.getByText(t(step.cardLabelKey ?? step.titleKey), { exact: true })).toBeVisible();
+    await block.getByRole('checkbox').check();
+    answers[step.id] = true;
+    return;
+  }
   await expect(block.getByRole('heading', { name: t(step.titleKey), exact: true })).toBeVisible();
   if (step.subtitleKey) await expect(block.getByText(t(step.subtitleKey), { exact: true })).toBeVisible();
   await auditImages(block, images);

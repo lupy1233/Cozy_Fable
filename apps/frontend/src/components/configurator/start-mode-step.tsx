@@ -148,6 +148,14 @@ export function StartModeStep({
               >
                 {t('start.pick')} →
               </span>
+
+              {/* Laws of UX (2026-11-08): o varianta recomandata scurteaza alegerea (Hick);
+                  dupa titlu in DOM, ca numele butonului sa inceapa cu titlul */}
+              {mode === 'STANDARD' && (
+                <span className="absolute right-3 top-3 rounded-full bg-sage-soft px-2 py-0.5 text-micro font-medium uppercase tracking-[0.08em] text-sage">
+                  {t('start.recommended')}
+                </span>
+              )}
             </motion.button>
           );
         })}
