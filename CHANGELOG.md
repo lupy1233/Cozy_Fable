@@ -17,9 +17,13 @@
   - [x] Cosul se vede pe ambele taburi, pe desktop si pe telefon.
   - [x] Adaugarea, cantitatea si scoaterea merg din cartonas si din cos.
   - [x] Nicio schimbare in backend, `packages/shared` sau fluxuri.
-  - [ ] CI verde pe commit (inclusiv e2e).
-  - [ ] Deploy pe `app-blue` si verificare pe adresa live.
-- **De stiut**: canapeaua, fotoliul si taburetul tapitat au schita, nu redare 3D — daca se vor redari in acelasi stil, trebuie generate (lipsesc din atlase).
+  - [x] CI verde pe commit (inclusiv e2e) — run 43232174540 pe `79733b7` (pornit cu `workflow_dispatch`, cel cerut de `require-green-ci`).
+  - [x] Deploy pe `app-blue` si verificare pe adresa live.
+  - [ ] PO: o cerere reala trecuta prin pasul "Camere" pe productie (cu ciorna salvata pe server).
+- **Deploy** (2026-11-12, cerere PO: "sa il pui pe blue pe production"): `railway up` pe `app-blue` din copia curata (LF) a commitului `79733b7`; deployment `e5e2d0fd`. Verificat: `verify-slot` (slot blue, mod activ, SHA `79733b7`, db / redis / storage sus), health public `{"status":"ok"}`, paginile `/ro`, `/en`, `/ro/requests/new`, `/en/requests/new`, `/ro/login`, `/ro/inspiration` cu 200, pasul "Camere" deschis pe adresa live prin Edge headless la 1280 si 375 px (18 cartonase pe tabul de piese, nicio imagine rupta, fara derulare orizontala, fara erori in consola), atlasul vine prin optimizator ca WebP de ~39 KB, jurnalele slotului fara erori dupa pornire. La verificarea live ciorna anonima a fost simulata in browser (ca in `e2e/helpers/guided-request.ts`), deci pe productie nu s-a scris nimic; salvarea reala a ciornei din acest pas ramane de vazut de PO. Intoarcere: rebuild `app-blue` din `75ec72b` (redesign fara cosul nou) sau din `b6740ef`.
+- **De stiut**:
+  - Canapeaua, fotoliul si taburetul tapitat au schita, nu redare 3D — daca se vor redari in acelasi stil, trebuie generate (lipsesc din atlase).
+  - Rularea CI a PR-ului pe acelasi commit (43232186061) a picat la `e2e/furniture-quality.spec.ts` (pagina `/en/dev/piece-3d`, `expect.poll` de 5 s la glisoarele de dimensiuni; desktop de doua ori, mobil o data si apoi trecut). Commitul nu atinge `piece3d`, pagina de test sau `e2e`, iar acelasi test a trecut in rularea de release — test sensibil la viteza runner-ului, de stabilizat separat.
 
 ## Redesign frontend dupa canvasul de design (toata aplicatia) — 2026-11-12
 - **Obiectiv** (cerere PO 2026-11-12: "inlocuiesti tot front end-ul cu cel din design"): toate cele 48 de rute aduse la canvasul de design (54 de planse: fundatie, public, cont, client, firma, admin). Doar aspect, asezare si texte; nicio regula de business schimbata.
