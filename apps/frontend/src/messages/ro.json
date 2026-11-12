@@ -13,9 +13,9 @@
     "compare": {
       "title": "Bucătărie în L cu insulă",
       "example": "Exemplu",
-      "firmA": "Atelier A",
-      "firmB": "Atelier B",
-      "firmC": "Atelier C",
+      "firmA": "Firma A",
+      "firmB": "Firma B",
+      "firmC": "Firma C",
       "rowPrice": "Preț",
       "rowTerm": "Termen",
       "rowWarranty": "Garanție",
@@ -23,7 +23,8 @@
       "fastest": "cel mai rapid",
       "weeks": "{n} săpt.",
       "months": "{n} luni",
-      "caption": "Exemplu ilustrativ. Ofertele reale apar în contul tău, în același tabel."
+      "caption": "Exemplu ilustrativ. Ofertele reale apar în contul tău, în același tabel.",
+      "field": "Rubrică"
     },
     "journeyKicker": "Cum funcționează",
     "journeyTitle": "Drumul până la mobila ta",
@@ -56,14 +57,29 @@
     "materialsSub": "Apasă pe un material. Aceleași explicații le găsești și în formular.",
     "materialsPrice": "Preț orientativ pentru fronturi",
     "materialsPro": "Avantaj",
-    "materialsCon": "Dezavantaj",
+    "materialsCon": "De știut",
     "ideasKicker": "Caietul de idei",
     "ideasTitle": "Inspirație din proiecte reale",
     "ideasSub": "Salvează ce-ți place și atașează ideile la cerere. Firmele văd exact ce vrei.",
     "ideasCta": "Vezi toate ideile",
     "bandTitle": "Află cât costă mobila ta, de la trei firme.",
     "bandCta": "Cere 3 oferte gratuit",
-    "bandCompany": "Ai o firmă de mobilier? Înscrie-te"
+    "bandCompany": "Ai o firmă de mobilier? Înscrie-te",
+    "guarantees": {
+      "verified": "Doar firme verificate",
+      "free": "Tu nu plătești nimic pentru oferte",
+      "upTo3": "Până la 3 firme pe cerere"
+    },
+    "materialsPick": "Alege un material",
+    "materialsScaleMax": "{max} lei/ml",
+    "materialsScaleAria": "{material}: {price}, pe o scară de la {min} la {max} lei pe metru liniar",
+    "firms": {
+      "kicker": "Pentru firme",
+      "title": "Ai o firmă de mobilier?",
+      "body": "Primești cereri clare, gata de ofertat, de la clienți din zona ta.",
+      "rules": "Reguli pentru firme",
+      "cta": "Înscrie-ți firma"
+    }
   },
   "Landing": {
     "footerTagline": "Marketplace pentru mobilier la comandă",
@@ -113,10 +129,10 @@
     "newRequest": "Cerere nouă",
     "createRequest": "Cere oferte",
     "marketplace": "Marketplace",
-    "claims": "Revendicări",
+    "claims": "Preluări",
     "messages": "Mesaje",
     "wallet": "Portofel",
-    "partners": "Parteneri",
+    "partners": "Firme partenere",
     "inspiration": "Caietul de idei",
     "studio": "Studio 3D",
     "sketchGuide": "Ghid de schiță",
@@ -132,7 +148,16 @@
     "accountMenu": "Meniul contului",
     "changePassword": "Schimbă parola",
     "signedInAs": "Conectat ca",
-    "accountCompany": "Firma"
+    "accountCompany": "Firma",
+    "panel": "Panou",
+    "mainNav": "Navigare principală",
+    "credits": "Credite",
+    "creditsAria": "Credite disponibile: {count}",
+    "unreadCount": "({count, plural, one {# mesaj necitit} few {# mesaje necitite} other {# de mesaje necitite}})",
+    "footerClients": "Pentru clienți",
+    "footerLegal": "Legal",
+    "registerCompany": "Înscrie-ți firma",
+    "firmRules": "Reguli pentru firme"
   },
   "Studio": {
     "workspace": {
@@ -157,7 +182,9 @@
       "collisionFurniture": "Piesele de mobilier nu se pot suprapune. Mută sau rotește piesa într-un spațiu liber.",
       "collisionRoomBounds": "Piesa trebuie să încapă în cameră, inclusiv pe înălțime.",
       "collisionNoSpace": "Nu există spațiu liber pentru această piesă în cameră.",
-      "collisionHouseRooms": "Camerele nu se pot suprapune. Mută camera sau micșoreaz-o pentru a încăpea."
+      "collisionHouseRooms": "Camerele nu se pot suprapune. Mută camera sau micșoreaz-o pentru a încăpea.",
+      "minimizeShort": "Închide",
+      "capacity": "{rooms}/{maxRooms} camere · {pieces}/{maxPieces} piese"
     },
     "title": "Studio 3D",
     "subtitle": "Construiește-ți corpurile de mobilier, aranjează-le într-o cameră 3D și, când îți place rezultatul, trimite-le direct în cerere.",
@@ -362,7 +389,13 @@
       },
       "sendHint": "Trimite toate camerele locuinței cu mobilierul lor în cerere. Retrimiterea actualizează aceleași poziții și păstrează răspunsurile despre material și fișierele atașate."
     },
-    "sceneChipsLabel": "Alege camera"
+    "sceneChipsLabel": "Alege camera",
+    "inRoom": "{count, plural, =1 {în cameră} other {în cameră ×#}}",
+    "removeShort": "Scoate",
+    "cycleWallShort": "Alt perete (R)",
+    "renameShort": "Redenumește",
+    "gapsLabel": "Distanța până la pereți (cm)",
+    "gapsWallLabel": "Distanța până la capetele peretelui (cm)"
   },
   "Partners": {
     "title": "Firmele partenere",
@@ -373,7 +406,19 @@
     "loadError": "Nu am putut încărca lista partenerilor.",
     "retry": "Reîncearcă",
     "rating": "Rating mediu",
-    "verified": "Firmă verificată"
+    "verified": "Firmă verificată",
+    "county": "Județ",
+    "allCounties": "Toate județele",
+    "count": "{count, plural, =1 {o firmă} few {# firme} other {# de firme}}",
+    "clientCta": {
+      "title": "Vrei oferte de la firme ca acestea?",
+      "body": "Descrii mobila o singură dată și până la 3 firme îți răspund cu oferte comparabile."
+    },
+    "firmCta": {
+      "title": "Ai o firmă de mobilier?",
+      "body": "Completezi profilul firmei, un administrator îl verifică, apoi vezi cererile clienților din zona ta.",
+      "action": "Înscrie-ți firma"
+    }
   },
   "Inspiration": {
     "imageUnavailable": "Fotografie indisponibilă",
@@ -393,12 +438,12 @@
     "noBoardsYet": "Nu ai încă nicio colecție — creează prima mai jos.",
     "newBoardPlaceholder": "Colecție nouă (ex. Bucătăria visurilor)",
     "createBoard": "Colecție nouă",
-    "createBoardCta": "Creează",
+    "createBoardCta": "Creează colecția",
     "boardNameTaken": "Ai deja o colecție cu acest nume.",
     "boardError": "Nu am putut salva. Încearcă din nou.",
     "myBoards": "Colecțiile mele",
     "backToGallery": "Înapoi la Caietul de idei",
-    "boardsSubtitle": "Ideile tale salvate, organizate ca pe Pinterest — pe colecții.",
+    "boardsSubtitle": "Ideile tale salvate, organizate pe colecții. O colecție se poate atașa întreagă la o cerere.",
     "noBoardsTitle": "Nicio colecție încă",
     "noBoardsHint": "Apasă „Salvează” pe orice idee din galerie și organizeaz-o în colecțiile tale.",
     "exploreGallery": "Explorează Caietul de idei",
@@ -469,16 +514,32 @@
     "requestGeneral": "Pentru toată locuința",
     "requestRoomHeading": "{index}. {room}",
     "clientNote": "Nota clientului",
-    "seeRoom": "Vezi camera"
+    "seeRoom": "Vezi camera",
+    "searchLabel": "Caută idei",
+    "removeFilter": "Scoate filtrul {name}",
+    "nextStep": {
+      "kicker": "Pasul următor",
+      "title": "Ai găsit ce-ți place?",
+      "body": "Atașează ideile salvate la cerere. Firmele văd exact ce vrei."
+    },
+    "boardNameLabel": "Numele colecției",
+    "boardNamePlaceholder": "ex. Bucătăria visurilor",
+    "boardNameHint": "Cel mult {max} de caractere",
+    "useInRequest": "Folosește într-o cerere",
+    "emptyBoardCover": "Apasă „Salvează” pe orice idee din galerie",
+    "notesPrivate": "notițele le vezi doar tu până atașezi colecția la o cerere",
+    "removedFromBoard": "Am scos „{title}” din colecție.",
+    "undo": "Anulează",
+    "undoError": "Nu am putut pune ideea înapoi. Încearcă din nou."
   },
   "SketchGuidePage": {
     "kicker": "Ghid de schiță",
     "title": "Cum îți schițezi spațiul",
     "subtitle": "Nu ai nevoie de arhitect — patru pași simpli le dau firmelor tot ce le trebuie ca să oferteze precis. Planșa alăturată îți arată exact ce trebuie să cuprindă schița ta.",
     "sheetTitle": "Schiță bucătărie — exemplu",
-    "legendWall": "Peretele, măsurat din colț în colț — lățime și înălțime",
-    "legendSocket": "Prizele și țevile, marcate cu ✕ sau cerc întrerupt",
-    "legendFurniture": "Mobilierul dorit, desenat simplu peste perete",
+    "legendWall": "Pereții, măsurați din colț în colț",
+    "legendSocket": "Ușile, ferestrele și prizele, marcate pe perete",
+    "legendFurniture": "Mobilierul dorit, desenat simplu de-a lungul pereților",
     "legendDimensions": "Dimensiunile mobilierului, notate direct pe desen",
     "steps": {
       "measure": {
@@ -494,7 +555,7 @@
       "mark": {
         "title": "Marchează ce nu se mută",
         "body": "Uși cu sensul de deschidere, ferestre, prize, țevi, calorifere. Orice ar putea atinge mobilierul viitor.",
-        "tip": "Un ✕ pentru prize, linie dublă pentru ferestre — ca în planșa alăturată, la priză."
+        "tip": "Un ✕ pentru prize, linie dublă pentru ferestre — ca în planșa alăturată."
       },
       "photo": {
         "title": "Fotografiază și atașează",
@@ -504,7 +565,14 @@
     },
     "ctaTitle": "Ai schița gata?",
     "ctaHint": "O atașezi în timp ce îți configurezi cererea — firmele o primesc odată cu cotele tale.",
-    "cta": "Creează o cerere"
+    "cta": "Creează o cerere",
+    "sheetAlt": "Exemplu de schiță: planul unei bucătării văzut de sus, 3400 pe 2800 de milimetri, cu fereastră, ușă, o priză și mobilier în formă de L, de 2900 și 2300 de milimetri",
+    "plan": {
+      "window": "fereastră",
+      "door": "ușă",
+      "socket": "priză",
+      "topView": "văzut de sus"
+    }
   },
   "Dashboard": {
     "client": {
@@ -515,7 +583,8 @@
       "recent": "Activitate recentă",
       "allRequests": "Toate cererile",
       "noRequests": "Încă nu ai nicio cerere. Creează prima și primești oferte de la firme verificate.",
-      "newRequest": "Cerere nouă"
+      "newRequest": "Cerere nouă",
+      "summaryTitle": "Cererile tale, pe scurt"
     },
     "company": {
       "claimsTotal": "Preluări în total",
@@ -523,7 +592,7 @@
       "quotesSent": "Oferte trimise",
       "quotesTotalRon": "Valoarea totală a ofertelor",
       "credits": "Credite",
-      "walletLink": "Portofel & facturare",
+      "walletLink": "Portofel și facturare",
       "available": "Disponibile",
       "reserved": "Rezervate",
       "consumed7d": "Consumate în ultimele 7 zile",
@@ -535,7 +604,17 @@
       "penalties": "Penalizări",
       "penaltyPoints": "puncte active",
       "toMarketplace": "Mergi la marketplace",
-      "toClaims": "Preluările mele"
+      "toClaims": "Preluările mele",
+      "statusPill": {
+        "PENDING_VERIFICATION": "Firmă în curs de verificare",
+        "APPROVED": "Firmă aprobată",
+        "REJECTED": "Înscriere respinsă",
+        "SUSPENDED": "Firmă suspendată"
+      },
+      "noSubscription": "Fără abonament activ",
+      "penaltyOf": "din {threshold}",
+      "penaltyRules": "Cum se acordă punctele",
+      "startOnboarding": "Completează profilul firmei"
     },
     "todo": {
       "title": "De făcut acum",
@@ -549,7 +628,24 @@
         "REQUEST_EXPIRING": "Cererea expiră curând fără nicio preluare",
         "UNASSIGNED_CLAIM": "Preluare neatribuită",
         "SLA_DUE_SOON": "Termenul ofertei se apropie"
+      },
+      "summary": "{count, plural, =0 {Nu ai nimic de făcut acum.} one {Ai un lucru de făcut.} few {Ai # lucruri de făcut.} other {Ai # de lucruri de făcut.}}",
+      "summaryFirm": "{count, plural, =0 {Nimic urgent acum.} one {Ai un lucru urgent.} few {Ai # lucruri urgente.} other {Ai # de lucruri urgente.}}",
+      "nearest": "Cel mai apropiat termen este {when}.",
+      "autoCancel": "se anulează automat {when}",
+      "expires": "expiră {when}",
+      "cta": {
+        "OFFERS_TO_REVIEW": "Compară ofertele",
+        "DELIVERY_TO_CONFIRM": "Confirmă livrarea",
+        "CLARIFICATION_TO_ANSWER": "Răspunde",
+        "REQUEST_EXPIRING": "Vezi cererea",
+        "UNASSIGNED_CLAIM": "Alege responsabilul",
+        "SLA_DUE_SOON": "Scrie oferta"
       }
+    },
+    "greeting": "Bună, {name}",
+    "account": {
+      "title": "Contul tău"
     }
   },
   "Auth": {
@@ -590,7 +686,8 @@
       "nameTooShort": "Numele trebuie să aibă cel puțin 2 caractere.",
       "termsRequired": "Trebuie să accepți Termenii și condițiile ca să îți creezi contul.",
       "passwordsMismatch": "Parolele nu coincid.",
-      "required": "Acest câmp este obligatoriu."
+      "required": "Acest câmp este obligatoriu.",
+      "totpInvalid": "Codul are 6 cifre."
     },
     "apiErrors": {
       "INVALID_CREDENTIALS": "Emailul și parola nu se potrivesc. Verifică-le și încearcă din nou.",
@@ -638,7 +735,29 @@
     "resendPromptExpired": "Scrie adresa de email a contului și îți trimitem un link nou de confirmare.",
     "resendSuccess": "Dacă există un cont neconfirmat cu acest email, ai primit un link nou de confirmare. Verifică și dosarul Spam.",
     "termsLabel": "Am citit și accept <terms>Termenii și condițiile</terms> și <privacy>Politica de confidențialitate</privacy>.",
-    "termsLabelCompany": "Am citit și accept <terms>Termenii și condițiile</terms>, <rules>Regulile pentru firme</rules> și <privacy>Politica de confidențialitate</privacy>."
+    "termsLabelCompany": "Am citit și accept <terms>Termenii și condițiile</terms>, <rules>Regulile pentru firme</rules> și <privacy>Politica de confidențialitate</privacy>.",
+    "taglineLead": "Trei firme. Trei oferte.",
+    "taglineAccent": "Una lângă alta.",
+    "show": "Arată",
+    "hide": "Ascunde",
+    "showPassword": "Arată parola",
+    "hidePassword": "Ascunde parola",
+    "passwordHint": "Cel puțin 8 caractere",
+    "roleClientTitle": "Client",
+    "roleClientHint": "Caut mobilier la comandă",
+    "roleCompanyTitle": "Firmă",
+    "roleCompanyHint": "Producem mobilier la comandă",
+    "forgotSentTitle": "Verifică-ți emailul",
+    "forgotResend": "Trimite din nou",
+    "forgotResent": "Am trimis din nou linkul.",
+    "resetDoneTitle": "Parola a fost schimbată",
+    "resetDoneBody": "Te poți autentifica cu parola nouă.",
+    "linkInvalidTitle": "Linkul nu mai este valid",
+    "verifySuccessTitle": "Emailul a fost confirmat",
+    "verifySuccessBody": "Te poți autentifica.",
+    "changePasswordDoneBody": "Celelalte dispozitive pe care erai autentificat au fost deconectate.",
+    "totpLabel": "Cod de autentificare în doi pași",
+    "totpHint": "Cele 6 cifre din aplicația ta de autentificare."
   },
   "Company": {
     "onboardingTitle": "Înregistrează firma",
@@ -754,7 +873,42 @@
       "save": "Salvează",
       "saved": "Email de facturare salvat",
       "invalid": "Introdu o adresă de email validă"
-    }
+    },
+    "dashboardSubtitle": "Profilul, locațiile, echipa și portofoliul firmei.",
+    "sectionsNav": "Secțiunile paginii",
+    "navPermissions": "Permisiuni pe ofertă",
+    "locationsHint": "Vezi cererile din raza fiecărei locații",
+    "newLocationAddress": "Adresa noii locații",
+    "coverageRadius": "Rază de acoperire",
+    "deleteLocationAction": "Șterge…",
+    "deleteLocationAria": "Șterge locația {address}",
+    "deleteLocationConfirm": {
+      "title": "Ștergi această locație?",
+      "body": "{address}. Cererile din marketplace ți se vor afișa doar după locațiile rămase.",
+      "confirm": "Șterge locația"
+    },
+    "deleting": "Se șterge…",
+    "changeRole": "Schimbă rolul",
+    "changeRoleAria": "Schimbă rolul pentru {name}",
+    "removeMemberAction": "Elimină…",
+    "removeMemberAria": "Elimină pe {name} din echipă",
+    "removeMemberConfirm": {
+      "title": "Elimini acest membru din echipă?",
+      "body": "{name} ({email}) nu va mai face parte din firma ta.",
+      "confirm": "Elimină membrul"
+    },
+    "removing": "Se elimină…",
+    "portfolioHint": "Apare pe pagina Firme partenere și la verificarea firmei",
+    "addPortfolioHint": "Titlu, descriere și un link către o poză",
+    "addPortfolioTitle": "Adaugă un proiect în portofoliu",
+    "portfolioImageUrlHint": "Opțional. Link public către o poză a lucrării, de forma https://…",
+    "deletePortfolioAria": "Șterge proiectul {title}",
+    "deletePortfolioConfirm": {
+      "title": "Ștergi acest proiect din portofoliu?",
+      "body": "„{title}” nu va mai apărea în portofoliul firmei.",
+      "confirm": "Șterge proiectul"
+    },
+    "permissionAria": "{field} — {role}"
   },
   "AdminInspiration": {
     "title": "Caietul de idei",
@@ -766,12 +920,13 @@
       "imageUrl": "URL imagine (opțional)",
       "imageUrlHint": "Poți lăsa gol și să încarci imaginea după creare.",
       "sourceUrl": "Link proiect (sursă)",
-      "sourceUrlHint": "Linkul proiectului din portofoliul firmei — apare ca „Vezi proiectul”."
+      "sourceUrlHint": "Linkul proiectului din portofoliul firmei — apare ca „Vezi proiectul”.",
+      "companyPlaceholder": "Alege firma…"
     },
     "addButton": "Adaugă în galerie",
-    "empty": "Nicio lucrare încă. Adaugă prima mai sus.",
+    "empty": "Nicio lucrare încă. Adaugă prima din formular.",
     "published": "Publicată",
-    "featured": "Pe landing",
+    "featured": "Pe prima pagină",
     "uploadImage": "Încarcă imagine",
     "delete": "Șterge",
     "noImage": "Fără imagine",
@@ -781,7 +936,45 @@
     "confirmDeleteBody": "Poza dispare din galerie și din colecții, iar clienții care au ales-o nu o vor mai putea păstra la următoarea editare. Continui?",
     "confirmUnpublish": "Retrage din galerie",
     "confirmDelete": "Șterge poza",
-    "cancel": "Renunță"
+    "cancel": "Renunță",
+    "subtitle": "Lucrările firmelor partenere care apar în galeria publică și pe prima pagină.",
+    "emptyFiltered": "Nicio lucrare nu se potrivește filtrului sau căutării.",
+    "showAll": "Arată toate",
+    "filterLabel": "Filtrează lucrările",
+    "filter": {
+      "all": "Toate",
+      "published": "Publicate",
+      "featured": "Pe prima pagină",
+      "noImage": "Fără imagine"
+    },
+    "search": "Caută după titlu sau firmă",
+    "noImageUpload": "Fără imagine — încarcă una",
+    "replaceImage": "Schimbă imaginea",
+    "uploading": "Se încarcă…",
+    "uploadError": "Imaginea nu a putut fi încărcată. Încearcă din nou.",
+    "invalidImage": "Imaginea trebuie să fie JPG, PNG sau WebP.",
+    "usageRequests": "{count, plural, one {# cerere activă} few {# cereri active} other {# de cereri active}}",
+    "usageBoards": "{count, plural, one {# colecție} few {# colecții} other {# de colecții}}",
+    "unused": "nefolosită încă",
+    "statePublishedNoImage": "publicată fără imagine",
+    "stateUnpublishedNoImage": "nepublicată — lipsește imaginea",
+    "editTags": "Editează etichetele",
+    "editTitle": "Editează lucrarea",
+    "editHint": "Titlul, tipul de mobilier și etichetele după care clienții filtrează galeria.",
+    "saveEdit": "Salvează",
+    "updated": "Lucrarea a fost actualizată.",
+    "titleTooShort": "Titlul are cel puțin 3 caractere.",
+    "deleteAction": "Șterge…",
+    "confirmDeleteTitle": "Ștergi lucrarea?",
+    "confirmDeleteUnusedBody": "„{title}” dispare din galerie. Nicio cerere și nicio colecție nu o folosește.",
+    "actionError": "Nu am putut salva. Încearcă din nou.",
+    "dropLabel": "Trage imaginea aici sau apasă ca să o încarci",
+    "dropHint": "Poți adăuga imaginea și după creare",
+    "removeFile": "Renunță la imaginea aleasă",
+    "adding": "Se adaugă…",
+    "addNote": "Lucrarea se publică imediat. O poți retrage oricând din listă.",
+    "created": "Lucrarea a fost adăugată în galerie.",
+    "createdUploadFailed": "Lucrarea a fost adăugată, dar imaginea nu s-a încărcat. Încarc-o din listă."
   },
   "AdminCompanies": {
     "title": "Verificarea firmelor",
@@ -818,7 +1011,75 @@
       "INSUFFICIENT_REVIEWS": "Prea puține recenzii",
       "LOW_RATING": "Rating scăzut"
     },
-    "filterLabel": "Filtrează firmele după status"
+    "filterLabel": "Filtrează firmele după status",
+    "subtitle": "Cele care așteaptă o decizie stau sus, de la cea mai veche.",
+    "searchLabel": "Caută o firmă",
+    "searchPlaceholder": "Caută după nume sau CUI",
+    "noMatch": "Nicio firmă nu se potrivește căutării.",
+    "clearSearch": "Șterge căutarea",
+    "registered": "Înscrisă",
+    "actions": "Acțiuni",
+    "verify": "Verifică",
+    "statusValue": {
+      "PENDING_VERIFICATION": "În așteptare",
+      "APPROVED": "Aprobată",
+      "REJECTED": "Respinsă",
+      "SUSPENDED": "Suspendată"
+    },
+    "registeredWhen": "Înscrisă {when}.",
+    "decisionIntro": "Tot ce îți trebuie pentru decizie este pe această pagină.",
+    "identity": {
+      "title": "Date de identificare",
+      "cuiValid": "cifra de control e corectă",
+      "cuiInvalid": "cifra de control nu corespunde"
+    },
+    "yes": "Da",
+    "no": "Nu",
+    "membersAndLocations": "Membri și locații",
+    "noMembers": "Firma nu are niciun membru.",
+    "noLocations": "Firma nu are nicio locație.",
+    "portfolioEmptyTitle": "Niciun proiect în portofoliu",
+    "portfolioEmptyHint": "Firma nu a încărcat nicio lucrare. Îi poți scrie unui membru să completeze portofoliul înainte de aprobare — respingerea blochează o nouă înscriere timp de 3 luni.",
+    "decision": {
+      "title": "Decizia ta",
+      "titleDone": "Starea firmei",
+      "approvedNote": "Firma este aprobată și vede cererile din zona ei. Nu ai nicio decizie de luat aici.",
+      "rejectedAt": "Respinsă pe",
+      "rejectedNote": "Firma vede motivul în pagina ei și se poate înscrie din nou după 3 luni de la respingere."
+    },
+    "check": {
+      "ok": "În regulă",
+      "attention": "De verificat",
+      "identityOk": "Date de identificare complete",
+      "identityMissing": "Date de identificare incomplete",
+      "cuiInvalid": "CUI: cifra de control nu corespunde",
+      "team": "{members, plural, =0 {niciun membru} one {# membru} few {# membri} other {# de membri}}, {locations, plural, =0 {nicio locație} one {# locație} few {# locații} other {# de locații}}",
+      "portfolio": "Portofoliu: {count, plural, =0 {niciun proiect} one {# proiect} few {# proiecte} other {# de proiecte}}"
+    },
+    "approveOpen": "Aprobă firma…",
+    "approveNote": "După aprobare firma vede imediat cererile din zona ei. Îți cerem o confirmare.",
+    "rejectHint": "Cel puțin {min} caractere. Firma îl vede în pagina ei și se poate înscrie din nou după 3 luni.",
+    "rejectOpen": "Respinge firma…",
+    "unsuspendOpen": "Ridică suspendarea…",
+    "actionError": "Acțiunea nu a reușit. Reîncarcă pagina și încearcă din nou.",
+    "confirm": {
+      "cancel": "Renunță",
+      "approve": {
+        "title": "Aprobi firma {name}?",
+        "body": "Firma vede imediat cererile din zona ei, iar membrii ei sunt anunțați. Dacă perioada de probă este activată în setări, începe acum.",
+        "cta": "Da, aprobă firma"
+      },
+      "reject": {
+        "title": "Respingi firma {name}?",
+        "body": "Firma vede motivul de mai jos în pagina ei, iar membrii ei sunt anunțați. O nouă înscriere este posibilă abia după 3 luni.",
+        "cta": "Confirmă respingerea"
+      },
+      "unsuspend": {
+        "title": "Ridici suspendarea firmei {name}?",
+        "body": "Firma revine imediat în marketplace, iar membrii ei sunt anunțați.",
+        "cta": "Da, ridică suspendarea"
+      }
+    }
   },
   "Requests": {
     "loading": "Se încarcă…",
@@ -832,7 +1093,7 @@
     "sectionAttachments": "Atașamente",
     "addContact": "Adaugă contact",
     "room": "Cameră",
-    "publish": "Publică",
+    "publish": "Publică cererea",
     "repost": "Republică",
     "reposted": "Cererea a fost republicată.",
     "repostHint": "Cererea a expirat fără să fie preluată de o firmă. O poți republica o singură dată, cu un nou termen de expirare.",
@@ -886,7 +1147,7 @@
     "autoTitleLabel": "Titlu (generat automat)",
     "messageHint": "Opțional — orice detaliu care ajută firmele să înțeleagă proiectul. Nu scrie aici telefonul sau emailul.",
     "addressSearchPlaceholder": "Începe să tastezi și alege adresa…",
-    "editRequest": "Editează cererea ({remaining} rămase)",
+    "editRequest": "Editează cererea ({remaining, plural, =1 {# rămasă} other {# rămase}})",
     "editPostClaimWarning": "Cererea a fost deja preluată de firme. Mai ai o singură editare: proiectul va fi reevaluat, firmele își păstrează creditele cheltuite și pot renunța la preluare după modificări. Continui?",
     "budget": {
       "UNDER_5K": "Sub 5.000 RON",
@@ -1001,13 +1262,108 @@
       "contactsLabel": "Nume, adresă și date de contact",
       "contactsNone": "Nicio firmă încă — le primește doar firma care preia cererea.",
       "contactsFrom": "din {time}",
-      "note": "Accesul se încheie când firma renunță la preluare sau când accepți oferta altei firme. Telefoanele și emailurile scrise în texte sunt ascunse firmelor care nu au preluat cererea."
+      "note": "Accesul se încheie când firma renunță la preluare sau când accepți oferta altei firme. Telefoanele și emailurile scrise în texte sunt ascunse firmelor care nu au preluat cererea.",
+      "claimedOn": "preluată pe {date}"
     },
-    "tabsLabel": "Filtrează cererile după stadiu"
+    "tabsLabel": "Filtrează cererile după stadiu",
+    "searchLabel": "Caută o cerere",
+    "searchPlaceholder": "Caută după titlu sau oraș",
+    "searchEmpty": "Nicio cerere nu se potrivește căutării.",
+    "searchClear": "Șterge căutarea",
+    "sortLabel": "Ordonează cererile",
+    "sort": {
+      "ATTENTION": "Întâi cele care te așteaptă",
+      "NEWEST": "Cele mai noi"
+    },
+    "sheet": {
+      "label": "Fișa proiectului"
+    },
+    "journey": {
+      "label": "Drumul cererii",
+      "step": {
+        "PUBLISHED": "Publicată",
+        "CLAIMED": "Preluată de firme",
+        "OFFERS": "Oferte primite",
+        "ACCEPTED": "Ofertă aleasă",
+        "DELIVERED": "Mobilă livrată"
+      },
+      "state": {
+        "done": "încheiat",
+        "current": "pasul curent",
+        "upcoming": "urmează"
+      }
+    },
+    "next": {
+      "label": "Ce urmează:",
+      "cta": {
+        "compare": "Compară ofertele",
+        "confirmDelivery": "Confirmă livrarea",
+        "view": "Vezi cererea"
+      },
+      "line": {
+        "DRAFT": "cererea e încă o ciornă — firmele o văd abia după ce o publici.",
+        "IN_MARKETPLACE": "așteptăm firmele să preia cererea.",
+        "IN_MARKETPLACE_DATED": "așteptăm firmele. Cererea expiră pe {date} dacă nu o preia nimeni.",
+        "CLAIMED_PARTIAL": "{c, plural, =0 {firmele care au preluat cererea pregătesc ofertele} =1 {o firmă pregătește oferta} other {# firme pregătesc ofertele}}. Alte firme mai pot prelua cererea.",
+        "CLAIMED_FULL": "{c, plural, =1 {firma care a preluat cererea pregătește oferta} other {firmele care au preluat cererea pregătesc ofertele}}. Nu mai sunt locuri libere pentru alte firme.",
+        "OFFERS_RECEIVED": "{n, plural, =0 {e rândul tău — compară ofertele primite și alege una.} =1 {e rândul tău — ai o ofertă de analizat.} other {e rândul tău — ai # oferte de comparat.}}",
+        "NEGOTIATION": "discuți modificările cu firma. Poți accepta o ofertă atunci când ți se potrivește.",
+        "ACCEPTED": "ai ales oferta. Firma pregătește lucrarea și te ține la curent în conversație.",
+        "IN_EXECUTION": "firma lucrează la mobilier. Îți cerem confirmarea când marchează livrarea.",
+        "DELIVERED_BY_COMPANY": "e rândul tău — confirmă primirea mobilierului. Fără răspuns, livrarea se confirmă automat.",
+        "COMPLETED": "nimic — lucrarea e încheiată.",
+        "DISPUTED": "echipa Cozy Home analizează disputa și te anunță când e rezolvată.",
+        "EXPIRED": "cererea a expirat fără să fie preluată. Din fișa ei o poți republica o singură dată sau poți porni o cerere nouă.",
+        "CANCELLED": "nimic — proiectul a fost anulat. Ofertele și conversațiile rămân ca istoric."
+      },
+      "title": {
+        "DRAFT": "Cererea e încă o ciornă",
+        "IN_MARKETPLACE": "Așteptăm firmele",
+        "CLAIMED_PARTIAL": "{c, plural, =0 {Firmele pregătesc ofertele} =1 {O firmă pregătește oferta} other {# firme pregătesc ofertele}}",
+        "CLAIMED_FULL": "{c, plural, =1 {Firma pregătește oferta} other {Firmele pregătesc ofertele}}",
+        "OFFERS_RECEIVED": "{n, plural, =0 {E rândul tău: compară ofertele primite} =1 {E rândul tău: ai o ofertă de analizat} other {E rândul tău: ai # oferte de comparat}}",
+        "NEGOTIATION": "Discuți modificările cu firma",
+        "ACCEPTED": "Ai ales oferta",
+        "IN_EXECUTION": "Firma lucrează la mobilier",
+        "DELIVERED_BY_COMPANY": "E rândul tău: confirmă primirea mobilierului",
+        "COMPLETED": "Lucrarea e încheiată",
+        "DISPUTED": "Disputa e în analiză",
+        "EXPIRED": "Cererea a expirat",
+        "CANCELLED": "Proiectul a fost anulat"
+      },
+      "body": {
+        "DRAFT": "Firmele o văd abia după ce o publici.",
+        "IN_MARKETPLACE": "Cererea e vizibilă firmelor verificate din zona ta. Te anunțăm când o preia o firmă.",
+        "IN_MARKETPLACE_DATED": "Cererea e vizibilă firmelor verificate din zona ta. Expiră pe {date} dacă nu o preia nimeni.",
+        "CLAIMED_PARTIAL": "Alte firme mai pot prelua cererea. Între timp poți vorbi cu firmele în conversații.",
+        "CLAIMED_FULL": "Nu mai sunt locuri libere pentru alte firme. Te anunțăm când sosește prima ofertă.",
+        "OFFERS_RECEIVED": "{w, plural, =0 {Alege oferta potrivită sau cere firmei modificări.} =1 {O firmă încă lucrează la oferta ei. Poți alege deja sau mai poți aștepta.} other {# firme încă lucrează la ofertele lor. Poți alege deja sau mai poți aștepta.}}",
+        "NEGOTIATION": "Urmărește conversația. Poți accepta o ofertă atunci când ți se potrivește.",
+        "ACCEPTED": "Firma pregătește lucrarea și te ține la curent în conversație.",
+        "IN_EXECUTION": "Îți cerem confirmarea când firma marchează livrarea.",
+        "DELIVERED_BY_COMPANY": "Firma a marcat lucrarea ca livrată. Fără răspunsul tău, livrarea se confirmă automat.",
+        "COMPLETED": "Dacă nu ai făcut-o deja, poți lăsa firmei o recenzie.",
+        "DISPUTED": "Echipa Cozy Home verifică situația și te anunță când e rezolvată.",
+        "EXPIRED": "A expirat fără să fie preluată de o firmă.",
+        "CANCELLED": "Ofertele și conversațiile rămân ca istoric."
+      }
+    },
+    "edits": {
+      "title": "Modificări",
+      "preClaim": "{remaining, plural, =1 {Mai poți edita cererea o singură dată} other {Mai poți edita cererea de # ori}} înainte să o preia o firmă.",
+      "postClaim": "Cererea a fost deja preluată de firme. Mai ai o singură editare: proiectul va fi reevaluat, iar firmele pot renunța la preluare după modificări.",
+      "noneLeft": "Ai folosit toate editările disponibile în acest stadiu.",
+      "locked": "În acest stadiu cererea nu mai poate fi editată.",
+      "used": "Editări folosite: {pre}/{preMax} înainte de preluare · {post}/{postMax} după"
+    },
+    "deleteSection": {
+      "title": "Ștergerea cererii",
+      "hint": "Preluările active ale firmelor vor fi anulate. Îți cerem o confirmare înainte."
+    }
   },
   "Marketplace": {
     "title": "Marketplace",
-    "subtitle": "Cereri eligibile pentru firma ta",
+    "subtitle": "Cereri eligibile pentru firma ta. Adresa exactă și datele clientului apar după preluare.",
     "availableCredits": "{n} credite",
     "empty": "Nicio cerere disponibilă momentan.",
     "distanceApprox": "≈{km} km",
@@ -1029,7 +1385,7 @@
     "alreadyClaimed": "Preluată deja de firma ta",
     "view": "Detalii",
     "manageOffer": "Ofertă & chat",
-    "back": "← Marketplace",
+    "back": "Marketplace",
     "includesPaidDesign": "Proiectare cu plată inclusă",
     "hasOwnProject": "Proiect propriu",
     "desiredDeadline": "Termen dorit",
@@ -1056,7 +1412,9 @@
       "reservedHint": "Creditele rezervate sunt blocate pe preluările active și nu pot fi folosite în altă preluare până la decontare.",
       "readOnlyNote": "Doar proprietarul sau un manager poate cumpăra credite și abonamente și poate vedea comenzile firmei.",
       "pageTitle": "Portofel și abonament",
-      "pageSubtitle": "Creditele, abonamentul, comenzile și penalizările firmei tale."
+      "pageSubtitle": "Creditele, abonamentul, comenzile și penalizările firmei tale.",
+      "sectionsNav": "Secțiunile paginii",
+      "navCredits": "Credite"
     },
     "subscription": {
       "title": "Abonament",
@@ -1086,11 +1444,14 @@
       "planMarketplaceAccess": {
         "included": "Include cererile din marketplace și preluările",
         "notIncluded": "Fără acces la marketplace"
-      }
+      },
+      "activeLine": "Planul {plan} este activ.",
+      "priceSuffix": "lei + TVA / 30 de zile",
+      "priceSuffixFree": "lei / 30 de zile"
     },
     "myClaims": {
       "title": "Preluările mele",
-      "subtitle": "Toate cererile preluate de firma ta, cu stadiul și oferta fiecăreia.",
+      "subtitle": "Toate cererile preluate de firma ta, cu stadiul și oferta fiecăreia. Cele urgente stau sus.",
       "empty": "Nicio preluare încă.",
       "unassigned": "Neatribuită",
       "goToPage": "Vezi preluările — responsabil, stadiu și oferte",
@@ -1101,7 +1462,36 @@
       "stage": "Stadiu",
       "sla": "Termen ofertă (SLA)",
       "slaPaused": "pauză",
-      "newMessages": "{n, plural, =1 {un mesaj nou} other {# mesaje noi}}"
+      "newMessages": "{n, plural, =1 {un mesaj nou} other {# mesaje noi}}",
+      "emptyCta": "Vezi cererile din marketplace",
+      "emptyFiltered": "Nicio preluare pentru filtrele alese.",
+      "filterLabel": "Filtrează preluările după stadiu",
+      "filter": {
+        "all": "Toate",
+        "toOffer": "De ofertat",
+        "offerSent": "Ofertă trimisă",
+        "closed": "Închise"
+      },
+      "assigneeAny": "Oricine",
+      "assigneeNone": "Neatribuite",
+      "claimed": "Preluată",
+      "actions": "Acțiuni",
+      "cta": {
+        "assign": "Alege responsabilul",
+        "writeOffer": "Scrie oferta",
+        "offerAndChat": "Ofertă și chat",
+        "open": "Vezi fișa"
+      },
+      "slaLeftTwo": "Mai sunt {a} și {b}",
+      "slaLeftOne": "{count, plural, =1 {Mai este {a}} other {Mai sunt {a}}}",
+      "slaOverdue": "Termen depășit — trimite oferta acum",
+      "slaPausedLine": "În pauză — clarificare în curs",
+      "slaUnassigned": "Fără responsabil — se anulează automat",
+      "slaUnassignedRule": "Fără responsabil — se anulează automat la {minutes} de la preluare",
+      "offerBy": "ofertă până pe {date}",
+      "slaOfferSent": "Oferta a fost trimisă",
+      "slaNotApplicable": "termenul nu se mai aplică",
+      "slaMissed": "Termen depășit"
     },
     "apiErrors": {
       "CLAIM_NOT_ALLOWED": "Cererea nu mai poate fi preluată.",
@@ -1166,14 +1556,37 @@
     },
     "emptyFiltered": "Nicio cerere pentru filtrul ales.",
     "notEnoughCredits": "Nu ai destule credite",
-    "viewAndClaim": "Vezi și preia"
+    "viewAndClaim": "Vezi și preia",
+    "filterAny": "Oricare",
+    "distanceFilter": "Distanță",
+    "resetFilters": "Șterge filtrele",
+    "slotsMine": "Sloturi {active}/{max} · preluată deja de firma ta",
+    "creditsShort": "{cost} credite · îți lipsesc {missing}",
+    "openWorksheet": "Deschide fișa de lucru",
+    "detailMeta": "publicată {when} · datele clientului și adresa exactă apar după preluare",
+    "summaryLabel": "Rezumatul cererii",
+    "location": "Loc",
+    "claimPanel": {
+      "label": "Preluarea cererii",
+      "title": "Preia cererea",
+      "cost": "Cost",
+      "remaining": "Îți rămân disponibile",
+      "cta": "Preia cererea…",
+      "mineHint": "Oferta, conversația cu clientul și termenul de răspuns sunt în fișa de lucru.",
+      "ruleReserve": "La preluare creditele se <b>rezervă</b>.",
+      "ruleGrace": "Te poți retrage gratuit în primele {minutes}.",
+      "ruleSla": "Dacă nu trimiți oferta în termenul de răspuns, creditele se consumă și firma primește puncte de penalizare.",
+      "rulesLink": "Regulile pentru firme"
+    }
   },
   "Chat": {
     "empty": "Niciun mesaj încă. Scrie primul.",
     "placeholder": "Scrie un mesaj…",
     "send": "Trimite",
     "attach": "Atașează un fișier",
-    "readOnly": "Conversația este doar pentru citit — nu se mai pot trimite mesaje."
+    "readOnly": "Conversația este doar pentru citit — nu se mai pot trimite mesaje.",
+    "you": "Tu",
+    "messageTo": "Mesaj către {name}"
   },
   "Messages": {
     "title": "Mesaje",
@@ -1190,7 +1603,14 @@
     "attachmentOnly": "fișier atașat",
     "noMessagesYet": "Niciun mesaj încă.",
     "readOnly": "doar citire",
-    "tabsLabel": "Tipul conversațiilor"
+    "tabsLabel": "Tipul conversațiilor",
+    "newCount": "{n, plural, =1 {1 nou} other {# noi}}",
+    "listLabel": "Conversații",
+    "searchLabel": "Caută în conversații",
+    "searchPlaceholder": "Caută după cerere",
+    "searchEmpty": "Nicio conversație pentru căutarea ta.",
+    "threadLabel": "Conversația pentru {title}",
+    "offerDue": "ofertă de trimis până la {date}"
   },
   "Quotes": {
     "loading": "Se încarcă…",
@@ -1223,12 +1643,25 @@
       "descriptionLabel": "Mesajul clientului",
       "noDescription": "Clientul nu a lăsat un mesaj.",
       "roomsSection": "Camerele proiectului",
-      "filesSection": "Fișierele cererii"
+      "filesSection": "Fișierele cererii",
+      "statusLabel": "Starea preluării",
+      "claimedByAt": "Preluată de {name} {time}",
+      "slaLeft": "{count, plural, =1 {Mai este {left}} other {Mai sunt {left}}}",
+      "daysHours": "{days, plural, one {# zi} few {# zile} other {# de zile}}{hours, plural, =0 {} one { și # oră} few { și # ore} other { și # de ore}}",
+      "slaOverdue": "Termen depășit",
+      "slaGraceLeft": "Mai ai {left} de grație până la penalizare",
+      "tabsLabel": "Secțiunile fișei de lucru",
+      "tabChat": "Conversație",
+      "tabProject": "Proiectul clientului",
+      "tabLifecycle": "Clarificări și retragere",
+      "recentMessages": "Ultimele mesaje",
+      "replyInChat": "Răspunde în conversație",
+      "clientPrivacyNote": "Datele de contact le văd doar colegul care a preluat sau lucrează la cerere, proprietarul, managerii și angajații cu acces complet ai firmei."
     },
     "offersTitle": "Oferte și conversații",
     "offersSubtitle": "Drumul cererii tale la fiecare firmă care a preluat-o: discuții, oferte, acceptare.",
     "noThreads": "Nicio firmă nu a preluat încă cererea. Te anunțăm imediat ce se întâmplă.",
-    "noOfferYet": "{company} nu a trimis încă o ofertă — până atunci poți discuta detaliile în conversația de mai jos.",
+    "noOfferYet": "{company} nu a trimis încă o ofertă. Până atunci poți discuta detaliile în conversația cu firma.",
     "claimedAt": "a preluat cererea {time}",
     "lastMessageAt": "ultimul mesaj {time}",
     "unreadMessages": "{n, plural, =1 {un mesaj nou} other {# mesaje noi}}",
@@ -1247,7 +1680,7 @@
     "expired": "Ofertă expirată",
     "accepted": "Ai acceptat această ofertă.",
     "acceptedByClient": "Clientul a acceptat oferta.",
-    "accept": "Acceptă oferta",
+    "accept": "Acceptă oferta…",
     "acceptConfirmTitle": "Accepți oferta de la {company}?",
     "acceptConfirmBody": "Alegerea este definitivă: celelalte firme sunt anunțate, ofertele lor se închid, iar conversațiile cu ele devin doar pentru citire.",
     "acceptConfirmPrice": "Prețul ofertei",
@@ -1311,11 +1744,30 @@
       "warranty": "Garanție",
       "validityDays": "Valabilitate (zile)",
       "description": "Descriere",
-      "submit": "Trimite"
+      "submit": "Trimite",
+      "versionOf": "Varianta {n} din cel mult {max}",
+      "submitCreate": "Trimite oferta",
+      "createNote": "După trimitere, termenul SLA nu se mai aplică. Poți retrage oferta sau răspunde cu o variantă nouă dacă clientul cere o modificare.",
+      "descriptionHint": "Spune ce este inclus: materiale, feronerie, transport, montaj, TVA. Clientul compară ofertele pe aceleași rubrici.",
+      "validity": "Valabilitatea ofertei",
+      "unitMonths": "luni",
+      "unitDays": "zile",
+      "unit": {
+        "RON": "lei",
+        "EUR": "EUR"
+      },
+      "termUnitLabel": "Unitatea termenului",
+      "termUnit": {
+        "WEEKS": "săptămâni",
+        "WORKING_DAYS": "zile lucrătoare"
+      },
+      "termWeeks": "{n, plural, one {# săptămână} few {# săptămâni} other {# de săptămâni}}"
     },
     "validation": {
       "priceInvalid": "Prețul introdus nu este valid.",
-      "descriptionRequired": "Descrierea este obligatorie."
+      "descriptionRequired": "Descrierea este obligatorie.",
+      "wholeNumber": "Introdu un număr întreg mai mare decât zero.",
+      "amountInvalid": "Suma introdusă nu este validă."
     },
     "apiErrors": {
       "QUOTE_VERSION_LIMIT_REACHED": "Ai atins limita de 3 variante ale ofertei.",
@@ -1400,8 +1852,22 @@
       "pending": "ofertă în lucru",
       "validUntil": "până la {date}",
       "openAndChoose": "Vezi și alege",
-      "openChat": "Vezi conversația"
-    }
+      "openChat": "Vezi conversația",
+      "fastest": "cel mai rapid",
+      "daysLeft": "{n, plural, =0 {mai puțin de o zi} =1 {mai este o zi} few {mai sunt # zile} other {mai sunt # de zile}}",
+      "openedBelow": "Deschisă mai jos"
+    },
+    "offersSubtitleFor": "{request} · drumul cererii tale la fiecare firmă care a preluat-o.",
+    "firmsTabsLabel": "Firmele care au preluat cererea",
+    "offerFrom": "Oferta de la {company}",
+    "conversationWith": "Conversația cu {company}",
+    "closedNoOffer": "{company} nu a trimis o ofertă, iar conversația s-a închis. Mesajele rămân doar pentru citit.",
+    "acceptHint": "Alegerea este definitivă: celelalte firme sunt anunțate, iar ofertele lor se închid. Îți arătăm un rezumat și îți cerem o confirmare înainte.",
+    "sendChangeRequest": "Trimite cererea de modificare",
+    "changeCancel": "Renunță",
+    "noDesignFee": "fără tarif de proiectare",
+    "deliveryBy": "până la {date}",
+    "inactiveNote": "Oferta nu mai este activă, așa că nu mai poate fi acceptată."
   },
   "Lifecycle": {
     "slaTitle": "SLA și stare",
@@ -1499,8 +1965,10 @@
     "history": {
       "customReason": "Motivul tău: {text}",
       "adminNote": "Nota administratorului: {note}",
-      "decidedOn": "decisă pe {date}"
-    }
+      "decidedOn": "decisă pe {date}",
+      "title": "Retrageri cerute"
+    },
+    "noClarifications": "Nu ai cerut nicio clarificare pe această preluare."
   },
   "Penalties": {
     "title": "Penalizări",
@@ -1513,7 +1981,8 @@
       "SLA_MISS": "Termen de răspuns depășit",
       "MASS_SLA_MISS": "Termen depășit de toate firmele",
       "VOLUNTARY_WITHDRAWAL": "Retragere voluntară după grație"
-    }
+    },
+    "pointsRest": "din {threshold} puncte de penalizare active"
   },
   "AdminUsers": {
     "title": "Utilizatori",
@@ -1546,14 +2015,47 @@
     "empty": "Niciun utilizator găsit.",
     "loadError": "Nu am putut încărca utilizatorii. Reîncarcă pagina.",
     "actionError": "Acțiunea nu a reușit. Încearcă din nou.",
-    "roleFilterLabel": "Filtrează utilizatorii după rol"
+    "roleFilterLabel": "Filtrează utilizatorii după rol",
+    "subtitle": "Caută un cont, vezi-i starea și blochează-l sau deblochează-l.",
+    "searchLabel": "Caută un utilizator",
+    "colRegistered": "Înregistrat",
+    "blockedSince": "din {date}",
+    "blockOpen": "Blochează…",
+    "unblockOpen": "Deblochează…",
+    "capNote": "Lista arată cel mult {count} de conturi, cele mai noi întâi. Caută după nume sau email ca să găsești un cont anume.",
+    "unblockConfirmTitle": "Deblochezi contul {name}?",
+    "unblockConfirmBody": "Utilizatorul se poate autentifica din nou. Nu primește niciun email despre deblocare.",
+    "unblockConfirmCta": "Da, deblochează"
   },
   "AdminWithdrawals": {
-    "title": "Retrageri de preluări (custom)",
-    "empty": "Nicio retragere în așteptare.",
+    "title": "Retrageri de preluări",
+    "empty": "Nicio retragere în așteptare",
     "notePlaceholder": "Notă pentru firmă (opțional, firma o vede)",
-    "approve": "Aprobă",
-    "reject": "Respinge"
+    "approve": "Aprobă retragerea…",
+    "reject": "Respinge retragerea…",
+    "subtitle": "Cererile de retragere cu „Alt motiv”, care au nevoie de decizia ta.",
+    "pending": "În așteptare",
+    "emptyHint": "Retragerile cu „Alt motiv” apar aici imediat ce o firmă le trimite.",
+    "ifApprove": "Dacă aprobi",
+    "ifApproveBody": "firma primește creditele înapoi, fără penalizare",
+    "ifReject": "Dacă respingi",
+    "ifRejectBody": "preluarea rămâne activă, cu termenul ei",
+    "noteLabel": "Notă pentru firmă",
+    "noteOptional": "(opțional, firma o vede)",
+    "approvedToast": "Retragerea a fost aprobată. Firma a fost anunțată.",
+    "rejectedToast": "Retragerea a fost respinsă. Firma a fost anunțată.",
+    "confirm": {
+      "approveTitle": "Aprobi retragerea?",
+      "rejectTitle": "Respingi retragerea?",
+      "approveBody": "Preluarea se închide: firma primește creditele înapoi, fără penalizare, iar locul se eliberează pentru alte firme. Dacă firma a trimis deja o ofertă, aceasta se retrage. Firma primește o notificare cu decizia.",
+      "rejectBody": "Preluarea rămâne activă, cu termenul ei. Firma primește o notificare cu decizia.",
+      "note": "Nota ta pentru firmă: „{note}”",
+      "noNote": "Nu ai scris nicio notă pentru firmă.",
+      "final": "Decizia nu mai poate fi schimbată.",
+      "back": "Înapoi",
+      "approveCta": "Da, aprobă retragerea",
+      "rejectCta": "Da, respinge retragerea"
+    }
   },
   "Fulfillment": {
     "markDelivered": "Marchează ca livrată",
@@ -1730,17 +2232,24 @@
     "excludingVat": "+ TVA",
     "invoiceDownloadFailed": "Nu am putut descărca factura. Încearcă din nou.",
     "freePlan": "Gratuit",
-    "freePlanNote": "Acest plan nu se cumpără online; îl activează administratorul platformei."
+    "freePlanNote": "Acest plan nu se cumpără online; îl activează administratorul platformei.",
+    "buy": "Cumpără",
+    "buyPackageAria": "Cumpără pachetul de {n} credite",
+    "buyCreditsIntro": "Creditele se folosesc la preluarea cererilor. Plată securizată cu cardul (Stripe).",
+    "buyCreditsIntroBank": "Creditele se folosesc la preluarea cererilor. Plata se face prin transfer bancar.",
+    "priceExVat": "{price} + TVA",
+    "perCredit": "{price} / credit",
+    "totalWithVat": "{total} cu TVA {rate}%"
   },
   "AdminPayments": {
     "title": "Plăți și abonamente",
     "empty": "Nicio comandă în această categorie.",
-    "confirm": "Confirmă plata",
+    "confirm": "Confirmă încasarea…",
     "orderType": {
       "SUBSCRIPTION": "Abonament",
       "CREDIT_PACKAGE": "Pachet de credite"
     },
-    "stripeNote": "Plățile cu cardul (Stripe) se confirmă automat prin webhook. Confirmă manual doar comenzile plătite prin transfer bancar, după ce vezi banii în cont.",
+    "stripeNote": "Plățile cu cardul (Stripe) se confirmă automat. Confirmă manual doar comenzile plătite prin transfer bancar, după ce vezi banii în cont.",
     "tabs": {
       "PENDING": "În așteptare",
       "CONFIRMED": "Plătite",
@@ -1749,18 +2258,21 @@
     },
     "col": {
       "company": "Firma",
-      "detail": "Tip / detaliu",
+      "detail": "Ce a comandat",
       "total": "Total (cu TVA)",
       "date": "Data",
       "source": "Sursa",
-      "status": "Status",
-      "eInvoice": "e-Factura"
+      "status": "Stare",
+      "eInvoice": "e-Factura",
+      "payment": "Plată",
+      "invoice": "Factură",
+      "actions": "Acțiuni"
     },
     "vatIncluded": "{base} lei + TVA {rate}%",
     "planLabel": "Abonament {tier}",
     "packageLabel": "Pachet {n} credite",
     "source": {
-      "stripe": "Stripe",
+      "stripe": "Card (Stripe)",
       "bank": "Transfer bancar",
       "admin": "Transfer (confirmat manual)",
       "webhook": "Webhook"
@@ -1770,8 +2282,8 @@
       "CONFIRMED": "Plătită",
       "CANCELLED": "Anulată"
     },
-    "awaitingStripe": "Se confirmă automat (Stripe)",
-    "cancel": "Anulează",
+    "awaitingStripe": "Se confirmă automat",
+    "cancel": "Anulează comanda…",
     "confirmDialogTitle": "Confirmi încasarea?",
     "confirmDialogDesc": "{company} · {detail} · {total}. Se emite factura (număr consumat definitiv) și se livrează creditele sau abonamentul. Acțiunea nu poate fi anulată.",
     "cancelDialogTitle": "Anulezi comanda?",
@@ -1793,7 +2305,13 @@
       "note": "Notă internă (opțional, rămâne în audit)",
       "submit": "Acordă abonamentul",
       "success": "Abonament acordat firmei {company} până la {date}.",
-      "freePlan": "gratuit"
+      "freePlan": "gratuit",
+      "review": "Acordă abonamentul…",
+      "confirmTitle": "Acorzi abonamentul?",
+      "confirmDesc": "{company} primește planul {plan} pentru {days, plural, one {# zi} few {# zile} other {# de zile}}.",
+      "confirmWithCredits": "Se acordă și creditele planului ({n}).",
+      "confirmNoCredits": "Creditele planului nu se acordă.",
+      "confirmCta": "Da, acordă abonamentul"
     },
     "subscriptions": {
       "title": "Abonamente",
@@ -1832,17 +2350,68 @@
       "exportHint": "Registrul facturilor confirmate din luna aleasă (CSV), pentru raportarea în e-Factura.",
       "exportButton": "Descarcă CSV",
       "pdf": "PDF",
-      "pdfFailed": "PDF-ul facturii nu a putut fi descărcat."
+      "pdfFailed": "PDF-ul facturii nu a putut fi descărcat.",
+      "summaryTitle": "e-Factura",
+      "summaryScope": "Numărate din {n, plural, one {# comandă plătită} few {# comenzi plătite} other {# de comenzi plătite}} din listă.",
+      "showPending": "arată facturile de raportat",
+      "pendingOnly": "Vezi doar facturile de raportat în e-Factura.",
+      "showAllPaid": "Arată toate plătite",
+      "month": "Luna"
     },
     "testOrder": "Test",
-    "paymentReported": "Firma a semnalat plata · {date}"
+    "paymentReported": "Firma a semnalat plata · {date}",
+    "zones": {
+      "label": "Zonele paginii",
+      "orders": "Comenzi",
+      "subscriptions": "Abonamente",
+      "grant": "Acordă abonament",
+      "export": "Export pentru contabil"
+    },
+    "statusFilterLabel": "Filtrează comenzile după stare",
+    "flaggedFirst": "Cele semnalate de firme ca plătite stau sus",
+    "back": "Înapoi",
+    "confirmDialogCta": "Da, confirmă încasarea",
+    "cancelDialogCta": "Da, anulează comanda"
   },
   "AdminDisputes": {
     "title": "Dispute pe recenzii",
-    "empty": "Nicio dispută deschisă.",
+    "empty": "Nicio dispută deschisă",
     "notePlaceholder": "Notă de rezolvare (opțional)",
-    "resolve": "Rezolvă",
-    "dismiss": "Respinge"
+    "resolve": "Rezolvă…",
+    "dismiss": "Respinge…",
+    "subtitle": "O recenzie sub 3 stele deschide automat o dispută. Aici vezi recenzia și cronologia proiectului înainte să decizi.",
+    "open": "Deschise",
+    "emptyHint": "Disputele noi apar aici și în meniul din stânga, cu un contor.",
+    "openedAgo": "deschisă {when}",
+    "reviewLabel": "Recenzia clientului",
+    "stars": "{n, plural, one {# stea} few {# stele} other {# de stele}} din 5",
+    "noComment": "Clientul nu a scris niciun comentariu.",
+    "timelineLink": "Vezi cronologia proiectului",
+    "noteLabel": "Notă de rezolvare",
+    "noteOptional": "(opțional)",
+    "dismissTitle": "Respinge disputa",
+    "dismissBody": "Recenzia se șterge definitiv, iar clientul poate lăsa una nouă.",
+    "resolveTitle": "Rezolvă disputa",
+    "resolveBody": "Recenzia rămâne înregistrată, așa cum a scris-o clientul.",
+    "resolvedToast": "Disputa a fost rezolvată. Recenzia rămâne înregistrată.",
+    "dismissedToast": "Disputa a fost respinsă. Recenzia a fost ștearsă.",
+    "confirm": {
+      "dismissTitle": "Respingi disputa?",
+      "resolveTitle": "Rezolvi disputa?",
+      "dismissBody": "Recenzia se șterge definitiv și nu mai poate fi recuperată; clientul poate lăsa una nouă. Cererea revine la „Finalizată”, iar clientul și firma primesc o notificare cu decizia.",
+      "resolveBody": "Recenzia rămâne înregistrată. Cererea revine la „Finalizată”, iar clientul și firma primesc o notificare cu decizia.",
+      "final": "Decizia nu mai poate fi schimbată.",
+      "back": "Înapoi",
+      "dismissCta": "Da, respinge disputa",
+      "resolveCta": "Da, rezolvă disputa"
+    },
+    "apiErrors": {
+      "DISPUTE_ALREADY_DECIDED": "Disputa a fost deja decisă de alt administrator. Reîncarcă pagina.",
+      "NOT_FOUND": "Disputa nu a fost găsită. Reîncarcă pagina.",
+      "VALIDATION_ERROR": "Nota este prea lungă (cel mult 2.000 de caractere).",
+      "INTERNAL_ERROR": "A apărut o eroare. Încearcă din nou.",
+      "DATABASE_BUSY": "Serverul răspunde greu acum, așa că acțiunea nu a fost salvată. Încearcă din nou în câteva secunde."
+    }
   },
   "Admin": {
     "console": "Consolă admin",
@@ -1874,7 +2443,8 @@
       "audit": "Intrări în audit",
       "companies": "Firme după status",
       "requests": "Cereri după status",
-      "subscriptionsByPlan": "Abonamente active pe plan"
+      "subscriptionsByPlan": "Abonamente active pe plan",
+      "none": "Nimic de afișat încă."
     },
     "audit": {
       "filterAction": "Filtrează după acțiune…",
@@ -1882,7 +2452,125 @@
       "entity": "Entitate",
       "role": "Rol",
       "date": "Dată",
-      "empty": "Nicio intrare în jurnal."
+      "empty": "Nicio intrare în jurnal.",
+      "subtitle": "Jurnalul tuturor acțiunilor auditate: cine, ce, asupra cui și când. Nu se poate modifica.",
+      "allActions": "Toate acțiunile",
+      "allRoles": "Toate rolurile",
+      "total": "{n, plural, one {# intrare} few {# intrări} other {# de intrări}}",
+      "rolePageNote": "Filtrul de rol se aplică doar pe pagina curentă: {shown} din {loaded} intrări.",
+      "emptyFiltered": "Nicio intrare pentru acțiunea aleasă.",
+      "emptyRole": "Nicio intrare de pe această pagină nu are rolul ales.",
+      "who": "Cine",
+      "what": "Ce a făcut",
+      "target": "Asupra cui",
+      "system": "Sistem",
+      "automatic": "automat",
+      "groups": {
+        "billing": "Plăți și facturi",
+        "companies": "Firme",
+        "projects": "Proiecte și cazuri",
+        "claims": "Preluări și retrageri",
+        "quotes": "Oferte",
+        "users": "Utilizatori",
+        "settings": "Setări",
+        "content": "Caietul de idei",
+        "other": "Alte acțiuni"
+      },
+      "actions": {
+        "PAYMENT_CONFIRMED": "A confirmat încasarea unei comenzi",
+        "PAYMENT_CANCELLED": "A anulat o comandă",
+        "PAYMENT_MARKED_PAID": "A semnalat plata prin transfer",
+        "CREDITS_PURCHASE_REQUESTED": "A comandat un pachet de credite",
+        "SUBSCRIPTION_PURCHASE_REQUESTED": "A comandat un abonament",
+        "CHECKOUT_REQUESTED": "A deschis plata cu cardul",
+        "E_INVOICE_STATUS_UPDATED": "A actualizat starea e-Factura",
+        "SUBSCRIPTION_GRANTED": "A acordat un abonament",
+        "SELLER_DETAILS_UPDATED": "A schimbat datele fiscale",
+        "COMPANY_APPROVED": "A aprobat o firmă",
+        "COMPANY_REJECTED": "A respins o firmă",
+        "COMPANY_UNSUSPENDED": "A ridicat suspendarea unei firme",
+        "COMPANY_PROFILE_UPDATED": "A actualizat profilul firmei",
+        "COMPANY_LOCATION_CREATED": "A adăugat un punct de lucru",
+        "COMPANY_LOCATION_UPDATED": "A modificat un punct de lucru",
+        "COMPANY_LOCATION_DELETED": "A șters un punct de lucru",
+        "PROJECT_CASE_OPENED": "A raportat un caz pe proiect",
+        "PROJECT_CASE_RESPONDED": "A răspuns la un caz raportat",
+        "PROJECT_CASE_DISMISSED": "A închis un caz fără anulare",
+        "PROJECT_CLOSED": "A închis un proiect",
+        "DELIVERY_MARKED": "A marcat livrarea",
+        "DELIVERY_CONFIRMED": "A confirmat livrarea",
+        "REVIEW_CREATED": "A lăsat o recenzie",
+        "DISPUTE_RESOLVED": "A decis o dispută",
+        "REQUEST_REPOSTED": "A republicat o cerere",
+        "CLAIM_CREATED": "A preluat o cerere",
+        "CLAIM_ASSIGNED": "A atribuit o preluare unui coleg",
+        "CLARIFICATION_REQUESTED": "A cerut o clarificare",
+        "CLARIFICATION_ANSWERED": "A răspuns la o clarificare",
+        "CLAIM_WITHDRAWAL_REQUESTED": "A cerut retragerea unei preluări",
+        "WITHDRAWAL_REVIEWED": "A decis o retragere",
+        "QUOTE_CREATED": "A creat o ofertă",
+        "QUOTE_REVISED": "A revizuit o ofertă",
+        "QUOTE_EXTRA_VERSION_CREATED": "A adăugat o versiune de ofertă",
+        "QUOTE_REOFFERED": "A reofertat",
+        "QUOTE_VALIDITY_EXTENDED": "A prelungit valabilitatea unei oferte",
+        "QUOTE_EXTENSION_REQUESTED": "A cerut prelungirea unei oferte",
+        "QUOTE_CHANGE_REQUESTED": "A cerut modificarea unei oferte",
+        "QUOTE_CHANGE_REJECTED": "A refuzat modificarea cerută",
+        "QUOTE_NEGOTIATION_ENDED": "A încheiat negocierea",
+        "QUOTE_WITHDRAWN": "A retras o ofertă",
+        "QUOTE_ACCEPTED": "A acceptat o ofertă",
+        "CONSULTATION_INVITED": "A trimis o invitație la consultație",
+        "CONSULTATION_RESPONDED": "A răspuns la o invitație la consultație",
+        "USER_BLOCKED": "A blocat un cont",
+        "USER_UNBLOCKED": "A deblocat un cont",
+        "LEGAL_ACCEPTED": "A acceptat documentele legale",
+        "LOGIN_COOLDOWN_STARTED": "Autentificare oprită temporar după prea multe încercări",
+        "SETTING_UPDATED": "A schimbat o setare de sistem",
+        "PENALTY_RULE_UPDATED": "A schimbat o regulă de penalizare",
+        "PLAN_CREATED": "A creat un plan de abonament",
+        "PLAN_UPDATED": "A modificat un plan de abonament",
+        "CREDIT_PACKAGE_CREATED": "A creat un pachet de credite",
+        "CREDIT_PACKAGE_UPDATED": "A modificat un pachet de credite",
+        "THRESHOLD_UPDATED": "A modificat un prag de mărime",
+        "SIZING_WEIGHTS_UPDATED": "A modificat punctele de mărime",
+        "CALENDAR_HOLIDAY_CREATED": "A adăugat o zi în calendar",
+        "CALENDAR_HOLIDAY_UPDATED": "A modificat o zi din calendar",
+        "CALENDAR_HOLIDAY_DELETED": "A șters o zi din calendar",
+        "MAIL_TEST_SENT": "A trimis un email de test",
+        "JOB_RETRIED": "A reîncercat un job",
+        "INSPIRATION_PHOTO_CREATED": "A adăugat o fotografie în Caietul de idei",
+        "INSPIRATION_PHOTO_UPDATED": "A modificat o fotografie din Caietul de idei",
+        "INSPIRATION_PHOTO_IMAGE_SET": "A schimbat imaginea unei fotografii",
+        "INSPIRATION_PHOTO_UPLOAD_COMPLETED": "A încărcat o imagine",
+        "INSPIRATION_PHOTO_DELETED": "A șters o fotografie din Caietul de idei"
+      },
+      "entities": {
+        "mock_billing_order": "Comandă",
+        "subscription": "Abonament",
+        "company": "Firmă",
+        "company_location": "Punct de lucru",
+        "request": "Cerere",
+        "review": "Recenzie",
+        "review_dispute": "Dispută",
+        "project_case": "Caz pe proiect",
+        "claim_slot": "Preluare",
+        "claim_withdrawal": "Retragere",
+        "clarification": "Clarificare",
+        "quote": "Ofertă",
+        "consultation_invite": "Invitație la consultație",
+        "user": "Utilizator",
+        "system_setting": "Setare",
+        "penalty_rule": "Regulă de penalizare",
+        "subscription_plan": "Plan de abonament",
+        "credit_package": "Pachet de credite",
+        "project_size_threshold": "Prag de mărime",
+        "project_sizing_config": "Puncte de mărime",
+        "business_calendar_holiday": "Zi din calendar",
+        "mail": "Email",
+        "job": "Job",
+        "inspiration_photo": "Fotografie din Caietul de idei",
+        "attachment": "Fișier"
+      }
     },
     "contactDetections": {
       "title": "Date de contact în texte libere",
@@ -1897,7 +2585,11 @@
         "kinds": "Tip",
         "excerpt": "Fragment",
         "action": "Acțiune",
-        "trigger": "Moment"
+        "trigger": "Moment",
+        "when": "Când",
+        "where": "Unde",
+        "found": "Ce s-a găsit",
+        "done": "Ce am făcut"
       },
       "fields": {
         "TITLE": "Titlu",
@@ -1921,6 +2613,18 @@
       "triggers": {
         "PUBLISH": "Publicare",
         "EDIT": "Editare"
+      },
+      "total": "{n, plural, one {# detectare} few {# detectări} other {# de detectări}}",
+      "filter": {
+        "allKinds": "Toate tipurile",
+        "allActions": "Toate acțiunile",
+        "pageNote": "Filtrele se aplică doar pe pagina curentă: {shown} din {loaded} detectări.",
+        "emptyFiltered": "Nicio detectare de pe această pagină nu se potrivește cu filtrele.",
+        "clear": "Șterge filtrele"
+      },
+      "moment": {
+        "PUBLISH": "la publicare",
+        "EDIT": "la editare"
       }
     },
     "settings": {
@@ -1930,8 +2634,8 @@
       "packages": "Pachete de credite",
       "thresholds": "Praguri de mărime a proiectului",
       "creditCostNote": "Costul unei cereri nu se stabilește pe praguri: 1 credit = {creditValue} lei din bugetul minim estimat, rotunjit în sus. Pragurile stabilesc doar mărimea S/M/L și termenul aferent.",
-      "creditCostRange": "Costul unei preluări: între {min} și {max, plural, one {# credit} few {# credite} other {# de credite}} (credit_value_ron, claim_cost_min, claim_cost_max). Se aplică cererilor publicate sau editate după salvare; preluările existente își păstrează costul.",
-      "creditCostNoMax": "Costul unei preluări: cel puțin {min, plural, one {# credit} few {# credite} other {# de credite}}, fără plafon (claim_cost_max = 0). Se aplică cererilor publicate sau editate după salvare; preluările existente își păstrează costul.",
+      "creditCostRange": "Costul unei preluări: între {min} și {max, plural, one {# credit} few {# credite} other {# de credite}} (<code>credit_value_ron</code>, <code>claim_cost_min</code>, <code>claim_cost_max</code>). Se aplică cererilor publicate sau editate după salvare; preluările existente își păstrează costul.",
+      "creditCostNoMax": "Costul unei preluări: cel puțin {min, plural, one {# credit} few {# credite} other {# de credite}}, fără plafon (<code>claim_cost_max</code> = 0). Se aplică cererilor publicate sau editate după salvare; preluările existente își păstrează costul.",
       "save": "Salvează",
       "saved": "Salvat.",
       "saveError": "Nu am putut salva. Verifică valorile și încearcă din nou.",
@@ -1967,7 +2671,8 @@
           "PLACEHOLDER": "Valoare de exemplu din instalare — înlocuiește-o cu datele reale.",
           "INVALID_cui": "CUI invalid: cifra de control nu corespunde.",
           "INVALID_iban": "IBAN invalid: verificarea de control a eșuat."
-        }
+        },
+        "unsaved": "Datele fiscale au modificări nesalvate."
       },
       "weightsLink": "Punctele opțiunilor se editează în Mărime proiect",
       "planHint": "Planurile sunt date: codul nu se mai schimbă, prețul poate fi 0 (plan gratuit, acordat de admin), iar accesul la marketplace se alege pe fiecare plan.",
@@ -1983,18 +2688,323 @@
         "credits": "Credite",
         "gating": "Întârziere acces (min)",
         "marketplaceAccess": "Acces la marketplace și preluări",
-        "active": "Activ"
+        "active": "Activ",
+        "planPrice": "Preț fără TVA",
+        "planPriceHint": "0 = plan gratuit.",
+        "planCredits": "Credite incluse",
+        "planGating": "Întârziere la cererile noi",
+        "planGatingHint": "Minute de la publicare până când firma vede cererea. 0 = imediat.",
+        "packageCredits": "Credite",
+        "packagePrice": "Preț fără TVA",
+        "thresholdMin": "Scor minim",
+        "thresholdMax": "Scor maxim"
       },
       "newPlan": {
         "title": "Plan nou",
         "submit": "Creează planul",
         "created": "Plan creat."
+      },
+      "subtitle": "Regulile platformei, pe secțiuni. Fiecare valoare are un nume, o unitate și o explicație.",
+      "navLabel": "Secțiunile setărilor",
+      "sections": {
+        "fiscal": {
+          "title": "Date fiscale"
+        },
+        "billing": {
+          "title": "Facturi și TVA",
+          "description": "Cota de TVA și seria numerelor de factură."
+        },
+        "claims": {
+          "title": "Preluări și credite",
+          "description": "Costul se aplică cererilor publicate sau editate după salvare; preluările existente își păstrează costul."
+        },
+        "quotes": {
+          "title": "Oferte și proiecte",
+          "description": "Termene implicite pentru oferte, invitații și proiectele acceptate."
+        },
+        "trial": {
+          "title": "Perioada de probă",
+          "description": "Ce primește o firmă nouă în momentul în care este aprobată."
+        },
+        "penalties": {
+          "title": "Penalizări și suspendare",
+          "description": "Punctele primite de firme pentru abateri și pragul la care sunt suspendate."
+        },
+        "plans": {
+          "title": "Planuri de abonament",
+          "description": "Codul unui plan nu se mai schimbă. Prețul poate fi 0 (plan gratuit, acordat de admin), iar accesul la marketplace se alege pe fiecare plan."
+        },
+        "packages": {
+          "title": "Pachete de credite",
+          "description": "Pachetele de credite puse în vânzare. Prețurile sunt fără TVA."
+        },
+        "thresholds": {
+          "title": "Praguri de mărime",
+          "description": "Intervalele de scor care dau mărimea proiectului (S, M sau L) și, odată cu ea, termenul de răspuns al firmei."
+        },
+        "contact": {
+          "title": "Date de contact și firme",
+          "description": "Când văd firmele datele de contact ale clientului și ce limite au locațiile unei firme."
+        },
+        "legal": {
+          "title": "Termeni și identitate juridică",
+          "description": "Datele operatorului afișate public și acceptarea Termenilor."
+        },
+        "other": {
+          "title": "Alte setări",
+          "description": "Setări care nu au încă o descriere pe această pagină. Apar cu codul lor tehnic."
+        },
+        "tools": {
+          "title": "Instrumente de test",
+          "description": "Nu schimbă nicio setare: verifică livrarea emailurilor și raportarea erorilor."
+        }
+      },
+      "items": {
+        "vat_rate": {
+          "label": "Cota de TVA",
+          "help": "Se adaugă la prețul fără TVA al abonamentelor și al pachetelor de credite."
+        },
+        "invoice_series": {
+          "label": "Seria facturilor",
+          "help": "Prefixul din numărul fiecărei facturi emise."
+        },
+        "max_claims_per_request": {
+          "label": "Firme pe cerere",
+          "help": "Câte firme pot prelua aceeași cerere (cel mult 3)."
+        },
+        "credit_value_ron": {
+          "label": "Valoarea unui credit",
+          "help": "Costul unei cereri: 1 credit pentru fiecare atâția lei din bugetul minim estimat, rotunjit în sus."
+        },
+        "claim_cost_min": {
+          "label": "Cost minim al unei preluări",
+          "help": "Nicio cerere nu costă mai puțin de atât."
+        },
+        "claim_cost_max": {
+          "label": "Cost maxim al unei preluări",
+          "help": "0 înseamnă fără plafon."
+        },
+        "claims_open_after_first_offer": {
+          "label": "Preluări permise după prima ofertă",
+          "help": "Dacă e oprit, cererea nu mai poate fi preluată de alte firme după ce clientul primește prima ofertă."
+        },
+        "bank_transfer_reminder_days": {
+          "label": "Reamintire pentru transferul bancar",
+          "help": "După câte zile de la plasare se trimite o reamintire pentru o comandă prin transfer bancar neplătită. 0 înseamnă oprit. Are efect doar dacă e mai mică decât termenul de anulare."
+        },
+        "bank_transfer_expiry_days": {
+          "label": "Expirarea comenzii prin transfer",
+          "help": "După câte zile se anulează automat o comandă prin transfer bancar neplătită. 0 înseamnă oprit. Comenzile pentru care firma a anunțat plata nu se anulează."
+        },
+        "quote_validity_default_days": {
+          "label": "Valabilitatea implicită a ofertei",
+          "help": "Câte zile este valabilă o ofertă când firma nu alege alt termen."
+        },
+        "consultation_invite_expiry_days": {
+          "label": "Expirarea invitației la sediul firmei",
+          "help": "Câte zile rămâne deschisă invitația trimisă clientului."
+        },
+        "eur_ron_rate": {
+          "label": "Curs euro – leu",
+          "help": "Cursul fix cu care sumele din oferte sunt arătate clientului și în cealaltă monedă."
+        },
+        "delivery_reminder_days_before": {
+          "label": "Reamintire înainte de livrare",
+          "help": "Cu câte zile înainte de data de livrare din oferta acceptată primește firma o reamintire."
+        },
+        "expired_offer_autoclose_enabled": {
+          "label": "Închidere automată a ofertelor expirate",
+          "help": "Dacă e pornit, o ofertă expirată pe care clientul nu a decis-o se închide singură după numărul de zile de mai jos. Funcționează doar dacă e ales și ce se întâmplă cu creditele."
+        },
+        "expired_offer_autoclose_days": {
+          "label": "Zile până la închiderea automată",
+          "help": "Câte zile după expirarea ofertei se așteaptă decizia clientului."
+        },
+        "expired_offer_autoclose_credit_outcome": {
+          "label": "Creditele la închiderea automată",
+          "help": "Ce se întâmplă cu creditele rezervate ale firmei când oferta se închide automat.",
+          "options": {
+            "UNSET": "Nealese (închiderea automată rămâne oprită)",
+            "REFUND": "Se returnează firmei",
+            "CONSUME": "Se consumă"
+          }
+        },
+        "trial_enabled": {
+          "label": "Perioadă de probă la aprobare",
+          "help": "Dacă e pornit, firma primește gratuit planul de mai jos și creditele bonus în momentul în care este aprobată."
+        },
+        "trial_plan": {
+          "label": "Planul din perioada de probă",
+          "help": "Trebuie să fie un plan activ."
+        },
+        "trial_duration_days": {
+          "label": "Durata perioadei de probă",
+          "help": "Câte zile ține abonamentul gratuit."
+        },
+        "trial_bonus_credits": {
+          "label": "Credite bonus",
+          "help": "Credite primite de firmă la începutul perioadei de probă."
+        },
+        "company_penalty_threshold": {
+          "label": "Prag de suspendare",
+          "help": "La câte puncte active este suspendată firma."
+        },
+        "company_suspension_months": {
+          "label": "Durata suspendării",
+          "help": "Cât timp nu poate prelua cereri o firmă suspendată."
+        },
+        "claim_contact_reveal_policy": {
+          "label": "Când vede firma datele de contact ale clientului",
+          "help": "Valabil pentru firmele care au preluat cererea.",
+          "options": {
+            "ON_CLAIM": "Imediat după preluare",
+            "AFTER_GRACE": "După primele 30 de minute (perioada de retragere fără penalizare)"
+          }
+        },
+        "completed_claim_contact_retention_days": {
+          "label": "Acces la contacte după livrare",
+          "help": "Câte zile după livrare mai văd angajații firmei datele de contact ale clientului; conducerea firmei le vede în continuare. 0 înseamnă fără limită."
+        },
+        "pre_claim_contact_text_policy": {
+          "label": "Date de contact scrise în textele cererii",
+          "help": "Ce se întâmplă când clientul scrie un telefon, un email sau un link în titlu, în mesaj sau în răspunsuri.",
+          "options": {
+            "MASK": "Se ascund firmelor care nu au preluat cererea",
+            "BLOCK": "Publicarea este refuzată"
+          }
+        },
+        "marketplace_distance_display": {
+          "label": "Distanța afișată înainte de preluare",
+          "help": "Cum văd firmele distanța până la client, înainte să preia cererea.",
+          "options": {
+            "KM": "În kilometri întregi",
+            "BAND": "Doar pe intervale de distanță"
+          }
+        },
+        "company_locations_max": {
+          "label": "Locații pe firmă",
+          "help": "Câte locații poate avea o firmă."
+        },
+        "company_location_changes_per_day": {
+          "label": "Schimbări de locații în 24 de ore",
+          "help": "De câte ori își poate modifica o firmă locațiile în 24 de ore."
+        },
+        "legal_contact_email": {
+          "label": "Email de contact juridic",
+          "help": "Adresa pentru solicitări juridice și de protecția datelor. Poate rămâne goală."
+        },
+        "legal_identity_published": {
+          "label": "Publică identitatea operatorului",
+          "help": "Dacă e pornit, datele fiscale ale operatorului apar în Termeni, în Politica de confidențialitate și în subsolul site-ului."
+        },
+        "legal_reaccept_existing_users": {
+          "label": "Re-acceptarea Termenilor de către conturile existente",
+          "help": "Dacă e pornit, utilizatorii care au acceptat o versiune mai veche trebuie să accepte Termenii și Politica actuale. Conturile noi le acceptă oricum la înregistrare; administratorii sunt exceptați. Se aplică în cel mult un minut."
+        }
+      },
+      "units": {
+        "minutes": "minute",
+        "days": "zile",
+        "months": "luni",
+        "points": "puncte",
+        "ron": "lei",
+        "ronPerEur": "lei / EUR",
+        "percent": "%",
+        "credits": "credite",
+        "firms": "firme",
+        "locations": "locații",
+        "changes": "schimbări"
+      },
+      "on": "pornit",
+      "off": "oprit",
+      "emptyValue": "gol",
+      "savedValue": "Valoarea salvată:",
+      "was": "Salvat: {value}",
+      "problems": {
+        "integer": "Scrie un număr întreg, fără zecimale.",
+        "min": "Valoarea minimă este {min}.",
+        "range": "Valoarea trebuie să fie între {min} și {max}.",
+        "decimal": "Scrie un număr; pentru zecimale folosește punctul (de exemplu 5.2).",
+        "email": "Adresa de email nu este validă.",
+        "planCode": "Codul planului are majuscule, cifre și _, între 2 și 32 de caractere.",
+        "costRange": "Costul maxim trebuie să fie 0 (fără plafon) sau cel puțin cât costul minim."
+      },
+      "rules": {
+        "SLA_MISS": "Puncte primite când oferta nu e trimisă în termenul de răspuns.",
+        "MASS_SLA_MISS": "Puncte primite de fiecare firmă atunci când toate firmele care au preluat cererea depășesc termenul.",
+        "VOLUNTARY_WITHDRAWAL": "Puncte primite la retragerea după primele 30 de minute de la preluare."
+      },
+      "ruleActive": "Regulă activă",
+      "ruleInactive": "Regulă oprită",
+      "packageTitle": "{credits, plural, one {Pachet de # credit} few {Pachet de # credite} other {Pachet de # de credite}}",
+      "packageInactive": "Inactiv.",
+      "unsaved": "{count, plural, one {# modificare nesalvată} few {# modificări nesalvate} other {# de modificări nesalvate}}",
+      "changeSummary": "{label}, {from} → {to}.",
+      "andMore": "{count, plural, one {Și încă una.} few {Și încă #.} other {Și încă #.}}",
+      "fixInvalid": "Corectează valorile marcate cu roșu înainte de salvare.",
+      "discard": "Renunță",
+      "saveChanges": "Salvează modificările…",
+      "confirmTitle": "{count, plural, one {Salvezi # modificare?} few {Salvezi # modificări?} other {Salvezi # de modificări?}}",
+      "confirmBody": "Valorile se trimit pe rând și se aplică imediat pe platformă.",
+      "confirmSave": "{count, plural, one {Salvează # modificare} few {Salvează # modificări} other {Salvează # de modificări}}",
+      "cancel": "Renunță",
+      "close": "Închide",
+      "savingTitle": "Se salvează…",
+      "savingBody": "Nu închide pagina până se termină.",
+      "resultOkTitle": "Modificările au fost salvate",
+      "resultOkBody": "{count, plural, one {# setare a fost salvată.} few {# setări au fost salvate.} other {# de setări au fost salvate.}}",
+      "resultPartialTitle": "Unele modificări nu au fost salvate",
+      "resultPartialBody": "{saved} salvate, {failed} nesalvate. Cele nesalvate rămân marcate pe pagină: corectează-le și salvează din nou.",
+      "becomes": "devine",
+      "opSaved": "Salvat.",
+      "savedCount": "{count, plural, one {# setare salvată.} few {# setări salvate.} other {# de setări salvate.}}",
+      "savedPartial": "{saved} salvate, {failed} nesalvate. Verifică valorile marcate.",
+      "errors": {
+        "PLAN_NOT_FOUND": "Planul din perioada de probă trebuie să fie codul unui plan activ.",
+        "CLAIM_COST_RANGE": "Costul maxim trebuie să fie 0 (fără plafon) sau cel puțin cât costul minim.",
+        "SETTING_KEY_UNKNOWN": "Setarea nu mai există. Reîncarcă pagina.",
+        "NOT_FOUND": "Elementul nu mai există. Reîncarcă pagina.",
+        "VALIDATION_ERROR": "Valoarea nu a fost acceptată. Verific-o și încearcă din nou.",
+        "DEPLOYMENT_STANDBY": "Serverul este în mentenanță. Încearcă din nou în câteva minute.",
+        "DATABASE_BUSY": "Serverul răspunde greu acum, așa că valoarea nu a fost salvată. Încearcă din nou în câteva secunde."
       }
     },
     "jobs": {
-      "empty": "Niciun job eșuat.",
+      "empty": "Niciun job eșuat",
       "attempts": "Încercări",
-      "retry": "Reîncearcă"
+      "retry": "Reîncearcă",
+      "subtitle": "Sarcinile de fundal care au eșuat și așteaptă o reîncercare.",
+      "failedSummary": "<b>{n, plural, one {# job eșuat} few {# joburi eșuate} other {# de joburi eșuate}}</b>, cel mai vechi pus în coadă {when}.",
+      "failedSummaryNoDate": "<b>{n, plural, one {# job eșuat} few {# joburi eșuate} other {# de joburi eșuate}}</b>.",
+      "emptyHint": "Joburile care eșuează apar aici, cu motivul raportat de server.",
+      "queuedAt": "Pus în coadă:",
+      "noReason": "Serverul nu a raportat un motiv.",
+      "retryAll": "Reîncearcă toate…",
+      "retryAllTitle": "Reîncerci toate joburile eșuate?",
+      "retryAllBody": "{n, plural, one {Jobul eșuat din listă este repus} few {Cele # joburi eșuate din listă sunt repuse} other {Cele # de joburi eșuate din listă sunt repuse}} în coadă și rulează din nou. Cele care reușesc dispar din listă; cele care eșuează iar reapar aici. Fiecare reîncercare se înregistrează în audit.",
+      "retryAllCta": "Da, reîncearcă toate",
+      "back": "Înapoi",
+      "retried": "Jobul a fost repus în coadă.",
+      "retriedHint": "Cardul dispare din listă; dacă jobul eșuează din nou, reapare aici.",
+      "retriedAll": "{ok, plural, =0 {Niciun job nu a fost repus} one {# job a fost repus} few {# joburi au fost repuse} other {# de joburi au fost repuse}} în coadă.",
+      "retryAllFailed": "{failed, plural, one {# job nu a putut fi repus} few {# joburi nu au putut fi repuse} other {# de joburi nu au putut fi repuse}} în coadă. Reîncarcă pagina și încearcă din nou.",
+      "retryFailed": "Jobul nu a putut fi repus în coadă. Reîncarcă pagina și încearcă din nou.",
+      "queues": {
+        "notifications": "Notificări și emailuri",
+        "request-expiration": "Expirarea cererilor",
+        "claim-assign": "Atribuirea preluărilor",
+        "quote-validity": "Valabilitatea ofertelor",
+        "consultation-expiry": "Expirarea invitațiilor la consultație",
+        "sla-breach": "Termenul SLA al preluărilor",
+        "withdrawal-reminder": "Reamintirea retragerilor nedecise",
+        "subscription-expiry": "Expirarea abonamentelor și a comenzilor prin transfer",
+        "delivery-autocomplete": "Finalizarea automată după livrare",
+        "reconciliation": "Reconcilierea zilnică",
+        "uploads": "Fișiere încărcate",
+        "domain-events": "Evenimente de trimis",
+        "offer-expiry-settlement": "Închiderea ofertelor expirate",
+        "project-deadlines": "Termenele de livrare ale proiectelor"
+      }
     },
     "requests": {
       "title": "Proiecte",
@@ -2031,7 +3041,9 @@
         "date": "Data",
         "type": "Tip",
         "amount": "Credite",
-        "reason": "Motiv (registru)"
+        "reason": "Motiv (registru)",
+        "parties": "Client și firmă",
+        "actions": "Acțiuni"
       },
       "detail": {
         "client": "Client",
@@ -2042,7 +3054,12 @@
         "slots": "Preluări",
         "credits": "Mișcări de credite",
         "noCredits": "Nicio mișcare de credite pe preluările acestei cereri.",
-        "case": "Caz raportat"
+        "case": "Caz raportat",
+        "parties": "Părțile proiectului",
+        "acceptedQuote": "ofertă acceptată: {price}",
+        "claimCredits": "credite rezervate la preluare: {n}",
+        "claimedOn": "preluată pe {date}",
+        "quoted": "„{text}”"
       },
       "caseStatus": {
         "OPEN": "Deschis",
@@ -2074,7 +3091,8 @@
         "consume": "Consumă creditele ({n})",
         "note": "Motivul deciziei (obligatoriu, rămâne în audit)",
         "warning": "Acțiunea e definitivă: cererea trece în „Proiect anulat”, conversația devine doar-citire, iar creditele se decontează o singură dată.",
-        "confirm": "Închide definitiv"
+        "confirm": "Închide definitiv",
+        "open": "Închide proiectul…"
       },
       "dismiss": "Închide cazul fără anulare",
       "dismissHint": "Proiectul continuă; ambele părți sunt anunțate că, deocamdată, cazul a fost închis.",
@@ -2102,7 +3120,18 @@
         "CONCURRENT_MODIFICATION": "Proiectul a fost modificat între timp. Reîncarcă pagina și încearcă din nou.",
         "INTERNAL_ERROR": "A apărut o eroare. Încearcă din nou.",
         "DATABASE_BUSY": "Serverul răspunde greu acum, așa că acțiunea nu a fost salvată. Încearcă din nou în câteva secunde."
-      }
+      },
+      "searchLabel": "Caută un proiect",
+      "searchPlaceholder": "Caută după proiect, client sau firmă",
+      "searchPageOnly": "Căutarea se aplică doar paginii afișate.",
+      "noMatch": "Niciun proiect de pe această pagină nu se potrivește căutării.",
+      "clearSearch": "Șterge căutarea",
+      "open": "Deschide",
+      "acceptedOn": "acceptată pe {date}",
+      "overdueBy": "depășit cu {days, plural, one {# zi} few {# zile} other {# de zile}}",
+      "overdueByFlag": "Întârziat cu {days, plural, one {# zi} few {# zile} other {# de zile}}",
+      "noteHint": "Cel puțin {min} caractere.",
+      "dismissOpen": "Închide cazul fără anulare…"
     },
     "billingBanner": {
       "title": "Date de facturare incomplete",
@@ -2142,7 +3171,21 @@
         "DEPLOYMENT_STANDBY": "Serverul este în mentenanță. Încearcă din nou în câteva minute.",
         "INTERNAL_ERROR": "A apărut o eroare. Încearcă din nou.",
         "DATABASE_BUSY": "Serverul răspunde greu acum, așa că acțiunea nu a fost salvată. Încearcă din nou în câteva secunde."
-      }
+      },
+      "legend": {
+        "holiday": "zi liberă",
+        "forced": "zi lucrătoare forțată",
+        "weekend": "weekend",
+        "working": "zi lucrătoare"
+      },
+      "prevMonth": "Luna anterioară",
+      "nextMonth": "Luna următoare",
+      "today": "azi",
+      "actions": "Acțiuni",
+      "typeFor": "Tipul zilei: {name}",
+      "removeAction": "Șterge…",
+      "checkDays": "{days, plural, one {# zi lucrătoare} few {# zile lucrătoare} other {# de zile lucrătoare}}",
+      "goToYear": "Treci la {year}"
     },
     "sizing": {
       "title": "Mărime proiect",
@@ -2172,6 +3215,113 @@
         "DEPLOYMENT_STANDBY": "Serverul este în mentenanță. Încearcă din nou în câteva minute.",
         "INTERNAL_ERROR": "A apărut o eroare. Încearcă din nou.",
         "DATABASE_BUSY": "Serverul răspunde greu acum, așa că acțiunea nu a fost salvată. Încearcă din nou în câteva secunde."
+      },
+      "search": "Caută o întrebare sau o opțiune",
+      "noMatch": "Nicio întrebare sau opțiune nu se potrivește căutării.",
+      "clearSearch": "Șterge căutarea",
+      "rangeNote": "Fiecare opțiune valorează între 0 și 100 de puncte. Întrebările apar cu numele din formular, iar codul tehnic rămâne în dreapta, pentru dezvoltatori.",
+      "pointsUnit": "pct",
+      "invalidValues": "Fiecare opțiune valorează un număr întreg între 0 și 100.",
+      "previewMatches": "Previzualizarea de alături corespunde exact acestor modificări.",
+      "previewAgain": "Previzualizează din nou",
+      "previewIdle": "Schimbă punctele unei opțiuni, apoi previzualizează efectul asupra cererilor recente.",
+      "discardAll": "Renunță la toate",
+      "savePoints": "Salvează punctele…",
+      "sizeCol": "Mărime",
+      "changedSizeLabel": "Cereri care își schimbă mărimea",
+      "changedCostLabel": "Cereri care își schimbă costul în credite",
+      "avgCostLabel": "Cost mediu",
+      "avgCostValue": "{current} → {proposed} credite",
+      "thresholdsLink": "Pragurile se editează în Setări",
+      "groups": {
+        "ROOM_TYPE": {
+          "title": "Camera sau piesa",
+          "help": "Punctele de bază ale fiecărei camere sau piese din cerere."
+        },
+        "ROOM_SIZE": {
+          "title": "Lungimea mobilierului",
+          "help": "După metrii liniari de mobilier din cameră."
+        },
+        "ITEM_QUANTITY": {
+          "title": "Numărul de piese",
+          "help": "După câte piese de mobilier are camera."
+        },
+        "MATERIAL": {
+          "title": "Material",
+          "help": "Se adună pentru fiecare piesă, după materialul ales."
+        },
+        "SYSTEM": {
+          "title": "Sistem de deschidere",
+          "help": "Se adună pentru fiecare piesă; dacă sunt alese mai multe sisteme, contează cel cu punctajul cel mai mare."
+        },
+        "PAID_DESIGN": {
+          "title": "Proiectare plătită",
+          "help": "Se adaugă când cererea include proiectare plătită. Contează doar la mărime, nu și la costul în credite."
+        },
+        "BUDGET": {
+          "title": "Bugetul declarat",
+          "help": "Contează doar la mărime, nu și la costul în credite."
+        },
+        "KITCHEN_LAYOUT": {
+          "title": "Bucătărie · Ce formă are bucătăria?"
+        },
+        "KITCHEN_ISLAND": {
+          "title": "Bucătărie · Insulă"
+        },
+        "KITCHEN_COUNTERTOP": {
+          "title": "Bucătărie · Blat"
+        },
+        "DRESSING_LAYOUT": {
+          "title": "Dressing · Forma dressingului"
+        },
+        "WARDROBE_TO_CEILING": {
+          "title": "Dulap · Până în tavan"
+        },
+        "TV_MEDIA_WALL": {
+          "title": "Comodă TV · Perete media"
+        },
+        "BED_STORAGE": {
+          "title": "Pat · Spațiu de depozitare"
+        },
+        "TABLE_EXTENDABLE": {
+          "title": "Masă · Extensibilă"
+        }
+      },
+      "options": {
+        "ROOM_SIZE": {
+          "UNDER_2M": "Sub 2 m",
+          "FROM_2_TO_4M": "2 – 4 m",
+          "OVER_4M": "Peste 4 m"
+        },
+        "ITEM_QUANTITY": {
+          "QTY_1": "O piesă",
+          "QTY_2_3": "2 – 3 piese",
+          "QTY_4_PLUS": "4 sau mai multe piese"
+        },
+        "KITCHEN_LAYOUT": {
+          "STRAIGHT": "Liniară",
+          "L_SHAPE": "În formă de L",
+          "U_SHAPE": "În formă de U",
+          "PARALLEL": "Paralelă"
+        },
+        "KITCHEN_COUNTERTOP": {
+          "LAMINATE": "Laminat (HPL)",
+          "QUARTZ": "Cuarț compozit",
+          "GRANITE": "Granit",
+          "WOOD": "Lemn",
+          "PAL": "PAL",
+          "HPL": "HPL"
+        },
+        "DRESSING_LAYOUT": {
+          "LINEAR": "Liniar",
+          "L_SHAPE": "În formă de L",
+          "U_SHAPE": "În formă de U",
+          "WALK_IN": "Walk-in"
+        },
+        "BED_STORAGE": {
+          "LIFT_UP": "Ladă rabatabilă",
+          "DRAWERS": "Sertare"
+        }
       }
     },
     "apiErrors": {
@@ -2179,7 +3329,51 @@
       "VALIDATION_ERROR": "Date invalide. Verifică codul, prețul și creditele."
     },
     "navHeading": "Administrare",
-    "sidebarNote": "Cozy Home · panou operațional"
+    "sidebarNote": "Cozy Home · panou operațional",
+    "navGroups": {
+      "todo": "De rezolvat",
+      "records": "Evidență",
+      "content": "Conținut",
+      "config": "Configurare"
+    },
+    "navPending": "{count} de rezolvat",
+    "dashboardSubtitle": "Întâi ce are nevoie de tine, apoi cifrele platformei.",
+    "queues": {
+      "title": "De rezolvat",
+      "clear": "Nimic de rezolvat acum.",
+      "companies": {
+        "label": "Firme de verificat",
+        "waiting": "Așteaptă verificarea și o decizie.",
+        "cta": "Verifică",
+        "view": "Vezi firmele"
+      },
+      "payments": {
+        "label": "Plăți în așteptare",
+        "waiting": "Comenzi încă neconfirmate.",
+        "cta": "Confirmă",
+        "view": "Vezi plățile"
+      },
+      "disputes": {
+        "label": "Dispute deschise",
+        "waiting": "Așteaptă o rezolvare.",
+        "cta": "Rezolvă",
+        "view": "Vezi disputele"
+      }
+    },
+    "figures": {
+      "title": "Platforma în cifre",
+      "now": "acum",
+      "allCompanies": "la toate firmele",
+      "inActiveClaims": "în preluări active",
+      "confirmedOrders": "din comenzile confirmate",
+      "sinceLaunch": "de la lansare"
+    },
+    "list": {
+      "pagination": "Paginare",
+      "prev": "Înapoi",
+      "next": "Înainte",
+      "range": "{from}–{to} din {total}"
+    }
   },
   "Unsubscribe": {
     "title": "Dezabonare de la emailuri",
@@ -2187,7 +3381,21 @@
     "done": "Gata — nu îți mai trimitem emailuri de notificare. Notificările din aplicație rămân active.",
     "invalid": "Linkul de dezabonare nu este valid sau a fost deja folosit.",
     "reenableHint": "Le poți reactiva oricând din clopoțelul de notificări, după ce te autentifici.",
-    "backHome": "Înapoi la prima pagină"
+    "backHome": "Înapoi la prima pagină",
+    "effect": "Nu îți mai trimitem emailuri de notificare. Notificările din aplicație rămân active.",
+    "confirm": "Da, dezabonează-mă",
+    "keep": "Păstrez emailurile",
+    "failed": "Nu am reușit să te dezabonăm. Verifică conexiunea la internet și încearcă din nou.",
+    "doneTitle": "Gata, te-am dezabonat",
+    "resubscribe": "Am apăsat din greșeală — reabonează-mă",
+    "resubscribing": "Te reabonăm…",
+    "resubscribeFailed": "Nu am reușit să te reabonăm. Încearcă din clopoțelul de notificări.",
+    "resubscribedTitle": "Te-am reabonat",
+    "resubscribedBody": "Primești din nou emailuri de notificare.",
+    "invalidTitle": "Linkul nu mai este valid",
+    "invalidHint": "Poți opri emailurile și din clopoțelul de notificări, după ce te autentifici.",
+    "invalidHintSignedIn": "Poți opri emailurile și din clopoțelul de notificări, din contul tău.",
+    "login": "Autentifică-te"
   },
   "Notifications": {
     "title": "Notificări",
@@ -2297,7 +3505,17 @@
       "retry": "Încearcă din nou"
     },
     "sheet": {
-      "phaseLabel": "Faza {current} din {total}"
+      "phaseLabel": "Faza {current} din {total}",
+      "title": "Fișa cererii",
+      "progressLabel": "{done} din {total} întrebări obligatorii completate",
+      "sections": "{count, plural, =1 {o secțiune} few {# secțiuni} other {# de secțiuni}}",
+      "questions": "{count, plural, =1 {o întrebare} few {# întrebări} other {# de întrebări}}",
+      "optional": "opțional",
+      "required": "obligatoriu",
+      "roomDone": "gata",
+      "withDesigner": "cu proiectantul",
+      "missing": "de completat",
+      "hint": "Apasă pe orice rând ca să te întorci la acea secțiune. Nu pierzi nimic din ce ai completat."
     },
     "phases": {
       "start": "Pornire",
@@ -2313,7 +3531,9 @@
       "continue": "Continuă",
       "startQuestions": "Începe",
       "toDetails": "Spre date generale",
-      "toReview": "Spre sumar"
+      "toReview": "Spre sumar",
+      "roomsLabel": "Camerele cererii",
+      "nextUp": "Urmează: {label}"
     },
     "anchors": {
       "kitchenZones": {
@@ -2346,7 +3566,7 @@
       "subtitle": "Adaugă câte camere ai nevoie — merg și mai multe de același tip.",
       "designHelpSubtitle": "Alege camerele sau piesele pentru care vrei mobilier — proiectarea o faci împreună cu firma care preia cererea.",
       "basketTitle": "Coșul cererii tale",
-      "basketEmpty": "Nimic adăugat încă — alege de mai jos camere sau piese.",
+      "basketEmpty": "Nimic adăugat încă. Alege camere sau piese.",
       "totalRooms": "{count, plural, =0 {Nicio cameră} =1 {O cameră} other {# camere}}",
       "hasOwnProject": "Am deja un proiect pentru toată locuința",
       "hasOwnProjectHint": "Îl încarci o singură dată, la pasul Fișiere, și sari peste schițele fiecărei camere.",
@@ -2355,7 +3575,13 @@
       "addPieces": "Adaugă piese",
       "removePieces": "Elimină",
       "addOne": "Adaugă {type}",
-      "removeOne": "Șterge {type}"
+      "removeOne": "Șterge {type}",
+      "add": "Adaugă",
+      "basketRemove": "Scoate {type} din coș",
+      "basketNext": "Întrebările vin pe rând, în ordinea de aici.",
+      "countRooms": "{count, plural, =1 {o cameră} few {# camere} other {# de camere}}",
+      "countPieces": "{count, plural, =1 {o piesă} few {# piese} other {# de piese}}",
+      "summaryEmpty": "Nimic adăugat"
     },
     "sketchUpload": {
       "skipNotice": "Ai marcat că ai un proiect pentru toată locuința — poți sări peste acest pas. Încarcă proiectul la pasul Fișiere, ca să nu-l atașezi la fiecare cameră.",
@@ -2510,7 +3736,13 @@
       "fixRoom": "Completează {room}",
       "issueRoomStep": "{room}: „{step}” — {problem}",
       "issueRoom": "{room}: camera are răspunsuri incomplete.",
-      "contactsAdjusted": "Am pus emailul contului pe primul loc. Ca să rămână maximum 2 emailuri și 4 contacte, am scos: {removed}."
+      "contactsAdjusted": "Am pus emailul contului pe primul loc. Ca să rămână maximum 2 emailuri și 4 contacte, am scos: {removed}.",
+      "readyTitle": "Gata de publicare",
+      "readyTitleEdit": "Gata de salvare",
+      "notReadyTitle": "Mai e ceva de completat",
+      "checkDetails": "Date generale completate",
+      "publishNote": "După publicare o mai poți modifica de 3 ori până o preia o firmă și o singură dată după aceea.",
+      "roomComplete": "gata"
     },
     "inspirationPicker": {
       "title": "Inspirație din galerie",
@@ -5347,6 +6579,21 @@
     "contactInText": {
       "hint": "Se pare că ai scris un telefon, un email sau un link. Firmele nu le văd înainte de preluare: adaugă-le la pasul Contact și le primesc doar firmele care preiau cererea.",
       "descriptionIssue": "Mesajul pentru firme conține date de contact."
+    },
+    "phasesLabel": "Fazele cererii",
+    "draft": {
+      "saved": "Ciornă salvată",
+      "savedAt": "Ciornă salvată la {time}",
+      "saving": "Se salvează ciorna…",
+      "localOnly": "Ciornă salvată doar pe acest dispozitiv"
+    },
+    "edit": {
+      "backToRequest": "Înapoi la cerere",
+      "counter": "Aceasta este editarea {current} din {max}",
+      "noneLeft": "Ai folosit deja toate editările disponibile, deci o nouă salvare nu mai este posibilă.",
+      "preClaimNote": "Ai {max} modificări înainte ca o firmă să preia cererea și una singură după. Salvarea de acum consumă una.",
+      "postClaimNote": "Cererea a fost deja preluată, deci aceasta este singura modificare rămasă. După salvare, firmele pot renunța la preluare.",
+      "saveHint": "Nimic nu se schimbă până nu apeși „Salvează modificările” în Sumar."
     }
   },
   "Legal": {
@@ -5373,7 +6620,7 @@
           "b": "Pentru publicarea unei cereri sau pentru transmiterea de oferte este necesar un cont. Ești responsabil pentru confidențialitatea datelor de autentificare și pentru toate acțiunile efectuate din contul tău.\n\nTe obligi să furnizezi informații reale și complete, să nu publici conținut ilegal, înșelător sau ofensator și să nu folosești Platforma pentru a ocoli scopul ei (de exemplu, colectarea de date ale altor utilizatori sau publicitate nesolicitată). Ne rezervăm dreptul de a suspenda sau închide conturile care încalcă acești termeni.\n\nOperatorul poate bloca un cont care încalcă acești termeni. Blocarea revocă imediat sesiunile active, iar utilizatorul este anunțat prin email."
         },
         "flow": {
-          "h": "3. Cereri, revendicări și oferte",
+          "h": "3. Cereri, preluări și oferte",
           "b": "Clientul publică o cerere cu detaliile proiectului; un număr limitat de Firme o pot prelua și pot transmite oferte. Datele de contact ale Clientului devin vizibile doar Firmelor care au preluat cererea.\n\nOfertele transmise de Firme sunt propuneri comerciale ale acestora. Prețurile, termenele, garanțiile și orice alte condiții aparțin exclusiv Firmei care le emite. Estimările de buget afișate de Platformă sunt orientative și nu constituie oferte."
         },
         "delivery": {
@@ -5408,6 +6655,12 @@
           "h": "11. Legea aplicabilă și contact",
           "b": "Acești termeni sunt guvernați de legea română. Eventualele litigii se soluționează pe cale amiabilă, iar în lipsa unui acord, de instanțele competente din România.\n\nPentru orice întrebări legate de acești termeni ne poți scrie la {contactEmail}."
         }
+      },
+      "summary": {
+        "contract": "Contractul pentru mobilier se încheie direct între client și firmă; operatorul platformei nu este parte a lui.",
+        "claims": "O cerere poate fi preluată de un număr limitat de firme, iar datele de contact ale clientului le văd doar firmele care au preluat-o.",
+        "offers": "Ofertele sunt propunerile comerciale ale firmelor: prețurile, termenele și garanțiile aparțin firmei care le emite, iar estimările de buget afișate de platformă sunt orientative.",
+        "reviews": "O recenzie sub 3 stele deschide automat o dispută, gestionată de administratorul platformei."
       }
     },
     "privacy": {
@@ -5453,6 +6706,12 @@
           "h": "10. Contact",
           "b": "Pentru orice întrebare despre această politică sau despre datele tale: {operator}, email {contactEmail}."
         }
+      },
+      "summary": {
+        "contacts": "Numele tău, adresa completă și căile de contact alese ajung doar la firmele care au preluat cererea.",
+        "masked": "Cât timp cererea este publicată, firmele verificate care acoperă localitatea ta văd proiectul, dar telefoanele, adresele de email și linkurile scrise în texte le sunt ascunse.",
+        "accessEnds": "Accesul unei firme la numele, adresa și căile tale de contact se încheie când renunță la preluare sau când accepți oferta altei firme.",
+        "marketing": "Îți poți retrage oricând consimțământul pentru comunicările comerciale, prin linkul de dezabonare din fiecare email; folosirea platformei nu este afectată."
       }
     },
     "firmRules": {
@@ -5520,9 +6779,40 @@
           "h": "9. Modificarea valorilor",
           "b": "Operatorul poate modifica valorile de mai sus; această pagină arată întotdeauna valorile în vigoare. Costul și termenul unei preluări deja făcute rămân cele din momentul preluării. Pentru întrebări ne poți scrie la {contactEmail}."
         }
+      },
+      "summary": {
+        "title": "Pe scurt: valorile în vigoare acum",
+        "rows": {
+          "freeWithdrawal": "Retragere voluntară fără penalizare, cu creditele restituite",
+          "slaMiss": "Termen de răspuns depășit cu peste {graceHours}",
+          "voluntaryWithdrawal": "Retragere voluntară după primele {graceMinutes}",
+          "suspension": "Suspendarea firmei",
+          "reapply": "Aplicare nouă după respingerea verificării"
+        },
+        "values": {
+          "freeWithdrawal": "în primele {graceMinutes}",
+          "pointsAndCredits": "{points} de penalizare · creditele se consumă",
+          "creditsConsumed": "creditele se consumă",
+          "suspension": "la {threshold} active · {months}",
+          "reapply": "după {reapplyMonths}"
+        }
+      },
+      "cta": {
+        "title": "Ești de acord cu regulile?",
+        "hint": "Înscrierea durează câteva minute.",
+        "action": "Înscrie-ți firma"
       }
     },
-    "firmRulesCta": "Ești firmă? Citește <rules>Regulile pentru firme</rules>: termene, puncte de penalizare, suspendare și când se restituie creditele."
+    "firmRulesCta": "Ești firmă? Citește <rules>Regulile pentru firme</rules>: termene, puncte de penalizare, suspendare și când se restituie creditele.",
+    "toc": "Cuprins",
+    "summary": {
+      "title": "Pe scurt",
+      "note": "Rezumatul te ajută să te orientezi și nu înlocuiește textul complet de mai jos."
+    },
+    "firmRulesCard": {
+      "lead": "Ești firmă?",
+      "body": "Termenele, punctele de penalizare, suspendarea și restituirea creditelor sunt în Regulile pentru firme."
+    }
   },
   "LegalAcceptance": {
     "title": "Am actualizat Termenii și Politica de confidențialitate",
@@ -5565,7 +6855,7 @@
       },
       "terms": {
         "title": "Termeni și Condiții",
-        "description": "Termenii și condițiile de utilizare a platformei Cozy Home: conturi, cereri, revendicări, oferte, credite și răspundere."
+        "description": "Termenii și condițiile de utilizare a platformei Cozy Home: conturi, cereri, preluări, oferte, credite și răspundere."
       },
       "privacy": {
         "title": "Politica de Confidențialitate",
@@ -5580,7 +6870,9 @@
   "NotFound": {
     "title": "Pagina nu există",
     "body": "Linkul e greșit sau pagina a fost mutată. Te întoarcem la prima pagină, de unde găsești tot ce ai nevoie.",
-    "home": "Înapoi acasă"
+    "home": "Înapoi acasă",
+    "moreLinks": "Alte pagini utile",
+    "partners": "Firme partenere"
   },
   "ErrorPage": {
     "title": "A apărut o eroare neașteptată",

@@ -10,24 +10,23 @@ import { LangSwitch } from './lang-switch';
 import { MobileNav, activeHref } from './mobile-nav';
 
 // Header comun al paginilor publice (landing, parteneri, inspiratie, ghid):
-// logo → landing, linkuri publice, login/register sau "Contul meu" daca e
+// logo → landing, linkuri publice, login sau "Contul meu" daca e
 // sesiune activa. Sticky cu blur (ca AppHeader): navigatia ramane la
 // indemana oricat de jos derulezi, fara drumuri inapoi in capul paginii.
 // Client island: landing-ul ramane server component, dar
 // headerul citeste sesiunea (useMe) — altfel utilizatorul logat care revine
 // pe landing vede Login/Register si crede ca a fost deconectat.
-// CTA-ul "Creeaza o cerere" e actiunea centrala a platformei: vizibil mereu,
+// CTA-ul "Cere oferte" e actiunea centrala a platformei: vizibil mereu,
 // inclusiv pe mobil, dar ascuns pentru conturile de firma/admin.
 // Ordinea nav (feedback PO item 13): Caietul de idei primul (marketing —
 // pagina care ramane in mintea clientilor), apoi ghidul, apoi partenerii.
 //
 // Latimi (audit 2026-08-19, P0): sub `lg` (1024px) logo + 4 linkuri + lang +
-// 3 butoane NU incap (RO: ~1070px) si headerul se rupea pe 2-3 randuri cu
-// scroll orizontal. Acum: linkurile + lang + login/register stau in hamburger
-// pana la `lg`. Pe desktop: un singur CTA + "Autentificare" (Laws of UX, Hick,
-// 2026-11-08); Inregistrarea e la un click, din pagina de login.
-// Aceleasi inaltime (py-2.5) si prag (lg) ca AppHeader — headerul nu "sare"
-// la trecerea landing ↔ cont.
+// butoane NU incap si headerul se rupea pe 2-3 randuri cu scroll orizontal.
+// Linkurile + lang + login/register stau in hamburger pana la `lg`. Pe desktop:
+// un singur CTA + "Autentificare" (Laws of UX, Hick, 2026-11-08); Inregistrarea
+// e la un click, din pagina de login.
+// Design 2026-11: linkuri-pastila, controale de 40-44px, aceeasi inaltime ca AppHeader.
 export const PUBLIC_LINKS = [
   { href: '/inspiration', key: 'inspiration' },
   { href: '/studio', key: 'studio' },
@@ -53,19 +52,20 @@ export function PublicHeader() {
 
   return (
     // headerul (pozitionat) e ancora panoului MobileNav (absolute top-full)
-    <header className="sticky top-0 z-30 border-b border-border bg-surface/80 backdrop-blur-md backdrop-saturate-150">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
-        <div className="flex min-w-0 items-center gap-5">
+    <header className="sticky top-0 z-30 border-b border-border bg-surface/90 backdrop-blur-md backdrop-saturate-150">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <div className="flex min-w-0 items-center gap-5 xl:gap-7">
           <Link href="/" className="shrink-0">
             <CozyHomeLogo />
           </Link>
-          <nav className="hidden items-center gap-0.5 lg:flex">
+          <nav aria-label={tn('mainNav')} className="hidden items-center gap-1 lg:flex">
             {PUBLIC_LINKS.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
+                aria-current={l.href === current ? 'page' : undefined}
                 className={cn(
-                  'whitespace-nowrap rounded-md px-2 py-1.5 text-ui transition-colors xl:px-2.5 xl:text-sm',
+                  'whitespace-nowrap rounded-full px-2.5 py-2 text-ui transition-colors xl:px-3.5 xl:py-2.5 xl:text-sm',
                   l.href === current
                     ? 'bg-walnut-soft font-medium text-walnut-deep'
                     : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
@@ -76,22 +76,22 @@ export function PublicHeader() {
             ))}
           </nav>
         </div>
-        <nav className="flex shrink-0 items-center gap-2 text-sm">
+        <div className="flex shrink-0 items-center gap-2 text-sm sm:gap-2.5">
           <span className="hidden lg:inline-flex">
             <LangSwitch />
           </span>
-          {showCta && (
-            <Button asChild variant="walnut" size="sm">
-              <Link href="/requests/new">{tn('createRequest')}</Link>
-            </Button>
-          )}
           {signedIn ? (
-            <Button asChild variant="outline" size="sm" className="hidden lg:inline-flex">
+            <Button asChild variant="outline" size="lg" className="hidden h-11 lg:inline-flex">
               <Link href="/dashboard">{tn('dashboard')}</Link>
             </Button>
           ) : (
-            <Button asChild variant="ghost" size="sm" className="hidden lg:inline-flex">
+            <Button asChild variant="ghost" size="lg" className="hidden h-11 px-3.5 lg:inline-flex">
               <Link href="/login">{tn('login')}</Link>
+            </Button>
+          )}
+          {showCta && (
+            <Button asChild variant="walnut" size="lg" className="h-10 sm:h-11">
+              <Link href="/requests/new">{tn('createRequest')}</Link>
             </Button>
           )}
           <MobileNav
@@ -119,7 +119,7 @@ export function PublicHeader() {
               </div>
             }
           />
-        </nav>
+        </div>
       </div>
     </header>
   );

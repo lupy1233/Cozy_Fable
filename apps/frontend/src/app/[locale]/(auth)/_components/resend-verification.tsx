@@ -44,6 +44,7 @@ export function ResendVerification({
             <Input
               type="email"
               autoComplete="email"
+              className="h-11"
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
             />
@@ -52,6 +53,8 @@ export function ResendVerification({
         <Button
           type="button"
           variant="outline"
+          size="lg"
+          className="h-11"
           disabled={resend.isPending || !target}
           onClick={() => resend.mutate(target)}
         >

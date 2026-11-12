@@ -6,6 +6,8 @@ import type { QuoteDto, QuoteVersionDto } from '@marketplace/shared';
 import { ApiError } from '@/lib/api';
 import { useAcceptQuote, useClientQuote } from '@/hooks/use-quotes';
 import { latestVersion } from '@/lib/quote-version';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -28,7 +30,7 @@ export function AcceptSummary({ quote, version: v }: { quote: QuoteDto; version:
   const alt = (ron: number | null, eur: number | null) => {
     const value = quote.currency === 'RON' ? eur : ron;
     return value == null ? null : (
-      <span className="ml-2 text-xs font-normal text-muted-foreground">
+      <span className="ml-2 font-sans text-xs font-normal text-muted-foreground">
         ≈ {fmt(value)} {other}
       </span>
     );
@@ -83,17 +85,17 @@ export function AcceptSummary({ quote, version: v }: { quote: QuoteDto; version:
   });
 
   return (
-    <div className="rounded-lg bg-surface-2 px-3 py-2 text-sm">
-      <p className="text-xs text-muted-foreground">{t('versionLabel', { n: v.version })}</p>
-      <dl className="mt-1 grid grid-cols-[minmax(0,auto)_minmax(0,1fr)] gap-x-4 gap-y-1.5 tabular-nums">
+    <div className="rounded-lg border border-border bg-surface-2 px-4 py-3 text-sm">
+      <p className="label">{t('versionLabel', { n: v.version })}</p>
+      <dl className="mt-2 grid grid-cols-[minmax(0,auto)_minmax(0,1fr)] gap-x-4 gap-y-2 tabular-nums">
         {rows.map((r) => (
           <div key={r.key} className="contents">
             <dt className={r.strong ? 'font-semibold' : 'text-muted-foreground'}>{r.label}</dt>
-            <dd className={r.strong ? 'text-right font-serif text-base font-semibold' : 'text-right'}>{r.value}</dd>
+            <dd className={r.strong ? 'text-right font-mono text-lg font-medium' : 'text-right'}>{r.value}</dd>
           </div>
         ))}
       </dl>
-      <p className="mt-2 text-xs text-muted-foreground">
+      <p className="mt-2.5 text-xs text-muted-foreground">
         {t('validUntil', { date: new Date(v.validUntil).toLocaleDateString() })}
       </p>
     </div>
@@ -160,35 +162,50 @@ export function AcceptOfferDialog({
           <DialogDescription>{t('acceptConfirmBody')}</DialogDescription>
         </DialogHeader>
 
-        {versionChanged && (
-          <p role="status" className="rounded-md border border-amber/25 bg-amber-soft px-3 py-2 text-sm text-amber">
-            {t('acceptVersionChanged')}
-          </p>
-        )}
+        <div className="flex flex-col gap-3">
+          {versionChanged && (
+            <Alert tone="amber" role="status">
+              {t('acceptVersionChanged')}
+            </Alert>
+          )}
 
-        {!fresh.data && !fresh.isError ? (
-          <p className="text-sm text-muted-foreground">{t('acceptConfirmLoading')}</p>
-        ) : (
-          shown && fresh.data && <AcceptSummary quote={fresh.data} version={shown} />
-        )}
+          {!fresh.data && !fresh.isError ? (
+            <p className="text-sm text-muted-foreground">{t('acceptConfirmLoading')}</p>
+          ) : (
+            shown && fresh.data && <AcceptSummary quote={fresh.data} version={shown} />
+          )}
 
-        {blocked && <p className="text-sm text-crimson">{blocked}</p>}
+          {blocked && (
+            <p role="alert" className="text-sm text-crimson">
+              {blocked}
+            </p>
+          )}
 
-        <p className="mt-2 text-sm text-muted-foreground">{t('acceptConfirmVatHint')}</p>
-        <p className="text-sm text-muted-foreground">
-          {t('acceptConfirmKeepChat', { company: quote.companyName })}
-        </p>
-        {acceptError && <p className="mt-2 text-sm text-crimson">{acceptError}</p>}
+          <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
+            <p>{t('acceptConfirmVatHint')}</p>
+            <p>{t('acceptConfirmKeepChat', { company: quote.companyName })}</p>
+          </div>
+          {acceptError && (
+            <p role="alert" className="text-sm text-crimson">
+              {acceptError}
+            </p>
+          )}
+        </div>
 
-        <DialogFooter>
-          <button
+        <DialogFooter className="flex-wrap">
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
             onClick={() => onOpenChange(false)}
             disabled={accept.isPending}
-            className="rounded-lg border border-border-2 bg-surface px-4 py-2 text-sm transition-colors hover:bg-secondary disabled:opacity-50"
           >
             {t('acceptConfirmCancel')}
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
+            variant="walnut"
+            size="lg"
             onClick={() => {
               if (!shown) return;
               accept.mutate(
@@ -197,10 +214,9 @@ export function AcceptOfferDialog({
               );
             }}
             disabled={!canConfirm}
-            className="rounded-md bg-sage px-4 py-2 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-50"
           >
             {accept.isPending ? t('acceptConfirmPending') : t('acceptConfirmCta')}
-          </button>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

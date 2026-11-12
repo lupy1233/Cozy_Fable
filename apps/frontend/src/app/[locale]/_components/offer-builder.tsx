@@ -1,12 +1,21 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { MAX_QUOTE_VERSIONS } from '@marketplace/shared';
+import { useFormatter, useTranslations } from 'next-intl';
+import { forwardRef, useId, useState, type InputHTMLAttributes } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { ApiError } from '@/lib/api';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
+import { cn } from '@/lib/utils';
 import { useCreateQuote, useExtraVersion, useReoffer, useReviseQuote } from '@/hooks/use-quotes';
+import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 // Numerele optionale vin din inputuri ca '' cand sunt goale; z.coerce le facea
 // 0 → pica positive() FARA mesaj afisat si formularul nu se trimitea deloc
@@ -17,13 +26,19 @@ const optionalPositive = (int = false) =>
     (int ? z.number().int() : z.number()).positive().optional(),
   );
 
+const TERM_UNITS = ['WEEKS', 'WORKING_DAYS'] as const;
+
+// Design 2026-11: fiecare camp are unitatea langa el. Termenul de livrare si garantia se
+// completeaza ca numar + unitate si pleaca spre API tot ca text ("8 saptamani", "12 luni") —
+// contractul ofertei (deliveryTerm / warranty = string) ramane neschimbat.
 const formSchema = z.object({
   price: z.coerce.number().positive(),
   designFee: optionalPositive(),
   currency: z.enum(['RON', 'EUR']).optional(),
-  deliveryTerm: z.string().optional(),
+  deliveryTermValue: optionalPositive(true),
+  deliveryTermUnit: z.enum(TERM_UNITS).optional(),
   deliveryDate: z.string().optional(),
-  warranty: z.string().optional(),
+  warrantyMonths: optionalPositive(true),
   description: z.string().min(1),
   validityDays: optionalPositive(true),
 });
@@ -31,19 +46,29 @@ type FormValues = z.input<typeof formSchema>;
 
 // camerele cererii, pentru defalcarea pretului (F7, item 22)
 type OfferRoom = { id: string; roomType: string };
+type OfferCurrency = 'RON' | 'EUR';
 
 type Props = (
   | { kind: 'create'; claimSlotId: string; includesPaidDesign: boolean; onDone?: () => void }
   | { kind: 'revise'; quoteId: string; changeRequestId: string; includesPaidDesign: boolean; onDone?: () => void }
   | { kind: 'extra'; quoteId: string; includesPaidDesign: boolean; onDone?: () => void }
   | { kind: 'reoffer'; quoteId: string; includesPaidDesign: boolean; onDone?: () => void }
-) & { rooms?: OfferRoom[] };
+) & {
+  rooms?: OfferRoom[];
+  // moneda ofertei existente (revise / extra / reoffer) — unitatea de langa campurile de pret;
+  // la 'create' unitatea urmeaza moneda aleasa in formular
+  currency?: OfferCurrency;
+};
 
-const fmtRon = (v: number) => new Intl.NumberFormat('ro-RO').format(v);
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function OfferBuilder(props: Props) {
   const t = useTranslations('Quotes');
   const tc = useTranslations('Configurator');
+  const tu = useTranslations('Legal.firmRules.units');
+  const format = useFormatter();
+  const uid = useId();
+  const isCreate = props.kind === 'create';
   const quoteId = props.kind === 'create' ? '' : props.quoteId;
   const create = useCreateQuote();
   const revise = useReviseQuote(quoteId);
@@ -53,8 +78,25 @@ export function OfferBuilder(props: Props) {
     register,
     handleSubmit,
     setValue,
+    control,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(formSchema) });
+  const pickedCurrency = useWatch({ control, name: 'currency' });
+  const validityRaw = useWatch({ control, name: 'validityDays' });
+
+  // unitatea de langa sume: moneda aleasa (create) sau moneda ofertei (daca apelantul o da)
+  const currency: OfferCurrency | undefined = isCreate ? (pickedCurrency ?? 'RON') : props.currency;
+  const moneyUnit = currency ? t(`builder.unit.${currency}`) : undefined;
+
+  // "Valabila pana la ..." — doar cand firma a scris un numar de zile (altfel se aplica implicitul din setari)
+  const validityDays = Number(validityRaw);
+  const validUntil =
+    Number.isInteger(validityDays) && validityDays > 0 && validityDays <= 365
+      ? format.dateTime(new Date(Date.now() + validityDays * DAY_MS), {
+          dateStyle: 'long',
+          timeZone: APP_TIME_ZONE,
+        })
+      : null;
 
   // Defalcare pe camere (F7): cand TOATE camerele au pret, totalul se
   // calculeaza singur si campul de pret se blocheaza pe suma.
@@ -63,10 +105,6 @@ export function OfferBuilder(props: Props) {
   const filled = rooms.filter((r) => Number(roomPrices[r.id]) > 0);
   const allFilled = rooms.length > 0 && filled.length === rooms.length;
   const partial = filled.length > 0 && !allFilled;
-  const total = useMemo(
-    () => filled.reduce((acc, r) => acc + Number(roomPrices[r.id]), 0),
-    [filled, roomPrices],
-  );
 
   const setRoomPrice = (roomId: string, raw: string) => {
     const next = { ...roomPrices, [roomId]: raw };
@@ -84,12 +122,18 @@ export function OfferBuilder(props: Props) {
 
   const onSubmit = (v: FormValues) => {
     if (partial) return; // defalcare incompleta: completeaza tot sau goleste
+    const termValue = v.deliveryTermValue ? Number(v.deliveryTermValue) : null;
+    const warrantyMonths = v.warrantyMonths ? Number(v.warrantyMonths) : null;
     const base = {
       price: Number(v.price),
       designFee: v.designFee ? Number(v.designFee) : undefined,
-      deliveryTerm: v.deliveryTerm || undefined,
+      deliveryTerm: termValue
+        ? v.deliveryTermUnit === 'WORKING_DAYS'
+          ? tu('workingDay', { n: termValue })
+          : t('builder.termWeeks', { n: termValue })
+        : undefined,
       deliveryDate: v.deliveryDate || undefined,
-      warranty: v.warranty || undefined,
+      warranty: warrantyMonths ? tu('month', { n: warrantyMonths }) : undefined,
       description: v.description,
       validityDays: v.validityDays ? Number(v.validityDays) : undefined,
       roomPrices: allFilled
@@ -110,133 +154,268 @@ export function OfferBuilder(props: Props) {
     }
   };
 
+  const title =
+    props.kind === 'create'
+      ? t('builder.createTitle')
+      : props.kind === 'revise'
+        ? t('builder.reviseTitle')
+        : props.kind === 'extra'
+          ? t('builder.extraTitle')
+          : t('builder.reofferTitle');
+  // oferta noua = cardul principal al fisei (h2); variantele ulterioare stau in cardul ofertei (h3)
+  const TitleTag = isCreate ? 'h2' : 'h3';
+  const ids = {
+    title: `${uid}-title`,
+    price: `${uid}-price`,
+    fee: `${uid}-fee`,
+    term: `${uid}-term`,
+    date: `${uid}-date`,
+    warranty: `${uid}-warranty`,
+    validity: `${uid}-validity`,
+    currency: `${uid}-currency`,
+    desc: `${uid}-desc`,
+    descHint: `${uid}-desc-hint`,
+  };
+
+  // randul pretului: total calculat din camere (blocat) sau pret unic scris de firma
+  const priceRow = (
+    <div className="flex flex-col gap-1.5 rounded-lg bg-surface-2 px-4 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <Label htmlFor={ids.price} className="text-sm font-semibold">
+          {t('builder.price')}
+        </Label>
+        <UnitInput
+          id={ids.price}
+          type="number"
+          step="0.01"
+          inputMode="decimal"
+          {...register('price')}
+          readOnly={allFilled}
+          title={allFilled ? t('builder.priceLocked') : undefined}
+          unit={moneyUnit}
+          wrapperClassName="shrink-0"
+          className="w-32 flex-none text-right font-mono read-only:cursor-default read-only:font-medium"
+        />
+      </div>
+      {errors.price && <p className="text-xs text-crimson">{t('validation.priceInvalid')}</p>}
+      {partial && <p className="text-xs text-amber">{t('builder.roomPricesPartial')}</p>}
+    </div>
+  );
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-4 shadow-sm">
-      <h3 className="font-serif text-lg">
-        {props.kind === 'create'
-          ? t('builder.createTitle')
-          : props.kind === 'revise'
-            ? t('builder.reviseTitle')
-            : props.kind === 'extra'
-              ? t('builder.extraTitle')
-              : t('builder.reofferTitle')}
-      </h3>
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      aria-labelledby={ids.title}
+      className={cn(
+        'flex flex-col',
+        isCreate
+          ? 'gap-6 rounded-xl border border-border bg-surface p-5 shadow sm:p-7'
+          : 'gap-5 rounded-lg border border-border-2 bg-surface p-4',
+      )}
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5">
+        <TitleTag id={ids.title} className={isCreate ? 'font-serif text-2xl' : 'heading-card'}>
+          {title}
+        </TitleTag>
+        {isCreate && (
+          <span className="text-ui text-muted-foreground">
+            {t('builder.versionOf', { n: 1, max: MAX_QUOTE_VERSIONS })}
+          </span>
+        )}
+      </div>
 
       {/* pret per camera (F7, item 22): total calculat automat */}
-      {rooms.length > 0 && (
-        <div className="rounded-lg border border-border-2 bg-surface-2 p-3">
-          <p className="mb-2 font-mono text-meta uppercase tracking-[0.06em] text-muted-foreground">
-            {t('builder.roomPrices')}
-          </p>
-          <div className="flex flex-col gap-2">
-            {rooms.map((r, i) => (
-              <label key={r.id} className="grid grid-cols-[1fr_9rem] items-center gap-3 text-sm">
-                <span>
+      {rooms.length > 0 ? (
+        <fieldset className="flex min-w-0 flex-col gap-2.5">
+          <legend className="mb-2.5 text-sm font-semibold">{t('builder.roomPrices')}</legend>
+          {rooms.map((r, i) => {
+            const roomId = `${uid}-room-${r.id}`;
+            return (
+              <div key={r.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                <label htmlFor={roomId} className="min-w-0 flex-[1_1_200px] text-sm">
                   {i + 1}. {tc(`rooms.type.${r.roomType}`)}
-                </span>
-                <input
+                </label>
+                <UnitInput
+                  id={roomId}
                   type="number"
                   step="0.01"
                   min="0"
+                  inputMode="decimal"
                   value={roomPrices[r.id] ?? ''}
                   onChange={(e) => setRoomPrice(r.id, e.target.value)}
                   placeholder="0"
-                  className="input text-right"
+                  unit={moneyUnit}
+                  wrapperClassName="shrink-0"
+                  className="w-32 flex-none text-right font-mono"
                 />
-              </label>
-            ))}
-          </div>
-          <div className="mt-2 flex items-center justify-between border-t border-border-2 pt-2 text-sm">
-            <span className="font-medium">{t('builder.roomPricesTotal')}</span>
-            <span className="font-serif text-lg tabular-nums">
-              {allFilled ? fmtRon(total) : partial ? fmtRon(total) + '…' : '—'}
-            </span>
-          </div>
-          {partial && <p className="mt-1 text-xs text-amber">{t('builder.roomPricesPartial')}</p>}
-        </div>
+              </div>
+            );
+          })}
+          {priceRow}
+        </fieldset>
+      ) : (
+        priceRow
       )}
 
-      <div className="grid grid-cols-2 gap-3">
-        <Field label={t('builder.price')} error={errors.price && t('validation.priceInvalid')}>
-          <input
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(220px,100%),1fr))] gap-5">
+        {props.includesPaidDesign && (
+          <Field
+            label={t('builder.designFee')}
+            htmlFor={ids.fee}
+            error={errors.designFee ? t('validation.amountInvalid') : undefined}
+          >
+            <UnitInput
+              id={ids.fee}
+              type="number"
+              step="0.01"
+              inputMode="decimal"
+              {...register('designFee')}
+              unit={moneyUnit}
+            />
+          </Field>
+        )}
+        <Field
+          label={t('builder.deliveryTerm')}
+          htmlFor={ids.term}
+          error={errors.deliveryTermValue ? t('validation.wholeNumber') : undefined}
+        >
+          <div className="flex gap-2">
+            <Input
+              id={ids.term}
+              type="number"
+              min="1"
+              step="1"
+              inputMode="numeric"
+              {...register('deliveryTermValue')}
+              className="h-11 w-20 shrink-0"
+            />
+            <div className="min-w-0 flex-1">
+              <Select
+                aria-label={t('builder.termUnitLabel')}
+                defaultValue="WEEKS"
+                {...register('deliveryTermUnit')}
+                className="h-11"
+              >
+                {TERM_UNITS.map((u) => (
+                  <option key={u} value={u}>
+                    {t(`builder.termUnit.${u}`)}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+        </Field>
+        <Field label={t('builder.deliveryDate')} htmlFor={ids.date}>
+          <Input id={ids.date} type="date" {...register('deliveryDate')} className="h-11" />
+        </Field>
+        <Field
+          label={t('builder.warranty')}
+          htmlFor={ids.warranty}
+          error={errors.warrantyMonths ? t('validation.wholeNumber') : undefined}
+        >
+          <UnitInput
+            id={ids.warranty}
             type="number"
-            step="0.01"
-            {...register('price')}
-            readOnly={allFilled}
-            title={allFilled ? t('builder.priceLocked') : undefined}
-            className="input"
+            min="1"
+            step="1"
+            inputMode="numeric"
+            {...register('warrantyMonths')}
+            unit={t('builder.unitMonths')}
           />
         </Field>
-        {props.kind === 'create' && (
-          <Field label={t('builder.currency')}>
-            <select {...register('currency')} className="input" defaultValue="RON">
+        <Field
+          label={t('builder.validity')}
+          htmlFor={ids.validity}
+          error={errors.validityDays ? t('validation.wholeNumber') : undefined}
+          hint={validUntil ? t('validUntil', { date: validUntil }) : undefined}
+        >
+          <UnitInput
+            id={ids.validity}
+            type="number"
+            min="1"
+            step="1"
+            inputMode="numeric"
+            {...register('validityDays')}
+            placeholder="14"
+            unit={t('builder.unitDays')}
+          />
+        </Field>
+        {isCreate && (
+          <Field label={t('builder.currency')} htmlFor={ids.currency}>
+            <Select id={ids.currency} defaultValue="RON" {...register('currency')} className="h-11">
               <option value="RON">RON</option>
               <option value="EUR">EUR</option>
-            </select>
+            </Select>
           </Field>
         )}
-        {props.includesPaidDesign && (
-          <Field label={t('builder.designFee')}>
-            <input type="number" step="0.01" {...register('designFee')} className="input" />
-          </Field>
-        )}
-        <Field label={t('builder.deliveryTerm')}>
-          <input {...register('deliveryTerm')} className="input" />
-        </Field>
-        <Field label={t('builder.deliveryDate')}>
-          <input type="date" {...register('deliveryDate')} className="input" />
-        </Field>
-        <Field label={t('builder.warranty')}>
-          <input {...register('warranty')} className="input" />
-        </Field>
-        <Field label={t('builder.validityDays')}>
-          <input type="number" {...register('validityDays')} placeholder="14" className="input" />
-        </Field>
       </div>
 
-      <Field label={t('builder.description')} error={errors.description && t('validation.descriptionRequired')}>
-        <textarea {...register('description')} rows={3} className="input" />
-      </Field>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={ids.desc}>{t('builder.description')}</Label>
+        <Textarea id={ids.desc} rows={4} aria-describedby={ids.descHint} {...register('description')} />
+        {errors.description && <p className="text-xs text-crimson">{t('validation.descriptionRequired')}</p>}
+        <p id={ids.descHint} className="text-xs text-muted-foreground">
+          {t('builder.descriptionHint')}
+        </p>
+      </div>
 
       {apiErr && (
-        <p className="text-sm text-crimson">
+        <p role="alert" className="text-sm text-crimson">
           {t.has(`apiErrors.${apiErr}`) ? t(`apiErrors.${apiErr}`) : t('apiErrors.INTERNAL_ERROR')}
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={active.isPending || partial}
-        className="self-start rounded-md bg-walnut px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition hover:brightness-110 disabled:opacity-50"
+      <div
+        className={cn(
+          'flex flex-wrap items-center justify-between gap-x-6 gap-y-3',
+          isCreate && 'border-t border-border pt-5',
+        )}
       >
-        {t('builder.submit')}
-      </button>
-
-      <style jsx>{`
-        :global(.input) {
-          width: 100%;
-          border: 1px solid hsl(var(--border-2));
-          background: hsl(var(--card));
-          color: hsl(var(--foreground));
-          border-radius: 0.375rem;
-          padding: 0.5rem 0.75rem;
-          font-size: 0.875rem;
-        }
-        :global(.input:focus-visible) {
-          outline: none;
-          border-color: hsl(var(--foreground));
-        }
-      `}</style>
+        {isCreate && <p className="max-w-sm text-ui text-muted-foreground">{t('builder.createNote')}</p>}
+        <Button
+          type="submit"
+          variant={isCreate ? 'walnut' : 'default'}
+          size={isCreate ? 'xl' : 'lg'}
+          disabled={active.isPending || partial}
+        >
+          {isCreate ? t('builder.submitCreate') : t('builder.submit')}
+        </Button>
+      </div>
     </form>
   );
 }
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+// Camp cu unitatea lipita in dreapta (lei, luni, zile). Unitatea e legata de input prin
+// aria-describedby, deci numele accesibil al campului ramane eticheta lui.
+const UnitInput = forwardRef<
+  HTMLInputElement,
+  InputHTMLAttributes<HTMLInputElement> & { unit?: string; wrapperClassName?: string }
+>(function UnitInput({ unit, wrapperClassName, className, id, ...props }, ref) {
+  const unitId = unit && id ? `${id}-unit` : undefined;
   return (
-    <label className="flex flex-col gap-1.5 text-sm">
-      <span className="font-mono text-meta uppercase tracking-[0.06em] text-muted-foreground">{label}</span>
-      {children}
-      {error && <span className="text-xs text-crimson">{error}</span>}
-    </label>
+    <div
+      className={cn(
+        'flex h-11 items-center rounded-md border border-border-2 bg-surface transition-colors',
+        'focus-within:border-foreground focus-within:ring-2 focus-within:ring-foreground/5',
+        'has-[input:read-only]:border-transparent has-[input:read-only]:bg-transparent',
+        wrapperClassName,
+      )}
+    >
+      <input
+        ref={ref}
+        id={id}
+        aria-describedby={unitId}
+        className={cn(
+          'h-10 min-w-0 flex-1 rounded-md bg-transparent px-3 text-sm placeholder:text-muted-2 focus-visible:outline-none',
+          className,
+        )}
+        {...props}
+      />
+      {unit && (
+        <span id={unitId} className="shrink-0 pr-3 text-sm text-muted-foreground">
+          {unit}
+        </span>
+      )}
+    </div>
   );
-}
+});

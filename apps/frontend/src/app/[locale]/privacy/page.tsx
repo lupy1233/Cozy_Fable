@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { LegalArticle } from '../_components/legal-article';
-import { PRIVACY_SECTIONS } from '../_components/legal-sections';
+import { PRIVACY_SECTIONS, PRIVACY_SUMMARY } from '../_components/legal-sections';
 import { pageMetadata } from '../_components/metadata';
 import { PublicShell } from '../_components/public-shell';
 
@@ -17,7 +17,7 @@ export async function generateMetadata({
 export default function PrivacyPage() {
   return (
     <PublicShell>
-      <LegalArticle page="privacy" sections={PRIVACY_SECTIONS} />
+      <LegalArticle page="privacy" sections={PRIVACY_SECTIONS} summary={PRIVACY_SUMMARY} />
     </PublicShell>
   );
 }

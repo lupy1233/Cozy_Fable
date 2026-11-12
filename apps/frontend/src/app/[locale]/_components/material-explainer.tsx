@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
-// "Materialele, explicate simplu" (landing F, 2026-11-08): aceleasi texte si
-// preturi ca in formular (Configurator.common.materials) — o singura sursa,
-// ca promisiunea de pe landing sa fie identica cu ce vede clientul in cerere.
+// "Materialele, explicate simplu" (landing F, 2026-11-08; asezare dupa canvasul de design
+// 2026-11-12): aceleasi texte si preturi ca in formular (Configurator.common.materials) —
+// o singura sursa, ca promisiunea de pe landing sa fie identica cu ce vede clientul in cerere.
 // Laws of UX: Hick (5 optiuni, una deschisa), Aesthetic-Usability (pozele PO).
 const MATERIALS = [
   { key: 'PAL', img: '/illustrations/pal.png' },
@@ -30,9 +30,11 @@ function parseRange(price: string): [number, number] | null {
   return [nums[0], nums[1]];
 }
 
-export function MaterialExplainer() {
+// `className` = containerul si ritmul vertical al sectiunii, date de pagina
+export function MaterialExplainer({ className }: { className?: string }) {
   const t = useTranslations('LandingV2');
   const tm = useTranslations('Configurator.common.materials');
+  const format = useFormatter();
   const [selected, setSelected] = useState<MaterialKey>('PAL');
 
   const price = tm(`${selected}.info.price`);
@@ -41,72 +43,99 @@ export function MaterialExplainer() {
   const width = range ? Math.max(6, ((range[1] - range[0]) / (SCALE_MAX - SCALE_MIN)) * 100) : 0;
 
   return (
-    <section id="materiale" className="scroll-mt-20 py-12">
-      <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
-        <div>
+    <section id="materiale" className={cn('flex scroll-mt-20 flex-col gap-8', className)}>
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+        <div className="flex flex-col gap-3">
           <span className="kicker">{t('materialsKicker')}</span>
-          <h2 className="serif mt-2 text-3xl sm:text-4xl">{t('materialsTitle')}</h2>
+          <h2 className="font-serif text-3xl leading-[1.15] sm:text-4xl sm:leading-[1.15]">{t('materialsTitle')}</h2>
         </div>
-        <p className="max-w-sm text-sm text-muted-foreground">{t('materialsSub')}</p>
+        <p className="max-w-xs text-muted-foreground">{t('materialsSub')}</p>
       </div>
 
-      <div role="radiogroup" aria-label={t('materialsTitle')} className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      {/* butoane cu aria-pressed intr-un grup etichetat: o singura optiune apasata odata */}
+      <div
+        role="group"
+        aria-label={t('materialsPick')}
+        className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(min(180px,100%),1fr))] sm:gap-4"
+      >
         {MATERIALS.map((m) => {
           const on = m.key === selected;
           return (
             <button
               key={m.key}
               type="button"
-              role="radio"
-              aria-checked={on}
+              aria-pressed={on}
               onClick={() => setSelected(m.key)}
               className={cn(
-                'flex flex-col items-center gap-2 rounded-xl border bg-surface p-3 pb-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-walnut/50',
-                on ? 'border-2 border-walnut bg-walnut-soft/40' : 'border-border hover:border-walnut/40',
+                'flex flex-col items-center gap-2.5 rounded-xl border bg-surface px-3 pb-3.5 pt-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-walnut/50',
+                // inelul de 1px peste chenar = contur de 2px fara sa mute continutul
+                on
+                  ? 'border-walnut font-semibold shadow ring-1 ring-walnut'
+                  : 'border-border font-medium hover:border-walnut/40',
               )}
             >
-              <Image src={m.img} alt="" width={240} height={240} className="aspect-square w-full object-contain" />
+              <Image src={m.img} alt="" width={240} height={240} className="h-[120px] w-full object-contain" />
               {tm(`${m.key}.label`)}
             </button>
           );
         })}
       </div>
 
-      <div className="mt-4 grid gap-6 rounded-xl border border-border bg-surface p-6 md:grid-cols-[1.3fr_1fr]" aria-live="polite">
-        <div className="flex flex-col gap-2.5">
-          <h3 className="font-serif text-2xl">{tm(`${selected}.info.title`)}</h3>
-          <p className="leading-relaxed text-muted-foreground">{tm(`${selected}.info.body`)}</p>
-          <ul className="mt-1 flex flex-col gap-1.5 text-sm">
-            <li className="flex gap-2">
-              <span className="font-semibold text-sage" aria-hidden>+</span>
+      <div
+        aria-live="polite"
+        className="flex flex-wrap overflow-hidden rounded-xl border border-border bg-surface"
+      >
+        <div className="flex min-w-0 flex-[3_1_420px] flex-col gap-3.5 p-6 sm:p-7">
+          <h3 className="font-serif text-2xl leading-tight">{tm(`${selected}.info.title`)}</h3>
+          <p className="max-w-[560px] text-muted-foreground">{tm(`${selected}.info.body`)}</p>
+          <ul className="mt-1 flex flex-col gap-2.5">
+            <li className="flex gap-2.5">
+              <span
+                aria-hidden
+                className="grid size-5 flex-none place-items-center rounded-full bg-sage-soft font-semibold leading-none text-sage"
+              >
+                +
+              </span>
               <span>
-                <span className="sr-only">{t('materialsPro')}: </span>
-                {tm(`${selected}.info.pros1`)}
+                <span className="font-medium">{t('materialsPro')}:</span> {tm(`${selected}.info.pros1`)}
               </span>
             </li>
-            <li className="flex gap-2">
-              <span className="font-semibold text-crimson" aria-hidden>−</span>
+            <li className="flex gap-2.5">
+              <span
+                aria-hidden
+                className="grid size-5 flex-none place-items-center rounded-full bg-amber-soft font-semibold leading-none text-amber"
+              >
+                −
+              </span>
               <span>
-                <span className="sr-only">{t('materialsCon')}: </span>
-                {tm(`${selected}.info.cons1`)}
+                <span className="font-medium">{t('materialsCon')}:</span> {tm(`${selected}.info.cons1`)}
               </span>
             </li>
           </ul>
         </div>
-        <div className="flex flex-col justify-center gap-2.5">
-          <span className="text-sm text-muted-foreground">{t('materialsPrice')}</span>
-          <span className="font-mono text-2xl">{price}</span>
+        <div className="flex min-w-0 flex-[2_1_300px] flex-col justify-center gap-3 bg-surface-2 p-6 sm:p-7">
+          <span className="label">{t('materialsPrice')}</span>
+          <span className="font-mono text-2xl font-medium">{price}</span>
           {range && (
             <>
-              <div aria-hidden className="relative h-2 overflow-hidden rounded-full bg-surface-3">
+              <div
+                role="img"
+                aria-label={t('materialsScaleAria', {
+                  material: tm(`${selected}.label`),
+                  price,
+                  min: format.number(SCALE_MIN),
+                  max: format.number(SCALE_MAX),
+                })}
+                className="relative h-2 overflow-hidden rounded-full bg-border"
+              >
                 <span
                   className="absolute inset-y-0 rounded-full bg-walnut transition-all duration-300"
                   style={{ left: `${left}%`, width: `${width}%` }}
                 />
               </div>
-              <div aria-hidden className="flex justify-between text-xs text-muted-foreground">
-                <span>{SCALE_MIN}</span>
-                <span>{SCALE_MAX.toLocaleString('ro-RO')}</span>
+              <div aria-hidden className="flex justify-between font-mono text-xs text-muted-foreground">
+                <span>{format.number(SCALE_MIN)}</span>
+                <span>{t('materialsScaleMax', { max: format.number(SCALE_MAX) })}</span>
               </div>
             </>
           )}

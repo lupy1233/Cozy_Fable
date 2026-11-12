@@ -1,21 +1,28 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useId, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { useAnswerClarification, useClientClarifications } from '@/hooks/use-claims-lifecycle';
 
+// Intrebarile firmelor la care clientul nu a raspuns inca — e randul lui (chihlimbar).
 export function ClientClarifications({ requestId }: { requestId: string }) {
   const t = useTranslations('Lifecycle');
+  const titleId = useId();
   const clarifications = useClientClarifications(requestId);
   const pending = (clarifications.data ?? []).filter((c) => c.status === 'PENDING');
   if (pending.length === 0) return null;
   return (
-    <section className="flex flex-col gap-2 rounded-xl border border-amber/30 bg-amber-soft p-4">
-      <h2 className="font-serif text-lg text-amber">{t('clientClarificationsTitle')}</h2>
+    <Card as="section" tone="amber" aria-labelledby={titleId} className="flex flex-col gap-3">
+      <h2 id={titleId} className="heading-section text-amber">
+        {t('clientClarificationsTitle')}
+      </h2>
       {pending.map((c) => (
         <ClarificationAnswer key={c.id} id={c.id} question={c.questionText} />
       ))}
-    </section>
+    </Card>
   );
 }
 
@@ -23,23 +30,29 @@ function ClarificationAnswer({ id, question }: { id: string; question: string })
   const t = useTranslations('Lifecycle');
   const answer = useAnswerClarification();
   const [text, setText] = useState('');
+  const questionId = useId();
   return (
-    <div className="flex flex-col gap-2 rounded-md bg-surface p-3 text-sm">
-      <p className="font-medium">{question}</p>
-      <textarea
+    <div className="flex flex-col gap-2.5 rounded-lg bg-surface p-3.5 text-sm">
+      <p id={questionId} className="whitespace-pre-wrap font-medium">
+        {question}
+      </p>
+      <Textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={2}
         placeholder={t('answerPlaceholder')}
-        className="rounded-md border border-border-2 bg-surface px-3 py-2 focus-visible:border-foreground focus-visible:outline-none"
+        aria-labelledby={questionId}
+        className="min-h-[64px]"
       />
-      <button
+      <Button
+        type="button"
+        size="lg"
         onClick={() => answer.mutate({ id, answerText: text.trim() }, { onSuccess: () => setText('') })}
         disabled={text.trim().length < 1 || answer.isPending}
-        className="self-start rounded-md bg-foreground px-4 py-2 text-background transition-colors hover:bg-ink-2 disabled:opacity-50"
+        className="self-start"
       >
         {t('sendAnswer')}
-      </button>
+      </Button>
     </div>
   );
 }

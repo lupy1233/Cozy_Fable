@@ -1,292 +1,146 @@
 'use client';
 
-import { useLocale, useTranslations } from 'next-intl';
-import { useState, type FormEvent } from 'react';
-import type { CalendarHolidayDto } from '@marketplace/shared';
+import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { CardSection } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import { Field } from '@/components/ui/field';
 import { PageHeader } from '@/components/ui/page-header';
-import { Skeleton, SkeletonCard } from '@/components/ui/skeleton';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { toast } from '@/components/ui/toaster';
-import {
-  useAdminCalendar,
-  useCalendarCheck,
-  useCreateHoliday,
-  useDeleteHoliday,
-  useUpdateHoliday,
-} from '@/hooks/use-admin';
-import { ApiError } from '@/lib/api';
+import { Select } from '@/components/ui/select';
+import { SkeletonCard } from '@/components/ui/skeleton';
+import { useAdminCalendar } from '@/hooks/use-admin';
+import { todayInBucharest, useCalendarFormat } from './_components/calendar-utils';
+import { DeadlineCheck } from './_components/deadline-check';
+import { HolidaysSection } from './_components/holidays-section';
+import { MonthView } from './_components/month-view';
 
 // E-admin-platform-25: calendarul de lucru folosit la termenele firmelor (SLA, expirarea
 // cererilor, retragerea ofertei). Sarbatorile fixe vin automat; aici se gestioneaza doar
 // sarbatorile mobile si puntile (zi libera / zi lucratoare fortata). Termenele deja
 // calculate nu se schimba.
 
-const inp =
-  'rounded-md border border-border-2 bg-surface px-2 py-1 text-sm focus-visible:outline-none focus-visible:border-foreground';
-
-function todayInBucharest(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bucharest' }).format(new Date());
-}
-
-function useFormatDate() {
-  const locale = useLocale();
-  return (dateOnly: string) =>
-    new Date(`${dateOnly}T12:00:00Z`).toLocaleDateString(locale === 'en' ? 'en-GB' : 'ro-RO', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      timeZone: 'UTC',
-    });
-}
-
-function useErrorMessage() {
-  const t = useTranslations('Admin.calendar');
-  return (err: unknown) => {
-    const code = err instanceof ApiError ? err.code : 'INTERNAL_ERROR';
-    return t.has(`apiErrors.${code}`) ? t(`apiErrors.${code}`) : t('apiErrors.INTERNAL_ERROR');
-  };
-}
-
 export default function AdminCalendarPage() {
   const t = useTranslations('Admin');
   const today = todayInBucharest();
   const currentYear = Number(today.slice(0, 4));
+  const years = [currentYear, currentYear + 1, currentYear + 2];
   const [year, setYear] = useState(currentYear);
+  // luna la vedere (0 = ianuarie); porneste de la luna curenta
+  const [month, setMonth] = useState(Number(today.slice(5, 7)) - 1);
   const calendar = useAdminCalendar(year);
-  const fmt = useFormatDate();
+  const fmt = useCalendarFormat();
+
+  // luna anterioara / urmatoare trece si in anul vecin, cat timp anul e printre cei disponibili
+  const goPrev =
+    month > 0
+      ? () => setMonth(month - 1)
+      : years.includes(year - 1)
+        ? () => {
+            setYear(year - 1);
+            setMonth(11);
+          }
+        : undefined;
+  const goNext =
+    month < 11
+      ? () => setMonth(month + 1)
+      : years.includes(year + 1)
+        ? () => {
+            setYear(year + 1);
+            setMonth(0);
+          }
+        : undefined;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-[1180px] flex-col gap-6">
       <PageHeader
         title={t('calendar.title')}
-        subtitle={t('calendar.hint')}
+        subtitle={<span className="block max-w-[720px]">{t('calendar.hint')}</span>}
         actions={
-          <label className="flex items-center gap-2 text-sm">
-            {t('calendar.year')}
-            <select value={year} onChange={(e) => setYear(Number(e.target.value))} className={inp}>
-              {[currentYear, currentYear + 1, currentYear + 2].map((y) => (
+          <Field label={t('calendar.year')} className="min-w-[120px] gap-1">
+            <Select value={year} onChange={(e) => setYear(Number(e.target.value))} className="h-11">
+              {years.map((y) => (
                 <option key={y} value={y}>
                   {y}
                 </option>
               ))}
-            </select>
-          </label>
+            </Select>
+          </Field>
         }
       />
 
       {calendar.data?.coverage
         .filter((c) => c.missing.length > 0)
         .map((c) => (
-          <Alert key={c.year} tone="amber">
-            {t('calendar.coverageMissing', { year: c.year, dates: c.missing.map(fmt).join(', ') })}
+          <Alert
+            key={c.year}
+            tone="amber"
+            role="alert"
+            className="flex-wrap items-center"
+            action={
+              c.year !== year && years.includes(c.year) ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="shrink-0 border-amber bg-transparent text-amber hover:bg-amber/10"
+                  onClick={() => setYear(c.year)}
+                >
+                  {t('calendar.goToYear', { year: c.year })}
+                </Button>
+              ) : undefined
+            }
+          >
+            {t('calendar.coverageMissing', { year: c.year, dates: c.missing.map(fmt.full).join(', ') })}
           </Alert>
         ))}
 
-      <DeadlineCheck today={today} />
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <div className="flex min-w-0 flex-1 flex-col gap-6">
+          {calendar.isLoading && (
+            <>
+              <SkeletonCard lines={6} />
+              <SkeletonCard />
+            </>
+          )}
+          {calendar.isError && <Alert tone="crimson">{t('calendar.apiErrors.INTERNAL_ERROR')}</Alert>}
 
-      {calendar.isLoading && (
-        <div className="flex flex-col gap-6">
-          <SkeletonCard />
-          <SkeletonCard />
+          {calendar.data && (
+            <>
+              <MonthView
+                year={year}
+                month={month}
+                today={today}
+                holidays={calendar.data.holidays}
+                fixedHolidays={calendar.data.fixedHolidays}
+                onPrev={goPrev}
+                onNext={goNext}
+              />
+              <HolidaysSection holidays={calendar.data.holidays} today={today} />
+            </>
+          )}
         </div>
-      )}
-      {calendar.isError && <Alert tone="crimson">{t('calendar.apiErrors.INTERNAL_ERROR')}</Alert>}
 
-      {calendar.data && (
-        <>
-          <CardSection title={t('calendar.overridesTitle')}>
-            {calendar.data.holidays.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('calendar.empty')}</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="py-2 pr-3 font-medium">{t('calendar.date')}</th>
-                      <th className="py-2 pr-3 font-medium">{t('calendar.name')}</th>
-                      <th className="py-2 pr-3 font-medium">{t('calendar.type')}</th>
-                      <th className="py-2" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {calendar.data.holidays.map((h) => (
-                      <HolidayRow key={h.id} h={h} />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            <AddHolidayForm today={today} />
-          </CardSection>
+        <aside className="flex min-w-0 flex-col gap-5 lg:w-[340px] lg:shrink-0">
+          <DeadlineCheck today={today} />
 
-          <CardSection title={t('calendar.fixedTitle')}>
-            <ul className="grid gap-1 text-sm sm:grid-cols-2">
-              {calendar.data.fixedHolidays.map((h) => (
-                <li key={h.date} className="flex gap-3">
-                  <span className="w-44 shrink-0 text-muted-foreground">{fmt(h.date)}</span>
-                  <span>{h.name}</span>
-                </li>
-              ))}
-            </ul>
-          </CardSection>
-        </>
-      )}
+          {calendar.data && (
+            <Card as="section" padding="none" aria-labelledby="calendar-fixed-title" className="flex flex-col gap-3 px-6 py-5">
+              <h2 id="calendar-fixed-title" className="heading-section">
+                {t('calendar.fixedTitle')}
+              </h2>
+              <ul className="grid grid-cols-[repeat(auto-fit,minmax(min(130px,100%),1fr))] gap-x-4 gap-y-1.5 text-ui">
+                {calendar.data.fixedHolidays.map((h) => (
+                  <li key={h.date} className="flex gap-2">
+                    <span className="w-[52px] shrink-0 font-mono text-xs text-muted-foreground">{fmt.dayMonth(h.date)}</span>
+                    <span className="min-w-0">{h.name}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+        </aside>
+      </div>
     </div>
-  );
-}
-
-function HolidayRow({ h }: { h: CalendarHolidayDto }) {
-  const t = useTranslations('Admin.calendar');
-  const fmt = useFormatDate();
-  const errorMessage = useErrorMessage();
-  const update = useUpdateHoliday();
-  const remove = useDeleteHoliday();
-  const [confirm, setConfirm] = useState(false);
-
-  return (
-    <tr className="border-b border-border/60 last:border-0">
-      <td className="py-2 pr-3 whitespace-nowrap">{fmt(h.date)}</td>
-      <td className="py-2 pr-3">{h.name}</td>
-      <td className="py-2 pr-3">
-        <select
-          aria-label={t('type')}
-          value={h.isWorkingDay ? 'working' : 'holiday'}
-          disabled={update.isPending}
-          onChange={(e) =>
-            update.mutate(
-              { id: h.id, isWorkingDay: e.target.value === 'working' },
-              { onSuccess: () => toast.success(t('saved')), onError: (err) => toast.error(errorMessage(err)) },
-            )
-          }
-          className={inp}
-        >
-          <option value="holiday">{t('typeHoliday')}</option>
-          <option value="working">{t('typeWorking')}</option>
-        </select>
-      </td>
-      <td className="py-2 text-right">
-        <Button variant="outline" size="sm" onClick={() => setConfirm(true)} disabled={remove.isPending}>
-          {t('remove')}
-        </Button>
-        <Dialog open={confirm} onOpenChange={setConfirm}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t('remove')}</DialogTitle>
-              <DialogDescription>{t('confirmRemove', { date: fmt(h.date), name: h.name })}</DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setConfirm(false)}>
-                {t('cancel')}
-              </Button>
-              <Button
-                variant="destructive"
-                disabled={remove.isPending}
-                onClick={() =>
-                  remove.mutate(h.id, {
-                    onSuccess: () => {
-                      setConfirm(false);
-                      toast.success(t('removed'));
-                    },
-                    onError: (err) => toast.error(errorMessage(err)),
-                  })
-                }
-              >
-                {t('remove')}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </td>
-    </tr>
-  );
-}
-
-function AddHolidayForm({ today }: { today: string }) {
-  const t = useTranslations('Admin.calendar');
-  const errorMessage = useErrorMessage();
-  const create = useCreateHoliday();
-  const [date, setDate] = useState('');
-  const [name, setName] = useState('');
-  const [type, setType] = useState<'holiday' | 'working'>('holiday');
-  const maxDate = `${Number(today.slice(0, 4)) + 5}-12-31`;
-  const valid = /^\d{4}-\d{2}-\d{2}$/.test(date) && name.trim().length >= 2;
-
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!valid) return;
-    create.mutate(
-      { date, name: name.trim(), isWorkingDay: type === 'working' },
-      {
-        onSuccess: () => {
-          toast.success(t('saved'));
-          setDate('');
-          setName('');
-          setType('holiday');
-        },
-        onError: (err) => toast.error(errorMessage(err)),
-      },
-    );
-  };
-
-  return (
-    <form onSubmit={submit} className="mt-3 flex flex-wrap items-end gap-2 border-t border-border pt-3 text-sm">
-      <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-        {t('date')}
-        <input type="date" required min={today} max={maxDate} value={date} onChange={(e) => setDate(e.target.value)} className={inp} />
-      </label>
-      <label className="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
-        {t('name')}
-        <input
-          required
-          minLength={2}
-          maxLength={120}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className={`${inp} min-w-48`}
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-        {t('type')}
-        <select value={type} onChange={(e) => setType(e.target.value as 'holiday' | 'working')} className={inp}>
-          <option value="holiday">{t('typeHoliday')}</option>
-          <option value="working">{t('typeWorking')}</option>
-        </select>
-      </label>
-      <Button type="submit" size="sm" disabled={!valid || create.isPending}>
-        {t('add')}
-      </Button>
-    </form>
-  );
-}
-
-// Calculatorul de termene: preluare facuta azi, cu 3 (S/M) si 5 (L) zile lucratoare.
-function DeadlineCheck({ today }: { today: string }) {
-  const t = useTranslations('Admin.calendar');
-  const fmt = useFormatDate();
-  const three = useCalendarCheck(today, 3);
-  const five = useCalendarCheck(today, 5);
-  return (
-    <CardSection title={t('checkTitle')}>
-      <p className="text-xs text-muted-foreground">{t('checkHint', { date: fmt(today) })}</p>
-      {[
-        { days: 3, q: three },
-        { days: 5, q: five },
-      ].map(({ days, q }) => (
-        <p key={days} className="text-sm">
-          {q.data ? t('checkRow', { days, date: fmt(q.data.deadlineDate) }) : q.isError ? t('apiErrors.INTERNAL_ERROR') : <Skeleton className="inline-block h-4 w-40 align-middle" />}
-        </p>
-      ))}
-    </CardSection>
   );
 }

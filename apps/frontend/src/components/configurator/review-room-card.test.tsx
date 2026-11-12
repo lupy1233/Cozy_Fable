@@ -15,6 +15,9 @@ describe('new furniture review contracts', () => {
     const edit = vi.fn();
     render(<ReviewRoomCard room={{ localId: kind, roomType, flowVersion: CURRENT_FLOW_VERSION[roomType as RoomType], completed: true, answers: { config3d: defaultPieceConfig(kind), material: 'PAL' } }} attachments={[]} designHelp={false} onEdit={edit} />);
     expect(screen.getByRole('heading', { name: `rooms.type.${roomType}` })).toBeVisible();
+    // fara problema: camera e marcata completa, nu incompleta
+    expect(screen.getByText('review.roomComplete')).toBeVisible();
+    expect(screen.queryByText('review.roomIncomplete')).not.toBeInTheDocument();
     expect(screen.getAllByText('config3d.chips.size', { exact: false })[0]).toBeVisible();
     expect(screen.queryByText('config3d.chips.columns', { exact: false })).not.toBeInTheDocument();
     const disclosure = screen.getByText('review.rooms.allAnswers');
@@ -26,6 +29,8 @@ describe('new furniture review contracts', () => {
   it('does not present derived defaults as chosen items for incomplete rooms', () => {
     render(<ReviewRoomCard room={{ localId: 'unfinished', roomType: 'PIECE_BED', flowVersion: 2, completed: false, answers: {} }} attachments={[]} designHelp={false} onEdit={() => {}} issue={{ problem: 'review.issueRoom' }} />);
     expect(screen.getByText('review.issueRoom')).toBeVisible();
+    expect(screen.getByText('review.roomIncomplete')).toBeVisible();
+    expect(screen.queryByText('review.roomComplete')).not.toBeInTheDocument();
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
   });
   it('names the blocking step and jumps to it with "Completeaza"', async () => {

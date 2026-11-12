@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import en from '../../../../messages/en.json';
@@ -100,5 +100,35 @@ describe('request detail repost section', () => {
     renderPage();
     expect(screen.queryByRole('button', { name: en.Requests.repost })).toBeNull();
     expect(screen.queryByText(en.Requests.repostHint)).toBeNull();
+  });
+});
+
+// Redesign 2026-11-12: drumul cererii (pasul curent marcat) + banda cu pasul urmator si butonul lui.
+describe('request detail journey and next step', () => {
+  it('marks the current step and links to the offers when it is the client turn', () => {
+    state.request = request({ status: 'OFFERS_RECEIVED' });
+    renderPage();
+    const steps = within(screen.getByRole('list', { name: 'Request journey' })).getAllByRole('listitem');
+    expect(steps).toHaveLength(5);
+    expect(steps.map((s) => s.getAttribute('aria-current'))).toEqual([null, null, 'step', null, null]);
+    expect(screen.getByRole('link', { name: en.Requests.viewOffers }).getAttribute('href')).toBe(
+      '/requests/req-1/offers',
+    );
+  });
+
+  it('has no offers link while the request waits in the marketplace', () => {
+    state.request = request({ status: 'IN_MARKETPLACE' });
+    renderPage();
+    const steps = within(screen.getByRole('list', { name: 'Request journey' })).getAllByRole('listitem');
+    expect(steps[0].getAttribute('aria-current')).toBe('step');
+    expect(screen.queryByRole('link', { name: en.Requests.viewOffers })).toBeNull();
+  });
+
+  it('a finished request has every step done and none current', () => {
+    state.request = request({ status: 'COMPLETED' });
+    renderPage();
+    const steps = within(screen.getByRole('list', { name: 'Request journey' })).getAllByRole('listitem');
+    expect(steps.some((s) => s.getAttribute('aria-current'))).toBe(false);
+    expect(screen.getByRole('link', { name: en.Requests.viewOffers })).toBeTruthy();
   });
 });
