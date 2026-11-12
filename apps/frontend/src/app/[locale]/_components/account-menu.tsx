@@ -43,7 +43,7 @@ export function AccountMenu({ role }: { role: SessionRole }) {
           aria-label={t('accountMenu')}
           className="h-10 gap-2.5 px-1.5 xl:pr-3"
         >
-          {user ? <Avatar name={user.name} size={28} /> : <CircleUserRound className="mx-1.5 size-4" />}
+          {user?.name ? <Avatar name={user.name} size={28} /> : <CircleUserRound className="mx-1.5 size-4" />}
           <span className="hidden min-w-0 flex-col items-start text-left leading-tight xl:flex">
             <span className="max-w-[9.5rem] truncate text-ui font-medium">{user?.name ?? roleLabel}</span>
             <span className="max-w-[9.5rem] truncate text-meta font-normal text-muted-foreground">

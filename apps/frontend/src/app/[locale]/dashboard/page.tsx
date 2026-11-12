@@ -94,7 +94,8 @@ function DashboardHeader({
 }) {
   const ta = useTranslations('Auth');
   const t = useTranslations('Dashboard');
-  const firstName = name.trim().split(/\s+/)[0];
+  // numele poate lipsi din raspuns: atunci ramane titlul generic, fara salut
+  const firstName = (name ?? '').trim().split(/\s+/)[0];
   if (!firstName) return <PageHeader title={ta('dashboardTitle')} subtitle={subtitle} actions={actions} />;
   return (
     <PageHeader
