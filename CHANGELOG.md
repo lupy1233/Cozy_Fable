@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## Redari 3D pentru canapea, fotoliu si taburet (cosul cererii) — 2026-11-12
+- **Obiectiv** (PO 2026-11-12, "Da, fa-le" la intrebarea despre redari): cele trei piese tapitate din cos primesc poza in stilul celorlalte, in locul schitei line-art.
+- **Module / tabele**: `apps/frontend` (`cart-visual.tsx`, testul cosului, 3 imagini noi in `public/illustrations/pieces/`) + `tools/make-cart-renders.py` (generatorul). Tabele afectate: niciuna. Fara backend, `packages/shared`, texte sau fluxuri.
+- **Presupuneri**: stilul urmeaza atlasele "showroom" (vedere din fata-dreapta, fundal alb, umbra moale); tapiterie crem si baza de stejar, ca restul familiei — sunt imagini generice de catalog, nu o configuratie anume; "Alta piesa" ramane schita (nu are o forma).
+- **Schimbari**:
+  - `tools/make-cart-renders.py`: construieste canapeaua (3 locuri), fotoliul si taburetul din cutii cu muchii rotunjite si fete usor bombate, le reda in Blender 5.2 (Cycles) si scrie PNG opac pe alb exact, cu marginile stinse in alb (umbra nu se termina niciodata intr-o muchie dreapta). Rulare: `blender -b --factory-startup -P tools/make-cart-renders.py -- apps/frontend/public/illustrations/pieces`.
+  - `public/illustrations/pieces/sofa.png` (1200×800), `armchair.png` (960×960), `ottoman.png` (1080×900) — ~520–570 KB fiecare; in pagina vin prin optimizatorul Next.
+  - `cart-visual.tsx`: pozele de optiuni si redarile noi sunt acelasi fel de imagine (`photo`, cu dimensiunile reale ale fisierului); cele trei schite desenate au fost scoase.
+- **Schimbari de comportament**: niciuna — doar imaginea de pe trei cartonase si din miniaturile cosului.
+- **Teste**: frontend 547 trecute (69 de fisiere; un test nou: fiecare poza din `CART_ART` exista pe disc, iar cele trei piese tapitate au poza, nu schita); typecheck 0, lint 0 pe fisierele atinse. Redare pe placa video: Cycles CUDA pe GTX 1070, ~15 s / imagine la 384 de esantioane. Capturi prin Edge headless pe GPU la 1280 si 375 px (API simulat ca vizitator): 18 cartonase pe tabul de piese, nicio imagine rupta, fara derulare orizontala.
+- **Checklist de acceptare**:
+  - [x] Canapeaua, fotoliul si taburetul au redare in stilul celorlalte piese.
+  - [x] Fundalul se topeste in cartonas (alb exact + `mix-blend-multiply`), umbra nu e taiata.
+  - [x] Imaginile se pot regenera din script.
+  - [ ] CI verde pe commit.
+  - [ ] Deploy pe `app-blue` — doar la cererea PO.
+
 ## Cosul de camere si piese, cu poze — 2026-11-12
 - **Obiectiv** (cerere PO 2026-11-12: "un cos de camere si piese individuale mai frumos"): pasul "Camere" din cererea noua arata ca un catalog — cartonase cu redarea 3D a fiecarei camere / piese si un cos adevarat alaturi.
 - **Module / tabele**: doar `apps/frontend` (configurator: 3 fisiere modificate, 3 noi + mesajele RO / EN). Tabele afectate: niciuna. Fara backend, `packages/shared` sau migrari; fluxurile inghetate ale chestionarului neatinse.
@@ -22,7 +39,7 @@
   - [ ] PO: o cerere reala trecuta prin pasul "Camere" pe productie (cu ciorna salvata pe server).
 - **Deploy** (2026-11-12, cerere PO: "sa il pui pe blue pe production"): `railway up` pe `app-blue` din copia curata (LF) a commitului `79733b7`; deployment `e5e2d0fd`. Verificat: `verify-slot` (slot blue, mod activ, SHA `79733b7`, db / redis / storage sus), health public `{"status":"ok"}`, paginile `/ro`, `/en`, `/ro/requests/new`, `/en/requests/new`, `/ro/login`, `/ro/inspiration` cu 200, pasul "Camere" deschis pe adresa live prin Edge headless la 1280 si 375 px (18 cartonase pe tabul de piese, nicio imagine rupta, fara derulare orizontala, fara erori in consola), atlasul vine prin optimizator ca WebP de ~39 KB, jurnalele slotului fara erori dupa pornire. La verificarea live ciorna anonima a fost simulata in browser (ca in `e2e/helpers/guided-request.ts`), deci pe productie nu s-a scris nimic; salvarea reala a ciornei din acest pas ramane de vazut de PO. Intoarcere: rebuild `app-blue` din `75ec72b` (redesign fara cosul nou) sau din `b6740ef`.
 - **De stiut**:
-  - Canapeaua, fotoliul si taburetul tapitat au schita, nu redare 3D — daca se vor redari in acelasi stil, trebuie generate (lipsesc din atlase).
+  - Canapeaua, fotoliul si taburetul tapitat aveau schita, nu redare 3D (lipsesc din atlase) — rezolvat in intrarea de mai sus, cu redari generate.
   - Rularea CI a PR-ului pe acelasi commit (43232186061) a picat la `e2e/furniture-quality.spec.ts` (pagina `/en/dev/piece-3d`, `expect.poll` de 5 s la glisoarele de dimensiuni; desktop de doua ori, mobil o data si apoi trecut). Commitul nu atinge `piece3d`, pagina de test sau `e2e`, iar acelasi test a trecut in rularea de release — test sensibil la viteza runner-ului, de stabilizat separat.
 
 ## Redesign frontend dupa canvasul de design (toata aplicatia) — 2026-11-12

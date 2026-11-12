@@ -2,54 +2,34 @@ import type { RoomType } from '@marketplace/shared';
 import Image, { getImageProps } from 'next/image';
 import type { ComponentType } from 'react';
 import { cn } from '@/lib/utils';
-import { IllustrationSvg, type IllustrationProps } from './illustrations/common';
+import type { IllustrationProps } from './illustrations/common';
 import { IlluOtherPiece } from './illustrations/room-pieces';
 import { SHOWROOM_ATLASES, showroomCropStyle, type ShowroomConcept } from './illustrations/showroom-atlas';
 
 // Imaginea unei camere / piese in cosul cererii. Refoloseste redarile 3D pe care
 // clientul le vede apoi in intrebari (pozele de optiuni si atlasele "showroom"),
-// ca pasul de cos si chestionarul sa arate la fel. Tipurile fara redare (canapea,
-// fotoliu, taburet, "Alta piesa") primesc o schita line-art, nu o poza inventata.
-
-// --- schite pentru piesele tapitate (fara redare 3D in atlase) ---
-
-function SketchSofa({ className }: IllustrationProps) {
-  return (
-    <IllustrationSvg className={className}>
-      <path d="M24 46V32a8 8 0 0 1 8-8h56a8 8 0 0 1 8 8v14" />
-      <path d="M14 66V50a6 6 0 0 1 12 0v6h68v-6a6 6 0 0 1 12 0v16z" />
-      <path d="M60 24v32" />
-      <path d="M24 66v8M96 66v8" />
-    </IllustrationSvg>
-  );
-}
-
-function SketchArmchair({ className }: IllustrationProps) {
-  return (
-    <IllustrationSvg className={className}>
-      <path d="M40 46V30a8 8 0 0 1 8-8h24a8 8 0 0 1 8 8v16" />
-      <path d="M30 66V50a6 6 0 0 1 12 0v6h36v-6a6 6 0 0 1 12 0v16z" />
-      <path d="M40 66v8M80 66v8" />
-    </IllustrationSvg>
-  );
-}
-
-function SketchOttoman({ className }: IllustrationProps) {
-  return (
-    <IllustrationSvg className={className}>
-      <rect x="28" y="32" width="64" height="32" rx="12" />
-      <path d="M28 46h64" />
-      <path d="M40 64v8M80 64v8" />
-    </IllustrationSvg>
-  );
-}
+// ca pasul de cos si chestionarul sa arate la fel. Piesele tapitate (canapea,
+// fotoliu, taburet) nu existau in atlase: au redari proprii, in acelasi stil,
+// generate cu tools/make-cart-renders.py. Doar "Alta piesa" ramane schita.
 
 type CartArt =
-  | { kind: 'option'; concept: string }
+  | { kind: 'photo'; src: string; width: number; height: number }
   | { kind: 'atlas'; concept: ShowroomConcept }
   | { kind: 'sketch'; Sketch: ComponentType<IllustrationProps> };
 
-const option = (concept: string): CartArt => ({ kind: 'option', concept });
+const option = (concept: string): CartArt => ({
+  kind: 'photo',
+  src: `/illustrations/options/${concept}.png`,
+  width: 768,
+  height: 768,
+});
+// latime / inaltime = fisierul scris de tools/make-cart-renders.py
+const piece = (name: string, width: number, height: number): CartArt => ({
+  kind: 'photo',
+  src: `/illustrations/pieces/${name}.png`,
+  width,
+  height,
+});
 const atlas = (concept: ShowroomConcept): CartArt => ({ kind: 'atlas', concept });
 const sketch = (Sketch: ComponentType<IllustrationProps>): CartArt => ({ kind: 'sketch', Sketch });
 
@@ -78,9 +58,9 @@ export const CART_ART: Record<RoomType, CartArt> = {
   PIECE_WALL_CABINET: atlas('wall-cabinet'),
   PIECE_BATHROOM_VANITY: atlas('vanity-sink'),
   PIECE_ENTRYWAY: atlas('coat-unit'),
-  PIECE_SOFA: sketch(SketchSofa),
-  PIECE_ARMCHAIR: sketch(SketchArmchair),
-  PIECE_OTTOMAN: sketch(SketchOttoman),
+  PIECE_SOFA: piece('sofa', 1200, 800),
+  PIECE_ARMCHAIR: piece('armchair', 960, 960),
+  PIECE_OTTOMAN: piece('ottoman', 1080, 900),
   PIECES: sketch(IlluOtherPiece),
 };
 
@@ -115,12 +95,12 @@ export function CartVisual({
 }) {
   const art = CART_ART[roomType];
 
-  if (art.kind === 'option') {
+  if (art.kind === 'photo') {
     return (
       <Image
-        src={`/illustrations/options/${art.concept}.png`}
-        width={768}
-        height={768}
+        src={art.src}
+        width={art.width}
+        height={art.height}
         sizes={size === 'tile' ? '(max-width: 639px) 45vw, 256px' : '48px'}
         alt=""
         aria-hidden="true"

@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ROOM_TYPES } from '@marketplace/shared';
 import { NextIntlClientProvider } from 'next-intl';
@@ -30,6 +32,16 @@ describe('cosul de camere si piese', () => {
 
   it('fiecare tip de camera sau piesa are o imagine in cos', () => {
     for (const roomType of ROOM_TYPES) expect(CART_ART[roomType], roomType).toBeDefined();
+  });
+
+  it('pozele din cos exista pe disc, iar piesele tapitate au redare, nu schita', () => {
+    for (const roomType of ROOM_TYPES) {
+      const art = CART_ART[roomType];
+      if (art.kind === 'photo') expect(existsSync(join(process.cwd(), 'public', art.src)), art.src).toBe(true);
+    }
+    for (const roomType of ['PIECE_SOFA', 'PIECE_ARMCHAIR', 'PIECE_OTTOMAN'] as const) {
+      expect(CART_ART[roomType].kind, roomType).toBe('photo');
+    }
   });
 
   it('butonul "Adauga {tip}" e unic si adauga o singura camera (nu si prin cartonas)', () => {
