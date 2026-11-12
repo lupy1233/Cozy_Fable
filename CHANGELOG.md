@@ -14,8 +14,9 @@
   - [x] Canapeaua, fotoliul si taburetul au redare in stilul celorlalte piese.
   - [x] Fundalul se topeste in cartonas (alb exact + `mix-blend-multiply`), umbra nu e taiata.
   - [x] Imaginile se pot regenera din script.
-  - [ ] CI verde pe commit.
-  - [ ] Deploy pe `app-blue` — doar la cererea PO.
+  - [x] CI verde pe commit — run 43264116311 pe `ef42664` (pornit cu `workflow_dispatch`, cel cerut de `require-green-ci`); a trecut si rularea PR-ului (43264093261).
+  - [x] Deploy pe `app-blue` si verificare pe adresa live.
+- **Deploy** (2026-11-12 seara, cerere PO: "Da, pune-le"): `railway up` pe `app-blue` din copia curata (LF) a commitului `ef42664`; deployment `de3c0668`, build ~6 min, vechiul container a servit pana la healthcheck. Verificat: `verify-slot` (slot blue, mod activ, SHA `ef42664`, db / redis / storage sus), health public 200, paginile `/ro`, `/ro/requests/new`, `/en/requests/new`, `/ro/login`, `/ro/inspiration` cu 200, cele trei PNG-uri servite de pe adresa live (identice cu cele din repo), optimizatorul le da ca WebP, pasul "Camere" deschis pe adresa live prin Edge headless pe GPU la 1280 si 375 px (18 cartonase pe tabul de piese, nicio imagine rupta, fara derulare orizontala, fara erori in consola; redarile apar pe cartonase si in miniaturile cosului), jurnalele slotului fara erori dupa pornire. Ciorna a fost din nou simulata in browser, deci verificarea nu a scris nimic pe productie. Intoarcere: rebuild `app-blue` din `79733b7` (cosul cu schite) sau din `75ec72b` / `b6740ef`.
 
 ## Cosul de camere si piese, cu poze — 2026-11-12
 - **Obiectiv** (cerere PO 2026-11-12: "un cos de camere si piese individuale mai frumos"): pasul "Camere" din cererea noua arata ca un catalog — cartonase cu redarea 3D a fiecarei camere / piese si un cos adevarat alaturi.
