@@ -169,7 +169,7 @@ export function InspirationLightbox({
 
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-surface shadow-xl"
+        className="relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-surface shadow-lg"
       >
         <button
           type="button"
@@ -253,7 +253,7 @@ export function InspirationLightbox({
               <p className="text-xs text-muted-foreground">
                 {tc(`rooms.type.${photo.roomType}`)} · {t('byFirm', { name: photo.company.name })}
               </p>
-              {/* linkul proiectului-sursa din portofoliul atelierului */}
+              {/* linkul proiectului-sursa din portofoliul firmei */}
               {photo.sourceUrl && (
                 <a
                   href={photo.sourceUrl}
@@ -266,12 +266,15 @@ export function InspirationLightbox({
                 </a>
               )}
             </div>
-            <SaveButton
-              photoId={photo.id}
-              savedBoardIds={savedByPhoto.get(photo.id) ?? []}
-              authed={authed}
-              onRequireAuth={onRequireAuth}
-            />
+            {/* pastila nu se ingusteaza: titlul lung se taie, butonul ramane intreg */}
+            <div className="shrink-0">
+              <SaveButton
+                photoId={photo.id}
+                savedBoardIds={savedByPhoto.get(photo.id) ?? []}
+                authed={authed}
+                onRequireAuth={onRequireAuth}
+              />
+            </div>
           </div>
 
           {similar.length > 0 && (

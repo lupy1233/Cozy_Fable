@@ -14,6 +14,12 @@ import { EmptyState } from '@/components/ui/empty-state';
 const KNOWN = ['SUBSCRIPTION_INACTIVE', 'PLAN_FEATURE_REQUIRED', 'COMPANY_NOT_APPROVED', 'COMPANY_SUSPENDED'] as const;
 type Known = (typeof KNOWN)[number];
 
+// true cand eroarea e un blocaj de acces al firmei (nu o eroare de incarcare obisnuita) —
+// paginile de detaliu aleg intre acest ecran si mesajul lor de "nu mai e disponibila".
+export function isAccessBlocked(error: unknown): boolean {
+  return error instanceof ApiError && (KNOWN as readonly string[]).includes(error.code);
+}
+
 export function AccessBlocked({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const t = useTranslations('Marketplace');
   const code = error instanceof ApiError ? error.code : null;

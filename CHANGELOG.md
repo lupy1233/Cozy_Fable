@@ -1,5 +1,35 @@
 # CHANGELOG
 
+## Redesign frontend dupa canvasul de design (toata aplicatia) — 2026-11-12
+- **Obiectiv** (cerere PO 2026-11-12: "inlocuiesti tot front end-ul cu cel din design"): toate cele 48 de rute aduse la canvasul de design (54 de planse: fundatie, public, cont, client, firma, admin). Doar aspect, asezare si texte; nicio regula de business schimbata.
+- **Module / tabele**: doar `apps/frontend` (115 fisiere modificate, 51 noi). Tabele afectate: niciuna. Fara migrari, fara schimbari in backend sau `packages/shared`.
+- **Presupuneri**: ce apare in design dar nu are date in API a ramas pe dinafara (lista mai jos); fluxurile inghetate ale chestionarului nu se schimba; textele `[INTRE PARANTEZE]` din design nu se copiaza; texte noi in RO + EN.
+- **Schimbari**:
+  - Invelis comun: `public-header` (linkuri-pastila, un singur CTA), `app-header` (meniu client: Panou / Cererile mele / Caietul de idei / Studio 3D + buton "Cerere noua"; meniu firma: Panou / Marketplace / Preluari / Mesaje cu contor de necitite / Portofel / Firma mea + pastila de credite), `account-menu` (avatar + nume + rol), `site-footer` pe patru coloane, `admin/layout` (meniu pe grupe cu contoare din KPI + bara "Consola admin / pagina"), `public-shell` + `studio-header` (clientul logat pastreaza antetul contului in Studio).
+  - Primitive UI: `STATUS_TONE` acopera starile reale ale cererii si ale preluarii (culoarea spune cine are mutarea), `Label` 13px fara majuscule, `Tabs` 14px fara majuscule, `FilterChips` 40px, token `--brass-ink` pentru kicker, `CozyHomeLogo compactOnMobile`.
+  - Cont (`(auth)`): varianta B aleasa de PO — degrade nuc → ivoriu, sigla + fraza sus, card central, planse de mobilier (de la xl), friza desenata; `PasswordInput` cu "Arata", cartonase pentru tipul de cont, stari cu iconita; la login apare campul pentru codul in doi pasi cand serverul il cere (`loginSchema.totpCode` exista deja).
+  - Public: landing (garantii sub titlu, bloc pentru firme), Firme partenere (filtru pe judet), Caietul de idei ("Salveaza" mereu vizibil, filtre active ca pastile, cartonas spre cerere), Colectii (creare la vedere, "Scoate" cu "Anuleaza"), Termeni / Confidentialitate / Reguli pentru firme (cuprins + "Pe scurt" sustinut de textul real), Ghid de schita, 404 cu patru iesiri, Dezabonare (intai intreaba, apoi confirma).
+  - Client: panou ("De facut acum" primul), Cererile mele ("Ce urmeaza" pe fiecare card, cautare si ordonare pe client), fisa cererii (drumul cererii + banda cu pasul urmator; `request-progress.tsx`), oferte (comparatia de la prima oferta, o firma pe rand cu oferta langa conversatie), chestionar ("Fisa cererii" in dreapta, starea ciornei la vedere, cartonase compacte), sumar (card de publicare cu lista de verificare), Studio (butoane cu text).
+  - Firma: panou (verificare + abonament sus, urgente cu buton), marketplace (filtre marime / distanta, pas pe fiecare stare a cardului), detaliu cerere (panou "Preia cererea" cu trei reguli), preluari (filtre pe stadiu, numaratoare inversa, urgentele sus), fisa de lucru pe taburi (`?tab=`), mesaje (cautare, prima necitita deschisa), portofel (pret pe credit, sectiuni), Firma mea (confirmare la stergeri).
+  - Admin: tablou (cozi de lucru, apoi cifre-link), liste cu cautare / filtre / paginare, stari si coduri traduse cu codul tehnic mic, confirmare la fiecare decizie, plati pe patru zone, setari cu nume / unitate / explicatie si o singura bara de salvare, calendar pe luna.
+  - i18n: ~1.000 de chei noi RO + EN; "Revendicari" → "Preluari" in cele 3 locuri ramase (`Nav.claims`, titlul sectiunii 3 din Termeni, descrierea meta a Termenilor).
+- **Schimbari de comportament** (de stiut inainte de productie): dezabonarea se face la apasarea butonului, nu la deschiderea linkului; in formularul de oferta termenul de livrare si garantia sunt numar + unitate (pleaca spre API ca text compus); preturile pachetelor si planurilor apar fara TVA, cu totalul cu TVA pe linia a doua; "Prelungeste" doar pe planul curent; stergerile din Firma mea, deblocarea unui utilizator, acordarea unui abonament si stergerea unei poze din Caietul de idei cer confirmare; lista de cereri e ordonata implicit "intai cele care te asteapta".
+- **Omis — lipsesc date/API** (nimic inventat): istoricul miscarilor de credite; starea "planul o poate prelua peste N minute"; ceasul de anulare la preluarile fara responsabil; numele clientului in Mesaje; istoricul retragerilor si disputele inchise; documentele firmei; cozile "Retrageri" / "Joburi esuate" pe tabloul admin; filtrele de data si detaliile din Audit; preselectarea colectiei in cerere; titlurile de sectiune per ecran si regruparea ecranelor din chestionar (cer versiuni noi de flux — propunerea din `docs/implementation/form-redesign-2026-11-10.md`).
+- **Teste**: frontend 540 trecute (68 de fisiere; 32 de teste noi), typecheck 0, lint 0. Tur vizual pe stiva locala (Postgres + backend + frontend) cu conturile demo de client, firma si admin: toate rutele deschise pe desktop, o parte si pe telefon; fara chei de traducere lipsa, fara derulare orizontala. E2E (Playwright) nu a rulat local; ruleaza in CI la push.
+- **Checklist de acceptare**:
+  - [x] Antet, subsol si meniu admin ca in plansele de fundatie.
+  - [x] Cele sase ecrane de cont pe varianta B cu degrade.
+  - [x] Paginile publice, de client, de firma si de admin deschise local cu date reale.
+  - [x] Nicio schimbare in backend, `packages/shared` sau schema.
+  - [ ] CI verde pe branch (inclusiv e2e).
+  - [ ] PO a vazut redesignul pe slotul de previzualizare.
+  - [ ] Pe prod: login, publicarea unei cereri, o preluare si o oferta merg cap-coada dupa deploy.
+- **DECIZIE NECESARA**:
+  - Titlul sectiunii 3 din Termeni a devenit "Cereri, preluari si oferte" (text juridic versionat) — de confirmat sau de readus.
+  - Notificarile numesc DISMISSED "Disputa admisa — recenzia a fost retrasa" si RESOLVED "Disputa respinsa — recenzia ramane", invers fata de butoanele din admin si Termeni §5. Nemodificat; de decis care e formularea corecta.
+  - Buton nuc pe fiecare card preluabil din marketplace (ca in macheta) vs. regula "un singur buton nuc pe ecran".
+  - "Pe scurt" din Termeni / Confidentialitate difera de macheta (scoase afirmatiile nesustinute de text) — de revazut.
+
 ## Laws of UX: formularul de bucatarie in 6 sectiuni (kitchen v3) — 2026-11-08
 - **Obiectiv** (decizie PO 2026-11-08, card "Da, fara recomanda firma"): bucataria L + insula trece de la 11 ecrane la 6 sectiuni fixe: Forma, Dimensiuni, Fronturi, Blat, Electrocasnice, Schita.
 - **Module / tabele**: `packages/shared` (flow nou `kitchen.v3.ts`, `toggleStyle` pe BooleanStep), frontend (bifa compacta, banda-tinta). Tabele: niciuna. Fara migrari.

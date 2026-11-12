@@ -1,4 +1,4 @@
-import { StrictMode } from 'react';
+import { StrictMode, type ReactNode } from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -8,7 +8,11 @@ import en from '@/messages/en.json';
 import { useConfiguratorStore } from '@/stores/configurator-store';
 import { ConfiguratorWizard } from './configurator-wizard';
 
-vi.mock('@/i18n/routing', () => ({ useRouter: () => ({ push: vi.fn() }) }));
+// Link: antetul modului editare ("Inapoi la cerere") il importa din acelasi modul
+vi.mock('@/i18n/routing', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  Link: ({ children, href }: { children: ReactNode; href: string }) => <a href={href}>{children}</a>,
+}));
 vi.mock('./start-mode-step', () => ({ StartModeStep: () => <div>Ready to choose a start mode</div> }));
 vi.mock('./details-step', () => ({ DetailsStep: () => null }));
 vi.mock('./review-step', () => ({ ReviewStep: () => null }));

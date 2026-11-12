@@ -8,7 +8,7 @@ import {
   type RoomType,
 } from '@marketplace/shared';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Minus, Plus, ShoppingBasket, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Minus, Plus, ShoppingBasket, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -46,10 +46,12 @@ function CartTile({
     <div
       className={
         'flex items-center gap-3 rounded-xl border p-4 transition-colors ' +
-        (count > 0 ? 'border-walnut bg-walnut-soft' : 'border-border-2 bg-surface')
+        (count > 0
+          ? 'border-walnut bg-surface-2 shadow-[0_0_0_1px_hsl(var(--walnut))]'
+          : 'border-border bg-surface')
       }
     >
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-surface-2 text-walnut [&_svg]:size-5">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-walnut-soft text-walnut [&_svg]:size-5">
         <ConfiguratorIcon name={ROOM_ICONS[roomType]} />
       </span>
       <div className="flex-1">
@@ -118,7 +120,7 @@ export function RoomCartStep({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="font-serif text-2xl tracking-[-0.01em]">{t('cart.title')}</h2>
+        <h2 className="font-serif text-2xl leading-[1.2] sm:text-3xl">{t('cart.title')}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {designHelp ? t('cart.designHelpSubtitle') : t('cart.subtitle')}
         </p>
@@ -211,10 +213,10 @@ export function RoomCartStep({
           <div
             className={
               'flex items-center gap-3 rounded-xl border border-dashed p-4 transition-colors ' +
-              (piecesAdded ? 'border-walnut bg-walnut-soft' : 'border-border-2 bg-surface')
+              (piecesAdded ? 'border-walnut bg-surface-2' : 'border-muted-2 bg-surface')
             }
           >
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-surface-2 text-walnut [&_svg]:size-5">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-walnut-soft text-walnut [&_svg]:size-5">
               <ConfiguratorIcon name={ROOM_ICONS.PIECES} />
             </span>
             <div className="flex-1">
@@ -252,10 +254,10 @@ export function RoomCartStep({
       {/* proiect pentru toata locuinta → pasii de dimensiuni/schita se sar;
           irelevant pe fluxul "am nevoie de ajutor" (proiectarea o face atelierul) */}
       {!designHelp && (
-        <label className="flex items-start gap-2 rounded-lg border border-border-2 bg-surface-2 p-3 text-sm">
+        <label className="flex min-h-11 cursor-pointer items-start gap-2.5 text-sm">
           <input
             type="checkbox"
-            className="mt-0.5 accent-walnut"
+            className="mt-px h-[18px] w-[18px] shrink-0 accent-walnut"
             checked={hasOwnProject}
             onChange={(e) => setDetails({ hasOwnProject: e.target.checked })}
           />
@@ -268,17 +270,18 @@ export function RoomCartStep({
         </label>
       )}
 
-      <div className="flex items-center justify-between gap-3">
-        <Button type="button" variant="ghost" onClick={onBack}>
-          <ArrowLeft className="mr-1 h-4 w-4" />
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6">
+        <Button type="button" variant="outline" size="xl" className="px-4 text-sm" onClick={onBack}>
+          <ArrowLeft aria-hidden />
           {t('nav.back')}
         </Button>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+          <span className="text-ui text-muted-foreground">
             {t('cart.totalRooms', { count: total })}
           </span>
           <Button type="button" variant="walnut" size="xl" disabled={total === 0} onClick={onContinue}>
             {designHelp ? t('nav.continue') : t('nav.startQuestions')}
+            <ArrowRight aria-hidden />
           </Button>
         </div>
       </div>

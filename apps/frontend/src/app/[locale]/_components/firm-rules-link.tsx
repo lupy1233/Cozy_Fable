@@ -3,6 +3,9 @@
 import type { ReactNode } from 'react';
 import { Link } from '@/i18n/routing';
 
+// Ruta paginii publice "Reguli pentru firme" — un singur loc (linkuri in text + butonul din Termeni).
+export const FIRM_RULES_PATH = '/firm-rules';
+
 // E-company-9: link catre pagina publica "Reguli pentru firme". newTab in formulare/dialoguri,
 // ca userul sa nu piarda starea (checkbox-ul din inregistrare, dialogul de plata).
 export function FirmRulesLink({
@@ -18,7 +21,7 @@ export function FirmRulesLink({
 }) {
   return (
     <Link
-      href={`/firm-rules${anchor ? `#${anchor}` : ''}`}
+      href={`${FIRM_RULES_PATH}${anchor ? `#${anchor}` : ''}`}
       className={className ?? 'text-walnut underline'}
       target={newTab ? '_blank' : undefined}
     >

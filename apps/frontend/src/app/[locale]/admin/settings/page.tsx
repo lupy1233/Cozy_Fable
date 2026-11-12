@@ -1,61 +1,70 @@
 'use client';
 
-import { useLocale, useTranslations } from 'next-intl';
-import { useState } from 'react';
-import { toast } from '@/components/ui/toaster';
-import { Button } from '@/components/ui/button';
-import { CardSection } from '@/components/ui/card';
+import { Check } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
+import { LoadError } from '@/components/ui/query-state';
 import { SkeletonText } from '@/components/ui/skeleton';
-import { Alert } from '@/components/ui/alert';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
+import { toast } from '@/components/ui/toaster';
 import { Link } from '@/i18n/routing';
-import { useBillingReadiness, useSellerDetails, useUpdateSellerDetails } from '@/hooks/use-billing';
-import { ApiError } from '@/lib/api';
-import { SENTRY_DSN } from '@/lib/monitoring';
-import { planDisplayName } from '@/lib/plan-label';
-import { Badge } from '@/components/ui/badge';
-import { ClaimCostNote } from '../_components/claim-cost-note';
+import { useBillingReadiness } from '@/hooks/use-billing';
 import {
-  type AdminCreditPackage,
-  type AdminPlan,
-  type AdminThreshold,
   useAdminPackages,
   useAdminPlans,
   useAdminThresholds,
-  useCreatePlan,
   usePenaltyRules,
-  useMonitoringTestError,
-  useSendTestEmail,
   useSettings,
-  useUpdatePackage,
-  useUpdatePenaltyRule,
-  useUpdatePlan,
-  useUpdateSetting,
-  useUpdateThreshold,
 } from '@/hooks/use-admin';
+import { ApiError } from '@/lib/api';
+import { cn } from '@/lib/utils';
+import { ClaimCostNote } from '../_components/claim-cost-note';
+import { PackageRow, ThresholdRow } from './_components/catalog-rows';
+import { FiscalDataSection } from './_components/fiscal-section';
+import { NewPlanForm, PlanCard } from './_components/plans-section';
+import { SaveBar, SaveDialog, type RunState } from './_components/save-bar';
+import { PenaltyRuleRow, SettingRow, SettingsSection } from './_components/setting-controls';
 import {
-  PLAN_CODE_RE,
-  SELLER_FIELDS,
-  isValidIban,
-  isValidRoCui,
-  normalizeIban,
-  type AdminMailTestResultDto,
-  type PenaltyRuleDto,
-  type SellerDetailsDto,
-  type SellerField,
-  type SellerProblemReason,
-  type SettingDto,
-} from '@marketplace/shared';
+  SettingsDraftProvider,
+  opIdOfField,
+  type DraftValue,
+  type Drafts,
+  type SectionId,
+} from './_components/settings-drafts';
+import { ToolsSection } from './_components/tools-section';
+import { SECTION_ORDER, listedSettings, usePendingOps } from './_components/use-pending-ops';
 
-// Feedback la salvare (L0-B): toast succes / eroare — inainte adminul nu afla ca a picat.
-function useSaveFeedback() {
-  const t = useTranslations('Admin');
-  return {
-    onSuccess: () => toast.success(t('settings.saved')),
-    onError: () => toast.error(t('settings.saveError')),
-  };
+// Setari (design 2026-11): regulile platformei pe teme. Fiecare valoare are nume, unitate si
+// explicatie; codul tehnic ramane mic. API-ul salveaza valoare cu valoare, asa ca „o singura
+// salvare” = bara de jos trimite pe rand DOAR ce s-a schimbat si arata ce a reusit si ce nu.
+
+// Sectiunea de sus din zona vizibila (pentru meniul din stanga).
+function useActiveSection(ids: readonly string[]): [string | null, (id: string) => void] {
+  const [active, setActive] = useState<string | null>(ids[0] ?? null);
+  const key = ids.join('|');
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return;
+    const order = key.split('|');
+    const visible = new Set<string>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) visible.add(entry.target.id);
+          else visible.delete(entry.target.id);
+        }
+        const first = order.find((id) => visible.has(id));
+        if (first) setActive(first);
+      },
+      // banda de sub bara de sus a consolei pana spre mijlocul ecranului
+      { rootMargin: '-96px 0px -50% 0px' },
+    );
+    for (const id of order) {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    }
+    return () => observer.disconnect();
+  }, [key]);
+  return [active, setActive];
 }
 
 export default function AdminSettingsPage() {
@@ -65,437 +74,253 @@ export default function AdminSettingsPage() {
   const plans = useAdminPlans();
   const packages = useAdminPackages();
   const thresholds = useAdminThresholds();
-
-  return (
-    <div className="flex flex-col gap-6">
-      <PageHeader title={t('nav.settings')} />
-
-      <FiscalDataSection />
-
-      <MailTestSection />
-
-      <MonitoringTestSection />
-
-      {/* seller_* se editeaza DOAR din formularul "Date fiscale" (validare CUI/IBAN + audit dedicat) */}
-      <CardSection title={t('settings.system')}>
-        {settings.isPending && <SkeletonText lines={3} />}
-        {settings.data?.filter((s) => !s.key.startsWith('seller_')).map((s) => <SettingRow key={s.key} s={s} />)}
-      </CardSection>
-
-      <CardSection title={t('settings.penaltyRules')}>
-        {rules.isPending && <SkeletonText lines={3} />}
-        {rules.data?.map((r) => <PenaltyRow key={r.id} r={r} />)}
-      </CardSection>
-
-      <CardSection title={t('settings.plans')}>
-        {plans.isPending && <SkeletonText lines={3} />}
-        {/* E-admin-platform-58: planurile sunt date (cod, nume, pret >= 0, acces marketplace) */}
-        <p className="text-xs text-muted-foreground">{t('settings.planHint')}</p>
-        {plans.data?.map((p) => <PlanRow key={`${p.id}:${p.priceRon}:${p.isActive}:${p.features.MARKETPLACE_ACCESS.enabled}`} p={p} />)}
-        <NewPlanForm />
-      </CardSection>
-
-      <CardSection title={t('settings.packages')}>
-        {packages.isPending && <SkeletonText lines={3} />}
-        {packages.data?.map((p) => <PackageRow key={p.id} p={p} />)}
-      </CardSection>
-
-      <CardSection title={t('settings.thresholds')}>
-        {thresholds.isPending && <SkeletonText lines={3} />}
-        {/* costul nu se mai seteaza pe prag (PO r5): 1 credit = credit_value_ron lei din
-            bugetul minim estimat, limitat la [claim_cost_min, claim_cost_max] (E-company-21);
-            pragurile decid doar marimea S/M/L (SLA) */}
-        <ClaimCostNote />
-        <Link href="/admin/sizing" className="text-xs text-ink-2 underline underline-offset-2 hover:text-foreground">
-          {t('settings.weightsLink')}
-        </Link>
-        {thresholds.data?.map((th) => <ThresholdRow key={th.id} th={th} />)}
-      </CardSection>
-    </div>
-  );
-}
-
-// E-admin-platform-4 — datele fiscale ale platformei (furnizor pe facturi). Pana sunt reale,
-// cumpararile si confirmarile de plata raspund 503 BILLING_NOT_CONFIGURED.
-const FISCAL_MAX: Record<SellerField, number> = { name: 200, cui: 14, regCom: 40, address: 300, iban: 42 };
-
-function clientProblem(field: SellerField, value: string): SellerProblemReason | null {
-  const v = value.trim();
-  if (!v) return 'MISSING';
-  if (field === 'cui' && !isValidRoCui(v)) return 'INVALID';
-  if (field === 'iban' && !isValidIban(normalizeIban(v))) return 'INVALID';
-  return null;
-}
-
-function FiscalDataSection() {
-  const t = useTranslations('Admin');
-  const seller = useSellerDetails();
-  return (
-    <CardSection
-      id="fiscal"
-      className="scroll-mt-24"
-      title={t('settings.fiscal.title')}
-      description={t('settings.fiscal.hint')}
-    >
-      {seller.isPending && <SkeletonText lines={3} />}
-      {seller.data && <FiscalDataForm key={JSON.stringify(seller.data)} initial={seller.data} />}
-    </CardSection>
-  );
-}
-
-function FiscalDataForm({ initial }: { initial: SellerDetailsDto }) {
-  const t = useTranslations('Admin');
   const readiness = useBillingReadiness();
-  const save = useUpdateSellerDetails();
-  const [values, setValues] = useState<SellerDetailsDto>(initial);
-  const [submitted, setSubmitted] = useState(false);
-  const [serverErrors, setServerErrors] = useState<Partial<Record<SellerField, SellerProblemReason>>>({});
 
-  const reasonText = (field: SellerField, reason: SellerProblemReason) =>
-    reason === 'INVALID' ? t(`settings.fiscal.errors.INVALID_${field === 'iban' ? 'iban' : 'cui'}`) : t(`settings.fiscal.errors.${reason}`);
+  const [drafts, setDrafts] = useState<Drafts>({});
+  const [failures, setFailures] = useState<Record<string, string>>({});
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [run, setRun] = useState<RunState | null>(null);
+  const busy = !!run && !run.done;
 
-  // problemele curente (din readiness) raman afisate cat timp campul nu a fost modificat
-  const storedProblem = (field: SellerField) =>
-    values[field] === initial[field] ? readiness.data?.problems.find((p) => p.field === field)?.reason : undefined;
+  const { ops, problems } = usePendingOps(
+    { settings: settings.data, rules: rules.data, plans: plans.data, packages: packages.data, thresholds: thresholds.data },
+    drafts,
+  );
 
-  const errorOf = (field: SellerField) => {
-    const reason = serverErrors[field] ?? (submitted ? clientProblem(field, values[field]) : null) ?? storedProblem(field);
-    return reason ? reasonText(field, reason) : undefined;
-  };
-
-  const submit = () => {
-    setSubmitted(true);
-    if (SELLER_FIELDS.some((f) => clientProblem(f, values[f]))) return;
-    save.mutate(values, {
-      onSuccess: () => {
-        toast.success(t('settings.fiscal.saved'));
-        setServerErrors({});
-      },
-      onError: (err) => {
-        const details = err instanceof ApiError && Array.isArray(err.details) ? (err.details as { field: SellerField; reason: SellerProblemReason }[]) : [];
-        setServerErrors(Object.fromEntries(details.map((d) => [d.field, d.reason])));
-        toast.error(details.length ? reasonText(details[0].field, details[0].reason) : t('settings.saveError'));
-      },
+  const setField = useCallback((field: string, value: DraftValue, server: DraftValue) => {
+    setDrafts((d) => {
+      const next = { ...d };
+      if (value === server) delete next[field];
+      else next[field] = value;
+      return next;
     });
+    // o valoare editata din nou nu mai poarta eroarea de la salvarea trecuta
+    setFailures((f) => {
+      const op = opIdOfField(field);
+      if (!(op in f)) return f;
+      const next = { ...f };
+      delete next[op];
+      return next;
+    });
+  }, []);
+
+  // pagina inchisa cu modificari nesalvate: browserul cere confirmare
+  const dirty = ops.length > 0;
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+
+  const describeError = (err: unknown): string => {
+    if (err instanceof ApiError) {
+      const first: unknown = Array.isArray(err.details) ? err.details[0] : undefined;
+      const reason =
+        typeof first === 'object' && first !== null && 'reason' in first && typeof first.reason === 'string' ? first.reason : null;
+      if (reason && t.has(`settings.errors.${reason}`)) return t(`settings.errors.${reason}`);
+      if (t.has(`settings.errors.${err.code}`)) return t(`settings.errors.${err.code}`);
+    }
+    return t('settings.saveError');
   };
 
-  return (
-    <div className="flex flex-col gap-4">
-      {readiness.data?.ready && (
-        <Alert tone="sage">{t('settings.fiscal.ready')}</Alert>
-      )}
-      <div className="grid gap-3 sm:grid-cols-2">
-        {SELLER_FIELDS.map((field) => (
-          <Field
-            key={field}
-            label={t(`settings.fiscal.${field}`)}
-            error={errorOf(field)}
-            className={field === 'name' || field === 'address' ? 'sm:col-span-2' : undefined}
-          >
-            <Input
-              value={values[field]}
-              maxLength={FISCAL_MAX[field]}
-              autoComplete="off"
-              spellCheck={false}
-              className={field === 'cui' || field === 'iban' ? 'font-mono' : undefined}
-              aria-invalid={!!errorOf(field)}
-              onChange={(e) => {
-                const value = e.target.value;
-                setValues((v) => ({ ...v, [field]: value }));
-                setServerErrors((s) => ({ ...s, [field]: undefined }));
-              }}
-            />
-          </Field>
+  // Trimite pe rand modificarile; cele reusite ies din lista, cele esuate raman marcate.
+  const runSave = async () => {
+    if (ops.length === 0 || ops.some((op) => op.invalid)) return;
+    const queue = ops;
+    setFailures({});
+    setRun({
+      ops: queue,
+      status: Object.fromEntries(queue.map((op) => [op.id, 'queued'] as const)),
+      messages: {},
+      done: false,
+    });
+    const failed: Record<string, string> = {};
+    let saved = 0;
+    for (const op of queue) {
+      setRun((r) => r && { ...r, status: { ...r.status, [op.id]: 'saving' } });
+      try {
+        // mutatia se incheie dupa reincarcarea listei ei (invalidateQueries), deci valoarea
+        // de pe server e deja cea noua cand golim campurile de lucru
+        await op.run();
+        saved += 1;
+        setDrafts((d) => {
+          const next = { ...d };
+          for (const field of op.fields) delete next[field];
+          return next;
+        });
+        setRun((r) => r && { ...r, status: { ...r.status, [op.id]: 'saved' } });
+      } catch (err) {
+        const message = describeError(err);
+        failed[op.id] = message;
+        setRun((r) => r && { ...r, status: { ...r.status, [op.id]: 'failed' }, messages: { ...r.messages, [op.id]: message } });
+      }
+    }
+    setFailures(failed);
+    setRun((r) => r && { ...r, done: true });
+    const failedCount = Object.keys(failed).length;
+    if (failedCount === 0) toast.success(t('settings.savedCount', { count: saved }));
+    else toast.error(t('settings.savedPartial', { saved, failed: failedCount }));
+  };
+
+  const closeDialog = () => {
+    setDialogOpen(false);
+    setRun(null);
+  };
+
+  const discard = () => {
+    setDrafts({});
+    setFailures({});
+  };
+
+  const listed = listedSettings(settings.data);
+  const rowsOf = (section: SectionId) => listed.filter((s) => s.section === section);
+  // o tema fara nicio cheie in baza de date nu apare (dupa ce setarile s-au incarcat sau au esuat)
+  const hasRows = (section: SectionId) => settings.isPending || rowsOf(section).length > 0;
+  const shown: Record<SectionId, boolean> = {
+    fiscal: true,
+    billing: hasRows('billing'),
+    claims: hasRows('claims'),
+    quotes: hasRows('quotes'),
+    trial: hasRows('trial'),
+    penalties: true,
+    plans: true,
+    packages: true,
+    thresholds: true,
+    contact: hasRows('contact'),
+    legal: hasRows('legal'),
+    other: rowsOf('other').length > 0,
+    tools: true,
+  };
+  const sections = SECTION_ORDER.filter((id) => shown[id]);
+  const [active, setActive] = useActiveSection(sections);
+  const pendingIn = (section: SectionId) => ops.filter((op) => op.section === section).length;
+
+  const sectionText = (id: SectionId) => ({
+    title: t(`settings.sections.${id}.title`),
+    description: t.has(`settings.sections.${id}.description`) ? t(`settings.sections.${id}.description`) : undefined,
+  });
+
+  // randurile unei teme din system_settings (+ continut suplimentar, ex. regulile de penalizare)
+  const settingsGroup = (id: SectionId, extra?: ReactNode) =>
+    shown[id] && (
+      <SettingsSection id={id} {...sectionText(id)}>
+        {settings.isPending && <SkeletonText lines={3} className="py-4" />}
+        {rowsOf(id).map((s) => (
+          <SettingRow key={s.key} settingKey={s.key} server={s.value} />
         ))}
-      </div>
-      <div>
-        <Button type="button" variant="walnut" onClick={submit} disabled={save.isPending}>
-          {t('settings.fiscal.save')}
-        </Button>
-      </div>
-    </div>
-  );
-}
+        {extra}
+      </SettingsSection>
+    );
 
-// Email de test (E-admin-platform-1): merge doar catre adresa adminului; arata expeditorul
-// si adresa de raspuns ca adminul sa verifice configuratia slotului activ.
-function MailTestSection() {
-  const t = useTranslations('Admin');
-  const m = useSendTestEmail();
-  const [result, setResult] = useState<AdminMailTestResultDto | null>(null);
-  const send = () =>
-    m.mutate(undefined, {
-      onSuccess: (data) => {
-        setResult(data);
-        if (data.ok) toast.success(t('settings.mailTestSent', { email: data.to }));
-        else toast.error(t('settings.mailTestFailed', { error: data.error ?? '' }));
-      },
-      onError: () => toast.error(t('settings.saveError')),
-    });
   return (
-    <CardSection title={t('settings.mailTitle')}>
-      <p className="text-sm text-muted-foreground">{t('settings.mailHint')}</p>
-      <div>
-        <Button type="button" variant="outline" size="sm" onClick={send} disabled={m.isPending}>
-          {t('settings.mailTestButton')}
-        </Button>
-      </div>
-      {result && (
-        <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
-          <span>{t('settings.mailFrom', { from: result.from })}</span>
-          <span>
-            {result.replyTo ? t('settings.mailReplyTo', { replyTo: result.replyTo }) : t('settings.mailNoReplyTo')}
-          </span>
+    <SettingsDraftProvider value={{ drafts, setField, problems, failures, busy }}>
+      <div className="flex max-w-[1180px] flex-col gap-6">
+        <PageHeader title={t('nav.settings')} subtitle={t('settings.subtitle')} />
+
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-10">
+          <nav
+            aria-label={t('settings.navLabel')}
+            className="flex flex-row flex-wrap gap-0.5 lg:sticky lg:top-24 lg:w-60 lg:shrink-0 lg:flex-col"
+          >
+            {sections.map((id) => {
+              const pending = pendingIn(id);
+              return (
+                <Fragment key={id}>
+                  {id === 'tools' && <div aria-hidden className="mx-3 mb-1.5 mt-2.5 hidden h-px bg-border-2 lg:block" />}
+                  <a
+                    href={`#${id}`}
+                    aria-current={active === id ? 'location' : undefined}
+                    onClick={() => setActive(id)}
+                    className={cn(
+                      'flex min-h-10 items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors',
+                      active === id ? 'bg-walnut-soft font-medium text-walnut-deep' : 'text-ink-2 hover:bg-surface-3',
+                    )}
+                  >
+                    <span>{sectionText(id).title}</span>
+                    {id === 'fiscal' && readiness.data?.ready && (
+                      <>
+                        <Check aria-hidden className="size-4 text-sage" />
+                        <span className="sr-only">{t('settings.fiscal.ready')}</span>
+                      </>
+                    )}
+                    {pending > 0 && (
+                      <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-amber-soft px-1.5 font-mono text-meta leading-none text-amber">
+                        <span aria-hidden>{pending}</span>
+                        <span className="sr-only">{t('settings.unsaved', { count: pending })}</span>
+                      </span>
+                    )}
+                  </a>
+                </Fragment>
+              );
+            })}
+          </nav>
+
+          <div className="flex min-w-0 flex-1 flex-col gap-6">
+            <FiscalDataSection />
+
+            {/* setarile de sistem n-au putut fi incarcate: o singura eroare, nu una pe fiecare tema */}
+            {settings.isError && <LoadError onRetry={() => void settings.refetch()} />}
+
+            {settingsGroup('billing')}
+            {settingsGroup('claims')}
+            {settingsGroup('quotes')}
+            {settingsGroup('trial')}
+
+            {settingsGroup(
+              'penalties',
+              <>
+                {rules.isPending && <SkeletonText lines={3} className="py-4" />}
+                {rules.isError && <LoadError onRetry={() => void rules.refetch()} className="my-3" />}
+                {rules.data?.map((r) => <PenaltyRuleRow key={r.id} rule={r} />)}
+              </>,
+            )}
+
+            <SettingsSection id="plans" {...sectionText('plans')}>
+              {plans.isPending && <SkeletonText lines={3} className="py-4" />}
+              {plans.isError && <LoadError onRetry={() => void plans.refetch()} className="my-3" />}
+              {/* E-admin-platform-58: planurile sunt date (cod, nume, pret >= 0, acces marketplace) */}
+              {plans.data?.map((p) => <PlanCard key={p.id} plan={p} />)}
+              <NewPlanForm />
+            </SettingsSection>
+
+            <SettingsSection id="packages" {...sectionText('packages')}>
+              {packages.isPending && <SkeletonText lines={3} className="py-4" />}
+              {packages.isError && <LoadError onRetry={() => void packages.refetch()} className="my-3" />}
+              {packages.data?.map((p) => <PackageRow key={p.id} pkg={p} />)}
+            </SettingsSection>
+
+            <SettingsSection id="thresholds" {...sectionText('thresholds')}>
+              {/* costul nu se mai seteaza pe prag (PO r5): 1 credit = credit_value_ron lei din
+                  bugetul minim estimat, limitat la [claim_cost_min, claim_cost_max] (E-company-21);
+                  pragurile decid doar marimea S/M/L (SLA) */}
+              <div className="flex flex-col gap-1.5 border-b border-background py-4">
+                <ClaimCostNote />
+                <Link href="/admin/sizing" className="text-xs text-walnut underline underline-offset-2 hover:text-walnut-deep">
+                  {t('settings.weightsLink')}
+                </Link>
+              </div>
+              {thresholds.isPending && <SkeletonText lines={3} className="py-4" />}
+              {thresholds.isError && <LoadError onRetry={() => void thresholds.refetch()} className="my-3" />}
+              {[...(thresholds.data ?? [])]
+                .sort((a, b) => a.minScore - b.minScore)
+                .map((th) => (
+                  <ThresholdRow key={th.id} threshold={th} />
+                ))}
+            </SettingsSection>
+
+            {settingsGroup('contact')}
+            {settingsGroup('legal')}
+            {settingsGroup('other')}
+
+            <ToolsSection />
+
+            {dirty && <SaveBar ops={ops} onDiscard={discard} onSave={() => setDialogOpen(true)} />}
+          </div>
         </div>
-      )}
-    </CardSection>
-  );
-}
 
-// Tracker de erori (E-admin-platform-8): eroare de test pe server (500 capturat de filtru)
-// si in browser (randare care arunca → ecranul error.tsx + raportare).
-function MonitoringTestSection() {
-  const t = useTranslations('Admin');
-  const m = useMonitoringTestError();
-  const [crash, setCrash] = useState(false);
-  const sendServer = () =>
-    m.mutate(undefined, {
-      // 500 e rezultatul asteptat; 429 (3/min) sau alt status = eroarea nu a pornit
-      onError: (error) =>
-        error instanceof ApiError && error.status === 500
-          ? toast.success(t('settings.monitoringServerSent'))
-          : toast.error(t('settings.monitoringServerFailed')),
-    });
-  return (
-    <CardSection title={t('settings.monitoringTitle')}>
-      <p className="text-sm text-muted-foreground">{t('settings.monitoringHint')}</p>
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={sendServer} disabled={m.isPending}>
-          {t('settings.monitoringServerButton')}
-        </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => setCrash(true)}>
-          {t('settings.monitoringClientButton')}
-        </Button>
+        <SaveDialog open={dialogOpen} ops={ops} run={run} onClose={closeDialog} onConfirm={() => void runSave()} />
       </div>
-      {!SENTRY_DSN && <p className="text-xs text-muted-foreground">{t('settings.monitoringClientDisabled')}</p>}
-      {crash && <CrashNow />}
-    </CardSection>
-  );
-}
-
-function CrashNow(): never {
-  throw new Error('monitoring client test');
-}
-
-function SaveBtn({ onClick, pending }: { onClick: () => void; pending: boolean }) {
-  const t = useTranslations('Admin');
-  return (
-    <button
-      onClick={onClick}
-      disabled={pending}
-      className="rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background transition-colors hover:bg-ink-2 disabled:opacity-50"
-    >
-      {t('settings.save')}
-    </button>
-  );
-}
-const inp = 'rounded-md border border-border-2 bg-surface px-2 py-1 text-sm focus-visible:outline-none focus-visible:border-foreground';
-
-function SettingRow({ s }: { s: SettingDto }) {
-  const [v, setV] = useState(s.value);
-  const m = useUpdateSetting();
-  const fb = useSaveFeedback();
-  return (
-    <div className="flex items-center gap-2 text-sm">
-      <span className="w-72 shrink-0 font-mono text-xs text-muted-foreground">{s.key}</span>
-      <input value={v} onChange={(e) => setV(e.target.value)} className={`${inp} flex-1`} />
-      <SaveBtn pending={m.isPending} onClick={() => m.mutate({ key: s.key, value: v }, fb)} />
-    </div>
-  );
-}
-
-function PenaltyRow({ r }: { r: PenaltyRuleDto }) {
-  const t = useTranslations('Admin');
-  const [points, setPoints] = useState(r.points);
-  const [active, setActive] = useState(r.isActive);
-  const m = useUpdatePenaltyRule();
-  const fb = useSaveFeedback();
-  return (
-    <div className="flex items-center gap-2 text-sm">
-      <span className="w-56 shrink-0 font-mono text-xs">{r.ruleKey}</span>
-      <input type="number" value={points} onChange={(e) => setPoints(Number(e.target.value))} className={`${inp} w-20`} />
-      <label className="flex items-center gap-1 text-xs">
-        <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> {t('settings.fields.active')}
-      </label>
-      <SaveBtn pending={m.isPending} onClick={() => m.mutate({ id: r.id, points, isActive: active }, fb)} />
-    </div>
-  );
-}
-
-// E-admin-platform-58: planul ca date — nume RO/EN, pret >= 0 (0 = gratuit, nu se cumpara online),
-// acces la marketplace (functia MARKETPLACE_ACCESS), activ. Codul e identitatea (nu se schimba).
-function PlanRow({ p }: { p: AdminPlan }) {
-  const t = useTranslations('Admin');
-  const locale = useLocale();
-  const [nameRo, setNameRo] = useState(p.nameRo ?? '');
-  const [nameEn, setNameEn] = useState(p.nameEn ?? '');
-  const [price, setPrice] = useState(p.priceRon);
-  const [credits, setCredits] = useState(p.includedCredits);
-  const [gating, setGating] = useState(p.marketplaceGatingDelayMin);
-  const [access, setAccess] = useState(p.features.MARKETPLACE_ACCESS.enabled);
-  const [active, setActive] = useState(p.isActive);
-  const m = useUpdatePlan();
-  const fb = useSaveFeedback();
-  const save = () =>
-    m.mutate(
-      {
-        id: p.id,
-        nameRo: nameRo.trim() || null,
-        nameEn: nameEn.trim() || null,
-        priceRon: price,
-        includedCredits: credits,
-        marketplaceGatingDelayMin: gating,
-        isActive: active,
-        features: { MARKETPLACE_ACCESS: { enabled: access } },
-      },
-      fb,
-    );
-  return (
-    <div className="flex flex-col gap-2 border-b border-border pb-3 text-sm last:border-0">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-medium">{planDisplayName(p, locale)}</span>
-        {(p.nameRo || p.nameEn) && <span className="font-mono text-xs text-muted-foreground">{p.code}</span>}
-        {p.isFree && <Badge tone="sage">{t('settings.freeBadge')}</Badge>}
-        {!p.isActive && <Badge tone="muted">{t('settings.inactiveBadge')}</Badge>}
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="text-xs">{t('settings.fields.nameRo')} <input value={nameRo} maxLength={60} onChange={(e) => setNameRo(e.target.value)} className={`${inp} w-36`} /></label>
-        <label className="text-xs">{t('settings.fields.nameEn')} <input value={nameEn} maxLength={60} onChange={(e) => setNameEn(e.target.value)} className={`${inp} w-36`} /></label>
-        <label className="text-xs">{t('settings.fields.price')} <input type="number" min={0} value={price} onChange={(e) => setPrice(Number(e.target.value))} className={`${inp} w-24`} /></label>
-        <label className="text-xs">{t('settings.fields.credits')} <input type="number" min={0} value={credits} onChange={(e) => setCredits(Number(e.target.value))} className={`${inp} w-20`} /></label>
-        <label className="text-xs">{t('settings.fields.gating')} <input type="number" min={0} value={gating} onChange={(e) => setGating(Number(e.target.value))} className={`${inp} w-16`} /></label>
-        <label className="flex items-center gap-1 text-xs">
-          <input type="checkbox" checked={access} onChange={(e) => setAccess(e.target.checked)} /> {t('settings.fields.marketplaceAccess')}
-        </label>
-        <label className="flex items-center gap-1 text-xs">
-          <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> {t('settings.fields.active')}
-        </label>
-        <SaveBtn pending={m.isPending} onClick={save} />
-      </div>
-      {price === 0 && <p className="text-xs text-muted-foreground">{t('settings.freeHint')}</p>}
-    </div>
-  );
-}
-
-// E-admin-platform-58: plan nou. Accesul la marketplace e o alegere explicita (implicit nebifat).
-function NewPlanForm() {
-  const t = useTranslations('Admin');
-  const create = useCreatePlan();
-  const empty = { code: '', nameRo: '', nameEn: '', price: 0, credits: 0, gating: 60, access: false };
-  const [v, setV] = useState(empty);
-  const codeValid = PLAN_CODE_RE.test(v.code);
-  const submit = () => {
-    if (!codeValid) return;
-    create.mutate(
-      {
-        code: v.code,
-        nameRo: v.nameRo.trim() || undefined,
-        nameEn: v.nameEn.trim() || undefined,
-        priceRon: v.price,
-        includedCredits: v.credits,
-        marketplaceGatingDelayMin: v.gating,
-        features: { MARKETPLACE_ACCESS: { enabled: v.access } },
-      },
-      {
-        onSuccess: () => {
-          toast.success(t('settings.newPlan.created'));
-          setV(empty);
-        },
-        onError: (err) => {
-          const code = err instanceof ApiError ? err.code : 'INTERNAL_ERROR';
-          toast.error(t.has(`apiErrors.${code}`) ? t(`apiErrors.${code}`) : t('settings.saveError'));
-        },
-      },
-    );
-  };
-  return (
-    <div className="mt-2 flex flex-col gap-2 rounded-lg border border-dashed border-border-2 p-3 text-sm">
-      <h3 className="font-medium">{t('settings.newPlan.title')}</h3>
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="text-xs">
-          {t('settings.fields.code')}{' '}
-          <input
-            value={v.code}
-            maxLength={32}
-            autoComplete="off"
-            spellCheck={false}
-            aria-invalid={v.code !== '' && !codeValid}
-            onChange={(e) => setV({ ...v, code: e.target.value.toUpperCase() })}
-            className={`${inp} w-32 font-mono`}
-          />
-        </label>
-        <label className="text-xs">{t('settings.fields.nameRo')} <input value={v.nameRo} maxLength={60} onChange={(e) => setV({ ...v, nameRo: e.target.value })} className={`${inp} w-36`} /></label>
-        <label className="text-xs">{t('settings.fields.nameEn')} <input value={v.nameEn} maxLength={60} onChange={(e) => setV({ ...v, nameEn: e.target.value })} className={`${inp} w-36`} /></label>
-        <label className="text-xs">{t('settings.fields.price')} <input type="number" min={0} value={v.price} onChange={(e) => setV({ ...v, price: Number(e.target.value) })} className={`${inp} w-24`} /></label>
-        <label className="text-xs">{t('settings.fields.credits')} <input type="number" min={0} value={v.credits} onChange={(e) => setV({ ...v, credits: Number(e.target.value) })} className={`${inp} w-20`} /></label>
-        <label className="text-xs">{t('settings.fields.gating')} <input type="number" min={0} value={v.gating} onChange={(e) => setV({ ...v, gating: Number(e.target.value) })} className={`${inp} w-16`} /></label>
-        <label className="flex items-center gap-1 text-xs">
-          <input type="checkbox" checked={v.access} onChange={(e) => setV({ ...v, access: e.target.checked })} /> {t('settings.fields.marketplaceAccess')}
-        </label>
-        <button
-          type="button"
-          onClick={submit}
-          disabled={!codeValid || create.isPending}
-          className="rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background transition-colors hover:bg-ink-2 disabled:opacity-50"
-        >
-          {t('settings.newPlan.submit')}
-        </button>
-      </div>
-      <p className="text-xs text-muted-foreground">{t('settings.fields.codeHint')}</p>
-    </div>
-  );
-}
-
-function PackageRow({ p }: { p: AdminCreditPackage }) {
-  const t = useTranslations('Admin');
-  const [credits, setCredits] = useState(p.credits);
-  const [price, setPrice] = useState(p.priceRon);
-  const [active, setActive] = useState(p.isActive);
-  const m = useUpdatePackage();
-  const fb = useSaveFeedback();
-  return (
-    <div className="flex flex-wrap items-center gap-2 text-sm">
-      <label className="text-xs">{t('settings.fields.credits')} <input type="number" value={credits} onChange={(e) => setCredits(Number(e.target.value))} className={`${inp} w-20`} /></label>
-      <label className="text-xs">{t('settings.fields.price')} <input type="number" value={price} onChange={(e) => setPrice(Number(e.target.value))} className={`${inp} w-24`} /></label>
-      <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> {t('settings.fields.active')}</label>
-      <SaveBtn pending={m.isPending} onClick={() => m.mutate({ id: p.id, credits, priceRon: price, isActive: active }, fb)} />
-    </div>
-  );
-}
-
-function ThresholdRow({ th }: { th: AdminThreshold }) {
-  const t = useTranslations('Admin');
-  const [min, setMin] = useState(th.minScore);
-  // max gol = fara limita superioara (pragul LARGE are maxScore null) → trimitem null, nu 0
-  const [max, setMax] = useState<string>(th.maxScore === null ? '' : String(th.maxScore));
-  const m = useUpdateThreshold();
-  const fb = useSaveFeedback();
-  const maxValue = max.trim() === '' ? null : Number(max);
-  return (
-    <div className="flex flex-wrap items-center gap-2 text-sm">
-      <span className="w-24 shrink-0 font-medium">{th.size}</span>
-      <label className="text-xs">min <input type="number" value={min} onChange={(e) => setMin(Number(e.target.value))} className={`${inp} w-16`} /></label>
-      <label className="text-xs">
-        max{' '}
-        <input
-          type="number"
-          value={max}
-          placeholder={t('settings.noMax')}
-          onChange={(e) => setMax(e.target.value)}
-          className={`${inp} w-24`}
-        />
-      </label>
-      <SaveBtn pending={m.isPending} onClick={() => m.mutate({ id: th.id, minScore: min, maxScore: maxValue }, fb)} />
-    </div>
+    </SettingsDraftProvider>
   );
 }

@@ -2,19 +2,34 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, type RegisterInput } from '@marketplace/shared';
+import { Mail } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from '@/i18n/routing';
 import { apiErrorKey } from '@/lib/error-messages';
+import { cn } from '@/lib/utils';
 import { useRegister } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Alert } from '@/components/ui/alert';
 import { firmRulesChunk } from '../../_components/firm-rules-link';
+import {
+  AuthStateIcon,
+  AuthTile,
+  authFooterCls,
+  authLinkCls,
+  authTitleCls,
+} from '../_components/auth-parts';
+import { PasswordInput } from '../_components/password-input';
 import { ResendVerification } from '../_components/resend-verification';
+
+const ROLE_CARDS = [
+  { value: 'CLIENT', title: 'roleClientTitle', hint: 'roleClientHint' },
+  { value: 'COMPANY_USER', title: 'roleCompanyTitle', hint: 'roleCompanyHint' },
+] as const;
 
 function RegisterInner() {
   const t = useTranslations('Auth');
@@ -46,12 +61,13 @@ function RegisterInner() {
 
   if (registerMutation.isSuccess) {
     return (
-      <div className="flex flex-col gap-4">
-        <h1 className="font-serif text-2xl">{t('registerSuccessTitle')}</h1>
+      <div role="status" className="flex flex-col gap-5">
+        <AuthStateIcon icon={Mail} tone="walnut" />
+        <h1 className={authTitleCls}>{t('registerSuccessTitle')}</h1>
         <p className="text-sm text-muted-foreground">{t('registerSuccessBody')}</p>
         {/* L0-A: emailul se poate pierde → retrimitere direct de aici */}
         <ResendVerification email={registerMutation.variables?.email} prompt={t('resendPrompt')} />
-        <Link href={loginHref} className="text-walnut underline">
+        <Link href={loginHref} className={cn('self-center py-2 text-sm', authLinkCls)}>
           {t('goToLogin')}
         </Link>
       </div>
@@ -59,49 +75,69 @@ function RegisterInner() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="font-serif text-2xl">{t('registerTitle')}</h1>
+    <div className="flex flex-col gap-5">
+      {/* formularul e inalt: doua planse in plus, mai jos, ca marginile sa nu ramana goale */}
+      <AuthTile src="/illustrations/options/bed-side-drawers.png" className="left-[-346px] top-[520px] w-[210px]" />
+      <AuthTile src="/illustrations/options/desk-straight.png" className="right-[-340px] top-[548px] w-[204px]" />
+
+      <h1 className={authTitleCls}>{t('registerTitle')}</h1>
 
       <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+        {/* tipul de cont se alege primul, pe cartonase (design 2026-11) */}
+        <fieldset className="flex flex-col gap-2">
+          <legend className="label mb-2">{t('accountType')}</legend>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(150px,100%),1fr))] gap-2.5">
+            {ROLE_CARDS.map((card) => {
+              const selected = role === card.value;
+              return (
+                <label
+                  key={card.value}
+                  className={cn(
+                    'flex cursor-pointer gap-2.5 rounded-lg border bg-surface p-3.5 transition-colors',
+                    selected
+                      ? 'border-walnut bg-walnut-soft ring-1 ring-walnut'
+                      : 'border-border-2 hover:border-muted-2',
+                  )}
+                >
+                  <input type="radio" value={card.value} className="mt-1 accent-walnut" {...register('role')} />
+                  <span>
+                    <span className="block text-sm font-semibold">{t(card.title)}</span>
+                    <span className={cn('text-ui', selected ? 'text-walnut-deep' : 'text-muted-foreground')}>
+                      {t(card.hint)}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+
         <Field label={t('name')} error={errors.name && t(`validation.${errors.name.message}`)}>
-          <Input {...register('name')} />
+          <Input autoComplete="name" className="h-11" {...register('name')} />
         </Field>
 
         <Field label={t('email')} error={errors.email && t(`validation.${errors.email.message}`)}>
-          <Input type="email" autoComplete="email" {...register('email')} />
+          <Input type="email" autoComplete="email" className="h-11" {...register('email')} />
         </Field>
 
         <Field
           label={t('password')}
+          hint={t('passwordHint')}
           error={errors.password && t(`validation.${errors.password.message}`)}
         >
-          <Input type="password" autoComplete="new-password" {...register('password')} />
+          <PasswordInput autoComplete="new-password" {...register('password')} />
         </Field>
 
         <Field label={t('phone')}>
-          <Input type="tel" autoComplete="tel" {...register('phone')} />
+          <Input type="tel" autoComplete="tel" className="h-11" {...register('phone')} />
         </Field>
-
-        <fieldset className="flex flex-col gap-2">
-          <legend className="mb-1 font-mono text-meta uppercase tracking-[0.06em] text-muted-foreground">
-            {t('accountType')}
-          </legend>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="radio" value="CLIENT" className="accent-walnut" {...register('role')} />
-            {t('roleClient')}
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="radio" value="COMPANY_USER" className="accent-walnut" {...register('role')} />
-            {t('roleCompany')}
-          </label>
-        </fieldset>
 
         {/* L0-A: acceptarea termenilor e obligatorie (zod literal(true) + server) */}
         <Field error={errors.termsAccepted && t(`validation.${errors.termsAccepted.message}`)}>
-          <label className="flex items-start gap-2 text-sm">
+          <label className="flex cursor-pointer items-start gap-2.5 text-ui text-ink-2">
             <input
               type="checkbox"
-              className="mt-0.5 accent-walnut"
+              className="mt-0.5 size-[18px] shrink-0 accent-walnut"
               {...register('termsAccepted')}
             />
             <span>
@@ -126,14 +162,20 @@ function RegisterInner() {
           <Alert tone="crimson">{t.has(apiErr.key) ? t(apiErr.key) : apiErr.fallback}</Alert>
         )}
 
-        <Button type="submit" disabled={registerMutation.isPending} className="w-full">
+        <Button
+          type="submit"
+          variant="walnut"
+          size="xl"
+          disabled={registerMutation.isPending}
+          className="w-full text-lead"
+        >
           {t('registerSubmit')}
         </Button>
       </form>
 
-      <p className="text-sm text-muted-foreground">
+      <p className={authFooterCls}>
         {t('haveAccount')}{' '}
-        <Link href={loginHref} className="text-walnut underline">
+        <Link href={loginHref} className={authLinkCls}>
           {t('loginLink')}
         </Link>
       </p>

@@ -24,7 +24,13 @@ import {
   useRequestClarification,
   useWithdrawClaim,
 } from '@/hooks/use-claims-lifecycle';
-import { FirmRulesLink, firmRulesChunk } from './firm-rules-link';
+import { cn } from '@/lib/utils';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { CardSection } from '@/components/ui/card';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { firmRulesChunk } from './firm-rules-link';
 import { ActionConfirmDialog } from './action-confirm-dialog';
 
 // E-company-1: cerere atribuita/livrata (oglinda REQUEST_SETTLED_STATUSES din backend) —
@@ -34,6 +40,8 @@ const GRACE_30_MIN_MS = 30 * 60 * 1000;
 // oglinda ADMIN_REVIEW_REASONS din withdrawals.service (decizie admin, slotul ramane ocupat)
 const ADMIN_REVIEW_REASONS: WithdrawalReasonType[] = ['CUSTOM', 'CLIENT_CONTACT_INVALID', 'CLIENT_REQUESTED_CANCELLATION'];
 
+// Tabul "Clarificari si retragere" al fisei de lucru (design 2026-11): doua carduri — intrebarile
+// catre client si retragerea preluarii. Starea preluarii si termenul SLA stau in bara de sus a fisei.
 export function ClaimLifecyclePanel({ ctx }: { ctx: ClaimQuoteContextDto }) {
   const t = useTranslations('Lifecycle');
   const tu = useTranslations('Legal.firmRules.units');
@@ -86,81 +94,76 @@ export function ClaimLifecyclePanel({ ctx }: { ctx: ClaimQuoteContextDto }) {
     code ? (t.has(`apiErrors.${code}`) ? t(`apiErrors.${code}`) : t('apiErrors.INTERNAL_ERROR')) : null;
 
   return (
-    <section className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5 shadow-sm">
-      <div>
-        <h2 className="font-serif text-xl">{t('slaTitle')}</h2>
-        <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
-          <span className="rounded-full bg-surface-2 px-3 py-1 font-mono text-meta uppercase tracking-[0.04em] text-muted-foreground">
-            {t(`claimStatus.${ctx.claimStatus}`)}
-          </span>
-          {ctx.claimStatus === 'ACTIVE' && ctx.slaDeadlineAt && (
-            <span className={ctx.slaPaused ? 'text-amber' : 'text-muted-foreground'}>
-              {t('slaDeadline', { date: fmtSla(ctx.slaDeadlineAt) })}
-              {ctx.slaPaused ? ` · ${t('slaPaused')}` : ''}
-            </span>
-          )}
-          <FirmRulesLink anchor="sla" className="text-xs text-walnut hover:underline">
-            {t('rulesSlaLink')}
-          </FirmRulesLink>
-        </div>
-      </div>
-
+    <div className="flex flex-col gap-5">
       {/* Clarificari */}
-      <div className="flex flex-col gap-2 border-t border-border pt-3">
-        <h3 className="label">{t('clarifications')}</h3>
-        {clarifications.data?.map((c) => (
-          <div key={c.id} className="rounded-md bg-surface-2 px-3 py-2 text-sm">
-            <p className="font-medium">{c.questionText}</p>
-            <p className="text-xs text-muted-foreground">
-              {c.status === 'ANSWERED' ? `${t('answered')}: ${c.answerText}` : t('awaitingClient')}
-            </p>
-          </div>
-        ))}
+      <CardSection title={t('clarifications')} bodyClassName="flex flex-col gap-3">
+        {/* pauza SLA apare si aici, langa clarificarea care a produs-o (termenul propriu-zis e in bara de sus) */}
+        {ctx.claimStatus === 'ACTIVE' && ctx.slaDeadlineAt && ctx.slaPaused && (
+          <Alert tone="info">
+            {t('slaDeadline', { date: fmtSla(ctx.slaDeadlineAt) })} · {t('slaPaused')}
+          </Alert>
+        )}
+        {clarifications.data && clarifications.data.length > 0 ? (
+          <ul className="flex flex-col gap-2">
+            {clarifications.data.map((c) => (
+              <li key={c.id} className="rounded-lg bg-surface-2 px-3.5 py-3 text-sm">
+                <p className="font-medium">{c.questionText}</p>
+                <p className={cn('mt-0.5 text-ui', c.status === 'ANSWERED' ? 'text-ink-2' : 'text-info')}>
+                  {c.status === 'ANSWERED' ? `${t('answered')}: ${c.answerText}` : t('awaitingClient')}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          clarifications.isSuccess &&
+          ctx.claimStatus !== 'ACTIVE' && <p className="text-sm text-muted-foreground">{t('noClarifications')}</p>
+        )}
         {ctx.claimStatus === 'ACTIVE' && (
           <div className="flex flex-col gap-2">
-            <textarea
+            <Textarea
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               rows={2}
+              aria-label={t('clarificationPlaceholder')}
               placeholder={t('clarificationPlaceholder')}
-              className="rounded-md border border-border-2 bg-surface px-3 py-2 text-sm focus-visible:border-foreground focus-visible:outline-none"
             />
-            <button
+            <Button
+              variant="outline"
+              size="lg"
+              className="self-start"
               onClick={() => requestClarification.mutate({ questionText: question.trim() }, { onSuccess: () => setQuestion('') })}
               disabled={question.trim().length < 3 || requestClarification.isPending}
-              className="self-start rounded-md border border-border-2 bg-surface px-4 py-2 text-sm transition-colors hover:bg-secondary disabled:opacity-50"
             >
               {t('askClarification')}
-            </button>
+            </Button>
             {mapErr(cErr) && <p className="text-sm text-crimson">{mapErr(cErr)}</p>}
           </div>
         )}
-      </div>
+      </CardSection>
 
       {/* Retragere claim */}
+      <CardSection title={t('withdrawTitle')} bodyClassName="flex flex-col gap-3">
       {pendingWithdrawal && !terminal ? (
-        <p className="rounded-md border border-amber/25 bg-amber-soft px-3 py-2 text-sm text-amber">
+        <Alert tone="amber">
           {t('pendingWithdrawal', {
             date: fmtDate(pendingWithdrawal.createdAt),
             reason: t(`reason.${pendingWithdrawal.reasonType}`),
           })}
-        </p>
+        </Alert>
       ) : terminal ? (
-        <p className="border-t border-border pt-3 text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {t('claimClosed', { status: t(`claimStatus.${ctx.claimStatus}`) })}
         </p>
       ) : accepted ? (
-        <p className="border-t border-border pt-3 text-sm text-muted-foreground">{t('withdrawLockedAccepted')}</p>
+        <p className="text-sm text-muted-foreground">{t('withdrawLockedAccepted')}</p>
       ) : company.isPending || me.isPending ? null : !canWithdraw ? (
-        <p className="border-t border-border pt-3 text-sm text-muted-foreground">{t('withdrawManagersOnly')}</p>
+        <p className="text-sm text-muted-foreground">{t('withdrawManagersOnly')}</p>
       ) : (
-        <div className="flex flex-col gap-2 border-t border-border pt-3">
-          <h3 className="label">{t('withdrawTitle')}</h3>
-          <select
+        <div className="flex flex-col gap-2.5">
+          <Select
             value={reason}
             onChange={(e) => setReason(e.target.value as typeof reason)}
             aria-label={t('reasonPlaceholder')}
-            className="rounded-md border border-border-2 bg-surface px-3 py-2 text-sm focus-visible:border-foreground focus-visible:outline-none"
           >
             <option value="" disabled>
               {t('reasonPlaceholder')}
@@ -175,21 +178,24 @@ export function ClaimLifecyclePanel({ ctx }: { ctx: ClaimQuoteContextDto }) {
                 </option>
               );
             })}
-          </select>
+          </Select>
           {rules && reason !== '' && (
             <p className="text-xs text-muted-foreground">{withdrawOutcomeHint(t, tu, rules, reason, liveWithinGrace)}</p>
           )}
           <p className="text-xs text-muted-foreground">{t.rich('rulesWithdrawLink', { rules: firmRulesChunk('withdrawals') })}</p>
           {reason === 'CUSTOM' && (
-            <textarea
+            <Textarea
               value={customReason}
               onChange={(e) => setCustomReason(e.target.value)}
               rows={2}
+              aria-label={t('customReasonPlaceholder')}
               placeholder={t('customReasonPlaceholder')}
-              className="rounded-md border border-border-2 bg-surface px-3 py-2 text-sm focus-visible:border-foreground focus-visible:outline-none"
             />
           )}
-          <button
+          <Button
+            variant="outline"
+            size="lg"
+            className="self-start border-crimson/40 text-crimson hover:border-crimson/60 hover:bg-crimson-soft"
             onClick={() => {
               // E-company-6: niciodata dintr-un click — dialog cu consecintele recalculate de server
               withdraw.reset();
@@ -197,10 +203,9 @@ export function ClaimLifecyclePanel({ ctx }: { ctx: ClaimQuoteContextDto }) {
               void preview.refetch();
             }}
             disabled={reason === '' || withdraw.isPending || (reason === 'CUSTOM' && customReason.trim().length < 3)}
-            className="self-start rounded-md border border-crimson/40 px-4 py-2 text-sm text-crimson transition-colors hover:bg-crimson-soft disabled:opacity-50"
           >
             {t('withdrawClaim')}
-          </button>
+          </Button>
           {reason !== '' && (
             <ActionConfirmDialog
               open={confirmOpen}
@@ -260,21 +265,25 @@ export function ClaimLifecyclePanel({ ctx }: { ctx: ClaimQuoteContextDto }) {
       )}
 
       {withdrawals.data && withdrawals.data.length > 0 && (
-        <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
-          {withdrawals.data.map((w) => (
-            <div key={w.id}>
-              <p>
-                {t(`reason.${w.reasonType}`)} → {t(`withdrawalStatus.${w.status}`)}
-                {w.refunded ? ` · ${t('refunded')}` : ''}
-                {w.reviewedAt ? ` · ${t('history.decidedOn', { date: fmtDate(w.reviewedAt) })}` : ''}
-              </p>
-              {w.customReason && <p className="pl-3">{t('history.customReason', { text: w.customReason })}</p>}
-              {w.adminNote && <p className="pl-3">{t('history.adminNote', { note: w.adminNote })}</p>}
-            </div>
-          ))}
+        <div className="flex flex-col gap-2 border-t border-border pt-3">
+          <h3 className="label">{t('history.title')}</h3>
+          <ul className="flex flex-col gap-1.5 text-xs text-muted-foreground">
+            {withdrawals.data.map((w) => (
+              <li key={w.id}>
+                <p>
+                  {t(`reason.${w.reasonType}`)} → {t(`withdrawalStatus.${w.status}`)}
+                  {w.refunded ? ` · ${t('refunded')}` : ''}
+                  {w.reviewedAt ? ` · ${t('history.decidedOn', { date: fmtDate(w.reviewedAt) })}` : ''}
+                </p>
+                {w.customReason && <p className="pl-3">{t('history.customReason', { text: w.customReason })}</p>}
+                {w.adminNote && <p className="pl-3">{t('history.adminNote', { note: w.adminNote })}</p>}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
-    </section>
+      </CardSection>
+    </div>
   );
 }
 

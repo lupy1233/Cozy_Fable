@@ -65,7 +65,8 @@ export function FilterChips<V extends string>(props: FilterChipsProps<V>) {
             onClick={() => toggle(o.value)}
             className={cn(
               'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border transition-colors disabled:opacity-50',
-              size === 'sm' ? 'px-3 py-1 text-xs' : 'px-3.5 py-1.5 text-sm',
+              // md = tinta de 40px (design 2026-11); sm ramane compact pentru randuri dense
+              size === 'sm' ? 'px-3 py-1 text-xs' : 'min-h-10 px-3.5 py-1.5 text-sm',
               selected
                 ? 'border-walnut bg-walnut text-primary-foreground'
                 : 'border-border-2 bg-surface text-muted-foreground hover:border-muted-2 hover:text-foreground',

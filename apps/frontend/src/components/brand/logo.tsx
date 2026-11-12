@@ -49,9 +49,12 @@ export function CozyHomeMark({ className }: { className?: string }) {
 
 export function CozyHomeLogo({
   size = 'md',
+  compactOnMobile = false,
   className,
 }: {
   size?: 'md' | 'lg';
+  /** sub sm ramane doar casa (antetul contului pe telefon: creditele, clopotelul si meniul au nevoie de loc) */
+  compactOnMobile?: boolean;
   className?: string;
 }) {
   return (
@@ -60,6 +63,7 @@ export function CozyHomeLogo({
       <span
         className={cn(
           'whitespace-nowrap font-serif uppercase leading-none tracking-[0.18em]',
+          compactOnMobile && 'hidden sm:inline',
           size === 'lg' ? 'text-xl' : 'text-lead',
         )}
       >

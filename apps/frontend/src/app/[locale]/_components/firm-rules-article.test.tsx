@@ -1,9 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FirmRulesDto } from '@marketplace/shared';
 import ro from '../../../messages/ro.json';
 import { FirmRulesArticle } from './firm-rules-article';
+import { FIRM_RULES_SECTIONS } from './legal-sections';
 
 // E-company-9: pagina afiseaza DOAR valorile primite din GET /legal/firm-rules.
 const state = vi.hoisted(() => ({
@@ -145,13 +146,46 @@ describe('FirmRulesArticle', () => {
     }
   });
 
+  it('design 2026-11: cardul „Pe scurt” foloseste aceleasi valori ca textul', () => {
+    const { container } = renderArticle();
+    const summary = container.querySelector<HTMLElement>('#summary');
+    expect(summary).not.toBeNull();
+    const card = within(summary as HTMLElement);
+    expect(card.getByText('în primele 30 de minute')).toBeInTheDocument();
+    expect(card.getByText('Termen de răspuns depășit cu peste 12 ore')).toBeInTheDocument();
+    expect(card.getByText('3 puncte de penalizare · creditele se consumă')).toBeInTheDocument();
+    expect(card.getByText('la 15 puncte active · 6 luni')).toBeInTheDocument();
+    expect(card.getByText('după 3 luni')).toBeInTheDocument();
+    expect(card.getByText(/nu înlocuiește textul complet/)).toBeInTheDocument();
+  });
+
+  it('design 2026-11: regula cu 0 puncte → rezumatul arata doar consumul creditelor', () => {
+    const { container } = renderArticle();
+    const card = within(container.querySelector<HTMLElement>('#summary') as HTMLElement);
+    expect(card.getByText('Retragere voluntară după primele 30 de minute')).toBeInTheDocument();
+    expect(card.getByText('creditele se consumă')).toBeInTheDocument();
+    expect(card.queryByText(/0 puncte/)).not.toBeInTheDocument();
+  });
+
+  it('design 2026-11: cuprinsul trimite la rezumat si la fiecare sectiune', () => {
+    renderArticle();
+    const toc = screen.getByRole('navigation', { name: 'Cuprins' });
+    expect(within(toc).getByRole('link', { name: 'Pe scurt' })).toHaveAttribute('href', '#summary');
+    for (const id of FIRM_RULES_SECTIONS) {
+      expect(toc.querySelector(`a[href="#${id}"]`)).not.toBeNull();
+    }
+  });
+
   it('eroare → mesaj + buton de reincercare (fara numere de rezerva)', () => {
     const refetch = vi.fn();
     state.rules = { data: null, isPending: false, refetch };
-    renderArticle();
+    const { container } = renderArticle();
     expect(screen.getByText('Nu am putut încărca valorile în vigoare. Încearcă din nou.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Reîncearcă' }));
     expect(refetch).toHaveBeenCalledTimes(1);
     expect(screen.queryByText(/puncte/)).not.toBeInTheDocument();
+    // fara date: nici rezumat, nici cuprins spre sectiuni care nu exista
+    expect(container.querySelector('#summary')).toBeNull();
+    expect(screen.queryByRole('navigation', { name: 'Cuprins' })).not.toBeInTheDocument();
   });
 });

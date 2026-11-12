@@ -118,14 +118,15 @@ export function HouseEditor({ toolsHidden = false, cutaway = false }: { toolsHid
       <p role="status" aria-live="polite" className={cn('pointer-events-none absolute bottom-24 left-1/2 z-10 max-w-[80%] -translate-x-1/2 rounded-lg bg-surface/95 px-3 py-2 text-center text-sm shadow-sm md:bottom-auto md:top-16', !drag?.blocked && !drag?.snapped && 'sr-only')}>
         {drag?.blocked ? t('house.moveBlocked') : drag?.snapped ? t('house.snapped') : ''}
       </p>
-      <div className={cn('absolute left-3 top-20 z-10 flex max-w-[calc(100%-1.5rem)] gap-1 rounded-xl border border-border-2 bg-surface/95 p-1 shadow-md backdrop-blur sm:left-4', toolsHidden && 'hidden')}>
+      {/* comutatorul plan / 3D: segmentul activ e espresso, ca in restul controalelor segmentate */}
+      <div className={cn('absolute left-3 top-20 z-10 flex max-w-[calc(100%-1.5rem)] gap-1 rounded-md border border-border-2 bg-surface/95 p-[3px] shadow-sm backdrop-blur sm:left-4', toolsHidden && 'hidden')}>
         {(['plan', '3d'] as const).map((v) => <button type="button" key={v} disabled={v === '3d' && !webgl} aria-pressed={view === v}
-          onClick={() => { setView(v); if (v === '3d') setHasViewed3d(true); }} className="min-h-10 rounded-lg px-3 text-xs font-medium transition-colors hover:bg-secondary aria-pressed:bg-walnut aria-pressed:text-white disabled:opacity-50 sm:text-sm">{t(`house.${v}`)}</button>)}
+          onClick={() => { setView(v); if (v === '3d') setHasViewed3d(true); }} className="min-h-10 rounded-[4px] px-3 text-xs text-muted-foreground transition-colors hover:bg-secondary aria-pressed:bg-foreground aria-pressed:text-primary-foreground disabled:opacity-50 sm:text-sm">{t(`house.${v}`)}</button>)}
       </div>
-      <aside aria-label={t('workspace.houseSettings')} className={cn('absolute right-3 top-36 z-10 flex max-h-[calc(100%-14rem)] w-[320px] max-w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-2xl border border-border-2 bg-surface/95 shadow-lg backdrop-blur sm:right-4 md:top-20 md:max-h-[calc(100%-10rem)]', toolsHidden && 'hidden')}>
+      <aside aria-label={t('workspace.houseSettings')} className={cn('absolute right-3 top-36 z-10 flex max-h-[calc(100%-14rem)] w-[320px] max-w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-xl border border-border bg-surface/95 shadow-sheet backdrop-blur sm:right-4 md:top-20 md:max-h-[calc(100%-10rem)]', toolsHidden && 'hidden')}>
         <h2 aria-label={t('house.title')} className="shrink-0"><button type="button" aria-label={t(toolsOpen ? 'workspace.minimizeHouseTools' : 'workspace.expandHouseTools')} aria-expanded={toolsOpen} aria-controls="studio-house-tools" onClick={() => setToolsOpen((open) => !open)} className="flex min-h-12 w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-secondary/70">
           <House aria-hidden="true" className="h-4 w-4 shrink-0 text-walnut" />
-          <span className="min-w-0 flex-1 truncate text-sm font-semibold">{t('house.title')}</span>
+          <span className="heading-card min-w-0 flex-1 truncate">{t('house.title')}</span>
           {toolsOpen ? <ChevronUp aria-hidden="true" className="h-4 w-4" /> : <ChevronDown aria-hidden="true" className="h-4 w-4" />}
         </button></h2>
         <div id="studio-house-tools" className={cn('space-y-4 overflow-y-auto overscroll-contain border-t border-border-2 p-4', !toolsOpen && 'hidden')}>

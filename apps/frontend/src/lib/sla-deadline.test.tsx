@@ -4,7 +4,15 @@ import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import en from '../messages/en.json';
 import ro from '../messages/ro.json';
-import { slaPhase, slaPhaseClass, useDurationLeft, useSlaDateFormat } from './sla-deadline';
+import {
+  claimUrgencyRank,
+  compareClaimUrgency,
+  slaPhase,
+  slaPhaseClass,
+  timeLeftUnits,
+  useDurationLeft,
+  useSlaDateFormat,
+} from './sla-deadline';
 
 // E-company-13: fazele termenului SLA, data in ora Bucurestiului si durata ramasa a gratiei.
 const NOW = new Date('2026-09-30T10:00:00Z').getTime();
@@ -97,5 +105,90 @@ describe('useDurationLeft', () => {
     expect(left(HOUR)).toBe('1 hour');
     expect(left(30 * 60_000)).toBe('30 minutes');
     expect(left(60_000)).toBe('1 minute');
+  });
+});
+
+// Numaratoarea inversa din "Preluarile mele": cele mai mari doua unitati nenule.
+describe('timeLeftUnits', () => {
+  const MIN = 60_000;
+
+  it('peste o zi: zile + ore (minutele se pierd)', () => {
+    expect(timeLeftUnits(28 * HOUR)).toEqual([
+      { unit: 'day', n: 1 },
+      { unit: 'hour', n: 4 },
+    ]);
+    expect(timeLeftUnits(28 * HOUR + 59 * MIN)).toEqual([
+      { unit: 'day', n: 1 },
+      { unit: 'hour', n: 4 },
+    ]);
+  });
+
+  it('unitatea a doua lipseste cand e zero', () => {
+    expect(timeLeftUnits(24 * HOUR)).toEqual([{ unit: 'day', n: 1 }]);
+    expect(timeLeftUnits(48 * HOUR + 30 * MIN)).toEqual([{ unit: 'day', n: 2 }]);
+    expect(timeLeftUnits(HOUR)).toEqual([{ unit: 'hour', n: 1 }]);
+  });
+
+  it('sub o zi: ore + minute; sub o ora: minute', () => {
+    expect(timeLeftUnits(3 * HOUR + 20 * MIN)).toEqual([
+      { unit: 'hour', n: 3 },
+      { unit: 'minute', n: 20 },
+    ]);
+    expect(timeLeftUnits(42 * MIN + 59_000)).toEqual([{ unit: 'minute', n: 42 }]);
+  });
+
+  it('rotunjit in jos la minut, dar niciodata sub un minut', () => {
+    expect(timeLeftUnits(30_000)).toEqual([{ unit: 'minute', n: 1 }]);
+    expect(timeLeftUnits(0)).toEqual([{ unit: 'minute', n: 1 }]);
+    expect(timeLeftUnits(-5 * MIN)).toEqual([{ unit: 'minute', n: 1 }]);
+  });
+});
+
+// Ordinea din "Preluarile mele": urgentele sus.
+describe('compareClaimUrgency', () => {
+  const claim = (
+    id: string,
+    over: Partial<Parameters<typeof claimUrgencyRank>[0]>,
+  ): Parameters<typeof claimUrgencyRank>[0] & { id: string } => ({
+    id,
+    status: 'ACTIVE',
+    assignedToUserId: 'u1',
+    slaDeadlineAt: null,
+    slaPaused: false,
+    createdAt: iso(-HOUR),
+    ...over,
+  });
+
+  it('rangul: fara responsabil, cu termen, pe pauza, oferta trimisa, inchisa', () => {
+    expect(claimUrgencyRank(claim('a', { assignedToUserId: null, slaDeadlineAt: iso(HOUR) }))).toBe(0);
+    expect(claimUrgencyRank(claim('b', { slaDeadlineAt: iso(HOUR) }))).toBe(1);
+    expect(claimUrgencyRank(claim('c', { slaDeadlineAt: iso(HOUR), slaPaused: true }))).toBe(2);
+    expect(claimUrgencyRank(claim('d', {}))).toBe(2);
+    expect(claimUrgencyRank(claim('e', { status: 'OFFER_SENT' }))).toBe(3);
+    expect(claimUrgencyRank(claim('f', { status: 'COMPLETED' }))).toBe(4);
+    expect(claimUrgencyRank(claim('g', { status: 'SLA_EXPIRED', assignedToUserId: null }))).toBe(4);
+  });
+
+  it('sorteaza: neatribuita cea mai veche, apoi termenul cel mai apropiat, apoi cele mai noi', () => {
+    const rows = [
+      claim('closed-old', { status: 'SLA_EXPIRED', createdAt: iso(-30 * 24 * HOUR) }),
+      claim('sent', { status: 'OFFER_SENT', createdAt: iso(-4 * 24 * HOUR) }),
+      claim('sla-30h', { slaDeadlineAt: iso(30 * HOUR), createdAt: iso(-2 * HOUR) }),
+      claim('unassigned-new', { assignedToUserId: null, createdAt: iso(-10 * 60_000) }),
+      claim('paused', { slaDeadlineAt: iso(2 * HOUR), slaPaused: true }),
+      claim('closed-new', { status: 'COMPLETED', createdAt: iso(-24 * HOUR) }),
+      claim('sla-5h', { slaDeadlineAt: iso(5 * HOUR), createdAt: iso(-3 * 24 * HOUR) }),
+      claim('unassigned-old', { assignedToUserId: null, createdAt: iso(-50 * 60_000) }),
+    ];
+    expect([...rows].sort(compareClaimUrgency).map((r) => r.id)).toEqual([
+      'unassigned-old',
+      'unassigned-new',
+      'sla-5h',
+      'sla-30h',
+      'paused',
+      'sent',
+      'closed-new',
+      'closed-old',
+    ]);
   });
 });

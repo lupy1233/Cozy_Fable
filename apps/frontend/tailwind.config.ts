@@ -73,6 +73,8 @@ const config: Config = {
         brass: {
           DEFAULT: 'hsl(var(--brass))',
           2: 'hsl(var(--brass-2))',
+          // alama pentru text (kicker, cifre decorative): treapta inchisa, lizibila pe ivoriu
+          ink: 'hsl(var(--brass-ink))',
         },
         crimson: {
           DEFAULT: 'hsl(var(--crimson))',

@@ -27,13 +27,13 @@ export function LangSwitch() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         router.replace(pathname as any, { locale: next });
       }}
-      className="group inline-flex items-center rounded-full border border-border-2 bg-surface-2 p-0.5 font-mono text-meta uppercase transition-colors hover:border-muted-2"
+      className="group inline-flex shrink-0 items-center rounded-full border border-border-2 bg-surface p-[3px] font-mono text-xs transition-colors hover:border-muted-2"
     >
       {locales.map((l) => (
         <span
           key={l}
           className={cn(
-            'rounded-full px-2 py-0.5 tracking-[0.06em] transition-colors',
+            'grid h-[30px] min-w-9 place-items-center rounded-full px-2 transition-colors',
             locale === l
               ? 'bg-foreground text-background'
               : 'text-muted-foreground group-hover:text-foreground',

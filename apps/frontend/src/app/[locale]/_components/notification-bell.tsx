@@ -181,10 +181,10 @@ export function NotificationBell() {
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="relative grid h-8 w-8 place-items-center rounded-md border border-border-2 bg-surface-2 text-muted-foreground transition-colors hover:text-foreground"
+          className="relative grid h-10 w-10 shrink-0 place-items-center rounded-md border border-border-2 bg-surface text-foreground transition-colors hover:border-muted-2"
           aria-label={t('title')}
         >
-          <Bell className="h-3.5 w-3.5" />
+          <Bell className="size-[18px]" />
           {count > 0 && (
             <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-crimson px-1 text-micro font-bold text-background">
               {count > 9 ? '9+' : count}
@@ -295,9 +295,9 @@ export function BellPlaceholder() {
   return (
     <span
       aria-hidden
-      className="grid h-8 w-8 place-items-center rounded-md border border-border-2 bg-surface-2 text-muted-foreground"
+      className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-border-2 bg-surface text-muted-foreground"
     >
-      <Bell className="h-3.5 w-3.5" />
+      <Bell className="size-[18px]" />
     </span>
   );
 }

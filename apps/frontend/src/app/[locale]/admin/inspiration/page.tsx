@@ -1,92 +1,62 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import {
-  INSPIRATION_COLORS,
-  ROOM_TYPES,
-  type InspirationColor,
-  type InspirationPhotoDto,
-  type ItemSystem,
-  type Material,
-  type RoomType,
-} from '@marketplace/shared';
+import type { InspirationPhotoDto } from '@marketplace/shared';
 import { useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
-import { useAdminCompanies } from '@/hooks/use-company';
 import {
   useAdminInspiration,
-  useCreateInspiration,
   useDeleteInspiration,
   useUpdateInspiration,
   useUploadInspirationImage,
 } from '@/hooks/use-admin-inspiration';
 import { Button } from '@/components/ui/button';
-import { Card, CardSection } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { FilterChips } from '@/components/ui/filter-chips';
 import { PageHeader } from '@/components/ui/page-header';
 import { LoadError } from '@/components/ui/query-state';
 import { SkeletonList, SkeletonPage } from '@/components/ui/skeleton';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { toast } from '@/components/ui/toaster';
+import { AddPhotoForm } from './_components/add-photo-form';
+import { EditTagsDialog } from './_components/edit-tags-dialog';
+import { PhotoCard } from './_components/photo-card';
 
-// Administrarea galeriei de inspiratie (F6, item 3): adaugare poze cu
-// atribuirea atelierului + etichete de filtrare (culori/materiale/deschidere),
-// publicare/featured si stergere (soft). Imaginea: upload sau URL extern.
+// Administrarea galeriei de inspiratie (F6, item 3): adaugare poze cu atribuirea firmei +
+// etichete de filtrare (culori/materiale/deschidere), publicare/featured si stergere (soft).
+// Imaginea: upload sau URL extern. Lista se filtreaza si se cauta pe client.
 
-const TAG_MATERIALS: Material[] = ['PAL', 'MDF_INFOLIAT', 'MDF_VOPSIT', 'MDF_FURNIR', 'LEMN_MASIV'];
-const TAG_SYSTEMS: ItemSystem[] = ['MANER', 'PUSH', 'GOLA', 'AVENTOS', 'GLISANTE'];
+type ListFilter = 'all' | 'published' | 'featured' | 'noImage';
 
-function toggle<T>(arr: T[], v: T): T[] {
-  return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
-}
+const MATCH: Record<ListFilter, (p: InspirationPhotoDto) => boolean> = {
+  all: () => true,
+  published: (p) => p.published,
+  featured: (p) => p.featured,
+  noImage: (p) => !p.imageUrl,
+};
 
-function TagPill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'rounded-full border px-2.5 py-0.5 text-xs transition-colors',
-        active ? 'border-walnut bg-walnut-soft text-walnut' : 'border-border-2 text-muted-foreground',
-      )}
-    >
-      {children}
-    </button>
-  );
-}
+const GRID = 'grid grid-cols-[repeat(auto-fill,minmax(min(240px,100%),1fr))] gap-4';
+
+// cautare fara diacritice si fara majuscule
+const norm = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
 
 export default function AdminInspirationPage() {
   const t = useTranslations('AdminInspiration');
-  const tc = useTranslations('Configurator');
-  const ti = useTranslations('Inspiration');
   const router = useRouter();
   const me = useMe();
   const list = useAdminInspiration();
-  const companies = useAdminCompanies();
-  const create = useCreateInspiration();
   const update = useUpdateInspiration();
   const remove = useDeleteInspiration();
   const upload = useUploadInspirationImage();
 
-  const [title, setTitle] = useState('');
-  const [companyId, setCompanyId] = useState('');
-  const [roomType, setRoomType] = useState<RoomType>('KITCHEN');
-  const [colors, setColors] = useState<InspirationColor[]>([]);
-  const [materials, setMaterials] = useState<Material[]>([]);
-  const [systems, setSystems] = useState<ItemSystem[]>([]);
-  const [imageUrl, setImageUrl] = useState('');
-  const [sourceUrl, setSourceUrl] = useState('');
+  const [filter, setFilter] = useState<ListFilter>('all');
+  const [query, setQuery] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (me.isError) router.replace('/login');
@@ -95,247 +65,90 @@ export default function AdminInspirationPage() {
 
   if (me.isPending || me.data?.role !== 'ADMIN') return <SkeletonPage variant="list" />;
 
-  const submit = () => {
-    if (!title.trim() || !companyId) return;
-    create.mutate(
-      {
-        title: title.trim(),
-        companyId,
-        roomType,
-        colors,
-        materials,
-        systems,
-        imageUrl: imageUrl.trim() || undefined,
-        sourceUrl: sourceUrl.trim() || undefined,
-        published: true,
-      },
-      {
-        onSuccess: () => {
-          setTitle('');
-          setImageUrl('');
-          setSourceUrl('');
-          setColors([]);
-          setMaterials([]);
-          setSystems([]);
-        },
-      },
-    );
-  };
+  const photos = list.data ?? [];
+  const count = (f: ListFilter) => photos.filter(MATCH[f]).length;
+  const q = norm(query.trim());
+  const visible = photos.filter((p) => MATCH[filter](p) && (!q || norm(`${p.title} ${p.company.name}`).includes(q)));
+  const editing = photos.find((p) => p.id === editingId) ?? null;
+  const fail = () => toast.error(t('actionError'));
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader title={t('title')} />
+    <div className="flex max-w-[1180px] flex-col gap-6">
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
-      {/* adaugare poza */}
-      <CardSection title={t('addTitle')}>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={t('fields.title')}>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={150} />
-          </Field>
-          <Field label={t('fields.company')}>
-            <Select value={companyId} onChange={(e) => setCompanyId(e.target.value)}>
-              <option value="">—</option>
-              {companies.data?.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5">
+            <FilterChips<ListFilter>
+              label={t('filterLabel')}
+              value={filter}
+              onChange={(v) => setFilter(v ?? 'all')}
+              options={[
+                { value: 'all', label: t('filter.all'), count: count('all') },
+                { value: 'published', label: t('filter.published'), count: count('published') },
+                { value: 'featured', label: t('filter.featured'), count: count('featured') },
+                { value: 'noImage', label: t('filter.noImage'), count: count('noImage') },
+              ]}
+            />
+            <label className="flex h-10 min-w-0 flex-[1_1_200px] items-center gap-2 rounded-md border border-border-2 bg-surface px-3 transition-colors focus-within:border-foreground focus-within:ring-2 focus-within:ring-foreground/5 sm:max-w-[280px]">
+              <Search aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+              <span className="sr-only">{t('search')}</span>
+              <input
+                type="search"
+                value={query}
+                placeholder={t('search')}
+                onChange={(e) => setQuery(e.target.value)}
+                className="h-9 min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-2"
+              />
+            </label>
+          </div>
+
+          {list.isPending && <SkeletonList rows={6} variant="cards" className={GRID} />}
+          {list.isError && <LoadError onRetry={() => void list.refetch()} />}
+
+          {visible.length > 0 && (
+            <div className={GRID}>
+              {visible.map((p) => (
+                <PhotoCard
+                  key={p.id}
+                  photo={p}
+                  onToggle={(patch) => update.mutate({ id: p.id, patch }, { onError: fail })}
+                  onDelete={() => remove.mutate(p.id, { onError: fail })}
+                  onUpload={(file) => upload.mutate({ id: p.id, file }, { onError: () => toast.error(t('uploadError')) })}
+                  onEdit={() => setEditingId(p.id)}
+                  uploading={upload.isPending && upload.variables?.id === p.id}
+                />
               ))}
-            </Select>
-          </Field>
-          <Field label={t('fields.roomType')}>
-            <Select value={roomType} onChange={(e) => setRoomType(e.target.value as RoomType)}>
-              {ROOM_TYPES.map((rt) => (
-                <option key={rt} value={rt}>
-                  {tc(`rooms.type.${rt}`)}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label={t('fields.imageUrl')} hint={t('fields.imageUrlHint')}>
-            <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://…" />
-          </Field>
-          <Field label={t('fields.sourceUrl')} hint={t('fields.sourceUrlHint')}>
-            <Input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://…" />
-          </Field>
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-1.5">
-          <span className="label">{ti('filters.color')}</span>
-          {INSPIRATION_COLORS.map((c) => (
-            <TagPill key={c} active={colors.includes(c)} onClick={() => setColors(toggle(colors, c))}>
-              {ti(`colors.${c}`)}
-            </TagPill>
-          ))}
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <span className="label">{ti('filters.material')}</span>
-          {TAG_MATERIALS.map((m) => (
-            <TagPill key={m} active={materials.includes(m)} onClick={() => setMaterials(toggle(materials, m))}>
-              {tc(`common.materials.${m}.label`)}
-            </TagPill>
-          ))}
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <span className="label">{ti('filters.opening')}</span>
-          {TAG_SYSTEMS.map((s) => (
-            <TagPill key={s} active={systems.includes(s)} onClick={() => setSystems(toggle(systems, s))}>
-              {tc(`common.systems.${s}.label`)}
-            </TagPill>
-          ))}
-        </div>
-
-        <Button
-          type="button"
-          variant="walnut"
-          className="mt-4"
-          disabled={!title.trim() || !companyId || create.isPending}
-          onClick={submit}
-        >
-          {t('addButton')}
-        </Button>
-      </CardSection>
-
-      {/* lista */}
-      {list.isPending && <SkeletonList rows={3} variant="cards" className="sm:grid-cols-2 lg:grid-cols-3" />}
-      {list.isError && <LoadError onRetry={() => void list.refetch()} />}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {list.data?.map((p) => (
-          <PhotoCard
-            key={p.id}
-            photo={p}
-            onToggle={(patch) => update.mutate({ id: p.id, patch })}
-            onDelete={() => remove.mutate(p.id)}
-            onUpload={(file) => upload.mutate({ id: p.id, file })}
-            uploading={upload.isPending && upload.variables?.id === p.id}
-          />
-        ))}
-        {list.data?.length === 0 && (
-          <EmptyState variant="card" size="sm" title={t('empty')} className="col-span-full" />
-        )}
-      </section>
-    </div>
-  );
-}
-
-function PhotoCard({
-  photo,
-  onToggle,
-  onDelete,
-  onUpload,
-  uploading,
-}: {
-  photo: InspirationPhotoDto;
-  onToggle: (patch: { published?: boolean; featured?: boolean }) => void;
-  onDelete: () => void;
-  onUpload: (file: File) => void;
-  uploading: boolean;
-}) {
-  const t = useTranslations('AdminInspiration');
-  const tc = useTranslations('Configurator');
-  // poza folosita de cereri active / colectii: retragerea sau stergerea cer
-  // confirmare (clientii nu o mai pot pastra la urmatoarea editare) — E-client-2
-  const inUse = (photo.usage?.activeRequests ?? 0) + (photo.usage?.boards ?? 0) > 0;
-  const [pending, setPending] = useState<'unpublish' | 'delete' | null>(null);
-  const confirmPending = () => {
-    if (pending === 'unpublish') onToggle({ published: false });
-    if (pending === 'delete') onDelete();
-    setPending(null);
-  };
-  return (
-    <Card padding="none" className="overflow-hidden">
-      {photo.imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={photo.imageUrl} alt={photo.title} className="aspect-[4/3] w-full object-cover" />
-      ) : (
-        <div className="grid aspect-[4/3] w-full place-items-center bg-surface-2 text-xs text-muted-foreground">
-          {t('noImage')}
-        </div>
-      )}
-      <div className="flex flex-col gap-2 p-3">
-        <div>
-          <p className="truncate text-sm font-medium">{photo.title}</p>
-          <p className="truncate text-xs text-muted-foreground">
-            {photo.company.name} · {tc(`rooms.type.${photo.roomType}`)}
-          </p>
-          {photo.usage && (
-            <p className="truncate text-xs text-muted-foreground">
-              {t('usage', { requests: photo.usage.activeRequests, boards: photo.usage.boards })}
-            </p>
+            </div>
           )}
-          {photo.sourceUrl && (
-            <a
-              href={photo.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block truncate text-xs text-walnut underline-offset-2 hover:underline"
-            >
-              {photo.sourceUrl}
-            </a>
+
+          {list.data && photos.length === 0 && <EmptyState variant="card" size="sm" title={t('empty')} />}
+          {photos.length > 0 && visible.length === 0 && (
+            <EmptyState
+              variant="dashed"
+              size="sm"
+              title={t('emptyFiltered')}
+              action={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFilter('all');
+                    setQuery('');
+                  }}
+                >
+                  {t('showAll')}
+                </Button>
+              }
+            />
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <label className="flex items-center gap-1">
-            <input
-              type="checkbox"
-              className="accent-walnut"
-              checked={photo.published}
-              onChange={(e) => {
-                if (!e.target.checked && inUse) setPending('unpublish');
-                else onToggle({ published: e.target.checked });
-              }}
-            />
-            {t('published')}
-          </label>
-          <label className="flex items-center gap-1">
-            <input
-              type="checkbox"
-              className="accent-walnut"
-              checked={photo.featured}
-              onChange={(e) => onToggle({ featured: e.target.checked })}
-            />
-            {t('featured')}
-          </label>
-          <label className="ml-auto cursor-pointer text-walnut hover:underline">
-            {uploading ? '…' : t('uploadImage')}
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) onUpload(f);
-                e.target.value = '';
-              }}
-            />
-          </label>
-          <button type="button" onClick={() => (inUse ? setPending('delete') : onDelete())} className="text-crimson hover:underline">
-            {t('delete')}
-          </button>
-        </div>
+
+        <AddPhotoForm />
       </div>
-      <Dialog open={pending !== null} onOpenChange={(open) => { if (!open) setPending(null); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('confirmTitle')}</DialogTitle>
-            <DialogDescription>
-              {pending === 'delete' ? t('confirmDeleteBody') : t('confirmUnpublishBody')}
-            </DialogDescription>
-          </DialogHeader>
-          {photo.usage && (
-            <p className="text-sm text-muted-foreground">
-              {t('usage', { requests: photo.usage.activeRequests, boards: photo.usage.boards })}
-            </p>
-          )}
-          <DialogFooter className="flex-col gap-2 sm:flex-row">
-            <Button type="button" variant="outline" onClick={() => setPending(null)}>
-              {t('cancel')}
-            </Button>
-            <Button type="button" variant={pending === 'delete' ? 'destructive' : 'walnut'} onClick={confirmPending}>
-              {pending === 'delete' ? t('confirmDelete') : t('confirmUnpublish')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Card>
+
+      {editing && <EditTagsDialog key={editing.id} photo={editing} onClose={() => setEditingId(null)} />}
+    </div>
   );
 }

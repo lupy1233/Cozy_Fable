@@ -1,9 +1,16 @@
 'use client';
 
-import { useFormatter, useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { CheckCircle2, Download, Paperclip } from 'lucide-react';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { MAX_VALIDITY_EXTENSIONS, type ClaimFirmActionsDto, type QuoteDto, type QuoteVersionDto } from '@marketplace/shared';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { ApiError } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import {
   useCreateConsultationInvite,
   useEndNegotiation,
@@ -23,6 +30,22 @@ import { displayedVersion, latestVersion } from '@/lib/quote-version';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
+// spatiul lateral al sectiunilor cardului (cardul insusi e fara padding)
+const PAD = 'px-5 sm:px-6';
+const DAY_MS = 86_400_000;
+// sub acest prag valabilitatea e semnalata cu chihlimbar (la fel ca in tabelul de comparatie)
+const EXPIRING_SOON_DAYS = 3;
+
+const fmt = (n: number) => new Intl.NumberFormat('ro-RO', { minimumFractionDigits: 2 }).format(n);
+// data calendaristica (YYYY-MM-DD) fara deplasare de fus orar; ISO complet ramane ca atare
+const toDate = (iso: string) => new Date(iso.length === 10 ? `${iso}T12:00:00` : iso);
+
+function useLongDate() {
+  const locale = useLocale();
+  return (iso: string) =>
+    toDate(iso).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
 export function OfferCard({
   quote,
   mode,
@@ -31,6 +54,8 @@ export function OfferCard({
   firmActions,
   slaPaused,
   readOnly = false,
+  headingLevel = 'h3',
+  meta,
 }: {
   quote: QuoteDto;
   mode: 'client' | 'company';
@@ -42,6 +67,10 @@ export function OfferCard({
   slaPaused?: boolean;
   // E-company-3: rezumatul unei preluari inchise — fara actiunile firmei
   readOnly?: boolean;
+  // nivelul titlului (numele firmei): h2 cand cardul e sectiune de sine statatoare pe pagina
+  headingLevel?: 'h2' | 'h3';
+  // text scurt adaugat in randul de sub titlu (ex. "a preluat cererea acum 2 zile")
+  meta?: ReactNode;
 }) {
   const t = useTranslations('Quotes');
   // E-client-1: pe oferta acceptata se afiseaza versiunea confirmata de client
@@ -50,33 +79,52 @@ export function OfferCard({
   const pendingChange =
     quote.versions.flatMap((v) => (v.changeRequest && v.changeRequest.status === 'PENDING' ? [v.changeRequest] : []))[0] ??
     null;
+  const Heading = headingLevel;
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="font-semibold">{quote.companyName}</h3>
-          <p className="text-xs text-muted-foreground">
+    <Card padding="none" className="flex flex-col overflow-hidden">
+      <div className={cn('flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-border py-4', PAD)}>
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Heading className={headingLevel === 'h2' ? 'font-serif text-2xl leading-tight' : 'heading-card'}>
+            {quote.companyName}
+          </Heading>
+          <p className="text-ui text-muted-foreground">
             {t('versionLabel', { n: current?.version ?? 0 })}
             {current?.isExtra ? ` · ${t('extraTag')}` : ''} · {t(`status.${quote.status}`)}
+            {meta ? <> · {meta}</> : null}
           </p>
         </div>
-        <a href={pdfUrl} target="_blank" rel="noreferrer" className="text-sm text-walnut hover:underline">
+        <a
+          href={pdfUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-walnut hover:text-walnut-deep hover:underline"
+        >
+          <Download className="size-4 shrink-0" aria-hidden />
           {t('downloadPdf')}
         </a>
       </div>
 
-      {current && <VersionView v={current} quote={quote} />}
+      {current && (
+        <VersionView
+          v={current}
+          quote={quote}
+          includesPaidDesign={includesPaidDesign}
+          // clientul vede valabilitatea in subsolul cu actiuni, langa butoane
+          showValidity={mode === 'company'}
+        />
+      )}
 
       {pendingChange && (
-        <div className="rounded-md border border-amber/25 bg-amber-soft px-3 py-2 text-sm text-amber">
-          {t('changeRequested')}: “{pendingChange.requestedText}”
+        <div className={cn('pb-4', PAD)}>
+          <Alert tone="amber">
+            {t('changeRequested')}: “{pendingChange.requestedText}”
+          </Alert>
         </div>
       )}
 
-      {mode === 'client' && (
-        <ClientActions quote={quote} pendingChange={!!pendingChange} />
-      )}
+      {mode === 'client' && <ConsultationInvites quote={quote} mode="client" />}
+      {mode === 'client' && <ClientActions quote={quote} shown={current} pendingChange={!!pendingChange} />}
       {mode === 'company' && !readOnly && (
         <CompanyActions
           quote={quote}
@@ -87,113 +135,160 @@ export function OfferCard({
           slaPaused={slaPaused}
         />
       )}
-
-      <ConsultationInvites quote={quote} mode={mode} />
-    </div>
+      {mode === 'company' && <ConsultationInvites quote={quote} mode="company" />}
+    </Card>
   );
 }
 
-function VersionView({ v, quote }: { v: QuoteVersionDto; quote: QuoteDto }) {
+// E-admin-platform-3: pe oferta acceptata valabilitatea nu mai conteaza — data acordului
+function ValidityLine({ quote, v }: { quote: QuoteDto; v: QuoteVersionDto }) {
+  const t = useTranslations('Quotes');
+  const longDate = useLongDate();
+  const now = useNow(60_000);
+  if (quote.status === 'ACCEPTED' && quote.acceptedAt) {
+    return <span className="font-medium text-sage">{t('acceptedOn', { date: longDate(quote.acceptedAt) })}</span>;
+  }
+  if (v.isExpired) return <span className="font-medium text-amber">{t('expired')}</span>;
+  const soon = Math.floor((Date.parse(v.validUntil) - now) / DAY_MS) <= EXPIRING_SOON_DAYS;
+  return (
+    <span className={soon ? 'font-medium text-amber' : 'text-muted-foreground'}>
+      {t('validUntil', { date: longDate(v.validUntil) })}
+    </span>
+  );
+}
+
+function VersionView({
+  v,
+  quote,
+  includesPaidDesign,
+  showValidity,
+}: {
+  v: QuoteVersionDto;
+  quote: QuoteDto;
+  includesPaidDesign: boolean;
+  showValidity: boolean;
+}) {
   const t = useTranslations('Quotes');
   const tc = useTranslations('Configurator');
-  const fmt = (n: number) => new Intl.NumberFormat('ro-RO', { minimumFractionDigits: 2 }).format(n);
+  const longDate = useLongDate();
+  const other = quote.currency === 'RON' ? 'EUR' : 'RON';
+  // conversia informativa in cealalta moneda (D-v6-12)
+  const approx = (ron: number | null, eur: number | null) =>
+    `≈ ${fmt((quote.currency === 'RON' ? eur : ron) ?? 0)} ${other}`;
+  const delivery = [v.deliveryTerm, v.deliveryDate ? t('deliveryBy', { date: longDate(v.deliveryDate) }) : null]
+    .filter(Boolean)
+    .join(' · ');
+  const row = 'flex justify-between gap-4 border-b border-background py-2.5';
+  const amount = 'text-right font-mono text-ui tabular-nums';
+  const approxClass = 'ml-2 whitespace-nowrap font-sans text-xs text-muted-foreground';
+
   return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-      {/* defalcarea pe camere (F7, item 22) — tabelul pretului per camera */}
-      {v.roomPrices.length > 0 && (
-        <div className="col-span-2 mb-1 overflow-hidden rounded-lg border border-border-2">
-          <table className="w-full text-sm">
-            <tbody>
-              {v.roomPrices.map((rp, i) => (
-                <tr key={rp.requestRoomId} className={i % 2 ? 'bg-surface-2/60' : undefined}>
-                  <td className="px-3 py-1.5">{tc(`rooms.type.${rp.roomType}`)}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums">
-                    {fmt(rp.price)} {quote.currency}
-                  </td>
-                </tr>
-              ))}
-              <tr className="border-t border-border-2 bg-walnut-soft/60">
-                <td className="px-3 py-1.5 font-medium">{t('workSubtotal')}</td>
-                <td className="px-3 py-1.5 text-right font-serif text-base tabular-nums">
-                  {fmt(v.price)} {quote.currency}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+    <div className={cn('pb-4 pt-2 text-sm', PAD)}>
+      <dl>
+        {/* defalcarea pe camere (F7, item 22) — pretul per camera */}
+        {v.roomPrices.map((rp) => (
+          <div key={rp.requestRoomId} className={row}>
+            <dt className="text-muted-foreground">{tc(`rooms.type.${rp.roomType}`)}</dt>
+            <dd className={amount}>
+              {fmt(rp.price)} {quote.currency}
+            </dd>
+          </div>
+        ))}
+        {v.designFee != null && (
+          <>
+            <div className={row}>
+              <dt className="text-muted-foreground">{t('workSubtotal')}</dt>
+              <dd className={amount}>
+                {fmt(v.price)} {quote.currency}
+                <span className={approxClass}>{approx(v.priceRon, v.priceEur)}</span>
+              </dd>
+            </div>
+            <div className={row}>
+              <dt className="text-muted-foreground">{t('builder.designFee')}</dt>
+              <dd className={amount}>
+                {fmt(v.designFee)} {quote.currency}
+                <span className={approxClass}>{approx(v.designFeeRon, v.designFeeEur)}</span>
+              </dd>
+            </div>
+          </>
+        )}
+        {/* E-client-1: totalul ofertei = lucrare + proiectare (docs/03) */}
+        <div className="flex justify-between gap-4 border-b border-border py-3">
+          <dt className="font-semibold">{t('offerTotal')}</dt>
+          <dd className="text-right">
+            <div className="font-mono text-lg font-medium tabular-nums">
+              {fmt(v.total)} {quote.currency}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {approx(v.totalRon, v.totalEur)}
+              {includesPaidDesign && v.designFee == null && ` · ${t('noDesignFee')}`}
+            </div>
+          </dd>
         </div>
-      )}
-      <span className="text-muted-foreground">{t('builder.price')}</span>
-      <span className="text-right font-semibold">
-        {fmt(v.price)} {quote.currency}
-        <span className="ml-2 text-xs font-normal text-muted-foreground">
-          ≈ {fmt(quote.currency === 'RON' ? v.priceEur : v.priceRon)} {quote.currency === 'RON' ? 'EUR' : 'RON'}
-        </span>
-      </span>
-      {v.designFee != null && (
-        <>
-          <span className="text-muted-foreground">{t('builder.designFee')}</span>
-          <span className="text-right">
-            {fmt(v.designFee)} {quote.currency}
-            <span className="ml-2 text-xs font-normal text-muted-foreground">
-              ≈ {fmt((quote.currency === 'RON' ? v.designFeeEur : v.designFeeRon) ?? 0)} {quote.currency === 'RON' ? 'EUR' : 'RON'}
-            </span>
-          </span>
-          {/* E-client-1: totalul ofertei = lucrare + proiectare (docs/03) */}
-          <span className="font-medium">{t('offerTotal')}</span>
-          <span className="text-right font-serif text-base font-semibold tabular-nums">
-            {fmt(v.total)} {quote.currency}
-            <span className="ml-2 font-sans text-xs font-normal text-muted-foreground">
-              ≈ {fmt(quote.currency === 'RON' ? v.totalEur : v.totalRon)} {quote.currency === 'RON' ? 'EUR' : 'RON'}
-            </span>
-          </span>
-        </>
-      )}
-      {v.deliveryTerm && (
-        <>
-          <span className="text-muted-foreground">{t('builder.deliveryTerm')}</span>
-          <span className="text-right">{v.deliveryTerm}</span>
-        </>
-      )}
-      {v.deliveryDate && (
-        <>
-          <span className="text-muted-foreground">{t('builder.deliveryDate')}</span>
-          <span className="text-right">{new Date(v.deliveryDate).toLocaleDateString()}</span>
-        </>
-      )}
-      {v.warranty && (
-        <>
-          <span className="text-muted-foreground">{t('builder.warranty')}</span>
-          <span className="text-right">{v.warranty}</span>
-        </>
-      )}
-      <span className="col-span-2 mt-1 whitespace-pre-wrap text-foreground">{v.description}</span>
-      <span className="col-span-2 text-xs text-muted-foreground">
-        {/* E-admin-platform-3: pe oferta acceptata valabilitatea nu mai conteaza — data acordului */}
-        {quote.status === 'ACCEPTED' && quote.acceptedAt
-          ? t('acceptedOn', { date: new Date(quote.acceptedAt).toLocaleDateString() })
-          : v.isExpired
-            ? t('expired')
-            : t('validUntil', { date: new Date(v.validUntil).toLocaleDateString() })}
-      </span>
+        {delivery && (
+          <div className={row}>
+            <dt className="text-muted-foreground">{t('builder.deliveryTerm')}</dt>
+            <dd className="text-right">{delivery}</dd>
+          </div>
+        )}
+        {v.warranty && (
+          <div className={row}>
+            <dt className="text-muted-foreground">{t('builder.warranty')}</dt>
+            <dd className="text-right">{v.warranty}</dd>
+          </div>
+        )}
+        {v.description && (
+          <div className="flex flex-col gap-1 py-2.5">
+            <dt className="text-muted-foreground">{t('builder.description')}</dt>
+            <dd className="whitespace-pre-wrap">{v.description}</dd>
+          </div>
+        )}
+      </dl>
       {v.attachments.length > 0 && (
-        <span className="col-span-2 flex flex-wrap gap-2 text-xs">
+        <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
           {v.attachments.map((a) => (
-            <a key={a.id} href={a.downloadUrl ?? '#'} target="_blank" rel="noreferrer" className="text-walnut underline">
-              📎 {a.filename}
-            </a>
+            <li key={a.id}>
+              <a
+                href={a.downloadUrl ?? '#'}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-8 items-center gap-1.5 text-ui text-walnut underline underline-offset-2 hover:text-walnut-deep"
+              >
+                <Paperclip className="size-3.5 shrink-0" aria-hidden />
+                <span className="break-all">{a.filename}</span>
+              </a>
+            </li>
           ))}
-        </span>
+        </ul>
+      )}
+      {showValidity && (
+        <p className="mt-3 text-ui">
+          <ValidityLine quote={quote} v={v} />
+        </p>
       )}
     </div>
   );
 }
 
-function ClientActions({ quote, pendingChange }: { quote: QuoteDto; pendingChange: boolean }) {
+function ClientActions({
+  quote,
+  shown,
+  pendingChange,
+}: {
+  quote: QuoteDto;
+  // versiunea afisata pe card (cea acceptata, altfel ultima) — pentru randul de valabilitate
+  shown: QuoteVersionDto | undefined;
+  pendingChange: boolean;
+}) {
   const t = useTranslations('Quotes');
   const change = useRequestChange();
   const extension = useRequestExtension();
   const current = latestVersion(quote);
   const [text, setText] = useState('');
+  // formularul "Cere modificare" se deschide din buton, sub actiuni
+  const [changeOpen, setChangeOpen] = useState(false);
+  const changeFormId = useId();
+  const changeFieldRef = useRef<HTMLTextAreaElement>(null);
   // audit 2026-08-23 (P0 UX): acceptul e ireversibil si deconteaza creditele celorlalte
   // firme — niciodata dintr-un singur click; dialog de confirmare cu consecintele pe fata.
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -202,8 +297,23 @@ function ClientActions({ quote, pendingChange }: { quote: QuoteDto; pendingChang
   const err = (m: { error: unknown }) =>
     m.error instanceof ApiError ? (t.has(`apiErrors.${m.error.code}`) ? t(`apiErrors.${m.error.code}`) : t('apiErrors.INTERNAL_ERROR')) : null;
 
+  useEffect(() => {
+    if (changeOpen) changeFieldRef.current?.focus();
+  }, [changeOpen]);
+
+  const footer = cn('mt-auto flex flex-col gap-3 border-t border-border bg-surface-2 pb-5 pt-4', PAD);
+  const validity = shown ? <ValidityLine quote={quote} v={shown} /> : null;
+
   if (quote.status === 'ACCEPTED') {
-    return <p className="text-sm font-medium text-sage">{t('accepted')}</p>;
+    return (
+      <div className={footer}>
+        <p className="flex items-center gap-2 text-sm font-medium text-sage">
+          <CheckCircle2 className="size-4 shrink-0" aria-hidden />
+          {t('accepted')}
+        </p>
+        {validity && <p className="text-ui">{validity}</p>}
+      </div>
+    );
   }
 
   // E-admin-platform-3: oferta expirata nu mai poate fi acceptata — clientul poate cere
@@ -211,72 +321,130 @@ function ClientActions({ quote, pendingChange }: { quote: QuoteDto; pendingChang
   if (quote.status === 'EXPIRED') {
     const requested = !!current?.extensionRequestedAt;
     return (
-      <div className="flex flex-col gap-2 border-t border-border pt-3">
+      <div className={footer}>
+        {validity && <p className="text-sm">{validity}</p>}
         <p className="text-sm text-muted-foreground">{t('expiredClientHint')}</p>
         {requested ? (
-          <p className="text-sm font-medium text-sage">{t('extensionRequested')}</p>
+          <p className="text-sm font-medium text-info">{t('extensionRequested')}</p>
         ) : (
-          <button
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
             onClick={() => extension.mutate(quote.id)}
             disabled={extension.isPending}
-            className="self-start rounded-lg border border-border-2 bg-surface px-4 py-2 text-sm transition-colors hover:bg-secondary disabled:opacity-50"
+            className="self-start"
           >
             {t('requestExtension')}
-          </button>
+          </Button>
         )}
-        {err(extension) && <p className="text-sm text-crimson">{err(extension)}</p>}
+        {err(extension) && (
+          <p role="alert" className="text-sm text-crimson">
+            {err(extension)}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  // retrasa / inlocuita: nimic de facut pe ea
+  if (quote.status !== 'SENT') {
+    return (
+      <div className={footer}>
+        <p className="text-sm text-muted-foreground">{t('inactiveNote')}</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3 border-t border-border pt-3">
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => setConfirmOpen(true)}
-          disabled={!acceptable}
-          className="rounded-md bg-sage px-4 py-2 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-50"
-        >
-          {t('accept')}
-        </button>
+    <div className={footer}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {validity && <span className="text-sm">{validity}</span>}
+        <div className="flex flex-wrap gap-2.5">
+          {canRequestChange && (
+            <Button
+              type="button"
+              variant="outline"
+              size="xl"
+              aria-expanded={changeOpen}
+              aria-controls={changeOpen ? changeFormId : undefined}
+              onClick={() => setChangeOpen((o) => !o)}
+              className="px-4 text-sm"
+            >
+              {t('requestChange')}
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="walnut"
+            size="xl"
+            onClick={() => setConfirmOpen(true)}
+            disabled={!acceptable}
+            className="px-6 text-lead"
+          >
+            {t('accept')}
+          </Button>
+        </div>
       </div>
+      {acceptable && <p className="text-ui text-muted-foreground">{t('acceptHint')}</p>}
 
       {/* E-client-1: dialogul reciteste oferta si trimite versiunea confirmata */}
       <AcceptOfferDialog quote={quote} open={confirmOpen} onOpenChange={setConfirmOpen} />
 
-
-      {pendingChange && <p className="text-sm text-muted-foreground">{t('awaitingFirm')}</p>}
+      {pendingChange && <p className="text-sm text-info">{t('awaitingFirm')}</p>}
       {quote.versionLimitReached && !pendingChange && (
         <p className="text-sm text-muted-foreground">{t('limitNoticeClient')}</p>
       )}
 
-      {canRequestChange && (
-        <div className="flex flex-col gap-2">
-          <textarea
+      {canRequestChange && changeOpen && (
+        <div id={changeFormId} className="flex flex-col gap-2.5 rounded-lg border border-border bg-surface p-3.5">
+          <label htmlFor={`${changeFormId}-text`} className="text-sm font-medium">
+            {t('changePlaceholder')}
+          </label>
+          <Textarea
+            ref={changeFieldRef}
+            id={`${changeFormId}-text`}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            rows={2}
-            placeholder={t('changePlaceholder')}
-            className="rounded-md border border-border-2 bg-surface px-3 py-2 text-sm focus-visible:border-foreground focus-visible:outline-none"
+            rows={3}
+            className="min-h-[72px]"
           />
-          <button
-            onClick={() =>
-              change.mutate(
-                { quoteVersionId: current!.id, requestedText: text.trim() },
-                { onSuccess: () => setText('') },
-              )
-            }
-            disabled={text.trim().length < 3 || change.isPending}
-            className="self-start rounded-lg border border-border-2 bg-surface px-4 py-2 text-sm transition-colors hover:bg-secondary disabled:opacity-50"
-          >
-            {t('requestChange')}
-          </button>
-          {err(change) && <p className="text-sm text-crimson">{err(change)}</p>}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="lg"
+              onClick={() =>
+                change.mutate(
+                  { quoteVersionId: current!.id, requestedText: text.trim() },
+                  {
+                    onSuccess: () => {
+                      setText('');
+                      setChangeOpen(false);
+                    },
+                  },
+                )
+              }
+              disabled={text.trim().length < 3 || change.isPending}
+            >
+              {t('sendChangeRequest')}
+            </Button>
+            <Button type="button" variant="ghost" size="lg" onClick={() => setChangeOpen(false)}>
+              {t('changeCancel')}
+            </Button>
+          </div>
+          {err(change) && (
+            <p role="alert" className="text-sm text-crimson">
+              {err(change)}
+            </p>
+          )}
         </div>
       )}
     </div>
   );
 }
+
+// buton secundar al firmei cu text lung: se poate rupe pe doua randuri in coloana ingusta
+const WRAP_BUTTON = 'h-auto min-h-10 self-start whitespace-normal py-2 text-left';
 
 function CompanyActions({
   quote,
@@ -344,28 +512,61 @@ function CompanyActions({
   const claimCredits = tu('credit', { n: firmActions?.claimCostCredits ?? 0 });
 
   if (quote.status === 'ACCEPTED') {
-    return <p className="text-sm font-medium text-sage">{t('acceptedByClient')}</p>;
+    return (
+      <p className={cn('flex items-center gap-2 border-t border-border py-4 text-sm font-medium text-sage', PAD)}>
+        <CheckCircle2 className="size-4 shrink-0" aria-hidden />
+        {t('acceptedByClient')}
+      </p>
+    );
   }
   if (quote.status === 'WITHDRAWN' || quote.status === 'SUPERSEDED') {
-    return <p className="text-sm text-muted-foreground">{t(`status.${quote.status}`)}</p>;
+    return (
+      <p className={cn('border-t border-border py-4 text-sm text-muted-foreground', PAD)}>
+        {t(`status.${quote.status}`)}
+      </p>
+    );
+  }
+
+  const showExtensionRequested = quote.status === 'EXPIRED' && !!current?.extensionRequestedAt;
+  const showReoffer = !!current?.isExpired;
+  const showLimitBlock = quote.versionLimitReached && !pendingChangeId;
+  const showWithdraw = (quote.status === 'SENT' || quote.status === 'EXPIRED') && withdrawWindowOpen;
+  // nimic de facut acum pe oferta → fara banda goala sub ea
+  if (
+    !pendingChangeId &&
+    !showExtensionRequested &&
+    !showReoffer &&
+    !showLimitBlock &&
+    !showWithdraw &&
+    !err(reject) &&
+    !err(withdraw)
+  ) {
+    return null;
   }
 
   return (
-    <div className="flex flex-col gap-3 border-t border-border pt-3">
+    <div className={cn('flex flex-col gap-3 border-t border-border py-4', PAD)}>
       {/* Raspuns la o cerere de modificare */}
       {pendingChangeId && !quote.versionLimitReached && (
-        <OfferBuilder kind="revise" quoteId={quote.id} changeRequestId={pendingChangeId} includesPaidDesign={includesPaidDesign} rooms={rooms} />
+        <OfferBuilder kind="revise" quoteId={quote.id} changeRequestId={pendingChangeId} includesPaidDesign={includesPaidDesign} rooms={rooms} currency={quote.currency} />
       )}
       {pendingChangeId && (
-        <button
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
           onClick={() => open('reject', reject)}
           disabled={reject.isPending}
-          className="self-start rounded-lg border border-border-2 bg-surface px-4 py-2 text-sm transition-colors hover:bg-secondary disabled:opacity-50"
+          className="self-start"
         >
           {t('rejectChange')}
-        </button>
+        </Button>
       )}
-      {err(reject) && <p className="text-sm text-crimson">{err(reject)}</p>}
+      {err(reject) && (
+        <p role="alert" className="text-sm text-crimson">
+          {err(reject)}
+        </p>
+      )}
       {pendingChangeId && (
         <ActionConfirmDialog
           {...dialogProps}
@@ -383,33 +584,35 @@ function CompanyActions({
       )}
 
       {/* E-admin-platform-3: clientul a cerut prelungirea ofertei expirate */}
-      {quote.status === 'EXPIRED' && current?.extensionRequestedAt && (
-        <p className="rounded-md border border-amber/25 bg-amber-soft px-3 py-2 text-sm text-amber">
-          {t('extensionRequestedByClient')}
-        </p>
-      )}
+      {showExtensionRequested && <Alert tone="amber">{t('extensionRequestedByClient')}</Alert>}
 
       {/* Reofertare la expirare — 2 butoane (A extinde, B modifica) */}
-      {current?.isExpired && (
-        <div className="flex flex-col gap-2 rounded-md bg-surface-2 p-3">
+      {showReoffer && (
+        <div className="flex flex-col gap-2.5 rounded-lg bg-surface-2 p-3.5">
           <p className="text-sm font-medium">{t('reofferTitle')}</p>
           {extensionsLeft ? (
             <div className="flex flex-wrap items-center gap-3">
-              <button
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => open('extend', extend)}
                 disabled={extend.isPending}
-                className="self-start rounded-lg border border-border-2 bg-surface px-4 py-2 text-sm transition-colors hover:bg-secondary disabled:opacity-50"
+                className={WRAP_BUTTON}
               >
                 {t('extendValidity')}
-              </button>
-              <span className="text-xs text-muted-foreground">
+              </Button>
+              <span className="font-mono text-xs text-muted-foreground">
                 {t('extensionsUsed', { used: extensionsUsed, max: MAX_VALIDITY_EXTENSIONS })}
               </span>
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">{t('extensionsExhausted', { max: MAX_VALIDITY_EXTENSIONS })}</p>
           )}
-          {err(extend) && <p className="text-sm text-crimson">{err(extend)}</p>}
+          {err(extend) && (
+            <p role="alert" className="text-sm text-crimson">
+              {err(extend)}
+            </p>
+          )}
           <ActionConfirmDialog
             {...dialogProps}
             open={dialog === 'extend'}
@@ -430,28 +633,40 @@ function CompanyActions({
             </p>
           </ActionConfirmDialog>
           {!quote.versionLimitReached && (
-            <OfferBuilder kind="reoffer" quoteId={quote.id} includesPaidDesign={includesPaidDesign} rooms={rooms} />
+            <OfferBuilder kind="reoffer" quoteId={quote.id} includesPaidDesign={includesPaidDesign} rooms={rooms} currency={quote.currency} />
           )}
         </div>
       )}
 
       {/* Block dupa v3: extra voluntara / consultanta / inchidere */}
-      {quote.versionLimitReached && !pendingChangeId && (
-        <div className="flex flex-col gap-2 rounded-md bg-surface-2 p-3">
+      {showLimitBlock && (
+        <div className="flex flex-col gap-2.5 rounded-lg bg-surface-2 p-3.5">
           <p className="text-sm font-medium">{t('limitNoticeCompany')}</p>
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => setShowBlock((s) => !s)} className="rounded-lg border border-border-2 bg-surface px-3 py-1.5 text-sm transition-colors hover:bg-secondary">
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              aria-expanded={showBlock}
+              onClick={() => setShowBlock((s) => !s)}
+            >
               {t('extraVersion')}
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
               onClick={() => open('endNeg', endNeg)}
               disabled={endNeg.isPending}
-              className="rounded-lg border border-border-2 bg-surface px-3 py-1.5 text-sm transition-colors hover:bg-secondary disabled:opacity-50"
             >
               {t('endNegotiation')}
-            </button>
+            </Button>
           </div>
-          {err(endNeg) && <p className="text-sm text-crimson">{err(endNeg)}</p>}
+          {err(endNeg) && (
+            <p role="alert" className="text-sm text-crimson">
+              {err(endNeg)}
+            </p>
+          )}
           <ActionConfirmDialog
             {...dialogProps}
             open={dialog === 'endNeg'}
@@ -464,22 +679,23 @@ function CompanyActions({
           >
             <p>{t('confirm.endNegBody')}</p>
           </ActionConfirmDialog>
-          {showBlock && <OfferBuilder kind="extra" quoteId={quote.id} includesPaidDesign={includesPaidDesign} rooms={rooms} onDone={() => setShowBlock(false)} />}
-          <div className="flex flex-col gap-2 rounded-md border border-border bg-surface p-3">
+          {showBlock && <OfferBuilder kind="extra" quoteId={quote.id} includesPaidDesign={includesPaidDesign} rooms={rooms} currency={quote.currency} onDone={() => setShowBlock(false)} />}
+          <div className="flex flex-col gap-2 rounded-lg border border-border bg-surface p-3.5">
             <p className="text-sm font-medium">{t('consultationTitle')}</p>
-            <input
+            <Input
               value={inviteAddr}
               onChange={(e) => setInviteAddr(e.target.value)}
               placeholder={t('consultationAddress')}
-              className="rounded-md border border-border-2 bg-surface px-3 py-2 text-sm focus-visible:border-foreground focus-visible:outline-none"
+              aria-label={t('consultationAddress')}
             />
-            <input
+            <Input
               type="datetime-local"
               value={inviteDate}
               onChange={(e) => setInviteDate(e.target.value)}
-              className="rounded-md border border-border-2 bg-surface px-3 py-2 text-sm focus-visible:border-foreground focus-visible:outline-none"
             />
-            <button
+            <Button
+              type="button"
+              size="lg"
               onClick={() =>
                 invite.mutate(
                   { locationAddress: inviteAddr, proposedDatetime: new Date(inviteDate).toISOString() },
@@ -487,25 +703,30 @@ function CompanyActions({
                 )
               }
               disabled={!inviteAddr || !inviteDate || invite.isPending}
-              className="self-start rounded-lg border border-border-2 bg-surface px-4 py-2 text-sm transition-colors hover:bg-secondary disabled:opacity-50"
+              className="self-start"
             >
               {t('sendInvite')}
-            </button>
-            {err(invite) && <p className="text-sm text-crimson">{err(invite)}</p>}
+            </Button>
+            {err(invite) && (
+              <p role="alert" className="text-sm text-crimson">
+                {err(invite)}
+              </p>
+            )}
           </div>
         </div>
       )}
 
       {/* Retragere (1 zi lucratoare) — E-company-6: ascunsa dupa inchiderea ferestrei, cu dialog de consecinte */}
-      {(quote.status === 'SENT' || quote.status === 'EXPIRED') && withdrawWindowOpen && (
+      {showWithdraw && (
         <div className="flex flex-col gap-1">
           <button
+            type="button"
             onClick={() => {
               setForceSlaAck(false);
               open('withdraw', withdraw);
             }}
             disabled={withdraw.isPending}
-            className="self-start text-sm text-crimson hover:underline disabled:opacity-50"
+            className="inline-flex min-h-10 items-center self-start rounded-md text-sm font-medium text-crimson hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-crimson/40 disabled:opacity-50"
           >
             {t('withdraw')}
           </button>
@@ -549,7 +770,11 @@ function CompanyActions({
           </ActionConfirmDialog>
         </div>
       )}
-      {err(withdraw) && dialog !== 'withdraw' && <p className="text-sm text-crimson">{err(withdraw)}</p>}
+      {err(withdraw) && dialog !== 'withdraw' && (
+        <p role="alert" className="text-sm text-crimson">
+          {err(withdraw)}
+        </p>
+      )}
     </div>
   );
 }
@@ -559,29 +784,28 @@ function ConsultationInvites({ quote, mode }: { quote: QuoteDto; mode: 'client' 
   const respond = useRespondConsultationInvite();
   if (quote.consultationInvites.length === 0) return null;
   return (
-    <div className="flex flex-col gap-2 border-t border-border pt-3">
+    <div className={cn('flex flex-col gap-2 border-t border-border py-4', PAD)}>
       <p className="text-sm font-medium">{t('consultationTitle')}</p>
       {quote.consultationInvites.map((inv) => (
-        <div key={inv.id} className="rounded-md border border-border p-3 text-sm">
+        <div key={inv.id} className="rounded-lg border border-border p-3.5 text-sm">
           {/* E-company-3: adresa lipseste cand contactele clientului nu sunt vizibile */}
           {inv.locationAddress && <p>{inv.locationAddress}</p>}
           <p className="text-xs text-muted-foreground">
             {new Date(inv.proposedDatetime).toLocaleString()} · {t(`consultationStatus.${inv.status}`)}
           </p>
           {mode === 'client' && inv.status === 'PENDING_CLIENT' && (
-            <div className="mt-2 flex gap-2">
-              <button
-                onClick={() => respond.mutate({ inviteId: inv.id, accept: true })}
-                className="rounded-md bg-sage px-3 py-1.5 text-xs font-medium text-white transition hover:brightness-110"
-              >
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              <Button type="button" size="lg" onClick={() => respond.mutate({ inviteId: inv.id, accept: true })}>
                 {t('inviteAccept')}
-              </button>
-              <button
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
                 onClick={() => respond.mutate({ inviteId: inv.id, accept: false })}
-                className="rounded-lg border border-border-2 bg-surface px-3 py-1.5 text-xs transition-colors hover:bg-secondary"
               >
                 {t('inviteDecline')}
-              </button>
+              </Button>
             </div>
           )}
         </div>
