@@ -3566,7 +3566,7 @@
       "subtitle": "Adaugă câte camere ai nevoie — merg și mai multe de același tip.",
       "designHelpSubtitle": "Alege camerele sau piesele pentru care vrei mobilier — proiectarea o faci împreună cu firma care preia cererea.",
       "basketTitle": "Coșul cererii tale",
-      "basketEmpty": "Nimic adăugat încă — alege de mai jos camere sau piese.",
+      "basketEmpty": "Nimic adăugat încă. Alege camere sau piese.",
       "totalRooms": "{count, plural, =0 {Nicio cameră} =1 {O cameră} other {# camere}}",
       "hasOwnProject": "Am deja un proiect pentru toată locuința",
       "hasOwnProjectHint": "Îl încarci o singură dată, la pasul Fișiere, și sari peste schițele fiecărei camere.",
@@ -3575,7 +3575,13 @@
       "addPieces": "Adaugă piese",
       "removePieces": "Elimină",
       "addOne": "Adaugă {type}",
-      "removeOne": "Șterge {type}"
+      "removeOne": "Șterge {type}",
+      "add": "Adaugă",
+      "basketRemove": "Scoate {type} din coș",
+      "basketNext": "Întrebările vin pe rând, în ordinea de aici.",
+      "countRooms": "{count, plural, =1 {o cameră} few {# camere} other {# de camere}}",
+      "countPieces": "{count, plural, =1 {o piesă} few {# piese} other {# de piese}}",
+      "summaryEmpty": "Nimic adăugat"
     },
     "sketchUpload": {
       "skipNotice": "Ai marcat că ai un proiect pentru toată locuința — poți sări peste acest pas. Încarcă proiectul la pasul Fișiere, ca să nu-l atașezi la fiecare cameră.",

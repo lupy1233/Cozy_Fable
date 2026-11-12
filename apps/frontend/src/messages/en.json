@@ -3566,7 +3566,7 @@
       "subtitle": "Add as many rooms as you need — several of the same type is fine.",
       "designHelpSubtitle": "Pick the rooms or pieces you want furniture for — the design is worked out together with the company that claims your request.",
       "basketTitle": "Your request cart",
-      "basketEmpty": "Nothing here yet — pick rooms or pieces below.",
+      "basketEmpty": "Nothing here yet. Pick rooms or pieces.",
       "totalRooms": "{count, plural, =0 {No rooms} =1 {One room} other {# rooms}}",
       "hasOwnProject": "I already have a project for the whole home",
       "hasOwnProjectHint": "Upload it once at the Files step and skip the sketch steps for every room.",
@@ -3575,7 +3575,13 @@
       "addPieces": "Add pieces",
       "removePieces": "Remove",
       "addOne": "Add {type}",
-      "removeOne": "Remove {type}"
+      "removeOne": "Remove {type}",
+      "add": "Add",
+      "basketRemove": "Remove {type} from the cart",
+      "basketNext": "Questions come one at a time, in this order.",
+      "countRooms": "{count, plural, =1 {1 room} other {# rooms}}",
+      "countPieces": "{count, plural, =1 {1 piece} other {# pieces}}",
+      "summaryEmpty": "Nothing added"
     },
     "sketchUpload": {
       "skipNotice": "You marked that you have a project for the whole home — feel free to skip this step. Upload the project at the Files step so you don't attach it for every room.",

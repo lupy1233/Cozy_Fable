@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## Cosul de camere si piese, cu poze — 2026-11-12
+- **Obiectiv** (cerere PO 2026-11-12: "un cos de camere si piese individuale mai frumos"): pasul "Camere" din cererea noua arata ca un catalog — cartonase cu redarea 3D a fiecarei camere / piese si un cos adevarat alaturi.
+- **Module / tabele**: doar `apps/frontend` (configurator: 3 fisiere modificate, 3 noi + mesajele RO / EN). Tabele afectate: niciuna. Fara backend, `packages/shared` sau migrari; fluxurile inghetate ale chestionarului neatinse.
+- **Presupuneri**: imaginile sunt redarile 3D existente (pozele de optiuni si atlasele "showroom" pe care clientul le vede apoi in intrebari) — nimic generat; canapeaua, fotoliul si taburetul nu au redare, deci primesc o schita line-art; regulile cosului raman (plafon `MAX_REQUEST_ROOMS`, "Alta piesa" o singura data, ordinea fixa a camerelor).
+- **Schimbari**:
+  - `room-cart-step.tsx`: cartonas cu poza, nume si ce cuprinde. Neadaugat → buton "Adauga" (tot cartonasul e tinta de click); adaugat → contur nuc, numarul pe poza si pas −/+. Taburile "Camere" / "Piese individuale" arata cate sunt deja in cos. "Am deja un proiect pentru toata locuinta" e un rand-cartonas.
+  - `cart-basket.tsx` (nou): de la lg cosul sta in coloana din dreapta, pe locul pe care il ia apoi "Fisa cererii" — miniatura, nume, cate sectiuni are chestionarul, cantitate, scoatere, grupat pe camere / piese. Pe ecrane mici ramane banda de sub taburi; pe telefon e un singur rand care se deruleaza lateral, deci catalogul nu mai sare la fiecare adaugare.
+  - `cart-visual.tsx` (nou): `CART_ART` leaga fiecare `RoomType` de imaginea lui; atlasele vin prin optimizatorul Next (WebP / AVIF), nu ca PNG de 1,2 MB.
+  - `configurator-wizard.tsx`: coloana laterala apare si la pasul de camere (cosul), nu doar de la intrebari incolo.
+  - i18n: 6 chei noi RO + EN (`cart.add`, `cart.basketRemove`, `cart.basketNext`, `cart.countRooms`, `cart.countPieces`, `cart.summaryEmpty`); `cart.basketEmpty` rescris (fara "de mai jos", cosul nu mai e deasupra listei).
+- **Schimbari de comportament**: totalul spune "2 camere · o piesa" in loc de "3 camere" (o piesa nu e o camera); click pe un cartonas neadaugat il adauga (inainte doar butonul "+"); numele butoanelor "Adauga {tip}" / "Sterge {tip}" sunt aceleasi, iar butoanele din cos au nume propriu ("Scoate {tip} din cos").
+- **Teste**: frontend 546 trecute (69 de fisiere; 6 teste noi in `room-cart-step.test.tsx`: imagine pentru fiecare tip, buton "Adauga" unic, click pe cartonas, gruparea cosului, "Alta piesa", cos gol), typecheck 0, lint 0. Capturi prin Edge headless pe GPU (GTX 1070) la 1280, 820 (EN) si 375 px: fara derulare orizontala, fara imagini rupte, fara erori in consola.
+- **Checklist de acceptare**:
+  - [x] Fiecare camera si piesa are imagine (redare 3D sau schita).
+  - [x] Cosul se vede pe ambele taburi, pe desktop si pe telefon.
+  - [x] Adaugarea, cantitatea si scoaterea merg din cartonas si din cos.
+  - [x] Nicio schimbare in backend, `packages/shared` sau fluxuri.
+  - [ ] CI verde pe commit (inclusiv e2e).
+  - [ ] Deploy pe `app-blue` si verificare pe adresa live.
+- **De stiut**: canapeaua, fotoliul si taburetul tapitat au schita, nu redare 3D — daca se vor redari in acelasi stil, trebuie generate (lipsesc din atlase).
+
 ## Redesign frontend dupa canvasul de design (toata aplicatia) — 2026-11-12
 - **Obiectiv** (cerere PO 2026-11-12: "inlocuiesti tot front end-ul cu cel din design"): toate cele 48 de rute aduse la canvasul de design (54 de planse: fundatie, public, cont, client, firma, admin). Doar aspect, asezare si texte; nicio regula de business schimbata.
 - **Module / tabele**: doar `apps/frontend` (115 fisiere modificate, 51 noi). Tabele afectate: niciuna. Fara migrari, fara schimbari in backend sau `packages/shared`.

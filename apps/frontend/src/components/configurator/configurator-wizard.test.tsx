@@ -17,6 +17,7 @@ vi.mock('./start-mode-step', () => ({ StartModeStep: () => <div>Ready to choose 
 vi.mock('./details-step', () => ({ DetailsStep: () => null }));
 vi.mock('./review-step', () => ({ ReviewStep: () => null }));
 vi.mock('./room-cart-step', () => ({ RoomCartStep: () => null }));
+vi.mock('./cart-basket', () => ({ CartBasket: () => null }));
 vi.mock('./room-flow-runner', () => ({ RoomFlowRunner: () => null }));
 vi.mock('./uploads-step', () => ({ UploadsStep: () => null }));
 

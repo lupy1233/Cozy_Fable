@@ -40,6 +40,7 @@ import {
 import { DetailsStep } from './details-step';
 import { RequestSheet } from './review-rail';
 import { ReviewStep } from './review-step';
+import { CartBasket } from './cart-basket';
 import { RoomCartStep } from './room-cart-step';
 import { RoomFlowRunner } from './room-flow-runner';
 import { screenIndexForStep } from './room-screens';
@@ -468,6 +469,10 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
   // insoteste fazele in care exista deja camere de urmarit
   const inReview = phase === 'review';
   const showSheet = phase === 'rooms' || phase === 'uploads' || phase === 'details';
+  // la pasul de camere, coloana din dreapta tine cosul; "Fisa cererii" ii ia locul
+  // cand incep intrebarile, deci asezarea paginii nu sare intre cele doua faze
+  const showBasket = phase === 'cart';
+  const showSide = showSheet || showBasket;
   const headTitle = inReview ? t('review.title') : t(isEdit ? 'editTitle' : 'title');
   const headSubtitle = inReview
     ? t('review.subtitle')
@@ -527,7 +532,7 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
       </header>
 
       {/* sub antet pe ecrane mici si in fazele fara coloana laterala; altfel sta in coloana */}
-      {editedRequest && <EditNotice request={editedRequest} className={cn(showSheet && 'lg:hidden')} />}
+      {editedRequest && <EditNotice request={editedRequest} className={cn(showSide && 'lg:hidden')} />}
 
       <PhaseTrack labels={phaseLabels} current={phaseIndex} />
 
@@ -564,7 +569,7 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
           />
         </motion.div>
       ) : (
-        <div className={cn('grid items-start gap-6', showSheet && 'lg:grid-cols-[minmax(0,1fr)_320px]')}>
+        <div className={cn('grid items-start gap-6', showSide && 'lg:grid-cols-[minmax(0,1fr)_320px]')}>
           <motion.section
             key={phase}
             initial={{ opacity: 0, y: 8 }}
@@ -608,10 +613,20 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
         )}
           </motion.section>
 
-          {showSheet && (
-            <div className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6.5rem)] lg:overflow-y-auto">
+          {showSide && (
+            <div
+              className={cn(
+                'min-w-0 flex-col gap-5 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6.5rem)] lg:overflow-y-auto',
+                // cosul are pe ecrane mici banda lui din pas (CartBasketStrip)
+                showBasket ? 'hidden lg:flex' : 'flex',
+              )}
+            >
               {editedRequest && <EditNotice request={editedRequest} className="hidden lg:flex" />}
-              <RequestSheet phase={phase} phaseOrder={phaseOrder} designHelp={designHelp} />
+              {showBasket ? (
+                <CartBasket />
+              ) : (
+                <RequestSheet phase={phase} phaseOrder={phaseOrder} designHelp={designHelp} />
+              )}
             </div>
           )}
         </div>
