@@ -6,6 +6,8 @@ import { ArrowLeft, Check, CloudOff, FilePlus2, History, Loader2 } from 'lucide-
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/toaster';
+import { useMe } from '@/hooks/use-auth';
 import {
   Dialog,
   DialogContent,
@@ -29,15 +31,28 @@ import { DRAFT_TOKEN_KEY } from '@/lib/session-cleanup';
 import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { cn } from '@/lib/utils';
 import { Link, useRouter } from '@/i18n/routing';
+import { CONFIGURATOR_STORAGE_KEY, isAbandonedEditSnapshot } from '@/stores/configurator-keys';
 import {
+  discardPendingEditSession,
+  EDIT_RESUME_WINDOW_MS,
+  enterEditSession,
+  finishEditSession,
+  holdEditSession,
+  isStudioRoom,
+  leaveEditSession,
+  roomHasAnswers,
   useConfiguratorStore,
   type ConfiguratorPhase,
   type ConfiguratorSnapshot,
   type DetailsValues,
   type InspirationMeta,
+  type RoomInstance,
   type StartMode,
 } from '@/stores/configurator-store';
+import { ClientOnlyNote, isNonClientRole } from './client-only-note';
+import { DesignHelpConfirmDialog } from './design-help-dialog';
 import { DetailsStep } from './details-step';
+import { roomInstanceLabels } from './room-payload';
 import { RequestSheet } from './review-rail';
 import { ReviewStep } from './review-step';
 import { CartBasket } from './cart-basket';
@@ -55,16 +70,27 @@ const PHASE_ORDER: ConfiguratorPhase[] = ['start', 'cart', 'rooms', 'uploads', '
 // Proiectare platita; proiectarea o face atelierul care preia cererea.
 const DESIGN_HELP_PHASE_ORDER: ConfiguratorPhase[] = ['start', 'cart', 'uploads', 'details', 'review'];
 
+// Modul unei cereri publicate (contract b8, punctul 5): nu exista coloana de mod —
+// hasOwnProject → "Am deja un proiect"; toate camerele cu needsDesignHelp →
+// "Am nevoie de ajutor"; altfel "Stiu ce vreau".
+export function startModeFromRequest(dto: Pick<RequestDto, 'hasOwnProject' | 'rooms'>): StartMode {
+  if (dto.hasOwnProject) return 'OWN_PROJECT';
+  if (dto.rooms.length > 0 && dto.rooms.every((r) => r.needsDesignHelp === true)) return 'DESIGN_HELP';
+  return 'STANDARD';
+}
+
 // Reconstruieste snapshot-ul wizard-ului dintr-o cerere publicata (edit mode).
 // configuratorState e null dupa publish → sursa de adevar sunt answers per camera.
-function buildSnapshotFromRequest(dto: RequestDto): ConfiguratorSnapshot {
+export function buildSnapshotFromRequest(dto: RequestDto): ConfiguratorSnapshot {
+  // camerele legacy (answers null, fara bifa) nu intra in editare, deci nici in mod
+  const editableRooms = dto.rooms.filter((r) => r.answers || r.needsDesignHelp);
+  const startMode = startModeFromRequest({ hasOwnProject: dto.hasOwnProject, rooms: editableRooms });
   const details: Partial<DetailsValues> = {
     description: dto.description ?? '',
     budgetRange: dto.budgetRange,
     budgetEstimateRon: dto.budgetEstimateRon,
     deadlineBucket: dto.deadlineBucket ?? '',
-    includesPaidDesign: dto.includesPaidDesign,
-    hasOwnProject: dto.hasOwnProject,
+    hasOwnProject: startMode === 'OWN_PROJECT',
     addressText: dto.addressText ?? '',
     county: dto.county ?? '',
     city: dto.city ?? '',
@@ -74,25 +100,22 @@ function buildSnapshotFromRequest(dto: RequestDto): ConfiguratorSnapshot {
       value: c.value,
     })),
   };
-  // modul de pornire se deduce din cerere: brief de proiectare (paid design,
-  // camere fara raspunsuri) → DESIGN_HELP; proiect propriu → OWN_PROJECT
-  const hasAnswers = dto.rooms.some((r) => r.answers && Object.keys(r.answers).length > 0);
-  const startMode: StartMode =
-    dto.includesPaidDesign && !hasAnswers
-      ? 'DESIGN_HELP'
-      : dto.hasOwnProject
-        ? 'OWN_PROJECT'
-        : 'STANDARD';
-  const roomInstances = dto.rooms
-    .filter((r) => r.answers)
-    .map((r) => ({
+  // camerele legacy (answers null) raman pe dinafara; o camera bifata "am nevoie de
+  // ajutor" vine fara raspunsuri (doar, eventual, fisierele ei) si se pastreaza
+  const roomInstances: RoomInstance[] = editableRooms
+    .map((r) => {
+      const sourceStudio = dto.studioScenes?.flatMap((entry) => Object.entries(entry.data.requestEntryIds ?? {}).filter(([, roomId]) => roomId === r.id).map(([placementId]) => ({ sceneId: entry.data.scene.id, placementId })))[0];
+      return {
         localId: r.id,
-        sourceStudio: dto.studioScenes?.flatMap((entry) => Object.entries(entry.data.requestEntryIds ?? {}).filter(([, roomId]) => roomId === r.id).map(([placementId]) => ({ sceneId: entry.data.scene.id, placementId })))[0],
+        sourceStudio,
         roomType: r.roomType,
         flowVersion: r.flowVersion ?? 1,
-        answers: r.answers as AnswerMap,
+        answers: (r.answers ?? {}) as AnswerMap,
         completed: true,
-      }));
+        // piesele din Studio 3D nu au bifa de ajutor (deja configurate)
+        needsDesignHelp: startMode !== 'OWN_PROJECT' && !sourceStudio && r.needsDesignHelp === true,
+      };
+    });
   // E-client-34: notita + camera per poza; la editare localId = id-ul camerei persistate
   // (camerele legacy fara answers lipsesc din roomInstances → poza trece pe "toata locuinta")
   const inspirationPhotos = dto.inspirationPhotos ?? [];
@@ -135,7 +158,8 @@ const MAX_POST_CLAIM_EDITS = 1;
 
 // Fazele cererii: o bara pe faza (salvie = facuta, nuc = curenta, gri = urmeaza).
 // Pe telefon raman doar barele + "Faza X din Y · nume"; etichetele apar de la sm.
-function PhaseTrack({ labels, current }: { labels: string[]; current: number }) {
+// b8 (pasul 6): fazele deja trecute sunt butoane — drumul inapoi la Pornire e un clic.
+function PhaseTrack({ labels, current, onSelect }: { labels: string[]; current: number; onSelect?: (index: number) => void }) {
   const t = useTranslations('Configurator');
   return (
     <div className="rounded-xl border border-border bg-surface px-4 py-3.5 sm:px-5 sm:py-4">
@@ -145,8 +169,8 @@ function PhaseTrack({ labels, current }: { labels: string[]; current: number }) 
       >
         {labels.map((label, i) => {
           const state = i < current ? 'done' : i === current ? 'now' : 'next';
-          return (
-            <li key={i} aria-current={state === 'now' ? 'step' : undefined} className="flex flex-col gap-2">
+          const content = (
+            <>
               <span
                 aria-hidden
                 className={cn(
@@ -164,6 +188,22 @@ function PhaseTrack({ labels, current }: { labels: string[]; current: number }) 
                 {label}
               </span>
               <span className="sr-only sm:hidden">{label}</span>
+            </>
+          );
+          return (
+            <li key={i} aria-current={state === 'now' ? 'step' : undefined} className="flex flex-col">
+              {state === 'done' && onSelect ? (
+                <button
+                  type="button"
+                  onClick={() => onSelect(i)}
+                  aria-label={t('phaseGoTo', { phase: label })}
+                  className="group flex min-h-11 flex-col gap-2 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-walnut [&>span:nth-child(2)]:underline-offset-2 hover:[&>span:nth-child(2)]:underline"
+                >
+                  {content}
+                </button>
+              ) : (
+                <span className="flex flex-col gap-2">{content}</span>
+              )}
             </li>
           );
         })}
@@ -182,7 +222,7 @@ function PhaseTrack({ labels, current }: { labels: string[]; current: number }) 
 // server (reluare de pe alt dispozitiv) urmeaza la ~1,5 s dupa fiecare schimbare.
 // Fara role="status": pagina are deja o zona de stare (publicarea), iar anuntarea
 // fiecarei salvari ar fi zgomot pentru cititoarele de ecran.
-function DraftStatus({ saving, failed, savedAt }: { saving: boolean; failed: boolean; savedAt: number }) {
+function DraftStatus({ saving, failed, savedAt, onRetry }: { saving: boolean; failed: boolean; savedAt: number; onRetry?: () => void }) {
   const t = useTranslations('Configurator');
   const format = useFormatter();
   const base = 'inline-flex min-h-11 items-center gap-2 font-mono text-xs';
@@ -195,10 +235,20 @@ function DraftStatus({ saving, failed, savedAt }: { saving: boolean; failed: boo
     );
   }
   if (failed) {
+    // b3 (pasul 4): salvarea pe server a esuat (ex. 502 intamplator) — se poate reincerca
     return (
       <p className={cn(base, 'text-amber')}>
         <CloudOff aria-hidden className="h-3.5 w-3.5" />
         {t('draft.localOnly')}
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="inline-flex min-h-11 items-center font-sans text-sm font-medium text-walnut underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-walnut"
+          >
+            {t('draft.retry')}
+          </button>
+        )}
       </p>
     );
   }
@@ -265,8 +315,9 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
   const updatedAt = useConfiguratorStore((s) => s.updatedAt);
   const startMode = useConfiguratorStore((s) => s.startMode);
   const setStartMode = useConfiguratorStore((s) => s.setStartMode);
-  const setDetails = useConfiguratorStore((s) => s.setDetails);
   const designHelp = startMode === 'DESIGN_HELP';
+  // b8-3: camerele cu raspunsuri afectate de trecerea pe "Am nevoie de ajutor"
+  const [modeConfirm, setModeConfirm] = useState<string[] | null>(null);
 
   const createAnonymousDraft = useCallback((resetProgress: boolean) => {
     created.current = true;
@@ -324,7 +375,8 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     const hasLocal =
       local.roomInstances.length > 0 || Object.keys(local.details).length > 0;
     const serverState = draft.data.configuratorState as ConfiguratorSnapshot | null;
-    if (!hasLocal && serverState && Array.isArray(serverState.roomInstances)) {
+    // b8: build-urile vechi puteau trimite pe ciorna o editare abandonata — nu o reluam
+    if (!hasLocal && serverState && Array.isArray(serverState.roomInstances) && !isAbandonedEditSnapshot(serverState)) {
       store.getState().loadSnapshot(serverState);
     }
     // dupa hidratare stim starea reala: daca exista progres, intreaba utilizatorul
@@ -369,13 +421,40 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     void createAnonymousDraft(false);
   };
 
-  // --- mod editare: reconstruim starea din cererea publicata ---
+  // --- mod editare: memorie proprie (b8, pasul 1) ---
+  // Editarea lucreaza in sessionStorage, pe cheia cererii editate; ciorna cererii
+  // noi (localStorage) nu e atinsa. La reincarcarea paginii editarea se reia din tab;
+  // altfel se construieste din cererea publicata. Iesirea (fara salvare) o arunca.
   const editRequest = useRequest(editId ?? '');
+  const [editReady, setEditReady] = useState(false);
   useEffect(() => {
-    if (!isEdit || hydrated.current || !editRequest.data) return;
+    if (!isEdit || !editId || hydrated.current || !editRequest.data) return;
     hydrated.current = true;
-    store.getState().loadSnapshot(buildSnapshotFromRequest(editRequest.data));
-  }, [editRequest.data, isEdit, store]);
+    const resumed = enterEditSession(editId);
+    if (!resumed) store.getState().loadSnapshot(buildSnapshotFromRequest(editRequest.data));
+    setEditReady(true);
+  }, [editId, editRequest.data, isEdit, store]);
+  // Demontarea (fara salvare) arunca editarea abia dupa EDIT_RESUME_WINDOW_MS: schimbarea
+  // limbii si dubla montare din dev remonteaza aceeasi editare, care continua de unde era.
+  // La remontare aruncarea programata se anuleaza imediat (cererea poate veni mai tarziu).
+  // m1: iesirea EXPLICITA ("Inapoi la cerere") arunca editarea pe loc; fereastra e doar
+  // pentru remontarea aceleiasi pagini (schimbarea limbii). Pagina cererii arunca si ea
+  // o editare in asteptare (orice alt drum inapoi la cerere).
+  const explicitExit = useRef(false);
+  useEffect(() => {
+    if (!isEdit || !editId) return;
+    holdEditSession(editId);
+    explicitExit.current = false;
+    return () => {
+      hydrated.current = false;
+      setEditReady(false);
+      leaveEditSession(explicitExit.current ? undefined : { keepForMs: EDIT_RESUME_WINDOW_MS });
+    };
+  }, [editId, isEdit]);
+  // pe /requests/new o editare lasata in asteptare se arunca pe loc
+  useEffect(() => {
+    if (!isEdit) discardPendingEditSession();
+  }, [isEdit]);
 
   // Referinte la fisiere sterse (schite/snapshot3d scoase de pe draft sau de pe
   // cererea publicata): se curata o data dupa incarcare si la fiecare intrare in
@@ -417,19 +496,64 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     if (startMode == null && phase !== 'start') setPhase('start');
   }, [startMode, phase, setPhase]);
 
+  // b3: de la "Publica cererea" pana la plecarea de pe pagina ciorna nu se mai trimite
+  // (ar ajunge pe o ciorna deja publicata si ar afisa "salvata doar pe acest dispozitiv")
+  const publishingRef = useRef(false);
+  const [publishing, setPublishing] = useState(false);
+  const onPublishingChange = useCallback((busy: boolean) => {
+    publishingRef.current = busy;
+    setPublishing(busy);
+  }, []);
+  // b2: o singura salvare pe server in curs; schimbarile venite intre timp pleaca
+  // intr-o singura salvare, dupa ce se termina cea curenta
+  const patchRef = useRef(patchDraft);
+  patchRef.current = patchDraft;
+  const patchInFlight = useRef(false);
+  const patchQueued = useRef(false);
+  const sendDraft = useCallback(function send() {
+    if (publishingRef.current) return;
+    if (patchInFlight.current) {
+      patchQueued.current = true;
+      return;
+    }
+    patchInFlight.current = true;
+    patchRef.current
+      .mutateAsync({ configuratorState: store.getState().snapshot() as unknown as Record<string, unknown> })
+      .catch(() => {
+        // starea de eroare o arata DraftStatus (cu "Reincearca")
+      })
+      .finally(() => {
+        patchInFlight.current = false;
+        if (patchQueued.current) {
+          patchQueued.current = false;
+          send();
+        }
+      });
+  }, [store]);
+
   // Sync server debounced (doar creare): backup pentru resume de pe alt device.
   useEffect(() => {
-    if (isEdit || !token || !draftLoaded) return;
-    const handle = setTimeout(() => {
-      patchDraft.mutate({
-        configuratorState: store.getState().snapshot() as unknown as Record<string, unknown>,
-      });
-    }, 1500);
+    if (isEdit || !token || !draftLoaded || publishing) return;
+    const handle = setTimeout(sendDraft, 1500);
     return () => clearTimeout(handle);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [updatedAt, token, isEdit, draftLoaded]);
+  }, [updatedAt, token, isEdit, draftLoaded, publishing, sendDraft]);
 
-  const ready = isEdit ? Boolean(editRequest.data) : Boolean(token && draft.data);
+  // b3: memoria ciornei publicate se goleste abia dupa plecarea de pe pagina, ca
+  // formularul sa nu mai arate primul pas intre reusita si pagina cererii
+  const clearOnLeave = useRef(false);
+  useEffect(() => () => {
+    if (!clearOnLeave.current) return;
+    clearOnLeave.current = false;
+    store.getState().reset();
+  }, [store]);
+
+  // f2: un cont de firma / admin nu poate publica — afla de la inceput
+  const me = useMe();
+  const nonClient = isNonClientRole(me.data?.role);
+
+  // la editare: abia dupa trecerea pe memoria editarii (altfel pasii ar randa, si
+  // ar putea scrie, peste ciorna cererii noi)
+  const ready = isEdit ? Boolean(editRequest.data) && editReady : Boolean(token && draft.data);
   if (!ready) {
     const failed = isEdit ? editRequest.isError : bootstrapFailed || (draft.isError && !(draft.error instanceof ApiError && draft.error.status === 404));
     const retrying = isEdit ? editRequest.isFetching : creatingDraft || draft.isFetching;
@@ -451,19 +575,45 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     ? { kind: 'request', id: editId! }
     : { kind: 'draft', token: token! };
 
-  // alegerea de pe pasul de pornire: seteaza modul, sincronizeaza detaliile
-  // derivate si avanseaza la cos
-  const pickStartMode = (mode: StartMode) => {
+  // alegerea de pe pasul de pornire: modul e singura sursa (b8) — setStartMode
+  // aduce dupa el hasOwnProject si bifele de ajutor ale camerelor — apoi la cos.
+  // Trecerea pe "Am nevoie de ajutor" cu raspunsuri deja date cere confirmare (b8-3).
+  const applyStartMode = (mode: StartMode) => {
     setStartMode(mode);
-    if (mode === 'OWN_PROJECT') setDetails({ hasOwnProject: true });
-    if (mode === 'STANDARD') setDetails({ hasOwnProject: false, includesPaidDesign: false });
-    if (mode === 'DESIGN_HELP') setDetails({ hasOwnProject: false, includesPaidDesign: true });
     setPhase('cart');
+  };
+  const pickStartMode = (mode: StartMode) => {
+    if (mode === 'DESIGN_HELP' && startMode !== 'DESIGN_HELP') {
+      // piesele din Studio 3D nu se bifeaza, deci nu-si pierd nimic
+      const answered = store.getState().roomInstances.filter((r) => !r.needsDesignHelp && !isStudioRoom(r) && roomHasAnswers(r));
+      if (answered.length > 0) {
+        const labels = roomInstanceLabels(store.getState().roomInstances, (rt) => t(`rooms.type.${rt}`));
+        setModeConfirm(answered.map((r) => labels.get(r.localId) ?? ''));
+        return;
+      }
+    }
+    applyStartMode(mode);
   };
 
   const phaseOrder = designHelp ? DESIGN_HELP_PHASE_ORDER : PHASE_ORDER;
   const phaseIndex = Math.max(0, phaseOrder.indexOf(phase));
   const phaseLabels = phaseOrder.map((p) => t(`phases.${p}`));
+  // clic pe o faza trecuta din bara de sus (b8, pasul 6); la "Detalii camere" se
+  // deschide prima camera care are intrebari (nu una bifata "am nevoie de ajutor")
+  const goToPhase = (index: number) => {
+    const target = phaseOrder[index];
+    if (!target || index >= phaseIndex) return;
+    if (target === 'rooms') {
+      const rooms = store.getState().roomInstances;
+      const active = rooms[store.getState().activeRoomIndex];
+      if (!active || active.needsDesignHelp) {
+        const first = rooms.findIndex((r) => !r.needsDesignHelp);
+        if (first < 0) return;
+        setActiveRoom(first);
+      }
+    }
+    setPhase(target);
+  };
 
   // sumarul isi are propria asezare (carduri + coloana de publicare); "Fisa cererii"
   // insoteste fazele in care exista deja camere de urmarit
@@ -511,6 +661,9 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
           {isEdit && editId && (
             <Link
               href={`/requests/${editId}`}
+              onClick={() => {
+                explicitExit.current = true;
+              }}
               className="inline-flex min-h-11 items-center gap-1.5 self-start text-sm font-medium text-walnut hover:text-walnut-deep"
             >
               <ArrowLeft aria-hidden className="h-4 w-4" />
@@ -525,16 +678,31 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
         {!isEdit && (
           <DraftStatus
             saving={patchDraft.isPending}
-            failed={patchDraft.isError}
+            failed={patchDraft.isError && !publishing}
             savedAt={patchDraft.isSuccess ? draft.dataUpdatedAt : 0}
+            onRetry={sendDraft}
           />
         )}
       </header>
 
+      {/* f2: doar un cont de client publica cereri */}
+      {!isEdit && nonClient && <ClientOnlyNote />}
+
       {/* sub antet pe ecrane mici si in fazele fara coloana laterala; altfel sta in coloana */}
       {editedRequest && <EditNotice request={editedRequest} className={cn(showSide && 'lg:hidden')} />}
 
-      <PhaseTrack labels={phaseLabels} current={phaseIndex} />
+      <DesignHelpConfirmDialog
+        open={modeConfirm !== null}
+        rooms={modeConfirm ?? []}
+        wholeRequest
+        onCancel={() => setModeConfirm(null)}
+        onConfirm={() => {
+          setModeConfirm(null);
+          applyStartMode('DESIGN_HELP');
+        }}
+      />
+
+      <PhaseTrack labels={phaseLabels} current={phaseIndex} onSelect={goToPhase} />
 
       {inReview ? (
         <motion.div
@@ -559,11 +727,27 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
             }}
             onEditDetails={() => setPhase('details')}
             onEditFiles={() => setPhase('uploads')}
+            onPublishingChange={onPublishingChange}
             onPublished={(id) => {
-              // tokenul moare la publicare (SEC2-4): nu se mai pastreaza per cerere;
-              // repostul/editarea merg pe rutele autentificate :id
-              if (!isEdit) localStorage.removeItem(DRAFT_TOKEN_KEY);
-              store.getState().reset();
+              // b3: intai plecarea, apoi golirea memoriei (ecranul "Se publica…" ramane
+              // pana apare pagina cererii)
+              if (!isEdit) {
+                // tokenul moare la publicare (SEC2-4): nu se mai pastreaza per cerere;
+                // repostul/editarea merg pe rutele autentificate :id. Copia din browser
+                // se sterge acum (o reincarcare / un tab inchis nu mai readuce cererea
+                // publicata ca "Continui?"); memoria din pagina, la demontare.
+                try {
+                  localStorage.removeItem(DRAFT_TOKEN_KEY);
+                  localStorage.removeItem(CONFIGURATOR_STORAGE_KEY);
+                } catch {
+                  // storage indisponibil
+                }
+                clearOnLeave.current = true;
+              }
+              // la editare: editarea salvata se sterge acum si nu mai poate fi reluata;
+              // store-ul revine pe ciorna cererii noi (neatinsa, b8) la demontare
+              if (isEdit) finishEditSession();
+              toast.success(t(isEdit ? 'review.editSavedToast' : 'review.publishedToast'));
               router.push(`/requests/${id}`);
             }}
           />
@@ -582,14 +766,17 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
         )}
         {phase === 'cart' && (
           <RoomCartStep
+            uploadTarget={uploadTarget}
             onBack={() => setPhase('start')}
             onContinue={() => {
               // "am nevoie de ajutor": fara chestionar per camera — direct la fisiere
-              if (designHelp) {
+              // camerele bifate "am nevoie de ajutor" sar intrebarile (PO g0-8)
+              const first = store.getState().roomInstances.findIndex((r) => !r.needsDesignHelp);
+              if (designHelp || first < 0) {
                 setPhase('uploads');
                 return;
               }
-              setActiveRoom(0);
+              setActiveRoom(first);
               setPhase('rooms');
             }}
           />
@@ -623,7 +810,7 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
             >
               {editedRequest && <EditNotice request={editedRequest} className="hidden lg:flex" />}
               {showBasket ? (
-                <CartBasket />
+                <CartBasket uploadTarget={uploadTarget} />
               ) : (
                 <RequestSheet phase={phase} phaseOrder={phaseOrder} designHelp={designHelp} />
               )}

@@ -47,6 +47,12 @@ export class ConfiguratorRoomInputDto {
 
   @IsObject()
   answers: Record<string, unknown>;
+
+  // b8 (PO g0-8): "La camera asta am nevoie de ajutor" — implicit false. Camera bifata se
+  // valideaza partial, iar la publicare/editare raspunsurile ei nu se pastreaza (b8-3).
+  @IsOptional()
+  @IsBoolean()
+  needsDesignHelp?: boolean;
 }
 
 // Canal restrans la EMAIL/PHONE; formatul valorii (email valid / telefon RO)
@@ -107,8 +113,12 @@ export class CreateRequestContentDto {
   @IsEnum(DesiredDeadlineBucket)
   deadlineBucket?: DesiredDeadlineBucket;
 
+  // b8: DERIVAT pe server (true daca macar o camera are needsDesignHelp). Ramane acceptat
+  // pentru interfata veche (blue/green) si e ignorat — exceptie: niciun camp needsDesignHelp
+  // pe camere + includesPaidDesign=true → toate camerele cu ajutor (comportamentul vechi).
+  @IsOptional()
   @IsBoolean()
-  includesPaidDesign: boolean;
+  includesPaidDesign?: boolean;
 
   @IsBoolean()
   hasOwnProject: boolean;

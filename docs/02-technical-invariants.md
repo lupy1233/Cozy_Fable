@@ -64,6 +64,8 @@ Auth socket cookie-based (același httpOnly cookie). La handshake, middleware va
 
 - Livrabil Sprint 0: STATE_CONVENTIONS.md cu 5 exemple (creare cerere, claim, ofertă, chat, dashboard).
 
+- Memoria ciornei din browser (adăugat 2026-11-13, etapa 2, b8 / b2 / b3): ciorna cererii noi stă în localStorage, cheia `mm_configurator_v1` (versiunea persist 5). Editarea unei cereri publicate are memoria ei, în sessionStorage, pe o cheie per cerere `mm_configurator_edit_v1:<id>` (`apps/frontend/src/stores/configurator-keys.ts`); editarea nu scrie niciodată în ciorna nouă. La ieșirea din editare memoria editării se aruncă și store-ul revine imediat pe ciorna nouă; cheia din sessionStorage se șterge după o fereastră scurtă de reluare (`EDIT_RESUME_WINDOW_MS` = 2 s), ca remontarea aceleiași cereri (schimbarea limbii, StrictMode) să reia editarea. Se aruncă imediat la deschiderea altei cereri în editare, la montarea `/requests/new`, la deconectare și după „Salvează modificările”. „Date generale” se scriu în ciornă la ~400 ms după ultima schimbare, fără validare (validarea strictă rămâne la „Continuă la sumar”); după publicare salvarea ciornei se oprește, iar memoria se golește abia la plecarea de pe pagină.
+
 ### 3.7 Webhook plată mock
 
 Calea A (UI admin): POST /admin/payments/:id/confirm. Calea B (webhook): POST /webhooks/payment {paymentId, status, signature}, signature = HMAC-SHA256 cu secret din .env + Idempotency-Key + replay protection. Ambele apelează PaymentsService.confirm(paymentId, source), source ∈ {admin, webhook}, înregistrat în audit log.
@@ -97,3 +99,9 @@ Entitățile cu PII au deleted_at TIMESTAMPTZ nullable; Prisma middleware filtre
 - 2FA (TOTP via otplib) IMPLEMENTAT arhitectural (schema, rute, UI) dar INACTIV în MVP, comutabil prin feature flag pentru V1. TwoFactorGuard este no-op cât flag-ul e off.
 
 - Parole bcrypt cost 12, niciodată în log/audit/response. Secrets în .env validate la boot cu Zod (config.schema.ts) — boot fail-fast dacă lipsesc. Rate limiting: 5/min /auth/login, 10/min /claim, 30/min /upload, 100/min global per IP. CORS strict, Helmet + CSP.
+
+- Adresa de întoarcere după login (adăugat 2026-11-13, etapa 2, f1 / b4): parametrul `?redirect=` se citește DOAR prin `safeRedirect` (`apps/frontend/src/lib/safe-redirect.ts`) — se acceptă doar o cale internă care începe cu un singur „/”, fără `//` sau `\` și fără segmente `.` / `..` în partea de cale (verificat și pe formele decodate, până la 3 decodări), fără scheme, adrese absolute sau caractere de control, maximum 512 caractere; altfel `/dashboard`. Pe server, `returnTo` de la înregistrare intră în linkul de confirmare a e-mailului doar dacă e exact o cale din `VERIFY_EMAIL_RETURN_PATHS` (`auth.constants.ts`, azi doar `/requests/new`); altfel e ignorat fără eroare.
+
+- Formularele de cont (adăugat 2026-11-13, etapa 2, f1): autentificare, înregistrare, parolă uitată, resetare și schimbare parolă au `method="post"`, iar butonul de trimitere e dezactivat până la încărcarea paginii (hidratare), ca e-mailul și parola să nu poată ajunge niciodată în adresa paginii.
+
+- Publicarea cererii (adăugat 2026-11-13, etapa 2, f2): doar un cont cu rolul CLIENT publică o cerere; orice alt rol primește 403 `REQUEST_PUBLISH_CLIENT_ONLY`. Rolul se citește din baza de date, înainte de orice atingere a ciornei. O ciornă anonimă se leagă (`client_user_id`) doar de un cont de client, la `createDraft` și `patchDraft`.

@@ -8,7 +8,7 @@ import type { MailService } from '../../infra/mail/mail.service';
 import type { PrismaService } from '../../infra/prisma/prisma.service';
 import { SettingsService } from '../../common/settings/settings.service';
 import { AuthController } from './auth.controller';
-import { AuthService, LEGAL_REACCEPT_CACHE_MS, needsLegalAcceptance } from './auth.service';
+import { AuthService, LEGAL_REACCEPT_CACHE_MS, allowedVerifyReturnPath, needsLegalAcceptance } from './auth.service';
 import type { LoginLockoutService } from './login-lockout.service';
 import type { TokenService } from './token.service';
 import type { TwoFactorService } from './two-factor.service';
@@ -171,6 +171,59 @@ describe('register (termeni + email best-effort)', () => {
     const html = mail.send.mock.calls[0][2] as string;
     expect(html).not.toContain('<img');
     expect(html).toContain('&lt;img src=x&gt;');
+  });
+});
+
+// b4: intoarcerea la ciorna dupa confirmarea emailului
+describe('register cu returnTo (b4)', () => {
+  const linkOf = (mail: { send: jest.Mock }) => {
+    const html = mail.send.mock.calls.at(-1)?.[2] as string;
+    const m = /href="([^"]*\/verify-email\?[^"]*)"/.exec(html);
+    if (!m) throw new Error('link lipsa din email');
+    return new URL(m[1].replace(/&amp;/g, '&'));
+  };
+
+  it('cale permisa (/requests/new) → linkul de confirmare are ?redirect=/requests/new', async () => {
+    const { service, mail } = makeService(null);
+    await service.register({ ...registerDto, returnTo: '/requests/new' });
+    const url = linkOf(mail);
+    expect(url.pathname).toBe('/ro/verify-email');
+    expect(url.searchParams.get('token')).toMatch(/^[0-9a-f]{64}$/);
+    expect(url.searchParams.get('redirect')).toBe('/requests/new');
+    // in HTML, & e escapat
+    expect(mail.send.mock.calls[0][2]).toContain('&amp;redirect=%2Frequests%2Fnew');
+  });
+
+  it.each([
+    '//evil.com',
+    'https://evil.com/requests/new',
+    '/requests/new?x=1',
+    '/requests/abc',
+    '/dashboard',
+    '/\\evil.com',
+    '/..//evil.com',
+    '/requests/../requests/new',
+    '/requests/%6Eew',
+    '/requests//new',
+    '',
+  ])('cale nepermisa %j → ignorata in tacere, linkul are doar tokenul', async (returnTo) => {
+    const { service, mail } = makeService(null);
+    await expect(service.register({ ...registerDto, returnTo })).resolves.toMatchObject({ email: 'nou@demo.ro' });
+    const url = linkOf(mail);
+    expect([...url.searchParams.keys()]).toEqual(['token']);
+  });
+
+  it('fara returnTo → linkul de azi (doar tokenul)', async () => {
+    const { service, mail } = makeService(null);
+    await service.register(registerDto);
+    expect([...linkOf(mail).searchParams.keys()]).toEqual(['token']);
+  });
+
+  it('allowedVerifyReturnPath: potrivire exacta', () => {
+    expect(allowedVerifyReturnPath('/requests/new')).toBe('/requests/new');
+    expect(allowedVerifyReturnPath('/requests/new/')).toBeNull();
+    expect(allowedVerifyReturnPath(undefined)).toBeNull();
+    expect(allowedVerifyReturnPath(42)).toBeNull();
   });
 });
 

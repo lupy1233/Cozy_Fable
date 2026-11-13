@@ -24,7 +24,7 @@ import {
   type RequestVisibilityClosedReasonDto,
   sortByRoomOrder,
 } from '@marketplace/shared';
-import { ConfiguratorService, type ProcessedRoom } from './configurator.service';
+import { ConfiguratorService, droppedDesignHelpUploadIds, type ProcessedRoom } from './configurator.service';
 import {
   assertInspirationRooms,
   inspirationNotesForScreening,
@@ -33,7 +33,7 @@ import {
   type InspirationSelection,
 } from './inspiration-selection';
 import { assertStudioNightstands, parsePublicationScenes, resolvePublicationScenes } from './studio-publication';
-import { normalizeBudget, projectFileCount } from './publish-rules';
+import { normalizeBudget, projectFileCount, resolveDesignHelp, studioSourceIds } from './publish-rules';
 import { screenRequestText, type ContactScreeningRow } from './contact-screening';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
@@ -82,6 +82,7 @@ import {
   MAX_PRE_CLAIM_EDITS,
 } from './requests.constants';
 import type { RequestExpirationJob } from './request-expiration.processor';
+import type { AccessTokenPayload } from '../auth/auth.constants';
 import { requestExpiryReminderAt, scheduleRequestExpiryReminder } from './request-expiry-reminder';
 
 // Statusuri in care editarea e blocata pentru ca exista deja oferte/negociere.
@@ -173,13 +174,15 @@ export class RequestsService {
   // ---- creare / draft ----
 
   async createDraft(
-    clientUserId: string | null,
+    callerId: string | null,
     patch?: PatchDraftDto,
+    callerRole: AccessTokenPayload['role'] | null = null,
   ): Promise<RequestDraftCreatedDto> {
     const token = randomBytes(32).toString('hex');
     const request = await this.prisma.request.create({
       data: {
-        clientUserId,
+        // f2: doar un client devine proprietarul ciornei; firma / adminul raman pe ciorna anonima
+        clientUserId: callerId && callerRole === 'CLIENT' ? callerId : null,
         draftTokenHash: this.hashToken(token),
         status: 'DRAFT',
         title: patch?.title,
@@ -226,7 +229,12 @@ export class RequestsService {
     return { ok: true };
   }
 
-  async patchDraft(token: string, dto: PatchDraftDto, callerId: string | null): Promise<RequestDto> {
+  async patchDraft(
+    token: string,
+    dto: PatchDraftDto,
+    callerId: string | null,
+    callerRole: AccessTokenPayload['role'] | null = null,
+  ): Promise<RequestDto> {
     const request = await this.findByToken(token, callerId);
     if (request.status !== 'DRAFT') {
       throw new BadRequestException({
@@ -249,8 +257,9 @@ export class RequestsService {
           county: dto.county,
           city: dto.city,
           configuratorState,
-          // ciorna anonima salvata de un user logat devine a lui (fill as guest, login to publish)
-          ...(callerId && !request.clientUserId ? { clientUserId: callerId } : {}),
+          // ciorna anonima salvata de un CLIENT logat devine a lui (fill as guest, login to publish);
+          // f2: un cont de firma / admin nu isi insuseste ciorna (nu poate publica oricum)
+          ...(callerId && callerRole === 'CLIENT' && !request.clientUserId ? { clientUserId: callerId } : {}),
         },
       });
       // draftul nu materializeaza camere; doar contact preferences se pot salva incremental
@@ -276,6 +285,15 @@ export class RequestsService {
         message: 'Authentication required to publish a request',
       });
     }
+    // f2: doar un cont de client publica (o firma si-ar putea prelua propria cerere). Rolul se
+    // citeste din baza, nu din token, si se verifica inainte sa atingem ciorna.
+    const publisher = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    if (publisher?.role !== 'CLIENT') {
+      throw new ForbiddenException({
+        code: ERROR_CODES.REQUEST_PUBLISH_CLIENT_ONLY,
+        message: 'Only client accounts can publish requests',
+      });
+    }
     const request = await this.findByToken(token, userId);
     if (request.status !== 'DRAFT') {
       throw new BadRequestException({
@@ -284,14 +302,18 @@ export class RequestsService {
       });
     }
     // bucket-ul de buget derivat din estimarea RON (acelasi dto merge in
-    // scalarData, sizing si snapshotul de versiune)
-    const dto = normalizeBudget(rawDto);
+    // scalarData, sizing si snapshotul de versiune); b8: needsDesignHelp pe fiecare camera
+    // + includesPaidDesign derivat din camere.
+    // Payloadul live evita cursa cu autosave; vechii clienti folosesc draftul. Scenele Studio se
+    // parseaza primele: o piesa din Studio nu poate cere ajutor (b8), iar o scena invalida nu
+    // costa apeluri externe.
+    const studioScenes = rawDto.studioScenes === undefined
+      ? this.extractStudioScenes(request.configuratorState) : parsePublicationScenes(rawDto.studioScenes);
+    const dto = this.resolveRoomsDesignHelp(normalizeBudget(rawDto), studioScenes, false);
 
-    // valideaza raspunsurile + deriva camere/items/scoring (sursa de adevar server)
-    const processed = this.configurator.processRooms(dto.rooms, {
-      ownProject: dto.hasOwnProject,
-      designBrief: dto.includesPaidDesign,
-    });
+    // valideaza raspunsurile + deriva camere/items/scoring (sursa de adevar server);
+    // camerele cu ajutor pierd raspunsurile la chestionar (b8-3)
+    const processed = this.configurator.processRooms(dto.rooms, { ownProject: dto.hasOwnProject });
     // emailul contului e mereu prima cale de comunicare (PO r5) — FE il blocheaza,
     // serverul il garanteaza (prepend + dedupe + plafoane) inainte de validarea formatelor
     const contacts = await this.withAccountEmail(userId, dto.contactPreferences);
@@ -305,10 +327,6 @@ export class RequestsService {
       await this.assertProjectFile(request.id, new Set(this.configurator.collectUploadAttachmentIds(processed.rooms)));
     }
 
-    // Payloadul live evita cursa cu autosave; vechii clienti folosesc draftul.
-    // Parsat inainte de geocodare/sizing: o scena invalida nu costa apeluri externe.
-    const studioScenes = dto.studioScenes === undefined
-      ? this.extractStudioScenes(request.configuratorState) : parsePublicationScenes(dto.studioScenes);
     assertStudioNightstands(studioScenes, processed.rooms);
     // E-admin-platform-45: contacte in texte libere — inainte de geocodare (BLOCK nu costa apeluri externe)
     const contactScreen = await this.screenContacts(
@@ -355,7 +373,7 @@ export class RequestsService {
       await this.writeContactPreferences(tx, request.id, contacts);
       await this.writeInspirationPhotos(tx, request.id, inspirationSelection, roomIds);
       await this.writeStudioScenes(tx, request.id, resolvePublicationScenes(studioScenes, processed.rooms, roomIds));
-      await this.writeVersion(tx, request.id, dto);
+      await this.writeVersion(tx, request.id, dto, processed.rooms);
       if (contactScreen.rows.length > 0) {
         await tx.requestContactDetection.createMany({ data: contactScreen.rows });
       }
@@ -363,8 +381,35 @@ export class RequestsService {
     });
 
     await this.scheduleExpiration(request.id, expiresAt);
+    await this.removeDroppedDesignHelpUploads(request.id, dto.rooms, processed.rooms);
 
     return this.toDto(request.id);
+  }
+
+  // b8: needsDesignHelp pe camere + includesPaidDesign (reguli in resolveDesignHelp).
+  private resolveRoomsDesignHelp<T extends CreateRequestContentDto>(
+    dto: T,
+    studioScenes: RequestStudioSceneData[],
+    legacyPaidDesign: boolean,
+  ) {
+    return resolveDesignHelp(dto, {
+      passesStrict: (room) => this.configurator.passesStrictValidation(room, { ownProject: dto.hasOwnProject }),
+      studioSourceIds: studioSourceIds(studioScenes),
+      legacyPaidDesign,
+    });
+  }
+
+  // b8 / M1: fisierele aruncate din camerele cu ajutor (snapshot3d = poza piesei configurate) nu
+  // raman pe cerere, altfel ar aparea la firme ca "fisiere ale proiectului". Dupa commit,
+  // best-effort: poza se regenereaza din config3d la urmatoarea publicare fara ajutor.
+  private async removeDroppedDesignHelpUploads(
+    requestId: string,
+    rawRooms: ConfiguratorRoomInputDto[],
+    processed: ProcessedRoom[],
+  ): Promise<void> {
+    for (const attachmentId of droppedDesignHelpUploadIds(rawRooms, processed)) {
+      await this.uploads.remove(ENTITY_TYPE_REQUEST, requestId, attachmentId).catch(() => undefined);
+    }
   }
 
   // ---- editare post-publicare (3 pre-claim / 1 post-claim) ----
@@ -377,12 +422,15 @@ export class RequestsService {
 
   private async editRequest(request: RequestModel, rawDto: CreateRequestContentDto): Promise<RequestDto> {
     const editCounters = this.assertEditableAndCount(request);
-    const dto = normalizeBudget(rawDto);
+    const studioScenes = rawDto.studioScenes === undefined
+      ? parsePublicationScenes((await this.prisma.requestStudioScene.findMany({ where: { requestId: request.id } })).map((s) => s.data))
+      : parsePublicationScenes(rawDto.studioScenes);
+    // b8 / M3: cererea veche cu proiectare si fara camere bifate nu-si pierde proiectarea pe tacute
+    const legacyPaidDesign = request.includesPaidDesign
+      && (await this.prisma.requestRoom.count({ where: { requestId: request.id, needsDesignHelp: true } })) === 0;
+    const dto = this.resolveRoomsDesignHelp(normalizeBudget(rawDto), studioScenes, legacyPaidDesign);
 
-    const processed = this.configurator.processRooms(dto.rooms, {
-      ownProject: dto.hasOwnProject,
-      designBrief: dto.includesPaidDesign,
-    });
+    const processed = this.configurator.processRooms(dto.rooms, { ownProject: dto.hasOwnProject });
     const contacts = await this.withAccountEmail(request.clientUserId, dto.contactPreferences);
     this.assertContactFormats(contacts);
     const inspirationSelection = readInspirationSelection(dto);
@@ -392,9 +440,6 @@ export class RequestsService {
     if (dto.hasOwnProject === true) {
       await this.assertProjectFile(request.id, new Set(this.configurator.collectUploadAttachmentIds(processed.rooms)));
     }
-    const studioScenes = dto.studioScenes === undefined
-      ? parsePublicationScenes((await this.prisma.requestStudioScene.findMany({ where: { requestId: request.id } })).map((s) => s.data))
-      : parsePublicationScenes(dto.studioScenes);
     assertStudioNightstands(studioScenes, processed.rooms);
     // E-admin-platform-45: BLOCK refuza inainte de geocodare si fara sa consume editarea
     const contactScreen = await this.screenContacts(
@@ -438,12 +483,13 @@ export class RequestsService {
       await this.writeStudioScenes(tx, request.id, resolvePublicationScenes(studioScenes, processed.rooms, roomIds));
       await this.writeContactPreferences(tx, request.id, contacts);
       await this.writeInspirationPhotos(tx, request.id, inspirationSelection, roomIds);
-      await this.writeVersion(tx, request.id, dto);
+      await this.writeVersion(tx, request.id, dto, processed.rooms);
       if (contactScreen.rows.length > 0) {
         await tx.requestContactDetection.createMany({ data: contactScreen.rows });
       }
       await this.outbox.record(tx, `request.edited:${request.id}:${randomUUID()}`, 'request.status_changed', { requestId: request.id, status: request.status, edited: true }, []);
     });
+    await this.removeDroppedDesignHelpUploads(request.id, dto.rooms, processed.rooms);
 
     return this.toDto(request.id);
   }
@@ -916,7 +962,8 @@ export class RequestsService {
 
   // Campuri scalare comune publish/edit. Titlul NU e aici: e rezolvat separat
   // (auto-generat cand lipseste din payload — fluxul configurator nu il trimite).
-  private scalarData(dto: CreateRequestContentDto) {
+  // includesPaidDesign vine DERIVAT din camere (resolveDesignHelp, b8)
+  private scalarData(dto: CreateRequestContentDto & { includesPaidDesign: boolean }) {
     return {
       description: dto.description ?? '',
       budgetRange: dto.budgetRange,
@@ -940,7 +987,8 @@ export class RequestsService {
     maxRon: number;
   }> {
     // designBrief=true (validare partiala): estimarea e informativa, nu punctul
-    // de publish — camerele fara dimensiuni (proiect propriu) nu o blocheaza
+    // de publish — camerele fara dimensiuni (proiect propriu) nu o blocheaza. b8: camerele cu
+    // needsDesignHelp intra fara raspunsuri, exact cum se publica (acelasi cost ca la publicare)
     const processed = this.configurator.processRooms(rooms, { designBrief: true });
     const sizing = await this.sizing.compute({
       scoreEntries: processed.scoreEntries,
@@ -1175,6 +1223,7 @@ export class RequestsService {
         heightM: room.derived.heightM,
         answers: room.answers as Prisma.InputJsonValue,
         flowVersion: room.flowVersion,
+        needsDesignHelp: room.needsDesignHelp === true,
       };
       if (existingId) toUpdate.push({ id, data });
       else toCreate.push({ id, requestId, ...data });
@@ -1239,11 +1288,18 @@ export class RequestsService {
     tx: Prisma.TransactionClient,
     requestId: string,
     dto: CreateRequestContentDto,
+    rooms: ProcessedRoom[],
   ): Promise<void> {
     const count = await tx.requestVersion.count({ where: { requestId } });
+    // b8-3: snapshotul pastreaza raspunsurile PROCESATE (camerele cu ajutor fara chestionar),
+    // nu payloadul brut — raspunsurile aruncate raman doar in ciorna clientului
+    const snapshot = {
+      ...dto,
+      rooms: dto.rooms.map((room, i) => ({ ...room, answers: rooms[i]?.answers ?? room.answers })),
+    };
     // createMany: fara SELECT-ul de citire inapoi pe care il face create (un round-trip mai putin)
     await tx.requestVersion.createMany({
-      data: [{ requestId, version: count + 1, snapshot: dto as unknown as Prisma.InputJsonValue }],
+      data: [{ requestId, version: count + 1, snapshot: snapshot as unknown as Prisma.InputJsonValue }],
     });
   }
 
@@ -1337,6 +1393,7 @@ export class RequestsService {
         heightM: r.heightM,
         answers: (r.answers ?? null) as Record<string, unknown> | null,
         flowVersion: r.flowVersion,
+        needsDesignHelp: r.needsDesignHelp,
         items: r.items.map((it) => ({
           id: it.id,
           name: it.name,

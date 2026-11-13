@@ -17,10 +17,10 @@
 // Fa BACKUP inainte (pg_dump). Operatia e ireversibila.
 import { PrismaClient } from '@prisma/client';
 import { writeFileSync } from 'fs';
+import { DEMO_EMAIL_SUFFIX, KEEP_COMPANY_NAMES } from '../src/modules/companies/demo-companies';
 
 const prisma = new PrismaClient();
-const DEMO_EMAIL_SUFFIX = '@demo.ro';
-const KEEP_COMPANY_NAMES = ['Mobila Unicat'];
+// aceeasi conventie ca listele publice (k1): o singura sursa
 
 async function main() {
   const confirm = process.env.CLEANUP_DEMO_CONFIRM === 'yes';
@@ -42,7 +42,7 @@ async function main() {
   const demoCompanies = await prisma.company.findMany({
     where: {
       members: { some: { userId: { in: demoUserIds } } },
-      name: { notIn: KEEP_COMPANY_NAMES },
+      name: { notIn: [...KEEP_COMPANY_NAMES] },
     },
     select: { id: true, name: true },
   });
@@ -112,7 +112,7 @@ async function main() {
   console.log('Firme demo:', demoCompanies.map((c) => c.name).join(', ') || '—');
 
   const keepCompanies = await prisma.company.findMany({
-    where: { name: { in: KEEP_COMPANY_NAMES } },
+    where: { name: { in: [...KEEP_COMPANY_NAMES] } },
     select: { name: true, cui: true, status: true },
   });
   console.log('Firme PASTRATE:', keepCompanies.map((c) => `${c.name} (CUI ${c.cui}, ${c.status})`).join(', ') || '—');

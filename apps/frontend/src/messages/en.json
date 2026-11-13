@@ -584,7 +584,12 @@
       "allRequests": "All requests",
       "noRequests": "No requests yet. Create your first one and get offers from verified companies.",
       "newRequest": "New request",
-      "summaryTitle": "Your requests at a glance"
+      "summaryTitle": "Your requests at a glance",
+      "draftCard": {
+        "title": "You have a request ready to publish",
+        "body": "You started a request in this browser and haven't published it yet. Your answers are saved.",
+        "continue": "Continue"
+      }
     },
     "company": {
       "claimsTotal": "Total claims",
@@ -1130,7 +1135,6 @@
       "description": "Description",
       "budgetRange": "Budget",
       "desiredDeadline": "Desired deadline",
-      "includesPaidDesign": "Includes paid design",
       "hasOwnProject": "I have my own project",
       "addressText": "Address",
       "county": "County",
@@ -1250,7 +1254,8 @@
       "UPLOAD_NOT_FOUND_IN_STORAGE": "We couldn't find the uploaded file. Please try again.",
       "VALIDATION_ERROR": "Please check the form fields.",
       "INTERNAL_ERROR": "Something went wrong. Please try again.",
-      "DATABASE_BUSY": "The server is responding slowly right now, so the action was not saved. Please try again in a few seconds."
+      "DATABASE_BUSY": "The server is responding slowly right now, so the action was not saved. Please try again in a few seconds.",
+      "REQUEST_PUBLISH_CLIENT_ONLY": "Requests are published from a client account. Sign out of the company or admin account and sign in with a client account."
     },
     "visibility": {
       "title": "Who can see this request",
@@ -3651,8 +3656,6 @@
       "basketTitle": "Your request cart",
       "basketEmpty": "Nothing here yet. Pick rooms or pieces.",
       "totalRooms": "{count, plural, =0 {No rooms} =1 {One room} other {# rooms}}",
-      "hasOwnProject": "I already have a project for the whole home",
-      "hasOwnProjectHint": "Upload it once at the Files step and skip the sketch steps for every room.",
       "tabRooms": "Rooms",
       "tabPieces": "Individual pieces",
       "addPieces": "Add pieces",
@@ -3664,7 +3667,25 @@
       "basketNext": "Questions come one at a time, in this order.",
       "countRooms": "{count, plural, =1 {1 room} other {# rooms}}",
       "countPieces": "{count, plural, =1 {1 piece} other {# pieces}}",
-      "summaryEmpty": "Nothing added"
+      "summaryEmpty": "Nothing added",
+      "removeDialog": {
+        "title": "Remove {room}?",
+        "whichOne": "Every room of this type has answers, so {room} will be removed.",
+        "answers": "{count, plural, one {One answer is} other {# answers are}} lost.",
+        "files": "{count, plural, one {One sketch or file} other {# sketches and files}} of this room will be permanently deleted.",
+        "filesEdit": "{count, plural, one {The room's sketch or file is} other {The room's # sketches and files are}} removed from the request when you save your changes.",
+        "help": "You asked for design help for this room; the answers kept in your draft are lost too.",
+        "keep": "Keep",
+        "remove": "Remove"
+      },
+      "designHelpStudio": "This piece comes from Studio 3D, so it is already configured.",
+      "legacyPaidDesign": "Paid design is now requested per room: tick the rooms you want help with.",
+      "legacyPaidDesignClose": "Close the note",
+      "designHelpLegend": "Design help",
+      "designHelpHint": "Tick the rooms where you don't know yet what you want. They skip the questions and go to companies with just the room type, the files and your message; the company that takes the request designs it with you, for a fee.",
+      "designHelpRoom": "I need help with this room",
+      "modeLabel": "Mode:",
+      "modeChange": "Change"
     },
     "sketchUpload": {
       "skipNotice": "You marked that you have a project for the whole home — feel free to skip this step. Upload the project at the Files step so you don't attach it for every room.",
@@ -3810,10 +3831,11 @@
         "deadline": "Desired timeframe",
         "location": "Installation location",
         "contact": "Contact channels",
-        "designHelp": "Help planning the furniture",
         "description": "Project details",
         "projectVisibility": "The description, rooms, files and 3D scene are visible to verified companies in your area before they claim your request, together with your city, county and an approximate distance.",
-        "contactVisibility": "Your address and contact details are shared with companies working on your request after they claim it."
+        "contactVisibility": "Your address and contact details are shared with companies working on your request after they claim it.",
+        "mode": "How you started the request",
+        "helpRooms": "Design help for: {rooms}"
       },
       "rooms": {
         "edit": "Edit {room}",
@@ -3842,7 +3864,12 @@
       "notReadyTitle": "A few things left to fill in",
       "checkDetails": "General details filled in",
       "publishNote": "After publishing you can still change it 3 times until a company claims it, and once after that.",
-      "roomComplete": "done"
+      "roomComplete": "done",
+      "publishedToast": "Your request has been published.",
+      "editSavedToast": "Your changes have been saved.",
+      "cleanupFailed": "We could not remove the files of the deleted room. Please try again.",
+      "cleanupRetry": "Try again",
+      "filesLeftWarning": "Your changes have been saved, but some files of the removed rooms are still on the request. You can remove them while editing, at the Files step."
     },
     "inspirationPicker": {
       "title": "Gallery inspiration",
@@ -4080,7 +4107,8 @@
       "GENERIC": "Something unexpected went wrong. Please try again.",
       "REQUEST_PROJECT_FILE_REQUIRED": "You chose “I already have a project”: upload it at the Files step before publishing.",
       "INSPIRATION_UNAVAILABLE": "Some inspiration photos are no longer in the gallery and were removed. Press Publish again.",
-      "REQUEST_CONTACT_INFO_IN_TEXT": "Your request has contact details in free-text fields. Remove them from the marked fields: add them in the Contact step and only the companies that claim your request will get them."
+      "REQUEST_CONTACT_INFO_IN_TEXT": "Your request has contact details in free-text fields. Remove them from the marked fields: add them in the Contact step and only the companies that claim your request will get them.",
+      "REQUEST_PUBLISH_CLIENT_ONLY": "Requests are published from a client account. Sign out of the company or admin account and sign in with a client account."
     },
     "validation": {
       "answerRequired": "Fill in this field to continue.",
@@ -4105,7 +4133,9 @@
       "notANumber": "Enter a number, e.g. 2.5",
       "outOfRangeKept": "The value must be between {range}. We kept the previous value.",
       "positiveNumber": "Enter a number greater than 0. We kept the previous value.",
-      "wholeNumber": "Enter a whole number, e.g. 3. We kept the previous value."
+      "wholeNumber": "Enter a whole number, e.g. 3. We kept the previous value.",
+      "designHelpWithOwnProject": "You chose “I already have a project”, so you can't ask for help with a room. Change the mode or untick the help box.",
+      "designHelpWithStudioPiece": "This piece is placed in Studio, so it is already configured: you can't ask for help with it. Untick the help box or remove the piece from Studio."
     },
     "common": {
       "boolean": {
@@ -6678,7 +6708,9 @@
     },
     "studioNightstandNote": "One nightstand per placed piece. For a pair, place a second nightstand in the Studio.",
     "roomSpec": {
-      "dimsUnknown": "Dimensions not specified"
+      "dimsUnknown": "Dimensions not specified",
+      "designHelpCompany": "The client asks for design help with this room",
+      "designHelpClient": "You asked for design help with this room"
     },
     "contactInText": {
       "hint": "It looks like you typed a phone number, email or link. Companies can't see these before they claim your request: add them in the Contact step and only the companies that claim it will get them.",
@@ -6689,7 +6721,8 @@
       "saved": "Draft saved",
       "savedAt": "Draft saved at {time}",
       "saving": "Saving draft…",
-      "localOnly": "Draft saved on this device only"
+      "localOnly": "Draft saved on this device only",
+      "retry": "Try again"
     },
     "edit": {
       "backToRequest": "Back to request",
@@ -6698,6 +6731,19 @@
       "preClaimNote": "You have {max} edits before a company claims the request and a single one after. Saving now uses one.",
       "postClaimNote": "The request has already been claimed, so this is the only edit left. After you save, companies may withdraw their claim.",
       "saveHint": "Nothing changes until you press “Save changes” in Summary."
+    },
+    "clientOnly": {
+      "note": "Requests are published from a client account.",
+      "logout": "Sign out"
+    },
+    "phaseGoTo": "Back to the {phase} phase",
+    "designHelpSwitch": {
+      "titleAll": "Switch to “I need help”?",
+      "titleRoom": "Ask for help with this room?",
+      "body": "You have already answered questions for: {rooms}. These answers are not sent to companies: the company only gets the room type, its files and your message, and you design it together.",
+      "kept": "Nothing is lost: the answers stay in your draft and come back if you untick the help.",
+      "cancel": "Cancel",
+      "confirm": "Yes, ask for help"
     }
   },
   "Legal": {

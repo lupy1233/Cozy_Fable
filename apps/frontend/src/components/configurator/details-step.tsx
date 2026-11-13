@@ -22,7 +22,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -34,10 +34,11 @@ import { ContactInTextHint } from './contact-in-text-hint';
 import { useMe } from '@/hooks/use-auth';
 import { useBudgetEstimate } from '@/hooks/use-requests';
 import { cn } from '@/lib/utils';
-import { useConfiguratorStore, type DetailsValues } from '@/stores/configurator-store';
+import { draftGenerationId, storageScopeId, useConfiguratorStore, type DetailsValues } from '@/stores/configurator-store';
 import { AddressAutocomplete } from './address-autocomplete';
 import { BudgetSlider } from './budget-slider';
 import { PhoneInput } from './phone-input';
+import { anyRoomNeedsDesignHelp, toServerRoom } from './room-payload';
 
 // Tarile oferite la livrare (F5, item 19) — RO implicit; etichetele vin din
 // Intl.DisplayNames in limba interfetei.
@@ -52,6 +53,17 @@ const COUNTRIES = [
 // + "nu doresc sa spun"; termenul e ales pe carduri (interval, nu data exacta).
 const detailsSchema = configuratorContentSchema.omit({ rooms: true });
 type DetailsFormValues = z.infer<typeof detailsSchema>;
+
+// b2: intarzierea salvarii automate in ciorna (ca la intrebarile camerelor)
+export const DETAILS_AUTOSAVE_MS = 400;
+
+// Valorile formularului, asa cum se scriu in ciorna: fara campurile derivate (modul si
+// proiectarea au sursa lor, b8), copiate ca RHF sa nu le mai poata modifica pe loc.
+function toDraftDetails(values: Partial<DetailsFormValues>): Partial<DetailsValues> {
+  const { includesPaidDesign: _paid, hasOwnProject: _own, ...rest } = values;
+  // structuredClone pastreaza cheile cu undefined (ex. termenul deselectat suprascrie valoarea veche)
+  return structuredClone(rest) as Partial<DetailsValues>;
+}
 
 const DEADLINE_ICONS: Record<DeadlineBucket, React.ComponentType<{ className?: string }>> = {
   ASAP: Zap,
@@ -75,10 +87,12 @@ export function DetailsStep({
   const stored = useConfiguratorStore((s) => s.details);
   const rooms = useConfiguratorStore((s) => s.roomInstances);
   const setDetails = useConfiguratorStore((s) => s.setDetails);
-  const designHelp = useConfiguratorStore((s) => s.startMode === 'DESIGN_HELP');
+  // b8: "cu proiectare" = macar o camera bifata "am nevoie de ajutor" (bifa de aici a disparut)
+  const withDesign = anyRoomNeedsDesignHelp(rooms);
 
-  // estimarea de buget din scorul camerelor completate (F5, item 18)
-  const estimate = useBudgetEstimate(rooms.filter((r) => r.completed));
+  // estimarea de buget din scorul camerelor completate (F5, item 18); camerele
+  // bifate pleaca fara raspunsuri, la fel ca la publicare
+  const estimate = useBudgetEstimate(rooms.filter((r) => r.completed).map(toServerRoom));
 
   const {
     register,
@@ -94,7 +108,8 @@ export function DetailsStep({
       budgetRange: (stored.budgetRange as DetailsFormValues['budgetRange']) ?? 'UNDER_5K',
       budgetEstimateRon: stored.budgetEstimateRon ?? undefined,
       deadlineBucket: (stored.deadlineBucket as DetailsFormValues['deadlineBucket']) || undefined,
-      includesPaidDesign: stored.includesPaidDesign ?? false,
+      // derivate (modul + camerele): doar ca schema sa treaca; nu se salveaza de aici
+      includesPaidDesign: withDesign,
       hasOwnProject: stored.hasOwnProject ?? false,
       addressText: stored.addressText ?? '',
       county: stored.county ?? '',
@@ -107,6 +122,49 @@ export function DetailsStep({
   });
 
   const contacts = useFieldArray({ control, name: 'contactPreferences' });
+
+  // b2: ce scrie clientul ajunge in ciorna la ~400 ms dupa ultima schimbare, fara
+  // validare (validarea stricta ramane la "Continua la sumar"). Ciorna e store-ul: in
+  // editare ajunge in memoria editarii; trimiterea la server o face wizard-ul, cu
+  // intarzierea lui si o singura salvare in curs. Declarat INAINTEA completarilor
+  // automate (emailul contului, bugetul din estimare), ca si ele sa fie salvate.
+  // Scrierea compara cu ciorna, deci o valoare neschimbata nu porneste nimic (fara bucla).
+  const scopeAtMount = useRef(storageScopeId());
+  // M2: o golire a ciornei (deconectare, "Incepe una noua") intre tasta si salvare anuleaza salvarea
+  const generationAtMount = useRef(draftGenerationId());
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingValues = useRef<Partial<DetailsFormValues> | null>(null);
+  const flushDraft = useCallback(() => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    const values = pendingValues.current;
+    pendingValues.current = null;
+    // la iesirea din editare memoria s-a schimbat deja: nu scriem peste ciorna noua
+    if (!values || storageScopeId() !== scopeAtMount.current || draftGenerationId() !== generationAtMount.current) return;
+    const patch = toDraftDetails(values);
+    const current = useConfiguratorStore.getState().details;
+    if (JSON.stringify({ ...current, ...patch }) === JSON.stringify(current)) return;
+    setDetails(patch);
+  }, [setDetails]);
+  useEffect(() => {
+    const subscription = watch((values) => {
+      pendingValues.current = values as Partial<DetailsFormValues>;
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(flushDraft, DETAILS_AUTOSAVE_MS);
+    });
+    // reincarcare / inchiderea tabului inainte sa treaca intarzierea
+    window.addEventListener('pagehide', flushDraft);
+    window.addEventListener('beforeunload', flushDraft);
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('pagehide', flushDraft);
+      window.removeEventListener('beforeunload', flushDraft);
+      // parasirea pasului (Inapoi, bara de faze, schimbarea limbii): ultima tasta nu se pierde
+      flushDraft();
+    };
+  }, [watch, flushDraft]);
   const vmsg = (msg?: string) => (msg ? t(`validation.${msg}`) : undefined);
   const contactsRootError =
     errors.contactPreferences?.root?.message ?? errors.contactPreferences?.message;
@@ -171,7 +229,12 @@ export function DetailsStep({
   const titlePreview = titleParts.join(' + ') + (city ? ` — ${city}` : '');
 
   const submit = handleSubmit((values) => {
-    setDetails(values as Partial<DetailsValues>);
+    // salvarea programata e inlocuita de valorile validate
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = null;
+    pendingValues.current = null;
+    // modul (hasOwnProject) si proiectarea (din camere) au sursa lor: nu le scrie formularul
+    setDetails(toDraftDetails(values));
     onContinue();
   });
 
@@ -238,9 +301,8 @@ export function DetailsStep({
         </div>
       </fieldset>
 
-      {designHelp ? (
-        // fluxul "am nevoie de ajutor": Proiectarea platita e parte din cerere,
-        // nu optiune — banner informativ in locul checkbox-ului
+      {/* b8 (PO g0-8): proiectarea se cere pe camera, din cos; aici doar se aminteste */}
+      {withDesign && (
         <div className="flex items-start gap-2 rounded-lg border border-brass/40 bg-brass/10 px-3 py-2.5 text-sm">
           <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brass-2" />
           <div>
@@ -248,11 +310,6 @@ export function DetailsStep({
             <p className="mt-0.5 text-xs text-muted-foreground">{t('designHelpIncludedHint')}</p>
           </div>
         </div>
-      ) : (
-        <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm">
-          <input type="checkbox" className="h-[18px] w-[18px] shrink-0 accent-walnut" {...register('includesPaidDesign')} />
-          {t('field.includesPaidDesign')}
-        </label>
       )}
 
       <div>
@@ -396,7 +453,11 @@ export function DetailsStep({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6">
-        <Button type="button" variant="outline" size="xl" className="px-4 text-sm" onClick={onBack}>
+        <Button type="button" variant="outline" size="xl" className="px-4 text-sm" onClick={() => {
+          // b2: valorile curente ajung in ciorna inainte de plecare
+          flushDraft();
+          onBack();
+        }}>
           <ArrowLeft aria-hidden />
           {tc('nav.back')}
         </Button>

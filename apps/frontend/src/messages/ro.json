@@ -584,7 +584,12 @@
       "allRequests": "Toate cererile",
       "noRequests": "Încă nu ai nicio cerere. Creează prima și primești oferte de la firme verificate.",
       "newRequest": "Cerere nouă",
-      "summaryTitle": "Cererile tale, pe scurt"
+      "summaryTitle": "Cererile tale, pe scurt",
+      "draftCard": {
+        "title": "Ai o cerere gata de publicare",
+        "body": "Ai început o cerere în acest browser și nu ai publicat-o încă. Răspunsurile tale sunt păstrate.",
+        "continue": "Continuă"
+      }
     },
     "company": {
       "claimsTotal": "Preluări în total",
@@ -1130,7 +1135,6 @@
       "description": "Descriere",
       "budgetRange": "Buget",
       "desiredDeadline": "Termen dorit",
-      "includesPaidDesign": "Include proiectare cu plată",
       "hasOwnProject": "Am proiectul propriu",
       "addressText": "Adresă",
       "county": "Județ",
@@ -1250,7 +1254,8 @@
       "UPLOAD_NOT_FOUND_IN_STORAGE": "Fișierul încărcat nu a fost găsit. Încearcă din nou.",
       "VALIDATION_ERROR": "Verifică câmpurile formularului.",
       "INTERNAL_ERROR": "A apărut o eroare. Încearcă din nou.",
-      "DATABASE_BUSY": "Serverul răspunde greu acum, așa că acțiunea nu a fost salvată. Încearcă din nou în câteva secunde."
+      "DATABASE_BUSY": "Serverul răspunde greu acum, așa că acțiunea nu a fost salvată. Încearcă din nou în câteva secunde.",
+      "REQUEST_PUBLISH_CLIENT_ONLY": "Cererile se publică dintr-un cont de client. Ieși din contul de firmă sau de administrator și intră cu un cont de client."
     },
     "visibility": {
       "title": "Cine vede cererea",
@@ -3651,8 +3656,6 @@
       "basketTitle": "Coșul cererii tale",
       "basketEmpty": "Nimic adăugat încă. Alege camere sau piese.",
       "totalRooms": "{count, plural, =0 {Nicio cameră} =1 {O cameră} other {# camere}}",
-      "hasOwnProject": "Am deja un proiect pentru toată locuința",
-      "hasOwnProjectHint": "Îl încarci o singură dată, la pasul Fișiere, și sari peste schițele fiecărei camere.",
       "tabRooms": "Camere",
       "tabPieces": "Piese individuale",
       "addPieces": "Adaugă piese",
@@ -3664,7 +3667,25 @@
       "basketNext": "Întrebările vin pe rând, în ordinea de aici.",
       "countRooms": "{count, plural, =1 {o cameră} few {# camere} other {# de camere}}",
       "countPieces": "{count, plural, =1 {o piesă} few {# piese} other {# de piese}}",
-      "summaryEmpty": "Nimic adăugat"
+      "summaryEmpty": "Nimic adăugat",
+      "removeDialog": {
+        "title": "Scoți {room}?",
+        "whichOne": "Toate camerele de acest tip au răspunsuri, așa că se scoate {room}.",
+        "answers": "{count, plural, one {Se pierde un răspuns} few {Se pierd # răspunsuri} other {Se pierd # de răspunsuri}}.",
+        "files": "{count, plural, one {Se șterge definitiv o schiță sau un fișier al camerei} few {Se șterg definitiv # schițe și fișiere ale camerei} other {Se șterg definitiv # de schițe și fișiere ale camerei}}.",
+        "filesEdit": "{count, plural, one {Schița sau fișierul camerei se scoate} few {Cele # schițe și fișiere ale camerei se scot} other {Cele # de schițe și fișiere ale camerei se scot}} din cerere când salvezi modificările.",
+        "help": "Ai cerut ajutor la proiectare pentru această cameră; răspunsurile ei păstrate în ciornă se pierd și ele.",
+        "keep": "Păstrează",
+        "remove": "Scoate"
+      },
+      "designHelpStudio": "Piesa vine din Studio 3D, deci e deja configurată.",
+      "legacyPaidDesign": "Proiectarea cu plată se cere acum pe cameră: bifează camerele la care vrei ajutor.",
+      "legacyPaidDesignClose": "Închide nota",
+      "designHelpLegend": "Ajutor la proiectare",
+      "designHelpHint": "Bifează camerele la care nu știi încă ce vrei. Ele sar peste întrebări și pleacă la firme doar cu tipul camerei, fișierele și mesajul tău; firma care preia cererea face proiectarea împreună cu tine, contra cost.",
+      "designHelpRoom": "La camera asta am nevoie de ajutor",
+      "modeLabel": "Mod:",
+      "modeChange": "Schimbă"
     },
     "sketchUpload": {
       "skipNotice": "Ai marcat că ai un proiect pentru toată locuința — poți sări peste acest pas. Încarcă proiectul la pasul Fișiere, ca să nu-l atașezi la fiecare cameră.",
@@ -3810,10 +3831,11 @@
         "deadline": "Termenul dorit",
         "location": "Locul montajului",
         "contact": "Canale de contact",
-        "designHelp": "Ajutor pentru planificarea mobilierului",
         "description": "Detaliile proiectului",
         "projectVisibility": "Descrierea, camerele, fișierele și scena 3D sunt vizibile firmelor verificate din zonă înainte de preluare, împreună cu orașul, județul și o distanță aproximativă.",
-        "contactVisibility": "Adresa și datele tale de contact sunt transmise firmelor care lucrează la cerere după ce o preiau."
+        "contactVisibility": "Adresa și datele tale de contact sunt transmise firmelor care lucrează la cerere după ce o preiau.",
+        "mode": "Cum ai pornit cererea",
+        "helpRooms": "Ajutor la proiectare pentru: {rooms}"
       },
       "rooms": {
         "edit": "Editează {room}",
@@ -3842,7 +3864,12 @@
       "notReadyTitle": "Mai e ceva de completat",
       "checkDetails": "Date generale completate",
       "publishNote": "După publicare o mai poți modifica de 3 ori până o preia o firmă și o singură dată după aceea.",
-      "roomComplete": "gata"
+      "roomComplete": "gata",
+      "publishedToast": "Cererea a fost publicată.",
+      "editSavedToast": "Modificările au fost salvate.",
+      "cleanupFailed": "Nu am putut scoate fișierele camerei șterse. Încearcă din nou.",
+      "cleanupRetry": "Încearcă din nou",
+      "filesLeftWarning": "Modificările au fost salvate, dar unele fișiere ale camerelor scoase au rămas pe cerere. Le poți scoate din editare, la pasul Fișiere."
     },
     "inspirationPicker": {
       "title": "Inspirație din galerie",
@@ -4080,7 +4107,8 @@
       "GENERIC": "A apărut o eroare neașteptată. Încearcă din nou.",
       "REQUEST_PROJECT_FILE_REQUIRED": "Ai ales „Am deja un proiect”: încarcă proiectul la pasul Fișiere înainte de publicare.",
       "INSPIRATION_UNAVAILABLE": "Unele inspirații nu mai sunt în galerie și au fost scoase. Apasă din nou pe Publică.",
-      "REQUEST_CONTACT_INFO_IN_TEXT": "Cererea conține date de contact în texte libere. Scoate-le din câmpurile marcate: le adaugi la pasul Contact și ajung doar la firmele care preiau cererea."
+      "REQUEST_CONTACT_INFO_IN_TEXT": "Cererea conține date de contact în texte libere. Scoate-le din câmpurile marcate: le adaugi la pasul Contact și ajung doar la firmele care preiau cererea.",
+      "REQUEST_PUBLISH_CLIENT_ONLY": "Cererile se publică dintr-un cont de client. Ieși din contul de firmă sau de administrator și intră cu un cont de client."
     },
     "validation": {
       "answerRequired": "Completează acest câmp ca să poți continua.",
@@ -4105,7 +4133,9 @@
       "notANumber": "Scrie un număr, de ex. 2,5",
       "outOfRangeKept": "Valoarea trebuie să fie între {range}. Am păstrat valoarea de dinainte.",
       "positiveNumber": "Scrie un număr mai mare decât 0. Am păstrat valoarea de dinainte.",
-      "wholeNumber": "Scrie un număr întreg, de ex. 3. Am păstrat valoarea de dinainte."
+      "wholeNumber": "Scrie un număr întreg, de ex. 3. Am păstrat valoarea de dinainte.",
+      "designHelpWithOwnProject": "Ai ales „Am deja un proiect”, deci nu poți cere ajutor la cameră. Schimbă modul sau scoate bifa de ajutor.",
+      "designHelpWithStudioPiece": "Piesa asta e așezată în Studio, deci e deja configurată: nu poți cere ajutor la ea. Scoate bifa de ajutor sau scoate piesa din Studio."
     },
     "common": {
       "boolean": {
@@ -6678,7 +6708,9 @@
     },
     "studioNightstandNote": "1 noptieră per piesă așezată. Pentru pereche, așază a doua noptieră în Studio.",
     "roomSpec": {
-      "dimsUnknown": "Dimensiuni nespecificate"
+      "dimsUnknown": "Dimensiuni nespecificate",
+      "designHelpCompany": "Clientul cere ajutor la proiectare pentru această cameră",
+      "designHelpClient": "Ai cerut ajutor la proiectare pentru această cameră"
     },
     "contactInText": {
       "hint": "Se pare că ai scris un telefon, un email sau un link. Firmele nu le văd înainte de preluare: adaugă-le la pasul Contact și le primesc doar firmele care preiau cererea.",
@@ -6689,7 +6721,8 @@
       "saved": "Ciornă salvată",
       "savedAt": "Ciornă salvată la {time}",
       "saving": "Se salvează ciorna…",
-      "localOnly": "Ciornă salvată doar pe acest dispozitiv"
+      "localOnly": "Ciornă salvată doar pe acest dispozitiv",
+      "retry": "Reîncearcă"
     },
     "edit": {
       "backToRequest": "Înapoi la cerere",
@@ -6698,6 +6731,19 @@
       "preClaimNote": "Ai {max} modificări înainte ca o firmă să preia cererea și una singură după. Salvarea de acum consumă una.",
       "postClaimNote": "Cererea a fost deja preluată, deci aceasta este singura modificare rămasă. După salvare, firmele pot renunța la preluare.",
       "saveHint": "Nimic nu se schimbă până nu apeși „Salvează modificările” în Sumar."
+    },
+    "clientOnly": {
+      "note": "Cererile se publică dintr-un cont de client.",
+      "logout": "Ieși din cont"
+    },
+    "phaseGoTo": "Înapoi la faza {phase}",
+    "designHelpSwitch": {
+      "titleAll": "Treci pe „Am nevoie de ajutor”?",
+      "titleRoom": "Ceri ajutor la această cameră?",
+      "body": "Ai răspuns deja la întrebări pentru: {rooms}. Răspunsurile acestea nu pleacă la firme: firma primește doar tipul camerei, fișierele ei și mesajul tău, iar proiectarea o faceți împreună.",
+      "kept": "Nu se pierde nimic: răspunsurile rămân în ciornă și le regăsești dacă debifezi ajutorul.",
+      "cancel": "Renunță",
+      "confirm": "Da, cer ajutor"
     }
   },
   "Legal": {

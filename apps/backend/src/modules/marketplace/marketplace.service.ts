@@ -237,6 +237,7 @@ export class MarketplaceService {
         heightM: room.heightM,
         answers: (room.answers ?? null) as Record<string, unknown> | null,
         flowVersion: room.flowVersion,
+        needsDesignHelp: room.needsDesignHelp,
         items: room.items.map((it) => ({
           id: it.id,
           name: it.name,

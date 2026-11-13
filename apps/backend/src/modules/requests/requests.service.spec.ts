@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { ERROR_CODES } from '@marketplace/shared';
+import { CURRENT_FLOW_VERSION, ERROR_CODES } from '@marketplace/shared';
 import { RequestsService } from './requests.service';
 
 // E-client-3: repost autentificat (updateMany conditionat) + tokenul de draft
@@ -31,6 +31,10 @@ function setup() {
   };
   const prisma = {
     request: { findUnique: jest.fn(), update: jest.fn().mockResolvedValue({}) },
+    // f2: rolul celui care publica se citeste din baza
+    user: { findUnique: jest.fn().mockResolvedValue({ role: 'CLIENT' }) },
+    // b8 / M3: camerele bifate ale cererii editate (reprezentarea veche a proiectarii)
+    requestRoom: { count: jest.fn().mockResolvedValue(0) },
     requestContactDetection: {
       createMany: jest.fn().mockResolvedValue({ count: 1 }),
       count: jest.fn().mockResolvedValue(0),
@@ -43,6 +47,7 @@ function setup() {
   const configurator = {
     processRooms: jest.fn().mockReturnValue({ rooms: [], scoreEntries: [] }),
     collectUploadAttachmentIds: jest.fn().mockReturnValue([]),
+    passesStrictValidation: jest.fn().mockReturnValue(false),
   };
   const inspiration = { assertSelectable: jest.fn().mockResolvedValue(undefined) };
   const calendar = {
@@ -181,21 +186,52 @@ describe('RequestsService draft token (DRAFT-only, owner check)', () => {
     expect(configurator.processRooms).not.toHaveBeenCalled();
   });
 
-  it('patchDraft binds an anonymous draft to the logged-in caller, never rewrites an owner', async () => {
+  it('patchDraft binds an anonymous draft to the logged-in client, never rewrites an owner', async () => {
     const { service, prisma, tx } = setup();
     (prisma.request.findUnique as AnyMock).mockResolvedValue(draft({ clientUserId: null }));
-    await service.patchDraft('tok', { city: 'Cluj' } as never, 'B');
+    await service.patchDraft('tok', { city: 'Cluj' } as never, 'B', 'CLIENT');
     expect(tx.request.update.mock.calls[0][0].data.clientUserId).toBe('B');
 
     tx.request.update.mockClear();
     (prisma.request.findUnique as AnyMock).mockResolvedValue(draft({ clientUserId: 'B' }));
-    await service.patchDraft('tok', { city: 'Cluj' } as never, 'B');
+    await service.patchDraft('tok', { city: 'Cluj' } as never, 'B', 'CLIENT');
     expect(tx.request.update.mock.calls[0][0].data).not.toHaveProperty('clientUserId');
 
     tx.request.update.mockClear();
     (prisma.request.findUnique as AnyMock).mockResolvedValue(draft({ clientUserId: null }));
     await service.patchDraft('tok', { city: 'Cluj' } as never, null);
     expect(tx.request.update.mock.calls[0][0].data).not.toHaveProperty('clientUserId');
+  });
+
+  it('f2: patchDraft / createDraft never bind a draft to a company or admin account', async () => {
+    const { service, prisma, tx } = setup();
+    for (const role of ['COMPANY_USER', 'ADMIN'] as const) {
+      tx.request.update.mockClear();
+      (prisma.request.findUnique as AnyMock).mockResolvedValue(draft({ clientUserId: null }));
+      await service.patchDraft('tok', { city: 'Cluj' } as never, 'F', role);
+      expect(tx.request.update.mock.calls[0][0].data).not.toHaveProperty('clientUserId');
+    }
+    const create = jest.fn().mockResolvedValue({ id: 'new' });
+    (prisma.request as Record<string, unknown>).create = create;
+    await service.createDraft('F', undefined, 'COMPANY_USER');
+    expect(create.mock.calls[0][0].data.clientUserId).toBeNull();
+    await service.createDraft('C', undefined, 'CLIENT');
+    expect(create.mock.calls[1][0].data.clientUserId).toBe('C');
+  });
+
+  it('f2: publish from a company or admin account → 403 REQUEST_PUBLISH_CLIENT_ONLY before the draft is touched', async () => {
+    const { service, prisma, configurator } = setup();
+    for (const role of ['COMPANY_USER', 'ADMIN']) {
+      (prisma.user.findUnique as AnyMock).mockResolvedValue({ role });
+      (prisma.request.findUnique as AnyMock).mockResolvedValue(draft({ clientUserId: null }));
+      await expectCode(
+        service.publish('tok', { rooms: [] } as never, 'F'),
+        ForbiddenException,
+        ERROR_CODES.REQUEST_PUBLISH_CLIENT_ONLY,
+      );
+    }
+    expect(prisma.request.findUnique).not.toHaveBeenCalled();
+    expect(configurator.processRooms).not.toHaveBeenCalled();
   });
 
   it('discardDraft soft-deletes and clears the token hash', async () => {
@@ -225,6 +261,108 @@ describe('RequestsService draft token (DRAFT-only, owner check)', () => {
     expect(data.draftTokenHash).toBeNull();
     expect(data.clientUserId).toBe('A');
     expect(data.status).toBe('IN_MARKETPLACE');
+  });
+});
+
+// b8 (PO g0-8): ajutor pe camera; includesPaidDesign derivat din camere, valoarea clientului ignorata.
+describe('RequestsService publish — needsDesignHelp pe camera', () => {
+  const room = (over: Record<string, unknown> = {}) => ({ roomType: 'KITCHEN', flowVersion: 1, answers: {}, ...over });
+  const content = (over: Record<string, unknown> = {}) =>
+    ({
+      hasOwnProject: false,
+      budgetRange: 'UNDER_5K',
+      studioScenes: [],
+      addressText: 'Str. X 1',
+      city: 'Cluj-Napoca',
+      county: 'Cluj',
+      ...over,
+    }) as never;
+
+  function prepare() {
+    const ctx = setup();
+    (ctx.prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'DRAFT', clientUserId: 'A' }));
+    const s = ctx.service as unknown as Record<string, unknown>;
+    for (const m of ['withAccountEmail', 'assertRoomAttachments', 'writeContactPreferences', 'writeInspirationPhotos', 'writeStudioScenes', 'writeVersion']) {
+      jest.spyOn(s as never, m as never).mockResolvedValue([] as never);
+    }
+    jest.spyOn(s as never, 'assertContactFormats' as never).mockReturnValue(undefined as never);
+    jest.spyOn(s as never, 'resolveTitle' as never).mockReturnValue('Titlu' as never);
+    jest.spyOn(s as never, 'writeRooms' as never).mockResolvedValue(new Map() as never);
+    return ctx;
+  }
+
+  it('o camera cu ajutor din doua → includesPaidDesign=true (scris si trimis la sizing), chiar daca clientul trimite false', async () => {
+    const { service, configurator, sizing, tx } = prepare();
+    await service.publish('tok', content({ includesPaidDesign: false, rooms: [room({ needsDesignHelp: true }), room()] }), 'A');
+    const [rooms, opts] = configurator.processRooms.mock.calls[0];
+    expect(rooms.map((r: { needsDesignHelp: boolean }) => r.needsDesignHelp)).toEqual([true, false]);
+    expect(opts).toEqual({ ownProject: false });
+    expect(sizing.compute).toHaveBeenCalledWith(expect.objectContaining({ includesPaidDesign: true }));
+    expect(tx.request.update.mock.calls[0][0].data.includesPaidDesign).toBe(true);
+  });
+
+  it('nicio camera cu ajutor → includesPaidDesign=false, chiar daca clientul trimite true', async () => {
+    const { service, tx } = prepare();
+    await service.publish('tok', content({ includesPaidDesign: true, rooms: [room({ needsDesignHelp: false })] }), 'A');
+    expect(tx.request.update.mock.calls[0][0].data.includesPaidDesign).toBe(false);
+  });
+
+  it('interfata veche (fara needsDesignHelp pe camere) + includesPaidDesign=true → camerele care nu trec validarea stricta primesc ajutor', async () => {
+    const { service, configurator, tx } = prepare();
+    await service.publish('tok', content({ includesPaidDesign: true, rooms: [room(), room({ roomType: 'BATHROOM' })] }), 'A');
+    const [rooms] = configurator.processRooms.mock.calls[0];
+    expect(rooms.map((r: { needsDesignHelp: boolean }) => r.needsDesignHelp)).toEqual([true, true]);
+    expect(tx.request.update.mock.calls[0][0].data.includesPaidDesign).toBe(true);
+  });
+
+  it('M2: piesa din Studio bifata → VALIDATION_ERROR designHelpWithStudioPiece, inaintea verificarilor Studio', async () => {
+    const { service, configurator } = prepare();
+    // scena din ciorna (payload fara studioScenes) leaga piesa p1 de o asezare din Studio
+    jest.spyOn(service as never, 'extractStudioScenes' as never).mockReturnValue([{ requestEntryIds: { pl1: 'p1' } }] as never);
+    const err = await service
+      .publish('tok', content({ studioScenes: undefined, rooms: [room({ sourceLocalId: 'p1', roomType: 'PIECE_DRESSER', needsDesignHelp: true })] }), 'A')
+      .catch((e: unknown) => e);
+    expect((err as BadRequestException).getResponse()).toMatchObject({
+      code: ERROR_CODES.VALIDATION_ERROR,
+      details: [expect.objectContaining({ roomIndex: 0, messageKey: 'validation.designHelpWithStudioPiece' })],
+    });
+    expect(configurator.processRooms).not.toHaveBeenCalled();
+  });
+
+  it('M3: editarea unei cereri vechi cu proiectare, fara camere bifate, pastreaza includesPaidDesign', async () => {
+    const { service, prisma, tx } = prepare();
+    (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'IN_MARKETPLACE', preClaimEditsUsed: 0, includesPaidDesign: true }));
+    await service.editForClient('A', EXP_ID, content({ rooms: [room({ needsDesignHelp: false })] }));
+    expect(prisma.requestRoom.count).toHaveBeenCalledWith({ where: { requestId: EXP_ID, needsDesignHelp: true } });
+    expect(tx.request.update.mock.calls[0][0].data.includesPaidDesign).toBe(true);
+
+    // cererea avea deja camere bifate (reprezentarea noua) → derivare stricta
+    tx.request.update.mockClear();
+    (prisma.requestRoom.count as AnyMock).mockResolvedValue(1);
+    await service.editForClient('A', EXP_ID, content({ rooms: [room({ needsDesignHelp: false })] }));
+    expect(tx.request.update.mock.calls[0][0].data.includesPaidDesign).toBe(false);
+  });
+
+  it('M1: fisierele aruncate dintr-o camera cu ajutor (snapshot3d) se sterg de pe cerere dupa publicare', async () => {
+    const { service, configurator } = prepare();
+    const remove = jest.fn().mockResolvedValue(undefined);
+    (service as unknown as { uploads: unknown }).uploads = { remove };
+    const SNAP = '22222222-2222-4222-8222-222222222222';
+    configurator.processRooms.mockReturnValue({ rooms: [{ answers: {} }], scoreEntries: [] });
+    await service.publish('tok', content({
+      rooms: [room({ roomType: 'PIECE_DRESSER', flowVersion: CURRENT_FLOW_VERSION.PIECE_DRESSER, answers: { snapshot3d: [SNAP] }, needsDesignHelp: true })],
+    }), 'A');
+    expect(remove).toHaveBeenCalledWith('REQUEST', EXP_ID, SNAP);
+  });
+
+  it('proiect propriu + camera cu ajutor → VALIDATION_ERROR, fara procesarea camerelor', async () => {
+    const { service, configurator } = prepare();
+    await expectCode(
+      service.publish('tok', content({ hasOwnProject: true, rooms: [room({ needsDesignHelp: true })] }), 'A'),
+      BadRequestException,
+      ERROR_CODES.VALIDATION_ERROR,
+    );
+    expect(configurator.processRooms).not.toHaveBeenCalled();
   });
 });
 

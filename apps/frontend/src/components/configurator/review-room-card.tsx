@@ -72,7 +72,11 @@ export function ReviewRoomCard({ room, index, attachments, designHelp, onEdit, i
         </Button>
       </div>}
     </div>
-    {designHelp ? <p className="mt-3 text-sm text-muted-foreground">{t('review.designHelpRoomNote')}</p> : <>
+    {/* b8: camera bifata "am nevoie de ajutor" pleaca doar cu tipul si fisierele ei */}
+    {designHelp ? <>
+      <p className="mt-3 text-sm text-muted-foreground" data-review-room-design-help>{t('review.designHelpRoomNote')}</p>
+      {files.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{files.map((attachment) => <AttachmentThumb key={attachment.id} attachment={attachment} />)}</div>}
+    </> : <>
       <div className="mt-3" data-review-room-preview={room.roomType}>
         {entries.length > 0 && <RoomAnswerSummary roomType={room.roomType} answers={room.answers} flowVersion={room.flowVersion} stepIds={previewStepIds} hideFilePreviews />}
       </div>

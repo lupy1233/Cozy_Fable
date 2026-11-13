@@ -1009,6 +1009,7 @@ export class QuotesService {
       heightM: r.heightM,
       answers: (r.answers ?? null) as Record<string, unknown> | null,
       flowVersion: r.flowVersion,
+      needsDesignHelp: r.needsDesignHelp,
       items: r.items.map((it) => ({
         id: it.id,
         name: it.name,

@@ -72,6 +72,8 @@ export interface RoomIssue {
 // ca serverul) sau null cand camera e completa. Versiune de flow necunoscuta →
 // camera trebuie reluata.
 export function roomIssue(room: RoomInstance, opts: { ownProject: boolean }): RoomIssue | null {
+  // b8: camera la care clientul cere ajutor sare intrebarile — nu are ce sa-i lipseasca
+  if (room.needsDesignHelp) return null;
   try {
     const result = validateRoomAnswers(room.roomType, room.answers, {
       partial: false,

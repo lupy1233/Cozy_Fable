@@ -1,7 +1,8 @@
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { RequestsService } from './requests.service';
-import type { ProcessedRoom } from './configurator.service';
+import { ConfiguratorService, type ProcessedRoom } from './configurator.service';
+import { CURRENT_FLOW_VERSION } from '@marketplace/shared';
 import { testDatabaseUrl } from '../../test/db-guard';
 
 // Ruleaza doar cu TEST_DATABASE_URL (Postgres local): verifica semantica writeRooms
@@ -72,5 +73,29 @@ const url = testDatabaseUrl();
     expect(await snapshot(other)).toEqual([{ id: foreign.get('x'), items: ['X1'] }]);
     // itemele camerelor sterse nu raman orfane
     expect(await prisma.requestRoomItem.count({ where: { name: { in: ['B1', 'C1'] }, room: { requestId } } })).toBe(0);
+  });
+
+  // b8 (PO g0-8 / b8-3): camera cu ajutor se scrie cu needs_design_help=true si fara raspunsuri
+  it('design help: the flagged room is stored without answers and the flag follows edits', async () => {
+    const requestId = await newRequest();
+    const sketchId = randomUUID();
+    const processed = new ConfiguratorService().processRooms([
+      {
+        sourceLocalId: 'help',
+        roomType: 'BEDROOM',
+        flowVersion: CURRENT_FLOW_VERSION.BEDROOM,
+        answers: { piecesNeeded: ['NOT_A_PIECE'], sketch: [sketchId] },
+        needsDesignHelp: true,
+      },
+    ]);
+    const ids = await write(requestId, processed.rooms);
+    const stored = await prisma.requestRoom.findUniqueOrThrow({ where: { id: ids.get('help')! } });
+    expect(stored.needsDesignHelp).toBe(true);
+    expect(stored.answers).toEqual({ sketch: [sketchId] });
+
+    // editarea pastreaza id-ul camerei si rescrie bifa
+    await write(requestId, [{ ...room(stored.id, ['P1']), needsDesignHelp: false }]);
+    const edited = await prisma.requestRoom.findUniqueOrThrow({ where: { id: stored.id } });
+    expect(edited.needsDesignHelp).toBe(false);
   });
 });

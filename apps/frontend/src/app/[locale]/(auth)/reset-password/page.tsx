@@ -15,6 +15,7 @@ import { Field } from '@/components/ui/field';
 import { Alert } from '@/components/ui/alert';
 import { AuthStateIcon, authFooterCls, authLinkCls, authTitleCls } from '../_components/auth-parts';
 import { PasswordInput } from '../_components/password-input';
+import { useMounted } from '../_components/use-mounted';
 
 // L0-A: parola noua pe baza tokenului din link (one-time, 60 min).
 function ResetPasswordInner() {
@@ -28,6 +29,7 @@ function ResetPasswordInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const reset = useResetPassword();
+  const mounted = useMounted();
 
   const {
     register,
@@ -87,7 +89,7 @@ function ResetPasswordInner() {
         <p className="text-sm text-muted-foreground">{t('resetBody')}</p>
       </div>
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+      <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
         <input type="hidden" {...register('token')} />
 
         <Field
@@ -109,7 +111,7 @@ function ResetPasswordInner() {
           <Alert tone="crimson">{t.has(apiErr.key) ? t(apiErr.key) : apiErr.fallback}</Alert>
         )}
 
-        <Button type="submit" variant="walnut" size="xl" disabled={reset.isPending} className="w-full text-lead">
+        <Button type="submit" variant="walnut" size="xl" disabled={!mounted || reset.isPending} className="w-full text-lead">
           {t('resetSubmit')}
         </Button>
       </form>

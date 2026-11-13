@@ -23,6 +23,7 @@ import { AppShell } from '../_components/app-shell';
 import { FirmRulesLink } from '../_components/firm-rules-link';
 import { RequestStatusBadge } from '../_components/request-progress';
 import { TodoNowCard } from '../_components/todo-now-card';
+import { UnpublishedDraftCard } from './_components/unpublished-draft-card';
 import {
   SubscriptionStatusNotice,
   useSubscriptionLapsed,
@@ -216,6 +217,9 @@ function ClientDashboard({ user }: { user: AuthUser }) {
         name={user.name}
         subtitle={s ? <TodoSummary items={s.actions ?? []} variant="client" /> : undefined}
       />
+
+      {/* b4: ciorna nepublicata din acest browser (de ex. dupa confirmarea emailului) */}
+      <UnpublishedDraftCard />
 
       {stats.isPending ? (
         <DashboardSkeleton />

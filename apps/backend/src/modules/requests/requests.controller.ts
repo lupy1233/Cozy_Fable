@@ -46,7 +46,7 @@ export class RequestsController {
   @Public()
   @Post('drafts')
   createDraft(@CurrentUser() user: AccessTokenPayload | undefined, @Body() dto: PatchDraftDto) {
-    return this.requests.createDraft(user?.sub ?? null, dto);
+    return this.requests.createDraft(user?.sub ?? null, dto, user?.role ?? null);
   }
 
   @Public()
@@ -62,7 +62,7 @@ export class RequestsController {
     @Param('token') token: string,
     @Body() dto: PatchDraftDto,
   ) {
-    return this.requests.patchDraft(token, dto, user?.sub ?? null);
+    return this.requests.patchDraft(token, dto, user?.sub ?? null, user?.role ?? null);
   }
 
   // "Incepe o cerere noua": ciorna abandonata se arunca (soft delete). Tokenul

@@ -12,7 +12,7 @@ import {
   type AttachmentTarget,
 } from '@/hooks/use-requests';
 import { localRejectReason } from '@/lib/attachment-upload';
-import { useConfiguratorStore } from '@/stores/configurator-store';
+import { excludedFileIds, useConfiguratorStore } from '@/stores/configurator-store';
 import { AttachmentRow } from './attachment-item';
 import { UploadFeedback } from './upload-feedback';
 import { InspirationPicker } from './inspiration-picker';
@@ -34,10 +34,15 @@ export function UploadsStep({
   const rooms = useConfiguratorStore((s) => s.roomInstances);
   const ownProject = useConfiguratorStore((s) => s.details.hasOwnProject === true);
   const forgetAttachment = useConfiguratorStore((s) => s.forgetAttachment);
+  const discardedFiles = useConfiguratorStore((s) => s.discardedFiles);
 
   // b5: locurile ramase pe cerere (oglinda capului de pe server: 10 + 8 pe camera)
   // (fisierele aflate inca pe drum ocupa deja un loc)
-  const slotsLeft = remainingAttachmentSlots(rooms.length, attachments.length + queue.pending.length);
+  // b6 + M1 + m8: fisierele camerelor scoase si poza 3D a camerelor bifate nu sunt ale
+  // proiectului si nu ocupa locuri (pe ciorna se sterg, la editare dupa salvare)
+  const discarded = excludedFileIds(rooms, discardedFiles);
+  const liveCount = attachments.filter((a) => !discarded.has(a.id)).length;
+  const slotsLeft = remainingAttachmentSlots(rooms.length, liveCount + queue.pending.length);
   // fisierele se trimit pe rand, fiecare cu starea lui (vezi useAttachmentUploadQueue)
   const onAccept = (files: File[]) => {
     void queue.uploadFiles(files, slotsLeft);
@@ -49,7 +54,9 @@ export function UploadsStep({
   const referencedIds = new Set(rooms.flatMap((room) => Object.values(room.answers).flatMap((value) =>
     Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : [],
   )));
-  const projectFiles = attachments.filter((a) => !referencedIds.has(a.id));
+  // b6: fisierele camerelor scoase din cos (la editare inca pe cerere, pana la salvare) nu
+  // sunt fisiere ale proiectului
+  const projectFiles = attachments.filter((a) => !referencedIds.has(a.id) && !discarded.has(a.id));
   const byId = new Map(attachments.map((a) => [a.id, a]));
   const typeCount = new Map<string, number>();
   const roomFiles = rooms.flatMap((room) => {
@@ -72,10 +79,10 @@ export function UploadsStep({
   // "Nu am proiectul la indemana": revine la formularul complet si deschide
   // prima camera careia ii lipsesc raspunsuri (de regula dimensiunile)
   const switchToGuided = () => {
+    // b8: modul e singura sursa — setStartMode scoate si "am proiect"
     const state = useConfiguratorStore.getState();
-    state.setDetails({ hasOwnProject: false });
-    if (state.startMode === 'OWN_PROJECT') state.setStartMode('STANDARD');
-    if (state.startMode === 'DESIGN_HELP') return;
+    if (state.startMode !== 'OWN_PROJECT') return;
+    state.setStartMode('STANDARD');
     state.syncCompletion(false);
     const current = useConfiguratorStore.getState().roomInstances;
     const index = current.findIndex((room) => roomIssue(room, { ownProject: false }) !== null);

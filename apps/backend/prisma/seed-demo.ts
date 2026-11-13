@@ -182,6 +182,8 @@ async function main() {
     await prisma.requestRoom.create({
       data: {
         requestId: req.id, roomType: opts.roomType, lengthM: 3, widthM: 2.5, heightM: 2.6,
+        // b8: cererea e "cu proiectare" doar daca macar o camera cere ajutor
+        needsDesignHelp: !!opts.paidDesign,
         items: { create: [{ name: 'Corp principal', material: 'PAL', systems: ['PUSH'], quantity: 3 }] },
       },
     });

@@ -1,6 +1,20 @@
 import { CURRENT_FLOW_VERSION, defaultPieceConfig } from '@marketplace/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { useConfiguratorStore, type ConfiguratorSnapshot, type RoomInstance } from './configurator-store';
+import {
+  draftGenerationId,
+  discardPendingEditSession,
+  EDIT_RESUME_WINDOW_MS,
+  enterEditSession,
+  excludedFileIds,
+  isStudioRoom,
+  pickRoomToRemove,
+  roomAnswerCount,
+  roomFileIds,
+  leaveEditSession,
+  useConfiguratorStore,
+  type ConfiguratorSnapshot,
+  type RoomInstance,
+} from './configurator-store';
 
 const SKETCH_A = '0b6ad530-3c0f-4c39-8ab1-8a4f3f5d2b6e';
 const SKETCH_B = '1c7be641-4d10-4d4a-9b50-9b5a4e6c3c7f';
@@ -188,5 +202,256 @@ describe('configurator store — inspiration meta (E-client-34)', () => {
   it('an old snapshot without inspirationMeta loads as empty meta', () => {
     load([kitchen('k1')]);
     expect(store().inspirationMeta).toEqual({});
+  });
+});
+
+// b8: modul e singura sursa; bifa de ajutor pe camera (PO g0-8 / b8-2 / b8-3)
+describe('configurator store — start mode and per-room design help (b8)', () => {
+  const store = () => useConfiguratorStore.getState();
+  const flags = () => store().roomInstances.map((r) => r.needsDesignHelp === true);
+
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    store().reset();
+  });
+
+  it('"I need help" then "I have a project" leaves no design help and sets the own-project mirror', () => {
+    store().setStartMode('DESIGN_HELP');
+    store().addRoom('KITCHEN');
+    store().addRoom('BEDROOM');
+    expect(flags()).toEqual([true, true]);
+    expect(store().details.hasOwnProject).toBe(false);
+    store().setStartMode('OWN_PROJECT');
+    expect(flags()).toEqual([false, false]);
+    expect(store().details.hasOwnProject).toBe(true);
+    // in "Am deja un proiect" bifa nu exista
+    store().setRoomDesignHelp(store().roomInstances[0].localId, true);
+    expect(flags()).toEqual([false, false]);
+    store().setStartMode('STANDARD');
+    expect(store().details.hasOwnProject).toBe(false);
+  });
+
+  it('flagging every room equals "I need help"; unflagging one goes back to "I know what I want"', () => {
+    store().setStartMode('STANDARD');
+    store().addRoom('KITCHEN');
+    store().addRoom('BEDROOM');
+    const [k, b] = store().roomInstances.map((r) => r.localId);
+    store().setRoomDesignHelp(k, true);
+    expect(store().startMode).toBe('STANDARD');
+    store().setRoomDesignHelp(b, true);
+    expect(store().startMode).toBe('DESIGN_HELP');
+    // camerele adaugate in acest mod pornesc bifate
+    store().addRoom('LIVING');
+    expect(flags()).toEqual([true, true, true]);
+    store().setRoomDesignHelp(k, false);
+    expect(store().startMode).toBe('STANDARD');
+  });
+
+  it('keeps the answers of a flagged room in the draft and gives them back when unflagged', () => {
+    store().setStartMode('STANDARD');
+    store().addRoomWithAnswers('KITCHEN', { layout: 'L_SHAPE' });
+    const id = store().roomInstances[0].localId;
+    store().setRoomDesignHelp(id, true);
+    expect(store().roomInstances[0].answers.layout).toBe('L_SHAPE');
+    store().setRoomDesignHelp(id, false);
+    expect(store().roomInstances[0].answers.layout).toBe('L_SHAPE');
+  });
+
+  it('migrates old snapshots: DESIGN_HELP flags every room, the old cart checkbox becomes the mode', () => {
+    store().loadSnapshot({
+      phase: 'cart', startMode: 'DESIGN_HELP', activeRoomIndex: 0, activeStepIndex: 0,
+      roomInstances: [{ localId: 'a', roomType: 'BATHROOM', flowVersion: 1, answers: {}, completed: false }],
+      details: { includesPaidDesign: true } as never, inspirationPhotoIds: [], updatedAt: Date.now(),
+    });
+    expect(flags()).toEqual([true]);
+    expect('includesPaidDesign' in store().details).toBe(false);
+    store().loadSnapshot({
+      phase: 'cart', startMode: 'STANDARD', activeRoomIndex: 0, activeStepIndex: 0,
+      roomInstances: [], details: { hasOwnProject: true }, inspirationPhotoIds: [], updatedAt: Date.now(),
+    });
+    expect(store().startMode).toBe('OWN_PROJECT');
+  });
+});
+
+// b8, pasul 1: editarea are memoria ei; ciorna cererii noi ramane neatinsa
+describe('configurator store — edit session memory (b8)', () => {
+  const store = () => useConfiguratorStore.getState();
+  const SERVER_ROOM = '5f0c1a2b-3c4d-4e5f-8a9b-0c1d2e3f4a5b';
+  const editSnapshot: ConfiguratorSnapshot = {
+    phase: 'cart', startMode: 'STANDARD', activeRoomIndex: 0, activeStepIndex: 0,
+    roomInstances: [{ localId: SERVER_ROOM, roomType: 'BATHROOM', flowVersion: 1, answers: {}, completed: true }],
+    details: { city: 'Iași' }, inspirationPhotoIds: [], updatedAt: Date.now(),
+  };
+
+  beforeEach(() => {
+    leaveEditSession();
+    localStorage.clear();
+    sessionStorage.clear();
+    store().reset();
+  });
+
+  it('an abandoned edit does not touch the new draft and is thrown away on leave', () => {
+    store().setStartMode('STANDARD');
+    store().addRoom('KITCHEN');
+    const before = localStorage.getItem('mm_configurator_v1');
+    expect(enterEditSession('req-1')).toBe(false);
+    store().loadSnapshot(editSnapshot);
+    store().setDetails({ city: 'Cluj' });
+    expect(localStorage.getItem('mm_configurator_v1')).toBe(before);
+    expect(sessionStorage.getItem('mm_configurator_edit_v1:req-1')).not.toBeNull();
+    leaveEditSession();
+    expect(sessionStorage.getItem('mm_configurator_edit_v1:req-1')).toBeNull();
+    expect(store().roomInstances.map((r) => r.roomType)).toEqual(['KITCHEN']);
+    expect(store().details.city).toBeUndefined();
+  });
+
+  it('a reload during the edit resumes it from the tab', () => {
+    enterEditSession('req-2');
+    store().loadSnapshot(editSnapshot);
+    // reincarcare: memoria din pagina se pierde, cea din tab ramane
+    expect(enterEditSession('req-2')).toBe(true);
+    expect(store().roomInstances[0].localId).toBe(SERVER_ROOM);
+    expect(store().details.city).toBe('Iași');
+  });
+
+  it('drops an abandoned edit that older builds wrote into the new-draft key', async () => {
+    localStorage.setItem('mm_configurator_v1', JSON.stringify({ version: 4, state: editSnapshot }));
+    await useConfiguratorStore.persist.rehydrate();
+    expect(store().roomInstances).toEqual([]);
+    expect(store().startMode).toBeNull();
+    expect(store().phase).toBe('start');
+  });
+
+  it('keeps a genuine old new-request draft when migrating', async () => {
+    localStorage.setItem('mm_configurator_v1', JSON.stringify({ version: 4, state: {
+      ...editSnapshot, roomInstances: [{ localId: 'r_abc12345', roomType: 'BATHROOM', flowVersion: 1, answers: {}, completed: false }],
+    } }));
+    await useConfiguratorStore.persist.rehydrate();
+    expect(store().roomInstances.map((r) => r.localId)).toEqual(['r_abc12345']);
+  });
+});
+
+// b6: scoaterea camerelor din cos
+describe('configurator store — removing rooms (b6)', () => {
+  const s = () => useConfiguratorStore.getState();
+  beforeEach(() => {
+    localStorage.clear();
+    s().reset();
+  });
+
+  it('with two bathrooms, "−" removes the one without answers first', () => {
+    load([
+      { localId: 'b1', roomType: 'BATHROOM', flowVersion: 1, answers: { layout: 'X' }, completed: false },
+      { localId: 'b2', roomType: 'BATHROOM', flowVersion: 1, answers: {}, completed: false },
+    ]);
+    expect(pickRoomToRemove(s().roomInstances, 'BATHROOM')?.localId).toBe('b2');
+    s().removeLastOfType('BATHROOM');
+    expect(s().roomInstances.map((r) => r.localId)).toEqual(['b1']);
+  });
+
+  it('when every room of the type has answers, the last one is picked', () => {
+    load([bedroom('a', [SKETCH_A]), bedroom('b', [SKETCH_B])]);
+    expect(pickRoomToRemove(s().roomInstances, 'BEDROOM')?.localId).toBe('b');
+    expect(pickRoomToRemove(s().roomInstances, 'KITCHEN')).toBeNull();
+  });
+
+  it('a removed room takes its 3D picture away and its files become discarded, not project files', () => {
+    load([bedroom('a', [SKETCH_A]), bedroom('b', [SKETCH_B])]);
+    s().setSnapshot3d('a', 'data:image/png;base64,AAA');
+    s().removeRoom('a');
+    expect(s().snapshots3d).toEqual({});
+    expect(s().discardedFiles).toEqual([SKETCH_A]);
+    expect(roomFileIds(s().roomInstances[0])).toEqual([SKETCH_B]);
+    // persistat cu ciorna; resetul il goleste
+    expect(s().snapshot().discardedFiles).toEqual([SKETCH_A]);
+    s().reset();
+    expect(s().discardedFiles).toEqual([]);
+  });
+
+  it('counts answers apart from files', () => {
+    const room: RoomInstance = { localId: 'x', roomType: 'BEDROOM', flowVersion: 2, answers: { sketch: [SKETCH_A], wardrobe: 'YES' }, completed: false };
+    expect(roomAnswerCount(room)).toBe(1);
+    expect(roomFileIds(room)).toEqual([SKETCH_A]);
+  });
+});
+
+// O piesa adusa din Studio 3D nu poate cere ajutor la proiectare (revizuire etapa 2)
+describe('configurator store — Studio pieces and design help', () => {
+  const s = () => useConfiguratorStore.getState();
+  const studioPiece = (): RoomInstance => ({ ...nightstand('ONE'), localId: 'studio' });
+  const kitchenRoom = (): RoomInstance => ({ localId: 'k', roomType: 'KITCHEN', flowVersion: CURRENT_FLOW_VERSION.KITCHEN, answers: {}, completed: false });
+  beforeEach(() => {
+    localStorage.clear();
+    s().reset();
+  });
+
+  it('a Studio piece cannot be flagged, and "I need help" leaves it unflagged and shows "I know what I want"', () => {
+    load([kitchenRoom(), studioPiece()]);
+    s().setRoomDesignHelp('studio', true);
+    expect(s().roomInstances.find((r) => r.localId === 'studio')?.needsDesignHelp).not.toBe(true);
+    s().setStartMode('DESIGN_HELP');
+    expect(s().roomInstances.find((r) => r.localId === 'k')?.needsDesignHelp).toBe(true);
+    expect(s().roomInstances.find((r) => r.localId === 'studio')?.needsDesignHelp).not.toBe(true);
+    expect(s().startMode).toBe('STANDARD');
+  });
+
+  it('only Studio pieces + "I need help" stays "I know what I want"; a flagged Studio piece from old data is unflagged', () => {
+    load([{ ...studioPiece(), needsDesignHelp: true }]);
+    expect(s().roomInstances[0].needsDesignHelp).toBe(false);
+    s().setStartMode('DESIGN_HELP');
+    expect(s().startMode).toBe('STANDARD');
+    expect(isStudioRoom(s().roomInstances[0])).toBe(true);
+  });
+});
+
+// review etapa 2: m6, m1 (fereastra), m3
+describe('configurator store — review fixes (m6, m1, m3)', () => {
+  const s = () => useConfiguratorStore.getState();
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    s().reset();
+  });
+
+  it('m6: with an unknown flow nothing is taken for a file', () => {
+    const room = { localId: 'x', roomType: 'KITCHEN', flowVersion: 999, answers: { woods: ['OAK', 'WALNUT'] }, completed: false } as RoomInstance;
+    expect(roomFileIds(room)).toEqual([]);
+    expect(roomAnswerCount(room)).toBe(1);
+  });
+
+  it('M1: the hidden 3D picture of a flagged room is excluded, the visible sketch is not', () => {
+    const desk: RoomInstance = { localId: 'd', roomType: 'PIECE_DESK', flowVersion: CURRENT_FLOW_VERSION.PIECE_DESK, answers: { snapshot3d: [SKETCH_A] }, completed: true };
+    expect([...excludedFileIds([desk], [])]).toEqual([]);
+    expect([...excludedFileIds([{ ...desk, needsDesignHelp: true }], [SKETCH_B])].sort()).toEqual([SKETCH_A, SKETCH_B].sort());
+  });
+
+  it('m1: a pending edit is thrown away on demand (request page), so "Edit" starts from the server', () => {
+    enterEditSession('req-7');
+    s().setDetails({ city: 'Iași' });
+    leaveEditSession({ keepForMs: EDIT_RESUME_WINDOW_MS });
+    expect(sessionStorage.getItem('mm_configurator_edit_v1:req-7')).not.toBeNull();
+    discardPendingEditSession();
+    expect(sessionStorage.getItem('mm_configurator_edit_v1:req-7')).toBeNull();
+    expect(enterEditSession('req-7')).toBe(false);
+    leaveEditSession();
+  });
+
+  it('M2: reset moves the draft generation forward', () => {
+    const before = draftGenerationId();
+    s().reset();
+    expect(draftGenerationId()).toBe(before + 1);
+  });
+
+  it('m3: an old "I know what I want" draft with the old paid-design box keeps a one-time note', () => {
+    s().loadSnapshot({
+      phase: 'cart', startMode: 'STANDARD', activeRoomIndex: 0, activeStepIndex: 0, inspirationPhotoIds: [], updatedAt: 1,
+      roomInstances: [{ localId: 'k', roomType: 'KITCHEN', flowVersion: 1, answers: {}, completed: false }],
+      details: { includesPaidDesign: true } as never,
+    });
+    expect(s().legacyPaidDesignNote).toBe(true);
+    expect('includesPaidDesign' in s().details).toBe(false);
+    s().setRoomDesignHelp('k', true);
+    expect(s().legacyPaidDesignNote).toBe(false);
   });
 });

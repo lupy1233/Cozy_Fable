@@ -88,6 +88,16 @@ describe('UploadsStep — own project and room files (E-client-2)', () => {
     expect(screen.queryByRole('button', { name: en.Configurator.uploads.removeFile.replace('{name}', 'sketch.pdf') })).not.toBeInTheDocument();
   });
 
+  // b6: schitele unei camere scoase din cos nu devin "fisierele proiectului"
+  it('the sketch of a removed room is not listed as a project file', () => {
+    attachments = [file(SKETCH, 'sketch.pdf', 'SAFE'), file(PROJECT, 'project.pdf', 'SAFE')];
+    act(() => useConfiguratorStore.getState().removeRoom('bed'));
+    expect(useConfiguratorStore.getState().discardedFiles).toEqual([SKETCH]);
+    mount();
+    expect(screen.queryByText('sketch.pdf')).not.toBeInTheDocument();
+    expect(screen.getByText('project.pdf')).toBeVisible();
+  });
+
   // E-client-9 (C7-3): avertismentul ca fisierele sunt vizibile firmelor inainte de preluare
   it('shows the pre-claim visibility notice above the dropzone', () => {
     attachments = [];
@@ -203,5 +213,30 @@ describe('UploadsStep — rejected files (b5)', () => {
     await waitFor(() => expect(within(rejectedList(container)).getByText(reasons.SCAN)).toBeVisible());
     expect(within(rejectedList(container)).getByText('bad.png')).toBeVisible();
     await waitFor(() => expect(apiMock).toHaveBeenCalledWith('/requests/drafts/t/attachments/id-bad', { method: 'DELETE' }));
+  });
+});
+
+// m8: fisierele camerelor scoase nu ocupa locuri
+describe('UploadsStep — slots ignore files of removed rooms (m8)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useConfiguratorStore.getState().reset();
+    useConfiguratorStore.getState().loadSnapshot({
+      ...useConfiguratorStore.getState().snapshot(),
+      startMode: 'STANDARD',
+      phase: 'uploads',
+      roomInstances: [
+        { localId: 'a', roomType: 'BEDROOM', flowVersion: 2, answers: {}, completed: true },
+        { localId: 'b', roomType: 'BEDROOM', flowVersion: 2, answers: { sketch: [SKETCH] }, completed: true },
+      ],
+    });
+  });
+
+  it('after removing a room with a sketch, the sketch no longer takes a slot', () => {
+    attachments = [file(SKETCH, 'sketch.pdf', 'SAFE')];
+    act(() => useConfiguratorStore.getState().removeRoom('b'));
+    const { container } = mount();
+    // 10 + 8 pentru o camera, niciun fisier ramas
+    expect(container.querySelector('[data-upload-slots]')).toHaveTextContent('You can add 18 more files.');
   });
 });

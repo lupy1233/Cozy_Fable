@@ -43,8 +43,13 @@ export function RoomFlowRunner({
   const dir = useRef(1);
   const topRef = useRef<HTMLDivElement>(null);
 
-  const room = rooms[activeRoomIndex];
+  // b8 (PO g0-8): camerele bifate "am nevoie de ajutor" nu au intrebari — runner-ul
+  // trece doar prin celelalte (indexurile raman cele din cos)
+  const askable = rooms.map((r, i) => ({ r, i })).filter(({ r }) => !r.needsDesignHelp);
+  const current = rooms[activeRoomIndex];
+  const room = current && !current.needsDesignHelp ? current : undefined;
   const roomKey = room?.localId ?? '';
+  const firstAskable = askable[0]?.i ?? -1;
 
   // La schimbarea intrebarii/camerei, readu utilizatorul la titlul intrebarii —
   // pe mobil scroll-ul ramanea jos, unde au fost optiunile (feedback PO item 7).
@@ -54,10 +59,14 @@ export function RoomFlowRunner({
     topRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   }, [roomKey, activeStepIndex, reduce]);
 
-  if (!room) {
-    onExitToCart();
-    return null;
-  }
+  // camera activa lipsa sau bifata: prima camera cu intrebari, altfel inapoi la cos
+  useEffect(() => {
+    if (room) return;
+    if (firstAskable >= 0) setActiveRoom(firstAskable);
+    else onExitToCart();
+  }, [room, firstAskable, setActiveRoom, onExitToCart]);
+
+  if (!room) return null;
 
   // step-urile hidden nu primesc ecran; cu proiect propriu sar dimensiunile +
   // schitele (ownProject in engine); la noptiera din Studio sare "cate bucati"
@@ -88,7 +97,7 @@ export function RoomFlowRunner({
     }
     // ultimul ecran al camerei: marcheaza completa, treci la urmatoarea camera incompleta
     markRoomCompleted(room.localId, true);
-    const nextIncomplete = rooms.findIndex((r, i) => i !== activeRoomIndex && !r.completed);
+    const nextIncomplete = rooms.findIndex((r, i) => i !== activeRoomIndex && !r.completed && !r.needsDesignHelp);
     if (nextIncomplete >= 0) {
       setActiveRoom(nextIncomplete);
     } else {
@@ -111,7 +120,7 @@ export function RoomFlowRunner({
   // Ce urmeaza dupa "Continua" (doar eticheta): ecranul urmator al camerei,
   // urmatoarea camera necompletata sau pasul Fisiere — aceeasi ordine ca goNext.
   const nextScreen = screens[screenIndex + 1];
-  const nextRoom = rooms.find((r, i) => i !== activeRoomIndex && !r.completed);
+  const nextRoom = rooms.find((r, i) => i !== activeRoomIndex && !r.completed && !r.needsDesignHelp);
   const nextLabel = nextScreen?.[0]
     ? t(nextScreen[0].titleKey)
     : nextRoom
@@ -135,7 +144,8 @@ export function RoomFlowRunner({
             r.localId !== room.localId &&
             r.roomType === room.roomType &&
             r.flowVersion === room.flowVersion &&
-            r.completed,
+            r.completed &&
+            !r.needsDesignHelp,
         )
       : undefined;
 
@@ -144,7 +154,7 @@ export function RoomFlowRunner({
       {/* antetul pasului: in ce camera esti + cat mai e din ea */}
       <div className="flex flex-col gap-4">
         <div role="group" aria-label={t('nav.roomsLabel')} className="flex flex-wrap gap-2">
-          {rooms.map((r, i) => {
+          {askable.map(({ r, i }) => {
             const active = i === activeRoomIndex;
             const pill = cn(
               'inline-flex h-10 items-center gap-1.5 rounded-full border px-4 text-sm transition-colors',
@@ -161,7 +171,7 @@ export function RoomFlowRunner({
               </>
             );
             // o singura camera: eticheta, nu buton (un click ar reseta pasul la primul ecran)
-            return rooms.length > 1 ? (
+            return askable.length > 1 ? (
               <button
                 key={r.localId}
                 type="button"

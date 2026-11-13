@@ -9,6 +9,7 @@ import { Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from '@/i18n/routing';
 import { apiErrorKey } from '@/lib/error-messages';
+import { isSafeRedirect } from '@/lib/safe-redirect';
 import { cn } from '@/lib/utils';
 import { useRegister } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ import {
 } from '../_components/auth-parts';
 import { PasswordInput } from '../_components/password-input';
 import { ResendVerification } from '../_components/resend-verification';
+import { useMounted } from '../_components/use-mounted';
 
 const ROLE_CARDS = [
   { value: 'CLIENT', title: 'roleClientTitle', hint: 'roleClientHint' },
@@ -39,9 +41,12 @@ function RegisterInner() {
 
   // Landing "Esti firma?" trimite ?role=company → pre-selecteaza contul de firma
   const initialRole = searchParams.get('role') === 'company' ? 'COMPANY_USER' : 'CLIENT';
-  // pastreaza returnUrl-ul pe drumul register → login (dupa verificare email)
-  const redirect = searchParams.get('redirect');
+  // pastreaza returnUrl-ul pe drumul register → login (dupa verificare email); doar cai interne.
+  // Se trimite si serverului, care il pune in linkul de confirmare numai daca e in lista permisa.
+  const rawRedirect = searchParams.get('redirect');
+  const redirect = isSafeRedirect(rawRedirect) ? rawRedirect : null;
   const loginHref = redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
+  const mounted = useMounted();
 
   const {
     register,
@@ -55,7 +60,9 @@ function RegisterInner() {
 
   // E-company-9: firmele accepta si "Regulile pentru firme" (link in tab nou, sa nu piarda formularul)
   const role = watch('role');
-  const onSubmit = handleSubmit((values) => registerMutation.mutate(values));
+  const onSubmit = handleSubmit((values) =>
+    registerMutation.mutate(redirect ? { ...values, returnTo: redirect } : values),
+  );
 
   const apiErr = registerMutation.error ? apiErrorKey(registerMutation.error) : null;
 
@@ -82,7 +89,7 @@ function RegisterInner() {
 
       <h1 className={authTitleCls}>{t('registerTitle')}</h1>
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+      <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
         {/* tipul de cont se alege primul, pe cartonase (design 2026-11) */}
         <fieldset className="flex flex-col gap-2">
           <legend className="label mb-2">{t('accountType')}</legend>
@@ -166,7 +173,7 @@ function RegisterInner() {
           type="submit"
           variant="walnut"
           size="xl"
-          disabled={registerMutation.isPending}
+          disabled={!mounted || registerMutation.isPending}
           className="w-full text-lead"
         >
           {t('registerSubmit')}

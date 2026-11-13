@@ -1,6 +1,6 @@
 import { CURRENT_FLOW_VERSION, ERROR_CODES } from '@marketplace/shared';
 import { BadRequestException } from '@nestjs/common';
-import { ConfiguratorService, type ProcessedRoom } from './configurator.service';
+import { ConfiguratorService, droppedDesignHelpUploadIds, type ProcessedRoom } from './configurator.service';
 import type { ConfiguratorRoomInputDto } from './dto/request.dto';
 
 const service = new ConfiguratorService();
@@ -37,6 +37,44 @@ describe('ConfiguratorService', () => {
     const processed = service.processRooms([bedroom()], { designBrief: true });
     expect(processed.rooms).toHaveLength(1);
     expect(processed.rooms[0].derived.lengthM).toBe(0);
+  });
+
+  // b8 (PO g0-8 / b8-3): camera cu ajutor pierde raspunsurile, isi pastreaza schitele
+  it('a design-help room drops its questionnaire answers but keeps its sketches', () => {
+    const helpRoom = { ...bedroom({ piecesNeeded: ['NOT_A_PIECE'], strayKey: 1, sketch: ['11111111-1111-4111-8111-111111111111'] }), needsDesignHelp: true };
+    const processed = service.processRooms([helpRoom]);
+    expect(processed.rooms[0].answers).toEqual({ sketch: ['11111111-1111-4111-8111-111111111111'] });
+    expect(processed.rooms[0].needsDesignHelp).toBe(true);
+    expect(service.collectUploadAttachmentIds(processed.rooms)).toEqual(['11111111-1111-4111-8111-111111111111']);
+  });
+
+  // M1: poza 3D (pas ascuns snapshot3d) a unei camere cu ajutor nu pleaca la firme
+  it('a design-help piece drops its hidden 3D snapshot and reports it as dropped', () => {
+    const SKETCH = '11111111-1111-4111-8111-111111111111';
+    const SNAP = '22222222-2222-4222-8222-222222222222';
+    const raw = [{
+      roomType: 'PIECE_DRESSER',
+      flowVersion: CURRENT_FLOW_VERSION.PIECE_DRESSER,
+      answers: { sketch: [SKETCH], snapshot3d: [SNAP] },
+      needsDesignHelp: true,
+    }] as ConfiguratorRoomInputDto[];
+    const processed = service.processRooms(raw);
+    expect(processed.rooms[0].answers).toEqual({ sketch: [SKETCH] });
+    expect(droppedDesignHelpUploadIds(raw, processed.rooms)).toEqual([SNAP]);
+    // o camera fara ajutor nu raporteaza nimic
+    expect(droppedDesignHelpUploadIds([{ ...raw[0], needsDesignHelp: false }], processed.rooms)).toEqual([]);
+  });
+
+  it('passesStrictValidation: an empty room fails, without throwing', () => {
+    expect(service.passesStrictValidation(bedroom())).toBe(false);
+  });
+
+  it('relaxes only the design-help room: an incomplete room without help is still rejected', () => {
+    const body = errorOf(() => service.processRooms([{ ...bedroom(), needsDesignHelp: true }, bedroom()]));
+    expect(body.code).toBe(ERROR_CODES.CONFIGURATOR_ANSWERS_INVALID);
+    const details = body.details as { roomIndex: number }[];
+    expect(details.length).toBeGreaterThan(0);
+    expect(details.every((d) => d.roomIndex === 1)).toBe(true);
   });
 
   it('rejects an empty room in strict mode with room/step details', () => {

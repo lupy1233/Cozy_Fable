@@ -279,12 +279,14 @@ export function useAttachmentsStateFor(target: AttachmentTarget): {
 // Estimarea de buget din scorul camerelor (F5, item 18) — cheia de query e
 // continutul camerelor: se recalculeaza doar cand raspunsurile chiar se schimba.
 export function useBudgetEstimate(
-  rooms: { roomType: RoomType; flowVersion: number; answers: AnswerMap }[],
+  rooms: { roomType: RoomType; flowVersion: number; answers: AnswerMap; needsDesignHelp?: boolean }[],
 ) {
+  // b8: bifa de ajutor pe camera calatoreste doar cand e pusa (cheia de query ramane stabila)
   const payload = rooms.map((r) => ({
     roomType: r.roomType,
     flowVersion: r.flowVersion,
     answers: r.answers,
+    ...(r.needsDesignHelp ? { needsDesignHelp: true } : {}),
   }));
   const key = JSON.stringify(payload);
   return useQuery({

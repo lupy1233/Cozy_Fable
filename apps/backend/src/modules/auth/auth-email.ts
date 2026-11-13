@@ -23,7 +23,9 @@ export function authEmailHtml(opts: {
   // subsolul implicit spune "daca nu ai cerut tu, ignora"; alertele de securitate il inlocuiesc
   footer?: { ro: string; en: string };
 }): string {
-  const { user, body, link, ctaLabel, supportEmail, footer } = opts;
+  const { user, body, ctaLabel, supportEmail, footer } = opts;
+  // linkul poate avea mai multi parametri (b4: &redirect=) → & devine &amp; in HTML
+  const link = esc(opts.link);
   const ro = user.languagePreference !== 'EN';
   const footerText = footer
     ? ro

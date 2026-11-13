@@ -16,21 +16,25 @@ import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
 import { useMe } from '@/hooks/use-auth';
 import {
-  useAttachmentsFor,
+  useAttachmentsStateFor,
   useEditRequestById,
   usePublishDraft,
+  useRemoveAttachmentFor,
   useUploadAttachmentFor,
   type AttachmentTarget,
 } from '@/hooks/use-requests';
 import { useRouter } from '@/i18n/routing';
-import { useConfiguratorStore, type RoomInstance } from '@/stores/configurator-store';
+import { excludedFileIds, useConfiguratorStore, type RoomInstance } from '@/stores/configurator-store';
 import { synchronizeStudioSnapshots, invalidStudioRequestEntries } from '@/stores/studio-transfer';
 import { InspirationPicker } from './inspiration-picker';
 import { ReviewFactsCard } from './review-facts-card';
 import { RailNode } from './review-rail';
 import { ReviewRoomCard, type ReviewRoomIssue } from './review-room-card';
+import { anyRoomNeedsDesignHelp, roomInstanceLabels, toServerRoom } from './room-payload';
+import { toast } from '@/components/ui/toaster';
 import { roomIssue } from './room-screens';
 import { AttachmentThumb } from './attachment-item';
+import { ClientOnlyNote, isNonClientRole } from './client-only-note';
 
 // O problema de camera intoarsa de server: details[] de la CONFIGURATOR_ANSWERS_INVALID /
 // FILE_SCAN_BLOCKED sau obiectul {roomIndex} de la CONFIGURATOR_FLOW_VERSION_UNSUPPORTED.
@@ -89,6 +93,9 @@ function hasDetailPaths(details: unknown): boolean {
   return Array.isArray(details) && details.some((d) => d && typeof d === 'object' && 'path' in d);
 }
 
+// m7: cat asteptam stergerea fisierelor camerelor scoase inainte sa renuntam
+export const FILE_REMOVAL_TIMEOUT_MS = 10_000;
+
 export function ReviewStep({
   token,
   editId,
@@ -98,6 +105,7 @@ export function ReviewStep({
   onEditDetails,
   onEditFiles,
   onPublished,
+  onPublishingChange,
 }: {
   // mod creare: tokenul draftului; mod editare: id-ul cererii publicate
   token: string | null;
@@ -110,19 +118,31 @@ export function ReviewStep({
   onEditDetails: () => void;
   onEditFiles?: () => void;
   onPublished: (requestId: string) => void;
+  // b3: true de la clic pana la reusita (wizard-ul opreste salvarea ciornei), false la esec
+  onPublishingChange?: (busy: boolean) => void;
 }) {
   const t = useTranslations('Configurator');
   const tr = useTranslations('Requests');
   const router = useRouter();
   const me = useMe();
   const authed = !!me.data;
+  // f2: firma / adminul nu publica; vede nota in locul butonului
+  const nonClient = isNonClientRole(me.data?.role);
   const isEdit = Boolean(editId);
+  const removeAttachment = useRemoveAttachmentFor(uploadTarget);
   const rooms = useConfiguratorStore((s) => s.roomInstances);
+  // b6 + M1: fisierele camerelor scoase si cele ascunse (poza 3D) ale camerelor bifate nu
+  // pleaca la firme si nu sunt fisiere ale proiectului; pe ciorna se sterg inainte de publicare
+  const discardedFiles = useConfiguratorStore((s) => s.discardedFiles);
+  const discarded = useMemo(() => excludedFileIds(rooms, discardedFiles), [rooms, discardedFiles]);
+  // m7: publicarea nu pleaca daca fisierele de mai sus n-au putut fi scoase de pe ciorna
+  const [cleanupFailed, setCleanupFailed] = useState(false);
   const studioScenes = useConfiguratorStore((s) => s.studioScenes);
   const synchronizedScenes = useMemo(() => synchronizeStudioSnapshots(studioScenes ?? [], rooms), [studioScenes, rooms]);
   const invalidStudioEntries = useMemo(() => invalidStudioRequestEntries(synchronizedScenes), [synchronizedScenes]);
   const details = useConfiguratorStore((s) => s.details);
-  const designHelp = useConfiguratorStore((s) => s.startMode === 'DESIGN_HELP');
+  const startMode = useConfiguratorStore((s) => s.startMode);
+  const designHelp = startMode === 'DESIGN_HELP';
   const inspirationPhotoIds = useConfiguratorStore((s) => s.inspirationPhotoIds);
   const inspirationMeta = useConfiguratorStore((s) => s.inspirationMeta);
   const setInspirationRoom = useConfiguratorStore((s) => s.setInspirationRoom);
@@ -132,7 +152,10 @@ export function ReviewStep({
   const setInspirationPhotos = useConfiguratorStore((s) => s.setInspirationPhotos);
   const syncCompletion = useConfiguratorStore((s) => s.syncCompletion);
   const ownProject = details.hasOwnProject === true;
-  const attachments = useAttachmentsFor(uploadTarget);
+  const labels = roomInstanceLabels(rooms, (rt) => t(`rooms.type.${rt}`));
+  const roomLabel = (localId: string) => labels.get(localId) ?? '';
+  const attachmentState = useAttachmentsStateFor(uploadTarget);
+  const attachments = attachmentState.attachments;
   const uploadAttachment = useUploadAttachmentFor(uploadTarget);
   const publishDraft = usePublishDraft(token ?? '');
   const editRequest = useEditRequestById(editId ?? '');
@@ -150,18 +173,18 @@ export function ReviewStep({
   // Completitudinea vine din validarea stricta de publicare (aceeasi functie ca
   // serverul), nu din flag-ul `completed` al runner-ului — drafturi vechi sau
   // camere editate partial nu mai ajung la un 400 opac (E-client-2).
-  // "am nevoie de ajutor": camerele nu au chestionar — e suficient sa existe
+  // camerele bifate "am nevoie de ajutor" nu au chestionar (roomIssue = null) — e suficient sa existe
   const localIssues = useMemo(
-    () => rooms.map((r) => invalidStudioEntries.has(r.localId) ? { stepId: 'config3d', messageKey: 'validation.studioPieceDoesNotFit' } : designHelp ? null : roomIssue(r, { ownProject })),
-    [rooms, designHelp, ownProject, invalidStudioEntries],
+    () => rooms.map((r) => !r.needsDesignHelp && invalidStudioEntries.has(r.localId) ? { stepId: 'config3d', messageKey: 'validation.studioPieceDoesNotFit' } : roomIssue(r, { ownProject })),
+    [rooms, ownProject, invalidStudioEntries],
   );
   const allRoomsComplete =
     rooms.length > 0 && localIssues.every((issue) => issue === null);
 
   // flag-ul `completed` (bifele din runner) urmeaza validarea
   useEffect(() => {
-    if (!designHelp) syncCompletion(ownProject);
-  }, [designHelp, ownProject, syncCompletion]);
+    syncCompletion(ownProject);
+  }, [ownProject, syncCompletion]);
 
   // Emailul contului pe primul loc + plafoanele (max 2 per canal, max 4), cu
   // acelasi helper ca serverul; clientul vede ce s-a scos INAINTE de publicare.
@@ -176,8 +199,26 @@ export function ReviewStep({
     if (merged.dropped.length > 0) setDroppedContacts(merged.dropped);
   }, [accountEmail, details.contactPreferences, setDetails]);
 
+  // m7: sterge fisierele, cu limita de timp; un fisier deja disparut (404) e considerat sters
+  const removeFiles = async (ids: string[]): Promise<boolean> => {
+    if (ids.length === 0) return true;
+    const all = Promise.all(ids.map((id) => removeAttachment.mutateAsync(id).then(
+      () => true,
+      (err: unknown) => err instanceof ApiError && err.status === 404,
+    ))).then((results) => results.every(Boolean));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<boolean>((resolve) => { timer = setTimeout(() => resolve(false), FILE_REMOVAL_TIMEOUT_MS); });
+    try {
+      return await Promise.race([all, timeout]);
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
   const doPublish = async () => {
-    if (!detailsComplete || !allRoomsComplete || preparing) return;
+    if (!detailsComplete || !allRoomsComplete || preparing || nonClient) return;
+    setCleanupFailed(false);
+    onPublishingChange?.(true);
 
     // D-3D-4 (aprobat): snapshotul PNG al pieselor configurate 3D urca AUTOMAT
     // prin fluxul presigned existent (3.4) si intra in answers.snapshot3d.
@@ -187,7 +228,8 @@ export function ReviewStep({
     try {
       for (const room of rooms) {
         const dataUrl = snapshots3d[room.localId];
-        if (room.answers.config3d === undefined || !dataUrl) continue;
+        // camera bifata "am nevoie de ajutor" nu-si trimite configuratia → nici poza ei
+        if (room.needsDesignHelp || room.answers.config3d === undefined || !dataUrl) continue;
         try {
           const blob = await (await fetch(dataUrl)).blob();
           const file = new File([blob], `configurare-3d-${room.roomType.toLowerCase()}.png`, {
@@ -199,6 +241,17 @@ export function ReviewStep({
           setAnswer(room.localId, 'snapshot3d', [att.id]);
         } catch {
           // fara snapshot; cererea ramane valida
+        }
+      }
+      // b6 + M1: schitele camerelor scoase (nesterse la scoatere) si poza 3D a camerelor
+      // bifate se sterg acum de pe ciorna, altfel ar pleca la firme drept fisiere ale
+      // proiectului. m7: lista neincarcata sau o stergere esuata opresc publicarea.
+      if (!isEdit && discarded.size > 0) {
+        const ok = attachmentState.isSuccess && await removeFiles(attachments.filter((a) => discarded.has(a.id)).map((a) => a.id));
+        if (!ok) {
+          setCleanupFailed(true);
+          onPublishingChange?.(false);
+          return;
         }
       }
     } finally {
@@ -216,20 +269,22 @@ export function ReviewStep({
       budgetEstimateRon: budget.budgetEstimateRon ?? undefined,
       deadlineBucket:
         (details.deadlineBucket as ConfiguratorContentInput['deadlineBucket']) || undefined,
-      includesPaidDesign: details.includesPaidDesign ?? false,
-      hasOwnProject: details.hasOwnProject ?? false,
+      // b8: derivat din camere (serverul il recalculeaza oricum); modul = singura sursa pentru proiect
+      includesPaidDesign: anyRoomNeedsDesignHelp(rooms),
+      hasOwnProject: startMode === 'OWN_PROJECT',
       addressText: details.addressText!,
       county: details.county!,
       city: details.city!,
       country: details.country ?? 'RO',
-      rooms: rooms.map((r) => ({
-        sourceLocalId: r.localId,
-        roomType: r.roomType,
-        flowVersion: r.flowVersion,
-        answers: snapshotByRoom[r.localId]
-          ? { ...r.answers, snapshot3d: snapshotByRoom[r.localId] }
-          : r.answers,
-      })),
+      // camerele bifate pleaca doar cu tipul, fisierele lor si bifa (PO b8-3)
+      rooms: rooms.map((r) => {
+        const room = toServerRoom(r);
+        return {
+          sourceLocalId: r.localId,
+          ...room,
+          answers: snapshotByRoom[r.localId] ? { ...room.answers, snapshot3d: snapshotByRoom[r.localId] } : room.answers,
+        };
+      }),
       contactPreferences: (details.contactPreferences ?? []) as ContactPreferenceInput[],
       // E-client-34: notita + camera per poza (camera doar daca inca exista in cos)
       inspirationPhotos: inspirationPhotoIds.map((photoId) => {
@@ -242,7 +297,22 @@ export function ReviewStep({
       }),
       studioScenes: synchronizedScenes,
     };
-    publish.mutate(payload, { onSuccess: (req) => onPublished(req.id) });
+    // mutateAsync (nu callback-uri pe mutate): continuarea ruleaza si daca pagina se demonteaza
+    let req: Awaited<ReturnType<typeof publish.mutateAsync>>;
+    try {
+      req = await publish.mutateAsync(payload);
+    } catch {
+      // eroarea o arata publish.error
+      onPublishingChange?.(false);
+      return;
+    }
+    // b6 + M1: la editare fisierele de mai sus sunt ale cererii; se sterg abia acum, dupa ce
+    // salvarea a reusit. m7: o stergere care nu raspunde nu tine ecranul la nesfarsit.
+    if (isEdit) {
+      const stale = (req.attachments ?? []).filter((a) => discarded.has(a.id)).map((a) => a.id);
+      if (!(await removeFiles(stale))) toast.warning(t('review.filesLeftWarning'));
+    }
+    onPublished(req.id);
   };
 
   const apiErr = publish.error ? publish.error instanceof ApiError ? publish.error.code : 'GENERIC' : null;
@@ -303,7 +373,8 @@ export function ReviewStep({
   const referencedIds = new Set(rooms.flatMap((room) => Object.values(room.answers).flatMap((value) =>
     Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : [],
   )));
-  const projectFiles = attachments.filter((attachment) => !referencedIds.has(attachment.id));
+  const liveAttachments = attachments.filter((attachment) => !discarded.has(attachment.id));
+  const projectFiles = liveAttachments.filter((attachment) => !referencedIds.has(attachment.id));
 
   // Overlay-ul ramane vizibil si dupa succes (isSuccess), pana la redirect:
   // publish-ul face geocoding pe server si poate dura cateva secunde.
@@ -333,7 +404,13 @@ export function ReviewStep({
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-6">
           {/* Detalii generale */}
-          <ReviewFactsCard details={details} complete={detailsComplete} designHelp={designHelp} onEdit={onEditDetails} />
+          <ReviewFactsCard
+            details={details}
+            complete={detailsComplete}
+            mode={startMode}
+            helpRooms={rooms.filter((r) => r.needsDesignHelp).map((r) => roomLabel(r.localId))}
+            onEdit={onEditDetails}
+          />
 
           {/* brief de proiectare: banner cu ce urmeaza dupa publicare */}
           {designHelp && <Alert tone="info">{t('review.designHelpBanner')}</Alert>}
@@ -344,7 +421,7 @@ export function ReviewStep({
             room={room}
             index={i + 1}
             attachments={attachments}
-            designHelp={designHelp}
+            designHelp={room.needsDesignHelp === true}
             onEdit={() => onEditRoom(i)}
             issue={roomIssues[i]?.issue ?? null}
             onFix={() => onEditRoom(i, roomIssues[i]?.stepId ?? undefined)}
@@ -416,6 +493,17 @@ export function ReviewStep({
             </div>
           )}
 
+          {cleanupFailed && (
+            <div role="alert" data-cleanup-failed>
+              <Alert tone="crimson">
+                <p>{t('review.cleanupFailed')}</p>
+                <Button type="button" variant="outline" size="sm" className="mt-2 min-h-11" onClick={() => void doPublish()}>
+                  {t('review.cleanupRetry')}
+                </Button>
+              </Alert>
+            </div>
+          )}
+
           <section
             aria-labelledby="review-publish-title"
             className="flex flex-col gap-4 rounded-xl border border-brass bg-surface p-5 shadow-sheet sm:p-6"
@@ -441,14 +529,14 @@ export function ReviewStep({
                   {detailsComplete ? t('review.checkDetails') : t('review.detailsIncomplete')}
                 </span>
               </li>
-              {attachments.length > 0 && (
+              {liveAttachments.length > 0 && (
                 <li className="flex items-start gap-2.5">
                   <ReadyMark ok />
-                  <span>{t('summaryFiles.count', { n: attachments.length })}</span>
+                  <span>{t('summaryFiles.count', { n: liveAttachments.length })}</span>
                 </li>
               )}
             </ul>
-            {!designHelp && localIssues.some((issue) => issue !== null) && (
+            {localIssues.some((issue) => issue !== null) && (
               <div className="flex flex-col gap-0.5 text-ui text-amber">
                 {rooms
                   .filter((_, i) => localIssues[i] !== null)
@@ -461,7 +549,9 @@ export function ReviewStep({
             )}
 
             {/* singura actiune principala a ecranului */}
-            {authed ? (
+            {nonClient ? (
+              <ClientOnlyNote />
+            ) : authed ? (
               <Button
                 type="button"
                 variant="walnut"
@@ -491,7 +581,7 @@ export function ReviewStep({
             {!authed && !me.isPending && readyToPublish ? (
               <p className="text-ui text-muted-foreground">{t('review.loginToPublishHint')}</p>
             ) : (
-              authed && !isEdit && <p className="text-ui text-muted-foreground">{t('review.publishNote')}</p>
+              authed && !nonClient && !isEdit && <p className="text-ui text-muted-foreground">{t('review.publishNote')}</p>
             )}
           </section>
 

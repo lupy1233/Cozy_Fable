@@ -3,7 +3,8 @@
 import type { RequestStatus } from '@marketplace/shared';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { discardPendingEditSession } from '@/stores/configurator-store';
 import { Link, useRouter } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -77,6 +78,11 @@ export default function RequestDetailPage() {
   // si cate dintre ele au trimis oferta (pentru banda „pasul urmator”)
   const visibility = useRequestVisibility(id, !!detail.data && detail.data.status !== 'DRAFT');
   const next = useRequestNextStep();
+  // m1: intoarcerea la cerere inchide editarea lasata in asteptare (fereastra de reluare
+  // e doar pentru schimbarea limbii pe pagina de editare); "Editeaza" porneste de la server
+  useEffect(() => {
+    discardPendingEditSession();
+  }, []);
 
   if (detail.isPending) {
     return (
@@ -203,7 +209,7 @@ export default function RequestDetailPage() {
             </div>
             <RoomSpecNav rooms={r.rooms} />
             {r.rooms.map((room, i) => (
-              <RoomSpecCard key={room.id} room={room} index={i + 1} attachments={r.attachments} />
+              <RoomSpecCard key={room.id} room={room} index={i + 1} attachments={r.attachments} audience="client" />
             ))}
           </section>
 

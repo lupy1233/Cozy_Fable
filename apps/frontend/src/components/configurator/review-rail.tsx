@@ -88,6 +88,10 @@ export function RequestSheet({
       rooms.map((room) => {
         let screens: QuestionStep[][] = [];
         let entries: AnswerSummaryEntry[] = [];
+        // b8: camera bifata "am nevoie de ajutor" nu are intrebari de numarat
+        if (room.needsDesignHelp) {
+          return { screens, byStep: new Map<string, AnswerSummaryEntry>(), valid: [] as boolean[], required: 0, answered: 0 };
+        }
         try {
           screens = roomScreens(room, hasOwnProject);
           entries = summarizeAnswers(room.roomType, room.answers, room.flowVersion);
@@ -214,7 +218,8 @@ export function RequestSheet({
         {rooms.map((room, i) => {
           const roomLabel = t(`rooms.type.${room.roomType}`);
           const number = String(i + 1).padStart(2, '0');
-          const expanded = inRooms && i === activeRoomIndex;
+          const flagged = designHelp || room.needsDesignHelp === true;
+          const expanded = inRooms && i === activeRoomIndex && !flagged;
           if (expanded) {
             const sections = sectionsOf(i);
             return (
@@ -292,14 +297,14 @@ export function RequestSheet({
             );
           }
           const m = model[i];
-          const status = designHelp
+          const status = flagged
             ? t('sheet.withDesigner')
             : room.completed
               ? t('sheet.roomDone')
               : t('sheet.sections', { count: m?.screens.length ?? 0 });
           return (
             <div key={room.localId} className="flex items-baseline justify-between gap-2.5">
-              {inRooms ? (
+              {inRooms && !flagged ? (
                 <button
                   type="button"
                   onClick={() => setActiveRoom(i)}
@@ -317,10 +322,10 @@ export function RequestSheet({
               <span
                 className={cn(
                   'inline-flex shrink-0 items-center gap-1 text-ui',
-                  !designHelp && room.completed ? 'text-sage' : 'text-muted-foreground',
+                  !flagged && room.completed ? 'text-sage' : 'text-muted-foreground',
                 )}
               >
-                {!designHelp && room.completed && <Check aria-hidden className="h-3.5 w-3.5" />}
+                {!flagged && room.completed && <Check aria-hidden className="h-3.5 w-3.5" />}
                 {status}
               </span>
             </div>

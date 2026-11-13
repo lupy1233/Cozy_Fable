@@ -5,6 +5,12 @@ export const ROTATION_GRACE_MS = 30_000; // grace 30s multi-tab (invarianta 3.13
 export const EMAIL_VERIFY_TTL_SEC = 24 * 60 * 60; // 24h, token in Redis
 export const PASSWORD_RESET_TTL_SEC = 60 * 60; // 60 min, token in Redis (L0-A)
 
+// b4: adresa de intoarcere trimisa la inregistrare ajunge in linkul de confirmare DOAR daca
+// e exact una din aceste cai interne (lista minima: formularul de cerere noua, de unde vine
+// clientul din Sumar). Orice alta valoare se ignora in tacere (linkul ramane doar cu tokenul).
+export const VERIFY_EMAIL_RETURN_PATHS: readonly string[] = ['/requests/new'];
+export const RETURN_TO_MAX_LENGTH = 512;
+
 // E-admin-platform-5: blocare temporara per email dupa parole gresite (recomandarea din
 // docs/17-audit-prelansare-2026-08-19 si audit 08-security-backend: "10 esecuri -> 15 min").
 // Constante de securitate, nu reguli de business; pragul ADMIN e decizie PO deschisa.

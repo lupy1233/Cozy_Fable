@@ -8,6 +8,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useRouter } from '@/i18n/routing';
 import { apiErrorKey } from '@/lib/error-messages';
+import { isSafeRedirect, safeRedirect } from '@/lib/safe-redirect';
 import { SUPPORT_EMAIL } from '@/lib/support-email';
 import { cn } from '@/lib/utils';
 import { useLogin } from '@/hooks/use-auth';
@@ -19,6 +20,7 @@ import { Alert } from '@/components/ui/alert';
 import { authFooterCls, authLinkCls, authTitleCls } from '../_components/auth-parts';
 import { PasswordInput } from '../_components/password-input';
 import { ResendVerification } from '../_components/resend-verification';
+import { useMounted } from '../_components/use-mounted';
 
 const TWO_FACTOR_KEYS = ['apiErrors.TWO_FACTOR_REQUIRED', 'apiErrors.TWO_FACTOR_INVALID_CODE'];
 
@@ -28,7 +30,10 @@ function LoginInner() {
   const login = useLogin();
   // returnUrl: revenire la pagina de origine dupa login (ex. configuratorul de cereri)
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect');
+  // doar cai interne (f1: „//alt-site” era acceptat); o adresa respinsa nu se mai propaga
+  const rawRedirect = searchParams.get('redirect');
+  const redirect = isSafeRedirect(rawRedirect) ? rawRedirect : null;
+  const mounted = useMounted();
 
   const {
     register,
@@ -39,7 +44,7 @@ function LoginInner() {
 
   const onSubmit = handleSubmit((values) =>
     login.mutate(values, {
-      onSuccess: () => router.push(redirect && redirect.startsWith('/') ? redirect : '/dashboard'),
+      onSuccess: () => router.push(safeRedirect(redirect)),
     }),
   );
 
@@ -60,7 +65,7 @@ function LoginInner() {
     <div className="flex flex-col gap-5">
       <h1 className={authTitleCls}>{t('loginTitle')}</h1>
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+      <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
         <Field
           label={t('email')}
           error={errors.email && t(`validation.${errors.email.message}`)}
@@ -120,7 +125,7 @@ function LoginInner() {
         )}
         {emailNotVerified && <ResendVerification email={getValues('email')} />}
 
-        <Button type="submit" variant="walnut" size="xl" disabled={login.isPending} className="w-full text-lead">
+        <Button type="submit" variant="walnut" size="xl" disabled={!mounted || login.isPending} className="w-full text-lead">
           {t('loginSubmit')}
         </Button>
       </form>

@@ -8,7 +8,7 @@ import {
   type RequestItemDto,
   type RequestRoomDto,
 } from '@marketplace/shared';
-import { Layers, MoveDiagonal, NotebookPen, Paperclip, Rotate3d } from 'lucide-react';
+import { Layers, MoveDiagonal, NotebookPen, Paperclip, Rotate3d, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -35,21 +35,28 @@ export function RoomSpecCard({
   room,
   index,
   attachments,
+  audience = 'company',
 }: {
   room: RequestRoomDto;
   // pozitia camerei in cerere (1-based) — folosita si ca ancora de navigare
   index: number;
   attachments?: AttachmentDto[];
+  // cine citeste: firma (piata, fisa de lucru) sau clientul (pagina cererii lui)
+  audience?: 'company' | 'client';
 }) {
   const t = useTranslations('Configurator');
   const tr = useTranslations('Requests');
   // viewerul 3D read-only al piesei configurate de client (U4, PO r4)
   const [viewer3d, setViewer3d] = useState(false);
 
+  // b8 (PO g0-8): camera la care clientul cere ajutor vine fara raspunsuri — semnul
+  // de ajutor ii ia locul listei; raman doar fisierele ei
+  const designHelp = room.needsDesignHelp === true;
   const answers = (room.answers ?? null) as AnswerMap | null;
-  const entries: AnswerSummaryEntry[] = answers
+  const allEntries: AnswerSummaryEntry[] = answers
     ? summarizeAnswers(room.roomType, answers, room.flowVersion ?? 1)
     : [];
+  const entries = designHelp ? allEntries.filter((e) => e.kind === 'files') : allEntries;
 
   const chips = entries.filter(
     (e) => (e.kind === 'choice' || e.kind === 'boolean') && !MATERIAL_STEP.test(e.stepId),
@@ -116,6 +123,16 @@ export function RoomSpecCard({
       </div>
 
       <div className="flex flex-col gap-4 p-4">
+        {designHelp && (
+          <p
+            data-room-design-help
+            className="flex items-start gap-2 rounded-lg border border-brass/40 bg-brass/10 px-3 py-2.5 text-sm font-medium"
+          >
+            <Sparkles aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-brass-2" />
+            {t(audience === 'client' ? 'roomSpec.designHelpClient' : 'roomSpec.designHelpCompany')}
+          </p>
+        )}
+
         {/* piesa configurata in 3D: snapshotul scenei + chips-urile config-ului
             + viewerul interactiv read-only (U4) */}
         {config3d && (
@@ -178,7 +195,7 @@ export function RoomSpecCard({
         )}
 
         {/* corpurile derivate: material + sisteme per corp — esenta pentru oferta */}
-        {room.items.length > 0 && (
+        {!designHelp && room.items.length > 0 && (
           <div>
             <h4 className="mb-1.5 flex items-center gap-1.5 font-mono text-micro uppercase tracking-[0.14em] text-muted-2">
               <Layers className="h-3 w-3" />
@@ -256,7 +273,7 @@ export function RoomSpecCard({
         )}
 
         {/* fallback legacy (cereri fara answers): doar items-urile */}
-        {!answers && room.items.length === 0 && (
+        {!answers && !designHelp && room.items.length === 0 && (
           <p className="text-sm text-muted-2">—</p>
         )}
       </div>

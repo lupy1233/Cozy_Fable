@@ -6,16 +6,25 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { Link } from '@/i18n/routing';
 import { useVerifyEmail } from '@/hooks/use-auth';
+import { hasUnpublishedLocalDraft } from '@/lib/session-cleanup';
 import { Button } from '@/components/ui/button';
 import { AuthStateIcon, authFooterCls, authLinkCls, authTitleCls } from '../_components/auth-parts';
 import { ResendVerification } from '../_components/resend-verification';
+import { verifyLoginHref } from '../_components/verify-login-href';
 
 function VerifyEmailInner() {
   const t = useTranslations('Auth');
   const params = useSearchParams();
   // tokenul se citeste o data si se scoate din URL (nu ajunge in Referer/istoric)
   const [token] = useState(() => params.get('token'));
+  // b4: adresa de intoarcere din link (pusa de server doar pentru cai permise) se citeste
+  // tot o data; rezerva pe acelasi dispozitiv = ciorna nepublicata din browser
+  const [returnTo] = useState(() => params.get('redirect'));
+  const [hasLocalDraft, setHasLocalDraft] = useState(false);
   const verify = useVerifyEmail();
+  const loginHref = verifyLoginHref(returnTo, hasLocalDraft);
+
+  useEffect(() => setHasLocalDraft(hasUnpublishedLocalDraft()), []);
 
   useEffect(() => {
     if (params.get('token')) window.history.replaceState(null, '', window.location.pathname);
@@ -30,7 +39,7 @@ function VerifyEmailInner() {
         <h1 className={authTitleCls}>{t('verifySuccessTitle')}</h1>
         <p className="text-sm text-muted-foreground">{t('verifySuccessBody')}</p>
         <Button asChild variant="walnut" size="xl" className="w-full text-lead">
-          <Link href="/login">{t('goToLogin')}</Link>
+          <Link href={loginHref}>{t('goToLogin')}</Link>
         </Button>
       </div>
     );
@@ -47,7 +56,7 @@ function VerifyEmailInner() {
         </p>
         <ResendVerification prompt={t('resendPromptExpired')} />
         <p className={authFooterCls}>
-          <Link href="/login" className={authLinkCls}>
+          <Link href={loginHref} className={authLinkCls}>
             ← {t('backToLogin')}
           </Link>
         </p>

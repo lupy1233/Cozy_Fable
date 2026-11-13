@@ -39,6 +39,7 @@ import {
   MIN_REVIEWS_THRESHOLD,
   REAPPLY_BLOCK_MONTHS,
 } from './companies.constants';
+import { demoCompanyWhere } from './demo-companies';
 import type {
   ChangeMemberRoleDto,
   CompanyLocationDto,
@@ -99,9 +100,10 @@ export class CompaniesService {
 
   // Lista publica de parteneri pentru landing: firme APPROVED + cateva piese de
   // portofoliu. Ratingul Google e placeholder (integrare externa ulterioara).
+  // k1: firmele demo (membri @demo.ro, regula din cleanup-demo) nu apar public.
   async listPartners(): Promise<PartnerDto[]> {
     const companies = await this.prisma.company.findMany({
-      where: { status: 'APPROVED', deletedAt: null },
+      where: { status: 'APPROVED', deletedAt: null, NOT: demoCompanyWhere },
       select: {
         id: true,
         name: true,

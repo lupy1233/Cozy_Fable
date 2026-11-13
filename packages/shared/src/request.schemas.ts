@@ -209,6 +209,9 @@ export const configuratorRoomSchema = z.object({
   roomType: z.enum(ROOM_TYPES),
   flowVersion: z.number().int().positive(),
   answers: z.record(z.string(), z.unknown()),
+  // b8 (PO g0-8): "La camera asta am nevoie de ajutor" — validare relaxata doar pentru
+  // camera bifata; serverul ii arunca raspunsurile la publicare/editare (pastreaza fisierele)
+  needsDesignHelp: z.boolean().optional(),
 });
 
 // Continutul complet al unei cereri create prin configurator (payload publish/edit).
@@ -227,6 +230,9 @@ export const configuratorContentSchema = requestContentSchema
   .omit({ rooms: true, title: true })
   .extend({
     rooms: z.array(configuratorRoomSchema).min(1, 'needsRoom').max(MAX_REQUEST_ROOMS),
+    // b8: derivat pe server din camere (true daca macar o camera are needsDesignHelp);
+    // acceptat doar pentru compatibilitate cu interfata veche (blue/green), altfel ignorat
+    includesPaidDesign: z.boolean().optional(),
     studioScenes: z.array(requestStudioSceneDataSchema).max(REQUEST_STUDIO_SCENES_MAX).optional(),
     // bugetul ales pe sliderul estimat (item 18); bucket-ul ramane sursa filtrelor
     budgetEstimateRon: z.number().int().min(0).max(MAX_BUDGET_RON).optional(),
@@ -379,6 +385,9 @@ export interface RequestRoomDto {
   // raspunsuri brute configurator; null = cerere legacy (creata inainte de configurator)
   answers: Record<string, unknown> | null;
   flowVersion: number | null;
+  // b8 (PO g0-8): clientul a cerut ajutor la camera asta — pleaca fara raspunsuri
+  // (doar tipul, schitele si mesajul); cererea e "cu proiectare" daca macar o camera e bifata
+  needsDesignHelp: boolean;
 }
 
 // E-client-34: poza de inspiratie a cererii cu notita si camera

@@ -6,7 +6,7 @@ import { Pencil } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import type { DetailsValues } from '@/stores/configurator-store';
+import type { DetailsValues, StartMode } from '@/stores/configurator-store';
 
 // Compozitie adaptata din Cozy-Mobilaunicat; contractul si publicarea raman ale marketplace-ului.
 // Rand de fapt: eticheta in stanga, valoarea in dreapta ei (pe telefon, dedesubt).
@@ -17,10 +17,13 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
   </div>;
 }
 
-export function ReviewFactsCard({ details, complete, designHelp, onEdit }: {
+export function ReviewFactsCard({ details, complete, mode, helpRooms = [], onEdit }: {
   details: Partial<DetailsValues>;
   complete: boolean;
-  designHelp: boolean;
+  // b8 / b10: un singur rand despre mod, in locul celor trei (am proiect / proiectare / ajutor)
+  mode: StartMode | null;
+  // numele camerelor bifate "am nevoie de ajutor" (in "Stiu ce vreau")
+  helpRooms?: string[];
   onEdit: () => void;
 }) {
   const t = useTranslations('Configurator');
@@ -32,7 +35,6 @@ export function ReviewFactsCard({ details, complete, designHelp, onEdit }: {
   const budget = details.budgetRange
     ? resolveBudgetFields(details.budgetRange as BudgetRange, details.budgetEstimateRon).budgetRange
     : undefined;
-  const yesNo = (value?: boolean) => t(value ? 'common.boolean.yes' : 'common.boolean.no');
   // "Cine vede cererea" (cele doua note de vizibilitate) sta in coloana de publicare a sumarului
   return <section aria-labelledby="review-facts-title" className="rounded-xl border border-border bg-surface">
     <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4 sm:px-6">
@@ -59,9 +61,16 @@ export function ReviewFactsCard({ details, complete, designHelp, onEdit }: {
             <span key={`${contact.channel}-${i}`} className="block break-all">{tr(`contactChannel.${contact.channel}`)}: {contact.value || missing}</span>
           )) : missing}
         </Fact>
-        <Fact label={tr('field.hasOwnProject')}>{yesNo(details.hasOwnProject)}</Fact>
-        <Fact label={tr('field.includesPaidDesign')}>{yesNo(details.includesPaidDesign)}</Fact>
-        <Fact label={t('review.facts.designHelp')}>{yesNo(designHelp)}</Fact>
+        {mode && (
+          <Fact label={t('review.facts.mode')}>
+            {t(`start.${mode}.title`)}
+            {mode === 'STANDARD' && helpRooms.length > 0 && (
+              <span className="mt-0.5 block text-ui font-normal text-muted-foreground">
+                {t('review.facts.helpRooms', { rooms: helpRooms.join(', ') })}
+              </span>
+            )}
+          </Fact>
+        )}
         {details.description?.trim() && <Fact label={t('review.facts.description')}>{details.description.trim()}</Fact>}
       </dl>
     </div>

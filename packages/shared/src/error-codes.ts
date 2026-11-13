@@ -180,6 +180,8 @@ export const ERROR_CODES = {
   // h2 (2026-11-13) - cumparare de credite fara abonament activ (403); creditele se pot
   // folosi doar cu abonament, deci pachetele sunt oprite pana la reactivare
   CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION: 'CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION',
+  // f2 (2026-11-13) - publicarea unei cereri dintr-un cont care nu e de client (firma / admin) (403)
+  REQUEST_PUBLISH_CLIENT_ONLY: 'REQUEST_PUBLISH_CLIENT_ONLY',
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];

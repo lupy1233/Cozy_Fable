@@ -352,6 +352,8 @@ _Rămasă fără obiect la 2026-11-13 prin D-E1-2 (nu mai există întârziere d
 
 **Impact: **requests.includes_paid_design; quote_versions.design_fee.
 
+_Inlocuita la 2026-11-13 de D-E2-1 (PO g0-8): proiectarea nu mai e o bifa pe cerere, ci consecinta ajutorului cerut pe cel putin o camera; linia `design_fee` din oferta ramane._
+
 ### D-v6-12. Moneda ofertei
 
 **Decizie: **Firma alege RON sau EUR; clientul vede ambele prin cursul fix configurabil (1 EUR = 5.2 RON).
@@ -399,6 +401,8 @@ _Rămasă fără obiect la 2026-11-13 prin D-E1-2 (nu mai există întârziere d
 ### D-L0-4. Date demo pe productie (2026-08-19, PO)
 
 **Decizie: **Se sterg toate datele demo de pe prod (useri `@demo.ro` inclusiv `admin@demo.ro`, firmele si cererile lor, facturile mock) — `prisma/cleanup-demo.ts` cu backup inainte; se pastreaza firma reala Mobila Unicat (CUI/RegCom de completat), galeria de inspiratie si config-ul din `seed.ts`. Adminul real se creeaza cu `prisma/seed-admin.ts` din env. `seed-demo.ts` refuza sa ruleze in productie fara `ALLOW_DEMO_SEED=1` si nu mai are parola implicita.
+
+_Completata la 2026-11-13 de D-E2-6 (PO k1-1): pana la lansare firmele demo sunt doar ascunse din lista publica de parteneri; stergerea ramane pas al lansarii._
 
 ### D-L0-5. Retrageri cu motiv "client" fara dovada (2026-08-19)
 
@@ -503,6 +507,118 @@ _Completata la 2026-11-13 de D-E1-5 (PO e2-1): un caz de proiect OPEN opreste fi
 **Rationale: **Clientul vede limita si corecteaza singur; nicio valoare nu se schimba fara stirea lui.
 
 **Impact: **Se poate schimba (varianta: ajustare la limita cu mesaj vizibil). docs/03 4.1.
+
+### D-E2-1. Ajutorul la proiectare se cere pe camera (2026-11-13, PO g0-8 + b8-1)
+
+**Decizie: **Fiecare camera din cos are bifa „La camera asta am nevoie de ajutor”. Camera bifata sare intrebarile. Cererea e „cu proiectare” cand macar o camera e bifata; bifa „Include proiectare cu plata” de la Date generale dispare. „Am nevoie de ajutor” de la pornire le bifeaza pe toate. In „Am deja un proiect” bifa nu exista (serverul refuza proiect propriu + camera bifata: 400 `VALIDATION_ERROR`, `validation.designHelpWithOwnProject`).
+
+**Rationale: **PO b8-1: „o sa existe cazuri in care clientul stie in mare ce doreste dar pentru o singura camera are nevoie de ajutor din partea firmelor”.
+
+**Impact: **Inlocuieste D-v6-11 ca bifa pe cerere. Coloana noua `request_rooms.needs_design_help` (migrarea `20261113140000_request_room_needs_design_help`); `requests.includes_paid_design` devine derivat de server (docs/04). Serverul relaxeaza verificarea doar pentru camerele bifate (optiunea `designBrief` ramane doar la estimare). Costul in credite neschimbat: camera bifata conteaza ca o camera fara raspunsuri (schimbarea costului — etapa 3). docs/03 4.1.
+
+### D-E2-2. O singura sursa pentru mod: „Mod: … · Schimba” in cos (2026-11-13, PO b8-2)
+
+**Decizie: **Bifa „Am deja un proiect pentru toata locuinta” din cos se scoate; in cos ramane linia „Mod: … · Schimba”. Modul se schimba doar intr-un loc; alegerea lui seteaza impreuna „am proiect” si bifele camerelor.
+
+**Rationale: **Clientul vede mereu ce a ales; cele doua alegeri nu se mai pot contrazice.
+
+**Impact: **La editare modul se citeste din cerere (`hasOwnProject` + `rooms[].needsDesignHelp`), fara coloana `requests.start_mode`. Sumarul are un singur rand „Cum ai pornit cererea”. Fazele deja trecute din bara de sus sunt butoane.
+
+### D-E2-3. Raspunsurile unei camere bifate nu pleaca la firme (2026-11-13, PO b8-3)
+
+**Decizie: **Cand clientul trece pe ajutor (pe toata cererea sau pe o camera) dupa ce a raspuns, raspunsurile nu pleaca; raman in ciorna daca revine in „Stiu ce vreau”. Clientul e avertizat la schimbare (dialog). Camera bifata pleaca doar cu tipul, schitele ei si mesajul.
+
+**Rationale: **Firma primeste un brief curat.
+
+**Impact: **Serverul pastreaza dintr-o camera bifata doar fisierele pasilor de incarcare vizibili (schitele); `snapshot3d` se arunca, iar fisierele aruncate se sterg de pe cerere dupa publicare / editare (best-effort). Pe cardul camerei firma vede „Clientul cere ajutor la proiectare pentru aceasta camera”.
+
+### D-E2-4. Problema 18 facuta prima in etapa 2 (2026-11-13, PO g0-4)
+
+**Decizie: **Problema 18 (editarea unei cereri publicate strica ciorna) se face inaintea problemelor 9, 10 si 11.
+
+**Rationale: **Memoria ciornei se desparte o singura data de cea a editarii; restul se construiesc peste ea.
+
+**Impact: **Editarea are memoria ei in sessionStorage, pe cheie per cerere (invarianta 3.6, docs/02).
+
+### D-E2-5. Doar un cont de client publica o cerere (2026-11-13, etapa 2 — f2)
+
+**Decizie: **Publicarea dintr-un cont de firma sau de admin e refuzata cu 403 `REQUEST_PUBLISH_CLIENT_ONLY`; o ciorna anonima se leaga doar de un cont de client (`createDraft`, `patchDraft`). Firma / adminul vede pe `/requests/new` si in Sumar nota „Cererile se publica dintr-un cont de client.” cu „Iesi din cont”.
+
+**Rationale: **O firma isi putea publica singura o cerere si o putea prelua.
+
+**Impact: **Invarianta 3.13 (docs/02). Testele de publicare se fac cu un cont de client. Datele dinaintea reparatiei (ciorne legate de firme, eventuale cereri publicate de alte conturi decat clienti) raman: interogarea doar citire se ruleaza pe productie la lansare.
+
+### D-E2-6. Firmele demo: ascunse acum, sterse la lansare (2026-11-13, PO k1-1)
+
+**Decizie: **Firmele demo se ascund acum de pe paginile publice si se sterg la lansare. Firma demo = macar un membru cu e-mail @demo.ro, cu exceptia „Mobila Unicat” (aceeasi regula ca `prisma/cleanup-demo.ts`; constanta comuna in `apps/backend/src/modules/companies/demo-companies.ts`).
+
+**Rationale: **Vizitatorii nu le mai vad; verificarile cu conturile demo merg in continuare; stergerea ramane un pas al lansarii.
+
+**Impact: **Completeaza D-L0-4. Filtrul e doar pe lista publica `/companies/partners` (pagina „Firme partenere” si caruselul de pe prima pagina); login, piata si preluarile merg normal. Risc acceptat: o firma reala cu un membru @demo.ro pus din greseala ar fi ascunsa (si stearsa de script).
+
+### D-E2-7. `safeRedirect` pentru adresa de intoarcere (2026-11-13, etapa 2 — f1)
+
+**Decizie: **Parametrul `?redirect=` se citeste doar prin `safeRedirect` (`apps/frontend/src/lib/safe-redirect.ts`): doar cai interne cu un singur „/” (fara `//`, `\`, `.` / `..` in cale, inclusiv in formele decodate; fara scheme, adrese absolute, caractere de control; maximum 512 caractere), altfel `/dashboard`. Formularele de cont au `method="post"` si butonul dezactivat pana la incarcare.
+
+**Rationale: **Parola putea ajunge in adresa paginii, iar dupa login se accepta si „//alt-site” (redirect deschis).
+
+**Impact: **Invarianta 3.13 (docs/02). Folosit la login, inregistrare si confirmarea e-mailului.
+
+### D-E2-8. Intoarcerea la ciorna dupa confirmarea e-mailului (2026-11-13, etapa 2 — b4)
+
+**Decizie: **La inregistrare se trimite `returnTo`; serverul il pune in linkul de confirmare doar daca e exact in lista permisa `VERIFY_EMAIL_RETURN_PATHS`, altfel il ignora fara eroare. Lista permisa = doar `/requests/new` (aleasa de coordonator, de confirmat de PO; `/studio` si `/inspiration` se pot adauga in `auth.constants.ts`). Rezerva pe acelasi dispozitiv: ciorna nepublicata din browser (pagina de confirmare + cardul de pe Panou).
+
+**Rationale: **Clientul nou ajungea pe un Panou gol dupa confirmare.
+
+**Impact: **Retrimiterea e-mailului de confirmare nu poarta intoarcerea (ramane rezerva de pe acelasi dispozitiv). Ciorna pe alt dispozitiv — problema 32.
+
+### D-E2-9. Confirmare la scoaterea unei camere cu raspunsuri (2026-11-13, etapa 2 — b6)
+
+**Decizie: **Camera cu raspunsuri sau schite se scoate doar dupa confirmare („Pastreaza” implicit); camera goala se scoate pe loc; „−” scoate intai o camera goala. Schitele camerei scoase se sterg de pe ciorna (la editare, dupa „Salveaza modificarile”).
+
+**Rationale: **O camera completata disparea la un clic, iar schitele ei plecau la firme ca fisiere ale proiectului.
+
+**Impact: **docs/03 4.1.
+
+### D-E2-10. Editarea unei cereri vechi „cu proiectare” fara camere bifate (2026-11-13, alesa de coordonator, de confirmat de PO)
+
+**Decizie: **O cerere existenta cu `includes_paid_design = true` si nicio camera cu `needs_design_help` isi pastreaza proiectarea la editare pana cand clientul bifeaza o camera; daca editarea bifeaza macar o camera, se aplica derivarea normala.
+
+**Rationale: **Varianta fara pierderi: altfel prima editare (de ex. adresa) ar scoate pe tacute proiectarea, scorul `PAID_DESIGN` si posibilitatea firmelor de a pune `design_fee`.
+
+**Impact: **Exceptie de la regula „derivat = macar o camera bifata” (D-E2-1). Inainte de lansare, numaratoarea doar citire a acestor cereri pe productie.
+
+### D-E2-11. Formular deschis dinainte de lansare (interfata veche) (2026-11-13, aleasa de coordonator, de confirmat de PO)
+
+**Decizie: **Cand nicio camera nu trimite `needsDesignHelp`, vine `includesPaidDesign: true` si cererea nu are proiect propriu, se bifeaza doar camerele care nu trec validarea stricta; camerele complete raman nebifate, cu raspunsurile lor, iar `includesPaidDesign` ramane `true`. Cu proiect propriu, bifa veche e ignorata.
+
+**Rationale: **Interfata veche nu trebuie sa piarda raspunsurile complete ale clientului si nici sa primeasca eroarea pentru proiect propriu + ajutor.
+
+**Impact: **Cat timp ruleaza slotul vechi in lansarea blue/green.
+
+### D-E2-12. Piesele din Studio 3D nu cer ajutor la proiectare (2026-11-13, aleasa de coordonator, de confirmat de PO)
+
+**Decizie: **O piesa adusa din Studio 3D nu poate fi bifata „am nevoie de ajutor”; o cerere cu astfel de piese nu poate fi in modul „Am nevoie de ajutor”. Serverul refuza piesa din Studio bifata cu 400 `VALIDATION_ERROR` (`validation.designHelpWithStudioPiece`, `details[].roomIndex`).
+
+**Rationale: **Piesa e deja configurata, iar configuratia ei pleaca oricum la firme prin scena Studio.
+
+**Impact: **„Din Studio” = `sourceLocalId`-ul camerei apare in `requestEntryIds` al unei scene; in compatibilitatea cu interfata veche o piesa din Studio nu se bifeaza niciodata.
+
+### D-E2-13. Backfill-ul nu bifeaza camerele formularului vechi (2026-11-13, ales de coordonator, de confirmat de PO)
+
+**Decizie: **Backfill-ul migrarii `20261113140000` nu bifeaza camerele cu `answers` SQL NULL (cererile facute cu formularul vechi, cu articole).
+
+**Rationale: **Firma ar vedea „cere ajutor” langa articolele scrise de client.
+
+**Impact: **Sunt bifate doar camerele din cereri cu proiectare care au `answers` JSON `null` sau doar chei de fisiere (`sketch` / `snapshot3d`).
+
+### D-E2-14. Galeria publica de inspiratie nu se filtreaza dupa firmele demo (2026-11-13, aleasa de coordonator, de confirmat de PO)
+
+**Decizie: **Filtrul pentru firmele demo (D-E2-6) nu se aplica si galeriei publice de inspiratie.
+
+**Rationale: **Pe productie galeria are doar poze ale firmei reale (verificat fara cont pe 2026-11-13: 70 de poze, toate „Mobila Unicat”; lista publica de parteneri avea atunci 5 firme demo + firma reala).
+
+**Impact: **Daca apar poze atribuite firmelor demo inainte de stergere, se aplica acelasi `NOT: demoCompanyWhere` si in `inspiration.service.ts`.
 
 # 9. Checklist uman: ce faci acum
 

@@ -830,6 +830,9 @@ model RequestRoom {
   // raspunsuri brute chestionar configurator; null = cerere legacy
   answers     Json?
   flowVersion Int?     @map("flow_version")
+  // b8 (PO g0-8): clientul cere ajutor la camera asta → pleaca la firme doar cu tipul,
+  // schitele si mesajul (fara raspunsuri); cererea e "cu proiectare" daca macar o camera e bifata
+  needsDesignHelp Boolean @default(false) @map("needs_design_help")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   request     Request                 @relation(fields: [requestId], references: [id], onDelete: Cascade)

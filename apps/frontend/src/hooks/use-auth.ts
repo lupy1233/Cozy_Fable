@@ -53,13 +53,18 @@ export function useLogin() {
   });
 }
 
+// returnTo: adresa de intoarcere (b4) — serverul o pune in linkul de confirmare doar
+// daca e in lista lui scurta de cai permise; altfel o ignora in tacere.
+export type RegisterRequest = RegisterInput & { returnTo?: string };
+
+export function registerBody(input: RegisterRequest): string {
+  return JSON.stringify({ ...input, phone: input.phone || undefined, returnTo: input.returnTo || undefined });
+}
+
 export function useRegister() {
   return useMutation({
-    mutationFn: (input: RegisterInput) =>
-      api<{ user: AuthUser }>('/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({ ...input, phone: input.phone || undefined }),
-      }),
+    mutationFn: (input: RegisterRequest) =>
+      api<{ user: AuthUser }>('/auth/register', { method: 'POST', body: registerBody(input) }),
   });
 }
 

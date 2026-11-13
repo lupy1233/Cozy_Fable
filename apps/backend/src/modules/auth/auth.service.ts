@@ -23,7 +23,7 @@ import { SETTING_DEFAULTS } from '../../common/settings/setting-defaults';
 import { SettingsService } from '../../common/settings/settings.service';
 import { SETTING_LEGAL_REACCEPT_EXISTING_USERS } from '../legal/legal.constants';
 import { authEmailHtml } from './auth-email';
-import { EMAIL_VERIFY_TTL_SEC, PASSWORD_RESET_TTL_SEC } from './auth.constants';
+import { EMAIL_VERIFY_TTL_SEC, PASSWORD_RESET_TTL_SEC, VERIFY_EMAIL_RETURN_PATHS } from './auth.constants';
 import type { LoginDto } from './dto/login.dto';
 import type { RegisterDto } from './dto/register.dto';
 import { LoginLockoutService, type LoginAttemptContext } from './login-lockout.service';
@@ -60,6 +60,11 @@ export function needsLegalAcceptance(
 // /auth/me ruleaza la fiecare incarcare de pagina: setarea se tine in memorie 60 s (fara query
 // per cerere, ~150 ms cross-region). Comutarea din Admin -> Setari ajunge pe sloturi in max 60 s.
 export const LEGAL_REACCEPT_CACHE_MS = 60_000;
+
+// b4: potrivire exacta pe lista scurta (fara query, fara alte cai) → altfel null, in tacere
+export function allowedVerifyReturnPath(returnTo: unknown): string | null {
+  return typeof returnTo === 'string' && VERIFY_EMAIL_RETURN_PATHS.includes(returnTo) ? returnTo : null;
+}
 
 @Injectable()
 export class AuthService {
@@ -146,11 +151,15 @@ export class AuthService {
     return authEmailHtml({ user, body, link, ctaLabel, supportEmail: this.mail.supportEmail ?? null });
   }
 
-  // Email verify: token random in Redis (TTL 24h), link catre FE in limba userului
-  private async sendVerificationEmail(user: User): Promise<void> {
+  // Email verify: token random in Redis (TTL 24h), link catre FE in limba userului.
+  // b4: returnTo intra in link (?redirect=) doar daca e exact o cale din lista permisa.
+  private async sendVerificationEmail(user: User, returnTo?: string): Promise<void> {
     const raw = await this.issueOneTimeToken('email-verify', user.id, EMAIL_VERIFY_TTL_SEC);
     const origin = this.config.getOrThrow<string>('FRONTEND_ORIGIN');
-    const link = `${origin}/${user.languagePreference.toLowerCase()}/verify-email?token=${raw}`;
+    const back = allowedVerifyReturnPath(returnTo);
+    const link =
+      `${origin}/${user.languagePreference.toLowerCase()}/verify-email?token=${raw}` +
+      (back ? `&redirect=${encodeURIComponent(back)}` : '');
     const ro = user.languagePreference !== 'EN';
     await this.mail.send(
       user.email,
@@ -218,7 +227,7 @@ export class AuthService {
     });
     // best-effort: daca SMTP pica, contul exista si userul poate cere retrimiterea
     try {
-      await this.sendVerificationEmail(user);
+      await this.sendVerificationEmail(user, dto.returnTo);
     } catch (e) {
       this.logger.warn(`emailul de verificare catre ${user.id} a esuat: ${safeErrorSummary(e)}`);
     }

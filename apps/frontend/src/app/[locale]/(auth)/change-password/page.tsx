@@ -14,6 +14,7 @@ import { Field } from '@/components/ui/field';
 import { Alert } from '@/components/ui/alert';
 import { AuthStateIcon, authFooterCls, authLinkCls, authTitleCls } from '../_components/auth-parts';
 import { PasswordInput } from '../_components/password-input';
+import { useMounted } from '../_components/use-mounted';
 
 // L0-A: schimbare parola (doar autentificat). Serverul revoca celelalte sesiuni si
 // re-emite cookie-urile pentru dispozitivul curent → userul ramane logat aici.
@@ -22,6 +23,7 @@ export default function ChangePasswordPage() {
   const router = useRouter();
   const me = useMe();
   const change = useChangePassword();
+  const mounted = useMounted();
 
   useEffect(() => {
     if (me.isError) router.replace('/login?redirect=%2Fchange-password');
@@ -67,7 +69,7 @@ export default function ChangePasswordPage() {
         <p className="text-sm text-muted-foreground">{t('changePasswordBody')}</p>
       </div>
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+      <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
         <Field
           label={t('currentPassword')}
           error={errors.currentPassword && t(`validation.${errors.currentPassword.message}`)}
@@ -94,7 +96,7 @@ export default function ChangePasswordPage() {
           <Alert tone="crimson">{t.has(apiErr.key) ? t(apiErr.key) : apiErr.fallback}</Alert>
         )}
 
-        <Button type="submit" variant="walnut" size="xl" disabled={change.isPending} className="w-full text-lead">
+        <Button type="submit" variant="walnut" size="xl" disabled={!mounted || change.isPending} className="w-full text-lead">
           {t('changePasswordSubmit')}
         </Button>
       </form>
