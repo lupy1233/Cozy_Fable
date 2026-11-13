@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
 import { configuratorContentSchema } from '../../../packages/shared/src';
-import { AUDIT_ROOM_TYPES, completeAllRoomRequest, GREEN_AUDIT_ORIGIN, mockGuestDraft, reloadAndPublishGreenAudit, textFor, uploadSyntheticAuditPng } from './helpers/guided-request';
+import { AUDIT_BUDGET_RON, AUDIT_ROOM_TYPES, completeAllRoomRequest, GREEN_AUDIT_ORIGIN, mockGuestDraft, reloadAndPublishGreenAudit, textFor, uploadSyntheticAuditPng } from './helpers/guided-request';
 
 const realGreen = process.env.GREEN_FORM_AUDIT === '1';
 if (realGreen && process.env.GREEN_BASE_URL !== GREEN_AUDIT_ORIGIN) throw new Error('GREEN_BASE_URL must exactly match the isolated app-green audit origin.');
@@ -32,6 +32,10 @@ for (const locale of ['en', 'ro'] as const) {
     // Artefactul pastreaza doar continutul introdus in UI, nici tokenul draftului, nici cookie-uri.
     const snapshot = lastSnapshot as { roomInstances?: { roomType: string; completed: boolean; answers: unknown; flowVersion: number }[]; details?: unknown };
     expect(snapshot.roomInstances?.filter((room) => room.completed).map((room) => room.roomType).sort()).toEqual([...AUDIT_ROOM_TYPES].sort());
+    // etapa 3: ciorna pastreaza alegerea de buget facuta pe Date generale (EN = suma, RO = "Prefer sa nu spun")
+    const savedDetails = snapshot.details as { budgetRange?: string; budgetEstimateRon?: number | null; budgetChosen?: boolean };
+    if (locale === 'en') expect(savedDetails).toMatchObject({ budgetEstimateRon: AUDIT_BUDGET_RON, budgetChosen: true });
+    else expect(savedDetails.budgetRange).toBe('UNDISCLOSED');
     const content = { rooms: snapshot.roomInstances?.map(({ roomType, answers, flowVersion }) => ({ roomType, answers, flowVersion })), ...snapshot.details as object };
     expect(configuratorContentSchema.safeParse(content).success).toBe(true);
     for (const [name, value] of Object.entries({ 'all-room-question-audit': audit, 'all-room-ui-content': content })) {

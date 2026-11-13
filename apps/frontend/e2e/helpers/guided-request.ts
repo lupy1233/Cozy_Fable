@@ -6,7 +6,10 @@ import ro from '../../src/messages/ro.json';
 export const AUDIT_ROOM_TYPES = ROOM_TYPES.filter((type) => ROOM_KIND[type] === 'room').sort(compareRoomTypes);
 export const GREEN_AUDIT_ORIGIN = 'https://app-green-production-7958.up.railway.app';
 export const AUDIT_DETAILS = { description: 'Green form audit only. All ten room types and their visible questions are checked through the interface.', addressText: 'Green form audit only', city: 'Bucuresti', county: 'Bucuresti', country: 'RO', email: 'green-form-audit@example.test' };
-const AUDIT_PNG_NAME = 'green-form-audit-fixture.png';
+// etapa 3: suma aleasa pe glisor in rularea EN (scara fixa 1.000–100.000 lei cand estimarea e 0)
+export const AUDIT_BUDGET_RON = 12_000;
+const AUDIT_BUDGET_TEXT = { en: '12,000 lei' };
+const AUDIT_PNG_NAME ='green-form-audit-fixture.png';
 type Locale = 'en' | 'ro';
 const dictionaries = { en, ro };
 export function textFor(locale: Locale, path: string): string {
@@ -180,8 +183,27 @@ export async function completeAllRoomRequest(page: Page, locale: Locale, origin 
   await page.getByRole('textbox', { name: tr('field.county'), exact: true }).fill(AUDIT_DETAILS.county);
   await page.getByRole('textbox', { name: tr('field.city'), exact: true }).fill(AUDIT_DETAILS.city);
   await page.getByRole('textbox', { name: tr('field.contactValue'), exact: true }).fill(AUDIT_DETAILS.email);
+  // etapa 3 (b11): glisorul porneste fara suma; fara o alegere nu se trece la Sumar
+  const budgetSlider = page.getByRole('slider', { name: tr('field.budgetRange'), exact: true });
+  await expect(page.getByTestId('budget-value')).toHaveText(tr('budgetChoose'));
+  await expect(budgetSlider).toHaveAttribute('data-unset', 'true');
+  await page.getByRole('button', { name: t('nav.toReview'), exact: true }).click();
+  await expect(page.getByRole('alert').filter({ hasText: tr('validation.budgetRequired') })).toBeVisible();
+  await expect(page.getByRole('heading', { name: t('review.title'), exact: true })).toHaveCount(0);
+  // EN muta glisorul (suma aleasa), RO bifeaza "Prefer sa nu spun" — ambele drumuri acoperite
+  const budgetText = locale === 'en' ? AUDIT_BUDGET_TEXT.en : tr('budgetView.undisclosed');
+  if (locale === 'en') {
+    await budgetSlider.fill(String(AUDIT_BUDGET_RON));
+    await expect(page.getByTestId('budget-value')).toHaveText(AUDIT_BUDGET_TEXT.en);
+  } else {
+    await page.getByRole('checkbox', { name: tr('budget.UNDISCLOSED'), exact: true }).check();
+    await expect(budgetSlider).toBeDisabled();
+  }
+  await expect(page.getByRole('alert').filter({ hasText: tr('validation.budgetRequired') })).toHaveCount(0);
   await page.getByRole('button', { name: t('nav.toReview'), exact: true }).click();
   await expect(page.getByRole('heading', { name: t('review.title'), exact: true })).toBeVisible();
+  // Sumarul arata suma in lei (nu RON, nu treapta) sau "Buget nedeclarat"
+  await expect(page.getByText(budgetText, { exact: true })).toBeVisible();
   for (const type of AUDIT_ROOM_TYPES) await expect(page.getByRole('heading', { name: t(`rooms.type.${type}`), exact: true })).toBeVisible();
   await expect(page.getByText(t('review.roomIncomplete'), { exact: true })).toHaveCount(0);
   return { locale, rooms: AUDIT_ROOM_TYPES.map((type) => ({ type, version: getFlow(type).version, questions: [...questions.get(type)!], answers: answers.get(type) })), images: [...images] };

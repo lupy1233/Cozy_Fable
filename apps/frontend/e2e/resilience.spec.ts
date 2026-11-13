@@ -106,13 +106,13 @@ test('slow failed publication prevents duplicates, focuses its error, and preser
 // etapa 2 (b3 + b8): dupa publicare nu se mai salveaza ciorna, nu reapare pasul 1, apare mesajul de reusita
 test('successful publication goes straight to the request page without saving or showing step 1', async ({ page }) => {
   test.setTimeout(90_000);
-  let publishBody: { rooms?: { needsDesignHelp?: unknown }[] } | undefined;
+  let publishBody: { rooms?: { needsDesignHelp?: unknown }[]; budgetRange?: string; budgetEstimateRon?: unknown; budgetDeclared?: unknown } | undefined;
   let patchesAfterPublish = 0;
   // raspunsul publicarii e un RequestDto complet: usePublishDraft il pune in cache-ul ['request', id],
   // iar pagina cererii randeaza direct din el (un obiect partial o face sa cada in ecranul de eroare)
   const now = new Date().toISOString();
   const published = {
-    id: 'published-test', status: 'IN_MARKETPLACE', title: 'Bedroom', description: '', budgetRange: 'UNDISCLOSED', budgetEstimateRon: null,
+    id: 'published-test', status: 'IN_MARKETPLACE', title: 'Bedroom', description: '', budgetRange: 'UNDISCLOSED', budgetEstimateRon: null, budgetDeclared: false,
     deadlineBucket: null, includesPaidDesign: true, hasOwnProject: false, addressText: 'Synthetic address', county: 'Cluj', city: 'Cluj-Napoca',
     country: 'RO', lat: null, lng: null, sizing: null, preClaimEditsUsed: 0, postClaimEditsUsed: 0, publishedAt: now,
     expiresAt: new Date(Date.now() + 14 * 86_400_000).toISOString(), cancelledAt: null, repostUsed: false, createdAt: now,
@@ -167,5 +167,9 @@ test('successful publication goes straight to the request page without saving or
   expect(patchesAfterPublish).toBe(0);
   // modul vechi DESIGN_HELP a fost migrat: camera pleaca bifata "am nevoie de ajutor"
   expect(publishBody?.rooms?.[0]?.needsDesignHelp).toBe(true);
+  // etapa 3 (b11): "Prefer sa nu spun" pleaca nedeclarat, fara suma
+  expect(publishBody?.budgetRange).toBe('UNDISCLOSED');
+  expect(publishBody?.budgetDeclared).toBe(false);
+  expect(publishBody?.budgetEstimateRon ?? null).toBeNull();
   expect(await page.evaluate(() => localStorage.getItem('mm_draft_token'))).toBeNull();
 });
