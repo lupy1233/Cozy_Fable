@@ -7,7 +7,7 @@ import {
   type RequestItemInput,
   type RoomType,
 } from '@marketplace/shared';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import { AttachmentThumb } from './attachment-item';
 import { config3dChips } from './piece3d/config-chips';
 
@@ -34,6 +34,7 @@ export function RoomAnswerSummary({
   stepIds?: readonly string[];
 }) {
   const t = useTranslations('Configurator');
+  const format = useFormatter();
   const entries = summarizeAnswers(roomType, answers as AnswerMap, flowVersion ?? 1).filter((entry) => !stepIds || stepIds.includes(entry.stepId));
 
   if (entries.length === 0) return null;
@@ -59,8 +60,9 @@ export function RoomAnswerSummary({
           <dd className="flex-1 text-sm">
             {e.kind === 'choice' && e.optionLabelKeys.map((k) => t(k)).join(', ')}
             {e.kind === 'boolean' && t(e.value ? 'common.boolean.yes' : 'common.boolean.no')}
+            {/* metri dupa limba aplicatiei (2,6 m in romana) */}
             {e.kind === 'dimensions' &&
-              e.slots.map((s) => `${t(s.labelKey)}: ${s.value} m`).join(' · ')}
+              e.slots.map((s) => `${t(s.labelKey)}: ${format.number(s.value, { maximumFractionDigits: 2 })} m`).join(' · ')}
             {e.kind === 'number' && e.value}
             {e.kind === 'config3d' && config3dChips(t, e.config).join(' · ')}
             {e.kind === 'text' && <span className="whitespace-pre-wrap">{e.value}</span>}

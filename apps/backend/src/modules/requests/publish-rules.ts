@@ -1,4 +1,10 @@
-import { ERROR_CODES, resolveBudgetFields } from '@marketplace/shared';
+import {
+  BUDGET_RON_PER_POINT,
+  ERROR_CODES,
+  resolveBudgetFields,
+  sizingBudgetRange,
+  type BudgetRange,
+} from '@marketplace/shared';
 import { BadRequestException } from '@nestjs/common';
 import type { CreateRequestContentDto } from './dto/request.dto';
 
@@ -7,9 +13,41 @@ import type { CreateRequestContentDto } from './dto/request.dto';
 // Bucket-ul de buget e derivat din estimarea RON (docs/04): serverul ignora
 // bucket-ul trimis cand exista estimare. Acelasi obiect alimenteaza scalarData,
 // sizing.compute si snapshotul de versiune, deci toate raman consecvente.
-export function normalizeBudget<T extends Pick<CreateRequestContentDto, 'budgetRange' | 'budgetEstimateRon'>>(dto: T): T {
+// b11: budgetDeclared ramane true doar langa o suma (nu la "Prefer sa nu spun", nu fara suma);
+// nu atinge treapta, deci punctajul si costul in credite raman aceleasi.
+export function normalizeBudget<T extends Pick<CreateRequestContentDto, 'budgetRange' | 'budgetEstimateRon' | 'budgetDeclared'>>(
+  dto: T,
+): T & { budgetDeclared: boolean } {
   const resolved = resolveBudgetFields(dto.budgetRange, dto.budgetEstimateRon);
-  return { ...dto, budgetRange: resolved.budgetRange, budgetEstimateRon: resolved.budgetEstimateRon ?? undefined };
+  // m1: "declarat de client" fara suma (sau langa "Prefer sa nu spun") e un payload gresit, nu o
+  // alegere — interfata trimite budgetDeclared doar langa suma aleasa
+  if (dto.budgetDeclared === true && resolved.budgetEstimateRon === null) {
+    throw new BadRequestException({
+      code: ERROR_CODES.VALIDATION_ERROR,
+      message: 'budgetDeclared requires a chosen budget amount',
+      details: [{ field: 'budgetDeclared', messageKey: 'validation.budgetRequired' }],
+    });
+  }
+  return {
+    ...dto,
+    budgetRange: resolved.budgetRange,
+    budgetEstimateRon: resolved.budgetEstimateRon ?? undefined,
+    budgetDeclared: dto.budgetDeclared === true && resolved.budgetEstimateRon !== null,
+  };
+}
+
+// b11 / M3: treapta salvata pe cerere si folosita la marime = treapta lui max(suma, minimul
+// estimarii din raspunsuri) (sizingBudgetRange). Minimul vine din scorul de baza al aceluiasi
+// calcul (independent de treapta); a doua trecere prin sizing doar cand treapta se schimba.
+// Costul in credite e acelasi in ambele treceri (scorul de baza).
+export async function sizeWithBudgetFloor<S extends { baseScore: number }>(
+  dto: { budgetRange: BudgetRange; budgetEstimateRon?: number | null },
+  compute: (budgetRange: BudgetRange) => Promise<S>,
+): Promise<{ sizing: S; budgetRange: BudgetRange }> {
+  const first = await compute(dto.budgetRange);
+  const budgetRange = sizingBudgetRange(dto.budgetRange, dto.budgetEstimateRon, first.baseScore * BUDGET_RON_PER_POINT);
+  if (budgetRange === dto.budgetRange) return { sizing: first, budgetRange };
+  return { sizing: await compute(budgetRange), budgetRange };
 }
 
 type DesignHelpRoom = CreateRequestContentDto['rooms'][number];

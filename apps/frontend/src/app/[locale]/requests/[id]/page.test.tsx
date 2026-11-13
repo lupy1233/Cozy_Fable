@@ -183,3 +183,29 @@ describe('request detail success message after publishing', () => {
     expect(sessionStorage.getItem(PUBLISH_NOTICE_KEY)).toBeNull();
   });
 });
+
+// b11: aceeasi suma ca in Sumar, in lei, fara trepte
+describe('request detail budget (b11)', () => {
+  it('shows the chosen amount in lei, not a budget band', () => {
+    state.request = request({ status: 'IN_MARKETPLACE', budgetRange: 'FROM_5K_TO_15K', budgetEstimateRon: 12000, budgetDeclared: true });
+    renderPage();
+    expect(screen.getByText('12,000 lei')).toBeTruthy();
+    expect(screen.queryByText(en.Requests.budget.FROM_5K_TO_15K)).toBeNull();
+  });
+
+  // M2: clientul isi vede suma salvata si la o cerere veche (sunt datele lui), sub eticheta neutra
+  it('an old request (amount not declared) still shows the client their saved amount under "Budget"', () => {
+    state.request = request({ status: 'IN_MARKETPLACE', budgetRange: 'OVER_15K', budgetEstimateRon: 24000, budgetDeclared: false });
+    renderPage();
+    expect(screen.getByText('24,000 lei')).toBeTruthy();
+    expect(screen.getByText(en.Requests.field.budgetRange)).toBeTruthy();
+    expect(screen.queryByText(en.Requests.budgetView.declaredLabel)).toBeNull();
+  });
+
+  it('"I prefer not to share" and old requests without an amount show "Budget not stated"', () => {
+    state.request = request({ status: 'IN_MARKETPLACE', budgetRange: 'UNDER_5K', budgetEstimateRon: null });
+    renderPage();
+    expect(screen.getByText(en.Requests.budgetView.undisclosed)).toBeTruthy();
+    expect(screen.queryByText(en.Requests.budget.UNDER_5K)).toBeNull();
+  });
+});

@@ -274,6 +274,57 @@ describe('configurator store — start mode and per-room design help (b8)', () =
   });
 });
 
+// b11 (PO 2026-11-13): bugetul pus din oficiu de formularul vechi nu e o alegere a clientului
+describe('configurator store — budget choice migration (b11)', () => {
+  const store = () => useConfiguratorStore.getState();
+  const snap = (details: Record<string, unknown>, phase: ConfiguratorSnapshot['phase'] = 'details'): ConfiguratorSnapshot => ({
+    phase, startMode: 'STANDARD', activeRoomIndex: 0, activeStepIndex: 0,
+    roomInstances: [{ localId: 'r_k1', roomType: 'KITCHEN', flowVersion: 1, answers: {}, completed: true }],
+    details: { city: 'Cluj', ...details } as never, inspirationPhotoIds: [], updatedAt: Date.now(),
+  });
+
+  beforeEach(() => {
+    localStorage.clear();
+    store().reset();
+  });
+
+  it('an old draft with the estimate minimum filled in loses it (the choice is asked again)', () => {
+    store().loadSnapshot(snap({ budgetRange: 'OVER_15K', budgetEstimateRon: 25000 }));
+    expect(store().details.budgetRange).toBeUndefined();
+    expect(store().details.budgetEstimateRon).toBeUndefined();
+    expect(store().details.city).toBe('Cluj');
+  });
+
+  it('the old "Sub 5.000" default in help mode is dropped too', () => {
+    store().loadSnapshot(snap({ budgetRange: 'UNDER_5K' }));
+    expect(store().details.budgetRange).toBeUndefined();
+  });
+
+  it('"Prefer sa nu spun" from an old draft stays (it was always ticked by the client)', () => {
+    store().loadSnapshot(snap({ budgetRange: 'UNDISCLOSED', budgetEstimateRon: null }));
+    expect(store().details.budgetRange).toBe('UNDISCLOSED');
+  });
+
+  it('an amount chosen on the new slider survives every reload', () => {
+    store().loadSnapshot(snap({ budgetRange: 'FROM_5K_TO_15K', budgetEstimateRon: 12000, budgetChosen: true }));
+    expect(store().details).toMatchObject({ budgetRange: 'FROM_5K_TO_15K', budgetEstimateRon: 12000, budgetChosen: true });
+  });
+
+  it('an old draft already on the summary goes back to the general details step', () => {
+    store().loadSnapshot(snap({ budgetRange: 'OVER_15K', budgetEstimateRon: 25000 }, 'review'));
+    expect(store().phase).toBe('details');
+    store().loadSnapshot(snap({ budgetRange: 'OVER_15K', budgetEstimateRon: 25000, budgetChosen: true }, 'review'));
+    expect(store().phase).toBe('review');
+  });
+
+  it('migrates a v5 draft from localStorage', async () => {
+    localStorage.setItem('mm_configurator_v1', JSON.stringify({ version: 5, state: snap({ budgetRange: 'OVER_15K', budgetEstimateRon: 25000 }, 'review') }));
+    await useConfiguratorStore.persist.rehydrate();
+    expect(store().details.budgetEstimateRon).toBeUndefined();
+    expect(store().phase).toBe('details');
+  });
+});
+
 // b8, pasul 1: editarea are memoria ei; ciorna cererii noi ramane neatinsa
 describe('configurator store — edit session memory (b8)', () => {
   const store = () => useConfiguratorStore.getState();

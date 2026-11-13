@@ -72,7 +72,7 @@ export const pieceShoeCabinetFlow: RoomFlow = {
       heightM: values.height ?? 1.2,
       items: [
         {
-          name: style === 'WITH_SEAT' ? 'Pantofar cu bancuta' : 'Pantofar',
+          name: style === 'WITH_SEAT' ? 'Pantofar cu băncuță' : 'Pantofar',
           material: (answers.material as Material) ?? 'PAL',
           systems: [],
           quantity: 1,

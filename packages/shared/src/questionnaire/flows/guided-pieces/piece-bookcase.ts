@@ -89,7 +89,7 @@ export const pieceBookcaseFlow: RoomFlow = {
           : (values.height ?? 2),
       items: [
         {
-          name: 'Biblioteca',
+          name: 'Bibliotecă',
           material: (answers.material as Material) ?? 'PAL',
           systems,
           quantity: 1,

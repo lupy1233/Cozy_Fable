@@ -1,6 +1,6 @@
 'use client';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   ClaimSlotDto,
   CreateClaimInput,
@@ -17,10 +17,16 @@ const MY_CLAIMS_KEY = ['claims', 'mine'] as const;
 const WALLET_KEY = ['billing', 'wallet'] as const;
 const SUBSCRIPTION_KEY = ['billing', 'subscription'] as const;
 
-export function useMarketplace() {
+// b11-3: glisorul de buget minim al firmei se filtreaza pe server (?minBudgetRon=); 0 = fara
+// filtru. Cheia ramane sub MARKET_KEY, deci invalidarile existente (claim) o prind. Lista
+// veche ramane pe ecran cat se incarca cea filtrata (fara schelet la fiecare miscare).
+export function useMarketplace(minBudgetRon = 0) {
+  const min = minBudgetRon > 0 ? Math.round(minBudgetRon) : 0;
   return useQuery({
-    queryKey: MARKET_KEY,
-    queryFn: () => api<MarketplaceItemDto[]>('/marketplace/requests'),
+    queryKey: [...MARKET_KEY, 'list', { minBudgetRon: min }],
+    queryFn: () =>
+      api<MarketplaceItemDto[]>(min > 0 ? `/marketplace/requests?minBudgetRon=${min}` : '/marketplace/requests'),
+    placeholderData: keepPreviousData,
     retry: false,
   });
 }

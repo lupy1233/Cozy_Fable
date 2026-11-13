@@ -53,9 +53,14 @@ export interface ContactPreferenceValue {
 export interface DetailsValues {
   // fara titlu: e generat automat pe server din camere + oras
   description: string;
+  // treapta derivata din suma (doar intern, pentru punctaj) sau 'UNDISCLOSED'; lipsa = neales (b11)
   budgetRange: string;
-  // valoarea aleasa pe sliderul estimat din scor (F5, item 18); null = UNDISCLOSED
+  // suma aleasa pe glisor (F5, item 18); null = UNDISCLOSED / nealeasa
   budgetEstimateRon?: number | null;
+  // b11 (PO 2026-11-13): clientul a ales el suma sau "Prefer sa nu spun". Ciornele de dinainte
+  // (fara camp) aveau bugetul pus din oficiu de formular: la incarcare se goleste (alegerea se
+  // cere din nou), afara de "Prefer sa nu spun", care era mereu o alegere
+  budgetChosen?: boolean;
   deadlineBucket: string;
   // oglinda a modului (startMode === 'OWN_PROJECT'); o scriu doar setStartMode si
   // normalizarea. "Proiectare cu plata" nu mai sta aici: e derivata din camere (b8).
@@ -329,6 +334,8 @@ function normalizeSnapshot(snapshot: Partial<ConfiguratorSnapshot>): Partial<Con
   const remapped = activeId ? roomInstances.findIndex((r) => r.localId === activeId) : -1;
   // snapshot-uri dinainte de pasul "Cum pornim?": progres fara mod ales →
   // STANDARD (comportamentul de atunci); fara progres si fara mod → pasul start
+  // b11: bugetul pus din oficiu se goleste; o ciorna ajunsa la Sumar se intoarce la Date generale
+  const budgetCleared = budgetNeedsNewChoice(snapshot.details ?? {});
   const details = normalizeDetails(snapshot.details);
   const hasProgress =
     roomInstances.length > 0 ||
@@ -348,7 +355,12 @@ function normalizeSnapshot(snapshot: Partial<ConfiguratorSnapshot>): Partial<Con
   return {
     ...snapshot,
     startMode,
-    phase: startMode == null ? 'start' : (snapshot.phase ?? 'start'),
+    phase:
+      startMode == null
+        ? 'start'
+        : budgetCleared && snapshot.phase === 'review'
+          ? 'details'
+          : (snapshot.phase ?? 'start'),
     roomInstances: rooms,
     activeRoomIndex: remapped >= 0 ? remapped : 0,
     details,
@@ -379,6 +391,13 @@ function sortedRoomsPatch(
   return { roomInstances, activeRoomIndex: idx >= 0 ? idx : 0, startMode: modeForRooms(current.startMode, roomInstances) };
 }
 
+// b11: o valoare de buget fara marcajul de alegere (ciorna / editare de dinainte) — treapta
+// sau suma puse de formular. "Prefer sa nu spun" ramane: era mereu bifat de client.
+function budgetNeedsNewChoice(d: Partial<DetailsValues>): boolean {
+  const hasValue = (d.budgetRange !== undefined && d.budgetRange !== '') || typeof d.budgetEstimateRon === 'number';
+  return hasValue && d.budgetRange !== 'UNDISCLOSED' && d.budgetChosen !== true;
+}
+
 // Curata detaliile din snapshot-uri vechi: titlul si prioritatea contactelor au
 // disparut; canalele libere se mapeaza pe EMAIL/PHONE; termenul-data e abandonat.
 function normalizeDetails(details: Partial<DetailsValues> | undefined): Partial<DetailsValues> {
@@ -390,6 +409,12 @@ function normalizeDetails(details: Partial<DetailsValues> | undefined): Partial<
   delete d.desiredDeadline;
   // b8: "Proiectare cu plata" e derivata din bifele camerelor, nu mai e camp de detalii
   delete (d as { includesPaidDesign?: unknown }).includesPaidDesign;
+  // b11: bugetul pus din oficiu (minimul estimarii, "Sub 5.000") nu e o alegere a clientului
+  if (budgetNeedsNewChoice(d)) {
+    delete d.budgetRange;
+    delete d.budgetEstimateRon;
+    delete d.budgetChosen;
+  }
   if (d.contactPreferences) {
     d.contactPreferences = d.contactPreferences
       .filter((c) => typeof c?.value === 'string')
@@ -804,7 +829,9 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
       // devin STANDARD, cele goale intra pe pasul de pornire
       // v5 (b8, 2026-11-13): bifa de ajutor pe camera; editarile abandonate scrise
       // de build-urile vechi in cheia cererii noi sunt aruncate (nu mai apar ca "Continui?")
-      version: 5,
+      // v6 (b11, 2026-11-13): bugetul pus din oficiu de formularul vechi se goleste (fara
+      // budgetChosen) si se cere din nou; normalizeDetails o face pe toate caile de intrare
+      version: 6,
       // snapshot-uri persistate inainte de versionarea flow-urilor → flowVersion 1;
       // detaliile vechi (titlu, prioritati contact, termen-data) sunt normalizate;
       // draft-urile in curs sunt resortate pe ordinea canonica (camera activa pastrata)

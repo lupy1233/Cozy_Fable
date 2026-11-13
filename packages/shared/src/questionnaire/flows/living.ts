@@ -13,10 +13,10 @@ import { buildPiecesItems, pieceChoiceOptions, type PieceDef } from './pieces-fl
 const F = 'flows.LIVING';
 
 const PIECES: PieceDef[] = [
-  { value: 'TV_UNIT', icon: 'tv', itemName: 'Comoda TV' },
-  { value: 'BOOKSHELF', icon: 'library', itemName: 'Biblioteca' },
-  { value: 'DISPLAY_CABINET', icon: 'gallery-vertical-end', itemName: 'Vitrina' },
-  { value: 'COFFEE_TABLE', icon: 'table', itemName: 'Masuta cafea' },
+  { value: 'TV_UNIT', icon: 'tv', itemName: 'Comodă TV' },
+  { value: 'BOOKSHELF', icon: 'library', itemName: 'Bibliotecă' },
+  { value: 'DISPLAY_CABINET', icon: 'gallery-vertical-end', itemName: 'Vitrină' },
+  { value: 'COFFEE_TABLE', icon: 'table', itemName: 'Măsuță cafea' },
 ];
 
 const dimensionsStep: DimensionGroupStep = {

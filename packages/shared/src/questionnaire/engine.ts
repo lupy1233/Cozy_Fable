@@ -9,6 +9,7 @@ import type {
   AnswerSummaryEntry,
   ChoiceOption,
   Condition,
+  DerivedRoom,
   QuestionStep,
   RoomFlow,
   ScoreEntry,
@@ -347,13 +348,36 @@ export function summarizeAnswers(
 // per camera; MATERIAL + max SYSTEM per item) si adauga referintele declarate
 // pe optiuni (scoring) si pe boolean (scoringWhenTrue). Pur, fara DB —
 // punctele sunt rezolvate de SizingService din project_sizing_config.
+// d1 (PO d1-1, 2026-11-13): camera cu "am nevoie de ajutor" pleaca fara raspunsuri — firma nu
+// primeste piese, materiale sau dimensiuni puse din oficiu, deci nici punctele lor. Raman doar
+// intrarile de camera (tip, marime 0 m, cantitate 0); costul reflecta doar ce a spus clientul.
+export interface DeriveOptions {
+  needsDesignHelp?: boolean;
+}
+
+export function emptyDerivedRoom(): DerivedRoom {
+  return { lengthM: 0, widthM: 0, heightM: 0, items: [] };
+}
+
+// Forma derivata care pleaca la firme: camera cu ajutor = fara piese / dimensiuni inventate.
+export function deriveRoomForFirms(
+  roomType: RoomType,
+  answers: AnswerMap,
+  version?: number,
+  opts: DeriveOptions = {},
+): DerivedRoom {
+  const flow = getFlow(roomType, version);
+  return opts.needsDesignHelp === true ? emptyDerivedRoom() : flow.deriveRoom(answers);
+}
+
 export function collectScoreEntries(
   roomType: RoomType,
   answers: AnswerMap,
   version?: number,
+  opts: DeriveOptions = {},
 ): ScoreEntry[] {
   const flow = getFlow(roomType, version);
-  const derived = flow.deriveRoom(answers);
+  const derived = deriveRoomForFirms(roomType, answers, version, opts);
   const entries: ScoreEntry[] = [];
 
   entries.push({ category: 'ROOM_TYPE', optionKey: roomType });

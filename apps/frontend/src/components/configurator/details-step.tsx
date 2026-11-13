@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  BUDGET_RANGES,
   CONTACT_CHANNELS,
   DEADLINE_BUCKETS,
   budgetRangeFromRon,
@@ -37,6 +38,7 @@ import { cn } from '@/lib/utils';
 import { draftGenerationId, storageScopeId, useConfiguratorStore, type DetailsValues } from '@/stores/configurator-store';
 import { AddressAutocomplete } from './address-autocomplete';
 import { BudgetSlider } from './budget-slider';
+import { isBudgetChosen } from './budget-choice';
 import { PhoneInput } from './phone-input';
 import { anyRoomNeedsDesignHelp, toServerRoom } from './room-payload';
 
@@ -49,9 +51,17 @@ const COUNTRIES = [
 
 // Pasul de detalii generale (dupa fisiere, inainte de sumar).
 // Titlul NU se mai introduce: e generat automat pe server din camere + oras;
-// aici aratam doar o previzualizare localizata. Bugetul e slider cu 3 trepte
-// + "nu doresc sa spun"; termenul e ales pe carduri (interval, nu data exacta).
-const detailsSchema = configuratorContentSchema.omit({ rooms: true });
+// aici aratam doar o previzualizare localizata. Bugetul (b11): clientul alege o suma pe
+// glisor sau "Prefer sa nu spun" — nimic pus din oficiu, fara alegere nu se continua;
+// termenul e ales pe carduri (interval, nu data exacta).
+const detailsSchema = configuratorContentSchema
+  .omit({ rooms: true })
+  .extend({ budgetRange: z.enum(BUDGET_RANGES).optional() })
+  .superRefine((values, ctx) => {
+    if (!isBudgetChosen(values)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['budgetRange'], message: 'budgetRequired' });
+    }
+  });
 type DetailsFormValues = z.infer<typeof detailsSchema>;
 
 // b2: intarzierea salvarii automate in ciorna (ca la intrebarile camerelor)
@@ -62,7 +72,9 @@ export const DETAILS_AUTOSAVE_MS = 400;
 function toDraftDetails(values: Partial<DetailsFormValues>): Partial<DetailsValues> {
   const { includesPaidDesign: _paid, hasOwnProject: _own, ...rest } = values;
   // structuredClone pastreaza cheile cu undefined (ex. termenul deselectat suprascrie valoarea veche)
-  return structuredClone(rest) as Partial<DetailsValues>;
+  // b11: marcajul "ales de client" — formularul nu mai pune bugetul singur, deci orice valoare
+  // de aici vine dintr-o alegere (budgetChosen deosebeste ciornele noi de cele vechi)
+  return { ...structuredClone(rest), budgetChosen: isBudgetChosen(values) } as Partial<DetailsValues>;
 }
 
 const DEADLINE_ICONS: Record<DeadlineBucket, React.ComponentType<{ className?: string }>> = {
@@ -105,7 +117,8 @@ export function DetailsStep({
     resolver: zodResolver(detailsSchema),
     defaultValues: {
       description: stored.description ?? '',
-      budgetRange: (stored.budgetRange as DetailsFormValues['budgetRange']) ?? 'UNDER_5K',
+      // b11: fara valoare din oficiu — gol pana alege clientul
+      budgetRange: (stored.budgetRange as DetailsFormValues['budgetRange']) || undefined,
       budgetEstimateRon: stored.budgetEstimateRon ?? undefined,
       deadlineBucket: (stored.deadlineBucket as DetailsFormValues['deadlineBucket']) || undefined,
       // derivate (modul + camerele): doar ca schema sa treaca; nu se salveaza de aici
@@ -126,8 +139,8 @@ export function DetailsStep({
   // b2: ce scrie clientul ajunge in ciorna la ~400 ms dupa ultima schimbare, fara
   // validare (validarea stricta ramane la "Continua la sumar"). Ciorna e store-ul: in
   // editare ajunge in memoria editarii; trimiterea la server o face wizard-ul, cu
-  // intarzierea lui si o singura salvare in curs. Declarat INAINTEA completarilor
-  // automate (emailul contului, bugetul din estimare), ca si ele sa fie salvate.
+  // intarzierea lui si o singura salvare in curs. Declarat INAINTEA completarii
+  // automate a emailului contului, ca si ea sa fie salvata (bugetul nu se mai completeaza singur, b11).
   // Scrierea compara cu ciorna, deci o valoare neschimbata nu porneste nimic (fara bucla).
   const scopeAtMount = useRef(storageScopeId());
   // M2: o golire a ciornei (deconectare, "Incepe una noua") intre tasta si salvare anuleaza salvarea
@@ -197,27 +210,17 @@ export function DetailsStep({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountEmail]);
 
-  // cand soseste estimarea: initializeaza valoarea pe baza (sau clameaza una
-  // salvata care a iesit din interval dupa editarea camerelor). Bucket-ul se
-  // deriva mereu din RON (aceeasi regula ca serverul) — repara si drafturile
-  // vechi in care eticheta ramasese pe "Sub 5.000 RON" langa 33.000 RON.
-  useEffect(() => {
-    const est = estimate.data;
-    if (!est || est.minRon <= 0 || budget === 'UNDISCLOSED') return;
-    const current = budgetRon;
-    const setRon = (ron: number) => {
-      setValue('budgetEstimateRon', ron, { shouldValidate: true });
-      setValue('budgetRange', budgetRangeFromRon(ron), { shouldValidate: true });
-    };
-    if (typeof current !== 'number') {
-      setRon(est.minRon);
-    } else if (current < est.minRon || current > est.maxRon) {
-      setRon(Math.min(Math.max(current, est.minRon), est.maxRon));
-    } else if (budget !== budgetRangeFromRon(current)) {
-      setValue('budgetRange', budgetRangeFromRon(current), { shouldValidate: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [estimate.data]);
+  // b11 (PO 2026-11-13): estimarea e doar reper pe glisor — nu mai pune si nu mai muta suma.
+  // Suma aleasa ramane cum a ales-o clientul; treapta (doar pentru punctaj) se deriva din ea.
+  const chooseBudgetRon = (ron: number) => {
+    setValue('budgetEstimateRon', ron, { shouldValidate: true });
+    setValue('budgetRange', budgetRangeFromRon(ron), { shouldValidate: true });
+  };
+  const setBudgetUndisclosed = (checked: boolean) => {
+    // debifat = din nou neales (nu o suma pusa din oficiu)
+    setValue('budgetEstimateRon', undefined, { shouldValidate: true });
+    setValue('budgetRange', checked ? 'UNDISCLOSED' : undefined, { shouldValidate: true });
+  };
 
   // previzualizare titlu generat: "Bucatarie + 2 Bai — Cluj" (sursa de adevar = server)
   const counts = new Map<string, number>();
@@ -262,13 +265,12 @@ export function DetailsStep({
       <fieldset className="min-w-0">
         <legend className="heading-section mb-3">{t('field.budgetRange')}</legend>
         <BudgetSlider
-          value={budget}
-          onChange={(v) => setValue('budgetRange', v, { shouldValidate: true })}
+          valueRon={budget !== 'UNDISCLOSED' && typeof budgetRon === 'number' ? budgetRon : null}
+          undisclosed={budget === 'UNDISCLOSED'}
           estimate={estimate.data && estimate.data.minRon > 0 ? estimate.data : null}
-          valueRon={typeof budgetRon === 'number' ? budgetRon : null}
-          onChangeRon={(ron) =>
-            setValue('budgetEstimateRon', ron ?? undefined, { shouldValidate: true })
-          }
+          onChooseRon={chooseBudgetRon}
+          onUndisclosed={setBudgetUndisclosed}
+          error={vmsg(errors.budgetRange?.message)}
         />
       </fieldset>
 

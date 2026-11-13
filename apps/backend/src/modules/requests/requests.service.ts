@@ -33,7 +33,7 @@ import {
   type InspirationSelection,
 } from './inspiration-selection';
 import { assertStudioNightstands, parsePublicationScenes, resolvePublicationScenes } from './studio-publication';
-import { normalizeBudget, projectFileCount, resolveDesignHelp, studioSourceIds } from './publish-rules';
+import { normalizeBudget, projectFileCount, resolveDesignHelp, sizeWithBudgetFloor, studioSourceIds } from './publish-rules';
 import { screenRequestText, type ContactScreeningRow } from './contact-screening';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
@@ -338,11 +338,11 @@ export class RequestsService {
     );
 
     const geo = await this.geo.geocode(dto.addressText, dto.city, dto.county, dto.country);
-    const sizing = await this.sizing.compute({
-      scoreEntries: processed.scoreEntries,
-      budgetRange: dto.budgetRange,
-      includesPaidDesign: dto.includesPaidDesign,
-    });
+    // b11 / M3: treapta pentru marime (si cea salvata) nu coboara sub minimul estimarii
+    const { sizing, budgetRange: sizedBudgetRange } = await sizeWithBudgetFloor(dto, (budgetRange) =>
+      this.sizing.compute({ scoreEntries: processed.scoreEntries, budgetRange, includesPaidDesign: dto.includesPaidDesign }),
+    );
+    const saved = { ...dto, budgetRange: sizedBudgetRange };
 
     const now = new Date();
     const expiresAt = this.calendar.addWorkingDays(now, EXPIRATION_WORKING_DAYS);
@@ -351,7 +351,7 @@ export class RequestsService {
       await tx.request.update({
         where: { id: request.id },
         data: {
-          ...this.scalarData(dto),
+          ...this.scalarData(saved),
           title: this.resolveTitle(dto, processed.rooms, contactScreen.titleHasContact),
           // leaga draftul (posibil anonim) de contul care publica
           clientUserId: userId,
@@ -373,7 +373,7 @@ export class RequestsService {
       await this.writeContactPreferences(tx, request.id, contacts);
       await this.writeInspirationPhotos(tx, request.id, inspirationSelection, roomIds);
       await this.writeStudioScenes(tx, request.id, resolvePublicationScenes(studioScenes, processed.rooms, roomIds));
-      await this.writeVersion(tx, request.id, dto, processed.rooms);
+      await this.writeVersion(tx, request.id, saved, processed.rooms);
       if (contactScreen.rows.length > 0) {
         await tx.requestContactDetection.createMany({ data: contactScreen.rows });
       }
@@ -458,17 +458,17 @@ export class RequestsService {
     const geo = addressChanged
       ? await this.geo.geocode(dto.addressText, dto.city, dto.county, dto.country)
       : { lat: request.lat, lng: request.lng };
-    const sizing = await this.sizing.compute({
-      scoreEntries: processed.scoreEntries,
-      budgetRange: dto.budgetRange,
-      includesPaidDesign: dto.includesPaidDesign,
-    });
+    // b11 / M3: treapta pentru marime (si cea salvata) nu coboara sub minimul estimarii
+    const { sizing, budgetRange: sizedBudgetRange } = await sizeWithBudgetFloor(dto, (budgetRange) =>
+      this.sizing.compute({ scoreEntries: processed.scoreEntries, budgetRange, includesPaidDesign: dto.includesPaidDesign }),
+    );
+    const saved = { ...dto, budgetRange: sizedBudgetRange };
 
     await runTx(this.prisma, 'write', async (tx) => {
       await tx.request.update({
         where: { id: request.id },
         data: {
-          ...this.scalarData(dto),
+          ...this.scalarData(saved),
           title: this.resolveTitle(dto, processed.rooms, contactScreen.titleHasContact),
           lat: geo.lat,
           lng: geo.lng,
@@ -483,7 +483,7 @@ export class RequestsService {
       await this.writeStudioScenes(tx, request.id, resolvePublicationScenes(studioScenes, processed.rooms, roomIds));
       await this.writeContactPreferences(tx, request.id, contacts);
       await this.writeInspirationPhotos(tx, request.id, inspirationSelection, roomIds);
-      await this.writeVersion(tx, request.id, dto, processed.rooms);
+      await this.writeVersion(tx, request.id, saved, processed.rooms);
       if (contactScreen.rows.length > 0) {
         await tx.requestContactDetection.createMany({ data: contactScreen.rows });
       }
@@ -561,6 +561,8 @@ export class RequestsService {
       status: r.status,
       title: r.title ?? '',
       budgetRange: r.budgetRange ?? 'UNDISCLOSED',
+      budgetEstimateRon: r.budgetEstimateRon,
+      budgetDeclared: r.budgetDeclared,
       city: r.city ?? '',
       county: r.county ?? '',
       // marimea proiectului nu se afiseaza clientului (doar firmelor)
@@ -968,6 +970,8 @@ export class RequestsService {
       description: dto.description ?? '',
       budgetRange: dto.budgetRange,
       budgetEstimateRon: dto.budgetEstimateRon ?? null,
+      // b11: normalizeBudget l-a pastrat doar langa o suma
+      budgetDeclared: dto.budgetDeclared === true,
       deadlineBucket: dto.deadlineBucket ?? null,
       includesPaidDesign: dto.includesPaidDesign,
       hasOwnProject: dto.hasOwnProject,
@@ -1363,6 +1367,7 @@ export class RequestsService {
       description: request.description ?? '',
       budgetRange: request.budgetRange ?? 'UNDISCLOSED',
       budgetEstimateRon: request.budgetEstimateRon,
+      budgetDeclared: request.budgetDeclared,
       deadlineBucket: request.deadlineBucket,
       includesPaidDesign: request.includesPaidDesign,
       hasOwnProject: request.hasOwnProject,

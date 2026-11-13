@@ -1152,12 +1152,12 @@
     "editRequest": "Editează cererea ({remaining, plural, =1 {# rămasă} other {# rămase}})",
     "editPostClaimWarning": "Cererea a fost deja preluată de firme. Mai ai o singură editare: proiectul va fi reevaluat, firmele își păstrează creditele cheltuite și pot renunța la preluare după modificări. Continui?",
     "budget": {
-      "UNDER_5K": "Sub 5.000 RON",
-      "FROM_5K_TO_15K": "5.000 – 15.000 RON",
-      "OVER_15K": "Peste 15.000 RON",
+      "UNDER_5K": "Sub 5.000 lei",
+      "FROM_5K_TO_15K": "5.000 – 15.000 lei",
+      "OVER_15K": "Peste 15.000 lei",
       "UNDISCLOSED": "Prefer să nu spun"
     },
-    "budgetEstimateHint": "Estimare orientativă pe baza răspunsurilor tale: {min} – {max}. Alege intervalul cu care te simți confortabil.",
+    "budgetEstimateHint": "Estimarea din răspunsurile tale: {min} – {max}. E un reper calculat din camerele și piesele alese, nu oferta unei firme.",
     "deadline": {
       "none": "Nu știu încă",
       "ASAP": "Cât mai repede",
@@ -1240,7 +1240,8 @@
       "countryInvalid": "Țară invalidă.",
       "tooManyContacts": "Poți adăuga cel mult 4 intrări de contact.",
       "tooManyPerChannel": "Poți adăuga cel mult 2 intrări per canal.",
-      "descriptionTooLong": "Mesajul este prea lung."
+      "descriptionTooLong": "Mesajul este prea lung.",
+      "budgetRequired": "Alege o sumă sau bifează „Prefer să nu spun”."
     },
     "apiErrors": {
       "GEOCODING_FAILED": "Nu am putut localiza adresa. Verific-o și încearcă din nou.",
@@ -1369,6 +1370,16 @@
     "deleteSection": {
       "title": "Ștergerea cererii",
       "hint": "Preluările active ale firmelor vor fi anulate. Îți cerem o confirmare înainte."
+    },
+    "budgetNoEstimateHint": "Alege suma pe care vrei să o cheltui. Firmele o văd ca reper pentru ofertă.",
+    "budgetChoose": "Alege suma",
+    "budgetEstimateMark": "Estimare: {amount}",
+    "budgetBelowEstimateNote": "Suma aleasă e sub estimarea din răspunsurile tale. Sunt șanse mici ca mobilierul să se încadreze în acest buget, iar firmele vor ocoli mai probabil cererea.",
+    "budgetView": {
+      "undisclosed": "Buget nedeclarat",
+      "declaredLabel": "Bugetul declarat de client",
+      "estimateLabel": "Estimare din răspunsuri",
+      "belowEstimate": "Sub estimarea din răspunsuri"
     }
   },
   "Marketplace": {
@@ -1620,7 +1631,11 @@
       "none": "Firma ta nu are un abonament activ.",
       "credits": "Creditele tale ({n}) rămân în cont, dar le poți folosi doar după reactivare. Preluările în curs le poți termina.",
       "reactivate": "Reactivează abonamentul"
-    }
+    },
+    "minBudget": "Buget minim",
+    "minBudgetAny": "Oricare",
+    "minBudgetFrom": "de la {amount}",
+    "minBudgetHint": "Cu un minim ales, cererile fără buget declarat nu mai apar."
   },
   "Chat": {
     "empty": "Niciun mesaj încă. Scrie primul.",
@@ -1673,7 +1688,6 @@
       "slaGrace": "Termen depășit — mai ai {left} de grație până la penalizare",
       "slaBreached": "Termenul și perioada de grație au trecut — preluarea se închide în curând",
       "slaOfferSent": "Oferta a fost trimisă — termenul SLA nu se mai aplică",
-      "budgetLabel": "Bugetul clientului",
       "deadlineLine": "Termen dorit: {deadline}",
       "clientSection": "Clientul tău",
       "clientHidden": "Datele de contact ale clientului nu mai sunt vizibile — preluarea nu mai este activă.",
@@ -3827,7 +3841,6 @@
       "filesTitle": "Fișierele proiectului",
       "facts": {
         "notProvided": "Necompletat",
-        "estimate": "Bugetul tău estimat: {amount} — nu reprezintă oferta unei firme",
         "deadline": "Termenul dorit",
         "location": "Locul montajului",
         "contact": "Canale de contact",
@@ -6710,7 +6723,10 @@
     "roomSpec": {
       "dimsUnknown": "Dimensiuni nespecificate",
       "designHelpCompany": "Clientul cere ajutor la proiectare pentru această cameră",
-      "designHelpClient": "Ai cerut ajutor la proiectare pentru această cameră"
+      "designHelpClient": "Ai cerut ajutor la proiectare pentru această cameră",
+      "furnitureLinear": "Mobilier: ~{m} m liniari",
+      "ceilingHeight": "Tavan: {m} m",
+      "designHelpDetails": "Detaliile se stabilesc cu firma."
     },
     "contactInText": {
       "hint": "Se pare că ai scris un telefon, un email sau un link. Firmele nu le văd înainte de preluare: adaugă-le la pasul Contact și le primesc doar firmele care preiau cererea.",

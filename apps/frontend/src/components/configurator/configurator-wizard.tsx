@@ -89,6 +89,9 @@ export function buildSnapshotFromRequest(dto: RequestDto): ConfiguratorSnapshot 
     description: dto.description ?? '',
     budgetRange: dto.budgetRange,
     budgetEstimateRon: dto.budgetEstimateRon,
+    // b11: suma aleasa de client ramane aleasa; o cerere veche (budgetDeclared false, suma
+    // posibil pusa de formular) pierde bugetul la normalizare si cere alegerea din nou
+    budgetChosen: dto.budgetDeclared === true,
     deadlineBucket: dto.deadlineBucket ?? '',
     hasOwnProject: startMode === 'OWN_PROJECT',
     addressText: dto.addressText ?? '',

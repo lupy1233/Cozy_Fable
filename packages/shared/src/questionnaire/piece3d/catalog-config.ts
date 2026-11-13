@@ -45,7 +45,7 @@ export const NEW_PIECE_RULES: Record<typeof NEW_PIECE_KINDS[number], Piece3dRule
   ENTRYWAY: rule('Mobilier hol', [0.8, 2.4, 1.4], [1.6, 2.4, 2], [0.35, 0.55, 0.42]),
   SOFA: rule('Canapea', [1.4, 3.4, 2.2], [0.75, 1.05, 0.85], [0.8, 2, 0.95]),
   ARMCHAIR: rule('Fotoliu', [0.7, 1.3, 0.9], [0.75, 1.05, 0.85], [0.8, 1.15, 0.9]),
-  OTTOMAN: rule('Taburet tapitat', [0.4, 1.4, 0.8], [0.35, 0.5, 0.43], [0.4, 1.4, 0.6]),
+  OTTOMAN: rule('Taburet tapițat', [0.4, 1.4, 0.8], [0.35, 0.5, 0.43], [0.4, 1.4, 0.6]),
 };
 
 export function isNewFurnitureKind(kind: Piece3dKind): boolean {
@@ -113,19 +113,24 @@ export function validCatalogOptions(kind: Piece3dKind, config: PieceConfig3d): b
 
 export function describeCatalogOptions(config: PieceConfig3d): string[] {
   const parts: string[] = [];
-  const label = (value: string) => ({ WOVEN: 'tesatura', BOUCLE: 'boucle', VELVET: 'catifea', SOFT: 'moale', MEDIUM: 'medie', FIRM: 'ferma',
-    OAK: 'picioare stejar', WALNUT: 'picioare nuc', BLACK: 'picioare negre', PLINTH: 'baza retrasa', STRAIGHT: 'dreapta', CHAISE_LEFT: 'sezlong stanga (din fata)', CHAISE_RIGHT: 'sezlong dreapta (din fata)',
-    SLIM: 'inguste', WIDE: 'late', SPLIT: 'separate', BENCH: 'perna continua', RECTANGULAR: 'dreptunghiular', ROUND: 'rotund', WALL: 'suspendat', FLOOR: 'pe podea', SINGLE: 'un lavoar', DOUBLE: 'doua lavoare',
-    DRAWERS: 'sertare', DOORS: 'usi', OPEN: 'deschis', PUSH: 'push', HANDLE: 'manere', LIGHT: 'deschis', DARK: 'inchis', NONE: 'fara', LEFT: 'stanga', RIGHT: 'dreapta' } as Record<string, string>)[value] ?? value;
+  // d1: texte pentru firma cu diacritice; "deschis" are etichete separate dupa sens
+  // (polite deschise = fara usi; culoare deschisa = blatul), codurile nu ajung brute
+  const label = (value: string) => ({ WOVEN: 'țesătură', BOUCLE: 'bouclé', VELVET: 'catifea', SOFT: 'moale', MEDIUM: 'medie', FIRM: 'fermă',
+    OAK: 'picioare stejar', WALNUT: 'picioare nuc', BLACK: 'picioare negre', PLINTH: 'bază retrasă', STRAIGHT: 'dreaptă', CHAISE_LEFT: 'cu șezlong în stânga (privită din față)', CHAISE_RIGHT: 'cu șezlong în dreapta (privită din față)',
+    SLIM: 'înguste', WIDE: 'late', SPLIT: 'separate', BENCH: 'pernă continuă', RECTANGULAR: 'dreptunghiulară', ROUND: 'rotundă', WALL: 'suspendat', FLOOR: 'pe podea', SINGLE: 'un lavoar', DOUBLE: 'două lavoare',
+    PUSH: 'push', HANDLE: 'cu mânere', NONE: 'fără', LEFT: 'în stânga', RIGHT: 'în dreapta' } as Record<string, string>)[value] ?? value.toLowerCase().replace(/_/g, ' ');
+  const storageLabel = (value: string) => ({ DRAWERS: 'sertare', DOORS: 'cu uși', OPEN: 'polițe deschise (fără uși)' } as Record<string, string>)[value] ?? label(value);
+  const countertopLabel = (value: string) => ({ LIGHT: 'culoare deschisă', DARK: 'culoare închisă' } as Record<string, string>)[value] ?? label(value);
+  const yesNo = (value: boolean) => (value ? 'da' : 'nu');
   const u = config.upholstery;
-  if (u) parts.push(`Tapiterie: ${label(u.fabric)}, ${u.color}`, `Preferinta fermitate: ${label(u.firmness)}`, `Baza: ${label(u.base)}`);
-  if (config.sofa) parts.push(`Locuri: ${config.sofa.seats}`, `Canapea: ${label(config.sofa.layout)}`, `Brate: ${label(config.sofa.arms)}`, `Perne: ${label(config.sofa.cushions)}`, `Adancime corp principal: ${Math.round(config.sofa.bodyDepthM * 100)} cm`,
-    ...(config.sofa.layout === 'STRAIGHT' ? [] : [`Adancime totala sezlong: ${Math.round(pieceDepth(config) * 100)} cm`]));
-  if (config.armchair) parts.push(`Brate: ${label(config.armchair.arms)}`);
-  if (config.ottoman) parts.push(`Forma: ${label(config.ottoman.shape)}`, `Depozitare: ${config.ottoman.storage ? 'da' : 'nu'}`);
-  if (config.vanity) parts.push(`Montaj: ${label(config.vanity.mounting)}`, `Lavoare: ${label(config.vanity.basins)}`, `Depozitare: ${label(config.vanity.storage)}`,
-    ...(config.vanity.storage === 'OPEN' ? [] : [`Fronturi: ${label(config.vanity.handles)}`]), `Blat: ${label(config.vanity.countertop)}`, 'Pozitia instalatiilor se confirma la masuratori');
-  if (config.entryway) parts.push(`Cuiere: ${config.entryway.hooks}`, `Oglinda: ${label(config.entryway.mirror)}`, `Polita superioara: ${config.entryway.upperShelf ? 'da' : 'nu'}`, `Sezut tapitat: ${config.entryway.upholsteredSeat ? 'da' : 'nu'}`, `Pantofar: ${label(config.entryway.shoeStorage)}`);
-  if (config.mountingHeightM !== undefined) parts.push(`Cota inferioara montaj: ${Math.round(config.mountingHeightM * 100)} cm`);
+  if (u) parts.push(`Tapițerie: ${label(u.fabric)}, culoare ${u.color}`, `Fermitate preferată: ${label(u.firmness)}`, `Bază: ${label(u.base)}`);
+  if (config.sofa) parts.push(`Locuri: ${config.sofa.seats}`, `Canapea: ${label(config.sofa.layout)}`, `Brațe: ${label(config.sofa.arms)}`, `Perne: ${label(config.sofa.cushions)}`, `Adâncime corp principal: ${Math.round(config.sofa.bodyDepthM * 100)} cm`,
+    ...(config.sofa.layout === 'STRAIGHT' ? [] : [`Adâncime totală cu șezlong: ${Math.round(pieceDepth(config) * 100)} cm`]));
+  if (config.armchair) parts.push(`Brațe: ${label(config.armchair.arms)}`);
+  if (config.ottoman) parts.push(`Formă: ${label(config.ottoman.shape)}`, `Depozitare: ${yesNo(config.ottoman.storage)}`);
+  if (config.vanity) parts.push(`Montaj: ${label(config.vanity.mounting)}`, `Lavoare: ${label(config.vanity.basins)}`, `Depozitare: ${storageLabel(config.vanity.storage)}`,
+    ...(config.vanity.storage === 'OPEN' ? [] : [`Fronturi: ${label(config.vanity.handles)}`]), `Blat: ${countertopLabel(config.vanity.countertop)}`, 'Poziția instalațiilor se confirmă la măsurători');
+  if (config.entryway) parts.push(`Cuiere: ${config.entryway.hooks}`, `Oglindă: ${label(config.entryway.mirror)}`, `Poliță superioară: ${yesNo(config.entryway.upperShelf)}`, `Șezut tapițat: ${yesNo(config.entryway.upholsteredSeat)}`, `Pantofar: ${storageLabel(config.entryway.shoeStorage)}`);
+  if (config.mountingHeightM !== undefined) parts.push(`Cotă inferioară de montaj: ${Math.round(config.mountingHeightM * 100)} cm`);
   return parts;
 }

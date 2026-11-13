@@ -88,8 +88,8 @@ describe('deriveRoom pe v3', () => {
     expect(derived.lengthM).toBe(1.6);
     expect(derived.widthM).toBe(0.35);
     expect(derived.heightM).toBe(2);
-    expect(derived.items[0].name).toBe('Biblioteca');
-    expect(derived.items[0].description).toContain('Configurat 3D: 160 x 200 x 35 cm');
+    expect(derived.items[0].name).toBe('Bibliotecă');
+    expect(derived.items[0].description).toContain('Configurat 3D: 160 × 200 × 35 cm');
     expect(derived.items[0].description).toContain('Material dorit: bambus');
   });
 
@@ -101,7 +101,7 @@ describe('deriveRoom pe v3', () => {
       material: 'PAL',
     });
     expect(derived.items[0].systems).toEqual(['GLISANTE']);
-    expect(derived.items[0].name).toBe('Dulap pana in tavan (tip dressing)');
+    expect(derived.items[0].name).toBe('Dulap până în tavan (tip dressing)');
   });
 
   it('T1: glisant + maner din config3d, fara raspunsul doorType (step ascuns)', () => {

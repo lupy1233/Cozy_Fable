@@ -512,11 +512,11 @@ describe('describePieceConfig / pieceConfigTotals', () => {
     const totals = pieceConfigTotals(bookcaseConfig());
     expect(totals).toMatchObject({ columns: 2, shelves: 3, drawers: 2, doors: 2, open: 1 });
     const text = describePieceConfig('BOOKCASE', bookcaseConfig());
-    expect(text).toContain('Configurat 3D: 160 x 200 x 35 cm');
+    expect(text).toContain('Configurat 3D: 160 × 200 × 35 cm');
     expect(text).toContain('2 coloane');
-    expect(text).toContain('3 polite');
+    expect(text).toContain('3 polițe');
     expect(text).toContain('2 sertare');
-    expect(text).toContain('2 usi');
+    expect(text).toContain('2 uși');
     expect(text).toContain('finisaj stejar');
   });
 
@@ -638,7 +638,7 @@ describe('T1: usi glisante la dulap', () => {
       columns: config.columns.slice(0, 2),
     });
     expect(canRemoveColumn('WARDROBE', two)).toBe(false);
-    expect(describePieceConfig('WARDROBE', config)).toContain('usi glisante');
+    expect(describePieceConfig('WARDROBE', config)).toContain('uși glisante');
   });
 
   it('directia de glisare: capetele doar spre interior, mijlocul la alegere', () => {
@@ -721,7 +721,7 @@ describe('T1: finisaje extinse + culoare CUSTOM + maner/push', () => {
     expect(config.frontStyle).toBe('HANDLE');
     expect(pieceConfig3dSchema('DRESSER').safeParse(config).success).toBe(true);
     const text = describePieceConfig('DRESSER', config);
-    expect(text).toContain('fronturi cu maner');
-    expect(text).toContain('finisaj teracota');
+    expect(text).toContain('fronturi cu mâner');
+    expect(text).toContain('finisaj teracotă');
   });
 });

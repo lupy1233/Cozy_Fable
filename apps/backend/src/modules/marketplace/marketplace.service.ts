@@ -17,6 +17,7 @@ import { BusinessCalendarService } from '../../infra/calendar/business-calendar.
 import { SettingsService } from '../../common/settings/settings.service';
 import { SETTING_DEFAULTS } from '../../common/settings/setting-defaults';
 import { UploadsService } from '../uploads/uploads.service';
+import { MarketplaceBudgetEstimator } from './marketplace-budget-estimate';
 import { maskFreeText, maskRoomForFirm, maskSceneData, maskSceneName } from '../../common/privacy/contact-masking';
 import { PRIVACY_GRID_LAT_DEG, PRIVACY_GRID_LNG_DEG, wholeKm } from '../../common/privacy/location-privacy';
 import {
@@ -33,6 +34,11 @@ const OCCUPYING_SQL = Prisma.sql`(${Prisma.join(OCCUPYING_CLAIM_STATUSES)})`;
 // snapToPrivacyGrid din TS (E-client-9).
 const GRID_LAT_SQL = Prisma.raw(`${PRIVACY_GRID_LAT_DEG}::float8`);
 const GRID_LNG_SQL = Prisma.raw(`${PRIVACY_GRID_LNG_DEG}::float8`);
+
+// b11 / M2: suma aleasa de client (singura pe care o vede si o filtreaza firma)
+function isDeclaredBudget(r: Pick<MarketRow, 'budget_range' | 'budget_estimate_ron' | 'budget_declared'>): boolean {
+  return r.budget_declared === true && r.budget_range !== 'UNDISCLOSED' && r.budget_estimate_ron !== null;
+}
 
 interface ClosedProbeRow {
   status: RequestStatus;
@@ -52,6 +58,8 @@ interface MarketRow {
   title: string;
   description: string;
   budget_range: MarketplaceItemDto['budgetRange'];
+  budget_estimate_ron: number | null;
+  budget_declared: boolean;
   city: string;
   county: string;
   project_size: MarketplaceItemDto['size'];
@@ -72,6 +80,7 @@ export class MarketplaceService {
     private readonly settings: SettingsService,
     private readonly uploads: UploadsService,
     private readonly calendar: BusinessCalendarService,
+    private readonly budgetEstimator: MarketplaceBudgetEstimator,
   ) {}
 
   // Setarile care decid eligibilitatea — citite in paralel, fara cache (in oglinda cu claim-ul).
@@ -153,9 +162,15 @@ export class MarketplaceService {
   // - Haversine <= coverage_radius_km pe cel putin o locatie a firmei
   // - firma neexclusa (request_company_exclusions)
   // - sub max claim-uri active
-  async list(companyId: string, gatingMinutes: number): Promise<MarketplaceItemDto[]> {
+  // b11-3: filtrul de buget minim (glisorul firmei) se aplica pe server, pe suma din cerere
+  async list(
+    companyId: string,
+    gatingMinutes: number,
+    filter: { minBudgetRon?: number } = {},
+  ): Promise<MarketplaceItemDto[]> {
     const { maxClaims, claimable, distanceDisplay } = await this.readMarketSettings();
-    const rows = await this.queryRows(companyId, gatingMinutes, maxClaims, claimable, null);
+    const minBudgetRon = filter.minBudgetRon && filter.minBudgetRon > 0 ? filter.minBudgetRon : null;
+    const rows = await this.queryRows(companyId, gatingMinutes, maxClaims, claimable, null, minBudgetRon);
     return rows.map((r) => this.toItem(r, maxClaims, distanceDisplay));
   }
 
@@ -191,7 +206,9 @@ export class MarketplaceService {
       include: { items: true },
       orderBy: { createdAt: 'asc' },
     });
-    const [inspiration, attachments, studioScenes] = await Promise.all([
+    // b11: reperul "Estimare din raspunsuri" doar langa o suma DECLARATA de client (M2); m3: in
+    // paralel cu celelalte citiri, nu un drum in plus inaintea lor
+    const [inspiration, attachments, studioScenes, budgetEstimateMinRon] = await Promise.all([
       this.prisma.requestInspirationPhoto.findMany({
         where: { requestId },
         select: { photoId: true, note: true, requestRoomId: true },
@@ -206,10 +223,12 @@ export class MarketplaceService {
         where: { requestId },
         orderBy: { createdAt: 'asc' },
       }),
+      isDeclaredBudget(row) ? this.budgetEstimator.estimateMinRon(rooms) : Promise.resolve(null),
     ]);
     return {
       ...this.toItem(row, maxClaims, distanceDisplay),
       deadlineBucket: row.desired_deadline_bucket,
+      budgetEstimateMinRon,
       estimatedSlaDeadlineAt,
       viewerHasActiveClaimWithoutOffer: viewerBusy !== null,
       inspirationPhotoIds: inspiration.map((p) => p.photoId),
@@ -260,6 +279,10 @@ export class MarketplaceService {
       title: maskFreeText(r.title),
       description: maskFreeText(r.description),
       budgetRange: r.budget_range,
+      // b11 / M2: firma primeste DOAR o suma aleasa de client; o suma nedeclarata (cerere veche,
+      // posibil pusa de formular) nu pleaca deloc de pe server → "Buget nedeclarat"
+      budgetEstimateRon: isDeclaredBudget(r) ? r.budget_estimate_ron : null,
+      budgetDeclared: isDeclaredBudget(r),
       city: r.city,
       county: r.county,
       size: r.project_size,
@@ -286,11 +309,13 @@ export class MarketplaceService {
     maxClaims: number,
     claimable: RequestStatus[],
     requestId: string | null,
+    minBudgetRon: number | null = null,
   ): Promise<MarketRow[]> {
     // literali din constantele de cod (claimableStatuses), fara input user
     const claimableSql = Prisma.sql`(${Prisma.join(claimable)})`;
     return this.prisma.$queryRaw<MarketRow[]>`
-      SELECT r.id, r.title, r.description, r.budget_range, r.city, r.county,
+      SELECT r.id, r.title, r.description, r.budget_range, r.budget_estimate_ron, r.budget_declared,
+             r.city, r.county,
              r.project_size, r.credit_cost, r.includes_paid_design, r.has_own_project,
              r.desired_deadline_bucket, r.published_at, d.distance_km,
              (SELECT count(*) FROM claim_slots cs
@@ -325,6 +350,9 @@ export class MarketplaceService {
         AND (SELECT count(*) FROM claim_slots cs3
               WHERE cs3.request_id = r.id AND cs3.status::text IN ${OCCUPYING_SQL}) < ${maxClaims}::int
         ${requestId ? Prisma.sql`AND r.id = ${requestId}` : Prisma.empty}
+        ${minBudgetRon !== null
+          ? Prisma.sql`AND r.budget_declared = true AND r.budget_range::text <> 'UNDISCLOSED' AND r.budget_estimate_ron >= ${minBudgetRon}::int`
+          : Prisma.empty}
       ORDER BY r.published_at DESC
       LIMIT 200
     `;

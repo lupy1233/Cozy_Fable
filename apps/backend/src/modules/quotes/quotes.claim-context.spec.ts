@@ -34,6 +34,7 @@ function makeSlot(over: Partial<Any> = {}, reqOver: Partial<Any> = {}): Any {
       description: 'descriere',
       budgetRange: 'RANGE_10_20K',
       budgetEstimateRon: 15000,
+      budgetDeclared: true,
       deadlineBucket: 'ONE_TO_THREE_MONTHS',
       hasOwnProject: false,
       addressText: 'Str. Clientului 1',
@@ -125,7 +126,16 @@ describe('QuotesService.getClaimContext (E-company-3)', () => {
     expect(c.quote?.consultationInvites[0].locationAddress).toBe('');
     expect(c.detail.rooms).toHaveLength(1);
     expect(c.detail.attachments).toHaveLength(1);
+    // b11: suma si eticheta 'declarat de client' ajung pe fisa de lucru
+    expect(c.detail).toMatchObject({ budgetEstimateRon: 15000, budgetDeclared: true });
     expect(c.threadId).toBe('t1');
+  });
+
+  // M2 (coordonator): o suma nedeclarata (cerere veche) nu ajunge la firma nici pe fisa de lucru
+  it('b11: suma nedeclarata → fisa de lucru fara suma (Buget nedeclarat)', async () => {
+    const { service } = build(makeSlot({}, { budgetEstimateRon: 24000, budgetDeclared: false }));
+    const c = await service.getClaimContext(owner, 'u-owner', 'slot-1');
+    expect(c.detail).toMatchObject({ budgetEstimateRon: null, budgetDeclared: false });
   });
 
   it('(b) angajat limitat atribuit pe slot: contacte + adresa', async () => {
@@ -148,6 +158,7 @@ describe('QuotesService.getClaimContext (E-company-3)', () => {
     expect(c.detail.attachments).toEqual([]);
     expect(c.detail.studioScenes).toEqual([]);
     expect(c.detail.inspirationPhotoIds).toEqual([]);
+    expect(c.detail).toMatchObject({ budgetEstimateRon: null, budgetDeclared: false });
     expect(c.detail.inspirationPhotos).toEqual([]);
     expect(c.detail.description).toBe('');
     expect(c.detail.addressText).toBe('');

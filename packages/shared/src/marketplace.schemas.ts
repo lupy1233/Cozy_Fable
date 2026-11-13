@@ -47,6 +47,12 @@ export const MARKETPLACE_DISTANCE_DISPLAY_MODES = ['KM', 'BAND'] as const;
 export type MarketplaceDistanceDisplayMode = (typeof MARKETPLACE_DISTANCE_DISPLAY_MODES)[number];
 export const SETTING_MARKETPLACE_DISTANCE_DISPLAY = 'marketplace_distance_display';
 
+// --- Filtrul pietei dupa buget (b11-3, PO 2026-11-13) ---
+// Firma alege pe un glisor bugetul minim; serverul pastreaza doar cererile cu suma >= minim
+// (cererile fara suma ies din lista cand filtrul e pus). 0 / lipsa = fara filtru.
+export const MARKETPLACE_MIN_BUDGET_MAX_RON = 200_000;
+export const MARKETPLACE_MIN_BUDGET_STEP_RON = 1000;
+
 // --- DTO-uri raspuns ---
 
 // Card de cerere vizibil in marketplace pentru o firma eligibila.
@@ -55,7 +61,11 @@ export interface MarketplaceItemDto {
   id: string;
   title: string;
   description: string;
+  // treapta ramane doar intern (punctaj); pe ecran se arata suma (b11)
   budgetRange: (typeof BUDGET_RANGES)[number];
+  // b11: suma din cerere (null = nedeclarat) + daca a ales-o clientul; optionale pentru un slot vechi
+  budgetEstimateRon?: number | null;
+  budgetDeclared?: boolean;
   city: string;
   county: string;
   size: (typeof PROJECT_SIZES)[number] | null;
@@ -108,6 +118,9 @@ export interface MarketplaceDetailDto extends MarketplaceItemDto {
   // a5: cel care se uita are deja o preluare activa fara oferta → nu poate fi responsabil
   // pe inca una (4.9); dialogul ii spune inainte de confirmare.
   viewerHasActiveClaimWithoutOffer?: boolean;
+  // b11: estimarea din raspunsurile camerelor (scorul de baza × 1.000 lei, ca la client);
+  // null cand nu se poate calcula (camere vechi, fara raspunsuri). Reper, nu bugetul clientului.
+  budgetEstimateMinRon?: number | null;
   deadlineBucket: (typeof DEADLINE_BUCKETS)[number] | null;
   rooms: RequestRoomDto[];
   // pozele de inspiratie alese de client (F6); detaliile din GET /inspiration?ids=

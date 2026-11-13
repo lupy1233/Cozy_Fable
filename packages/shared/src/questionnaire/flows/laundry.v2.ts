@@ -27,7 +27,7 @@ const PIECES: PieceWithMaterialDef[] = [
   {
     value: 'APPLIANCE_HOUSING',
     icon: 'washing-machine',
-    itemName: 'Dulap incastrare electrocasnice',
+    itemName: 'Dulap încastrare electrocasnice',
     materialStepId: 'materialApplianceHousing',
     systemsStepId: 'systemsApplianceHousing',
   },
@@ -48,7 +48,7 @@ const PIECES: PieceWithMaterialDef[] = [
   {
     value: 'SINK_UNIT',
     icon: 'droplets',
-    itemName: 'Corp cuva tehnica',
+    itemName: 'Corp cu cuvă',
     materialStepId: 'materialSinkUnit',
     systemsStepId: 'systemsSinkUnit',
   },
@@ -144,6 +144,6 @@ export const laundryFlowV2: RoomFlow = {
     lengthM: linearMeters(dimensionsStep, answers),
     widthM: STANDARD_CABINET_DEPTH,
     heightM: dimensionValues(answers, 'dimensions').ceilingHeight ?? DEFAULT_CEILING_HEIGHT,
-    items: buildPerPieceItems(answers, PIECES, 'Mobilier spalatorie'),
+    items: buildPerPieceItems(answers, PIECES, 'Mobilier spălătorie'),
   }),
 };

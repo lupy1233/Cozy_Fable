@@ -34,8 +34,8 @@ const F = 'flows.BATHROOM';
 
 const PIECES: PieceDef[] = [
   { value: 'VANITY_UNIT', icon: 'droplets', itemName: 'Corp lavoar' },
-  { value: 'MIRROR_CABINET', icon: 'square', itemName: 'Dulap oglinda' },
-  { value: 'TALL_STORAGE', icon: 'rows-3', itemName: 'Coloana baie' },
+  { value: 'MIRROR_CABINET', icon: 'square', itemName: 'Dulap oglindă' },
+  { value: 'TALL_STORAGE', icon: 'rows-3', itemName: 'Coloană baie' },
 ];
 
 // slotul de latime al fiecarei piese (intra in metri liniari)

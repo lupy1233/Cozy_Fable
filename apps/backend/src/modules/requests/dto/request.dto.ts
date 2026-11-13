@@ -19,6 +19,7 @@ import {
 } from 'class-validator';
 import { BudgetRange, ContactChannel, DesiredDeadlineBucket, RoomType } from '@prisma/client';
 import {
+  BUDGET_SLIDER_STEP_RON,
   INSPIRATION_NOTE_MAX,
   MAX_BUDGET_RON,
   MAX_REQUEST_INSPIRATION_PHOTOS,
@@ -144,12 +145,18 @@ export class CreateRequestContentDto {
   @Matches(/^[A-Za-z]{2}$/)
   country?: string;
 
-  // bugetul ales pe sliderul estimat (F5, item 18)
+  // bugetul ales pe sliderul estimat (F5, item 18); m1: nu sub pasul glisorului (500 lei) —
+  // interfata nu trimite niciodata mai putin, iar o suma de 0 ar ajunge la firma ca "0 lei"
   @IsOptional()
   @IsInt()
-  @Min(0)
+  @Min(BUDGET_SLIDER_STEP_RON)
   @Max(MAX_BUDGET_RON)
   budgetEstimateRon?: number;
+
+  // b11: suma aleasa de client pe glisor (nu pusa de formular); pastrata doar langa o suma
+  @IsOptional()
+  @IsBoolean()
+  budgetDeclared?: boolean;
 
   // pozele din galerie alese ca inspiratie (F6, item 3)
   @IsOptional()

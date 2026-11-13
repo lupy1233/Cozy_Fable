@@ -1,5 +1,6 @@
 import {
   collectScoreEntries,
+  deriveRoomForFirms,
   ERROR_CODES,
   getFlow,
   isFlowVersionRegistered,
@@ -123,7 +124,9 @@ export class ConfiguratorService {
         });
       }
 
-      const derived = flow.deriveRoom(answers);
+      // d1 (PO d1-1): camera cu ajutor nu primeste piese, materiale si dimensiuni puse din
+      // oficiu — firma vede "Detaliile se stabilesc cu firma", iar costul scade corespunzator
+      const derived = deriveRoomForFirms(room.roomType, answers, room.flowVersion, { needsDesignHelp });
       // Unde dimensiunile sunt obligatorii, o camera derivata cu lungime/latime/
       // inaltime 0 nu poate pleca in marketplace (firma ar vedea "0 × 0.6 m").
       // Camerele cu proiect propriu sau brief de proiectare pot ramane fara
@@ -154,7 +157,7 @@ export class ConfiguratorService {
         needsDesignHelp,
         answers,
         derived,
-        scoreEntries: collectScoreEntries(room.roomType, answers, room.flowVersion),
+        scoreEntries: collectScoreEntries(room.roomType, answers, room.flowVersion, { needsDesignHelp }),
       });
     });
 

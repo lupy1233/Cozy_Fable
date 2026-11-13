@@ -33,9 +33,9 @@ const PIECES: PieceWithMaterialDef[] = [
   { value: 'WARDROBE', icon: 'door-closed', itemName: 'Dulap dormitor', materialStepId: 'materialWardrobe', systemsStepId: 'systemsWardrobe' },
   { value: 'BED_FRAME', icon: 'bed-double', itemName: 'Cadru pat', materialStepId: 'materialBed', systemsStepId: 'systemsBed' },
   { value: 'NIGHTSTANDS', icon: 'lamp', itemName: 'Noptiere', materialStepId: 'materialNightstands', systemsStepId: 'systemsNightstands', quantity: 2 },
-  { value: 'DRESSER', icon: 'archive', itemName: 'Comoda', materialStepId: 'materialDresser', systemsStepId: 'systemsDresser' },
-  { value: 'TV_UNIT', icon: 'tv', itemName: 'Comoda TV', materialStepId: 'materialTvUnit', systemsStepId: 'systemsTvUnit' },
-  { value: 'VANITY', icon: 'sparkles', itemName: 'Masuta toaleta', materialStepId: 'materialVanity', systemsStepId: 'systemsVanity' },
+  { value: 'DRESSER', icon: 'archive', itemName: 'Comodă', materialStepId: 'materialDresser', systemsStepId: 'systemsDresser' },
+  { value: 'TV_UNIT', icon: 'tv', itemName: 'Comodă TV', materialStepId: 'materialTvUnit', systemsStepId: 'systemsTvUnit' },
+  { value: 'VANITY', icon: 'sparkles', itemName: 'Măsuță toaletă', materialStepId: 'materialVanity', systemsStepId: 'systemsVanity' },
 ];
 
 // latimea saltelei standard → nu cerem slot liber pentru pat
@@ -226,15 +226,15 @@ export const bedroomFlowV2: RoomFlow = {
         const details: string[] = [];
         if (bedSize === 'CUSTOM' && custom.bedCustomWidth && custom.bedCustomLength) {
           details.push(
-            `saltea custom ${Math.round(custom.bedCustomWidth * 100)}x${Math.round(custom.bedCustomLength * 100)} cm`,
+            `saltea custom ${Math.round(custom.bedCustomWidth * 100)} × ${Math.round(custom.bedCustomLength * 100)} cm`,
           );
         } else if (bedSize) {
-          details.push(`saltea ${bedSize.replace(/^[A-Z]_/, '')}x200`);
+          details.push(`saltea ${bedSize.replace(/^[A-Z]_/, '')} × 200`);
         }
-        if (answers.bedStorage === 'LIFT_UP') details.push('lada rabatabila');
+        if (answers.bedStorage === 'LIFT_UP') details.push('ladă rabatabilă');
         if (answers.bedStorage === 'DRAWERS') details.push('sertare laterale');
         if (answers.bedUpholstered === true) {
-          item.name = 'Pat tapitat';
+          item.name = 'Pat tapițat';
         }
         if (details.length > 0) {
           item.description = item.description

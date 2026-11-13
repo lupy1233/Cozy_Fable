@@ -31,7 +31,7 @@ vi.mock('@/i18n/routing', () => ({ useRouter: () => ({ push: vi.fn(), replace: v
 vi.mock('./inspiration-picker', () => ({ InspirationPicker: () => null }));
 vi.mock('./review-room-card', () => ({ ReviewRoomCard: () => null }));
 
-function mount(onPublished: (id: string) => void = () => {}, editId?: string) {
+function mount(onPublished: (id: string) => void = () => {}, editId?: string, onEditDetails: () => void = () => {}) {
   return render(
     <NextIntlClientProvider locale="en" messages={en}>
       <ReviewStep
@@ -40,7 +40,7 @@ function mount(onPublished: (id: string) => void = () => {}, editId?: string) {
         uploadTarget={editId ? { kind: 'request', id: editId } : { kind: 'draft', token: 'tok' }}
         onBack={() => {}}
         onEditRoom={() => {}}
-        onEditDetails={() => {}}
+        onEditDetails={onEditDetails}
         onPublished={onPublished}
       />
     </NextIntlClientProvider>,
@@ -116,7 +116,7 @@ describe('ReviewStep — files that must not reach companies (M1, m7)', () => {
       ...useConfiguratorStore.getState().snapshot(),
       startMode: 'STANDARD',
       phase: 'review',
-      details: { addressText: 'Str. 1', county: 'Cluj', city: 'Cluj', contactPreferences: [{ channel: 'EMAIL', value: 'ana@demo.ro' }] },
+      details: { budgetRange: 'UNDISCLOSED', addressText: 'Str. 1', county: 'Cluj', city: 'Cluj', contactPreferences: [{ channel: 'EMAIL', value: 'ana@demo.ro' }] },
       roomInstances: [
         { localId: 'k', roomType: 'KITCHEN', flowVersion: 1, answers: {}, completed: true },
         { localId: 'p', roomType: 'PIECE_DESK', flowVersion: CURRENT_FLOW_VERSION.PIECE_DESK, answers: { snapshot3d: [PNG] }, completed: true, needsDesignHelp: true },
@@ -196,5 +196,64 @@ describe('ReviewStep — files that must not reach companies (M1, m7)', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+// b11 (PO 2026-11-13): bugetul ales de client face parte din Date generale
+describe('ReviewStep — the budget must be chosen (b11)', () => {
+  const details = { addressText: 'Str. 1', county: 'Cluj', city: 'Cluj', contactPreferences: [{ channel: 'EMAIL' as const, value: 'ana@demo.ro' }] };
+  function load(extra: Record<string, unknown>) {
+    useConfiguratorStore.getState().loadSnapshot({
+      ...useConfiguratorStore.getState().snapshot(),
+      startMode: 'DESIGN_HELP',
+      phase: 'review',
+      details: { ...details, ...extra },
+      roomInstances: [{ localId: 'k', roomType: 'KITCHEN', flowVersion: 1, answers: {}, completed: true, needsDesignHelp: true }],
+    });
+  }
+  beforeEach(() => {
+    localStorage.clear();
+    useConfiguratorStore.getState().reset();
+    hoisted.me = { data: { email: 'ana@demo.ro', role: 'CLIENT' }, isPending: false };
+    hoisted.publish.error = null;
+    hoisted.publish.mutateAsync = vi.fn(async () => ({ id: 'req-9', attachments: [] }));
+    hoisted.attachments = { attachments: [], isSuccess: true, isFetching: false, dataUpdatedAt: 0 };
+  });
+
+  it('a draft without a chosen budget cannot be published; "Edit" sends the client to the general details', () => {
+    load({});
+    const onEditDetails = vi.fn();
+    mount(() => {}, undefined, onEditDetails);
+    expect(screen.getByRole('button', { name: en.Requests.publish })).toBeDisabled();
+    expect(screen.getAllByText(en.Configurator.review.detailsIncomplete).length).toBeGreaterThan(0);
+    // randul Buget din Sumar: necompletat, nu o treapta pusa din oficiu
+    expect(screen.getByText(en.Requests.field.budgetRange).nextElementSibling).toHaveTextContent(en.Configurator.review.facts.notProvided);
+    fireEvent.click(screen.getByRole('button', { name: en.Configurator.review.edit }));
+    expect(onEditDetails).toHaveBeenCalledTimes(1);
+    expect(hoisted.publish.mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it('a chosen amount is sent as declared, with the band derived as on the server', async () => {
+    load({ budgetRange: 'FROM_5K_TO_15K', budgetEstimateRon: 12000, budgetChosen: true });
+    const onPublished = vi.fn();
+    mount(onPublished);
+    fireEvent.click(screen.getByRole('button', { name: en.Requests.publish }));
+    await waitFor(() => expect(onPublished).toHaveBeenCalledWith('req-9'));
+    expect(vi.mocked(hoisted.publish.mutateAsync).mock.calls[0][0]).toMatchObject({
+      budgetRange: 'FROM_5K_TO_15K',
+      budgetEstimateRon: 12000,
+      budgetDeclared: true,
+    });
+  });
+
+  it('"I prefer not to share" is published as undisclosed, never as a default band', async () => {
+    load({ budgetRange: 'UNDISCLOSED', budgetChosen: true });
+    const onPublished = vi.fn();
+    mount(onPublished);
+    fireEvent.click(screen.getByRole('button', { name: en.Requests.publish }));
+    await waitFor(() => expect(onPublished).toHaveBeenCalled());
+    const payload = vi.mocked(hoisted.publish.mutateAsync).mock.calls[0][0] as Record<string, unknown>;
+    expect(payload).toMatchObject({ budgetRange: 'UNDISCLOSED', budgetDeclared: false });
+    expect(payload.budgetEstimateRon).toBeUndefined();
   });
 });

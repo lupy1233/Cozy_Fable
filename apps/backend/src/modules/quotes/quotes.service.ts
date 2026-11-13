@@ -1001,6 +1001,7 @@ export class QuotesService {
     // neatribuit, AFTER_GRACE) nu primeste nici contactele scrise in texte libere
     const hideText = !access.clientVisible;
     const text = (s: string | null | undefined) => (hideText ? maskFreeText(s) : (s ?? ''));
+    const declaredBudget = req.budgetDeclared === true && req.budgetRange !== 'UNDISCLOSED' && req.budgetEstimateRon !== null;
     const detailRooms = rooms.map((r) => ({
       id: r.id,
       roomType: r.roomType,
@@ -1035,7 +1036,10 @@ export class QuotesService {
       detail: {
         description: text(req.description),
         budgetRange: req.budgetRange ?? 'UNDISCLOSED',
-        budgetEstimateRon: req.budgetEstimateRon,
+        // b11 / M2: firma primeste doar o suma aleasa de client; o suma nedeclarata (cerere veche,
+        // posibil pusa de formular) nu pleaca de pe server → "Buget nedeclarat"
+        budgetEstimateRon: declaredBudget ? req.budgetEstimateRon : null,
+        budgetDeclared: declaredBudget,
         deadlineBucket: req.deadlineBucket,
         hasOwnProject: req.hasOwnProject,
         // contactul si adresa completa doar cand acest membru are voie (E-company-3)
@@ -1158,6 +1162,7 @@ export class QuotesService {
         description: '',
         budgetRange: 'UNDISCLOSED',
         budgetEstimateRon: null,
+        budgetDeclared: false,
         deadlineBucket: null,
         hasOwnProject: false,
         addressText: '',

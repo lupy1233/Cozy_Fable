@@ -27,7 +27,7 @@ const PIECES: PieceWithMaterialDef[] = [
   {
     value: 'STORAGE_BENCH',
     icon: 'armchair',
-    itemName: 'Banca cu depozitare',
+    itemName: 'Bancă cu ladă',
     materialStepId: 'materialStorageBench',
     systemsStepId: 'systemsStorageBench',
   },

@@ -45,6 +45,7 @@ import { ClaimCompletionCard } from '../../../_components/claim-completion-card'
 import { SubscriptionStatusNotice } from '../../_components/subscription-status-notice';
 import { OfferBuilder } from '../../../_components/offer-builder';
 import { OfferCard } from '../../../_components/offer-card';
+import { useBudgetFormat } from '@/hooks/use-budget-format';
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -528,7 +529,6 @@ function WorkBar({ ctx }: { ctx: ClaimQuoteContextDto }) {
       </div>
 
       <div className="flex flex-col gap-1.5 bg-surface px-5 py-4 sm:px-6">
-        <span className="label">{t('workspace.budgetLabel')}</span>
         <BudgetLine ctx={ctx} />
       </div>
     </Card>
@@ -539,13 +539,13 @@ function BudgetLine({ ctx }: { ctx: ClaimQuoteContextDto }) {
   const t = useTranslations('Quotes');
   const tr = useTranslations('Requests');
   const d = ctx.detail;
+  // b11 / M2: 'Bugetul declarat de client' doar cand clientul a ales suma; suma in lei, acelasi
+  // format ca in Sumar si in piata, sau 'Buget nedeclarat' (fara trepte)
+  const budgetFormat = useBudgetFormat();
   return (
     <>
-      <p className="font-serif text-2xl leading-tight">
-        {d.budgetEstimateRon != null
-          ? `${new Intl.NumberFormat('ro-RO').format(d.budgetEstimateRon)} lei`
-          : tr(`budget.${d.budgetRange}`)}
-      </p>
+      <span className="label">{budgetFormat.firmLabel(d)}</span>
+      <p className="font-serif text-2xl leading-tight">{budgetFormat.firmAmount(d)}</p>
       <p className="text-xs text-muted-foreground">
         {d.deadlineBucket
           ? t('workspace.deadlineLine', { deadline: tr(`deadline.${d.deadlineBucket}`) })

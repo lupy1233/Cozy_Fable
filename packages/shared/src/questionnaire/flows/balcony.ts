@@ -16,7 +16,7 @@ import { buildPiecesItems, pieceChoiceOptions, type PieceDef } from './pieces-fl
 const F = 'flows.BALCONY';
 
 const PIECES: PieceDef[] = [
-  { value: 'STORAGE_BENCH', icon: 'armchair', itemName: 'Banca cu depozitare' },
+  { value: 'STORAGE_BENCH', icon: 'armchair', itemName: 'Bancă cu ladă' },
   { value: 'TALL_CABINET', icon: 'door-closed', itemName: 'Dulap balcon' },
   { value: 'WORKTOP', icon: 'ruler', itemName: 'Blat de lucru' },
   { value: 'SHELVES', icon: 'rows-3', itemName: 'Rafturi balcon' },

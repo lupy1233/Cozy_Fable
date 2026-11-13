@@ -5,3 +5,9 @@ export const MONEY_FORMAT = { minimumFractionDigits: 2, maximumFractionDigits: 2
 export function formatAmount(n: number, locale: string): string {
   return new Intl.NumberFormat(locale === 'en' ? 'en-GB' : 'ro-RO', MONEY_FORMAT).format(n);
 }
+
+// b11: bugetul cererii — lei intregi, acelasi format peste tot ("12.000 lei"; "12,000 lei" in EN).
+// Unitatea e "lei" in ambele limbi (PO: nu "RON" la buget).
+export function formatLei(n: number, locale: string): string {
+  return `${new Intl.NumberFormat(locale === 'en' ? 'en-GB' : 'ro-RO', { maximumFractionDigits: 0 }).format(n)} lei`;
+}

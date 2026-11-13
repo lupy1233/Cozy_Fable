@@ -8,6 +8,7 @@ import { useState, type ReactNode } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
 import { useClaim, useMarketplaceDetail, useWallet } from '@/hooks/use-marketplace';
+import { useBudgetFormat } from '@/hooks/use-budget-format';
 import { isFirmRules, useFirmRules } from '@/hooks/use-legal';
 import { useMe } from '@/hooks/use-auth';
 import { useMyCompany } from '@/hooks/use-company';
@@ -38,6 +39,7 @@ import { distanceLabel } from '@/lib/marketplace-distance';
 import { cn } from '@/lib/utils';
 import { AccessBlocked, isAccessBlocked, isSubscriptionInactive } from '../_components/access-blocked';
 import { SubscriptionStatusNotice } from '../_components/subscription-status-notice';
+import { FirmBudgetValue } from '../firm-budget';
 import { RequestTag } from '../_components/request-tag';
 import { SlotBars } from '../_components/slot-bars';
 import { WorksheetButton } from '../_components/worksheet-button';
@@ -52,6 +54,7 @@ export default function MarketplaceDetailPage() {
   const id = params.id;
   const detail = useMarketplaceDetail(id);
   const relTime = useRelativeTime();
+  const budgetFormat = useBudgetFormat();
 
   if (detail.isPending) {
     return <SkeletonPage variant="detail" />;
@@ -125,7 +128,10 @@ export default function MarketplaceDetailPage() {
               )}
             >
               {r.size && <Fact label={t('size')}>{tr(`sizeValue.${r.size}`)}</Fact>}
-              <Fact label={tr('field.budgetRange')}>{tr(`budget.${r.budgetRange}`)}</Fact>
+              {/* b11: suma in lei; 'declarat de client' doar cand a ales-o clientul; estimarea = reper */}
+              <Fact label={budgetFormat.firmLabel(r)}>
+                <FirmBudgetValue budget={r} estimateMinRon={r.budgetEstimateMinRon} />
+              </Fact>
               <Fact label={t('desiredDeadline')}>
                 {r.deadlineBucket ? tr(`deadline.${r.deadlineBucket}`) : tr('deadline.none')}
               </Fact>

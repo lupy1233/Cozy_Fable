@@ -1,7 +1,7 @@
 import type { Material } from '../../../enums';
 import { dimensionValues } from '../../mapping';
 import type { DimensionGroupStep, DimensionSlot, RoomFlow } from '../../types';
-import { linearSlot } from '../common';
+import { linearSlot, seatsText } from '../common';
 import { answerString, pieceMaterialStep, pieceSketchStep } from './builder';
 
 // Piesa ghidata: Masa (dining / cafea / consola). Chei i18n sub 'flows.PIECE_TABLE.*'.
@@ -22,9 +22,9 @@ const TABLE_HEIGHT: Record<string, number> = {
 };
 
 const ITEM_NAME: Record<string, string> = {
-  DINING: 'Masa dining',
-  COFFEE: 'Masuta cafea',
-  CONSOLE: 'Consola',
+  DINING: 'Masă dining',
+  COFFEE: 'Măsuță cafea',
+  CONSOLE: 'Consolă',
 };
 
 const dimensionsStep: DimensionGroupStep = {
@@ -121,16 +121,16 @@ export const pieceTableFlow: RoomFlow = {
     const type = answerString(answers, 'tableType', 'DINING');
     const isRound = answers.shape === 'ROUND';
     const details: string[] = [];
-    if (answers.shape === 'EXTENDABLE') details.push('extensibila');
-    if (isRound) details.push('rotunda');
-    if (typeof answers.seats === 'string') details.push(`${answers.seats} locuri`);
+    if (answers.shape === 'EXTENDABLE') details.push('extensibilă');
+    if (isRound) details.push('rotundă');
+    if (typeof answers.seats === 'string') details.push(seatsText(answers.seats));
     return {
       lengthM: isRound ? (values.diameter ?? 0) : (values.length ?? 0),
       widthM: isRound ? (values.diameter ?? 1) : (values.width ?? 0.8),
       heightM: TABLE_HEIGHT[type] ?? 0.75,
       items: [
         {
-          name: ITEM_NAME[type] ?? 'Masa',
+          name: ITEM_NAME[type] ?? 'Masă',
           material: (answers.material as Material) ?? 'PAL',
           systems: [],
           description: details.length > 0 ? details.join(', ') : undefined,

@@ -227,14 +227,14 @@ export const PIECE3D_RULES: Record<Piece3dKind, Piece3dRules> = {
     height: { min: 0.45, max: 0.8, default: 0.75 },
     depth: { min: 0.4, max: 1.8, default: 0.8 },
     zoneTypes: [], maxZonesPerColumn: 0, maxColumns: 0, minColumns: 0,
-    hasPlinth: false, itemName: 'Masa', defaultColumn: () => col(),
+    hasPlinth: false, itemName: 'Masă', defaultColumn: () => col(),
   },
   BENCH: {
     width: { min: 0.6, max: 2, default: 1.2 },
     height: { min: 0.45, max: 0.45, default: 0.45 },
     depth: { min: 0.4, max: 0.4, default: 0.4 },
     zoneTypes: [], maxZonesPerColumn: 0, maxColumns: 0, minColumns: 0,
-    hasPlinth: false, itemName: 'Bancuta', defaultColumn: () => col(),
+    hasPlinth: false, itemName: 'Băncuță', defaultColumn: () => col(),
   },
   BOOKCASE: {
     width: { min: 0.4, max: 4, default: 1.6 },
@@ -245,7 +245,7 @@ export const PIECE3D_RULES: Record<Piece3dKind, Piece3dRules> = {
     maxColumns: 6,
     minColumns: 1,
     hasPlinth: true,
-    itemName: 'Biblioteca',
+    itemName: 'Bibliotecă',
     defaultColumn: () => col({ type: 'OPEN', fill: 'SHELVES', count: 4 }),
   },
   WARDROBE: {
@@ -270,7 +270,7 @@ export const PIECE3D_RULES: Record<Piece3dKind, Piece3dRules> = {
     maxColumns: 6,
     minColumns: 1,
     hasPlinth: true,
-    itemName: 'Comoda TV',
+    itemName: 'Comodă TV',
     defaultColumn: () => col({ type: 'OPEN' }),
   },
   SHOE_CABINET: {
@@ -295,7 +295,7 @@ export const PIECE3D_RULES: Record<Piece3dKind, Piece3dRules> = {
     minColumns: 1,
     hasPlinth: true,
     legsOption: true,
-    itemName: 'Comoda',
+    itemName: 'Comodă',
     defaultColumn: () => col({ type: 'DRAWERS', count: 3 }),
   },
   NIGHTSTAND: {
@@ -307,7 +307,7 @@ export const PIECE3D_RULES: Record<Piece3dKind, Piece3dRules> = {
     maxColumns: 1,
     minColumns: 1,
     hasPlinth: true,
-    itemName: 'Noptiera',
+    itemName: 'Noptieră',
     defaultColumn: () => col({ type: 'DRAWERS', count: 1 }, { type: 'OPEN' }),
   },
   DESK: {
@@ -928,27 +928,27 @@ const FINISH_LABEL_RO: Record<Piece3dFinish, string> = {
   NEGRU: 'negru',
   VERDE_SALVIE: 'verde salvie',
   ALBASTRU: 'albastru',
-  TERACOTA: 'teracota',
+  TERACOTA: 'teracotă',
   CUSTOM: 'personalizat',
 };
 
 const cm = (v: number) => Math.round(v * 100);
 
-// Descrierea generata a itemului derivat (RO fara diacritice, ca restul
-// descrierilor derivate) — "atelierele vad EXACT aceeasi structura ca azi".
+// Descrierea generata a itemului derivat, pentru firma (d1, etapa 3: romana cu diacritice,
+// "×" in dimensiuni; "deschis" inseamna doar "fara usi", culoarea are eticheta ei).
 export function describePieceConfig(kind: Piece3dKind, config: PieceConfig3d): string {
   const totals = pieceConfigTotals(config);
   const parts = [
-    `Configurat 3D: ${cm(config.widthM)} x ${cm(config.heightM)} x ${cm(config.depthM)} cm`,
+    `Configurat 3D: ${cm(config.widthM)} × ${cm(config.heightM)} × ${cm(config.depthM)} cm (lățime × înălțime × adâncime)`,
     ...describeCatalogOptions(config),
   ];
   if (!isFurnitureKind(kind) && (kind !== 'DESK' || totals.columns > 0)) {
-    parts.push(totals.columns === 1 ? '1 coloana' : `${totals.columns} coloane`);
+    parts.push(totals.columns === 1 ? '1 coloană' : `${totals.columns} coloane`);
   }
   if (totals.hanging > 0) {
-    parts.push(totals.hanging === 1 ? '1 bara de haine' : `${totals.hanging} bare de haine`);
+    parts.push(totals.hanging === 1 ? '1 bară de haine' : `${totals.hanging} bare de haine`);
   }
-  if (totals.shelves > 0) parts.push(totals.shelves === 1 ? '1 polita' : `${totals.shelves} polite`);
+  if (totals.shelves > 0) parts.push(totals.shelves === 1 ? '1 poliță' : `${totals.shelves} polițe`);
   if (totals.drawers > 0) {
     parts.push(totals.drawers === 1 ? '1 sertar' : `${totals.drawers} sertare`);
   }
@@ -962,16 +962,16 @@ export function describePieceConfig(kind: Piece3dKind, config: PieceConfig3d): s
     parts.push(
       totals.doors === 1
         ? sliding
-          ? '1 usa glisanta'
-          : '1 usa'
-        : `${totals.doors} usi${sliding ? ' glisante' : ''}`,
+          ? '1 ușă glisantă'
+          : '1 ușă'
+        : `${totals.doors} uși${sliding ? ' glisante' : ''}`,
     );
   }
   if (totals.open > 0) {
-    parts.push(totals.open === 1 ? '1 zona deschisa' : `${totals.open} zone deschise`);
+    parts.push(totals.open === 1 ? '1 compartiment deschis (fără ușă)' : `${totals.open} compartimente deschise (fără uși)`);
   }
   if (config.legs) parts.push('pe picioare');
-  if (config.frontStyle === 'HANDLE') parts.push('fronturi cu maner');
+  if (config.frontStyle === 'HANDLE') parts.push('fronturi cu mâner');
   else if (config.frontStyle === 'PUSH') parts.push('deschidere push');
   if (!config.upholstery) parts.push(
     config.finish === 'CUSTOM' && config.customColor

@@ -21,13 +21,13 @@ vi.mock('./address-autocomplete', () => ({
 const store = () => useConfiguratorStore.getState();
 const wait = (ms: number) => act(() => new Promise((r) => setTimeout(r, ms)));
 
-function mount(onBack = vi.fn()) {
+function mount(onBack = vi.fn(), onContinue = vi.fn()) {
   const view = render(
     <NextIntlClientProvider locale="en" messages={en}>
-      <DetailsStep onBack={onBack} onContinue={() => {}} />
+      <DetailsStep onBack={onBack} onContinue={onContinue} />
     </NextIntlClientProvider>,
   );
-  return { ...view, onBack };
+  return { ...view, onBack, onContinue };
 }
 const message = () => screen.getByRole('textbox', { name: en.Requests.field.message });
 
@@ -78,7 +78,8 @@ describe('DetailsStep — autosave into the draft (b2)', () => {
     expect(store().details.description).toBe('abcd');
   });
 
-  it('the account e-mail and the budget from the estimate are saved too, without a loop', async () => {
+  // b11: estimarea nu mai pune bugetul din oficiu
+  it('the account e-mail is saved too, without a loop; the estimate does not fill in a budget', async () => {
     hoisted.me = { data: { email: 'ana@demo.ro', role: 'CLIENT' } };
     hoisted.estimate = { data: { minRon: 12000, maxRon: 20000 } };
     const writes = vi.fn();
@@ -87,7 +88,9 @@ describe('DetailsStep — autosave into the draft (b2)', () => {
     await wait(DETAILS_AUTOSAVE_MS * 3);
     unsubscribe();
     expect(store().details.contactPreferences?.[0]).toEqual({ channel: 'EMAIL', value: 'ana@demo.ro' });
-    expect(store().details.budgetEstimateRon).toBe(12000);
+    expect(store().details.budgetEstimateRon).toBeUndefined();
+    expect(store().details.budgetRange).toBeUndefined();
+    expect(store().details.budgetChosen).toBe(false);
     expect(writes).toHaveBeenCalledTimes(1);
     // derivatele nu se scriu din formular (b8)
     expect('includesPaidDesign' in store().details).toBe(false);
@@ -132,5 +135,120 @@ describe('DetailsStep — a pending save after the draft was cleared (M2)', () =
     expect(store().details.description).toBeUndefined();
     const persisted = localStorage.getItem('mm_configurator_v1');
     expect(persisted === null || !persisted.includes('Adresa clientului A')).toBe(true);
+  });
+});
+
+// b11 (PO 2026-11-13): clientul alege o suma sau "Prefer sa nu spun"; nimic din oficiu
+describe('DetailsStep — the budget is chosen by the client (b11)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    store().reset();
+    store().setStartMode('STANDARD');
+    store().addRoom('KITCHEN');
+    hoisted.me = { data: undefined };
+    hoisted.estimate = { data: undefined };
+  });
+  afterEach(() => leaveEditSession());
+
+  const slider = () => screen.getByRole('slider', { name: en.Requests.field.budgetRange });
+  const undisclosed = () => screen.getByRole('checkbox', { name: en.Requests.budget.UNDISCLOSED });
+  const toReview = () => screen.getByRole('button', { name: en.Configurator.nav.toReview });
+  function fillRest() {
+    fireEvent.change(screen.getByLabelText('address'), { target: { value: 'Str. Lunga 1' } });
+    fireEvent.change(screen.getByRole('textbox', { name: en.Requests.field.county }), { target: { value: 'Cluj' } });
+    fireEvent.change(screen.getByRole('textbox', { name: en.Requests.field.city }), { target: { value: 'Cluj-Napoca' } });
+    fireEvent.change(screen.getByRole('textbox', { name: en.Requests.field.contactValue }), { target: { value: 'ana@demo.ro' } });
+  }
+  const submit = async () => {
+    await act(async () => {
+      fireEvent.click(toReview());
+    });
+  };
+
+  it('without a choice "Continue to summary" stays on the step and asks for one', async () => {
+    hoisted.estimate = { data: { minRon: 24000, maxRon: 72000 } };
+    const { onContinue } = mount();
+    fillRest();
+    // nicio suma pusa din oficiu
+    expect(screen.getByTestId('budget-value')).toHaveTextContent(en.Requests.budgetChoose);
+    expect(slider()).toHaveAttribute('data-unset', 'true');
+    await submit();
+    expect(onContinue).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent(en.Requests.validation.budgetRequired);
+    expect(store().details.budgetEstimateRon).toBeUndefined();
+  });
+
+  it('an amount chosen on the slider lets the client continue; the band is derived only internally', async () => {
+    hoisted.estimate = { data: { minRon: 24000, maxRon: 72000 } };
+    const { onContinue } = mount();
+    fillRest();
+    fireEvent.change(slider(), { target: { value: '30000' } });
+    expect(screen.getByTestId('budget-value')).toHaveTextContent('30,000 lei');
+    await submit();
+    expect(onContinue).toHaveBeenCalledTimes(1);
+    expect(store().details).toMatchObject({ budgetEstimateRon: 30000, budgetRange: 'OVER_15K', budgetChosen: true });
+  });
+
+  it('the slider goes down to a third of the estimate, with a note below the estimate', () => {
+    hoisted.estimate = { data: { minRon: 24000, maxRon: 72000 } };
+    mount();
+    expect(slider()).toHaveAttribute('min', '8000');
+    expect(slider()).toHaveAttribute('max', '72000');
+    fireEvent.change(slider(), { target: { value: '9000' } });
+    expect(screen.getByRole('status')).toHaveTextContent(en.Requests.budgetBelowEstimateNote);
+    fireEvent.change(slider(), { target: { value: '24000' } });
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('"I prefer not to share" is a valid choice; unticking it goes back to no choice', async () => {
+    const { onContinue } = mount();
+    fillRest();
+    fireEvent.click(undisclosed());
+    await submit();
+    expect(onContinue).toHaveBeenCalledTimes(1);
+    expect(store().details).toMatchObject({ budgetRange: 'UNDISCLOSED', budgetChosen: true });
+    fireEvent.click(undisclosed());
+    expect(screen.getByTestId('budget-value')).toHaveTextContent(en.Requests.budgetChoose);
+    await submit();
+    expect(onContinue).toHaveBeenCalledTimes(1);
+  });
+
+  it('"I need help" (no estimate): no default band, a fixed scale, the same rule', async () => {
+    act(() => store().setStartMode('DESIGN_HELP'));
+    const { onContinue } = mount();
+    fillRest();
+    expect(slider()).toHaveAttribute('min', '1000');
+    expect(slider()).toHaveAttribute('max', '100000');
+    expect(screen.getByText(en.Requests.budgetNoEstimateHint)).toBeInTheDocument();
+    await wait(DETAILS_AUTOSAVE_MS + 100);
+    expect(store().details.budgetRange).toBeUndefined();
+    await submit();
+    expect(onContinue).not.toHaveBeenCalled();
+    fireEvent.change(slider(), { target: { value: '4000' } });
+    await submit();
+    expect(onContinue).toHaveBeenCalledTimes(1);
+    expect(store().details).toMatchObject({ budgetEstimateRon: 4000, budgetRange: 'UNDER_5K' });
+  });
+
+  it('an old draft with the budget filled in by the form asks for the choice again', async () => {
+    act(() => store().loadSnapshot({ ...store().snapshot(), phase: 'details', details: { budgetRange: 'OVER_15K', budgetEstimateRon: 24000 } }));
+    hoisted.estimate = { data: { minRon: 24000, maxRon: 72000 } };
+    const { onContinue } = mount();
+    fillRest();
+    expect(screen.getByTestId('budget-value')).toHaveTextContent(en.Requests.budgetChoose);
+    await submit();
+    expect(onContinue).not.toHaveBeenCalled();
+  });
+
+  it('the chosen amount survives "Back" and coming back', () => {
+    hoisted.estimate = { data: { minRon: 24000, maxRon: 72000 } };
+    const { unmount } = mount();
+    fireEvent.change(slider(), { target: { value: '12000' } });
+    fireEvent.click(screen.getByRole('button', { name: en.Configurator.nav.back }));
+    unmount();
+    mount();
+    expect(screen.getByTestId('budget-value')).toHaveTextContent('12,000 lei');
+    expect(slider()).not.toHaveAttribute('data-unset');
   });
 });

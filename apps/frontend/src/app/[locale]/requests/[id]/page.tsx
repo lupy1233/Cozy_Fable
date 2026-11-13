@@ -11,6 +11,7 @@ import { Link, useRouter } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useDeleteRequest, useRepostRequest, useRequest, useRequestVisibility } from '@/hooks/use-requests';
+import { useBudgetFormat } from '@/hooks/use-budget-format';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -73,6 +74,7 @@ const BAND_TEXT: Record<NextStepTone, string> = {
 export default function RequestDetailPage() {
   const t = useTranslations('Requests');
   const format = useFormatter();
+  const budgetFormat = useBudgetFormat();
   const params = useParams<{ id: string }>();
   const id = params.id;
   const detail = useRequest(id);
@@ -192,7 +194,8 @@ export default function RequestDetailPage() {
                 r.description && 'border-t border-border',
               )}
             >
-              <SheetCell label={t('field.budgetRange')}>{t(`budget.${r.budgetRange}`)}</SheetCell>
+              {/* b11: suma aleasa in lei (acelasi format ca in Sumar si la firma) sau 'Buget nedeclarat' */}
+              <SheetCell label={t('field.budgetRange')}>{budgetFormat.amount(r)}</SheetCell>
               {r.deadlineBucket && (
                 <SheetCell label={t('field.desiredDeadline')}>{t(`deadline.${r.deadlineBucket}`)}</SheetCell>
               )}

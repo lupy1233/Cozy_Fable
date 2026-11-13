@@ -6,7 +6,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import en from '@/messages/en.json';
 import type { RequestDto } from '@marketplace/shared';
-import { discardPendingEditSession, EDIT_RESUME_WINDOW_MS, useConfiguratorStore } from '@/stores/configurator-store';
+import { discardPendingEditSession, EDIT_RESUME_WINDOW_MS, leaveEditSession, useConfiguratorStore } from '@/stores/configurator-store';
 import { buildSnapshotFromRequest, ConfiguratorWizard, startModeFromRequest } from './configurator-wizard';
 
 // Link: antetul modului editare ("Inapoi la cerere") il importa din acelasi modul
@@ -146,6 +146,54 @@ describe('start mode of a published request (contract b8 §5)', () => {
     expect(snap.startMode).toBe('DESIGN_HELP');
     expect(snap.roomInstances.map((r) => [r.localId, r.needsDesignHelp])).toEqual([['a', true]]);
     expect('includesPaidDesign' in snap.details).toBe(false);
+  });
+});
+
+// b11: la editare, suma aleasa de client ramane aleasa; cea dintr-o cerere veche se cere din nou
+describe('editing a published request: the budget choice (b11)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    useConfiguratorStore.getState().reset();
+    vi.stubGlobal('scrollTo', vi.fn());
+  });
+  afterEach(() => { clients.splice(0).forEach((client) => client.clear()); vi.unstubAllGlobals(); leaveEditSession(); });
+
+  it('an amount stated by the client (budgetDeclared) stays chosen', () => {
+    useConfiguratorStore.getState().loadSnapshot(buildSnapshotFromRequest(requestDto({ budgetRange: 'FROM_5K_TO_15K', budgetEstimateRon: 12000, budgetDeclared: true })));
+    expect(useConfiguratorStore.getState().details).toMatchObject({ budgetRange: 'FROM_5K_TO_15K', budgetEstimateRon: 12000, budgetChosen: true });
+  });
+
+  it('an old request (budgetDeclared false) asks for the choice again', () => {
+    useConfiguratorStore.getState().loadSnapshot(buildSnapshotFromRequest(requestDto({ budgetRange: 'OVER_15K', budgetEstimateRon: 25000, budgetDeclared: false })));
+    expect(useConfiguratorStore.getState().details.budgetRange).toBeUndefined();
+    expect(useConfiguratorStore.getState().details.budgetEstimateRon).toBeUndefined();
+    // "Prefer sa nu spun" era mereu o alegere a clientului
+    useConfiguratorStore.getState().loadSnapshot(buildSnapshotFromRequest(requestDto({ budgetRange: 'UNDISCLOSED', budgetEstimateRon: null, budgetDeclared: false })));
+    expect(useConfiguratorStore.getState().details.budgetRange).toBe('UNDISCLOSED');
+  });
+
+  it('through the wizard: the edit opens with the declared amount, or without a budget for an old request', async () => {
+    const mountEdit = () => {
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      clients.push(client);
+      return render(<QueryClientProvider client={client}><NextIntlClientProvider locale="en" messages={en}><ConfiguratorWizard editId="req-1" /></NextIntlClientProvider></QueryClientProvider>);
+    };
+    vi.stubGlobal('fetch', vi.fn(async () => response(requestDto({ budgetRange: 'FROM_5K_TO_15K', budgetEstimateRon: 12000, budgetDeclared: true }))));
+    const first = mountEdit();
+    await waitFor(() => expect(useConfiguratorStore.getState().startMode).toBe('DESIGN_HELP'));
+    expect(useConfiguratorStore.getState().details.budgetEstimateRon).toBe(12000);
+    first.unmount();
+    leaveEditSession();
+    sessionStorage.clear();
+
+    vi.stubGlobal('fetch', vi.fn(async () => response(requestDto({ budgetRange: 'OVER_15K', budgetEstimateRon: 25000, budgetDeclared: false }))));
+    const second = mountEdit();
+    await waitFor(() => expect(useConfiguratorStore.getState().startMode).toBe('DESIGN_HELP'));
+    expect(useConfiguratorStore.getState().details.budgetEstimateRon).toBeUndefined();
+    expect(useConfiguratorStore.getState().details.city).toBe('Cluj');
+    // demontat inainte de curatenie (altfel scrollTo ruleaza dupa ce stub-ul a fost scos)
+    second.unmount();
   });
 });
 

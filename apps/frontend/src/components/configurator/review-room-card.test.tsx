@@ -8,6 +8,7 @@ import { ReviewRoomCard } from './review-room-card';
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>
     key === 'review.issueRoomStep' && values ? `${key}:${String(values.step)}` : key,
+  useFormatter: () => ({ number: (value: number) => String(value) }),
 }));
 
 describe('new furniture review contracts', () => {

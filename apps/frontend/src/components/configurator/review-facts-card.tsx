@@ -1,12 +1,13 @@
 'use client';
 
-import { resolveBudgetFields, type BudgetRange } from '@marketplace/shared';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Pencil } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { useBudgetFormat } from '@/hooks/use-budget-format';
 import type { DetailsValues, StartMode } from '@/stores/configurator-store';
+import { isBudgetChosen } from './budget-choice';
 
 // Compozitie adaptata din Cozy-Mobilaunicat; contractul si publicarea raman ale marketplace-ului.
 // Rand de fapt: eticheta in stanga, valoarea in dreapta ei (pe telefon, dedesubt).
@@ -28,13 +29,11 @@ export function ReviewFactsCard({ details, complete, mode, helpRooms = [], onEdi
 }) {
   const t = useTranslations('Configurator');
   const tr = useTranslations('Requests');
-  const format = useFormatter();
+  const budgetFormat = useBudgetFormat();
   const missing = t('review.facts.notProvided');
-  // eticheta bucket-ului derivata din estimarea RON (aceeasi regula ca serverul):
-  // un draft vechi nu mai arata "Sub 5.000 RON" langa 33.000 RON
-  const budget = details.budgetRange
-    ? resolveBudgetFields(details.budgetRange as BudgetRange, details.budgetEstimateRon).budgetRange
-    : undefined;
+  // b11: suma aleasa in lei (acelasi format ca la firma) sau 'Buget nedeclarat'; fara trepte.
+  // Neales inca = Necompletat (ciorna veche cu bugetul pus din oficiu cere alegerea din nou).
+  const budgetText = isBudgetChosen(details) ? budgetFormat.amount({ budgetRange: details.budgetRange, budgetEstimateRon: details.budgetEstimateRon }) : missing;
   // "Cine vede cererea" (cele doua note de vizibilitate) sta in coloana de publicare a sumarului
   return <section aria-labelledby="review-facts-title" className="rounded-xl border border-border bg-surface">
     <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4 sm:px-6">
@@ -47,12 +46,7 @@ export function ReviewFactsCard({ details, complete, mode, helpRooms = [], onEdi
       {!complete && <Alert tone="amber" className="mt-3">{t('review.detailsIncomplete')}</Alert>}
       <dl className="text-sm">
         <Fact label={tr('field.budgetRange')}>
-          {budget && tr.has(`budget.${budget}`) ? tr(`budget.${budget}`) : missing}
-          {budget && budget !== 'UNDISCLOSED' && typeof details.budgetEstimateRon === 'number' && (
-            <span className="mt-0.5 block text-ui font-normal text-muted-foreground">{t('review.facts.estimate', {
-              amount: format.number(details.budgetEstimateRon, { style: 'currency', currency: 'RON', maximumFractionDigits: 0 }),
-            })}</span>
-          )}
+          {budgetText}
         </Fact>
         <Fact label={t('review.facts.deadline')}>{details.deadlineBucket && tr.has(`deadline.${details.deadlineBucket}`) ? tr(`deadline.${details.deadlineBucket}`) : missing}</Fact>
         <Fact label={t('review.facts.location')}>{[details.addressText, details.city, details.county, details.country ?? 'RO'].filter(Boolean).join(', ')}</Fact>

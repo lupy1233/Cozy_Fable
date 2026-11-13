@@ -10,6 +10,12 @@ import {
   resolveAttachmentMime,
   BUDGET_RON_PER_POINT,
   budgetRangeFromRon,
+  budgetSliderBounds,
+  budgetView,
+  BUDGET_SLIDER_FALLBACK,
+  isBudgetBelowEstimate,
+  firmBudgetView,
+  sizingBudgetRange,
   CLAIM_COST_DEFAULTS,
   configuratorContentSchema,
   CREDIT_VALUE_RON,
@@ -169,6 +175,75 @@ describe('resolveClaimCostRules', () => {
       min: 3,
       max: 25,
     });
+  });
+});
+
+describe('budgetView (b11)', () => {
+  it('suma aleasa de client = DECLARED', () => {
+    expect(budgetView({ budgetRange: 'OVER_15K', budgetEstimateRon: 12000, budgetDeclared: true })).toEqual({ kind: 'DECLARED', amountRon: 12000 });
+  });
+  it('cerere veche cu suma = INDICATIVE (fara "declarat de client")', () => {
+    expect(budgetView({ budgetRange: 'OVER_15K', budgetEstimateRon: 33000, budgetDeclared: false })).toEqual({ kind: 'INDICATIVE', amountRon: 33000 });
+    expect(budgetView({ budgetRange: 'OVER_15K', budgetEstimateRon: 33000 })).toEqual({ kind: 'INDICATIVE', amountRon: 33000 });
+  });
+  it('fara suma sau "Prefer sa nu spun" = nedeclarat, niciodata o treapta', () => {
+    expect(budgetView({ budgetRange: 'UNDER_5K', budgetEstimateRon: null, budgetDeclared: false })).toEqual({ kind: 'UNDISCLOSED', amountRon: null });
+    expect(budgetView({ budgetRange: 'UNDISCLOSED', budgetEstimateRon: 9000, budgetDeclared: true })).toEqual({ kind: 'UNDISCLOSED', amountRon: null });
+  });
+});
+
+describe('firmBudgetView (b11 / M2)', () => {
+  it('the firm sees only an amount chosen by the client', () => {
+    expect(firmBudgetView({ budgetRange: 'OVER_15K', budgetEstimateRon: 20000, budgetDeclared: true })).toEqual({ kind: 'DECLARED', amountRon: 20000 });
+    expect(firmBudgetView({ budgetRange: 'OVER_15K', budgetEstimateRon: 24000, budgetDeclared: false })).toEqual({ kind: 'UNDISCLOSED', amountRon: null });
+    expect(firmBudgetView({ budgetRange: 'UNDISCLOSED', budgetEstimateRon: null })).toEqual({ kind: 'UNDISCLOSED', amountRon: null });
+  });
+});
+
+describe('sizingBudgetRange (b11 / M3)', () => {
+  it('the band used for the project size never goes below the estimate minimum', () => {
+    expect(sizingBudgetRange('FROM_5K_TO_15K', 8000, 24000)).toBe('OVER_15K');
+    expect(sizingBudgetRange('OVER_15K', 24000, 24000)).toBe('OVER_15K');
+    expect(sizingBudgetRange('OVER_15K', 50000, 24000)).toBe('OVER_15K');
+    expect(sizingBudgetRange('FROM_5K_TO_15K', 12000, 9000)).toBe('FROM_5K_TO_15K');
+    expect(sizingBudgetRange('UNDER_5K', 3000, 0)).toBe('UNDER_5K');
+  });
+  it('"I prefer not to share" stays undisclosed; no amount keeps the sent band', () => {
+    expect(sizingBudgetRange('UNDISCLOSED', null, 24000)).toBe('UNDISCLOSED');
+    expect(sizingBudgetRange('UNDER_5K', undefined, 24000)).toBe('UNDER_5K');
+  });
+});
+
+describe('configuratorContentSchema budget (m1)', () => {
+  it('rejects an amount under the slider step', () => {
+    const base = { budgetRange: 'UNDER_5K', hasOwnProject: false, addressText: 'Str. 1', county: 'Cluj', city: 'Cluj', rooms: [{ roomType: 'KITCHEN', flowVersion: 1, answers: {} }], contactPreferences: [{ channel: 'EMAIL', value: 'a@b.ro' }] };
+    expect(configuratorContentSchema.safeParse({ ...base, budgetEstimateRon: 0 }).success).toBe(false);
+    expect(configuratorContentSchema.safeParse({ ...base, budgetEstimateRon: 499 }).success).toBe(false);
+    expect(configuratorContentSchema.safeParse({ ...base, budgetEstimateRon: 500 }).success).toBe(true);
+  });
+});
+
+describe('budgetSliderBounds (b11-2)', () => {
+  it('coboara la o treime din estimare, rotunjit in jos la 500 lei', () => {
+    expect(budgetSliderBounds({ minRon: 25000, maxRon: 75000 })).toEqual({ minRon: 8000, maxRon: 75000 });
+    expect(budgetSliderBounds({ minRon: 33000, maxRon: 99000 })).toEqual({ minRon: 11000, maxRon: 99000 });
+  });
+  it('estimare foarte mica: minimul nu scade sub un pas', () => {
+    expect(budgetSliderBounds({ minRon: 1000, maxRon: 3000 })).toEqual({ minRon: 500, maxRon: 3000 });
+  });
+  it('fara estimare: scara fixa', () => {
+    expect(budgetSliderBounds(null)).toEqual(BUDGET_SLIDER_FALLBACK);
+    expect(budgetSliderBounds({ minRon: 0, maxRon: 0 })).toEqual(BUDGET_SLIDER_FALLBACK);
+  });
+});
+
+describe('isBudgetBelowEstimate (b11-2)', () => {
+  it('doar o suma aleasa sub minimul estimarii', () => {
+    expect(isBudgetBelowEstimate(10000, 25000)).toBe(true);
+    expect(isBudgetBelowEstimate(25000, 25000)).toBe(false);
+    expect(isBudgetBelowEstimate(null, 25000)).toBe(false);
+    expect(isBudgetBelowEstimate(10000, null)).toBe(false);
+    expect(isBudgetBelowEstimate(10000, 0)).toBe(false);
   });
 });
 

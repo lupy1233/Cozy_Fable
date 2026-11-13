@@ -590,6 +590,8 @@ model Request {
   budgetRange        BudgetRange?  @map("budget_range")
   // bugetul ales pe sliderul estimat din scor (F5, item 18); bucket-ul ramane pentru filtre
   budgetEstimateRon  Int?          @map("budget_estimate_ron")
+  // b11: suma aleasa de client pe glisor (formularul nou); false = cerere veche / nedeclarat
+  budgetDeclared     Boolean       @default(false) @map("budget_declared")
   deadlineBucket     DesiredDeadlineBucket? @map("desired_deadline_bucket")
   includesPaidDesign Boolean       @default(false) @map("includes_paid_design")
   hasOwnProject      Boolean       @default(false) @map("has_own_project")

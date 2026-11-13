@@ -15,10 +15,10 @@ import { buildPiecesItems, pieceChoiceOptions, type PieceDef } from './pieces-fl
 const F = 'flows.LAUNDRY';
 
 const PIECES: PieceDef[] = [
-  { value: 'APPLIANCE_HOUSING', icon: 'washing-machine', itemName: 'Dulap incastrare electrocasnice' },
+  { value: 'APPLIANCE_HOUSING', icon: 'washing-machine', itemName: 'Dulap încastrare electrocasnice' },
   { value: 'STORAGE', icon: 'archive', itemName: 'Dulapuri depozitare' },
   { value: 'COUNTERTOP', icon: 'ruler', itemName: 'Blat de lucru' },
-  { value: 'SINK_UNIT', icon: 'droplets', itemName: 'Corp cuva tehnica' },
+  { value: 'SINK_UNIT', icon: 'droplets', itemName: 'Corp cu cuvă' },
 ];
 
 const dimensionsStep: DimensionGroupStep = {
@@ -113,6 +113,6 @@ export const laundryFlow: RoomFlow = {
     widthM: STANDARD_CABINET_DEPTH,
     heightM: dimensionValues(answers, 'dimensions').ceilingHeight ?? DEFAULT_CEILING_HEIGHT,
     // material comun pe camera (answers.material) + fara sisteme daca nu se cer
-    items: buildPiecesItems(answers, PIECES, 'Mobilier spalatorie'),
+    items: buildPiecesItems(answers, PIECES, 'Mobilier spălătorie'),
   }),
 };

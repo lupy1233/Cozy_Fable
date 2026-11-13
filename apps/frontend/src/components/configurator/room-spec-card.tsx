@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ROOM_KIND,
   summarizeAnswers,
   type AnswerMap,
   type AnswerSummaryEntry,
@@ -9,7 +10,7 @@ import {
   type RequestRoomDto,
 } from '@marketplace/shared';
 import { Layers, MoveDiagonal, NotebookPen, Paperclip, Rotate3d, Sparkles } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { ContactSafeText } from '@/components/ui/contact-safe-text';
@@ -27,9 +28,8 @@ import { PieceViewer3dDialog } from './piece3d/dynamic';
 // intrebarile de material/sisteme sunt deja reprezentate de items-urile derivate
 const MATERIAL_STEP = /^(material|frontMaterial|openingSystems|systems)/;
 
-function fmtDim(v: number): string {
-  return Number.isInteger(v) ? String(v) : v.toFixed(2).replace(/0$/, '');
-}
+// eticheta slotului de tavan (ceilingHeightSlot din shared) — singura sursa a inaltimii date de client
+const CEILING_SLOT_LABEL = 'common.slots.ceilingHeight';
 
 export function RoomSpecCard({
   room,
@@ -46,6 +46,7 @@ export function RoomSpecCard({
 }) {
   const t = useTranslations('Configurator');
   const tr = useTranslations('Requests');
+  const format = useFormatter();
   // viewerul 3D read-only al piesei configurate de client (U4, PO r4)
   const [viewer3d, setViewer3d] = useState(false);
 
@@ -91,6 +92,26 @@ export function RoomSpecCard({
     return '';
   };
 
+  // antetul camerei (d1): metri liniari de mobilier (lengthM, pentru camere = suma fronturilor)
+  // si tavanul raspuns de client (slotul ceilingHeight), formatate dupa limba aplicatiei
+  const fmtM = (v: number) => format.number(v, { maximumFractionDigits: 2 });
+  const isRoom = ROOM_KIND[room.roomType] === 'room';
+  const ceiling = dims?.slots.find((s) => s.labelKey === CEILING_SLOT_LABEL)?.value;
+  const headerParts: string[] = [];
+  if (!designHelp && room.lengthM > 0) headerParts.push(t('roomSpec.furnitureLinear', { m: format.number(room.lengthM, { maximumFractionDigits: 1 }) }));
+  if (typeof ceiling === 'number' && ceiling > 0) headerParts.push(t('roomSpec.ceilingHeight', { m: fmtM(ceiling) }));
+  // m4: cererile din formularul manual de dinainte de configurator (answers NULL) au
+  // lungimea / latimea / inaltimea scrise chiar de client → raman "L × l × H m".
+  // O camera din configurator are mereu answers (cea cu ajutor: {} sau doar schitele).
+  const legacy = room.answers == null;
+  const legacyDims = room.lengthM > 0 && room.widthM > 0 && room.heightM > 0
+    ? `${fmtM(room.lengthM)} × ${fmtM(room.widthM)} × ${fmtM(room.heightM)} m`
+    : t('roomSpec.dimsUnknown');
+  const showHeader = legacy || isRoom;
+  const headerText = legacy
+    ? legacyDims
+    : headerParts.length > 0 ? headerParts.join(' · ') : t('roomSpec.dimsUnknown');
+
   const itemLine = (it: RequestItemDto) => {
     const systems = it.systems.map((s) => t(`common.systems.${s}.label`)).join(', ');
     return { material: t(`common.materials.${it.material}.label`), systems };
@@ -112,14 +133,17 @@ export function RoomSpecCard({
             {t(`rooms.type.${room.roomType}`)}
           </h3>
         </div>
-        <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
-          <MoveDiagonal className="h-3.5 w-3.5" />
-          {/* proiect propriu / brief de proiectare: dimensiunile pot lipsi (0 m) —
-              nu afisam un gabarit fals de tip "0 × 0.6 × 2.6 m" */}
-          {room.lengthM <= 0 || room.widthM <= 0 || room.heightM <= 0
-            ? t('roomSpec.dimsUnknown')
-            : `${fmtDim(room.lengthM)} × ${fmtDim(room.widthM)} × ${fmtDim(room.heightM)} m`}
-        </span>
+        {/* d1: nu mai aratam "L × l × H" — erau trei numere calculate (metri liniari,
+            adancimea standard 0,6 m, tavanul sau 2,6 m implicit), nu dimensiunile camerei.
+            La camere: mobilierul in metri liniari, doar cand exista, si tavanul, doar daca
+            l-a dat clientul. La piese gabaritul e deja in chips / dimensiunile raspunse.
+            Exceptie: camerele legacy (fara answers), unde L × l × H sunt ale clientului. */}
+        {showHeader && (
+          <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground" data-room-spec-header>
+            <MoveDiagonal aria-hidden className="h-3.5 w-3.5" />
+            {headerText}
+          </span>
+        )}
       </div>
 
       <div className="flex flex-col gap-4 p-4">
@@ -129,7 +153,11 @@ export function RoomSpecCard({
             className="flex items-start gap-2 rounded-lg border border-brass/40 bg-brass/10 px-3 py-2.5 text-sm font-medium"
           >
             <Sparkles aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-brass-2" />
-            {t(audience === 'client' ? 'roomSpec.designHelpClient' : 'roomSpec.designHelpCompany')}
+            {/* d1: camera vine fara piese si dimensiuni — nimic pus din oficiu */}
+            <span>
+              {t(audience === 'client' ? 'roomSpec.designHelpClient' : 'roomSpec.designHelpCompany')}
+              <span className="block font-normal text-muted-foreground">{t('roomSpec.designHelpDetails')}</span>
+            </span>
           </p>
         )}
 
@@ -232,7 +260,7 @@ export function RoomSpecCard({
         {/* dimensiunile raspunse (sloturile exacte) */}
         {dims && dims.slots.length > 0 && (
           <p className="font-mono text-xs text-muted-foreground">
-            {dims.slots.map((s) => `${t(s.labelKey)}: ${s.value} m`).join(' · ')}
+            {dims.slots.map((s) => `${t(s.labelKey)}: ${fmtM(s.value)} m`).join(' · ')}
           </p>
         )}
 

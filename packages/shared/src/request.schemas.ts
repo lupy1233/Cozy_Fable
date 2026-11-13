@@ -98,6 +98,73 @@ export function resolveBudgetFields(
   return { budgetRange: range, budgetEstimateRon: null };
 }
 
+// b11 (PO 2026-11-13): treptele nu se mai arata pe ecrane — peste tot apare suma aleasa sau
+// "Buget nedeclarat". DECLARED = suma aleasa de client (budget_declared); INDICATIVE = suma
+// unei cereri vechi, despre care nu se stie daca a ales-o clientul sau a pus-o formularul.
+// O cerere veche cu treapta dar fara suma = nedeclarat (treapta era pusa din oficiu).
+export type BudgetViewKind = 'DECLARED' | 'INDICATIVE' | 'UNDISCLOSED';
+export interface BudgetView {
+  kind: BudgetViewKind;
+  amountRon: number | null;
+}
+
+export function budgetView(input: {
+  budgetRange: BudgetRange | string | null | undefined;
+  budgetEstimateRon?: number | null;
+  budgetDeclared?: boolean | null;
+}): BudgetView {
+  const ron = input.budgetEstimateRon;
+  if (input.budgetRange === 'UNDISCLOSED' || typeof ron !== 'number') return { kind: 'UNDISCLOSED', amountRon: null };
+  return { kind: input.budgetDeclared === true ? 'DECLARED' : 'INDICATIVE', amountRon: ron };
+}
+
+// b11 / M2 (coordonator 2026-11-13): firma vede doar o suma aleasa de client. INDICATIVE (cerere
+// veche, suma posibil pusa de formular) o vad doar clientul si adminul; firma vede "Buget
+// nedeclarat". Serverul nici nu trimite firmei suma nedeclarata.
+export function firmBudgetView(input: Parameters<typeof budgetView>[0]): BudgetView {
+  const v = budgetView(input);
+  return v.kind === 'DECLARED' ? v : { kind: 'UNDISCLOSED', amountRon: null };
+}
+
+// b11 / M3 (aleasa de coordonator 2026-11-13, de confirmat de PO): marimea proiectului (S/M/L →
+// SLA, filtrul de marime) nu scade cand clientul declara un buget sub estimare. Inainte formularul
+// pornea de la minimul estimarii si urca doar daca clientul alegea mai mult, deci treapta pentru
+// marime = treapta lui max(suma, minimul estimarii din raspunsuri). "Prefer sa nu spun" ramane
+// UNDISCLOSED; fara suma (interfata veche) ramane treapta trimisa. Costul in credite nu depinde
+// de treapta (vine din scorul de baza).
+export function sizingBudgetRange(
+  range: BudgetRange,
+  ron: number | null | undefined,
+  estimateMinRon: number | null | undefined,
+): BudgetRange {
+  if (range === 'UNDISCLOSED') return 'UNDISCLOSED';
+  if (typeof ron !== 'number') return range;
+  const floor = typeof estimateMinRon === 'number' && estimateMinRon > 0 ? estimateMinRon : 0;
+  return budgetRangeFromRon(Math.max(ron, floor));
+}
+
+// b11-2: glisorul coboara pana la o treime din estimare (rotunjit la pas), urca pana la plafonul
+// estimarii. Fara estimare (modul "Am nevoie de ajutor", scor 0): scara fixa de mai jos.
+// DECIZIE NECESARA PO: scara fara estimare (1.000 – 100.000 lei) e aleasa provizoriu.
+export const BUDGET_SLIDER_STEP_RON = 500;
+export const BUDGET_SLIDER_FALLBACK = { minRon: 1000, maxRon: 100_000 } as const;
+
+export function budgetSliderBounds(estimate: { minRon: number; maxRon: number } | null | undefined): {
+  minRon: number;
+  maxRon: number;
+} {
+  if (!estimate || estimate.minRon <= 0) return { ...BUDGET_SLIDER_FALLBACK };
+  const step = BUDGET_SLIDER_STEP_RON;
+  const minRon = Math.max(step, Math.floor(estimate.minRon / 3 / step) * step);
+  const maxRon = Math.max(minRon + step, Math.ceil(estimate.maxRon / step) * step);
+  return { minRon, maxRon };
+}
+
+// Suma declarata e sub estimarea din raspunsuri (nota la client si la firma)
+export function isBudgetBelowEstimate(amountRon: number | null | undefined, estimateMinRon: number | null | undefined): boolean {
+  return typeof amountRon === 'number' && typeof estimateMinRon === 'number' && estimateMinRon > 0 && amountRon < estimateMinRon;
+}
+
 // Un item dintr-o camera (corp de mobilier).
 export const requestItemSchema = z.object({
   name: z.string().trim().min(2, 'itemNameTooShort').max(150),
@@ -235,7 +302,11 @@ export const configuratorContentSchema = requestContentSchema
     includesPaidDesign: z.boolean().optional(),
     studioScenes: z.array(requestStudioSceneDataSchema).max(REQUEST_STUDIO_SCENES_MAX).optional(),
     // bugetul ales pe sliderul estimat (item 18); bucket-ul ramane sursa filtrelor
-    budgetEstimateRon: z.number().int().min(0).max(MAX_BUDGET_RON).optional(),
+    // m1: nu sub pasul glisorului (interfata nu trimite niciodata mai putin)
+    budgetEstimateRon: z.number().int().min(BUDGET_SLIDER_STEP_RON).max(MAX_BUDGET_RON).optional(),
+    // b11: true = suma a fost aleasa de client pe glisor (nu pusa de formular); serverul o
+    // pastreaza doar langa o suma. Lipsa (interfata veche) = false → "Buget orientativ".
+    budgetDeclared: z.boolean().optional(),
     // tara ISO2 (item 19) — implicit RO pe server; livram si international
     country: z
       .string()
@@ -429,6 +500,9 @@ export interface RequestDto {
   budgetRange: (typeof BUDGET_RANGES)[number];
   // bugetul ales pe sliderul estimat din scor (F5); null la cererile vechi
   budgetEstimateRon: number | null;
+  // b11: suma aleasa de client (false la cererile vechi si la "Prefer sa nu spun");
+  // optional doar pentru un slot vechi / fixture-uri — serverul il trimite mereu
+  budgetDeclared?: boolean;
   deadlineBucket: (typeof DEADLINE_BUCKETS)[number] | null;
   includesPaidDesign: boolean;
   hasOwnProject: boolean;
@@ -465,6 +539,9 @@ export interface RequestListItemDto {
   status: (typeof REQUEST_STATUSES)[number];
   title: string;
   budgetRange: (typeof BUDGET_RANGES)[number];
+  // b11: suma aleasa (afisata in loc de treapta); optionale pentru un slot vechi
+  budgetEstimateRon?: number | null;
+  budgetDeclared?: boolean;
   city: string;
   county: string;
   size: (typeof PROJECT_SIZES)[number] | null;

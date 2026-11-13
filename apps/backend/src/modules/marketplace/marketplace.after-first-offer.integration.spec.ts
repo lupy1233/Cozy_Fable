@@ -13,6 +13,9 @@ import {
 } from '../../test/money-fixtures';
 import { createMoneyServices, errorCode, errorStatus, ownerCtx } from '../../test/money-services';
 import { MarketplaceService } from './marketplace.service';
+import { MarketplaceBudgetEstimator } from './marketplace-budget-estimate';
+import { ConfiguratorService } from '../requests/configurator.service';
+import { SizingService } from '../sizing/sizing.service';
 
 // a1 (PO 2026-11-13) — cererea ramane deschisa dupa prima oferta pana se ocupa cele 3 locuri,
 // pe PostgreSQL real (TEST_DATABASE_URL; fara el se sare). Comutatorul e pus explicit pe 'true'
@@ -28,7 +31,7 @@ const url = testDatabaseUrl();
 function wire(dbUrl: string) {
   const { prisma } = createTestPrisma(dbUrl);
   const services = createMoneyServices(prisma);
-  const marketplace = new MarketplaceService(prisma, services.settings, services.uploads, services.calendar);
+  const marketplace = new MarketplaceService(prisma, services.settings, services.uploads, services.calendar, new MarketplaceBudgetEstimator(new ConfiguratorService(), new SizingService(prisma)));
   return { prisma, marketplace, ...services };
 }
 

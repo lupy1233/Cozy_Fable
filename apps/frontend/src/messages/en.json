@@ -1152,12 +1152,12 @@
     "editRequest": "Edit request ({remaining} left)",
     "editPostClaimWarning": "Companies have already claimed this request. You have one edit left: the project will be re-scored, companies keep the credits they've spent, and they may withdraw their claim after your changes. Continue?",
     "budget": {
-      "UNDER_5K": "Under 5,000 RON",
-      "FROM_5K_TO_15K": "5,000 – 15,000 RON",
-      "OVER_15K": "Over 15,000 RON",
+      "UNDER_5K": "Under 5,000 lei",
+      "FROM_5K_TO_15K": "5,000 – 15,000 lei",
+      "OVER_15K": "Over 15,000 lei",
       "UNDISCLOSED": "I prefer not to share"
     },
-    "budgetEstimateHint": "Rough estimate based on your answers: {min} – {max}. Pick the range you're comfortable with.",
+    "budgetEstimateHint": "Estimate from your answers: {min} – {max}. It's a guide worked out from the rooms and pieces you chose, not a company quote.",
     "deadline": {
       "none": "Not sure yet",
       "ASAP": "As soon as possible",
@@ -1240,7 +1240,8 @@
       "countryInvalid": "Invalid country.",
       "tooManyContacts": "You can add at most 4 contact entries.",
       "tooManyPerChannel": "You can add at most 2 entries per channel.",
-      "descriptionTooLong": "Message is too long."
+      "descriptionTooLong": "Message is too long.",
+      "budgetRequired": "Choose an amount or tick “I prefer not to share”."
     },
     "apiErrors": {
       "GEOCODING_FAILED": "We couldn't locate that address. Check it and try again.",
@@ -1369,6 +1370,16 @@
     "deleteSection": {
       "title": "Deleting the request",
       "hint": "Companies' active claims will be cancelled. We'll ask you to confirm first."
+    },
+    "budgetNoEstimateHint": "Choose the amount you'd like to spend. Companies see it as a guide for their quote.",
+    "budgetChoose": "Choose the amount",
+    "budgetEstimateMark": "Estimate: {amount}",
+    "budgetBelowEstimateNote": "This amount is below the estimate from your answers. The furniture is unlikely to fit this budget, and companies are more likely to pass on the request.",
+    "budgetView": {
+      "undisclosed": "Budget not stated",
+      "declaredLabel": "Budget stated by the client",
+      "estimateLabel": "Estimate from answers",
+      "belowEstimate": "Below the estimate from answers"
     }
   },
   "Marketplace": {
@@ -1620,7 +1631,11 @@
       "none": "Your firm has no active subscription.",
       "credits": "Your credits ({n}) stay in your account, but you can use them only after you reactivate. You can finish the claims you already have.",
       "reactivate": "Reactivate subscription"
-    }
+    },
+    "minBudget": "Minimum budget",
+    "minBudgetAny": "Any",
+    "minBudgetFrom": "from {amount}",
+    "minBudgetHint": "Once you set a minimum, requests without a stated budget are hidden."
   },
   "Chat": {
     "empty": "No messages yet. Write the first one.",
@@ -1673,7 +1688,6 @@
       "slaGrace": "Deadline passed — {left} of grace left before the penalty",
       "slaBreached": "The deadline and grace period have passed — the claim closes shortly",
       "slaOfferSent": "Offer sent — the SLA deadline no longer applies",
-      "budgetLabel": "Client's budget",
       "deadlineLine": "Desired deadline: {deadline}",
       "clientSection": "Your client",
       "clientHidden": "The client's contact details are no longer visible — this claim is no longer active.",
@@ -3827,7 +3841,6 @@
       "filesTitle": "Project files",
       "facts": {
         "notProvided": "Not provided",
-        "estimate": "Your estimated budget: {amount} — not a company quote",
         "deadline": "Desired timeframe",
         "location": "Installation location",
         "contact": "Contact channels",
@@ -6710,7 +6723,10 @@
     "roomSpec": {
       "dimsUnknown": "Dimensions not specified",
       "designHelpCompany": "The client asks for design help with this room",
-      "designHelpClient": "You asked for design help with this room"
+      "designHelpClient": "You asked for design help with this room",
+      "furnitureLinear": "Furniture: ~{m} linear m",
+      "ceilingHeight": "Ceiling: {m} m",
+      "designHelpDetails": "The details are agreed with the company."
     },
     "contactInText": {
       "hint": "It looks like you typed a phone number, email or link. Companies can't see these before they claim your request: add them in the Contact step and only the companies that claim it will get them.",

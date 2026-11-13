@@ -1,5 +1,6 @@
-import { CURRENT_FLOW_VERSION, ERROR_CODES } from '@marketplace/shared';
+import { collectScoreEntries, CURRENT_FLOW_VERSION, ERROR_CODES, type AnswerMap } from '@marketplace/shared';
 import { BadRequestException } from '@nestjs/common';
+import { computeSizing, type SizingConfigRow } from '../sizing/sizing.service';
 import { ConfiguratorService, droppedDesignHelpUploadIds, type ProcessedRoom } from './configurator.service';
 import type { ConfiguratorRoomInputDto } from './dto/request.dto';
 
@@ -63,6 +64,59 @@ describe('ConfiguratorService', () => {
     expect(droppedDesignHelpUploadIds(raw, processed.rooms)).toEqual([SNAP]);
     // o camera fara ajutor nu raporteaza nimic
     expect(droppedDesignHelpUploadIds([{ ...raw[0], needsDesignHelp: false }], processed.rooms)).toEqual([]);
+  });
+
+  // d1 (PO d1-1): camera cu ajutor nu primeste piese, materiale si dimensiuni inventate
+  it('a design-help room gets no generated items and no made-up dimensions', () => {
+    const rooms = [
+      { roomType: 'KITCHEN', flowVersion: CURRENT_FLOW_VERSION.KITCHEN, answers: {}, needsDesignHelp: true },
+      { ...bedroom(), needsDesignHelp: true },
+    ] as ConfiguratorRoomInputDto[];
+    const processed = service.processRooms(rooms);
+    for (const room of processed.rooms) {
+      expect(room.derived).toEqual({ lengthM: 0, widthM: 0, heightM: 0, items: [] });
+      expect(room.scoreEntries.some((e) => e.category === 'MATERIAL' || e.category === 'SYSTEM')).toBe(false);
+    }
+  });
+
+  describe('credit cost with design help (d1-1: the cost goes down)', () => {
+    // greutatile din prisma/seed.ts (doar categoriile atinse aici)
+    const W: SizingConfigRow[] = [
+      ['ROOM_TYPE', 'KITCHEN', 8], ['ROOM_TYPE', 'BEDROOM', 4],
+      ['ROOM_SIZE', 'UNDER_2M', 1], ['ROOM_SIZE', 'FROM_2_TO_4M', 3], ['ROOM_SIZE', 'OVER_4M', 5],
+      ['MATERIAL', 'PAL', 1], ['MATERIAL', 'MDF_INFOLIAT', 2],
+      ['SYSTEM', 'MANER', 1], ['SYSTEM', 'PUSH', 2], ['SYSTEM', 'GLISANTE', 3],
+      ['ITEM_QUANTITY', 'QTY_1', 0], ['ITEM_QUANTITY', 'QTY_2_3', 2], ['ITEM_QUANTITY', 'QTY_4_PLUS', 4],
+      ['KITCHEN_LAYOUT', 'STRAIGHT', 1], ['KITCHEN_COUNTERTOP', 'PAL', 0],
+    ].map(([key, option, weight]) => ({ key: key as string, option: option as string, weight: weight as number }));
+    const thresholds = [{ size: 'S', minScore: 0, maxScore: null }];
+    const kitchen = {
+      roomType: 'KITCHEN', flowVersion: CURRENT_FLOW_VERSION.KITCHEN,
+      answers: { layout: 'STRAIGHT', hasIsland: false, dimensions: { runA: 3, ceilingHeight: 2.6 }, frontMaterialBase: 'PAL', openingSystemsBase: ['PUSH'], openingSystemsWall: ['PUSH'], countertop: 'PAL' },
+    } as unknown as ConfiguratorRoomInputDto;
+    const room2 = bedroom({ piecesNeeded: ['WARDROBE'], wardrobeDoorType: 'SLIDING', dimensions: { wardrobeWidth: 2.4, ceilingHeight: 2.6 }, materialWardrobe: 'MDF_INFOLIAT', systemsWardrobe: ['GLISANTE'] });
+    const cost = (rooms: ConfiguratorRoomInputDto[]) =>
+      computeSizing(W, thresholds, { scoreEntries: service.processRooms(rooms).scoreEntries, budgetRange: 'UNDISCLOSED', includesPaidDesign: false }).creditCost;
+    // costul vechi: camera bifata primea piesele implicite (ce facea deriveRoom pe raspunsuri goale)
+    const oldCost = (rooms: ConfiguratorRoomInputDto[]) =>
+      computeSizing(W, thresholds, {
+        scoreEntries: rooms.flatMap((r) => collectScoreEntries(r.roomType, r.needsDesignHelp ? {} : (r.answers as AnswerMap), r.flowVersion)),
+        budgetRange: 'UNDISCLOSED', includesPaidDesign: false,
+      }).creditCost;
+    const help = (r: ConfiguratorRoomInputDto) => ({ ...r, answers: {}, needsDesignHelp: true });
+
+    it('all rooms with help: 19 -> 14 credits', () => {
+      const rooms = [help(kitchen), help(room2)];
+      expect([oldCost(rooms), cost(rooms)]).toEqual([19, 14]);
+    });
+    it('one room of two with help: 25 -> 21 credits', () => {
+      const rooms = [help(kitchen), room2];
+      expect([oldCost(rooms), cost(rooms)]).toEqual([25, 21]);
+    });
+    it('no room with help: unchanged (32 credits)', () => {
+      const rooms = [kitchen, room2];
+      expect([oldCost(rooms), cost(rooms)]).toEqual([32, 32]);
+    });
   });
 
   it('passesStrictValidation: an empty room fails, without throwing', () => {

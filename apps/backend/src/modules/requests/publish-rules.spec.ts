@@ -1,6 +1,15 @@
 import { BadRequestException } from '@nestjs/common';
-import { ERROR_CODES } from '@marketplace/shared';
-import { normalizeBudget, projectFileCount, resolveDesignHelp, studioSourceIds } from './publish-rules';
+import {
+  BUDGET_RANGE_FACTOR,
+  BUDGET_RON_PER_POINT,
+  budgetRangeFromRon,
+  ERROR_CODES,
+  resolveBudgetFields,
+  type BudgetRange,
+  type ScoreEntry,
+} from '@marketplace/shared';
+import { computeSizing } from '../sizing/sizing.service';
+import { normalizeBudget, projectFileCount, resolveDesignHelp, sizeWithBudgetFloor, studioSourceIds } from './publish-rules';
 import type { CreateRequestContentDto } from './dto/request.dto';
 
 function dto(partial: Partial<CreateRequestContentDto>): CreateRequestContentDto {
@@ -24,6 +33,102 @@ describe('publish rules', () => {
     const out = normalizeBudget(dto({ budgetRange: 'FROM_5K_TO_15K' }));
     expect(out.budgetRange).toBe('FROM_5K_TO_15K');
     expect(out.budgetEstimateRon).toBeUndefined();
+  });
+
+  // b11: "declarat de client" doar langa o suma aleasa
+  it('keeps budgetDeclared only next to an amount', () => {
+    expect(normalizeBudget(dto({ budgetRange: 'OVER_15K', budgetEstimateRon: 12000, budgetDeclared: true })).budgetDeclared).toBe(true);
+    expect(normalizeBudget(dto({ budgetRange: 'OVER_15K', budgetEstimateRon: 12000 })).budgetDeclared).toBe(false);
+    expect(normalizeBudget(dto({ budgetRange: 'UNDISCLOSED' })).budgetDeclared).toBe(false);
+  });
+
+  // m1: budgetDeclared fara suma (sau langa "Prefer sa nu spun") = 400 VALIDATION_ERROR
+  it('rejects budgetDeclared without an amount', () => {
+    for (const bad of [
+      dto({ budgetRange: 'UNDER_5K', budgetDeclared: true }),
+      dto({ budgetRange: 'UNDISCLOSED', budgetEstimateRon: 12000, budgetDeclared: true }),
+    ]) {
+      let err: unknown;
+      try {
+        normalizeBudget(bad);
+      } catch (e) {
+        err = e;
+      }
+      expect(err).toBeInstanceOf(BadRequestException);
+      expect((err as BadRequestException).getResponse()).toMatchObject({
+        code: ERROR_CODES.VALIDATION_ERROR,
+        details: [{ field: 'budgetDeclared', messageKey: 'validation.budgetRequired' }],
+      });
+    }
+  });
+
+  // M3 (obligatoriu, regula aleasa de coordonator): pentru aceeasi cerere, marimea de acum e cea de
+  // la commitul f10eac4, unde formularul punea din oficiu minimul estimarii, iar clientul putea
+  // doar urca pana la 3× minimul. Costul in credite e acelasi (scorul de baza).
+  describe('project size matches f10eac4 for the same request (M3)', () => {
+    const config = [
+      { key: 'ROOM_TYPE', option: 'KITCHEN', weight: 12 },
+      { key: 'BUDGET', option: 'UNDER_5K', weight: 0 },
+      { key: 'BUDGET', option: 'FROM_5K_TO_15K', weight: 5 },
+      { key: 'BUDGET', option: 'OVER_15K', weight: 10 },
+      { key: 'BUDGET', option: 'UNDISCLOSED', weight: 3 },
+    ];
+    const thresholds = [
+      { size: 'SMALL', minScore: 0, maxScore: 15 },
+      { size: 'MEDIUM', minScore: 16, maxScore: 21 },
+      { size: 'LARGE', minScore: 22, maxScore: null },
+    ];
+    const scoreEntries = [{ category: 'ROOM_TYPE', optionKey: 'KITCHEN' }] as ScoreEntry[];
+    const compute = async (budgetRange: BudgetRange) =>
+      computeSizing(config, thresholds, { scoreEntries, budgetRange, includesPaidDesign: false });
+    // estimarea pentru camerele de mai sus: scor de baza 12 → 12.000 – 36.000 lei
+    const MIN = 12 * BUDGET_RON_PER_POINT;
+    const MAX = MIN * BUDGET_RANGE_FACTOR;
+
+    // f10eac4: glisorul pornea pe minim (pus din oficiu) si nu cobora sub el; treapta din suma
+    async function sizeAtF10eac4(choice: number | 'UNDISCLOSED') {
+      const range = choice === 'UNDISCLOSED'
+        ? 'UNDISCLOSED'
+        : resolveBudgetFields('UNDER_5K', Math.min(Math.max(choice, MIN), MAX)).budgetRange;
+      return compute(range);
+    }
+    // acum: interfata trimite treapta sumei alese (budgetPayload), serverul aplica pragul estimarii
+    async function sizeNow(choice: number | 'UNDISCLOSED') {
+      const sent = normalizeBudget(choice === 'UNDISCLOSED'
+        ? dto({ budgetRange: 'UNDISCLOSED' })
+        : dto({ budgetRange: budgetRangeFromRon(choice), budgetEstimateRon: choice, budgetDeclared: true }));
+      const out = await sizeWithBudgetFloor(sent, compute);
+      return { ...out.sizing, savedRange: out.budgetRange };
+    }
+
+    it.each([
+      ['below the estimate', 4000, 'MEDIUM', 'FROM_5K_TO_15K'],
+      ['equal to the estimate', MIN, 'MEDIUM', 'FROM_5K_TO_15K'],
+      ['above the estimate', 30000, 'LARGE', 'OVER_15K'],
+      ['undisclosed', 'UNDISCLOSED', 'SMALL', 'UNDISCLOSED'],
+    ] as const)('%s', async (_name, choice, size, savedRange) => {
+      const before = await sizeAtF10eac4(choice);
+      const now = await sizeNow(choice);
+      expect(now.size).toBe(before.size);
+      expect(now.size).toBe(size);
+      expect(now.score).toBe(before.score);
+      expect(now.creditCost).toBe(before.creditCost);
+      // treapta salvata pe cerere = cea folosita la marime
+      expect(now.savedRange).toBe(savedRange);
+    });
+
+    it('without the floor the size would drop (the rule is what keeps it)', async () => {
+      expect((await compute(budgetRangeFromRon(4000))).size).toBe('SMALL');
+    });
+
+    it('a second sizing pass only when the band changes', async () => {
+      const spy = jest.fn(compute);
+      await sizeWithBudgetFloor({ budgetRange: 'OVER_15K', budgetEstimateRon: 30000 }, spy);
+      expect(spy).toHaveBeenCalledTimes(1);
+      spy.mockClear();
+      await sizeWithBudgetFloor({ budgetRange: 'UNDER_5K', budgetEstimateRon: 4000 }, spy);
+      expect(spy.mock.calls.map((c) => c[0])).toEqual(['UNDER_5K', 'FROM_5K_TO_15K']);
+    });
   });
 
   it('counts only SAFE attachments that no room references', () => {

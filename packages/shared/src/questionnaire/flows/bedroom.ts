@@ -16,8 +16,8 @@ const PIECES: PieceDef[] = [
   { value: 'WARDROBE', icon: 'door-closed', itemName: 'Dulap dormitor' },
   { value: 'BED_FRAME', icon: 'bed-double', itemName: 'Cadru pat' },
   { value: 'NIGHTSTANDS', icon: 'lamp', itemName: 'Noptiere', quantity: 2 },
-  { value: 'DRESSER', icon: 'archive', itemName: 'Comoda' },
-  { value: 'TV_UNIT', icon: 'tv', itemName: 'Comoda TV' },
+  { value: 'DRESSER', icon: 'archive', itemName: 'Comodă' },
+  { value: 'TV_UNIT', icon: 'tv', itemName: 'Comodă TV' },
 ];
 
 function dimensionSlots(answers: AnswerMap): DimensionSlot[] {

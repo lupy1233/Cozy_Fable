@@ -479,7 +479,7 @@ describe('kitchen v2 — insula ca add-on, intrebari per zona', () => {
     withOther.frontMaterialBaseOther = 'sticla mata';
     expect(validateRoomAnswers('KITCHEN', withOther, { partial: false, version: 2 })).toEqual({ ok: true });
     const derived = getFlow('KITCHEN', 2).deriveRoom(withOther);
-    const base = derived.items.find((it) => it.name === 'Corpuri baza');
+    const base = derived.items.find((it) => it.name === 'Corpuri de bază');
     expect(base?.material).toBe('ALTUL');
     expect(base?.description).toBe('Material dorit: sticla mata');
   });
@@ -509,10 +509,10 @@ describe('kitchen v2 — insula ca add-on, intrebari per zona', () => {
     const derived = getFlow('KITCHEN', 2).deriveRoom(kitchenV2Answers());
     expect(derived.items).toHaveLength(3);
     const byName = Object.fromEntries(derived.items.map((it) => [it.name, it]));
-    expect(byName['Corpuri baza'].material).toBe('PAL');
+    expect(byName['Corpuri de bază'].material).toBe('PAL');
     expect(byName['Corpuri suspendate'].material).toBe('MDF_VOPSIT');
-    expect(byName['Insula bucatarie'].material).toBe('LEMN_MASIV');
-    expect(byName['Insula bucatarie'].systems).toEqual(['GOLA']);
+    expect(byName['Insulă'].material).toBe('LEMN_MASIV');
+    expect(byName['Insulă'].systems).toEqual(['GOLA']);
     // metri liniari: runA + runB + islandLength = 6.2
     expect(derived.lengthM).toBeCloseTo(6.2, 5);
   });
@@ -582,9 +582,9 @@ describe('kitchen v3 — 6 sectiuni fixe, acelasi material implicit (PO 2026-11-
     const full: AnswerMap = { ...separate, frontMaterialWall: 'PAL', frontMaterialIsland: 'LEMN_MASIV' };
     expect(validateRoomAnswers('KITCHEN', full, { partial: false, version: 3 })).toEqual({ ok: true });
     const byName = Object.fromEntries(getFlow('KITCHEN', 3).deriveRoom(full).items.map((it) => [it.name, it]));
-    expect(byName['Corpuri baza'].material).toBe('MDF_VOPSIT');
+    expect(byName['Corpuri de bază'].material).toBe('MDF_VOPSIT');
     expect(byName['Corpuri suspendate'].material).toBe('PAL');
-    expect(byName['Insula bucatarie'].material).toBe('LEMN_MASIV');
+    expect(byName['Insulă'].material).toBe('LEMN_MASIV');
   });
 
   it('debifarea sterge materialele pe zone (pruneAnswers), "Altul" de baza se aplica peste tot', () => {
@@ -650,7 +650,7 @@ describe('bathroom v2 — ventilatie + dimensiuni/material per piesa', () => {
     const derived = getFlow('BATHROOM').deriveRoom(answers);
     const byName = Object.fromEntries(derived.items.map((it) => [it.name, it]));
     expect(byName['Corp lavoar'].material).toBe('MDF_INFOLIAT');
-    expect(byName['Dulap oglinda'].material).toBe('PAL');
+    expect(byName['Dulap oglindă'].material).toBe('PAL');
     expect(derived.lengthM).toBeCloseTo(1.4, 5);
     expect(derived.heightM).toBe(2.5);
   });
@@ -898,7 +898,7 @@ describe('v2 pentru pantry/laundry/balcony + piese ghidate (item 1, aliniere buc
     expect(validateRoomAnswers('LAUNDRY', answers, { partial: false })).toEqual({ ok: true });
     const derived = flow.deriveRoom(answers);
     expect(derived.items.map((i) => i.name)).toEqual([
-      'Dulap incastrare electrocasnice',
+      'Dulap încastrare electrocasnice',
       'Blat de lucru',
     ]);
     expect(derived.items[0].systems).toEqual(['PUSH']);
@@ -1062,7 +1062,7 @@ describe('v3 dressing + living (feedback PO 2026-07-13, docs/12 S3)', () => {
     const derived = flow.deriveRoom(answers);
     expect(derived.items[0].description).toContain('iluminare LED');
     // LED-ul nu apare de doua ori (nu e "mobilare", e anotare separata)
-    expect(derived.items[0].description).toContain('Interior: HANGING_RODS');
+    expect(derived.items[0].description).toContain('Interior: bare de agățat');
     expect(derived.items[0].description?.match(/LED/g)?.length).toBe(1);
 
     // raspunsurile v2 (cu lighting boolean) raman valide contra versiunii 2
@@ -1128,8 +1128,8 @@ describe('v3 dressing + living (feedback PO 2026-07-13, docs/12 S3)', () => {
     expect(validateRoomAnswers('LIVING', full, { partial: false })).toEqual({ ok: true });
     const derived = flow.deriveRoom(full);
     const byName = Object.fromEntries(derived.items.map((it) => [it.name, it]));
-    expect(byName['Biblioteca'].description).toContain('Cu iluminare LED');
-    expect(byName['Comoda TV'].description ?? '').not.toContain('LED');
+    expect(byName['Bibliotecă'].description).toContain('Cu iluminare LED');
+    expect(byName['Comodă TV'].description ?? '').not.toContain('LED');
   });
 });
 

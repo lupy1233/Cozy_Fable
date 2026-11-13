@@ -355,6 +355,36 @@ describe('RequestsService publish — needsDesignHelp pe camera', () => {
     expect(remove).toHaveBeenCalledWith('REQUEST', EXP_ID, SNAP);
   });
 
+  // b11: suma aleasa pe glisor → budget_declared; aceeasi treapta (deci acelasi punctaj) la sizing
+  it('b11: budgetDeclared se scrie doar langa suma; treapta trimisa la sizing nu se schimba', async () => {
+    const { service, sizing, tx } = prepare();
+    await service.publish('tok', content({ budgetRange: 'UNDER_5K', budgetEstimateRon: 12000, budgetDeclared: true, rooms: [room()] }), 'A');
+    expect(tx.request.update.mock.calls[0][0].data).toMatchObject({ budgetRange: 'FROM_5K_TO_15K', budgetEstimateRon: 12000, budgetDeclared: true });
+    expect(sizing.compute).toHaveBeenLastCalledWith(expect.objectContaining({ budgetRange: 'FROM_5K_TO_15K' }));
+
+    // interfata veche (fara camp) → suma fara "declarat"; aceeasi treapta la sizing
+    tx.request.update.mockClear();
+    (service as unknown as { prisma: { request: { findUnique: AnyMock } } }).prisma.request.findUnique.mockResolvedValue(baseRequest({ status: 'DRAFT', clientUserId: 'A' }));
+    await service.publish('tok', content({ budgetRange: 'UNDER_5K', budgetEstimateRon: 12000, rooms: [room()] }), 'A');
+    expect(tx.request.update.mock.calls[0][0].data).toMatchObject({ budgetRange: 'FROM_5K_TO_15K', budgetEstimateRon: 12000, budgetDeclared: false });
+    expect(sizing.compute).toHaveBeenLastCalledWith(expect.objectContaining({ budgetRange: 'FROM_5K_TO_15K' }));
+  });
+
+  // M3: o suma declarata sub estimare nu coboara marimea; treapta salvata = cea folosita la marime
+  it('M3: suma sub estimare → marimea si treapta salvata pornesc de la minimul estimarii', async () => {
+    const { service, sizing, tx } = prepare();
+    sizing.compute.mockImplementation(async ({ budgetRange }: { budgetRange: string }) => ({ score: budgetRange === 'OVER_15K' ? 34 : 29, size: budgetRange === 'OVER_15K' ? 'LARGE' : 'MEDIUM', creditCost: 24, baseScore: 24 }));
+    await service.publish('tok', content({ budgetRange: 'FROM_5K_TO_15K', budgetEstimateRon: 8000, budgetDeclared: true, rooms: [room()] }), 'A');
+    expect(sizing.compute.mock.calls.map((c: [{ budgetRange: string }]) => c[0].budgetRange)).toEqual(['FROM_5K_TO_15K', 'OVER_15K']);
+    expect(tx.request.update.mock.calls[0][0].data).toMatchObject({ budgetRange: 'OVER_15K', budgetEstimateRon: 8000, budgetDeclared: true, projectSize: 'LARGE', creditCost: 24 });
+  });
+
+  it('m1: budgetDeclared fara suma → 400 VALIDATION_ERROR, fara publicare', async () => {
+    const { service, tx } = prepare();
+    await expectCode(service.publish('tok', content({ budgetRange: 'UNDER_5K', budgetDeclared: true, rooms: [room()] }), 'A'), BadRequestException, ERROR_CODES.VALIDATION_ERROR);
+    expect(tx.request.update).not.toHaveBeenCalled();
+  });
+
   it('proiect propriu + camera cu ajutor → VALIDATION_ERROR, fara procesarea camerelor', async () => {
     const { service, configurator } = prepare();
     await expectCode(

@@ -1,108 +1,107 @@
 'use client';
 
-import { budgetRangeFromRon, type BudgetRange } from '@marketplace/shared';
-import { useTranslations } from 'next-intl';
+import { BUDGET_SLIDER_STEP_RON, budgetSliderBounds, isBudgetBelowEstimate } from '@marketplace/shared';
+import { AlertTriangle } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatLei } from '@/lib/money';
 import { cn } from '@/lib/utils';
 
-// Slider de buget (F5, item 18): cand avem estimarea din scor (POST
-// /requests/estimate), sliderul e NUMERIC intre [estimare, 3× estimare] —
-// valoarea aleasa se trimite ca budgetEstimateRon, iar bucket-ul budget_range
-// se deriva din ea (filtrele si scoringul raman pe bucket-uri). Fara estimare
-// (scor 0 / API indisponibil), cade pe treptele vechi. UNDISCLOSED ramane.
-
-const STEPS: BudgetRange[] = ['UNDER_5K', 'FROM_5K_TO_15K', 'OVER_15K'];
-const RON_STEP = 500;
-
-const fmtRon = (v: number) => `${new Intl.NumberFormat('ro-RO').format(v)} lei`;
+// Glisorul de buget (b11, PO 2026-11-13). Clientul ALEGE o suma sau "Prefer sa nu spun":
+// glisorul porneste fara cursor si fara suma pusa din oficiu. Coboara pana la o treime din
+// estimarea din raspunsuri (cu nota cand suma e sub estimare) si urca pana la plafonul ei;
+// fara estimare (modul "Am nevoie de ajutor") are o scara fixa. Treapta se deriva din suma
+// in pasul parinte (doar pentru punctaj) — pe ecran nu mai apar trepte.
 
 export function BudgetSlider({
-  value,
-  onChange,
-  estimate,
   valueRon,
-  onChangeRon,
+  undisclosed,
+  estimate,
+  onChooseRon,
+  onUndisclosed,
+  error,
 }: {
-  value: BudgetRange;
-  onChange: (v: BudgetRange) => void;
-  // intervalul estimat din scor; null/undefined → fallback pe trepte
-  estimate?: { minRon: number; maxRon: number } | null;
-  valueRon?: number | null;
-  onChangeRon?: (ron: number | null) => void;
+  // suma aleasa; null = nealeasa (sau "Prefer sa nu spun")
+  valueRon: number | null;
+  undisclosed: boolean;
+  // estimarea din raspunsuri; null = fara estimare (scara fixa)
+  estimate: { minRon: number; maxRon: number } | null;
+  onChooseRon: (ron: number) => void;
+  onUndisclosed: (checked: boolean) => void;
+  error?: string;
 }) {
   const t = useTranslations('Requests');
-  const undisclosed = value === 'UNDISCLOSED';
-  const hasEstimate = !!estimate && estimate.minRon > 0 && !!onChangeRon;
-
-  const setRon = (ron: number) => {
-    onChangeRon?.(ron);
-    onChange(budgetRangeFromRon(ron));
-  };
+  const locale = useLocale();
+  const lei = (n: number) => formatLei(n, locale);
+  const hasEstimate = !!estimate && estimate.minRon > 0;
+  const { minRon, maxRon } = budgetSliderBounds(hasEstimate ? estimate : null);
+  const chosen = !undisclosed && typeof valueRon === 'number';
+  // pozitia de repaus a cursorului ascuns: mijlocul scarii (nu e o valoare aleasa)
+  const restRon = Math.round((minRon + maxRon) / 2 / BUDGET_SLIDER_STEP_RON) * BUDGET_SLIDER_STEP_RON;
+  const sliderValue = chosen ? Math.min(Math.max(valueRon, minRon), maxRon) : restRon;
+  const below = chosen && hasEstimate && isBudgetBelowEstimate(valueRon, estimate.minRon);
+  // reperul estimarii pe scara (procent din latime)
+  const estimatePct = hasEstimate ? ((estimate.minRon - minRon) / (maxRon - minRon)) * 100 : null;
 
   return (
     <div className="flex flex-col gap-3">
-      {hasEstimate ? (
-        <div className={cn('flex flex-col gap-2', undisclosed && 'opacity-40')}>
-          {/* estimarea orientativa calculata din raspunsurile formularului */}
-          <p className="text-xs text-muted-foreground">
-            {t('budgetEstimateHint', {
-              min: fmtRon(estimate.minRon),
-              max: fmtRon(estimate.maxRon),
-            })}
-          </p>
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="font-serif text-2xl tabular-nums">
-              {fmtRon(valueRon ?? estimate.minRon)}
+      <div className={cn('flex flex-col gap-2', undisclosed && 'opacity-40')}>
+        <p className="text-xs text-muted-foreground">
+          {hasEstimate
+            ? t('budgetEstimateHint', { min: lei(estimate.minRon), max: lei(estimate.maxRon) })
+            : t('budgetNoEstimateHint')}
+        </p>
+        <span
+          className={cn('font-serif text-2xl tabular-nums', !chosen && 'text-muted-foreground')}
+          data-testid="budget-value"
+        >
+          {chosen ? lei(valueRon) : t('budgetChoose')}
+        </span>
+        <input
+          type="range"
+          min={minRon}
+          max={maxRon}
+          step={BUDGET_SLIDER_STEP_RON}
+          value={sliderValue}
+          disabled={undisclosed}
+          data-unset={chosen ? undefined : 'true'}
+          onChange={(e) => onChooseRon(Number(e.target.value))}
+          // un clic chiar pe pozitia de repaus nu schimba valoarea (fara onChange): tot alegere
+          onPointerUp={(e) => {
+            if (!chosen && !undisclosed) onChooseRon(Number(e.currentTarget.value));
+          }}
+          className={cn(
+            'accent-walnut',
+            // fara alegere: fara cursor vizibil
+            !chosen && '[&::-moz-range-thumb]:opacity-0 [&::-webkit-slider-thumb]:opacity-0',
+          )}
+          aria-label={t('field.budgetRange')}
+          aria-valuetext={chosen ? lei(valueRon) : t('budgetChoose')}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? 'budget-error' : below ? 'budget-below-note' : undefined}
+        />
+        <div className="relative flex justify-between text-meta text-muted-foreground">
+          <span>{lei(minRon)}</span>
+          {estimatePct !== null && estimatePct > 12 && estimatePct < 88 && (
+            <span
+              className="absolute -translate-x-1/2 whitespace-nowrap font-medium text-foreground"
+              style={{ left: `${estimatePct}%` }}
+            >
+              {t('budgetEstimateMark', { amount: lei(estimate!.minRon) })}
             </span>
-          </div>
-          <input
-            type="range"
-            min={estimate.minRon}
-            max={estimate.maxRon}
-            step={RON_STEP}
-            value={valueRon ?? estimate.minRon}
-            disabled={undisclosed}
-            onChange={(e) => setRon(Number(e.target.value))}
-            className="accent-walnut"
-            aria-label={t('field.budgetRange')}
-          />
-          <div className="flex justify-between text-meta text-muted-foreground">
-            <span>{fmtRon(estimate.minRon)}</span>
-            <span>{fmtRon(Math.round((estimate.minRon + estimate.maxRon) / 2 / RON_STEP) * RON_STEP)}</span>
-            <span>{fmtRon(estimate.maxRon)}</span>
-          </div>
+          )}
+          <span>{lei(maxRon)}</span>
         </div>
-      ) : (
-        <div className={cn('flex flex-col gap-1.5', undisclosed && 'opacity-40')}>
-          <input
-            type="range"
-            min={0}
-            max={STEPS.length - 1}
-            step={1}
-            value={Math.max(0, STEPS.indexOf(value as (typeof STEPS)[number]))}
-            disabled={undisclosed}
-            onChange={(e) => onChange(STEPS[Number(e.target.value)])}
-            className="accent-walnut"
-            aria-label={t('field.budgetRange')}
-          />
-          <div className="flex justify-between text-meta text-muted-foreground">
-            {STEPS.map((s, i) => (
-              <button
-                key={s}
-                type="button"
-                disabled={undisclosed}
-                onClick={() => onChange(s)}
-                className={cn(
-                  'rounded px-1 transition-colors',
-                  i === Math.max(0, STEPS.indexOf(value as (typeof STEPS)[number])) && !undisclosed
-                    ? 'font-semibold text-walnut'
-                    : 'hover:text-foreground',
-                )}
-              >
-                {t(`budget.${s}`)}
-              </button>
-            ))}
-          </div>
-        </div>
+      </div>
+
+      {below && (
+        <p
+          id="budget-below-note"
+          role="status"
+          className="flex items-start gap-2 rounded-lg border border-amber/40 bg-amber/10 px-3 py-2.5 text-sm"
+        >
+          <AlertTriangle aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-amber" />
+          <span>{t('budgetBelowEstimateNote')}</span>
+        </p>
       )}
 
       <label className="flex items-center gap-2 text-sm">
@@ -110,19 +109,16 @@ export function BudgetSlider({
           type="checkbox"
           className="accent-walnut"
           checked={undisclosed}
-          onChange={(e) => {
-            if (e.target.checked) {
-              onChange('UNDISCLOSED');
-              onChangeRon?.(null);
-            } else if (hasEstimate) {
-              setRon(estimate.minRon);
-            } else {
-              onChange('UNDER_5K');
-            }
-          }}
+          onChange={(e) => onUndisclosed(e.target.checked)}
         />
         {t('budget.UNDISCLOSED')}
       </label>
+
+      {error && (
+        <p id="budget-error" role="alert" className="text-sm text-crimson">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

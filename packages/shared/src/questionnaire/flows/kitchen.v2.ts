@@ -247,7 +247,7 @@ export const kitchenFlowV2: RoomFlow = {
     // un item per zona, cu materialul si sistemele proprii → scoring per zona
     const items: RequestItemInput[] = [
       {
-        name: 'Corpuri baza',
+        name: 'Corpuri de bază',
         material: material('frontMaterialBase'),
         systems: systems('openingSystemsBase'),
         description: otherDesc('frontMaterialBase'),
@@ -263,7 +263,7 @@ export const kitchenFlowV2: RoomFlow = {
     ];
     if (answers.hasIsland === true) {
       items.push({
-        name: 'Insula bucatarie',
+        name: 'Insulă',
         material: material('frontMaterialIsland'),
         systems: systems('openingSystemsIsland'),
         description: otherDesc('frontMaterialIsland'),

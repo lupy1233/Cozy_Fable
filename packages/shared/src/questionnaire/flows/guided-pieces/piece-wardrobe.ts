@@ -1,7 +1,7 @@
 import type { ItemSystem, Material } from '../../../enums';
 import { DEFAULT_CEILING_HEIGHT, dimensionValues, STANDARD_CABINET_DEPTH } from '../../mapping';
 import type { DimensionGroupStep, RoomFlow } from '../../types';
-import { ceilingHeightSlot, linearSlot } from '../common';
+import { ceilingHeightSlot, interiorModulesText, linearSlot } from '../common';
 import { answerString, pieceMaterialStep, pieceSketchStep } from './builder';
 
 // Piesa ghidata: Dulap. Optiunea "pana in tavan" acopera si cazul "dressing ca
@@ -115,10 +115,10 @@ export const pieceWardrobeFlow: RoomFlow = {
         : (values.height ?? 2.4),
       items: [
         {
-          name: toCeiling ? 'Dulap pana in tavan (tip dressing)' : 'Dulap',
+          name: toCeiling ? 'Dulap până în tavan (tip dressing)' : 'Dulap',
           material: (answers.material as Material) ?? 'PAL',
           systems: DOOR_SYSTEMS[doorType] ?? [],
-          description: modules.length > 0 ? `Interior: ${modules.join(', ')}` : undefined,
+          description: modules.length > 0 ? `Interior: ${interiorModulesText(modules)}` : undefined,
           quantity: 1,
         },
       ],

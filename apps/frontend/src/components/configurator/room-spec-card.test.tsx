@@ -19,10 +19,34 @@ describe('RoomSpecCard dimensions', () => {
     expect(container.textContent).not.toContain('0 ×');
   });
 
-  it('keeps the L × W × H footprint when every dimension is known', () => {
-    show({ lengthM: 3.2 });
-    expect(screen.getByText('3.2 × 0.6 × 2.6 m')).toBeVisible();
-    expect(screen.queryByText('Dimensiuni nespecificate')).not.toBeInTheDocument();
+  // d1: antetul nu mai prezinta numere calculate drept "L × l × H" al camerei
+  it('shows the furniture linear meters, not a made-up L × W × H footprint', () => {
+    const { container } = show({ lengthM: 5.6 });
+    const header = container.querySelector('[data-room-spec-header]');
+    expect(header?.textContent).toBe('Mobilier: ~5,6 m liniari');
+    expect(container.textContent).not.toContain('× 0.6');
+    expect(container.textContent).not.toMatch(/\d\s*×\s*\d/);
+  });
+
+  it('adds the ceiling height only when the client gave it', () => {
+    const { container } = show({ lengthM: 2.4, answers: { piecesNeeded: ['WARDROBE'], dimensions: { wardrobeWidth: 2.4, ceilingHeight: 2.65 } } });
+    expect(container.querySelector('[data-room-spec-header]')?.textContent).toBe('Mobilier: ~2,4 m liniari · Tavan: 2,65 m');
+    const noCeiling = show({ lengthM: 2.4, heightM: 2.6, answers: { piecesNeeded: ['WARDROBE'] } });
+    expect(noCeiling.container.querySelector('[data-room-spec-header]')?.textContent).toBe('Mobilier: ~2,4 m liniari');
+  });
+
+  // m4: formularul manual de dinainte de configurator — dimensiunile sunt ale clientului
+  it('a legacy room (no questionnaire answers) keeps the client-written L × W × H', () => {
+    const { container } = show({ answers: null, flowVersion: null, lengthM: 4.5, widthM: 3.2, heightM: 2.6 });
+    expect(container.querySelector('[data-room-spec-header]')?.textContent).toBe('4,5 × 3,2 × 2,6 m');
+    expect(container.textContent).not.toContain('m liniari');
+    const unknown = show({ answers: null, flowVersion: null, lengthM: 4.5, widthM: 0, heightM: 2.6 });
+    expect(unknown.container.querySelector('[data-room-spec-header]')?.textContent).toBe('Dimensiuni nespecificate');
+  });
+
+  it('a piece has no room header (its size is already in its own details)', () => {
+    const { container } = show({ roomType: 'PIECE_BENCH', lengthM: 1.2, widthM: 0.4, heightM: 0.45, flowVersion: 2 });
+    expect(container.querySelector('[data-room-spec-header]')).toBeNull();
   });
 });
 
@@ -35,6 +59,9 @@ describe('RoomSpecCard design help', () => {
     expect(screen.getByText(ro.Configurator.roomSpec.designHelpCompany)).toBeVisible();
     expect(container.querySelector('[data-room-design-help]')).not.toBeNull();
     expect(screen.queryByText('Dulap')).not.toBeInTheDocument();
+    // d1: semnul spune ca detaliile se stabilesc cu firma, o singura data
+    expect(screen.getAllByText(ro.Configurator.roomSpec.designHelpDetails)).toHaveLength(1);
+    expect(container.querySelector('[data-room-spec-header]')?.textContent).toBe('Dimensiuni nespecificate');
   });
 
   it('speaks to the client on the client page', () => {

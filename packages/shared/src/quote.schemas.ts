@@ -205,6 +205,8 @@ export interface ClaimRequestDetailDto {
   description: string;
   budgetRange: string;
   budgetEstimateRon: number | null;
+  // b11: suma aleasa de client (eticheta "Bugetul declarat de client"); optional pentru un slot vechi
+  budgetDeclared?: boolean;
   deadlineBucket: string | null;
   hasOwnProject: boolean;
   addressText: string;

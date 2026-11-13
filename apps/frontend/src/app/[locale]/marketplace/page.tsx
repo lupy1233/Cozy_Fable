@@ -13,6 +13,7 @@ import { ArrowRight, Inbox } from 'lucide-react';
 import { Link, useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
 import { useMarketplace, useWallet } from '@/hooks/use-marketplace';
+import { useBudgetFormat } from '@/hooks/use-budget-format';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -30,11 +31,13 @@ import { SubscriptionStatusNotice, useSubscriptionLapsed } from './_components/s
 import { RequestTag } from './_components/request-tag';
 import { SlotBars } from './_components/slot-bars';
 import { WorksheetButton } from './_components/worksheet-button';
+import { MinBudgetFilter } from './min-budget-filter';
 
 // Design 2026-11 (canvas): fiecare stare a cardului are pasul ei, langa cost (Fitts,
 // Von Restorff); cererile pline sunt estompate ca sa nu para preluabile (Signifiers);
 // soldul sta in antet (pastila de credite), nu se mai repeta in pagina. Filtrele si
-// sortarea sunt doar pe UI (state local), peste lista deja incarcata.
+// sortarea sunt doar pe UI (state local), peste lista deja incarcata — afara de bugetul minim
+// (b11-3), filtrat pe server.
 type Filter = 'all' | 'open' | 'mine';
 type Sort = 'newest' | 'cheapest';
 type SizeFilter = 'ANY' | ProjectSize;
@@ -61,7 +64,12 @@ export default function MarketplacePage() {
   const tr = useTranslations('Requests');
   const router = useRouter();
   const me = useMe();
-  const list = useMarketplace();
+  // b11-3: glisorul de buget minim (0 = oricare) se trimite serverului
+  const [minBudget, setMinBudget] = useState(0);
+  // m7: "Reseteaza filtrele" monteaza din nou glisorul → mutarea in asteptare se anuleaza
+  const [filterResets, setFilterResets] = useState(0);
+  const list = useMarketplace(minBudget);
+  const budgetFormat = useBudgetFormat();
   const wallet = useWallet();
   const lapsed = useSubscriptionLapsed(me.data?.role === 'COMPANY_USER');
   const relTime = useRelativeTime();
@@ -103,7 +111,11 @@ export default function MarketplacePage() {
     setFilter('all');
     setSize('ANY');
     setDistance('ANY');
+    setMinBudget(0);
+    setFilterResets((n) => n + 1);
   };
+  // cu bugetul minim pus, o lista goala de la server inseamna 'niciun rezultat pentru filtre'
+  const filtering = minBudget > 0;
 
   // Acces doar COMPANY_USER; restul → dashboard / login
   useEffect(() => {
@@ -120,7 +132,7 @@ export default function MarketplacePage() {
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
       <SubscriptionStatusNotice />
 
-      {list.isSuccess && list.data.length > 0 && (
+      {list.isSuccess && (list.data.length > 0 || filtering) && (
         <Card
           padding="none"
           className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3.5 px-5 py-4 shadow-none"
@@ -133,6 +145,7 @@ export default function MarketplacePage() {
             className="[&>button]:min-h-10"
           />
           <div className="flex flex-wrap gap-3">
+            <MinBudgetFilter key={filterResets} value={minBudget} onChange={setMinBudget} />
             <div className="flex flex-col gap-1">
               <label htmlFor="mk-size" className="text-xs text-muted-foreground">
                 {t('size')}
@@ -196,10 +209,10 @@ export default function MarketplacePage() {
       {list.isError && !(lapsed && isSubscriptionInactive(list.error)) && (
         <AccessBlocked error={list.error} onRetry={() => void list.refetch()} />
       )}
-      {list.isSuccess && list.data.length === 0 && (
+      {list.isSuccess && list.data.length === 0 && !filtering && (
         <EmptyState variant="card" icon={Inbox} title={t('empty')} />
       )}
-      {list.isSuccess && list.data.length > 0 && items.length === 0 && (
+      {list.isSuccess && (list.data.length > 0 || filtering) && items.length === 0 && (
         <EmptyState
           variant="card"
           icon={Inbox}
@@ -249,7 +262,8 @@ export default function MarketplacePage() {
                   </RequestTag>
                   <RequestTag title={t('distanceHint')}>{distanceLabel(r, t)}</RequestTag>
                   {r.size && <RequestTag tone="walnut">{tr(`sizeValue.${r.size}`)}</RequestTag>}
-                  <RequestTag>{tr(`budget.${r.budgetRange}`)}</RequestTag>
+                  {/* b11 / M2: doar suma aleasa de client, in lei; altfel "Buget nedeclarat" */}
+                  <RequestTag title={budgetFormat.firmLabel(r)}>{budgetFormat.firmAmount(r)}</RequestTag>
                   {r.includesPaidDesign && <RequestTag tone="sage">{t('includesPaidDesign')}</RequestTag>}
                   {r.hasOwnProject && <RequestTag tone="info">{t('hasOwnProject')}</RequestTag>}
                 </div>

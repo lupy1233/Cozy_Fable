@@ -3,8 +3,6 @@
 import {
   getFlow,
   mergeAccountEmail,
-  resolveBudgetFields,
-  type BudgetRange,
   type ConfiguratorContentInput,
   type ContactPreferenceInput,
 } from '@marketplace/shared';
@@ -28,6 +26,7 @@ import { excludedFileIds, useConfiguratorStore, type RoomInstance } from '@/stor
 import { synchronizeStudioSnapshots, invalidStudioRequestEntries } from '@/stores/studio-transfer';
 import { InspirationPicker } from './inspiration-picker';
 import { ReviewFactsCard } from './review-facts-card';
+import { budgetPayload, isBudgetChosen } from './budget-choice';
 import { RailNode } from './review-rail';
 import { ReviewRoomCard, type ReviewRoomIssue } from './review-room-card';
 import { anyRoomNeedsDesignHelp, roomInstanceLabels, toServerRoom } from './room-payload';
@@ -164,8 +163,10 @@ export function ReviewStep({
   const [preparing, setPreparing] = useState(false);
 
   // titlul nu mai e cerut: e generat automat pe server din camere + oras
+  // b11: bugetul ales de client (o suma sau "Prefer sa nu spun") face parte din Date generale
   const detailsComplete = Boolean(
-    details.addressText &&
+    isBudgetChosen(details) &&
+      details.addressText &&
       details.county &&
       details.city &&
       (details.contactPreferences?.length ?? 0) > 0,
@@ -258,15 +259,14 @@ export function ReviewStep({
       setPreparing(false);
     }
 
-    // bucket-ul derivat din estimarea RON — aceeasi regula ca serverul
-    const budget = resolveBudgetFields(
-      (details.budgetRange as BudgetRange | undefined) ?? 'UNDER_5K',
-      details.budgetEstimateRon,
-    );
+    // b11: treapta derivata din suma (aceeasi regula ca serverul) + suma aleasa de client;
+    // fara cadere pe o treapta pusa din oficiu
+    const budget = budgetPayload(details);
     const payload: ConfiguratorContentInput = {
       description: details.description ?? '',
       budgetRange: budget.budgetRange,
-      budgetEstimateRon: budget.budgetEstimateRon ?? undefined,
+      budgetEstimateRon: budget.budgetEstimateRon,
+      budgetDeclared: budget.budgetDeclared,
       deadlineBucket:
         (details.deadlineBucket as ConfiguratorContentInput['deadlineBucket']) || undefined,
       // b8: derivat din camere (serverul il recalculeaza oricum); modul = singura sursa pentru proiect

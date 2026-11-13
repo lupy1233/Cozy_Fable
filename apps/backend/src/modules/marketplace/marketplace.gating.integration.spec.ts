@@ -11,6 +11,9 @@ import {
 } from '../../test/money-fixtures';
 import { createMoneyServices, errorCode, errorStatus, ownerCtx } from '../../test/money-services';
 import { MarketplaceService } from './marketplace.service';
+import { MarketplaceBudgetEstimator } from './marketplace-budget-estimate';
+import { ConfiguratorService } from '../requests/configurator.service';
+import { SizingService } from '../sizing/sizing.service';
 
 // E-admin-platform-14 — gating-ul planului (4.10) caracterizat pe PostgreSQL real: SQL-ul din
 // marketplace (published_at + delay <= now()) si verificarea din claim (Date.now()) trebuie sa
@@ -26,7 +29,7 @@ const url = testDatabaseUrl();
 function wire(dbUrl: string) {
   const { prisma } = createTestPrisma(dbUrl);
   const services = createMoneyServices(prisma);
-  const marketplace = new MarketplaceService(prisma, services.settings, services.uploads, services.calendar);
+  const marketplace = new MarketplaceService(prisma, services.settings, services.uploads, services.calendar, new MarketplaceBudgetEstimator(new ConfiguratorService(), new SizingService(prisma)));
   return { prisma, marketplace, ...services };
 }
 
@@ -74,6 +77,33 @@ function wire(dbUrl: string) {
     expect(errorStatus(hidden)).toBe(404);
     expect(errorCode(hidden)).toBe('NOT_FOUND');
     await expect(w.marketplace.detail(f.companyId, 0, requestId)).resolves.toMatchObject({ id: requestId });
+  });
+
+  // b11-3: glisorul de buget minim al firmei se aplica in SQL, pe suma din cerere
+  it('b11: filtrul de buget minim pastreaza doar cererile cu suma >= minim', async () => {
+    const { f, requestId } = await seed();
+
+    // cerere "Prefer sa nu spun" (fixture): vizibila fara filtru, ascunsa cu filtru
+    expect((await w.marketplace.list(f.companyId, 0)).map((r) => r.id)).toContain(requestId);
+    expect((await w.marketplace.list(f.companyId, 0, { minBudgetRon: 1000 })).map((r) => r.id)).not.toContain(requestId);
+
+    // M2: suma nedeclarata (cerere veche) — firma nu o primeste si nu intra in filtru
+    await w.prisma.request.update({
+      where: { id: requestId },
+      data: { budgetRange: 'OVER_15K', budgetEstimateRon: 20000, budgetDeclared: false },
+    });
+    expect((await w.marketplace.list(f.companyId, 0)).find((r) => r.id === requestId)).toMatchObject({ budgetEstimateRon: null, budgetDeclared: false });
+    expect((await w.marketplace.list(f.companyId, 0, { minBudgetRon: 1000 })).map((r) => r.id)).not.toContain(requestId);
+    await expect(w.marketplace.detail(f.companyId, 0, requestId)).resolves.toMatchObject({ budgetEstimateRon: null, budgetEstimateMinRon: null });
+
+    await w.prisma.request.update({
+      where: { id: requestId },
+      data: { budgetRange: 'OVER_15K', budgetEstimateRon: 20000, budgetDeclared: true },
+    });
+    const kept = await w.marketplace.list(f.companyId, 0, { minBudgetRon: 20000 });
+    expect(kept.find((r) => r.id === requestId)).toMatchObject({ budgetEstimateRon: 20000, budgetDeclared: true });
+    expect((await w.marketplace.list(f.companyId, 0, { minBudgetRon: 20500 })).map((r) => r.id)).not.toContain(requestId);
+    expect((await w.marketplace.list(f.companyId, 0, { minBudgetRon: 0 })).map((r) => r.id)).toContain(requestId);
   });
 
   it('claim cu gating 30 min → 403 GATING_NOT_OPEN, fara slot si fara RESERVE', async () => {
