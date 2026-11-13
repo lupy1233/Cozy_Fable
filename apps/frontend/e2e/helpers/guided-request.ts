@@ -15,6 +15,8 @@ export function textFor(locale: Locale, path: string): string {
   return value;
 }
 const escaped = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// afisarea campurilor de dimensiuni: virgula in romana, punct in engleza
+const decimalText = (value: number, locale: Locale) => (locale === 'ro' ? String(value).replace('.', ',') : String(value));
 
 // Doar transportul anonim este simulat; toate raspunsurile provin din interactiuni UI.
 export async function mockGuestDraft(page: Page) {
@@ -98,7 +100,7 @@ async function answerQuestion(block: Locator, step: QuestionStep, answers: Answe
     await block.getByRole('textbox').fill(answers[step.id] as string);
   } else if (step.type === 'number') {
     answers[step.id] = Math.min(step.max, Math.max(step.min, 2));
-    await block.getByRole('spinbutton').fill(String(answers[step.id]));
+    await block.getByRole('textbox').fill(decimalText(answers[step.id] as number, locale));
   } else if (step.type === 'dimension-group') {
     await block.getByRole('button', { name: 'm', exact: true }).click();
     const values: Record<string, number> = {};
@@ -106,7 +108,12 @@ async function answerQuestion(block: Locator, step: QuestionStep, answers: Answe
       const target = /height/i.test(slot.id) ? 2.6 : /depth/i.test(slot.id) ? 0.6 : /bedCustomWidth/.test(slot.id) ? 1.8 : /bedCustomLength/.test(slot.id) ? 2 : 2.4;
       const increment = slot.step ?? 0.1;
       values[slot.id] = Math.round(Math.min(slot.max, Math.max(slot.min, Math.round(target / increment) * increment)) * 1000) / 1000;
-      await block.getByRole('spinbutton', { name: new RegExp(`${escaped(t(slot.labelKey))}$`) }).fill(String(values[slot.id]));
+      // campurile de dimensiuni sunt type=text + inputMode=decimal; in romana clientul scrie cu virgula
+      const input = block.getByRole('textbox', { name: new RegExp(`${escaped(t(slot.labelKey))}$`) });
+      await expect(input).toHaveAttribute('inputmode', 'decimal');
+      await input.fill(decimalText(values[slot.id], locale));
+      await input.blur();
+      await expect(input).toHaveValue(decimalText(values[slot.id], locale));
     }
     answers[step.id] = values;
     if (step.id === 'bedCustomSize') await expect(block.locator('[data-dimension-figure="mattress"]')).toBeVisible();
@@ -198,6 +205,9 @@ export async function uploadSyntheticAuditPng(page: Page, locale: Locale) {
   expect(putStatuses.some((status) => status >= 200 && status < 300), 'Signed upload completed').toBe(true);
   await expect(page.getByText(AUDIT_PNG_NAME, { exact: true })).toBeVisible();
   await expect(page.getByText(textFor(locale, 'Configurator.uploads.scanning'), { exact: true })).toHaveCount(0);
+  // incarcare pe rand: randul "Se incarca {nume}…" dispare, iar fisierul nu apare in lista "Nu am putut adauga"
+  await expect(page.getByText(textFor(locale, 'Configurator.uploads.uploadingFile').replace('{name}', AUDIT_PNG_NAME), { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: textFor(locale, 'Configurator.uploads.rejectedTitle'), exact: true })).toHaveCount(0);
 }
 
 export async function reloadAndPublishGreenAudit(page: Page, locale: Locale, expectedRooms: { roomType: string; answers: unknown; flowVersion: number }[], password: string) {

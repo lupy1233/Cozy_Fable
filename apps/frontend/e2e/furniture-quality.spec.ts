@@ -45,21 +45,37 @@ test('all furniture keeps working controls and snapshots after visual refinement
   await page.getByRole('button', { name: 'TABLE', exact: true }).press('Enter');
   const tableChoices = page.getByRole('combobox');
   await tableChoices.nth(1).selectOption('ROUND');
-  const diameter = page.getByRole('spinbutton');
+  // campurile de dimensiuni sunt type=text + inputMode=decimal (rol textbox)
+  const diameter = page.getByRole('textbox', { name: /^Diameter/ });
+  await expect(diameter).toHaveAttribute('inputmode', 'decimal');
   await diameter.fill('70'); await diameter.press('Tab');
   await expect.poll(async () => [(await config()).widthM, (await config()).depthM]).toEqual([.7, .7]);
   await diameter.fill('180'); await diameter.press('Tab');
   await expect.poll(async () => [(await config()).widthM, (await config()).depthM]).toEqual([1.8, 1.8]);
+  // regula PO: o valoare in afara intervalului e refuzata (nu se taie la max) — ramane valoarea veche + mesaj cu intervalul
+  await diameter.fill('200'); await diameter.press('Tab');
+  await expect(page.getByRole('alert').filter({ hasText: 'The value must be between 70–180 cm. We kept the previous value.' })).toBeVisible();
+  await expect(diameter).toHaveValue('180');
+  expect([(await config()).widthM, (await config()).depthM]).toEqual([1.8, 1.8]);
+  // o valoare corecta dupa refuz se aplica si mesajul dispare
+  await diameter.fill('120'); await diameter.press('Tab');
+  await expect.poll(async () => [(await config()).widthM, (await config()).depthM]).toEqual([1.2, 1.2]);
+  await expect(page.getByRole('alert').filter({ hasText: 'We kept the previous value.' })).toHaveCount(0);
   await tableChoices.nth(1).selectOption('EXTENDABLE');
   await expect.poll(async () => (await config()).table.shape).toBe('EXTENDABLE');
 
   await page.getByRole('button', { name: 'BENCH', exact: true }).press('Enter');
   await page.getByRole('combobox').first().selectOption('WITH_SHOE_SPACE');
-  const benchWidth = page.getByRole('spinbutton');
+  const benchWidth = page.getByRole('textbox', { name: /^Width/ });
   await benchWidth.fill('60'); await benchWidth.press('Tab');
   await expect.poll(async () => (await config()).widthM).toBe(.6);
   await benchWidth.fill('200'); await benchWidth.press('Tab');
   await expect.poll(async () => (await config()).widthM).toBe(2);
+  // sub minim: refuzat, ramane 200 cm
+  await benchWidth.fill('50'); await benchWidth.press('Tab');
+  await expect(page.getByRole('alert').filter({ hasText: 'The value must be between 60–200 cm. We kept the previous value.' })).toBeVisible();
+  await expect(benchWidth).toHaveValue('200');
+  expect((await config()).widthM).toBe(2);
   await page.getByRole('checkbox').press('Space');
   await expect.poll(async () => (await config()).bench.upholsteredSeat).toBe(true);
   await expect(page.getByRole('img', { name: 'snapshot', exact: true })).toHaveAttribute('src', /^data:image\/png;base64,/);
