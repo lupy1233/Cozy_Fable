@@ -129,6 +129,11 @@ export async function completeAllRoomRequest(page: Page, locale: Locale, origin 
   await page.goto(`${origin}/${locale}/requests/new`);
   await page.getByRole('button', { name: new RegExp(`^${escaped(t('start.STANDARD.title'))}`) }).click();
   for (const roomType of AUDIT_ROOM_TYPES) await page.getByRole('button', { name: t('cart.addOne').replace('{type}', t(`rooms.type.${roomType}`)), exact: true }).click();
+  // etapa 2 (b8): o bifa "am nevoie de ajutor" pe fiecare camera, nebifata in "Stiu ce vreau"; modul apare pe o singura linie
+  const designHelp = page.locator('[data-cart-design-help]');
+  await expect(designHelp.getByRole('checkbox')).toHaveCount(AUDIT_ROOM_TYPES.length);
+  await expect(designHelp.getByRole('checkbox', { checked: true })).toHaveCount(0);
+  await expect(page.locator('[data-cart-mode]')).toContainText(t('start.STANDARD.title'));
   await page.getByRole('button', { name: t('nav.startQuestions'), exact: true }).click();
   const answers = new Map<RoomType, AnswerMap>(AUDIT_ROOM_TYPES.map((type) => [type, {}]));
   const questions = new Map<RoomType, Set<string>>(AUDIT_ROOM_TYPES.map((type) => [type, new Set()]));
@@ -164,7 +169,12 @@ export async function completeAllRoomRequest(page: Page, locale: Locale, origin 
   }
   if (uploadFixture) await uploadFixture();
   await page.getByRole('button', { name: t('nav.continue'), exact: true }).click();
+  // etapa 2 (b2): Date generale se salveaza singure in ciorna, inainte de "Continua la sumar"
+  const autosaved = page.waitForRequest((request) => request.method() === 'PATCH'
+    && /\/api\/v1\/requests\/drafts\/[^/]+$/.test(new URL(request.url()).pathname)
+    && request.postDataJSON()?.configuratorState?.details?.description === AUDIT_DETAILS.description, { timeout: 15_000 });
   await page.getByRole('textbox', { name: tr('field.message'), exact: true }).fill(AUDIT_DETAILS.description);
+  await autosaved;
   await page.getByRole('button', { name: tr('deadline.FLEXIBLE'), exact: true }).click();
   await page.getByRole('textbox', { name: tr('field.addressText'), exact: true }).fill(AUDIT_DETAILS.addressText);
   await page.getByRole('textbox', { name: tr('field.county'), exact: true }).fill(AUDIT_DETAILS.county);
