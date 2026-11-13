@@ -5,6 +5,8 @@ import { useFormatter, useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
 import { discardPendingEditSession } from '@/stores/configurator-store';
+import { takePublishNotice } from '@/components/configurator/publish-notice';
+import { toast } from '@/components/ui/toaster';
 import { Link, useRouter } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -83,6 +85,14 @@ export default function RequestDetailPage() {
   useEffect(() => {
     discardPendingEditSession();
   }, []);
+  // b3: mesajul de reusita lasat de formular inainte de navigare — o singura data, doar
+  // pentru aceasta cerere (semnul se sterge la citire)
+  const tConfigurator = useTranslations('Configurator');
+  useEffect(() => {
+    const notice = takePublishNotice(id);
+    if (notice) toast.success(tConfigurator(notice === 'editSaved' ? 'review.editSavedToast' : 'review.publishedToast'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   if (detail.isPending) {
     return (

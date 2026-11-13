@@ -1,7 +1,9 @@
+import { StrictMode } from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import en from '../../../../messages/en.json';
+import { leavePublishNotice, PUBLISH_NOTICE_KEY, PUBLISH_NOTICE_TTL_MS } from '@/components/configurator/publish-notice';
 import RequestDetailPage from './page';
 
 // E-client-3: repostul nu mai depinde de un token local; dupa un repost folosit,
@@ -10,7 +12,9 @@ const state = vi.hoisted(() => ({
   request: null as unknown,
   repost: { mutate: vi.fn(), isPending: false, isSuccess: false, error: null as unknown },
   repostId: '' as string,
+  toastSuccess: vi.fn(),
 }));
+vi.mock('@/components/ui/toaster', () => ({ toast: { success: state.toastSuccess } }));
 
 vi.mock('next/navigation', () => ({ useParams: () => ({ id: 'req-1' }) }));
 vi.mock('@/i18n/routing', () => ({
@@ -130,5 +134,52 @@ describe('request detail journey and next step', () => {
     const steps = within(screen.getByRole('list', { name: 'Request journey' })).getAllByRole('listitem');
     expect(steps.some((s) => s.getAttribute('aria-current'))).toBe(false);
     expect(screen.getByRole('link', { name: en.Requests.viewOffers })).toBeTruthy();
+  });
+});
+
+// b3: mesajul de reusita apare PE pagina cererii, o singura data
+describe('request detail success message after publishing', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    state.toastSuccess.mockClear();
+    state.request = request({ status: 'IN_MARKETPLACE' });
+  });
+  const renderStrict = () => render(
+    <StrictMode>
+      <NextIntlClientProvider locale="en" messages={en}>
+        <RequestDetailPage />
+      </NextIntlClientProvider>
+    </StrictMode>,
+  );
+
+  it('shows "published" once, then never again (reload, back)', () => {
+    leavePublishNotice('req-1', 'published');
+    const view = renderStrict();
+    expect(state.toastSuccess).toHaveBeenCalledTimes(1);
+    expect(state.toastSuccess).toHaveBeenCalledWith(en.Configurator.review.publishedToast);
+    expect(sessionStorage.getItem(PUBLISH_NOTICE_KEY)).toBeNull();
+    view.unmount();
+    renderStrict();
+    expect(state.toastSuccess).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows "changes saved" after an edit', () => {
+    leavePublishNotice('req-1', 'editSaved');
+    renderPage();
+    expect(state.toastSuccess).toHaveBeenCalledWith(en.Configurator.review.editSavedToast);
+  });
+
+  it('without a notice, or with a notice for another request, shows nothing', () => {
+    renderPage();
+    leavePublishNotice('req-2', 'published');
+    renderPage();
+    expect(state.toastSuccess).not.toHaveBeenCalled();
+  });
+
+  it('an expired notice shows nothing and is cleaned up', () => {
+    sessionStorage.setItem(PUBLISH_NOTICE_KEY, JSON.stringify({ requestId: 'req-1', kind: 'published', at: Date.now() - PUBLISH_NOTICE_TTL_MS - 1 }));
+    renderPage();
+    expect(state.toastSuccess).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem(PUBLISH_NOTICE_KEY)).toBeNull();
   });
 });

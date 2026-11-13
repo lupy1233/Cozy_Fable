@@ -302,7 +302,9 @@ describe('after publishing (b3)', () => {
     await new Promise((r) => setTimeout(r, 1800));
     expect(patches).toEqual([]);
     expect(hoisted.push).toHaveBeenCalledWith('/requests/req-9');
-    expect(hoisted.toastSuccess).toHaveBeenCalledWith(en.Configurator.review.publishedToast);
+    // mesajul nu mai pleaca inainte de navigare: ramane un semn pentru pagina cererii
+    expect(hoisted.toastSuccess).not.toHaveBeenCalled();
+    expect(JSON.parse(sessionStorage.getItem('mm_publish_notice')!)).toMatchObject({ requestId: 'req-9', kind: 'published' });
     // pana la plecare: tot Sumarul (nu primul pas), dar copia din browser e deja stearsa
     expect(useConfiguratorStore.getState().phase).toBe('review');
     expect(screen.getByText('Review step')).toBeInTheDocument();

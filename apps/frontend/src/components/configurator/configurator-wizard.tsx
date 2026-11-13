@@ -6,7 +6,6 @@ import { ArrowLeft, Check, CloudOff, FilePlus2, History, Loader2 } from 'lucide-
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/components/ui/toaster';
 import { useMe } from '@/hooks/use-auth';
 import {
   Dialog,
@@ -52,6 +51,7 @@ import {
 import { ClientOnlyNote, isNonClientRole } from './client-only-note';
 import { DesignHelpConfirmDialog } from './design-help-dialog';
 import { DetailsStep } from './details-step';
+import { leavePublishNotice } from './publish-notice';
 import { roomInstanceLabels } from './room-payload';
 import { RequestSheet } from './review-rail';
 import { ReviewStep } from './review-step';
@@ -747,7 +747,8 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
               // la editare: editarea salvata se sterge acum si nu mai poate fi reluata;
               // store-ul revine pe ciorna cererii noi (neatinsa, b8) la demontare
               if (isEdit) finishEditSession();
-              toast.success(t(isEdit ? 'review.editSavedToast' : 'review.publishedToast'));
+              // mesajul de reusita il arata pagina cererii, la montare (semn de o singura folosinta)
+              leavePublishNotice(id, isEdit ? 'editSaved' : 'published');
               router.push(`/requests/${id}`);
             }}
           />

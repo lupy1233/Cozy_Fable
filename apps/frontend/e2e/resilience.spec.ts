@@ -108,14 +108,28 @@ test('successful publication goes straight to the request page without saving or
   test.setTimeout(90_000);
   let publishBody: { rooms?: { needsDesignHelp?: unknown }[] } | undefined;
   let patchesAfterPublish = 0;
+  // raspunsul publicarii e un RequestDto complet: usePublishDraft il pune in cache-ul ['request', id],
+  // iar pagina cererii randeaza direct din el (un obiect partial o face sa cada in ecranul de eroare)
+  const now = new Date().toISOString();
+  const published = {
+    id: 'published-test', status: 'IN_MARKETPLACE', title: 'Bedroom', description: '', budgetRange: 'UNDISCLOSED', budgetEstimateRon: null,
+    deadlineBucket: null, includesPaidDesign: true, hasOwnProject: false, addressText: 'Synthetic address', county: 'Cluj', city: 'Cluj-Napoca',
+    country: 'RO', lat: null, lng: null, sizing: null, preClaimEditsUsed: 0, postClaimEditsUsed: 0, publishedAt: now,
+    expiresAt: new Date(Date.now() + 14 * 86_400_000).toISOString(), cancelledAt: null, repostUsed: false, createdAt: now,
+    rooms: [{ id: 'room-test', roomType: 'BEDROOM', lengthM: 0, widthM: 0, heightM: 0, items: [], answers: {}, flowVersion: 2, needsDesignHelp: true }],
+    contactPreferences: [{ id: 'contact-test', channel: 'EMAIL', value: 'demo@example.test' }], attachments: [],
+    inspirationPhotoIds: [], inspirationPhotos: [], configuratorState: null, studioScenes: [],
+  };
   await page.route('**/api/v1/**', async route => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
     if (path.endsWith('/publish')) {
       publishBody = request.postDataJSON();
-      return route.fulfill({ json: { id: 'published-test', status: 'IN_MARKETPLACE', attachments: [] } });
+      return route.fulfill({ json: published });
     }
     if (publishBody && request.method() === 'PATCH' && path.includes('/requests/drafts/')) patchesAfterPublish++;
+    if (path.endsWith('/requests/published-test')) return route.fulfill({ json: published });
+    if (path.endsWith('/requests/published-test/visibility')) return route.fulfill({ json: { requestId: 'published-test', projectVisibleInMarketplace: true, contactHolders: [] } });
     return route.fulfill({ json: path.endsWith('/auth/me') ? { user: { id: 'test-user', role: 'CLIENT', emailVerified: true } } : path.includes('/requests/drafts/') ? { id: 'test-draft', attachments: [], configuratorState: null } : [] });
   });
   await page.addInitScript(() => {
@@ -132,7 +146,7 @@ test('successful publication goes straight to the request page without saving or
   const publish = page.getByRole('button', { name: en.Requests.publish, exact: true });
   await expect(publish).toBeEnabled();
   // navigarea e client-side: un observator ramas in pagina vede daca pasul 1 apare inainte de pagina cererii
-  // (si daca a aparut mesajul de reusita: toast-ul pleaca inainte de navigare si dispare dupa cateva secunde)
+  // (si daca a aparut mesajul de reusita: toast-ul apare pe pagina cererii, dupa navigare)
   type Seen = { __sawStartStep?: boolean; __sawToast?: boolean };
   await page.evaluate(([startTitle, toastText]) => {
     const w = window as unknown as Seen;
@@ -146,7 +160,9 @@ test('successful publication goes straight to the request page without saving or
   await publish.click();
   // prima deschidere a paginii cererii o compileaza `next dev`: poate dura zeci de secunde
   await expect(page).toHaveURL(/\/en\/requests\/published-test$/, { timeout: 60_000 });
-  expect(await page.evaluate(() => (window as unknown as Seen).__sawToast)).toBe(true);
+  // pagina cererii e montata (nu ecranul de eroare)
+  await expect(page.getByRole('heading', { level: 1, name: 'Bedroom', exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect.poll(() => page.evaluate(() => (window as unknown as Seen).__sawToast), { timeout: 15_000 }).toBe(true);
   expect(await page.evaluate(() => (window as unknown as Seen).__sawStartStep)).toBe(false);
   expect(patchesAfterPublish).toBe(0);
   // modul vechi DESIGN_HELP a fost migrat: camera pleaca bifata "am nevoie de ajutor"
