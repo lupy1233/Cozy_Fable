@@ -33,9 +33,11 @@ Codurile sunt constante in `packages/shared`; frontend mapeaza cod → mesaj loc
 - `REQUEST_EXPIRED` · `REPOST_ALREADY_USED` · `GEOCODING_FAILED`
 
 ## Claim (3.1, 4.8, 4.9)
-- `CLAIM_NOT_ALLOWED` — status nu e IN_MARKETPLACE/CLAIMED_PARTIAL.
+- `CLAIM_NOT_ALLOWED` — status nu e in setul preluabil din 3.1 (din 2026-11-13, PO a1-1: IN_MARKETPLACE/CLAIMED_PARTIAL/OFFERS_RECEIVED/NEGOTIATION; doar IN_MARKETPLACE/CLAIMED_PARTIAL cu `claims_open_after_first_offer=false`).
+- `REQUEST_NO_LONGER_CLAIMABLE` (409, a1 2026-11-13) — `GET /marketplace/requests/:id`: cererea nu mai poate fi preluata; `details: { reason: SLOTS_FULL | OFFER_ACCEPTED | FIRST_OFFER_RULE | EXPIRED | CLOSED, myClaimSlotId: string | null }` (`myClaimSlotId` = preluarea firmei pe cerere, pentru link spre fisa ei). Trimis doar firmei care acopera cererea pe raza, nu e exclusa si a trecut de intarzierea planului; altfel (inexistenta, stearsa, in afara razei, exclusa) ramane 404 `NOT_FOUND`. Firma nu primeste alte date despre cerere.
 - `CLAIM_SLOTS_FULL` — deja 3 claim-uri active.
 - `INSUFFICIENT_CREDITS` · `SUBSCRIPTION_INACTIVE` · `OUT_OF_COVERAGE_AREA`
+- `SUBSCRIPTION_INACTIVE` (403) — din 2026-11-13 (h2) are `details.lastExpired` = `{ planCode, nameRo, nameEn, expiredAt }` (ultimul abonament incheiat) sau `null` (firma n-a avut niciodata abonament). Garda sta doar pe `POST /claims` (preluare noua) si pe lista/detaliul din marketplace; `GET /claims/mine` si `POST /claims/:id/assign` nu mai cer abonament activ (PO h2-1).
 - `GATING_NOT_OPEN` (403) — published_at + delay-ul planului (4.10) nu a trecut inca; verificat si in tranzactia de claim (L0-B).
 - `COMPANY_EXCLUDED_FROM_REQUEST` (request_company_exclusions)
 - `ACTIVE_CLAIM_WITHOUT_OFFER_EXISTS` — regula 1-claim-activ.
@@ -61,6 +63,7 @@ Codurile sunt constante in `packages/shared`; frontend mapeaza cod → mesaj loc
 ## Chat / upload (3.4)
 - `THREAD_READ_ONLY` · `FILE_TOO_LARGE` (25MB) · `FILE_LIMIT_REACHED` (10/cerere, 5/oferta)
 - `FILE_TYPE_NOT_ALLOWED` · `FILE_SCAN_BLOCKED` · `UPLOAD_NOT_FOUND_IN_STORAGE`
+- Nota 2026-11-13 (b5): `FILE_TOO_LARGE` / `FILE_TYPE_NOT_ALLOWED` (400) sunt intoarse acum si la presign pentru atasamentele cererii pe valori gresite (inainte `VALIDATION_ERROR` din DTO; DTO-ul verifica doar forma, `UploadsService.presign` verifica tipul, marimea si limita inainte de orice scriere). `FILE_TOO_LARGE` acopera si marimea 0 / neintreaga. Limita pe cerere = 10 + 8 pe camera (invarianta 3.4), nu doar 10.
 
 ## SLA / clarificari
 - `CLARIFICATION_ALREADY_PENDING` · `SLA_ALREADY_BREACHED`
@@ -68,6 +71,7 @@ Codurile sunt constante in `packages/shared`; frontend mapeaza cod → mesaj loc
 ## Plati / credite / facturare
 - `PAYMENT_SIGNATURE_INVALID` (semnatura Stripe `stripe-signature` pe corpul brut, sau HMAC la webhook-ul mock) · `PAYMENT_ALREADY_CONFIRMED` (409 — comanda nu mai e PENDING: confirmare dubla, anulare dupa confirmare) · `PAYMENT_NOT_FOUND`
 - `CREDIT_PACKAGE_INACTIVE` · `CREDITS_EXPIRED`
+- `CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION` (403, h2 2026-11-13, PO h2-3) — firma fara abonament activ incearca sa cumpere un pachet de credite sau sa apese „Continua plata” pe o comanda de credite. Verificat inainte de comanda si de Stripe — nu se scrie nimic. Abonamentul se poate cumpara in continuare; comenzile prin transfer deja plasate se pot confirma de admin.
 - `PAYMENT_PROVIDER_UNAVAILABLE` (503 Stripe dezactivat cand e cerut explicit — webhook fara chei; 502 eroare la crearea sesiunii Checkout) · `PAYMENT_NOT_PENDING` (409 — "Continua plata" pe o comanda deja platita/anulata; E-admin-platform-4: si actualizarea e-Factura pe o comanda fara factura fiscala — test / neconfirmata)
 - `BILLING_NOT_CONFIGURED` (503, E-admin-platform-4 — datele fiscale ale platformei `seller_*` lipsesc, sunt valorile de exemplu din seed sau CUI/IBAN invalid; raspuns la cumparare credite/abonament, "Continua plata" si la orice confirmare de plata — admin sau webhook Stripe, care reincearca)
 
@@ -80,6 +84,8 @@ Codurile sunt constante in `packages/shared`; frontend mapeaza cod → mesaj loc
 
 ## Proiect acceptat / oferte expirate (E-admin-platform-3)
 - `PROJECT_NOT_CLOSABLE` (409) — cererea nu mai e in ACCEPTED/IN_EXECUTION (deja anulata, livrata, finalizata) la inchiderea de catre admin sau la raportarea unui caz; dublu-click / doi admini → al doilea primeste acest cod, creditele se deconteaza o singura data.
+  Din 2026-11-13 (e2-1) clientul poate raporta un caz si in DELIVERED_BY_COMPANY; raportarea in garantie cere COMPLETED/DISPUTED — in alte stari tot acest cod.
+- `WARRANTY_REPORT_WINDOW_CLOSED` (409, e2-2 2026-11-13) — `POST /requests/:id/project-case/warranty`: fereastra de garantie s-a incheiat (garantia din oferta acceptata, minimum 24 de luni de la finalizare). Nu se scrie nimic.
 - `PROJECT_CASE_ALREADY_OPEN` (409) — exista deja un caz OPEN pe proiect (verificat sub FOR UPDATE + index unic partial in SQL, P2002 mapat).
 - `PROJECT_CASE_NOT_OPEN` (409) — cazul nu mai e deschis sau a primit deja un raspuns (raspuns dublu / respingere dubla de catre admin).
 - `QUOTE_EXTENSION_NOT_REQUESTABLE` (409) — prelungirea se cere doar pe o oferta EXPIRED, cat timp cererea e in OFFERS_RECEIVED/NEGOTIATION.

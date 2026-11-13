@@ -14,6 +14,8 @@ Formular generic structurat pe camere și piese. Câmpuri (derivate din categori
 
 - Draft anonim cu token — clientul poate începe fără cont; cererea e nepublicată și recuperabilă.
 
+Actualizare 2026-11-13 (etapa 1, b1 + b5): câmpurile de dimensiuni (pașii camerelor și configuratorul 3D) acceptă virgula și punctul ca separator zecimal („1,6” rămâne 1,6) și afișează valorile cu virgulă în română; ce se salvează e tot număr. Textul care nu e număr arată „Scrie un număr, de ex. 2,5” și nu se scrie în răspuns. În 3D, o valoare în afara intervalului piesei e refuzată cu mesaj lângă câmp și rămâne valoarea anterioară (nu se mai ajustează pe tăcute la limită; alegere măruntă b1, docs/07). Atașamentele: 10 la nivel de cerere + 8 pe cameră (invarianta 3.4); fișierele refuzate (tip, gol, peste 25MB, limită atinsă, scanare, rețea) apar sub zona de încărcare cu numele și motivul, iar pasul general arată câte locuri au mai rămas.
+
 **CONFIRMAT (D-v6-2): **câmpurile exacte ale formularului se finalizează de către agent în Sprint 0, împreună cu seed-ul de scoring, și se prezintă utilizatorului pentru revizuire. Structura de mai sus e baza obligatorie.
 
 ## 4.2 Partajare date contact (W1, 2026-07-15)
@@ -89,6 +91,8 @@ Nota de implementare 2026-10-01 (E-company-21): costul unei preluari NU mai vine
 
 - Maximum 3 firme pot da claim unei cereri (enforce cu lock-ul din 3.1).
 
+  Actualizare 2026-11-13 (PO, a1-1; invarianta 3.1 amendata): cererea ramane deschisa pentru preluare si dupa prima oferta (si dupa o cerere de modificare, NEGOTIATION), pana se ocupa cele 3 locuri sau clientul accepta o oferta. Firma care preia tarziu si nu a ofertat cand clientul accepta primeste creditele inapoi (D-L0-3); riscul e spus in dialogul de preluare si in regulile publice pentru firme. Comutatorul din Admin `claims_open_after_first_offer` (implicit `true`) poate reveni la regula veche. Firma care acopera cererea pe raza si deschide o cerere care nu mai poate fi preluata vede motivul (locuri ocupate / clientul a ales / expirata / regula primei oferte daca adminul o reporneste) prin 409 `REQUEST_NO_LONGER_CLAIMABLE`, in loc de „Nicio cerere”; clientul vede acelasi motiv pe cardul „Cine vede cererea”.
+
 - La claim se rezervă credite (credit_transaction RESERVE), cost = claim_cost_credits per mărimea proiectului (snapshot, 4.5; seed 1/2/4).
 
   Nota 2026-10-01 (E-company-21): costul efectiv = `credit_cost` al cererii, calculat la publicare/editare dupa regula PO r5 V1 (1 credit = `credit_value_ron` lei din bugetul minim estimat, rotunjit in sus), limitat la [`claim_cost_min`, `claim_cost_max`] din `system_settings` (0 = fara plafon); vezi nota din 4.5. DECIZIE NECESARA PO: valorile min/max (propunerea 3..25 neaprobata).
@@ -116,6 +120,8 @@ Nota de implementare 2026-10-01 (E-client-9, C7-2): distanta si acoperirea se ma
 
 - **Self-assign manager: **managerul poate face claim pentru el însuși; devine assigned_to și consumă slotul lui personal (1 claim activ fără ofertă, ca orice angajat). Un claim self-assigned e imediat assigned, deci nu consumă bugetul de claim-uri neatribuite.
 
+- **Responsabil implicit (actualizare 2026-11-13, PO a5-1): **cel care preia devine responsabil implicit (assigned_to = el, fara ceasul de 1h). Proprietarul si managerul pot alege in dialogul de preluare un coleg sau „Atribui mai tarziu” (atunci se aplica regula de atribuire in 1h de mai sus). Angajatul cu acces complet (EMPLOYEE_TRUSTED) preia mereu pentru el (impus si in backend; permisiunea `CLAIMS_CREATE`, fara `CLAIMS_ASSIGN`). Regula „1 claim activ fara oferta” ramane; dialogul o semnaleaza inainte de confirmare (conducerii ii propune „Atribui mai tarziu”, angajatului ii blocheaza confirmarea). Dialogul si panoul de preluare arata termenul de raspuns estimat (aceeasi functie de zile lucratoare ca la claim). O atribuire esuata pe fisa de lucru apare ca alerta vizibila cu motivul.
+
 ## 4.10 Gating per plan abonament
 
 - La publicarea cererii, vizibilitatea per firmă = published_at + delay-ul planului: Platinum +0 min, Gold +30 min, Silver +60 min. Stocat configurabil în subscription_plans.marketplace_gating_delay_minutes.
@@ -123,6 +129,8 @@ Nota de implementare 2026-10-01 (E-client-9, C7-2): distanta si acoperirea se ma
 - Transparență: firma vede DOAR timpul scurs de la publicare („publicată acum X”), fără mențiuni despre alte planuri. CTA-ul de upgrade stă pe dashboard/pagina de prețuri, nu pe cardul cererii.
 
   Nota de implementare 2026-10-01 (E-admin-platform-58): planurile sunt date editabile din Admin → Setari (cod unic imuabil, nume RO/EN optionale, pret >= 0, credite incluse, intarziere de gating, activ, acces la marketplace). Planurile noi pornesc FARA acces la marketplace pana cand adminul il bifeaza explicit. Nu s-a schimbat niciun pret, numar de credite sau intarziere.
+
+  Actualizare 2026-11-13 (PO, a1-2): fara intarziere pe plan — toate planurile vad cererile imediat ce apar. Intarzierea e 0 la toate planurile (seed; pe productie se pune din Admin la lansarea etapei 1); coloana `marketplace_gating_delay_minutes` si setarea din Admin raman, daca se vrea vreodata inapoi. Valorile Platinum/Gold/Silver de mai sus si fraza despre transparenta nu mai au obiect cat timp intarzierea e 0 (Î2 inlocuita, Î3 fara obiect — docs/07).
 
 ## 4.11 SLA (mapare CONFIRMATĂ, D-v6-4)
 
@@ -211,9 +219,11 @@ Anularea cu refund se auto-aprobă dacă motivul e în lista predefinită (cu va
 
 - Top-up credite: credit_packages — 10 credite = 100 RON, 50 = 400 RON, 100 = 700 RON (discount progresiv). POST /credits/purchase cu Idempotency-Key.
 
-- Creditele rămân valabile 3 luni după expirarea abonamentului.
+- ~~Creditele rămân valabile 3 luni după expirarea abonamentului.~~ Scoasă 2026-11-13 (PO, h2-2): creditele rămân în cont fără termen — vezi actualizarea de mai jos.
 
   Nota 2026-10-01 (E-company-21): regula de valabilitate 3 luni NU e implementata (creditele nu expira in cod; se pot folosi doar cu abonament activ - SubscriptionActiveGuard; portofelul afiseaza aceasta nota firmelor fara abonament activ). DECIZIE NECESARA PO: pastrare (EXPIRE + job + avertizari 30/7 zile + clauza in Termeni) / post-MVP / renuntare.
+
+  Actualizare 2026-11-13 (PO, h2-1 / h2-2 / h2-3) — inlocuieste regula „3 luni” de mai sus si inchide DECIZIA NECESARA: creditele raman in cont fara termen; fara abonament activ nu se pot folosi la o preluare noua si nu se pot cumpara pachete noi (403 `CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION`, si la „Continua plata” pe o comanda de credite; abonamentul se poate cumpara oricand; comenzile prin transfer deja plasate se pot confirma de admin). Se folosesc din nou dupa reactivare. Firma fara abonament activ isi termina preluarile in curs: vede lista, atribuie, trimite oferte, scrie in conversatie, livreaza; doar preluarea unei cereri noi (si lista/detaliul cererilor din marketplace) cere abonament activ. Un singur mesaj de stare (Panou, Marketplace, Preluari, Portofel, Firma mea, fisa de lucru, pagina cererii din piata) spune planul, data expirarii, soldul si ca preluarile in curs se pot termina, cu butonul „Reactiveaza abonamentul”.
 
 - Trial firme noi: 1 lună Gold gratuit + 10 credite, activat la admin approve, toggleable din Admin (subscriptions.is_trial + trial_ends_at; system_settings: trial_enabled, trial_plan, trial_duration_days, trial_bonus_credits).
 
@@ -242,6 +252,12 @@ _Implementare (E-company-24, 2026-09-30): când Stripe e oprit (D-L0-1), plata p
 - Review sub 3 stele → automat DISPUTED (review_disputes), gestionat de admin.
 
 - Tranziția spre COMPLETED: firma marchează DELIVERED_BY_COMPANY → clientul confirmă → COMPLETED → review activ.
+
+Actualizare 2026-11-13 (etapa 1, e2; PO e2-1, e2-2, g0-13):
+- Nota recenziei pornește goală; trimiterea cere alegerea stelelor și o confirmare („Trimiți nota X din 5 — nu se mai poate schimba”). „Confirmă livrarea” cere un dialog, cu varianta „Am o problemă”.
+- **Problemă în starea DELIVERED_BY_COMPANY: **clientul (doar el, nu firma) poate deschide raportul de proiect și după ce firma a marcat livrarea. Cât timp proiectul are un caz OPEN, finalizarea automată de la 14 zile (D-L1-1) nu rulează; după ce adminul închide cazul, termenul de 14 zile repornește de la momentul închiderii (`resolved_at`). Clientul poate confirma oricând manual livrarea, și cu raport deschis (cazul rămâne la admin). Cât e un raport deschis, panoul clientului nu mai arată termenul „livrare de confirmat”.
+- **Problemă după finalizare (garanție): **în COMPLETED (și DISPUTED) clientul poate raporta o problemă cât ține garanția scrisă în oferta acceptată, dar cel puțin 24 de luni de la finalizare (dacă garanția nu se poate citi ca durată: 24 de luni). Raportul devine caz de proiect cu motivul `WARRANTY_CLAIM`, la admin; nu schimbă starea proiectului și nici creditele; firma primește notificare (clopoțel + e-mail cu text propriu). Un singur caz deschis pe proiect. În afara ferestrei → 409 `WARRANTY_REPORT_WINDOW_CLOSED`. Adminul închide reclamația cu acțiunea existentă „Închide cazul fără anulare”.
+- Fișa firmei câștigătoare arată, după finalizare, „Livrare confirmată”, data finalizării, recenzia primită și raportul deschis al clientului.
 
 ## 4.19 Admin
 

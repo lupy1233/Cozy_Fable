@@ -32,7 +32,10 @@ export class BillingController {
 
   // E-admin-platform-58: planul activ + functiile lui (toata echipa; GET = fara scrieri, merge si pe standby)
   @Get('entitlements')
+  // h2: fara abonament activ intoarce si ultimul abonament + data expirarii (mesajul comun)
   async entitlementsForCompany(@CurrentCompany() ctx: CompanyContext): Promise<EntitlementsDto> {
-    return this.entitlements.toDto(await this.entitlements.forCompany(ctx.companyId));
+    const e = await this.entitlements.forCompany(ctx.companyId);
+    const lastExpired = e.subscriptionId ? null : await this.entitlements.lastExpired(ctx.companyId);
+    return this.entitlements.toDto(e, lastExpired);
   }
 }

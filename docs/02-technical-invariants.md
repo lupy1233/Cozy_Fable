@@ -10,7 +10,7 @@ Operațiunea de claim este tranzacțională (isolationLevel Serializable, timeou
 
 - Lock pe request (FOR UPDATE).
 
-- Verifică status ∈ {IN_MARKETPLACE, CLAIMED_PARTIAL}; altfel ClaimNotAllowed.
+- Verifică status ∈ {IN_MARKETPLACE, CLAIMED_PARTIAL, OFFERS_RECEIVED, NEGOTIATION}; altfel ClaimNotAllowed. Cererea rămâne preluabilă și după prima ofertă, până se ocupă locurile (pasul următor) sau clientul acceptă o ofertă. Comutatorul din Admin `system_settings.claims_open_after_first_offer` (implicit `true`) poate reveni la setul {IN_MARKETPLACE, CLAIMED_PARTIAL}. CLAIMED_FULL nu e niciodată preluabil. (amendat 2026-11-13, PO: a1-1)
 
 - count(claim_slots WHERE status ∈ {ACTIVE, OFFER_SENT}); dacă ≥ 3 → ClaimSlotsFull.
 
@@ -46,7 +46,7 @@ StorageService expune getPresignedUploadUrl / getPresignedDownloadUrl / deleteOb
 
 - La citire: presigned GET 5 min, doar cu auth check inline.
 
-Fișierele NU sunt accesibile prin URL static și NU se servesc prin endpoint NestJS. Limite: 25MB/fișier, 10 fișiere/cerere, 5 fișiere/ofertă. ZIP permis dar untrusted, fără preview.
+Fișierele NU sunt accesibile prin URL static și NU se servesc prin endpoint NestJS. Limite: 25MB/fișier, 10 fișiere la nivel de cerere + 8 pe cameră (7 schițe + instantaneul 3D), camerele numărate până la cel mult 50 (`maxAttachmentsForRequest` din shared), 5 fișiere/ofertă (amendat 2026-11-13, b5: limita pe cameră exista din feedbackul PO 2026-07-13, invarianta nu fusese adusă la zi). Interfața verifică înainte de trimitere tipul (cu extensia ca rezervă când browserul nu dă tip), fișierul gol și 25MB, cu aceleași constante din shared; serverul rămâne autoritar (presign răspunde `FILE_TYPE_NOT_ALLOWED` / `FILE_TOO_LARGE` / `FILE_LIMIT_REACHED`). ZIP permis dar untrusted, fără preview.
 
 ### 3.5 Socket.IO și realtime
 

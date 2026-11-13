@@ -280,8 +280,24 @@ export const ALLOWED_ATTACHMENT_MIME = [
   'application/x-zip-compressed',
 ] as const;
 
-// Valoarea pentru atributul accept al inputurilor de fisiere (FE).
-export const ATTACHMENT_ACCEPT = ALLOWED_ATTACHMENT_MIME.join(',');
+export type AllowedAttachmentMime = (typeof ALLOWED_ATTACHMENT_MIME)[number];
+
+// Extensiile acceptate, mapate pe MIME-urile de mai sus (NU largesc lista serverului).
+// Folosite doar cand browserul nu da tipul (Windows: tip gol / octet-stream).
+export const ATTACHMENT_EXTENSION_MIME: Readonly<Record<string, AllowedAttachmentMime>> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  pdf: 'application/pdf',
+  zip: 'application/zip',
+};
+
+// Valoarea pentru atributul accept al inputurilor de fisiere (FE): MIME + extensii.
+export const ATTACHMENT_ACCEPT = [
+  ...ALLOWED_ATTACHMENT_MIME,
+  ...Object.keys(ATTACHMENT_EXTENSION_MIME).map((ext) => `.${ext}`),
+].join(',');
 
 // Clasificare MIME pentru afisare (thumbnail vs iconita de tip).
 export function attachmentKind(mimeType: string): 'image' | 'pdf' | 'zip' | 'other' {
@@ -304,6 +320,36 @@ export const MAX_SKETCH_FILES_PER_ROOM = 7;
 export function maxAttachmentsForRequest(roomCount: number): number {
   const rooms = Math.min(Math.max(roomCount, 0), MAX_REQUEST_ROOMS);
   return MAX_ATTACHMENTS_PER_REQUEST + (MAX_SKETCH_FILES_PER_ROOM + 1) * rooms;
+}
+
+// Locurile ramase pe cerere (niciodata negativ).
+export function remainingAttachmentSlots(roomCount: number, used: number): number {
+  return Math.max(0, maxAttachmentsForRequest(roomCount) - used);
+}
+
+// MIME-ul cu care se trimite fisierul: tipul dat de browser daca e permis; daca browserul
+// nu da tip (gol / octet-stream), extensia. Altfel null (tip nepermis).
+export function resolveAttachmentMime(filename: string, browserType: string): AllowedAttachmentMime | null {
+  const type = browserType.trim().toLowerCase();
+  if ((ALLOWED_ATTACHMENT_MIME as readonly string[]).includes(type)) return type as AllowedAttachmentMime;
+  if (type !== '' && type !== 'application/octet-stream') return null;
+  const dot = filename.lastIndexOf('.');
+  if (dot < 0) return null;
+  return ATTACHMENT_EXTENSION_MIME[filename.slice(dot + 1).toLowerCase()] ?? null;
+}
+
+export type AttachmentFileRejectReason = 'TYPE' | 'EMPTY' | 'SIZE';
+export type AttachmentFileCheck =
+  | { ok: true; mimeType: AllowedAttachmentMime }
+  | { ok: false; reason: AttachmentFileRejectReason };
+
+// Verificarea unui fisier inainte de presign — aceleasi limite ca presignUploadSchema/serverul.
+export function checkAttachmentFile(file: { name: string; type: string; size: number }): AttachmentFileCheck {
+  const mimeType = resolveAttachmentMime(file.name, file.type);
+  if (!mimeType) return { ok: false, reason: 'TYPE' };
+  if (file.size <= 0) return { ok: false, reason: 'EMPTY' };
+  if (file.size > MAX_ATTACHMENT_BYTES) return { ok: false, reason: 'SIZE' };
+  return { ok: true, mimeType };
 }
 
 export const presignUploadSchema = z.object({

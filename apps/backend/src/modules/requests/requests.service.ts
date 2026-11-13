@@ -21,6 +21,7 @@ import {
   type RequestStudioSceneData,
   type RequestVisibilityContactHolderDto,
   type RequestVisibilityDto,
+  type RequestVisibilityClosedReasonDto,
   sortByRoomOrder,
 } from '@marketplace/shared';
 import { ConfiguratorService, type ProcessedRoom } from './configurator.service';
@@ -64,9 +65,10 @@ import {
   OCCUPYING_CLAIM_STATUSES,
   SETTING_CLAIMS_OPEN_AFTER_FIRST_OFFER,
   claimableStatuses,
+  marketplaceClosedReason as closedReasonFor,
 } from '../claims/claims.constants';
 import { readClaimContactAccessSettings, resolveClaimContextAccess } from '../quotes/claim-context-access';
-import { AUTO_COMPLETE_DAYS } from '../fulfillment/fulfillment.service';
+import { AUTO_COMPLETE_DAYS, autoCompleteClockStart } from '../fulfillment/fulfillment.service';
 import {
   ConfiguratorRoomInputDto,
   CreateRequestContentDto,
@@ -537,7 +539,10 @@ export class RequestsService {
   // stie firmele din zona); contactele le au doar firmele cu slot ocupant, evaluate cu exact
   // functia fisei de lucru (resolveClaimContextAccess) → cardul nu poate contrazice ce primesc
   // firmele. Doar citire (GET, sigur pe slotul standby).
-  async getVisibilityForClient(userId: string, id: string): Promise<RequestVisibilityDto> {
+  async getVisibilityForClient(
+    userId: string,
+    id: string,
+  ): Promise<RequestVisibilityDto & RequestVisibilityClosedReasonDto> {
     const request = await this.findOwnedRequest(userId, id);
     const [openAfterFirstOffer, maxClaims, [revealPolicy], slots] = await Promise.all([
       this.settings.getBool(SETTING_CLAIMS_OPEN_AFTER_FIRST_OFFER, SETTING_DEFAULTS.claims_open_after_first_offer),
@@ -582,7 +587,12 @@ export class RequestsService {
         contactsVisibleFrom: access.clientVisibleFrom?.toISOString() ?? null,
       });
     }
-    return { requestId: id, projectVisibleInMarketplace, contactHolders };
+    // a1: motivul cand proiectul nu mai e in piata (locuri ocupate / oferta acceptata / regula
+    // primei oferte, doar cu comutatorul oprit / expirata); null cat e vizibil
+    const marketplaceClosedReason = projectVisibleInMarketplace
+      ? null
+      : (closedReasonFor({ status: request.status, occupied: slots.length, maxClaims, openAfterFirstOffer }) ?? 'CLOSED');
+    return { requestId: id, projectVisibleInMarketplace, contactHolders, marketplaceClosedReason };
   }
 
   // Cererea exista, nu e stearsa si apartine clientului curent (ownership).
@@ -677,7 +687,9 @@ export class RequestsService {
       actions.push({ kind: 'OFFERS_TO_REVIEW', requestId: r.id, claimSlotId: null, title: r.title ?? '', count: r._count.quotes, dueAt: null });
     }
     for (const r of toConfirm) {
-      const dueAt = r.deliveredAt ? new Date(r.deliveredAt.getTime() + AUTO_COMPLETE_DAYS * DAY_MS).toISOString() : null;
+      // e2-1: cu raport deschis nu exista termen; dupa inchiderea lui, cele 14 zile pornesc din nou
+      const clockStart = r.deliveredAt ? await autoCompleteClockStart(this.prisma, r.id, r.deliveredAt) : null;
+      const dueAt = clockStart ? new Date(clockStart.getTime() + AUTO_COMPLETE_DAYS * DAY_MS).toISOString() : null;
       actions.push({ kind: 'DELIVERY_TO_CONFIRM', requestId: r.id, claimSlotId: null, title: r.title ?? '', count: null, dueAt });
     }
     const byRequest = new Map<string, DashboardActionItemDto>();

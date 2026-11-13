@@ -38,11 +38,12 @@ import {
   RotateCcw,
   SlidersHorizontal,
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { cmRangeText, inRangeCm, useDecimalField } from '../use-decimal-field';
 import { FINISH_SPECS } from './finishes';
 import { PieceCanvas, zoneKey, type SnapshotFn, type ZoneRef } from './piece-canvas';
 import { FurnitureControls } from './furniture-controls';
@@ -76,6 +77,8 @@ const DEFAULT_DRAWERS = 2;
 const DEFAULT_SHELVES = 3;
 
 const cm = (v: number) => Math.round(v * 100);
+// cm cu o zecimala (precizie mm) pentru campurile editabile: 40,5 ramane 40,5 (b1)
+const cmExact = (v: number) => Math.round(v * 1000) / 10;
 
 // optiunile de interior pentru zonele usa/deschis (undefined = gol)
 const FILL_OPTIONS: (Piece3dZoneFill | undefined)[] = [undefined, 'SHELVES', 'HANGING'];
@@ -98,22 +101,28 @@ function DimensionControl({
   // valueM cat timp userul editeaza — altfel clamp-ul din normalizePieceConfig
   // se aplica la fiecare tasta si "sare" inapoi la minim inainte sa apuce sa
   // scrie a doua cifra (ex: sterge 50, vrea 25, dar 2 < min => revine la min)
-  const [draft, setDraft] = useState<string | null>(null);
-  const commit = (raw: string) => {
-    const v = Number(raw);
-    // camp golit / text invalid → ramane valoarea veche (nu sare la minim)
-    if (raw.trim() !== '' && Number.isFinite(v) && v > 0) onValueM(v / 100);
-    setDraft(null);
-  };
+  // b1: camp text cu virgula; camp golit / text invalid / valoare in afara
+  // intervalului → ramane valoarea veche, cu mesaj langa camp (nu se mai taie
+  // pe tacute la minim/maxim)
+  const t = useTranslations('Configurator');
+  const locale = useLocale();
+  const range = cmRangeText(min, max, locale);
+  const field = useDecimalField({
+    value: valueM * 100,
+    commitOn: 'blur',
+    maxFractionDigits: 1,
+    validate: (v) => (inRangeCm(v, min, max) ? null : t('validation.outOfRangeKept', { range })),
+    onValue: (v) => {
+      if (v !== undefined) onValueM(v / 100);
+    },
+  });
   // intervalul permis sta LANGA eticheta (nu sub slider) — economiseste un rand
   // per dimensiune, ca panoul lateral din modul 3D sa incapa pe ecran (U2)
   return (
     <div>
       <div className="mb-1 flex items-baseline justify-between gap-2">
         <span className="text-sm font-medium">{label}</span>
-        <span className="text-meta text-muted-foreground">
-          {cm(min)}–{cm(max)} cm
-        </span>
+        <span className="text-meta text-muted-foreground">{range}</span>
       </div>
       <div className="flex items-center gap-3">
         <input
@@ -122,29 +131,29 @@ function DimensionControl({
           max={cm(max)}
           step={1}
           value={cm(valueM)}
-          onChange={(e) => onValueM(Number(e.target.value) / 100)}
+          onChange={(e) => {
+            field.reset();
+            onValueM(Number(e.target.value) / 100);
+          }}
           className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-border-2 accent-walnut"
           aria-label={label}
         />
         <div className="relative w-24 shrink-0">
           <Input
-            type="number"
-            inputMode="numeric"
+            {...field.inputProps}
             aria-label={label}
-            value={draft ?? cm(valueM)}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={(e) => commit(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') e.currentTarget.blur();
-              else if (e.key === 'Escape') setDraft(null);
-            }}
-            className="pr-9 text-right"
+            className={field.error ? 'border-crimson pr-9 text-right' : 'pr-9 text-right'}
           />
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
             cm
           </span>
         </div>
       </div>
+      {field.error && (
+        <p role="alert" className="mt-1 text-meta text-crimson">
+          {field.error}
+        </p>
+      )}
     </div>
   );
 }
@@ -247,28 +256,25 @@ function LockableSize({
   // valueCm e valoarea REZOLVATA (dupa clamp la minimul de 10/15cm etc.) —
   // draft local ca sa nu "sara" inapoi la minim la fiecare tasta stearsa,
   // inainte ca userul sa apuce sa scrie noua valoare (vezi DimensionControl)
-  const [draft, setDraft] = useState<string | null>(null);
-  const commit = (raw: string) => {
-    const v = Number(raw);
-    if (Number.isFinite(v) && v > 0) onValueCm(v);
-    setDraft(null);
-  };
+  // b1: virgula acceptata; 0 / text invalid → ramane valoarea veche, cu mesaj
+  const t = useTranslations('Configurator');
+  const field = useDecimalField({
+    value: valueCm,
+    commitOn: 'blur',
+    maxFractionDigits: 1,
+    validate: (v) => (v > 0 ? null : t('validation.positiveNumber')),
+    onValue: (v) => {
+      if (v !== undefined) onValueCm(v);
+    },
+  });
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex flex-wrap items-center gap-1.5">
       <span className="text-xs text-muted-foreground">{label}</span>
       <div className="relative w-20 shrink-0">
         <Input
-          type="number"
-          inputMode="numeric"
-          value={draft ?? valueCm}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={(e) => commit(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') e.currentTarget.blur();
-            else if (e.key === 'Escape') setDraft(null);
-          }}
+          {...field.inputProps}
           aria-label={label}
-          className="h-8 pr-7 text-right text-sm"
+          className={field.error ? 'h-8 border-crimson pr-7 text-right text-sm' : 'h-8 pr-7 text-right text-sm'}
         />
         <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-micro text-muted-foreground">
           cm
@@ -289,6 +295,11 @@ function LockableSize({
       >
         {locked ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
       </button>
+      {field.error && (
+        <p role="alert" className="basis-full text-meta text-crimson">
+          {field.error}
+        </p>
+      )}
     </div>
   );
 }
@@ -306,29 +317,38 @@ function ZoneCountInput({
   onValue: (v: number) => void;
   label: string;
 }) {
-  const [draft, setDraft] = useState<string | null>(null);
-  const commit = (raw: string) => {
-    const v = Number(raw);
-    if (raw.trim() !== '' && Number.isFinite(v) && v > 0) {
-      onValue(Math.max(1, Math.min(max, Math.round(v))));
-    }
-    setDraft(null);
-  };
+  // b1: numar intreg intre 1 si max; altfel ramane valoarea veche, cu mesaj
+  // (nu se mai taie pe tacute la max)
+  const t = useTranslations('Configurator');
+  const field = useDecimalField({
+    value,
+    commitOn: 'blur',
+    maxFractionDigits: 0,
+    validate: (v) =>
+      !Number.isInteger(v)
+        ? t('validation.wholeNumber')
+        : v < 1 || v > max
+          ? t('validation.outOfRangeKept', { range: `1–${max}` })
+          : null,
+    onValue: (v) => {
+      if (v !== undefined) onValue(v);
+    },
+  });
   return (
-    <Input
-      type="number"
-      inputMode="numeric"
-      title={label}
-      aria-label={label}
-      value={draft ?? value}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={(e) => commit(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') e.currentTarget.blur();
-        else if (e.key === 'Escape') setDraft(null);
-      }}
-      className="w-16 text-right"
-    />
+    <span className="inline-flex flex-col">
+      <Input
+        {...field.inputProps}
+        inputMode="numeric"
+        title={label}
+        aria-label={label}
+        className={field.error ? 'w-16 border-crimson text-right' : 'w-16 text-right'}
+      />
+      {field.error && (
+        <span role="alert" className="mt-1 max-w-48 text-meta text-crimson">
+          {field.error}
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -635,7 +655,7 @@ function CabinetControls({
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <LockableSize
           label={t('config3d.rowHeight')}
-          valueCm={cm(activeResolved.height)}
+          valueCm={cmExact(activeResolved.height)}
           locked={activeZoneData.heightM !== undefined}
           onValueCm={(v) => updateZone(validActiveZone, { heightM: v / 100 })}
           onToggleLock={() =>
@@ -649,7 +669,7 @@ function CabinetControls({
         {piece !== 'DESK' && activeColWidth != null && (
           <LockableSize
             label={t('config3d.columnWidth')}
-            valueCm={cm(activeColWidth)}
+            valueCm={cmExact(activeColWidth)}
             locked={config.columns[validActiveZone.col].widthM !== undefined}
             onValueCm={(v) => updateColumn(validActiveZone.col, { widthM: v / 100 })}
             onToggleLock={() =>
@@ -846,7 +866,7 @@ function CabinetControls({
                 {piece !== 'DESK' && layout?.[ci] && (
                   <LockableSize
                     label={t('config3d.columnWidth')}
-                    valueCm={cm(layout[ci].width)}
+                    valueCm={cmExact(layout[ci].width)}
                     locked={column.widthM !== undefined}
                     onValueCm={(v) => updateColumn(ci, { widthM: v / 100 })}
                     onToggleLock={() =>
@@ -971,7 +991,7 @@ function CabinetControls({
                   {resolved && (
                     <LockableSize
                       label={t('config3d.rowHeight')}
-                      valueCm={cm(resolved.height)}
+                      valueCm={cmExact(resolved.height)}
                       locked={zone.heightM !== undefined}
                       onValueCm={(v) => updateZone({ col: ci, zone: zi }, { heightM: v / 100 })}
                       onToggleLock={() =>

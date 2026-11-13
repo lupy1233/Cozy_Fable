@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { HttpException, Injectable, NotFoundException } from '@nestjs/common';
 import {
   ERROR_CODES,
   MARKETPLACE_DISTANCE_DISPLAY_MODES,
@@ -7,11 +7,13 @@ import {
   type MarketplaceDetailDto,
   type MarketplaceDistanceDisplayMode,
   type MarketplaceItemDto,
+  type RequestNoLongerClaimableDetails,
   type RequestStudioSceneData,
   sortByRoomOrder,
 } from '@marketplace/shared';
 import { Prisma, type RequestStatus } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { BusinessCalendarService } from '../../infra/calendar/business-calendar.service';
 import { SettingsService } from '../../common/settings/settings.service';
 import { SETTING_DEFAULTS } from '../../common/settings/setting-defaults';
 import { UploadsService } from '../uploads/uploads.service';
@@ -20,7 +22,9 @@ import { PRIVACY_GRID_LAT_DEG, PRIVACY_GRID_LNG_DEG, wholeKm } from '../../commo
 import {
   OCCUPYING_CLAIM_STATUSES,
   SETTING_CLAIMS_OPEN_AFTER_FIRST_OFFER,
+  SLA_DAYS,
   claimableStatuses,
+  marketplaceClosedReason,
 } from '../claims/claims.constants';
 
 // Statusuri ca literal SQL (constante de cod, fara input user).
@@ -30,8 +34,15 @@ const OCCUPYING_SQL = Prisma.sql`(${Prisma.join(OCCUPYING_CLAIM_STATUSES)})`;
 const GRID_LAT_SQL = Prisma.raw(`${PRIVACY_GRID_LAT_DEG}::float8`);
 const GRID_LNG_SQL = Prisma.raw(`${PRIVACY_GRID_LNG_DEG}::float8`);
 
+interface ClosedProbeRow {
+  status: RequestStatus;
+  occupied: bigint;
+  my_claim_slot_id: string | null;
+}
+
 interface MarketSettings {
   maxClaims: number;
+  openAfterFirstOffer: boolean;
   claimable: RequestStatus[];
   distanceDisplay: MarketplaceDistanceDisplayMode;
 }
@@ -60,6 +71,7 @@ export class MarketplaceService {
     private readonly prisma: PrismaService,
     private readonly settings: SettingsService,
     private readonly uploads: UploadsService,
+    private readonly calendar: BusinessCalendarService,
   ) {}
 
   // Setarile care decid eligibilitatea — citite in paralel, fara cache (in oglinda cu claim-ul).
@@ -76,7 +88,62 @@ export class MarketplaceService {
     const distanceDisplay = (MARKETPLACE_DISTANCE_DISPLAY_MODES as readonly string[]).includes(display)
       ? (display as MarketplaceDistanceDisplayMode)
       : 'KM';
-    return { maxClaims, claimable: claimableStatuses(openAfterFirstOffer), distanceDisplay };
+    return { maxClaims, openAfterFirstOffer, claimable: claimableStatuses(openAfterFirstOffer), distanceDisplay };
+  }
+
+  // a1 — cererea nu mai e in piata: firma care o ACOPERA pe raza (si nu e exclusa, iar gating-ul
+  // a trecut — deci ar fi putut-o vedea) afla motivul (409 REQUEST_NO_LONGER_CLAIMABLE). Altfel
+  // (cerere inexistenta, stearsa, nepublicata, in afara razei, firma exclusa) apelantul ramane
+  // pe 404-ul generic: nu dezvaluim existenta cererii unei firme care n-ar fi vazut-o.
+  private async throwIfClosedForCoveringFirm(
+    companyId: string,
+    gatingMinutes: number,
+    requestId: string,
+    maxClaims: number,
+    openAfterFirstOffer: boolean,
+  ): Promise<void> {
+    const rows = await this.prisma.$queryRaw<ClosedProbeRow[]>`
+      SELECT r.status,
+             (SELECT count(*) FROM claim_slots cs
+                WHERE cs.request_id = r.id AND cs.status::text IN ${OCCUPYING_SQL}) AS occupied,
+             (SELECT cs2.id FROM claim_slots cs2
+                WHERE cs2.request_id = r.id AND cs2.company_id = ${companyId}
+                ORDER BY cs2.created_at DESC LIMIT 1) AS my_claim_slot_id
+      FROM requests r
+      CROSS JOIN LATERAL (
+        SELECT (floor(r.lat / ${GRID_LAT_SQL}) + 0.5) * ${GRID_LAT_SQL} AS lat,
+               (floor(r.lng / ${GRID_LNG_SQL}) + 0.5) * ${GRID_LNG_SQL} AS lng
+      ) rp
+      WHERE r.id = ${requestId}
+        AND r.deleted_at IS NULL
+        AND r.lat IS NOT NULL AND r.lng IS NOT NULL
+        AND r.published_at IS NOT NULL
+        AND r.published_at + make_interval(mins => ${gatingMinutes}::int) <= now()
+        AND EXISTS (
+          SELECT 1 FROM company_locations l
+          WHERE l.company_id = ${companyId}
+            AND (6371 * acos(LEAST(1, GREATEST(-1,
+                  cos(radians(rp.lat)) * cos(radians(l.lat)) * cos(radians(l.lng) - radians(rp.lng))
+                  + sin(radians(rp.lat)) * sin(radians(l.lat)))))) <= l.coverage_radius_km)
+        AND NOT EXISTS (SELECT 1 FROM request_company_exclusions e
+              WHERE e.request_id = r.id AND e.company_id = ${companyId})
+      LIMIT 1
+    `;
+    const probe = rows[0];
+    if (!probe) return;
+    const reason = marketplaceClosedReason({
+      status: probe.status,
+      occupied: Number(probe.occupied),
+      maxClaims,
+      openAfterFirstOffer,
+    });
+    // null = intre timp a redevenit claimabila (cursa cu interogarea principala) → 404 generic
+    if (!reason) return;
+    const details: RequestNoLongerClaimableDetails = { reason, myClaimSlotId: probe.my_claim_slot_id };
+    throw new HttpException(
+      { code: ERROR_CODES.REQUEST_NO_LONGER_CLAIMABLE, message: 'Request can no longer be claimed', details },
+      409,
+    );
   }
 
   // Listare cereri eligibile pentru firma (4.8/4.10/4.11):
@@ -96,16 +163,29 @@ export class MarketplaceService {
     companyId: string,
     gatingMinutes: number,
     requestId: string,
+    viewerUserId?: string,
   ): Promise<MarketplaceDetailDto> {
-    const { maxClaims, claimable, distanceDisplay } = await this.readMarketSettings();
+    const { maxClaims, claimable, distanceDisplay, openAfterFirstOffer } = await this.readMarketSettings();
     const rows = await this.queryRows(companyId, gatingMinutes, maxClaims, claimable, requestId);
     const row = rows[0];
     if (!row) {
+      await this.throwIfClosedForCoveringFirm(companyId, gatingMinutes, requestId, maxClaims, openAfterFirstOffer);
       throw new NotFoundException({
         code: ERROR_CODES.NOT_FOUND,
         message: 'Request not visible to your company',
       });
     }
+    // a5: termenul estimat (aceeasi functie de zile lucratoare ca ClaimsService.create) si
+    // regula "o preluare fara oferta de persoana" pentru cel care se uita (4.9)
+    const estimatedSlaDeadlineAt = row.project_size
+      ? this.calendar.addWorkingDays(new Date(), SLA_DAYS[row.project_size]).toISOString()
+      : null;
+    const viewerBusy = viewerUserId
+      ? await this.prisma.claimSlot.findFirst({
+          where: { assignedToUserId: viewerUserId, status: 'ACTIVE', quoteId: null },
+          select: { id: true },
+        })
+      : null;
     const rooms = await this.prisma.requestRoom.findMany({
       where: { requestId },
       include: { items: true },
@@ -130,6 +210,8 @@ export class MarketplaceService {
     return {
       ...this.toItem(row, maxClaims, distanceDisplay),
       deadlineBucket: row.desired_deadline_bucket,
+      estimatedSlaDeadlineAt,
+      viewerHasActiveClaimWithoutOffer: viewerBusy !== null,
       inspirationPhotoIds: inspiration.map((p) => p.photoId),
       // E-client-34: textele libere se mascheaza mereu in marketplace (E-admin-platform-45),
       // inclusiv notitele pozelor; varianta mai restrictiva = note: null

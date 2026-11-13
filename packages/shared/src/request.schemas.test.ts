@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { boardItemMetaSchema, INSPIRATION_NOTE_MAX } from './inspiration.schemas';
 import {
+  ATTACHMENT_ACCEPT,
+  checkAttachmentFile,
+  MAX_ATTACHMENT_BYTES,
+  maxAttachmentsForRequest,
+  presignUploadSchema,
+  remainingAttachmentSlots,
+  resolveAttachmentMime,
   BUDGET_RON_PER_POINT,
   budgetRangeFromRon,
   CLAIM_COST_DEFAULTS,
@@ -12,6 +19,48 @@ import {
   resolveClaimCostRules,
   type ContactPreferenceInput,
 } from './request.schemas';
+
+// b5: limitele de atasamente vin dintr-un singur loc (FE + server)
+describe('checkAttachmentFile / resolveAttachmentMime (b5)', () => {
+  it('foloseste tipul browserului cand e permis', () => {
+    expect(resolveAttachmentMime('plan.pdf', 'application/pdf')).toBe('application/pdf');
+    expect(resolveAttachmentMime('arhiva.zip', 'application/x-zip-compressed')).toBe('application/x-zip-compressed');
+  });
+
+  it('fara tip (Windows) → extensia, doar pentru extensiile permise', () => {
+    expect(resolveAttachmentMime('POZA.JPG', '')).toBe('image/jpeg');
+    expect(resolveAttachmentMime('plan.pdf', 'application/octet-stream')).toBe('application/pdf');
+    expect(resolveAttachmentMime('plan.dwg', '')).toBeNull();
+    expect(resolveAttachmentMime('poza.heic', '')).toBeNull();
+    expect(resolveAttachmentMime('fara-extensie', '')).toBeNull();
+  });
+
+  it('un tip cunoscut dar nepermis nu e salvat de extensie', () => {
+    expect(resolveAttachmentMime('note.txt', 'text/plain')).toBeNull();
+    expect(resolveAttachmentMime('poza.png', 'image/heic')).toBeNull();
+  });
+
+  it('refuza tip, fisier gol si peste 25 MB, cu motivul', () => {
+    expect(checkAttachmentFile({ name: 'a.txt', type: 'text/plain', size: 10 })).toEqual({ ok: false, reason: 'TYPE' });
+    expect(checkAttachmentFile({ name: 'a.pdf', type: 'application/pdf', size: 0 })).toEqual({ ok: false, reason: 'EMPTY' });
+    expect(checkAttachmentFile({ name: 'a.pdf', type: 'application/pdf', size: MAX_ATTACHMENT_BYTES + 1 })).toEqual({ ok: false, reason: 'SIZE' });
+    expect(checkAttachmentFile({ name: 'a.pdf', type: 'application/pdf', size: MAX_ATTACHMENT_BYTES })).toEqual({ ok: true, mimeType: 'application/pdf' });
+  });
+
+  it('ce trece de verificare trece si de schema serverului', () => {
+    const check = checkAttachmentFile({ name: 'scan.png', type: '', size: 85 });
+    expect(check.ok).toBe(true);
+    if (check.ok) expect(presignUploadSchema.safeParse({ filename: 'scan.png', mimeType: check.mimeType, sizeBytes: 85 }).success).toBe(true);
+  });
+
+  it('accept include extensiile, locurile ramase nu scad sub zero', () => {
+    expect(ATTACHMENT_ACCEPT).toContain('.pdf');
+    expect(ATTACHMENT_ACCEPT).toContain('application/pdf');
+    expect(maxAttachmentsForRequest(2)).toBe(26);
+    expect(remainingAttachmentSlots(2, 20)).toBe(6);
+    expect(remainingAttachmentSlots(0, 12)).toBe(0);
+  });
+});
 
 describe('resolveBudgetFields', () => {
   it('deriva bucket-ul din estimarea RON', () => {

@@ -5,7 +5,6 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
-  IsIn,
   IsInt,
   IsObject,
   IsOptional,
@@ -20,9 +19,7 @@ import {
 } from 'class-validator';
 import { BudgetRange, ContactChannel, DesiredDeadlineBucket, RoomType } from '@prisma/client';
 import {
-  ALLOWED_ATTACHMENT_MIME,
   INSPIRATION_NOTE_MAX,
-  MAX_ATTACHMENT_BYTES,
   MAX_BUDGET_RON,
   MAX_REQUEST_INSPIRATION_PHOTOS,
   MAX_REQUEST_ROOMS,
@@ -241,17 +238,19 @@ export class EstimateRequestDto {
   rooms: ConfiguratorRoomInputDto[];
 }
 
+// b5: DTO-ul verifica doar forma; tipul permis, fisierul gol si limita de 25 MB le verifica
+// UploadsService.presign (inainte de orice scriere), ca raspunsul sa poarte codurile dedicate
+// FILE_TYPE_NOT_ALLOWED / FILE_TOO_LARGE in loc de VALIDATION_ERROR.
 export class PresignAttachmentDto {
   @IsString()
   @MinLength(1)
   @MaxLength(255)
   filename: string;
 
-  @IsIn([...ALLOWED_ATTACHMENT_MIME])
-  mimeType: (typeof ALLOWED_ATTACHMENT_MIME)[number];
+  @IsString()
+  @MaxLength(100)
+  mimeType: string;
 
   @IsInt()
-  @Min(1)
-  @Max(MAX_ATTACHMENT_BYTES)
   sizeBytes: number;
 }

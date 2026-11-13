@@ -68,7 +68,8 @@ export function makeClaimsService(over: Partial<ClaimsDeps> = {}, tx: ClaimsTx =
     credits: { reserve: jest.fn().mockResolvedValue(undefined) },
     settings: {
       getInt: jest.fn().mockResolvedValue(3),
-      getBool: jest.fn().mockResolvedValue(false),
+      // fara rand in system_settings → valoarea implicita primita de la apelant (SETTING_DEFAULTS)
+      getBool: jest.fn().mockImplementation(async (_key: string, fallback: boolean) => fallback),
     },
     outbox: { record: jest.fn().mockResolvedValue(undefined) },
     calendar: { addWorkingDays: jest.fn((date: Date, n: number) => new Date(date.getTime() + n * 24 * 3600 * 1000)) },

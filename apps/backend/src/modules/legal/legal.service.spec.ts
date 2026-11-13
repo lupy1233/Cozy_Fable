@@ -84,7 +84,7 @@ describe('LegalService.getFirmRules', () => {
       claims: {
         maxClaimsPerRequest: 5,
         assignDeadlineMinutes: 60,
-        openAfterFirstOffer: false,
+        openAfterFirstOffer: true,
         contactRevealPolicy: 'ON_CLAIM',
         completedContactRetentionDays: 0,
         claimCost: { min: 1, max: null },
@@ -109,8 +109,8 @@ describe('LegalService.getFirmRules', () => {
     expect(dto.trial).toEqual({ enabled: true, plan: 'GOLD', durationDays: 30, bonusCredits: 10 });
   });
 
-  it('E-admin-platform-10: openAfterFirstOffer = false implicit, true doar cu randul "true"', async () => {
-    expect((await makeService({}, RULES).service.getFirmRules()).claims.openAfterFirstOffer).toBe(false);
+  it('E-admin-platform-10: openAfterFirstOffer = true implicit (PO 2026-11-13), false doar cu randul "false"', async () => {
+    expect((await makeService({}, RULES).service.getFirmRules()).claims.openAfterFirstOffer).toBe(true);
     const on = await makeService({ ...SETTINGS, claims_open_after_first_offer: 'true' }, RULES).service.getFirmRules();
     expect(on.claims.openAfterFirstOffer).toBe(true);
     const off = await makeService({ ...SETTINGS, claims_open_after_first_offer: 'false' }, RULES).service.getFirmRules();

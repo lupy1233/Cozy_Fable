@@ -26,7 +26,7 @@ const url = testDatabaseUrl();
 function wire(dbUrl: string) {
   const { prisma } = createTestPrisma(dbUrl);
   const services = createMoneyServices(prisma);
-  const marketplace = new MarketplaceService(prisma, services.settings, services.uploads);
+  const marketplace = new MarketplaceService(prisma, services.settings, services.uploads, services.calendar);
   return { prisma, marketplace, ...services };
 }
 

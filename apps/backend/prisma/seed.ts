@@ -112,8 +112,10 @@ const SUBSCRIPTION_PLANS: {
   includedCredits: number;
   marketplaceGatingDelayMin: number;
 }[] = [
-  { tier: 'SILVER', priceRon: 149, includedCredits: 15, marketplaceGatingDelayMin: 60 },
-  { tier: 'GOLD', priceRon: 399, includedCredits: 50, marketplaceGatingDelayMin: 30 },
+  // a1 (PO 2026-11-13): fara intarziere pe plan — toate planurile vad cererile imediat;
+  // coloana + setarea din Admin raman (mecanismul din marketplace e no-op la 0)
+  { tier: 'SILVER', priceRon: 149, includedCredits: 15, marketplaceGatingDelayMin: 0 },
+  { tier: 'GOLD', priceRon: 399, includedCredits: 50, marketplaceGatingDelayMin: 0 },
   { tier: 'PLATINUM', priceRon: 899, includedCredits: 120, marketplaceGatingDelayMin: 0 },
 ];
 
@@ -162,9 +164,10 @@ const SYSTEM_SETTINGS: Record<string, string> = {
   trial_duration_days: '30',
   trial_bonus_credits: '10',
   max_claims_per_request: '3',
-  // E-admin-platform-10: cererea ramane claimabila dupa prima oferta — OPRIT pana la decizia
-  // PO (invarianta 3.1).
-  claims_open_after_first_offer: 'false',
+  // E-admin-platform-10 / a1 (PO 2026-11-13): cererea ramane claimabila dupa prima oferta,
+  // pana se ocupa locurile. Comutatorul ramane in Admin. (update gol: o baza existenta
+  // pastreaza valoarea veche — se schimba din Admin)
+  claims_open_after_first_offer: 'true',
   // E-company-3: contactele clientului la claim (W1) si fara prag dupa livrare — pana la
   // decizia PO (DECIZIE NECESARA).
   claim_contact_reveal_policy: 'ON_CLAIM',

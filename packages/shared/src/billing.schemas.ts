@@ -68,6 +68,17 @@ export interface EntitlementsDto {
   expiresAt: string | null;
   gatingDelayMinutes: number | null;
   features: PlanFeaturesDto;
+  // h2 (2026-11-13): fara abonament activ — ultimul abonament al firmei si data la care s-a
+  // incheiat (mesajul comun "Abonamentul X a expirat pe ..."). null cand exista abonament
+  // activ sau firma n-a avut niciodata abonament.
+  lastExpired: LastExpiredSubscriptionDto | null;
+}
+
+export interface LastExpiredSubscriptionDto {
+  planCode: PlanCode;
+  nameRo: string | null;
+  nameEn: string | null;
+  expiredAt: string;
 }
 
 // GET /billing/subscription — abonamentul activ + cate zile mai are.

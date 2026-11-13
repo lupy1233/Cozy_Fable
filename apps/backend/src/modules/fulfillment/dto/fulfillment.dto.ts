@@ -13,6 +13,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -50,6 +51,14 @@ export class OpenProjectCaseDto {
   @IsString()
   @MaxLength(1000)
   note?: string;
+}
+
+// e2-2 — reclamatia clientului dupa finalizare: descrierea problemei e obligatorie.
+export class OpenWarrantyCaseDto {
+  @IsString()
+  @Matches(/\S/)
+  @MaxLength(1000)
+  note: string;
 }
 
 export class RespondProjectCaseDto {

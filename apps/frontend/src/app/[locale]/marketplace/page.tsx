@@ -25,7 +25,8 @@ import { ContactSafeText } from '@/components/ui/contact-safe-text';
 import { useRelativeTime } from '@/lib/relative-time';
 import { distanceLabel } from '@/lib/marketplace-distance';
 import { cn } from '@/lib/utils';
-import { AccessBlocked } from './_components/access-blocked';
+import { AccessBlocked, isSubscriptionInactive } from './_components/access-blocked';
+import { SubscriptionStatusNotice, useSubscriptionLapsed } from './_components/subscription-status-notice';
 import { RequestTag } from './_components/request-tag';
 import { SlotBars } from './_components/slot-bars';
 import { WorksheetButton } from './_components/worksheet-button';
@@ -62,6 +63,7 @@ export default function MarketplacePage() {
   const me = useMe();
   const list = useMarketplace();
   const wallet = useWallet();
+  const lapsed = useSubscriptionLapsed(me.data?.role === 'COMPANY_USER');
   const relTime = useRelativeTime();
   const [filter, setFilter] = useState<Filter>('all');
   const [size, setSize] = useState<SizeFilter>('ANY');
@@ -116,6 +118,7 @@ export default function MarketplacePage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
+      <SubscriptionStatusNotice />
 
       {list.isSuccess && list.data.length > 0 && (
         <Card
@@ -188,8 +191,11 @@ export default function MarketplacePage() {
       )}
 
       {list.isPending && <SkeletonList variant="cards" rows={4} className="lg:grid-cols-2" />}
-      {/* 403/404 (firma neaprobata / suspendata / fara abonament) → ecran de blocaj cu CTA */}
-      {list.isError && <AccessBlocked error={list.error} onRetry={() => void list.refetch()} />}
+      {/* 403/404 (firma neaprobata / suspendata / fara abonament) → ecran de blocaj cu CTA.
+          h2: fara abonament, mesajul comun de sus tine locul ecranului de blocaj (nu dublam). */}
+      {list.isError && !(lapsed && isSubscriptionInactive(list.error)) && (
+        <AccessBlocked error={list.error} onRetry={() => void list.refetch()} />
+      )}
       {list.isSuccess && list.data.length === 0 && (
         <EmptyState variant="card" icon={Inbox} title={t('empty')} />
       )}

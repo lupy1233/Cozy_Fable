@@ -23,6 +23,13 @@ export function AttachmentKindIcon({
   return <Icon className={className ?? 'h-4 w-4'} />;
 }
 
+// b5 pas 4: marimea reala — „sub 1 KB” in loc de „0 KB”, MB peste 1 MB.
+export function fileSizeLabel(bytes: number, underKb: string): string {
+  if (bytes < 1024) return underKb;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 // Rand de fisier in listele de upload (pasul Fisiere + schita per camera).
 export function AttachmentRow({
   attachment,
@@ -50,7 +57,7 @@ export function AttachmentRow({
         )}
         <span className="truncate">{attachment.filename}</span>
         <span className="shrink-0 font-mono text-meta text-muted-2">
-          {(attachment.sizeBytes / 1024).toFixed(0)} KB
+          {fileSizeLabel(attachment.sizeBytes, t('uploads.sizeUnderKb'))}
         </span>
         {scanning && (
           <span className="inline-flex shrink-0 items-center gap-1 font-mono text-meta text-muted-2">

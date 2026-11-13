@@ -235,8 +235,12 @@ export class ReconciliationProcessor extends WorkerHost implements OnModuleInit 
         status: 'DELIVERED_BY_COMPANY',
         deletedAt: null,
         deliveredAt: { lt: new Date(now.getTime() - AUTO_COMPLETE_DAYS * DAY_MS) },
+        // e2-1 / review m2: cu raport deschis ceasul e oprit — nu re-adaugam joburi no-op care
+        // ar ocupa locurile din SWEEP_TAKE ale cererilor care chiar trebuie finalizate
+        projectCases: { none: { status: 'OPEN' } },
       },
       select: { id: true, deliveredAt: true },
+      orderBy: { deliveredAt: 'asc' },
       take: SWEEP_TAKE,
     });
     for (const r of staleDeliveries) {

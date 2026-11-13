@@ -118,7 +118,47 @@ describe('EntitlementsService (E-admin-platform-58)', () => {
       expiresAt: '2026-09-20T10:00:00.000Z',
       gatingDelayMinutes: 30,
       features: { MARKETPLACE_ACCESS: { enabled: true, limit: null } },
+      lastExpired: null,
     });
+  });
+
+  it('h2: toDto pune lastExpired doar cand nu exista abonament activ', async () => {
+    const last = { planCode: 'GOLD', nameRo: 'Aur', nameEn: 'Gold', expiredAt: '2026-08-20T10:00:00.000Z' };
+    const active = await setup(sub()).service.forCompany('c1');
+    expect(setup(null).service.toDto(active, last).lastExpired).toBeNull();
+    const { service } = setup(null);
+    const none = await service.forCompany('c1');
+    expect(service.toDto(none, last).lastExpired).toEqual(last);
+    expect(service.toDto(none).lastExpired).toBeNull();
+  });
+
+  it('h2: lastExpired = ultimul abonament incheiat (data expirarii)', async () => {
+    const { service, findFirst } = setup({
+      id: 'sub-old',
+      status: 'ACTIVE',
+      expiresAt: new Date('2026-08-20T10:00:00Z'),
+      plan: { code: 'SILVER', nameRo: 'Argint', nameEn: 'Silver' },
+    });
+    await expect(service.lastExpired('c1')).resolves.toEqual({
+      planCode: 'SILVER',
+      nameRo: 'Argint',
+      nameEn: 'Silver',
+      expiredAt: '2026-08-20T10:00:00.000Z',
+    });
+    expect(findFirst).toHaveBeenCalledWith({
+      where: { companyId: 'c1', expiresAt: { lte: now } },
+      include: { plan: true },
+      orderBy: { expiresAt: 'desc' },
+    });
+  });
+
+  it('m4: doar expirarile reale (data trecuta) conteaza; un rand anulat cu data in viitor nu da o data inventata', async () => {
+    // query-ul cere expiresAt <= acum, deci randul anulat cu data in viitor nu e gasit → null
+    const { service, findFirst } = setup(null);
+    await expect(service.lastExpired('c1')).resolves.toBeNull();
+    const where = findFirst.mock.calls[0][0].where;
+    expect(where).toEqual({ companyId: 'c1', expiresAt: { lte: now } });
+    expect(where).not.toHaveProperty('OR');
   });
 
   it('foloseste clientul de tranzactie cand e dat', async () => {

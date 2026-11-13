@@ -26,6 +26,21 @@ export interface ReviewDto {
   createdAt: string;
 }
 
+// e2 pasul 4 — fisa firmei castigatoare: livrarea confirmata + recenzia primita + raportul
+// deschis al clientului (in starea livrata sau in garantie). Doar firma castigatoare il citeste.
+export interface CompanyCompletionDto {
+  requestId: string;
+  requestStatus: string;
+  deliveredAt: string | null;
+  // null la cererile finalizate inainte de coloana completed_at
+  completedAt: string | null;
+  review: { rating: number; comment: string | null; disputed: boolean; createdAt: string } | null;
+  openCase: { reason: string; note: string | null; createdAt: string } | null;
+  // review m5: aceleasi reguli ca fisa de lucru — fara acces la datele clientului, comentariul
+  // recenziei si nota raportului vin null
+  clientTextsHidden: boolean;
+}
+
 export interface AdminDisputeItemDto {
   id: string;
   reviewId: string;

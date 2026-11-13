@@ -87,7 +87,7 @@ describe('FirmRulesArticle', () => {
       refetch: vi.fn(),
     };
     renderArticle();
-    expect(screen.getByText(/rămâne disponibilă pentru preluare și după prima ofertă, până când o preiau 2 firme/)).toBeInTheDocument();
+    expect(screen.getByText(/rămâne deschisă pentru preluare și după prima ofertă, până când se ocupă toate cele 2 locuri/)).toBeInTheDocument();
     expect(screen.queryByText(/nu mai poate fi preluată de alte firme/)).not.toBeInTheDocument();
   });
 

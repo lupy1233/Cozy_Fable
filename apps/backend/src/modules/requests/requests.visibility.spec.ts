@@ -85,7 +85,7 @@ describe('RequestsService.getVisibilityForClient (E-client-9)', () => {
       request: { id: 'r1', clientUserId: 'client-1', status: 'IN_MARKETPLACE', deletedAt: null, publishedAt: new Date(), lat: 1, lng: 1, deliveredAt: null },
     });
     await expect(service.getVisibilityForClient('client-1', 'r1')).resolves.toEqual({
-      requestId: 'r1', projectVisibleInMarketplace: true, contactHolders: [],
+      requestId: 'r1', projectVisibleInMarketplace: true, contactHolders: [], marketplaceClosedReason: null,
     });
   });
 
@@ -105,9 +105,37 @@ describe('RequestsService.getVisibilityForClient (E-client-9)', () => {
 
   it('flag-ul claims_open_after_first_offer: OFFERS_RECEIVED vizibil doar cu flag pornit', async () => {
     const req = { id: 'r1', clientUserId: 'client-1', status: 'OFFERS_RECEIVED', deletedAt: null, publishedAt: new Date(), lat: 1, lng: 1, deliveredAt: null };
-    const off = setup({ request: req });
-    expect((await off.service.getVisibilityForClient('client-1', 'r1')).projectVisibleInMarketplace).toBe(false);
+    const off = setup({ request: req, settings: { claims_open_after_first_offer: 'false' } });
+    const offRes = await off.service.getVisibilityForClient('client-1', 'r1');
+    expect(offRes.projectVisibleInMarketplace).toBe(false);
+    expect(offRes.marketplaceClosedReason).toBe('FIRST_OFFER_RULE');
     const on = setup({ request: req, settings: { claims_open_after_first_offer: 'true' } });
-    expect((await on.service.getVisibilityForClient('client-1', 'r1')).projectVisibleInMarketplace).toBe(true);
+    const onRes = await on.service.getVisibilityForClient('client-1', 'r1');
+    expect(onRes.projectVisibleInMarketplace).toBe(true);
+    expect(onRes.marketplaceClosedReason).toBeNull();
+  });
+
+  // a1 (PO 2026-11-13): implicit cererea ramane in piata dupa prima oferta (si dupa o cerere
+  // de modificare, NEGOTIATION) cat are locuri libere
+  it.each(['OFFERS_RECEIVED', 'NEGOTIATION'])('setarea implicita: %s cu 1/3 locuri → vizibila, fara motiv', async (status) => {
+    const t = new Date(Date.now() - 60 * MIN);
+    const { service } = setup({
+      request: { id: 'r1', clientUserId: 'client-1', status, deletedAt: null, publishedAt: t, lat: 1, lng: 1, deliveredAt: null },
+      slots: [slot('s1', 'OFFER_SENT', t)],
+    });
+    const res = await service.getVisibilityForClient('client-1', 'r1');
+    expect(res.projectVisibleInMarketplace).toBe(true);
+    expect(res.marketplaceClosedReason).toBeNull();
+  });
+
+  it('motivul inchiderii: locuri ocupate / oferta acceptata / expirata', async () => {
+    const t = new Date(Date.now() - 600 * MIN);
+    const req = (status: string) => ({ id: 'r1', clientUserId: 'client-1', status, deletedAt: null, publishedAt: t, lat: 1, lng: 1, deliveredAt: null });
+    const full = setup({ request: req('OFFERS_RECEIVED'), slots: [slot('a', 'ACTIVE', t), slot('b', 'OFFER_SENT', t), slot('c', 'OFFER_SENT', t)] });
+    expect((await full.service.getVisibilityForClient('client-1', 'r1')).marketplaceClosedReason).toBe('SLOTS_FULL');
+    const accepted = setup({ request: req('ACCEPTED'), slots: [slot('a', 'OFFER_SENT', t)] });
+    expect((await accepted.service.getVisibilityForClient('client-1', 'r1')).marketplaceClosedReason).toBe('OFFER_ACCEPTED');
+    const expired = setup({ request: req('EXPIRED') });
+    expect((await expired.service.getVisibilityForClient('client-1', 'r1')).marketplaceClosedReason).toBe('EXPIRED');
   });
 });

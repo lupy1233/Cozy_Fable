@@ -14,6 +14,8 @@ function makeService(opts: {
   request?: Any;
   completeCount?: number;
   slotCloseCount?: number;
+  openCase?: Any;
+  lastResolved?: Any;
 } = {}) {
   const request = opts.request ?? {
     id: 'r1',
@@ -24,7 +26,13 @@ function makeService(opts: {
     deliveredAt: new Date(Date.now() - (AUTO_COMPLETE_DAYS + 1) * DAY_MS),
   };
   const slot = { id: 'slot1', companyId: 'c1', requestId: 'r1', claimCostCreditsSnapshot: 3, status: 'OFFER_SENT' };
+  // e2-1: cazurile de proiect (findFirst #1 = caz OPEN, #2 = ultima inchidere dupa livrare)
+  const requestProjectCase: Any = {
+    findFirst: jest.fn().mockImplementation(async ({ where }: Any) =>
+      where.status === 'OPEN' ? (opts.openCase ?? null) : (opts.lastResolved ?? null)),
+  };
   const tx: Any = {
+    requestProjectCase,
     $queryRaw: jest.fn().mockResolvedValue([]),
     companyMember: { findMany: jest.fn().mockResolvedValue([{ userId: 'm1' }]) },
     user: { findMany: jest.fn().mockResolvedValue([]) },
@@ -45,6 +53,7 @@ function makeService(opts: {
     review: { delete: jest.fn().mockResolvedValue(undefined) },
   };
   const prisma: Any = {
+    requestProjectCase,
     $transaction: jest.fn((fn: (t: Any) => Promise<unknown>) => fn(tx)),
     request: { findUnique: jest.fn().mockResolvedValue(request) },
     quote: {
@@ -70,8 +79,13 @@ function makeService(opts: {
   const settlement = new ClaimSettlementService(credits);
   const queue: Any = { add: jest.fn().mockResolvedValue(undefined), remove: jest.fn().mockResolvedValue(1) };
   const outbox: Any = { record: jest.fn().mockResolvedValue(undefined) };
-  const service = new FulfillmentService(prisma, eventBus, settlement, queue, outbox);
-  return { service, tx, prisma, eventBus, credits, queue, request, outbox };
+  // setarile de acces la contacte (implicit: ON_CLAIM, retentie 0 = oprit)
+  const settings: Any = {
+    getString: jest.fn().mockImplementation(async (_k: string, fallback: string) => fallback),
+    getInt: jest.fn().mockResolvedValue(0),
+  };
+  const service = new FulfillmentService(prisma, eventBus, settlement, queue, outbox, settings);
+  return { service, tx, prisma, eventBus, credits, queue, request, outbox, settings };
 }
 
 describe('FulfillmentService — auto-COMPLETED la 14 zile (D-PO 2026-08-23)', () => {
@@ -87,7 +101,8 @@ describe('FulfillmentService — auto-COMPLETED la 14 zile (D-PO 2026-08-23)', (
     await expect(service.autoCompleteDelivered('r1')).resolves.toBe(true);
     expect(tx.request.updateMany).toHaveBeenCalledWith({
       where: { id: 'r1', status: 'DELIVERED_BY_COMPANY', deletedAt: null },
-      data: { status: 'COMPLETED' },
+      // e2-2: completed_at = baza ferestrei de garantie
+      data: { status: 'COMPLETED', completedAt: expect.any(Date) },
     });
     expect(credits.consume).toHaveBeenCalledWith('c1', 3, 'COMPLETED', 'slot1', expect.anything());
     // E-admin-platform-15: COMPLETED prin settle(), fara withdrawnAt (nu e o retragere)
@@ -124,6 +139,46 @@ describe('FulfillmentService — auto-COMPLETED la 14 zile (D-PO 2026-08-23)', (
     const { service, credits } = makeService({ slotCloseCount: 0 });
     await expect(service.autoCompleteDelivered('r1')).resolves.toBe(true);
     expect(credits.consume).not.toHaveBeenCalled();
+  });
+
+  // e2-1 (PO 2026-11-13): "Am o problema" in starea livrata opreste ceasul pana inchide adminul
+  it('raport OPEN in starea livrata → finalizarea automata NU ruleaza (fara consum de credite)', async () => {
+    const { service, tx, credits, outbox } = makeService({ openCase: { id: 'case1' } });
+    await expect(service.autoCompleteDelivered('r1')).resolves.toBe(false);
+    expect(tx.request.updateMany).not.toHaveBeenCalled();
+    expect(credits.consume).not.toHaveBeenCalled();
+    expect(outbox.record).not.toHaveBeenCalled();
+  });
+
+  it('raport deschis intre verificare si lock → re-verificat sub lock, tot no-op', async () => {
+    const { service, tx, credits } = makeService();
+    // prima citire (fara lock) nu vede cazul; a doua (sub lock) il vede
+    let calls = 0;
+    tx.requestProjectCase.findFirst.mockImplementation(async ({ where }: Any) => {
+      if (where.status !== 'OPEN') return null;
+      calls += 1;
+      return calls === 1 ? null : { id: 'case1' };
+    });
+    await expect(service.autoCompleteDelivered('r1')).resolves.toBe(false);
+    expect(tx.request.updateMany).not.toHaveBeenCalled();
+    expect(credits.consume).not.toHaveBeenCalled();
+  });
+
+  it('raport inchis de admin acum 2 zile → termenul de 14 zile reporneste de la inchidere: inca no-op', async () => {
+    const { service, tx } = makeService({ lastResolved: { resolvedAt: new Date(Date.now() - 2 * DAY_MS) } });
+    await expect(service.autoCompleteDelivered('r1')).resolves.toBe(false);
+    expect(tx.request.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('raport inchis de admin acum 15 zile → ceasul a mers mai departe: COMPLETED', async () => {
+    const { service, tx } = makeService({ lastResolved: { resolvedAt: new Date(Date.now() - 15 * DAY_MS) } });
+    await expect(service.autoCompleteDelivered('r1')).resolves.toBe(true);
+    expect(tx.request.updateMany).toHaveBeenCalled();
+  });
+
+  it('clientul poate confirma livrarea si cu raport deschis (decizia lui)', async () => {
+    const { service } = makeService({ openCase: { id: 'case1' } });
+    await expect(service.confirmDelivery('u-client', 'r1')).resolves.toEqual({ status: 'COMPLETED' });
   });
 
   it('jobId-ul de auto-complete e determinist pe delivered_at (contract cu sweep-ul)', () => {
@@ -210,5 +265,84 @@ describe('markDelivered - E-company-1', () => {
     expect(tx.claimSlot.count).toHaveBeenCalledWith({ where: { id: 'slot1', status: 'OFFER_SENT' } });
     expect(tx.request.updateMany).not.toHaveBeenCalled();
     expect(outbox.record).not.toHaveBeenCalled();
+  });
+});
+
+// e2 pasul 4: fisa firmei arata "Livrare confirmata" + recenzia primita (doar castigatorul).
+// Review m5: aceleasi reguli de acces ca fisa de lucru (resolveClaimContextAccess).
+describe('getCompletionForCompany (e2 pasul 4 + m5)', () => {
+  const completedAt = new Date(Date.now() - 2 * DAY_MS);
+  const winSlot = (over: Any = {}) => ({
+    id: 'q1',
+    claimSlot: {
+      status: 'COMPLETED',
+      createdAt: new Date(Date.now() - 60 * DAY_MS),
+      updatedAt: completedAt,
+      claimedByUserId: 'u-claimer',
+      assignedToUserId: null,
+      ...over,
+    },
+  });
+  function setup(slotOver: Any = {}) {
+    const h = makeService({
+      request: { id: 'r1', status: 'COMPLETED', deletedAt: null, deliveredAt: completedAt, completedAt },
+      openCase: { reason: 'WARRANTY_CLAIM', note: 'Usa s-a lasat', createdAt: completedAt },
+    });
+    h.prisma.quote.findFirst.mockResolvedValue(winSlot(slotOver));
+    h.prisma.review = {
+      findUnique: jest.fn().mockResolvedValue({ rating: 4, comment: 'Bine', createdAt: completedAt, dispute: null }),
+    };
+    return h;
+  }
+
+  it('conducerea firmei castigatoare vede finalizarea, recenzia si raportul deschis al clientului', async () => {
+    const { service, prisma } = setup();
+    await expect(service.getCompletionForCompany({ companyId: 'c1', memberRole: 'OWNER' } as Any, 'u-owner', 'r1')).resolves.toEqual({
+      requestId: 'r1',
+      requestStatus: 'COMPLETED',
+      deliveredAt: completedAt.toISOString(),
+      completedAt: completedAt.toISOString(),
+      review: { rating: 4, comment: 'Bine', disputed: false, createdAt: completedAt.toISOString() },
+      openCase: { reason: 'WARRANTY_CLAIM', note: 'Usa s-a lasat', createdAt: completedAt.toISOString() },
+      clientTextsHidden: false,
+    });
+    expect(prisma.quote.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: { requestId: 'r1', status: 'ACCEPTED', companyId: 'c1' },
+    }));
+  });
+
+  it('EMPLOYEE_MANAGED neatribuit (ca pe fisa de lucru) → fara comentariul recenziei si fara nota clientului', async () => {
+    const { service } = setup();
+    const dto = await service.getCompletionForCompany({ companyId: 'c1', memberRole: 'EMPLOYEE_MANAGED' } as Any, 'u-other', 'r1');
+    expect(dto.clientTextsHidden).toBe(true);
+    expect(dto.review).toMatchObject({ rating: 4, comment: null });
+    expect(dto.openCase).toMatchObject({ reason: 'WARRANTY_CLAIM', note: null });
+  });
+
+  it('EMPLOYEE_MANAGED care a preluat proiectul → vede textele', async () => {
+    const { service } = setup();
+    const dto = await service.getCompletionForCompany({ companyId: 'c1', memberRole: 'EMPLOYEE_MANAGED' } as Any, 'u-claimer', 'r1');
+    expect(dto.clientTextsHidden).toBe(false);
+    expect(dto.review?.comment).toBe('Bine');
+  });
+
+  it('dupa pragul de retentie, angajatul nu mai vede textele; conducerea da', async () => {
+    const { service, settings } = setup();
+    settings.getInt.mockResolvedValue(1); // retentie 1 zi; livrat acum 2 zile
+    const emp = await service.getCompletionForCompany({ companyId: 'c1', memberRole: 'EMPLOYEE_TRUSTED' } as Any, 'u-claimer', 'r1');
+    expect(emp.clientTextsHidden).toBe(true);
+    const mgr = await service.getCompletionForCompany({ companyId: 'c1', memberRole: 'MANAGER' } as Any, 'u-mgr', 'r1');
+    expect(mgr.clientTextsHidden).toBe(false);
+  });
+
+  it('slot neocupant (fisa ar fi REDACTED) → 404', async () => {
+    const { service } = setup({ status: 'WITHDRAWN' });
+    await expect(service.getCompletionForCompany({ companyId: 'c1', memberRole: 'OWNER' } as Any, 'u-owner', 'r1')).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('firma care nu a castigat → 404', async () => {
+    const { service, prisma } = makeService();
+    prisma.quote.findFirst.mockResolvedValue(null);
+    await expect(service.getCompletionForCompany({ companyId: 'c-other', memberRole: 'OWNER' } as Any, 'u', 'r1')).rejects.toMatchObject({ status: 404 });
   });
 });

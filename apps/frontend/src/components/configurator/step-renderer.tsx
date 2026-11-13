@@ -14,8 +14,9 @@ import {
   type RequestItemInput,
 } from '@marketplace/shared';
 import { Info, Plus, X } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useId } from 'react';
+import { formatDecimal } from '@/lib/decimal';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -31,6 +32,7 @@ import { Configurator3dStep } from './piece3d/dynamic';
 import { CompactChoiceCard, PlayingCard } from './playing-card';
 import { RoomSketchUpload } from './room-sketch-upload';
 import { ContactInTextHint } from './contact-in-text-hint';
+import { useDecimalField } from './use-decimal-field';
 
 interface StepRendererProps {
   step: QuestionStep;
@@ -129,8 +131,69 @@ const cnUnit = (active: boolean) =>
   'rounded-full px-2 py-0.5 uppercase tracking-[0.06em] transition-colors ' +
   (active ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground');
 
+// Campul comun de dimensiuni din pasii camerelor (b1): text cu virgula, ciorna
+// locala a textului; in raspuns se scrie doar textul care se poate citi.
+function DimensionSlotInput({
+  id,
+  metersVal,
+  factor,
+  unit,
+  outOfRange,
+  onMeters,
+  hint,
+}: {
+  id: string;
+  metersVal: number | undefined;
+  factor: number;
+  unit: string;
+  outOfRange: boolean;
+  onMeters: (meters: number | undefined) => void;
+  hint: React.ReactNode;
+}) {
+  const field = useDecimalField({
+    value: metersVal === undefined ? undefined : metersVal * factor,
+    commitOn: 'change',
+    onValue: (v) => onMeters(v === undefined ? undefined : v / factor),
+  });
+  const invalid = outOfRange || field.error !== null;
+  return (
+    <>
+      <div className="relative">
+        <Input
+          id={id}
+          {...field.inputProps}
+          aria-invalid={invalid || undefined}
+          className={invalid ? 'border-crimson pr-10' : 'pr-10'}
+        />
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+          {unit}
+        </span>
+      </div>
+      {field.error ? <p className="mt-1 text-meta text-crimson">{field.error}</p> : hint}
+    </>
+  );
+}
+
+// Tipul de intrebare "numar simplu" (nefolosit azi in fluxuri) — acelasi cititor.
+function NumberStepInput({
+  value,
+  onValue,
+}: {
+  value: number | undefined;
+  onValue: (value: number | undefined) => void;
+}) {
+  const field = useDecimalField({ value, onValue, commitOn: 'change' });
+  return (
+    <>
+      <Input {...field.inputProps} className={field.error ? 'max-w-40 border-crimson' : 'max-w-40'} />
+      {field.error && <p className="mt-1 text-meta text-crimson">{field.error}</p>}
+    </>
+  );
+}
+
 export function StepRenderer(props: StepRendererProps) {
   const inputId = useId();
+  const locale = useLocale();
   const {
     step,
     answers,
@@ -341,12 +404,14 @@ export function StepRenderer(props: StepRendererProps) {
     const factor = UNIT_FACTOR[dimensionUnit];
     // afisare fara artefacte float (0.30000000000000004 → 0.3)
     const fmtNum = (v: number) => Math.round(v * 10000) / 10000;
+    // afisare dupa limba: "1,6 m" in romana (b1); ce se salveaza ramane numar
+    const fmtShow = (v: number) => formatDecimal(v, locale);
     // plansa cu litere (A/B/C/H...) — valorile completate apar si langa litere
     // pe desen (feedback PO 2026-07-13), pe langa legenda si campuri
     const valueLabels: Record<string, string> = {};
     for (const s of slots) {
       if (Number.isFinite(values[s.id])) {
-        valueLabels[s.id] = `${fmtNum(values[s.id] * factor)} ${dimensionUnit}`;
+        valueLabels[s.id] = `${fmtShow(values[s.id] * factor)} ${dimensionUnit}`;
       }
     }
     const figure =
@@ -356,7 +421,7 @@ export function StepRenderer(props: StepRendererProps) {
     const letterOf = (slotId: string) => figure?.letters[slotId];
     const legend = slots
       .filter((s) => letterOf(s.id) && Number.isFinite(values[s.id]))
-      .map((s) => `${letterOf(s.id)} = ${fmtNum(values[s.id] * factor)} ${dimensionUnit}`);
+      .map((s) => `${letterOf(s.id)} = ${fmtShow(values[s.id] * factor)} ${dimensionUnit}`);
     return (
       <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} counter={counter}>
         {figure && (
@@ -392,7 +457,7 @@ export function StepRenderer(props: StepRendererProps) {
             const metersVal = values[slot.id];
             const hasValue = Number.isFinite(metersVal);
             const outOfRange = hasValue && (metersVal < slot.min || metersVal > slot.max);
-            const rangeText = `${fmtNum(slot.min * factor)}–${fmtNum(slot.max * factor)} ${dimensionUnit}`;
+            const rangeText = `${fmtShow(slot.min * factor)}–${fmtShow(slot.max * factor)} ${dimensionUnit}`;
             const letter = letterOf(slot.id);
             return (
               <Field
@@ -411,37 +476,29 @@ export function StepRenderer(props: StepRendererProps) {
                   )
                 }
               >
-                <div className="relative">
-                  <Input
-                    id={`${inputId}-${slot.id}`}
-                    type="number"
-                    inputMode="decimal"
-                    step={fmtNum((slot.step ?? 0.1) * factor)}
-                    min={fmtNum(slot.min * factor)}
-                    max={fmtNum(slot.max * factor)}
-                    value={hasValue ? fmtNum(metersVal * factor) : ''}
-                    aria-invalid={outOfRange || undefined}
-                    onChange={(e) => {
-                      const raw = e.target.value;
-                      const next = { ...values };
-                      if (raw === '') delete next[slot.id];
-                      else next[slot.id] = fmtNum(Number(raw) / factor);
-                      onChange(next);
-                    }}
-                    className={outOfRange ? 'border-crimson pr-10' : 'pr-10'}
-                  />
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    {dimensionUnit}
-                  </span>
-                </div>
-                {/* validare imediata per camp, nu doar la Continua */}
-                {outOfRange ? (
-                  <p className="mt-1 text-meta text-crimson">
-                    {t('validation.dimensionRange', { range: rangeText })}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-meta text-muted-foreground">{rangeText}</p>
-                )}
+                <DimensionSlotInput
+                  id={`${inputId}-${slot.id}`}
+                  metersVal={hasValue ? metersVal : undefined}
+                  factor={factor}
+                  unit={dimensionUnit}
+                  outOfRange={outOfRange}
+                  onMeters={(meters) => {
+                    const next = { ...values };
+                    if (meters === undefined) delete next[slot.id];
+                    else next[slot.id] = fmtNum(meters);
+                    onChange(next);
+                  }}
+                  hint={
+                    /* validare imediata per camp, nu doar la Continua */
+                    outOfRange ? (
+                      <p className="mt-1 text-meta text-crimson">
+                        {t('validation.dimensionRange', { range: rangeText })}
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-meta text-muted-foreground">{rangeText}</p>
+                    )
+                  }
+                />
               </Field>
             );
           })}
@@ -453,15 +510,9 @@ export function StepRenderer(props: StepRendererProps) {
   if (step.type === 'number') {
     return (
       <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} inline={inline} counter={counter}>
-        <Input
-          type="number"
-          inputMode="decimal"
-          step={step.step ?? 1}
-          min={step.min}
-          max={step.max}
-          value={typeof value === 'number' ? value : ''}
-          onChange={(e) => onChange(e.target.value === '' ? (undefined as never) : Number(e.target.value))}
-          className="max-w-40"
+        <NumberStepInput
+          value={typeof value === 'number' ? value : undefined}
+          onValue={(v) => onChange(v === undefined ? (undefined as never) : v)}
         />
       </StepShell>
     );

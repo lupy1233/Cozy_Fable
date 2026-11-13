@@ -57,6 +57,9 @@ const PIECES: PieceWithMaterialDef[] = [
 // blatul nu are fronturi → intrebarea lui de sisteme se elimina din flow
 const NO_SYSTEMS_STEPS = new Set(['systemsCountertop']);
 
+// c6: blatul nu primeste badge-ul "Recomandat" (doar afisare, nu schimba ce se salveaza)
+const NO_BADGE_STEPS = new Set(['materialCountertop']);
+
 const dimensionsStep: DimensionGroupStep = {
   id: 'dimensions',
   type: 'dimension-group',
@@ -126,6 +129,7 @@ export const laundryFlowV2: RoomFlow = {
       pieceConfigSteps(F, PIECES).filter((s) => !NO_SYSTEMS_STEPS.has(s.id)),
       'MDF_INFOLIAT',
       mdfRecommended,
+      NO_BADGE_STEPS,
     ),
     {
       id: 'sketch',

@@ -3,6 +3,7 @@ import {
   PLAN_FEATURE_DEFAULTS,
   resolvePlanFeatures,
   type EntitlementsDto,
+  type LastExpiredSubscriptionDto,
   type PlanFeatureKey,
   type PlanFeaturesDto,
 } from '@marketplace/shared';
@@ -79,7 +80,27 @@ export class EntitlementsService {
     return (e.features[key] ?? PLAN_FEATURE_DEFAULTS[key]).enabled;
   }
 
-  toDto(e: CompanyEntitlements): EntitlementsDto {
+  // h2: ultimul abonament incheiat (fara abonament activ) — pentru mesajul comun cu data
+  // expirarii. Statusul ramane ACTIVE dupa expirare (aplicatia se uita la data), deci luam
+  // randul cu expiresAt cel mai tarziu DEJA TRECUT. Un rand anulat cu data in viitor nu e o
+  // expirare reala: nu inventam o data (review m4) — fara expirare reala → null, iar mesajul
+  // comun foloseste varianta fara data. null = si cand firma n-a avut niciodata abonament.
+  async lastExpired(companyId: string, db: Db = this.prisma): Promise<LastExpiredSubscriptionDto | null> {
+    const sub = await db.subscription.findFirst({
+      where: { companyId, expiresAt: { lte: new Date() } },
+      include: { plan: true },
+      orderBy: { expiresAt: 'desc' },
+    });
+    if (!sub) return null;
+    return {
+      planCode: sub.plan.code,
+      nameRo: sub.plan.nameRo,
+      nameEn: sub.plan.nameEn,
+      expiredAt: sub.expiresAt.toISOString(),
+    };
+  }
+
+  toDto(e: CompanyEntitlements, lastExpired: LastExpiredSubscriptionDto | null = null): EntitlementsDto {
     return {
       planId: e.planId,
       planCode: e.planCode,
@@ -90,6 +111,7 @@ export class EntitlementsService {
       expiresAt: e.expiresAt?.toISOString() ?? null,
       gatingDelayMinutes: e.gatingDelayMinutes,
       features: e.features,
+      lastExpired: e.subscriptionId ? null : lastExpired,
     };
   }
 }

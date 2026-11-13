@@ -856,9 +856,7 @@
     "marketplaceLink": "Marketplace",
     "subscriptionBanner": {
       "expiring": "Your {tier} subscription expires in {n, plural, =0 {less than a day} one {# day} other {# days}}. After that you can't claim requests.",
-      "expired": "You have no active subscription — you can't claim requests in the marketplace.",
-      "extend": "Renew subscription",
-      "choosePlan": "Pick a plan"
+      "extend": "Renew subscription"
     },
     "rulesNotice": "Before you submit, read the <rules>Rules for firms</rules>: verification, trial period, credits, deadlines and penalties.",
     "rulesLink": "Rules for firms",
@@ -1248,7 +1246,7 @@
       "EDIT_BLOCKED_OFFER_RECEIVED": "Once the first offer arrives, the request can no longer be edited.",
       "REPOST_ALREADY_USED": "A request can be reposted only once, and this one already was.",
       "DRAFT_TOKEN_INVALID": "This draft link is invalid or has expired.",
-      "FILE_LIMIT_REACHED": "You've reached the limit of 10 attachments.",
+      "FILE_LIMIT_REACHED": "This request already has the maximum number of files. Remove one to add another.",
       "UPLOAD_NOT_FOUND_IN_STORAGE": "We couldn't find the uploaded file. Please try again.",
       "VALIDATION_ERROR": "Please check the form fields.",
       "INTERNAL_ERROR": "Something went wrong. Please try again.",
@@ -1263,7 +1261,14 @@
       "contactsNone": "No company yet — only a company that claims your request receives them.",
       "contactsFrom": "from {time}",
       "note": "Access ends when the company withdraws its claim or when you accept another company's offer. Phone numbers and emails written in texts are hidden from companies that haven't claimed the request.",
-      "claimedOn": "claimed {date}"
+      "claimedOn": "claimed {date}",
+      "closedReason": {
+        "SLOTS_FULL": "All places are taken, so new companies can no longer claim the request.",
+        "OFFER_ACCEPTED": "You accepted an offer, so the request is no longer listed for companies.",
+        "FIRST_OFFER_RULE": "You received the first offer and, under the current rules, new companies can no longer claim the request.",
+        "EXPIRED": "The request expired, so it is no longer listed for companies.",
+        "CLOSED": "The request is no longer listed for companies, so new companies can no longer see it."
+      }
     },
     "tabsLabel": "Filter requests by stage",
     "searchLabel": "Search requests",
@@ -1427,7 +1432,7 @@
       },
       "daysLeft": "{n, plural, =0 {0 days left} one {# day left} other {# days left}}",
       "expiringSoon": "Your subscription expires in {n, plural, one {# day} other {# days}} — renew it to keep access to requests.",
-      "expired": "You have no active subscription — without one you can't claim requests in the marketplace. Pick a plan below.",
+      "expired": "You have no active subscription. Choose a plan below to reactivate it.",
       "plans": "Plans",
       "current": "Your plan",
       "activate": "Activate",
@@ -1503,8 +1508,8 @@
       "COMPANY_EXCLUDED_FROM_REQUEST": "Your company is excluded from this request.",
       "COMPANY_NOT_APPROVED": "Your company hasn't been approved yet.",
       "COMPANY_SUSPENDED": "Your company is currently suspended.",
-      "ACTIVE_CLAIM_WITHOUT_OFFER_EXISTS": "You already have an active claim without a sent offer.",
-      "ASSIGNED_USER_HAS_ACTIVE_CLAIM": "That member already has an active claim.",
+      "ACTIVE_CLAIM_WITHOUT_OFFER_EXISTS": "You already have a claim without a sent offer. Send the offer on that claim first.",
+      "ASSIGNED_USER_HAS_ACTIVE_CLAIM": "This colleague already has a claim without a sent offer. Pick another colleague or assign the request once they send that offer.",
       "ASSIGNED_USER_PENALTY_BLOCKED": "That member is temporarily blocked due to penalties and cannot receive claims.",
       "FORBIDDEN": "Only the owner or a manager can assign the claim.",
       "IDEMPOTENCY_CONFLICT": "Conflicting request. Please retry.",
@@ -1517,7 +1522,10 @@
       "PROJECT_CASE_ALREADY_OPEN": "There is already an open case for this project.",
       "PROJECT_CASE_NOT_OPEN": "The case is no longer open or has already been answered.",
       "DATABASE_BUSY": "The server is responding slowly right now, so the action was not saved. Please try again in a few seconds.",
-      "PLAN_FEATURE_REQUIRED": "Your firm's subscription is active, but its plan does not include marketplace requests and claims. Choose a plan that includes them."
+      "PLAN_FEATURE_REQUIRED": "Your firm's subscription is active, but its plan does not include marketplace requests and claims. Choose a plan that includes them.",
+      "REQUEST_NO_LONGER_CLAIMABLE": "This request can no longer be claimed: the places are taken or the client has already chosen.",
+      "MANAGER_UNASSIGNED_CAP_REACHED": "You already have too many claims without a responsible person for the colleagues who are free. Assign them on their worksheets first, or pick a colleague for this request now.",
+      "RATE_LIMITED": "Too many attempts in a short time. Wait a minute and try again."
     },
     "accessBlocked": {
       "title": {
@@ -1576,7 +1584,37 @@
       "ruleReserve": "When you claim, the credits are <b>reserved</b>.",
       "ruleGrace": "You can withdraw for free within the first {minutes}.",
       "ruleSla": "If you do not send the offer within the response deadline, the credits are consumed and the firm receives penalty points.",
-      "rulesLink": "Rules for firms"
+      "rulesLink": "Rules for firms",
+      "deadline": "Response deadline if you claim now"
+    },
+    "closedRequest": {
+      "title": "This request is closed",
+      "openWorksheet": "Open the worksheet",
+      "reason": {
+        "SLOTS_FULL": "All places are taken: the maximum number of firms has already claimed this request.",
+        "OFFER_ACCEPTED": "The client has already chosen an offer, so the request can no longer be claimed.",
+        "FIRST_OFFER_RULE": "The request has already received an offer and, under the current rules, other firms can no longer claim it.",
+        "EXPIRED": "The request expired before the client chose an offer.",
+        "CLOSED": "This request is no longer available to claim."
+      }
+    },
+    "claimDialog": {
+      "deadline": "If you claim now, you have until {date} (Romania time) to send your offer.",
+      "assigneeLabel": "Who handles the request",
+      "assigneeMe": "Me ({name})",
+      "assignLater": "Assign later",
+      "assignLaterHint": "You have {minutes} to pick a colleague on the worksheet; otherwise the claim is cancelled automatically and the credits are refunded.",
+      "assigneeSelf": "You become responsible for this request.",
+      "selfBusy": "You already have a claim without a sent offer. Send the offer on that claim first, then you can claim another one.",
+      "selfBusyLead": "You already have a claim without a sent offer, so you can't be responsible for this one too. Pick a colleague or \"Assign later\".",
+      "lateRisk": "The request stays open after the first offer, so the client may choose another firm's offer before you send yours. If that happens, your reserved credits are refunded."
+    },
+    "subscriptionStatus": {
+      "expiredOn": "Your {plan} subscription expired on {date}.",
+      "expiredOnNoPlan": "Your subscription expired on {date}.",
+      "none": "Your firm has no active subscription.",
+      "credits": "Your credits ({n}) stay in your account, but you can use them only after you reactivate. You can finish the claims you already have.",
+      "reactivate": "Reactivate subscription"
     }
   },
   "Chat": {
@@ -1656,7 +1694,8 @@
       "tabLifecycle": "Clarifications & withdrawal",
       "recentMessages": "Latest messages",
       "replyInChat": "Reply in the conversation",
-      "clientPrivacyNote": "Contact details are visible only to the colleague who claimed or works on this request and to the firm's owner, managers and employees with full access."
+      "clientPrivacyNote": "Contact details are visible only to the colleague who claimed or works on this request and to the firm's owner, managers and employees with full access.",
+      "assignFailedTitle": "The assignment didn't go through"
     },
     "offersTitle": "Offers & conversations",
     "offersSubtitle": "Your request's journey with every company that claimed it: discussions, offers, acceptance.",
@@ -2090,7 +2129,8 @@
       "PROJECT_NOT_CLOSABLE": "The project can no longer be closed in its current state.",
       "PROJECT_CASE_ALREADY_OPEN": "There is already an open case for this project.",
       "PROJECT_CASE_NOT_OPEN": "The case is no longer open or has already been answered.",
-      "DATABASE_BUSY": "The server is responding slowly right now, so the action was not saved. Please try again in a few seconds."
+      "DATABASE_BUSY": "The server is responding slowly right now, so the action was not saved. Please try again in a few seconds.",
+      "WARRANTY_REPORT_WINDOW_CLOSED": "The period for reporting a problem has ended."
     },
     "agreement": {
       "title": "Your agreement",
@@ -2113,7 +2153,8 @@
         "FIRM_UNRESPONSIVE": "The company stopped responding",
         "CLIENT_UNRESPONSIVE": "The client stopped responding",
         "MUTUAL_CANCEL_REQUEST": "We want to cancel the project by mutual agreement",
-        "OTHER": "Other reason"
+        "OTHER": "Other reason",
+        "WARRANTY_CLAIM": "Problem after completion (under warranty)"
       },
       "notePlaceholder": "Briefly describe what happened (optional)",
       "responseNotePlaceholder": "Add a comment (optional)",
@@ -2139,7 +2180,46 @@
     "deliverConfirmIrreversible": "This cannot be undone in the app.",
     "deliverConfirmCta": "Yes, it is delivered",
     "deliverConfirmCancel": "Back",
-    "deliverConfirmPending": "Sending…"
+    "deliverConfirmPending": "Sending…",
+    "deliveredConfirmTitle": "Confirm the delivery?",
+    "deliveredConfirmBody": "Only confirm if you have checked the furniture. After you confirm, the project is closed and you can leave a review.",
+    "deliveredConfirmCta": "I checked it, confirm delivery",
+    "deliveredProblem": "I have a problem",
+    "deliveredBack": "Back",
+    "deliveredProblemTitle": "What problem did you find?",
+    "deliveredProblemIntro": "Briefly describe what is wrong. The report goes to the Cozy Home team and to the company. Until the team closes the report, the order is not completed automatically.",
+    "deliveredProblemPlaceholder": "For example: a door does not close, a shelf is missing",
+    "deliveredProblemSubmit": "Send the report",
+    "deliveredProblemOpen": "You reported a problem on {date}. The Cozy Home team is reviewing it; until they close it, the order is not completed automatically. If the problem is solved, you can confirm the delivery.",
+    "reviewPickStars": "Pick a rating from 1 to 5 stars to send your review.",
+    "reviewSummary": "You are giving {rating} out of 5 — this cannot be changed later.",
+    "reviewSummaryConfirm": "Yes, send the review",
+    "reviewSummaryBack": "Back",
+    "warranty": {
+      "title": "A problem with your furniture?",
+      "intro": "You can report a problem until {date} ({months}-month warranty). The report goes to the Cozy Home team and the company is notified.",
+      "closed": "The period for reporting a problem ended on {date}.",
+      "open": "Report a problem",
+      "placeholder": "Describe the problem: which piece, what happened and since when",
+      "submit": "Send the report",
+      "cancel": "Cancel",
+      "confirmTitle": "Send the report?",
+      "confirmBody": "The Cozy Home team receives the report and will contact you. The company is notified.",
+      "sent": "You reported a problem on {date}. The Cozy Home team is reviewing it and will contact you.",
+      "dismissed": "The Cozy Home team closed your report on {date}. If the problem comes back, you can send a new report."
+    },
+    "completion": {
+      "title": "Delivery confirmed",
+      "completedOn": "The order was completed on {date}.",
+      "completed": "The order is completed.",
+      "reviewTitle": "Review received",
+      "noReview": "The client has not left a review yet.",
+      "disputed": "The review is being reviewed by the Cozy Home team.",
+      "deliveredTitle": "The client reported a problem",
+      "openCaseDelivered": "The client reported a problem after delivery, on {date}. The order is not completed automatically until the Cozy Home team closes the report.",
+      "openCaseWarranty": "The client reported a problem under warranty, on {date}. The Cozy Home team will contact you.",
+      "clientNote": "Client's message: “{note}”"
+    }
   },
   "Billing": {
     "buyCredits": "Buy credits",
@@ -2217,10 +2297,10 @@
       "FORBIDDEN": "Only the company owner or a manager can make payments.",
       "COMPANY_SUSPENDED": "Your company is currently suspended.",
       "COMPANY_NOT_APPROVED": "Your company hasn't been approved yet.",
-      "PLAN_NOT_PURCHASABLE": "This plan cannot be bought online; the platform administrator activates it."
+      "PLAN_NOT_PURCHASABLE": "This plan cannot be bought online; the platform administrator activates it.",
+      "CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION": "Credits can be bought only with an active subscription. Reactivate your subscription, then choose a package."
     },
     "rulesNotice": "How credits are reserved, consumed and refunded: <rules>Rules for firms</rules>.",
-    "noSubscriptionCreditsNote": "Your firm has no active subscription. Credits can only be used to claim requests while a subscription is active — activate a plan in the Subscription section.",
     "testMode": {
       "title": "TEST MODE",
       "body": "Payments run through Stripe in test mode: no real money is charged and no invoice is issued."
@@ -2239,7 +2319,8 @@
     "buyCreditsIntroBank": "Credits are used to claim requests. Payment is by bank transfer.",
     "priceExVat": "{price} + VAT",
     "perCredit": "{price} / credit",
-    "totalWithVat": "{total} incl. {rate}% VAT"
+    "totalWithVat": "{total} incl. {rate}% VAT",
+    "packagesNeedSubscription": "Credit packages can be bought only with an active subscription. The credits you already have stay in your account."
   },
   "AdminPayments": {
     "title": "Payments & subscriptions",
@@ -3059,7 +3140,9 @@
         "acceptedQuote": "accepted offer: {price}",
         "claimCredits": "credits reserved at claim: {n}",
         "claimedOn": "claimed on {date}",
-        "quoted": "“{text}”"
+        "quoted": "“{text}”",
+        "warrantyHint": "Complaint after completion: it does not change the project status or the company's credits. Close the case once you have resolved it with the client and the company.",
+        "pausedHint": "Automatic completion is paused while the case is open. Once you close the case, the 14-day period starts again."
       },
       "caseStatus": {
         "OPEN": "Open",
@@ -3586,7 +3669,8 @@
     "sketchUpload": {
       "skipNotice": "You marked that you have a project for the whole home — feel free to skip this step. Upload the project at the Files step so you don't attach it for every room.",
       "hint": "Up to {local} more for this room ({global} left in total)",
-      "limitReached": "You've reached the file limit for this request."
+      "limitReached": "This request already has {max} files, the most allowed. Remove one to add another.",
+      "limitReachedRoom": "You've added {max} files to this room, the most allowed. Remove one to add another."
     },
     "sketchGuide": {
       "title": "No project? A quick sketch will do",
@@ -3679,9 +3763,8 @@
       "subtitle": "Optional — photos of the space, sketches or your own project.",
       "dropLabel": "Drag files here or click to upload",
       "dropHint": "JPG, PNG, WEBP, PDF or ZIP, up to 25 MB",
-      "uploading": "Uploading...",
       "scanning": "checking...",
-      "blockedNotice": "This file didn't pass the check — try another one",
+      "blockedNotice": "It didn't pass the safety check (damaged or unsafe file). Remove it and try another file.",
       "blockedShort": "Rejected",
       "status": {
         "PENDING_UPLOAD": "pending",
@@ -3695,7 +3778,24 @@
       "switchToGuided": "I don't have the project at hand — I'll enter the dimensions",
       "projectFilesTitle": "Project files",
       "roomSketchesTitle": "Room sketches",
-      "roomSketchesHint": "You can change them from that room."
+      "roomSketchesHint": "You can change them from that room.",
+      "sizeUnderKb": "under 1 KB",
+      "slotsLeft": "{count, plural, =0 {No file slots left. Remove one to add another.} =1 {You can add 1 more file.} other {You can add # more files.}}",
+      "uploadingFile": "Uploading {name}…",
+      "rejectedTitle": "Couldn't add",
+      "retry": "Try again",
+      "dismissRejected": "Hide the message for {name}",
+      "rejectReason": {
+        "TYPE": "This file type isn't accepted. You can upload JPG, PNG, WEBP, PDF or ZIP.",
+        "EMPTY": "The file is empty.",
+        "SIZE": "The file is larger than 25 MB.",
+        "LIMIT": "There was no room for it: you've reached the maximum number of files.",
+        "SCAN": "It didn't pass the safety check (damaged or unsafe file). Try another file.",
+        "NETWORK": "It couldn't be sent because of the connection.",
+        "PENDING": "The file is still being checked and will appear in the list when it's ready.",
+        "INVALID": "The file wasn't accepted. Check its name and type.",
+        "NOT_EDITABLE": "The request can't be changed right now, so the file wasn't added."
+      }
     },
     "summaryFiles": {
       "count": "{n, plural, =1 {one attached file} other {# attached files}}"
@@ -4001,7 +4101,11 @@
       "flowVersionUnsupported": "This room's questionnaire was updated. Please answer it again.",
       "contactInText": "Remove the phone number, email or link from this answer — add them in the Contact step.",
       "inspirationRoomUnknown": "The room chosen for an inspiration photo is no longer in the request — we removed the link, please choose again.",
-      "studioPieceDoesNotFit": "This piece no longer fits its room or overlaps another piece. Adjust its dimensions or mounting height, or reposition it in Studio."
+      "studioPieceDoesNotFit": "This piece no longer fits its room or overlaps another piece. Adjust its dimensions or mounting height, or reposition it in Studio.",
+      "notANumber": "Enter a number, e.g. 2.5",
+      "outOfRangeKept": "The value must be between {range}. We kept the previous value.",
+      "positiveNumber": "Enter a number greater than 0. We kept the previous value.",
+      "wholeNumber": "Enter a whole number, e.g. 3. We kept the previous value."
     },
     "common": {
       "boolean": {
@@ -4338,7 +4442,7 @@
         },
         "countertop": {
           "title": "Which countertop?",
-          "subtitle": "Optional — helps the company estimate more accurately.",
+          "subtitle": "Helps the company estimate more accurately.",
           "options": {
             "PAL": {
               "label": "Laminated board",
@@ -6741,9 +6845,9 @@
         },
         "credits": {
           "h": "3. Subscription, credits and claiming requests",
-          "b": "To see and claim requests you need an active subscription. The credit cost of each claim is shown on the request before you claim it and stays the one from the moment you claim. When you claim, the credits are reserved, not yet consumed. A request can be claimed by at most {maxClaims} firms.\n\nAfter claiming, the request must be assigned to a team member within {assignMinutes}; otherwise the claim is cancelled automatically and the reserved credits are refunded.",
+          "b": "To see and claim requests you need an active subscription. The credit cost of each claim is shown on the request before you claim it and stays the one from the moment you claim. When you claim, the credits are reserved, not yet consumed. A request can be claimed by at most {maxClaims} firms.\n\nWhoever claims the request becomes responsible for it. Owners and managers can pick a colleague when claiming, or \"Assign later\"; in that case the request must be assigned to a team member within {assignMinutes}, otherwise the claim is cancelled automatically and the reserved credits are refunded.",
           "afterOfferClosed": "Once one of the firms that claimed the request sends the first offer, no other firm can claim it, even if not all {maxClaims} places are taken.",
-          "afterOfferOpen": "The request stays open for claiming after the first offer, until {maxClaims} firms have claimed it or the client accepts an offer. Your response deadline runs from the moment you claim.",
+          "afterOfferOpen": "The request stays open for claiming after the first offer, until all {maxClaims} places are taken or the client accepts an offer. If you claim late, the client may choose another firm's offer before you send yours; your reserved credits are then refunded. Your response deadline runs from the moment you claim.",
           "costRange": "A claim costs at least {min} and at most {max}.",
           "costMin": "A claim costs at least {min}."
         },

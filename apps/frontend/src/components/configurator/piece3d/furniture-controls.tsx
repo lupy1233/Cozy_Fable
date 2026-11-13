@@ -5,10 +5,11 @@ import {
   TABLE_LENGTH_LIMITS, PIECE3D_FINISHES, defaultPieceConfig, normalizePieceConfig,
   pieceConfig3dSchema, type Piece3dKind, type PieceConfig3d,
 } from '@marketplace/shared';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { cmRangeText, inRangeCm, useDecimalField } from '../use-decimal-field';
 import { PieceCanvas, type SnapshotFn } from './piece-canvas';
 import { config3dChips } from './config-chips';
 import { CatalogControls } from './catalog-controls';
@@ -23,14 +24,21 @@ interface Props {
 function SizeInput({ label, value, min, max, onChange }: {
   label: string; value: number; min: number; max: number; onChange: (n: number) => void;
 }) {
-  const [draft, setDraft] = useState<string | null>(null);
+  // b1: virgula acceptata; in afara intervalului → ramane valoarea veche, cu mesaj
+  const t = useTranslations('Configurator');
+  const locale = useLocale();
   const id = useId();
+  const range = cmRangeText(min, max, locale);
+  const field = useDecimalField({
+    value: value * 100, commitOn: 'blur', maxFractionDigits: 1,
+    validate: (v) => (inRangeCm(v, min, max) ? null : t('validation.outOfRangeKept', { range })),
+    onValue: (v) => { if (v !== undefined) onChange(v / 100); },
+  });
   return <label htmlFor={id} className="grid gap-1 text-sm font-medium">{label}
-    <Input id={id} type="number" inputMode="decimal" min={Math.round(min * 100)} max={Math.round(max * 100)} step={1}
-      value={draft ?? Math.round(value * 100)} onChange={(e) => setDraft(e.target.value)}
-      onBlur={() => { if (draft?.trim() && Number.isFinite(Number(draft))) onChange(Number(draft) / 100); setDraft(null); }}
-      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setDraft(null); }} />
-    <span className="text-xs font-normal text-muted-foreground">{Math.round(min * 100)}–{Math.round(max * 100)} cm</span>
+    <Input id={id} {...field.inputProps} className={field.error ? 'border-crimson' : undefined} />
+    {field.error
+      ? <span role="alert" className="text-xs font-normal text-crimson">{field.error}</span>
+      : <span className="text-xs font-normal text-muted-foreground">{range}</span>}
   </label>;
 }
 

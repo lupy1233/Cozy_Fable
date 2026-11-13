@@ -6,9 +6,9 @@ export const SETTING_DEFAULTS = {
   company_penalty_threshold: 12,
   company_suspension_months: 6,
   max_claims_per_request: 3,
-  // E-admin-platform-10: cererea ramane claimabila dupa prima oferta (varianta A) — OPRIT
-  // pana la decizia PO (invarianta 3.1 ramane literala).
-  claims_open_after_first_offer: false,
+  // E-admin-platform-10 / a1 (PO 2026-11-13): cererea ramane claimabila dupa prima oferta
+  // (varianta A) pana se ocupa locurile. Comutatorul ramane in Admin.
+  claims_open_after_first_offer: true,
   // E-company-3 (DECIZIE NECESARA PO): implicitele pastreaza W1 (contacte la claim) si I18
   // (gratia de 30 min). AFTER_GRACE ascunde contactele in gratie; 0 = fara prag dupa livrare.
   claim_contact_reveal_policy: 'ON_CLAIM',

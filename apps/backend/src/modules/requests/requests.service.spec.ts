@@ -449,7 +449,7 @@ describe('RequestsService contact screening in free text', () => {
 describe('RequestsService.dashboardStatsForClient — actions', () => {
   const day = 24 * 60 * 60 * 1000;
 
-  function dashboardSetup(reminderAt: Date) {
+  function dashboardSetup(reminderAt: Date, openCase = false) {
     const now = Date.now();
     const expiresAt = new Date(now + 6 * 60 * 60 * 1000);
     const deliveredAt = new Date(now - 2 * day);
@@ -464,6 +464,8 @@ describe('RequestsService.dashboardStatsForClient — actions', () => {
       request: { count: jest.fn().mockResolvedValue(4), groupBy: jest.fn().mockResolvedValue([]), findMany },
       quote: { count: jest.fn().mockResolvedValue(2) },
       claimSlot: { count: jest.fn().mockResolvedValue(1) },
+      // e2-1: termenul confirmarii automate tine cont de rapoartele de proiect
+      requestProjectCase: { findFirst: jest.fn().mockResolvedValue(openCase ? { id: 'case-1' } : null) },
       clarificationRequest: {
         findMany: jest.fn().mockResolvedValue([
           { claimSlot: { requestId: 'r-clar', request: { title: 'Bucatarie' } } },
@@ -502,6 +504,13 @@ describe('RequestsService.dashboardStatsForClient — actions', () => {
       expect((call[0] as { where: { clientUserId: string } }).where.clientUserId).toBe('A');
     }
     expect(prisma.clarificationRequest.findMany.mock.calls[0][0].where.claimSlot.request.clientUserId).toBe('A');
+  });
+
+  it('e2-1: cu raport de proiect deschis, livrarea de confirmat nu are termen (finalizarea automata e oprita)', async () => {
+    const { service } = dashboardSetup(new Date(Date.now() - 60_000), true);
+    const stats = await service.dashboardStatsForClient('A');
+    const delivery = stats.actions.find((a) => a.kind === 'DELIVERY_TO_CONFIRM');
+    expect(delivery).toMatchObject({ requestId: 'r-deliv', dueAt: null });
   });
 
   it('cererea inca in afara ferestrei reminderului nu apare ca REQUEST_EXPIRING', async () => {

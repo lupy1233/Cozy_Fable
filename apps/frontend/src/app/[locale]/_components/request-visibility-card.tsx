@@ -1,6 +1,6 @@
 'use client';
 
-import type { RequestVisibilityDto } from '@marketplace/shared';
+import type { RequestVisibilityClosedReasonDto, RequestVisibilityDto } from '@marketplace/shared';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useRequestVisibility } from '@/hooks/use-requests';
 import { APP_TIME_ZONE } from '@/lib/sla-deadline';
@@ -9,10 +9,16 @@ import { Card } from '@/components/ui/card';
 // E-client-9 (C7-16): "Cine vede cererea" — ce vad firmele inainte de preluare (proiectul) si
 // cine detine numele, adresa si contactele (firmele cu preluare ocupanta). Card din coloana
 // laterala a fisei: doua blocuri cu titlu mic, lista firmelor si nota de subsol.
-export function RequestVisibilityCard({ visibility }: { visibility: RequestVisibilityDto }) {
+export function RequestVisibilityCard({
+  visibility,
+}: {
+  visibility: RequestVisibilityDto & RequestVisibilityClosedReasonDto;
+}) {
   const t = useTranslations('Requests.visibility');
   const format = useFormatter();
   const holders = visibility.contactHolders;
+  // a1: motivul pentru care firme noi nu mai vad cererea (lipsa = slot vechi → textul general)
+  const reason = visibility.marketplaceClosedReason;
 
   return (
     <Card
@@ -28,7 +34,11 @@ export function RequestVisibilityCard({ visibility }: { visibility: RequestVisib
       <div>
         <h3 className="font-semibold">{t('projectLabel')}</h3>
         <p className="text-ui text-muted-foreground">
-          {visibility.projectVisibleInMarketplace ? t('projectVisible') : t('projectClosed')}
+          {visibility.projectVisibleInMarketplace
+            ? t('projectVisible')
+            : reason
+              ? t(`closedReason.${reason}`)
+              : t('projectClosed')}
         </p>
       </div>
 

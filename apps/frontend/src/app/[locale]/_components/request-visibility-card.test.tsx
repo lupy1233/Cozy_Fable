@@ -1,13 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { describe, expect, it } from 'vitest';
-import type { RequestVisibilityDto } from '@marketplace/shared';
+import type { RequestVisibilityClosedReasonDto, RequestVisibilityDto } from '@marketplace/shared';
 import ro from '../../../messages/ro.json';
 import en from '../../../messages/en.json';
 import { RequestVisibilityCard } from './request-visibility-card';
 
 // E-client-9 (C7-16): cardul "Cine vede cererea".
-function renderCard(visibility: RequestVisibilityDto, locale: 'ro' | 'en' = 'ro') {
+function renderCard(visibility: RequestVisibilityDto & RequestVisibilityClosedReasonDto, locale: 'ro' | 'en' = 'ro') {
   return render(
     <NextIntlClientProvider locale={locale} messages={locale === 'ro' ? ro : en} timeZone="Europe/Bucharest">
       <RequestVisibilityCard visibility={visibility} />
@@ -46,6 +46,18 @@ describe('RequestVisibilityCard', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(2);
     // contactele sunt deja vizibile: langa nume apare momentul preluarii, in ora Romaniei
     expect(screen.getAllByText(/^preluată pe .*11:00/)).toHaveLength(2);
+  });
+
+  // a1: textul spune de ce firme noi nu mai vad cererea
+  it.each([
+    ['SLOTS_FULL', ro.Requests.visibility.closedReason.SLOTS_FULL],
+    ['OFFER_ACCEPTED', ro.Requests.visibility.closedReason.OFFER_ACCEPTED],
+    ['FIRST_OFFER_RULE', ro.Requests.visibility.closedReason.FIRST_OFFER_RULE],
+    ['EXPIRED', ro.Requests.visibility.closedReason.EXPIRED],
+  ] as const)('proiect inchis cu motivul %s', (reason, text) => {
+    renderCard({ requestId: 'r1', projectVisibleInMarketplace: false, contactHolders: [], marketplaceClosedReason: reason });
+    expect(screen.getByText(text)).toBeTruthy();
+    expect(screen.queryByText(ro.Requests.visibility.projectClosed)).toBeNull();
   });
 
   it('contacte in asteptare (AFTER_GRACE): "din {ora}" in ora Romaniei, si in engleza', () => {

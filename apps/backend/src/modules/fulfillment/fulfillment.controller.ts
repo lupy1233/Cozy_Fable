@@ -24,6 +24,16 @@ export class CompanyDeliveryController {
   deliver(@CurrentCompany() ctx: CompanyContext, @Param('id', ParseUUIDPipe) id: string) {
     return this.fulfillment.markDelivered(ctx, id);
   }
+
+  // e2 pasul 4: "Livrare confirmata" + recenzia primita pe fisa firmei castigatoare
+  @Get(':id/completion')
+  completion(
+    @CurrentCompany() ctx: CompanyContext,
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.fulfillment.getCompletionForCompany(ctx, user.sub, id);
+  }
 }
 
 // Clientul confirma livrarea + lasa review (4.18).

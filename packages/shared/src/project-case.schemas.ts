@@ -41,7 +41,79 @@ export const dismissProjectCaseSchema = z.object({
 });
 export type DismissProjectCaseInput = z.infer<typeof dismissProjectCaseSchema>;
 
-export const ADMIN_REQUEST_FILTERS = ['accepted', 'openCases', 'overdue', 'all'] as const;
+// --- e2-2: raportarea unei probleme dupa finalizare (in garantie) ---
+// Fereastra = garantia scrisa in oferta acceptata, dar cel putin 24 de luni de la finalizare;
+// daca garantia nu se poate citi ca durata, se aplica 24 de luni (decizia PO 2026-11-13).
+export const WARRANTY_MIN_MONTHS = 24;
+// plafon de siguranta pentru texte absurde ("garantie 999 ani")
+const WARRANTY_MAX_MONTHS = 600;
+
+export const openWarrantyCaseSchema = z.object({
+  note: z.string().trim().min(1).max(1000),
+});
+export type OpenWarrantyCaseInput = z.infer<typeof openWarrantyCaseSchema>;
+
+const NUMBER_WORDS: Record<string, number> = {
+  un: 1, o: 1, unu: 1, one: 1, a: 1,
+  doi: 2, doua: 2, two: 2,
+  trei: 3, three: 3,
+  patru: 4, four: 4,
+  cinci: 5, five: 5,
+  sase: 6, six: 6,
+  sapte: 7, seven: 7,
+  opt: 8, eight: 8,
+  noua: 9, nine: 9,
+  zece: 10, ten: 10,
+  douasprezece: 12, twelve: 12,
+};
+
+// Citeste durata garantiei din textul liber al ofertei ("24 luni", "2 ani", "doi ani",
+// "5 years"). Mai multe durate in text → cea mai lunga. Fara unitate de timp → null.
+export function parseWarrantyMonths(text: string | null | undefined): number | null {
+  if (!text) return null;
+  const norm = text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+  const re = /(\d+(?:[.,]\d+)?|[a-z]+)\s*(?:de\s+)?(luni|luna|months?|ani|an|years?)(?![a-z])/g;
+  let best: number | null = null;
+  for (const m of norm.matchAll(re)) {
+    const raw = m[1];
+    const qty = /^\d/.test(raw) ? Number(raw.replace(',', '.')) : NUMBER_WORDS[raw];
+    if (qty === undefined || !Number.isFinite(qty) || qty <= 0) continue;
+    const unit = m[2];
+    const months = unit.startsWith('lun') || unit.startsWith('month') ? qty : qty * 12;
+    const rounded = Math.min(WARRANTY_MAX_MONTHS, Math.round(months));
+    if (rounded > 0 && (best === null || rounded > best)) best = rounded;
+  }
+  return best;
+}
+
+export function warrantyWindowMonths(warrantyText: string | null | undefined): number {
+  return Math.max(WARRANTY_MIN_MONTHS, parseWarrantyMonths(warrantyText) ?? 0);
+}
+
+// Adauga luni calendaristice (UTC); ziua se limiteaza la ultima zi a lunii (31 ian + 1 = 28/29 feb).
+export function addMonthsUtc(from: Date, months: number): Date {
+  const y = from.getUTCFullYear();
+  const m = from.getUTCMonth() + months;
+  const lastDay = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  const d = new Date(from.getTime());
+  d.setUTCDate(1);
+  d.setUTCFullYear(y, m, Math.min(from.getUTCDate(), lastDay));
+  return d;
+}
+
+export interface WarrantyWindowDto {
+  // momentul finalizarii folosit ca baza
+  completedAt: string;
+  months: number;
+  endsAt: string;
+  // inca se poate raporta (now < endsAt)
+  open: boolean;
+}
+
+export const ADMIN_REQUEST_FILTERS =['accepted', 'openCases', 'overdue', 'all'] as const;
 export type AdminRequestFilter = (typeof ADMIN_REQUEST_FILTERS)[number];
 
 // --- DTO-uri raspuns ---

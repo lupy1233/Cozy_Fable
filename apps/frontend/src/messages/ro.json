@@ -856,9 +856,7 @@
     "marketplaceLink": "Marketplace",
     "subscriptionBanner": {
       "expiring": "Abonamentul {tier} expiră în {n, plural, =0 {mai puțin de o zi} one {# zi} other {# zile}}. După expirare nu mai poți prelua cereri.",
-      "expired": "Nu ai un abonament activ — nu poți prelua cereri din marketplace.",
-      "extend": "Prelungește abonamentul",
-      "choosePlan": "Alege un plan"
+      "extend": "Prelungește abonamentul"
     },
     "rulesNotice": "Înainte de a trimite, citește <rules>Regulile pentru firme</rules>: verificare, perioadă de probă, credite, termene și penalizări.",
     "rulesLink": "Regulile pentru firme",
@@ -1248,7 +1246,7 @@
       "EDIT_BLOCKED_OFFER_RECEIVED": "După primirea primei oferte, cererea nu mai poate fi editată.",
       "REPOST_ALREADY_USED": "Cererea poate fi republicată o singură dată, iar republicarea a fost deja folosită.",
       "DRAFT_TOKEN_INVALID": "Linkul ciornei este invalid sau a expirat.",
-      "FILE_LIMIT_REACHED": "Ai atins limita de 10 atașamente.",
+      "FILE_LIMIT_REACHED": "Cererea are deja numărul maxim de fișiere. Elimină unul ca să adaugi altul.",
       "UPLOAD_NOT_FOUND_IN_STORAGE": "Fișierul încărcat nu a fost găsit. Încearcă din nou.",
       "VALIDATION_ERROR": "Verifică câmpurile formularului.",
       "INTERNAL_ERROR": "A apărut o eroare. Încearcă din nou.",
@@ -1263,7 +1261,14 @@
       "contactsNone": "Nicio firmă încă — le primește doar firma care preia cererea.",
       "contactsFrom": "din {time}",
       "note": "Accesul se încheie când firma renunță la preluare sau când accepți oferta altei firme. Telefoanele și emailurile scrise în texte sunt ascunse firmelor care nu au preluat cererea.",
-      "claimedOn": "preluată pe {date}"
+      "claimedOn": "preluată pe {date}",
+      "closedReason": {
+        "SLOTS_FULL": "Toate locurile s-au ocupat, așa că firme noi nu mai pot prelua cererea.",
+        "OFFER_ACCEPTED": "Ai acceptat o ofertă, așa că cererea nu mai apare în lista firmelor.",
+        "FIRST_OFFER_RULE": "Ai primit prima ofertă și, după regulile în vigoare acum, firme noi nu mai pot prelua cererea.",
+        "EXPIRED": "Cererea a expirat, așa că nu mai apare în lista firmelor.",
+        "CLOSED": "Cererea nu mai apare în lista firmelor, deci firme noi nu o mai pot vedea."
+      }
     },
     "tabsLabel": "Filtrează cererile după stadiu",
     "searchLabel": "Caută o cerere",
@@ -1427,7 +1432,7 @@
       },
       "daysLeft": "mai sunt {n, plural, =0 {0 zile} one {# zi} other {# zile}}",
       "expiringSoon": "Abonamentul expiră în {n, plural, one {# zi} other {# zile}} — prelungește-l ca să nu pierzi accesul la cereri.",
-      "expired": "Nu ai un abonament activ — fără abonament nu poți prelua cereri din marketplace. Alege un plan mai jos.",
+      "expired": "Nu ai un abonament activ. Alege un plan mai jos ca să îl reactivezi.",
       "plans": "Planuri",
       "current": "Planul tău",
       "activate": "Activează",
@@ -1503,8 +1508,8 @@
       "COMPANY_EXCLUDED_FROM_REQUEST": "Firma ta este exclusă de la această cerere.",
       "COMPANY_NOT_APPROVED": "Firma ta nu a fost încă aprobată.",
       "COMPANY_SUSPENDED": "Firma ta este momentan suspendată.",
-      "ACTIVE_CLAIM_WITHOUT_OFFER_EXISTS": "Ai deja o preluare activă fără ofertă trimisă.",
-      "ASSIGNED_USER_HAS_ACTIVE_CLAIM": "Acest membru are deja o preluare activă.",
+      "ACTIVE_CLAIM_WITHOUT_OFFER_EXISTS": "Ai deja o preluare fără ofertă trimisă. Trimite întâi oferta pe acea preluare.",
+      "ASSIGNED_USER_HAS_ACTIVE_CLAIM": "Acest coleg are deja o preluare fără ofertă trimisă. Alege alt coleg sau atribuie cererea după ce trimite oferta.",
       "ASSIGNED_USER_PENALTY_BLOCKED": "Acest membru este blocat temporar din cauza penalizărilor și nu poate primi preluări.",
       "FORBIDDEN": "Doar proprietarul sau un manager poate atribui preluarea.",
       "IDEMPOTENCY_CONFLICT": "Cerere conflictuală. Reîncearcă.",
@@ -1517,7 +1522,10 @@
       "PROJECT_CASE_ALREADY_OPEN": "Există deja un caz deschis pentru acest proiect.",
       "PROJECT_CASE_NOT_OPEN": "Cazul nu mai este deschis sau a primit deja un răspuns.",
       "DATABASE_BUSY": "Serverul răspunde greu acum, așa că acțiunea nu a fost salvată. Încearcă din nou în câteva secunde.",
-      "PLAN_FEATURE_REQUIRED": "Abonamentul firmei tale este activ, dar planul nu include cererile din marketplace și preluările. Alege un plan care le include."
+      "PLAN_FEATURE_REQUIRED": "Abonamentul firmei tale este activ, dar planul nu include cererile din marketplace și preluările. Alege un plan care le include.",
+      "REQUEST_NO_LONGER_CLAIMABLE": "Cererea nu mai poate fi preluată: locurile s-au ocupat sau clientul a ales deja.",
+      "MANAGER_UNASSIGNED_CAP_REACHED": "Ai deja prea multe preluări fără responsabil față de colegii liberi. Atribuie-le întâi din fișele de lucru sau alege acum un coleg pentru această cerere.",
+      "RATE_LIMITED": "Prea multe încercări într-un timp scurt. Așteaptă un minut și încearcă din nou."
     },
     "accessBlocked": {
       "title": {
@@ -1576,7 +1584,37 @@
       "ruleReserve": "La preluare creditele se <b>rezervă</b>.",
       "ruleGrace": "Te poți retrage gratuit în primele {minutes}.",
       "ruleSla": "Dacă nu trimiți oferta în termenul de răspuns, creditele se consumă și firma primește puncte de penalizare.",
-      "rulesLink": "Regulile pentru firme"
+      "rulesLink": "Regulile pentru firme",
+      "deadline": "Termen de răspuns dacă preiei acum"
+    },
+    "closedRequest": {
+      "title": "Cererea s-a închis",
+      "openWorksheet": "Deschide fișa de lucru",
+      "reason": {
+        "SLOTS_FULL": "Toate locurile s-au ocupat: numărul maxim de firme a preluat deja cererea.",
+        "OFFER_ACCEPTED": "Clientul a ales deja o ofertă, așa că cererea nu mai poate fi preluată.",
+        "FIRST_OFFER_RULE": "Cererea a primit deja o ofertă și, după regulile în vigoare acum, nu mai poate fi preluată de alte firme.",
+        "EXPIRED": "Cererea a expirat fără ca clientul să aleagă o ofertă.",
+        "CLOSED": "Cererea nu mai este disponibilă pentru preluare."
+      }
+    },
+    "claimDialog": {
+      "deadline": "Dacă preiei acum, ai până pe {date} (ora României) să trimiți oferta.",
+      "assigneeLabel": "Cine se ocupă de cerere",
+      "assigneeMe": "Eu ({name})",
+      "assignLater": "Atribui mai târziu",
+      "assignLaterHint": "Ai {minutes} să alegi un coleg din fișa de lucru; altfel preluarea se anulează automat și creditele se restituie.",
+      "assigneeSelf": "Tu devii responsabil de cerere.",
+      "selfBusy": "Ai deja o preluare fără ofertă trimisă. Trimite întâi oferta pe acea preluare, apoi poți prelua alta.",
+      "selfBusyLead": "Ai deja o preluare fără ofertă trimisă, așa că nu poți fi responsabil și de aceasta. Alege un coleg sau „Atribui mai târziu”.",
+      "lateRisk": "Cererea rămâne deschisă și după prima ofertă, așa că clientul poate alege oferta altei firme înainte să o trimiți pe a ta. Dacă se întâmplă asta, creditele rezervate îți sunt restituite."
+    },
+    "subscriptionStatus": {
+      "expiredOn": "Abonamentul {plan} a expirat pe {date}.",
+      "expiredOnNoPlan": "Abonamentul a expirat pe {date}.",
+      "none": "Firma ta nu are un abonament activ.",
+      "credits": "Creditele tale ({n}) rămân în cont, dar le poți folosi doar după reactivare. Preluările în curs le poți termina.",
+      "reactivate": "Reactivează abonamentul"
     }
   },
   "Chat": {
@@ -1656,7 +1694,8 @@
       "tabLifecycle": "Clarificări și retragere",
       "recentMessages": "Ultimele mesaje",
       "replyInChat": "Răspunde în conversație",
-      "clientPrivacyNote": "Datele de contact le văd doar colegul care a preluat sau lucrează la cerere, proprietarul, managerii și angajații cu acces complet ai firmei."
+      "clientPrivacyNote": "Datele de contact le văd doar colegul care a preluat sau lucrează la cerere, proprietarul, managerii și angajații cu acces complet ai firmei.",
+      "assignFailedTitle": "Atribuirea nu s-a făcut"
     },
     "offersTitle": "Oferte și conversații",
     "offersSubtitle": "Drumul cererii tale la fiecare firmă care a preluat-o: discuții, oferte, acceptare.",
@@ -2090,7 +2129,8 @@
       "PROJECT_NOT_CLOSABLE": "Proiectul nu mai poate fi închis în starea actuală.",
       "PROJECT_CASE_ALREADY_OPEN": "Există deja un caz deschis pentru acest proiect.",
       "PROJECT_CASE_NOT_OPEN": "Cazul nu mai este deschis sau a primit deja un răspuns.",
-      "DATABASE_BUSY": "Serverul răspunde greu acum, așa că acțiunea nu a fost salvată. Încearcă din nou în câteva secunde."
+      "DATABASE_BUSY": "Serverul răspunde greu acum, așa că acțiunea nu a fost salvată. Încearcă din nou în câteva secunde.",
+      "WARRANTY_REPORT_WINDOW_CLOSED": "Perioada în care puteai raporta o problemă s-a încheiat."
     },
     "agreement": {
       "title": "Acordul vostru",
@@ -2113,7 +2153,8 @@
         "FIRM_UNRESPONSIVE": "Firma nu mai răspunde",
         "CLIENT_UNRESPONSIVE": "Clientul nu mai răspunde",
         "MUTUAL_CANCEL_REQUEST": "Vrem să anulăm proiectul de comun acord",
-        "OTHER": "Alt motiv"
+        "OTHER": "Alt motiv",
+        "WARRANTY_CLAIM": "Problemă după finalizare (în garanție)"
       },
       "notePlaceholder": "Descrie pe scurt ce s-a întâmplat (opțional)",
       "responseNotePlaceholder": "Adaugă un comentariu (opțional)",
@@ -2139,7 +2180,46 @@
     "deliverConfirmIrreversible": "Marcarea nu se poate anula din aplicație.",
     "deliverConfirmCta": "Da, am livrat",
     "deliverConfirmCancel": "Înapoi",
-    "deliverConfirmPending": "Se trimite…"
+    "deliverConfirmPending": "Se trimite…",
+    "deliveredConfirmTitle": "Confirmi livrarea?",
+    "deliveredConfirmBody": "Confirmă doar dacă ai verificat mobilierul. După confirmare proiectul se închide și poți lăsa o recenzie.",
+    "deliveredConfirmCta": "Am verificat, confirm livrarea",
+    "deliveredProblem": "Am o problemă",
+    "deliveredBack": "Înapoi",
+    "deliveredProblemTitle": "Ce problemă ai găsit?",
+    "deliveredProblemIntro": "Descrie pe scurt ce nu e în regulă. Raportul ajunge la echipa Cozy Home și la firmă. Până când echipa închide raportul, comanda nu se finalizează automat.",
+    "deliveredProblemPlaceholder": "De exemplu: o ușă nu se închide, lipsește un raft",
+    "deliveredProblemSubmit": "Trimite raportul",
+    "deliveredProblemOpen": "Ai raportat o problemă pe {date}. Echipa Cozy Home analizează raportul; până îl închide, comanda nu se finalizează automat. Dacă problema s-a rezolvat, poți confirma livrarea.",
+    "reviewPickStars": "Alege o notă de la 1 la 5 stele ca să poți trimite recenzia.",
+    "reviewSummary": "Trimiți nota {rating} din 5 — nu se mai poate schimba.",
+    "reviewSummaryConfirm": "Da, trimite recenzia",
+    "reviewSummaryBack": "Înapoi",
+    "warranty": {
+      "title": "Ai o problemă cu mobilierul?",
+      "intro": "Poți raporta o problemă până pe {date} (garanție de {months} luni). Raportul ajunge la echipa Cozy Home, iar firma este anunțată.",
+      "closed": "Perioada în care puteai raporta o problemă s-a încheiat pe {date}.",
+      "open": "Raportează o problemă",
+      "placeholder": "Descrie problema: ce piesă, ce s-a întâmplat și de când",
+      "submit": "Trimite raportul",
+      "cancel": "Renunță",
+      "confirmTitle": "Trimiți raportul?",
+      "confirmBody": "Echipa Cozy Home primește raportul și te contactează. Firma este anunțată.",
+      "sent": "Ai raportat o problemă pe {date}. Echipa Cozy Home analizează raportul și te contactează.",
+      "dismissed": "Echipa Cozy Home a închis raportul tău pe {date}. Dacă problema a reapărut, poți trimite un raport nou."
+    },
+    "completion": {
+      "title": "Livrare confirmată",
+      "completedOn": "Comanda a fost finalizată pe {date}.",
+      "completed": "Comanda este finalizată.",
+      "reviewTitle": "Recenzia primită",
+      "noReview": "Clientul nu a lăsat încă o recenzie.",
+      "disputed": "Recenzia este în analiză la echipa Cozy Home.",
+      "deliveredTitle": "Clientul a raportat o problemă",
+      "openCaseDelivered": "Clientul a raportat o problemă după livrare, pe {date}. Comanda nu se finalizează automat până când echipa Cozy Home închide raportul.",
+      "openCaseWarranty": "Clientul a raportat o problemă în garanție, pe {date}. Echipa Cozy Home vă contactează.",
+      "clientNote": "Mesajul clientului: „{note}”"
+    }
   },
   "Billing": {
     "buyCredits": "Cumpără credite",
@@ -2217,10 +2297,10 @@
       "FORBIDDEN": "Doar proprietarul sau un manager al firmei poate face plăți.",
       "COMPANY_SUSPENDED": "Firma ta este momentan suspendată.",
       "COMPANY_NOT_APPROVED": "Firma ta nu a fost încă aprobată.",
-      "PLAN_NOT_PURCHASABLE": "Acest plan nu se cumpără online; îl activează administratorul platformei."
+      "PLAN_NOT_PURCHASABLE": "Acest plan nu se cumpără online; îl activează administratorul platformei.",
+      "CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION": "Creditele se pot cumpăra doar cu abonament activ. Reactivează abonamentul, apoi alege pachetul."
     },
     "rulesNotice": "Cum se rezervă, se consumă și se restituie creditele: <rules>Regulile pentru firme</rules>.",
-    "noSubscriptionCreditsNote": "Firma nu are un abonament activ. Creditele se pot folosi la preluarea cererilor doar cât timp abonamentul este activ — activează un plan din secțiunea Abonament.",
     "testMode": {
       "title": "MOD TEST",
       "body": "Plățile se fac prin Stripe în mod test: nu se încasează bani reali și nu se emite factură."
@@ -2239,7 +2319,8 @@
     "buyCreditsIntroBank": "Creditele se folosesc la preluarea cererilor. Plata se face prin transfer bancar.",
     "priceExVat": "{price} + TVA",
     "perCredit": "{price} / credit",
-    "totalWithVat": "{total} cu TVA {rate}%"
+    "totalWithVat": "{total} cu TVA {rate}%",
+    "packagesNeedSubscription": "Pachetele de credite se pot cumpăra doar cu abonament activ. Creditele pe care le ai deja rămân în cont."
   },
   "AdminPayments": {
     "title": "Plăți și abonamente",
@@ -3059,7 +3140,9 @@
         "acceptedQuote": "ofertă acceptată: {price}",
         "claimCredits": "credite rezervate la preluare: {n}",
         "claimedOn": "preluată pe {date}",
-        "quoted": "„{text}”"
+        "quoted": "„{text}”",
+        "warrantyHint": "Reclamație după finalizare: nu schimbă starea proiectului și nici creditele firmei. Închide cazul după ce ai rezolvat-o cu clientul și cu firma.",
+        "pausedHint": "Finalizarea automată e oprită cât timp cazul e deschis. După ce închizi cazul, termenul de 14 zile pornește din nou."
       },
       "caseStatus": {
         "OPEN": "Deschis",
@@ -3586,7 +3669,8 @@
     "sketchUpload": {
       "skipNotice": "Ai marcat că ai un proiect pentru toată locuința — poți sări peste acest pas. Încarcă proiectul la pasul Fișiere, ca să nu-l atașezi la fiecare cameră.",
       "hint": "Încă maximum {local} pentru această cameră ({global} rămase în total)",
-      "limitReached": "Ai atins limita de fișiere pentru această cerere."
+      "limitReached": "Cererea are deja {max} fișiere, cât se poate. Elimină unul ca să adaugi altul.",
+      "limitReachedRoom": "Ai adăugat {max} fișiere la această cameră, cât se poate. Elimină unul ca să adaugi altul."
     },
     "sketchGuide": {
       "title": "Nu ai proiect? O schiță rapidă e de ajuns",
@@ -3679,9 +3763,8 @@
       "subtitle": "Opțional — poze din spațiu, schițe sau proiectul tău.",
       "dropLabel": "Trage fișierele aici sau apasă ca să le încarci",
       "dropHint": "JPG, PNG, WEBP, PDF sau ZIP, până la 25 MB",
-      "uploading": "Se încarcă...",
       "scanning": "se verifică...",
-      "blockedNotice": "Fișierul nu a trecut de verificare — încearcă altul",
+      "blockedNotice": "Nu a trecut de verificarea de siguranță (fișier deteriorat sau nesigur). Elimină-l și încearcă alt fișier.",
       "blockedShort": "Respins",
       "status": {
         "PENDING_UPLOAD": "în așteptare",
@@ -3695,7 +3778,24 @@
       "switchToGuided": "Nu am proiectul la îndemână — completez dimensiunile",
       "projectFilesTitle": "Fișierele proiectului",
       "roomSketchesTitle": "Schițele camerelor",
-      "roomSketchesHint": "Le poți schimba din camera respectivă."
+      "roomSketchesHint": "Le poți schimba din camera respectivă.",
+      "sizeUnderKb": "sub 1 KB",
+      "slotsLeft": "{count, plural, =0 {Nu mai sunt locuri pentru fișiere. Elimină unul ca să adaugi altul.} =1 {Mai poți adăuga un fișier.} few {Mai poți adăuga # fișiere.} other {Mai poți adăuga # de fișiere.}}",
+      "uploadingFile": "Se încarcă {name}…",
+      "rejectedTitle": "Nu am putut adăuga",
+      "retry": "Reîncearcă",
+      "dismissRejected": "Ascunde mesajul pentru {name}",
+      "rejectReason": {
+        "TYPE": "Tipul fișierului nu e acceptat. Poți încărca JPG, PNG, WEBP, PDF sau ZIP.",
+        "EMPTY": "Fișierul e gol.",
+        "SIZE": "Fișierul are peste 25 MB.",
+        "LIMIT": "Nu mai era loc pentru el: ai atins numărul maxim de fișiere.",
+        "SCAN": "Nu a trecut de verificarea de siguranță (fișier deteriorat sau nesigur). Încearcă alt fișier.",
+        "NETWORK": "Nu s-a putut trimite din cauza conexiunii.",
+        "PENDING": "Fișierul e încă în verificare și apare în listă când e gata.",
+        "INVALID": "Fișierul nu a fost acceptat. Verifică numele și tipul lui.",
+        "NOT_EDITABLE": "Cererea nu mai poate fi modificată acum, așa că fișierul nu a fost adăugat."
+      }
     },
     "summaryFiles": {
       "count": "{n, plural, =1 {un fișier atașat} other {# fișiere atașate}}"
@@ -4001,7 +4101,11 @@
       "flowVersionUnsupported": "Chestionarul acestei camere a fost actualizat. Reia răspunsurile.",
       "contactInText": "Scoate telefonul, emailul sau linkul din acest răspuns — le adaugi la pasul Contact.",
       "inspirationRoomUnknown": "Camera aleasă pentru o poză de inspirație nu mai este în cerere — am scos legătura, alege din nou.",
-      "studioPieceDoesNotFit": "Piesa nu mai încape în cameră sau se suprapune cu altă piesă. Ajustează dimensiunile sau cota de montaj ori repoziționeaz-o în Studio."
+      "studioPieceDoesNotFit": "Piesa nu mai încape în cameră sau se suprapune cu altă piesă. Ajustează dimensiunile sau cota de montaj ori repoziționeaz-o în Studio.",
+      "notANumber": "Scrie un număr, de ex. 2,5",
+      "outOfRangeKept": "Valoarea trebuie să fie între {range}. Am păstrat valoarea de dinainte.",
+      "positiveNumber": "Scrie un număr mai mare decât 0. Am păstrat valoarea de dinainte.",
+      "wholeNumber": "Scrie un număr întreg, de ex. 3. Am păstrat valoarea de dinainte."
     },
     "common": {
       "boolean": {
@@ -4338,7 +4442,7 @@
         },
         "countertop": {
           "title": "Ce blat preferi?",
-          "subtitle": "Opțional — ajută firma să estimeze mai exact.",
+          "subtitle": "Ajută firma să estimeze mai exact.",
           "options": {
             "PAL": {
               "label": "PAL",
@@ -6741,9 +6845,9 @@
         },
         "credits": {
           "h": "3. Abonament, credite și preluarea cererilor",
-          "b": "Pentru a vedea și a prelua cereri ai nevoie de un abonament activ. Costul în credite al fiecărei preluări este afișat pe cerere înainte să o preiei și rămâne cel din momentul preluării. La preluare creditele se rezervă, nu se consumă încă. O cerere poate fi preluată de cel mult {maxClaims} firme.\n\nDupă preluare, cererea trebuie atribuită unui membru al echipei în {assignMinutes}; altfel preluarea se anulează automat, iar creditele rezervate se restituie.",
+          "b": "Pentru a vedea și a prelua cereri ai nevoie de un abonament activ. Costul în credite al fiecărei preluări este afișat pe cerere înainte să o preiei și rămâne cel din momentul preluării. La preluare creditele se rezervă, nu se consumă încă. O cerere poate fi preluată de cel mult {maxClaims} firme.\n\nCine preia cererea devine responsabil de ea. Proprietarul și managerii pot alege la preluare un coleg sau „Atribui mai târziu”; în acest caz cererea trebuie atribuită unui membru al echipei în {assignMinutes}, altfel preluarea se anulează automat, iar creditele rezervate se restituie.",
           "afterOfferClosed": "Din momentul în care una dintre firmele care au preluat cererea trimite prima ofertă, cererea nu mai poate fi preluată de alte firme, chiar dacă nu s-au ocupat toate cele {maxClaims} locuri.",
-          "afterOfferOpen": "Cererea rămâne disponibilă pentru preluare și după prima ofertă, până când o preiau {maxClaims} firme sau clientul acceptă o ofertă. Termenul tău de răspuns curge de la momentul preluării tale.",
+          "afterOfferOpen": "Cererea rămâne deschisă pentru preluare și după prima ofertă, până când se ocupă toate cele {maxClaims} locuri sau clientul acceptă o ofertă. Dacă preiei târziu, clientul poate alege oferta altei firme înainte să o trimiți pe a ta; atunci creditele rezervate îți sunt restituite. Termenul tău de răspuns curge de la momentul preluării tale.",
           "costRange": "Costul unei preluări este de cel puțin {min} și de cel mult {max}.",
           "costMin": "Costul unei preluări este de cel puțin {min}."
         },

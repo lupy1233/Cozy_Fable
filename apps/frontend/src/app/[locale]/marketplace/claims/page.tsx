@@ -27,6 +27,7 @@ import { useRelativeTime } from '@/lib/relative-time';
 import { compareClaimUrgency, slaPhase, timeLeftUnits, useSlaDateFormat } from '@/lib/sla-deadline';
 import { cn } from '@/lib/utils';
 import { AccessBlocked } from '../_components/access-blocked';
+import { SubscriptionStatusNotice } from '../_components/subscription-status-notice';
 
 // Pagina dedicata preluarilor firmei: cine a preluat, cui e atribuita, in ce stadiu e si
 // cat mai e pana la termen. Design 2026-11 (canvas): filtre pe stadiu, numaratoare inversa
@@ -125,6 +126,8 @@ export default function CompanyClaimsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t('myClaims.title')} subtitle={t('myClaims.subtitle')} />
+      {/* h2: fara abonament lista ramane; mesajul spune doar ce s-a schimbat */}
+      <SubscriptionStatusNotice />
 
       {claims.isPending && <SkeletonTable rows={5} cols={6} />}
       {claims.isError && <AccessBlocked error={claims.error} onRetry={() => void claims.refetch()} />}

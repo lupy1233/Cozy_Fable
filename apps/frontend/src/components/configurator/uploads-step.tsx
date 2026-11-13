@@ -1,18 +1,20 @@
 'use client';
 
-import { ATTACHMENT_ACCEPT, type AttachmentDto } from '@marketplace/shared';
+import { ATTACHMENT_ACCEPT, remainingAttachmentSlots, type AttachmentDto } from '@marketplace/shared';
 import { ArrowLeft, ArrowRight, Ruler } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Dropzone } from '@/components/ui/dropzone';
 import {
   useAttachmentsFor,
+  useAttachmentUploadQueue,
   useRemoveAttachmentFor,
-  useUploadAttachmentFor,
   type AttachmentTarget,
 } from '@/hooks/use-requests';
+import { localRejectReason } from '@/lib/attachment-upload';
 import { useConfiguratorStore } from '@/stores/configurator-store';
 import { AttachmentRow } from './attachment-item';
+import { UploadFeedback } from './upload-feedback';
 import { InspirationPicker } from './inspiration-picker';
 import { roomIssue, screenIndexForStep } from './room-screens';
 
@@ -27,14 +29,18 @@ export function UploadsStep({
 }) {
   const t = useTranslations('Configurator');
   const attachments = useAttachmentsFor(target);
-  const upload = useUploadAttachmentFor(target);
+  const queue = useAttachmentUploadQueue(target);
   const remove = useRemoveAttachmentFor(target);
   const rooms = useConfiguratorStore((s) => s.roomInstances);
   const ownProject = useConfiguratorStore((s) => s.details.hasOwnProject === true);
   const forgetAttachment = useConfiguratorStore((s) => s.forgetAttachment);
 
-  const onFiles = (files: FileList) => {
-    Array.from(files).forEach((file) => upload.mutate(file));
+  // b5: locurile ramase pe cerere (oglinda capului de pe server: 10 + 8 pe camera)
+  // (fisierele aflate inca pe drum ocupa deja un loc)
+  const slotsLeft = remainingAttachmentSlots(rooms.length, attachments.length + queue.pending.length);
+  // fisierele se trimit pe rand, fiecare cu starea lui (vezi useAttachmentUploadQueue)
+  const onAccept = (files: File[]) => {
+    void queue.uploadFiles(files, slotsLeft);
   };
 
   // Fisierele referite de o camera (schite, snapshot 3D) se gestioneaza din
@@ -92,13 +98,25 @@ export function UploadsStep({
         </p>
       </div>
 
-      <Dropzone
-        onFiles={onFiles}
-        accept={ATTACHMENT_ACCEPT}
-        label={t('uploads.dropLabel')}
-        hint={t('uploads.dropHint')}
-      />
-      {upload.isPending && <p className="text-xs text-muted-foreground">{t('uploads.uploading')}</p>}
+      <div className="flex flex-col gap-2">
+        <Dropzone
+          validate={localRejectReason}
+          onAccept={onAccept}
+          onReject={queue.reject}
+          accept={ATTACHMENT_ACCEPT}
+          label={t('uploads.dropLabel')}
+          hint={t('uploads.dropHint')}
+        />
+        <p className="text-xs text-muted-foreground" data-upload-slots>
+          {t('uploads.slotsLeft', { count: slotsLeft })}
+        </p>
+        <UploadFeedback
+          pending={queue.pending}
+          rejected={queue.rejected}
+          onDismiss={queue.dismiss}
+          onRetry={(id) => queue.retry(id, slotsLeft)}
+        />
+      </div>
 
       {/* inspiratie din galeria firmelor (F6, item 3) */}
       <InspirationPicker />

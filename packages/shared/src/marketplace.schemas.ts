@@ -15,7 +15,9 @@ import type { RequestStudioSceneDto } from './studio.schemas';
 
 // --- Claim ---
 // Optional: managerul/owner-ul poate atribui claim-ul unui angajat la creare
-// (assigned_to_user_id). Lipsa => slot neatribuit (cap manager 4.9).
+// (assigned_to_user_id). Lipsa => slot neatribuit (cap manager 4.9) — doar pentru
+// proprietar/manager ("Atribui mai tarziu"); angajatul cu acces complet preia mereu pentru
+// el (a5, PO 2026-11-13). UI-ul trimite implicit id-ul celui care preia.
 export const createClaimSchema = z.object({
   requestId: z.string().uuid(),
   assignToUserId: z.string().uuid().optional(),
@@ -72,8 +74,40 @@ export interface MarketplaceItemDto {
   alreadyClaimedByMyCompany: boolean;
 }
 
+// --- Cerere care nu mai poate fi preluata (a1, PO 2026-11-13) ---
+// De ce o cerere publicata nu mai e in piata: locuri ocupate, oferta acceptata, regula primei
+// oferte (doar cu comutatorul din Admin oprit), expirata sau inchisa din alt motiv.
+export const MARKETPLACE_CLOSED_REASONS = [
+  'SLOTS_FULL',
+  'OFFER_ACCEPTED',
+  'FIRST_OFFER_RULE',
+  'EXPIRED',
+  'CLOSED',
+] as const;
+export type MarketplaceClosedReason = (typeof MARKETPLACE_CLOSED_REASONS)[number];
+
+// details pe eroarea REQUEST_NO_LONGER_CLAIMABLE (GET /marketplace/requests/:id). Se trimite
+// doar firmelor care acopera cererea pe raza (si nu sunt excluse) — celelalte primesc NOT_FOUND.
+// myClaimSlotId = ultima preluare a firmei pe cerere (link spre fisa de lucru), daca exista.
+export interface RequestNoLongerClaimableDetails {
+  reason: MarketplaceClosedReason;
+  myClaimSlotId: string | null;
+}
+
+// Cardul "Cine vede cererea" al clientului: motivul cand proiectul nu mai e in piata
+// (null cat e vizibil). Optional: un slot vechi nu trimite campul.
+export interface RequestVisibilityClosedReasonDto {
+  marketplaceClosedReason?: MarketplaceClosedReason | null;
+}
+
 // Detaliu cerere in marketplace (pre-claim): include camerele, fara date de contact (4.2).
 export interface MarketplaceDetailDto extends MarketplaceItemDto {
+  // a5: termenul de raspuns estimat daca firma preia acum (aceleasi zile lucratoare ca la
+  // preluare); null fara marime. Optional: un slot vechi nu trimite campul.
+  estimatedSlaDeadlineAt?: string | null;
+  // a5: cel care se uita are deja o preluare activa fara oferta → nu poate fi responsabil
+  // pe inca una (4.9); dialogul ii spune inainte de confirmare.
+  viewerHasActiveClaimWithoutOffer?: boolean;
   deadlineBucket: (typeof DEADLINE_BUCKETS)[number] | null;
   rooms: RequestRoomDto[];
   // pozele de inspiratie alese de client (F6); detaliile din GET /inspiration?ids=

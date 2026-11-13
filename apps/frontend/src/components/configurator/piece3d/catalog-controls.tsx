@@ -1,19 +1,28 @@
 'use client';
-import { useId, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useId } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { NEW_PIECE_RULES, UPHOLSTERY_FABRICS, SEAT_FIRMNESSES, SEATING_BASES, SOFA_LAYOUTS, type Piece3dKind, type PieceConfig3d } from '@marketplace/shared';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { cmRangeText, inRangeCm, useDecimalField } from '../use-decimal-field';
 
 export function CatalogSize({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (n: number) => void }) {
   const id = useId();
-  const [draft, setDraft] = useState<string | null>(null);
+  const t = useTranslations('Configurator');
+  const locale = useLocale();
+  // b1: virgula acceptata; in afara intervalului NU se mai taie pe tacute la
+  // min/max — ramane valoarea veche si apare mesajul cu intervalul permis
+  const range = cmRangeText(min, max, locale);
+  const field = useDecimalField({
+    value: value * 100, commitOn: 'blur', maxFractionDigits: 1,
+    validate: v => (inRangeCm(v, min, max) ? null : t('validation.outOfRangeKept', { range })),
+    onValue: v => { if (v !== undefined) onChange(v / 100); },
+  });
   return <div className="space-y-1"><label htmlFor={id} className="text-sm font-medium">{label} <span className="text-muted-foreground">(cm)</span></label>
     <div className="flex items-center gap-3"><input type="range" aria-label={label} min={Math.round(min * 100)} max={Math.round(max * 100)} step={1}
-      value={Math.round(value * 100)} onChange={e => { setDraft(null); onChange(Number(e.target.value) / 100); }} className="h-11 min-w-0 flex-1 accent-walnut" />
-      <Input id={id} type="number" inputMode="decimal" className="w-24" min={Math.round(min * 100)} max={Math.round(max * 100)} step={1} value={draft ?? Math.round(value * 100)}
-        onChange={e => setDraft(e.target.value)} onBlur={() => { if (draft?.trim() && Number.isFinite(Number(draft))) onChange(Math.max(min, Math.min(max, Number(draft) / 100))); setDraft(null); }}
-        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setDraft(null); }} /></div>
+      value={Math.round(value * 100)} onChange={e => { field.reset(); onChange(Number(e.target.value) / 100); }} className="h-11 min-w-0 flex-1 accent-walnut" />
+      <Input id={id} {...field.inputProps} className={field.error ? 'w-24 border-crimson' : 'w-24'} /></div>
+    {field.error && <p role="alert" className="text-xs text-crimson">{field.error}</p>}
   </div>;
 }
 

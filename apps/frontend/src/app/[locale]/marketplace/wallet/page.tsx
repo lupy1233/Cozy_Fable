@@ -32,6 +32,7 @@ import { SkeletonPage } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/toaster';
 import { SectionNav } from '../../company/_components/section-nav';
 import { AccessBlocked } from '../_components/access-blocked';
+import { SubscriptionStatusNotice } from '../_components/subscription-status-notice';
 import { BankTransferPanel } from './_components/bank-transfer-panel';
 import { CreditPackagesSection } from './_components/credit-packages-section';
 import { CreditWalletSection } from './_components/credit-wallet-section';
@@ -227,6 +228,8 @@ export default function WalletPage() {
         {pageHeader}
         <SectionNav variant="tabs" label={t('wallet.sectionsNav')} items={navItems} />
       </div>
+
+      <SubscriptionStatusNotice />
 
       {(stripeTestMode || (instructions.data && !billingReady)) && (
         <div className="flex flex-col gap-3">

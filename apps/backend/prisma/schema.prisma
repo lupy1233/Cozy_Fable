@@ -233,6 +233,8 @@ enum ProjectCaseReason {
   CLIENT_UNRESPONSIVE
   MUTUAL_CANCEL_REQUEST
   OTHER
+  // e2-2: reclamatie a clientului dupa finalizare, in fereastra de garantie
+  WARRANTY_CLAIM
 
   @@map("project_case_reason")
 }
@@ -615,6 +617,9 @@ model Request {
   deliveredAt        DateTime?     @map("delivered_at") @db.Timestamptz()
   // E-admin-platform-3: momentul in care adminul a inchis proiectul (status CANCELLED)
   cancelledAt        DateTime?     @map("cancelled_at") @db.Timestamptz()
+  // e2-2: momentul finalizarii (DELIVERED_BY_COMPANY → COMPLETED, confirmata sau automata);
+  // de aici curge fereastra de raportare in garantie. NULL la cererile finalizate inainte.
+  completedAt        DateTime?     @map("completed_at") @db.Timestamptz()
   createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
 

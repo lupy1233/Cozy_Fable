@@ -10,7 +10,7 @@ import {
   slaGraceWarningJobOptions,
   withSerializationRetry,
 } from './claims.helpers';
-import { CLAIMABLE_STATUSES, claimableStatuses } from './claims.constants';
+import { CLAIMABLE_STATUSES, claimableStatuses, marketplaceClosedReason } from './claims.constants';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyTx = any;
@@ -316,5 +316,29 @@ describe('closeOpenQuotesForSlot (L0-B)', () => {
     expect(tx.quote.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: { status: 'SUPERSEDED' } }),
     );
+  });
+});
+
+// a1 (PO 2026-11-13) — motivul pentru care o cerere publicata nu (mai) poate fi preluata.
+describe('marketplaceClosedReason (a1)', () => {
+  const base = { occupied: 1, maxClaims: 3, openAfterFirstOffer: true };
+  it('cu comutatorul pornit: OFFERS_RECEIVED/NEGOTIATION cu locuri libere → null (se poate prelua)', () => {
+    expect(marketplaceClosedReason({ ...base, status: 'OFFERS_RECEIVED' })).toBeNull();
+    expect(marketplaceClosedReason({ ...base, status: 'NEGOTIATION' })).toBeNull();
+    expect(marketplaceClosedReason({ ...base, status: 'CLAIMED_PARTIAL' })).toBeNull();
+  });
+  it('locuri ocupate → SLOTS_FULL (si CLAIMED_FULL)', () => {
+    expect(marketplaceClosedReason({ ...base, status: 'OFFERS_RECEIVED', occupied: 3 })).toBe('SLOTS_FULL');
+    expect(marketplaceClosedReason({ ...base, status: 'CLAIMED_FULL', occupied: 2 })).toBe('SLOTS_FULL');
+  });
+  it('comutatorul oprit: OFFERS_RECEIVED cu locuri libere → FIRST_OFFER_RULE', () => {
+    expect(marketplaceClosedReason({ ...base, status: 'OFFERS_RECEIVED', openAfterFirstOffer: false })).toBe('FIRST_OFFER_RULE');
+  });
+  it('oferta acceptata / expirata / anulata', () => {
+    for (const s of ['ACCEPTED', 'IN_EXECUTION', 'DELIVERED_BY_COMPANY', 'COMPLETED', 'DISPUTED'] as const) {
+      expect(marketplaceClosedReason({ ...base, status: s })).toBe('OFFER_ACCEPTED');
+    }
+    expect(marketplaceClosedReason({ ...base, status: 'EXPIRED' })).toBe('EXPIRED');
+    expect(marketplaceClosedReason({ ...base, status: 'CANCELLED' })).toBe('CLOSED');
   });
 });

@@ -105,10 +105,20 @@ export class ClaimsService {
     actingUserId: string,
     dto: CreateClaimInput,
   ): Promise<ClaimSlotDto> {
-    if (ctx.memberRole === 'EMPLOYEE_MANAGED') {
+    if (!can(ctx.memberRole, 'CLAIMS_CREATE')) {
       throw new ForbiddenException({
         code: ERROR_CODES.FORBIDDEN,
         message: 'Managed employees cannot claim',
+      });
+    }
+    // a5 (PO 2026-11-13): fara CLAIMS_ASSIGN (angajatul cu acces complet) preluarea e mereu
+    // pentru tine — lipsa responsabilului = tu; alt coleg = interzis. Proprietarul/managerul
+    // pot alege un coleg sau "Atribui mai tarziu" (fara assignToUserId).
+    const selfOnly = !can(ctx.memberRole, 'CLAIMS_ASSIGN');
+    if (selfOnly && dto.assignToUserId && dto.assignToUserId !== actingUserId) {
+      throw new ForbiddenException({
+        code: ERROR_CODES.FORBIDDEN,
+        message: 'Only owner or manager can assign a claim to someone else',
       });
     }
     const [maxClaims, openAfterFirstOffer] = await Promise.all([
@@ -120,7 +130,7 @@ export class ClaimsService {
     ]);
     // E-admin-platform-10: 3.1 literal (flag oprit) sau + OFFERS_RECEIVED/NEGOTIATION (varianta A)
     const claimable = claimableStatuses(openAfterFirstOffer);
-    const assignToUserId = dto.assignToUserId ?? null;
+    const assignToUserId = selfOnly ? actingUserId : dto.assignToUserId ?? null;
 
     if (assignToUserId) {
       const member = await this.prisma.companyMember.findUnique({

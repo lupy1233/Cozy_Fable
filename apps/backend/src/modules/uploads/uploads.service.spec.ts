@@ -44,6 +44,21 @@ describe('upload integrity and scanning', () => {
     expect(prisma.attachment.create).toHaveBeenCalledTimes(1);
   });
 
+  // b5: tipul/marimea gresite intorc codurile dedicate (DTO-ul nu le mai transforma in VALIDATION_ERROR)
+  it.each([
+    [{ filename: 'note.txt', mimeType: 'text/plain', sizeBytes: 10 }, 'FILE_TYPE_NOT_ALLOWED'],
+    [{ filename: 'poza.heic', mimeType: '', sizeBytes: 10 }, 'FILE_TYPE_NOT_ALLOWED'],
+    [{ filename: 'mare.pdf', mimeType: 'application/pdf', sizeBytes: 30 * 1024 * 1024 }, 'FILE_TOO_LARGE'],
+    [{ filename: 'gol.pdf', mimeType: 'application/pdf', sizeBytes: 0 }, 'FILE_TOO_LARGE'],
+    [{ filename: 'frac.pdf', mimeType: 'application/pdf', sizeBytes: 1.5 }, 'FILE_TOO_LARGE'],
+  ])('presign %o → %s, fara rand nou', async (input, code) => {
+    const { service, prisma, storage } = setup();
+    await expect(service.presign('REQUEST', 'r1', input)).rejects.toMatchObject({ status: 400, response: { code } });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.attachment.create).not.toHaveBeenCalled();
+    expect(storage.getPresignedUploadUrl).not.toHaveBeenCalled();
+  });
+
   it('checks MIME and actual bytes before creating an immutable sealed copy', async () => {
     const { service, storage, queue } = setup();
     const result = await service.confirm('REQUEST', 'r1', 'a1');
@@ -139,6 +154,18 @@ describe('image sanitizing and neutral names (E-client-9)', () => {
     await service.scan('a1');
     expect(storage.putObject).not.toHaveBeenCalled();
     expect((await service.confirm('REQUEST', 'r1', 'a1')).status).toBe('BLOCKED');
+  });
+
+  // b5 pas 4: un PNG valid de cateva zeci de octeti (16x16) trece de curatare → SAFE
+  it('PNG valid foarte mic (16x16, sub 1 KB) → SAFE', async () => {
+    const tiny = await sharp({ create: { width: 16, height: 16, channels: 3, background: '#808080' } }).png().toBuffer();
+    expect(tiny.length).toBeLessThan(1024);
+    const { service, storage } = setup({ filename: 'mic.png', mimeType: 'image/png', sizeBytes: tiny.length, status: 'PENDING_SCAN' });
+    storage.headObject.mockResolvedValue({ sizeBytes: tiny.length, mimeType: 'image/png', etag: 'etag' });
+    storage.getObjectBytes.mockResolvedValue(tiny);
+    await service.scan('a1');
+    expect(storage.putObject).toHaveBeenCalledTimes(1);
+    expect((await service.confirm('REQUEST', 'r1', 'a1')).status).toBe('SAFE');
   });
 
   it('eroarea de storage la citire urca (retry BullMQ), randul ramane PENDING_SCAN', async () => {

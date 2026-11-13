@@ -56,7 +56,9 @@ function baseOrder(over: Partial<any> = {}) {
 }
 
 // Prisma mock: un "rand" de comanda in memorie + tx care opereaza pe el (updateMany conditionat).
-function makePrisma(order: any | null, opts: { activeSub?: any } = {}) {
+// h2: `noActiveSubscription` = firma fara abonament activ (verificarea de la cumpararea de
+// credite citeste prin prisma.subscription, nu prin tx); implicit firma are abonament activ.
+function makePrisma(order: any | null, opts: { activeSub?: any; noActiveSubscription?: boolean } = {}) {
   const state = { order, sub: opts.activeSub ?? null, createdSub: null as any, events: new Set<string>() };
   const tx: any = {
     $executeRaw: jest.fn().mockResolvedValue(1),
@@ -107,6 +109,9 @@ function makePrisma(order: any | null, opts: { activeSub?: any } = {}) {
     },
     creditPackage: {
       findUnique: jest.fn().mockResolvedValue({ id: 'pkg1', credits: 10, priceRon: 100, isActive: true }),
+    },
+    subscription: {
+      findFirst: jest.fn(async () => (opts.noActiveSubscription ? null : { id: 'sub-active' })),
     },
     user: {
       findUnique: jest.fn().mockResolvedValue({ email: 'firma@demo.ro', languagePreference: 'RO' }),
@@ -768,6 +773,54 @@ describe('SubscriptionsService — admin grant', () => {
     expect(res.daysLeft).toBe(35);
     expect(res.isTrial).toBe(false);
     expect(credits.grant).not.toHaveBeenCalled();
+  });
+});
+
+// h2 (decizie PO h2-3): fara abonament activ, pachetele de credite sunt refuzate pe server.
+describe('PaymentsService — credite doar cu abonament activ (h2)', () => {
+  it('fara abonament activ → 403 CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION, fara comanda si fara Stripe', async () => {
+    const prisma = makePrisma(null, { noActiveSubscription: true });
+    const stripe = makeStripe(true);
+    const { service } = build(prisma, stripe);
+    await expect(service.purchaseCredits('c1', 'u1', { creditPackageId: 'pkg1' })).rejects.toMatchObject({
+      status: 403,
+      response: { code: 'CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION' },
+    });
+    expect(prisma.mockBillingOrder.create).not.toHaveBeenCalled();
+    expect(stripe.createCheckoutSession).not.toHaveBeenCalled();
+    expect(prisma.subscription.findFirst).toHaveBeenCalledWith({
+      where: { companyId: 'c1', status: 'ACTIVE', expiresAt: { gt: expect.any(Date) } },
+      select: { id: true },
+    });
+  });
+
+  it('cu abonament activ → comanda de credite se creeaza normal', async () => {
+    const prisma = makePrisma(null);
+    const { service } = build(prisma, makeStripe(false));
+    const res = await service.purchaseCredits('c1', 'u1', { creditPackageId: 'pkg1' });
+    expect(res.order.status).toBe('PENDING');
+  });
+
+  it('abonamentul se poate cumpara si fara abonament activ (asa se reactiveaza)', async () => {
+    const prisma = makePrisma(null, { noActiveSubscription: true });
+    const { service } = build(prisma, makeStripe(false));
+    const res = await service.purchaseSubscription('c1', 'u1', { planId: 'plan-gold' });
+    expect(res.order.orderType).toBe('SUBSCRIPTION');
+  });
+
+  it('"Continua plata" pe o comanda de credite PENDING, fara abonament activ → 403; pe abonament merge', async () => {
+    const credits = makePrisma(baseOrder({ stripeSessionId: 'cs_old' }), { noActiveSubscription: true });
+    const stripe = makeStripe(true);
+    await expect(build(credits, stripe).service.createCheckout('c1', 'u1', ORDER_ID)).rejects.toMatchObject({
+      status: 403,
+      response: { code: 'CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION' },
+    });
+    expect(stripe.createCheckoutSession).not.toHaveBeenCalled();
+
+    const plan = makePrisma(baseOrder({ orderType: 'SUBSCRIPTION', planId: 'plan-gold', creditPackageId: null }), {
+      noActiveSubscription: true,
+    });
+    await expect(build(plan, makeStripe(true)).service.createCheckout('c1', 'u1', ORDER_ID)).resolves.toBeDefined();
   });
 });
 

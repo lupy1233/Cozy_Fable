@@ -30,6 +30,8 @@ export const PROJECT_CASE_REASONS = [
   'CLIENT_UNRESPONSIVE',
   'MUTUAL_CANCEL_REQUEST',
   'OTHER',
+  // e2-2: reclamatie dupa finalizare (in garantie) — doar clientul, nu schimba starea/creditele
+  'WARRANTY_CLAIM',
 ] as const;
 export type ProjectCaseReason = (typeof PROJECT_CASE_REASONS)[number];
 export const PROJECT_CASE_OPENED_BY = ['CLIENT', 'COMPANY'] as const;

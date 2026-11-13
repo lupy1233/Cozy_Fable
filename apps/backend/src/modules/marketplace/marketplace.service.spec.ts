@@ -28,12 +28,14 @@ function makeService(opts: { maxClaims?: number; openAfterFirstOffer?: boolean; 
   const prisma: Any = { $queryRaw: jest.fn().mockResolvedValue([ROW]) };
   const settings: Any = {
     getInt: jest.fn().mockResolvedValue(opts.maxClaims ?? 2),
-    getBool: jest.fn().mockResolvedValue(opts.openAfterFirstOffer ?? false),
+    // nedat = valoarea implicita primita de la apelant (SETTING_DEFAULTS)
+    getBool: jest.fn(async (_k: string, f: boolean) => opts.openAfterFirstOffer ?? f),
     getString: jest.fn().mockResolvedValue(opts.distanceDisplay ?? 'KM'),
   };
   const uploads: Any = { listForEntity: jest.fn().mockResolvedValue([]) };
-  const service = new MarketplaceService(prisma, settings, uploads);
-  return { service, prisma, settings, uploads };
+  const calendar: Any = { addWorkingDays: jest.fn((d: Date, n: number) => new Date(d.getTime() + n * 86_400_000)) };
+  const service = new MarketplaceService(prisma, settings, uploads, calendar);
+  return { service, prisma, settings, uploads, calendar };
 }
 
 // Valorile interpolate in SQL (inclusiv fragmentul Prisma.sql cu statusurile claimabile).
@@ -47,7 +49,15 @@ describe('MarketplaceService.list (E-admin-platform-10)', () => {
     expect(item.activeClaims).toBe(1);
     expect(item.distanceKm).toBe(5);
     expect(settings.getInt).toHaveBeenCalledWith('max_claims_per_request', 3);
-    expect(settings.getBool).toHaveBeenCalledWith('claims_open_after_first_offer', false);
+    expect(settings.getBool).toHaveBeenCalledWith('claims_open_after_first_offer', true);
+  });
+
+  // a1 (PO 2026-11-13): fara rand in system_settings, SQL-ul include OFFERS_RECEIVED/NEGOTIATION
+  it('setarea implicita → cererea ramane in piata dupa prima oferta', async () => {
+    const { service, prisma } = makeService();
+    await service.list('c1', 0);
+    expect(sqlOf(prisma)).toContain('OFFERS_RECEIVED');
+    expect(sqlOf(prisma)).toContain('NEGOTIATION');
   });
 
   it('flag oprit → SQL-ul filtreaza doar IN_MARKETPLACE/CLAIMED_PARTIAL (invarianta 3.1)', async () => {
@@ -206,5 +216,62 @@ describe('MarketplaceService contact masking (E-admin-platform-45)', () => {
     expect(detail.inspirationPhotos[0].note).not.toContain('0722 123 456');
     expect(detail.inspirationPhotos[0].requestRoomId).toBe('r-1');
     expect(detail.inspirationPhotos[1]).toEqual({ photoId: 'p2', note: null, requestRoomId: null });
+  });
+});
+
+// a1 / a5 (PO 2026-11-13) — pagina din piata: motivul inchiderii (doar pentru firma care acopera
+// cererea), termenul de raspuns estimat si regula "o preluare fara oferta de persoana".
+describe('MarketplaceService.detail — cerere inchisa si dialogul de preluare (a1, a5)', () => {
+  function withDetailMocks(prisma: Any) {
+    prisma.requestRoom = { findMany: jest.fn().mockResolvedValue([]) };
+    prisma.requestInspirationPhoto = { findMany: jest.fn().mockResolvedValue([]) };
+    prisma.requestStudioScene = { findMany: jest.fn().mockResolvedValue([]) };
+    prisma.claimSlot = { findFirst: jest.fn().mockResolvedValue(null) };
+  }
+
+  it('cerere cu locurile ocupate, acoperita pe raza → 409 REQUEST_NO_LONGER_CLAIMABLE cu motivul', async () => {
+    const { service, prisma } = makeService({ maxClaims: 3 });
+    prisma.$queryRaw
+      .mockResolvedValueOnce([]) // interogarea principala: nu mai e in piata
+      .mockResolvedValueOnce([{ status: 'OFFERS_RECEIVED', occupied: 3n, my_claim_slot_id: null }]);
+    const err: Any = await service.detail('c1', 0, 'r1').catch((e: unknown) => e);
+    expect(err.getStatus()).toBe(409);
+    expect(err.getResponse()).toMatchObject({
+      code: 'REQUEST_NO_LONGER_CLAIMABLE',
+      details: { reason: 'SLOTS_FULL', myClaimSlotId: null },
+    });
+    // a doua interogare cere acoperirea pe raza si firma neexclusa
+    const probeSql = (prisma.$queryRaw.mock.calls[1][0] as string[]).join('?');
+    expect(probeSql).toContain('coverage_radius_km');
+    expect(probeSql).toContain('request_company_exclusions');
+  });
+
+  it('oferta acceptata, firma avea o preluare → motivul + linkul spre fisa', async () => {
+    const { service, prisma } = makeService();
+    prisma.$queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([{ status: 'ACCEPTED', occupied: 1n, my_claim_slot_id: 'slot-9' }]);
+    const err: Any = await service.detail('c1', 0, 'r1').catch((e: unknown) => e);
+    expect(err.getResponse()).toMatchObject({ details: { reason: 'OFFER_ACCEPTED', myClaimSlotId: 'slot-9' } });
+  });
+
+  it('firma care nu acopera cererea (sau cerere inexistenta) → tot 404 NOT_FOUND', async () => {
+    const { service, prisma } = makeService();
+    prisma.$queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+    const err: Any = await service.detail('c1', 0, 'r1').catch((e: unknown) => e);
+    expect(err.getStatus()).toBe(404);
+    expect(err.getResponse()).toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('detaliul are termenul estimat (zile lucratoare dupa marime) si starea celui care se uita', async () => {
+    const { service, prisma, calendar } = makeService();
+    withDetailMocks(prisma);
+    prisma.claimSlot.findFirst.mockResolvedValue({ id: 'busy' });
+    const detail = await service.detail('c1', 0, 'r1', 'u1');
+    expect(calendar.addWorkingDays).toHaveBeenCalledWith(expect.any(Date), 3); // MEDIUM = 3 zile
+    expect(typeof detail.estimatedSlaDeadlineAt).toBe('string');
+    expect(detail.viewerHasActiveClaimWithoutOffer).toBe(true);
+    expect(prisma.claimSlot.findFirst).toHaveBeenCalledWith({
+      where: { assignedToUserId: 'u1', status: 'ACTIVE', quoteId: null },
+      select: { id: true },
+    });
   });
 });

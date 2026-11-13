@@ -9,6 +9,18 @@ import { Link, useRouter } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
 import { useClaim, useMarketplaceDetail, useWallet } from '@/hooks/use-marketplace';
 import { isFirmRules, useFirmRules } from '@/hooks/use-legal';
+import { useMe } from '@/hooks/use-auth';
+import { useMyCompany } from '@/hooks/use-company';
+import { companyCan } from '@/lib/company-permissions';
+import { useSlaDateFormat } from '@/lib/sla-deadline';
+import { RequestGeneralFiles } from '@/components/configurator/request-general-files';
+import { ClosedRequestNotice, closedDetails } from './closed-request-notice';
+import {
+  ClaimDialogDetails,
+  assigneeToPayload,
+  defaultAssignee,
+  type AssigneeChoice,
+} from './claim-dialog-details';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -24,7 +36,8 @@ import { StudioScenesButton } from '@/components/studio/scene-button';
 import { useRelativeTime } from '@/lib/relative-time';
 import { distanceLabel } from '@/lib/marketplace-distance';
 import { cn } from '@/lib/utils';
-import { AccessBlocked, isAccessBlocked } from '../_components/access-blocked';
+import { AccessBlocked, isAccessBlocked, isSubscriptionInactive } from '../_components/access-blocked';
+import { SubscriptionStatusNotice } from '../_components/subscription-status-notice';
 import { RequestTag } from '../_components/request-tag';
 import { SlotBars } from '../_components/slot-bars';
 import { WorksheetButton } from '../_components/worksheet-button';
@@ -45,8 +58,23 @@ export default function MarketplaceDetailPage() {
   }
   if (detail.isError || !detail.data) {
     // firma neverificata / suspendata / fara abonament → acelasi ecran de blocaj ca in lista
+    // h2: fara abonament — acelasi mesaj comun ca in lista (cu data expirarii si creditele)
+    if (isSubscriptionInactive(detail.error)) {
+      return (
+        <div className="flex flex-col gap-4">
+          <Link href="/marketplace" className="self-start text-sm text-walnut hover:underline">
+            ← {t('back')}
+          </Link>
+          <SubscriptionStatusNotice />
+        </div>
+      );
+    }
     if (isAccessBlocked(detail.error)) {
       return <AccessBlocked error={detail.error} onRetry={() => void detail.refetch()} />;
+    }
+    // a1: cererea s-a inchis (locuri ocupate / clientul a ales) — motivul, nu "Nicio cerere"
+    if (detail.error instanceof ApiError && detail.error.code === 'REQUEST_NO_LONGER_CLAIMABLE') {
+      return <ClosedRequestNotice details={closedDetails(detail.error.details)} />;
     }
     return (
       <EmptyState
@@ -107,6 +135,9 @@ export default function MarketplaceDetailPage() {
             </dl>
           </Card>
 
+          {/* a2: "Am deja un proiect" → proiectul (PDF, planuri) imediat sub rezumat */}
+          {r.hasOwnProject && <RequestGeneralFiles rooms={r.rooms} attachments={r.attachments} />}
+
           {/* Camere (fara date de contact pre-claim, invarianta 4.2) — prezentare
               structurata per camera, cu navigare cand sunt multe (item 6).
               Atasamentele (PO r6) aduc schitele + snapshotul PNG al pieselor 3D. */}
@@ -121,6 +152,10 @@ export default function MarketplaceDetailPage() {
               <RoomSpecCard key={room.id} room={room} index={i + 1} attachments={r.attachments} />
             ))}
           </section>
+
+          {/* a2: fisierele cererii care nu tin de nicio camera (poze, planuri) — o singura data:
+              schitele de camera si imaginea 3D raman in cardurile camerelor */}
+          {!r.hasOwnProject && <RequestGeneralFiles rooms={r.rooms} attachments={r.attachments} />}
 
           {/* inspiratia aleasa de client din galerie (F6), grupata pe camere; notitele sunt mascate pre-claim */}
           <RequestInspirationByRoom photos={r.inspirationPhotos} rooms={r.rooms} />
@@ -169,6 +204,17 @@ function ClaimPanel({ request }: { request: MarketplaceDetailDto }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const firmRules = useFirmRules();
   const rules = isFirmRules(firmRules.data) ? firmRules.data : null;
+  // a5: cine preia devine responsabil; conducerea poate alege un coleg sau "Atribui mai tarziu"
+  const me = useMe();
+  const company = useMyCompany();
+  const fmtSla = useSlaDateFormat();
+  const meId = me.data?.id ?? null;
+  const canAssign = companyCan(company.data, 'CLAIMS_ASSIGN');
+  const selfBusy = request.viewerHasActiveClaimWithoutOffer === true;
+  const [assignee, setAssignee] = useState<AssigneeChoice | null>(null);
+  const chosen = assignee ?? defaultAssignee({ canAssign, meId, selfBusy });
+  // angajatul cu acces complet preia doar pentru el: ocupat → nu poate confirma
+  const selfBlocked = !canAssign && selfBusy;
 
   const full = request.activeClaims >= request.maxClaims;
   const insufficient =
@@ -236,6 +282,13 @@ function ClaimPanel({ request }: { request: MarketplaceDetailDto }) {
           </span>
           <SlotBars filled={request.activeClaims} total={request.maxClaims} />
         </div>
+        {/* a5: termenul de raspuns se stie inainte de preluare */}
+        {request.estimatedSlaDeadlineAt && (
+          <div className="flex items-baseline justify-between gap-3 text-ui">
+            <span className="text-muted-foreground">{t('claimPanel.deadline')}</span>
+            <span className="text-right font-mono">{fmtSla(request.estimatedSlaDeadlineAt)}</span>
+          </div>
+        )}
       </div>
 
       <Button
@@ -260,10 +313,10 @@ function ClaimPanel({ request }: { request: MarketplaceDetailDto }) {
         pendingLabel={t('claiming')}
         pending={claim.isPending}
         error={apiErrText}
-        confirmDisabled={full || insufficient}
+        confirmDisabled={full || insufficient || selfBlocked}
         onConfirm={() =>
           claim.mutate(
-            { requestId: request.id },
+            { requestId: request.id, assignToUserId: assigneeToPayload(chosen) },
             // dupa preluare aterizezi direct in fisa de lucru (PO r6):
             // acolo atribui cererea unui angajat si vezi contactul clientului
             {
@@ -285,6 +338,17 @@ function ClaimPanel({ request }: { request: MarketplaceDetailDto }) {
               : t('claimConfirmCostNoWallet', { credits: tu('credit', { n: request.creditCost }) })}
           </p>
         )}
+        <ClaimDialogDetails
+          deadlineIso={request.estimatedSlaDeadlineAt}
+          canAssign={canAssign}
+          meId={meId}
+          members={company.data?.members ?? []}
+          selfBusy={selfBusy}
+          value={chosen}
+          onChange={setAssignee}
+          assignMinutesLabel={tu('minute', { n: rules?.claims.assignDeadlineMinutes ?? 60 })}
+          disabled={claim.isPending}
+        />
         {rules && (
           <p>
             {t('claimConfirmGrace', {

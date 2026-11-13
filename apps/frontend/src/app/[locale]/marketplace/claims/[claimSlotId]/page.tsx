@@ -1,6 +1,6 @@
 'use client';
 
-import type { AttachmentDto, ClaimQuoteContextDto } from '@marketplace/shared';
+import type { ClaimQuoteContextDto } from '@marketplace/shared';
 import { Mail, MapPin, Paperclip, Phone, Timer, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
@@ -21,10 +21,11 @@ import { useRealtimeSync } from '@/hooks/use-socket';
 import { useNow } from '@/hooks/use-now';
 import { useRelativeTime } from '@/lib/relative-time';
 import { slaPhase, useDurationLeft, useSlaDateFormat } from '@/lib/sla-deadline';
-import { AttachmentThumb } from '@/components/configurator/attachment-item';
+import { RequestGeneralFiles } from '@/components/configurator/request-general-files';
 import { RequestInspirationByRoom } from '@/components/configurator/request-inspiration-by-room';
 import { RoomSpecCard, RoomSpecNav } from '@/components/configurator/room-spec-card';
 import { StudioScenesButton } from '@/components/studio/scene-button';
+import { Alert } from '@/components/ui/alert';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge, StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,8 @@ import { ClaimLifecyclePanel } from '../../../_components/claim-lifecycle-panel'
 import { ActionConfirmDialog } from '../../../_components/action-confirm-dialog';
 import { FirmRulesLink } from '../../../_components/firm-rules-link';
 import { ProjectCasePanel } from '../../../_components/project-case-panel';
+import { ClaimCompletionCard } from '../../../_components/claim-completion-card';
+import { SubscriptionStatusNotice } from '../../_components/subscription-status-notice';
 import { OfferBuilder } from '../../../_components/offer-builder';
 import { OfferCard } from '../../../_components/offer-card';
 
@@ -175,6 +178,8 @@ function ClaimWorkspace({ ctx: c, isManager }: { ctx: ClaimQuoteContextDto; isMa
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <ClaimHeader ctx={c} />
+      {/* h2: fara abonament preluarea in curs se poate termina; mesajul spune ce s-a schimbat */}
+      <SubscriptionStatusNotice />
 
       <WorkBar ctx={c} />
 
@@ -234,6 +239,8 @@ function ClaimWorkspace({ ctx: c, isManager }: { ctx: ClaimQuoteContextDto; isMa
                 canAct={isManager && projectActive}
               />
             )}
+            {/* e2: dupa finalizare — livrare confirmata + recenzia primita */}
+            {isWinner && <ClaimCompletionCard requestId={c.requestId} requestStatus={c.requestStatus} />}
           </div>
 
           {c.threadId && (
@@ -262,7 +269,8 @@ function ClaimWorkspace({ ctx: c, isManager }: { ctx: ClaimQuoteContextDto; isMa
             {/* inspiratia clientului, grupata pe camere, langa camere (E-client-34) */}
             <RequestInspirationByRoom photos={c.detail.inspirationPhotos} rooms={c.detail.rooms} />
 
-            <GeneralFiles ctx={c} />
+            {/* a2: aceeasi componenta ca pe pagina din piata (fisierele nereferite de camere) */}
+            <RequestGeneralFiles rooms={c.detail.rooms} attachments={c.detail.attachments} />
           </div>
 
           <div className={current === 'lifecycle' ? 'flex flex-col' : 'hidden'}>
@@ -466,10 +474,12 @@ function WorkBar({ ctx }: { ctx: ClaimQuoteContextDto }) {
               : t('workspace.autoCancel', { time: relTime(ctx.assignment.assignDeadlineAt) })}
           </p>
         )}
+        {/* a5: atribuirea esuata = alerta vizibila langa lista, cu textul codului primit; lista e
+            controlata de ctx, deci arata in continuare responsabilul real */}
         {err && (
-          <p className="text-xs text-crimson">
+          <Alert tone="crimson" role="alert" title={t('workspace.assignFailedTitle')} className="mt-1 p-3">
             {tm.has(`apiErrors.${err}`) ? tm(`apiErrors.${err}`) : tm('apiErrors.INTERNAL_ERROR')}
-          </p>
+          </Alert>
         )}
         {ctx.assignment.claimedBy && (
           <p className="text-xs text-muted-foreground">
@@ -709,30 +719,6 @@ function ClientNote({ ctx }: { ctx: ClaimQuoteContextDto }) {
         </div>
       )}
     </Card>
-  );
-}
-
-// Fisierele generale ale cererii (planuri/poze incarcate la nivel de cerere,
-// nereferite de nicio camera — schitele per camera apar in spec-carduri).
-function GeneralFiles({ ctx }: { ctx: ClaimQuoteContextDto }) {
-  const t = useTranslations('Quotes');
-  const referenced = new Set<string>();
-  for (const room of ctx.detail.rooms) {
-    for (const v of Object.values(room.answers ?? {})) {
-      if (Array.isArray(v)) for (const x of v) if (typeof x === 'string') referenced.add(x);
-    }
-  }
-  const general: AttachmentDto[] = ctx.detail.attachments.filter((a) => !referenced.has(a.id));
-  if (general.length === 0) return null;
-  return (
-    <section className="flex flex-col gap-2">
-      <h2 className="heading-section">{t('workspace.filesSection')}</h2>
-      <div className="flex flex-wrap gap-2">
-        {general.map((a) => (
-          <AttachmentThumb key={a.id} attachment={a} />
-        ))}
-      </div>
-    </section>
   );
 }
 

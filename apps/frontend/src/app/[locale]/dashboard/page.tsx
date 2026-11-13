@@ -23,6 +23,10 @@ import { AppShell } from '../_components/app-shell';
 import { FirmRulesLink } from '../_components/firm-rules-link';
 import { RequestStatusBadge } from '../_components/request-progress';
 import { TodoNowCard } from '../_components/todo-now-card';
+import {
+  SubscriptionStatusNotice,
+  useSubscriptionLapsed,
+} from '../marketplace/_components/subscription-status-notice';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -369,8 +373,10 @@ const MAX_PENALTY_EVENTS = 3;
 function CompanyDashboard({ user }: { user: AuthUser }) {
   const t = useTranslations('Dashboard');
   const tc = useTranslations('Company');
+  const tm = useTranslations('Marketplace');
   const money = useMoney();
   const stats = useCompanyDashboardStats();
+  const lapsed = useSubscriptionLapsed();
   const s = stats.data;
   // firma inca ne-creata (onboarding -> 404) -> fara statistici; orice alta eroare se vede, cu Reincearca
   const noCompany = stats.isError && stats.error instanceof ApiError && stats.error.status === 404;
@@ -382,6 +388,7 @@ function CompanyDashboard({ user }: { user: AuthUser }) {
         subtitle={s ? <TodoSummary items={s.actions ?? []} variant="firm" /> : undefined}
         actions={<CompanyPills />}
       />
+      <SubscriptionStatusNotice />
 
       {stats.isPending ? (
         <DashboardSkeleton />
@@ -404,12 +411,22 @@ function CompanyDashboard({ user }: { user: AuthUser }) {
             <TodoNowCard
               items={s.actions ?? []}
               emptyAction={
-                <Button asChild variant="outline" size="lg">
-                  <Link href="/marketplace">
-                    {t('company.toMarketplace')}
-                    <ArrowRight aria-hidden />
-                  </Link>
-                </Button>
+                // h2: fara abonament, pasul util e reactivarea, nu un marketplace gol
+                lapsed ? (
+                  <Button asChild variant="walnut" size="lg">
+                    <Link href="/marketplace/wallet#subscription">
+                      {tm('subscriptionStatus.reactivate')}
+                      <ArrowRight aria-hidden />
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button asChild variant="outline" size="lg">
+                    <Link href="/marketplace">
+                      {t('company.toMarketplace')}
+                      <ArrowRight aria-hidden />
+                    </Link>
+                  </Button>
+                )
               }
             />
 

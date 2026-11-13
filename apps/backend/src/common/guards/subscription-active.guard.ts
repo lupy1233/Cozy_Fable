@@ -3,7 +3,8 @@ import { ERROR_CODES } from '@marketplace/shared';
 import { EntitlementsService } from '../../modules/entitlements/entitlements.service';
 import type { RequestWithCompany } from '../company-context/company-context';
 
-// 4.8 — eligibilitate claim cere abonament activ. Ruleaza DUPA CompanyApprovedGuard
+// 4.8 — eligibilitate claim cere abonament activ. h2 (2026-11-13): se pune DOAR pe preluarea
+// noua (si pe lista/detaliul marketplace-ului); lucrul pe preluarile existente nu o cere. Ruleaza DUPA CompanyApprovedGuard
 // (citeste companyContext) si ataseaza gatingDelayMinutes din planul abonamentului (4.10).
 // E-admin-platform-58: abonamentul + planul vin din EntitlementsService (predicatul unic
 // activeSubscriptionWhere); planul trebuie sa includa si MARKETPLACE_ACCESS.
@@ -24,9 +25,12 @@ export class SubscriptionActiveGuard implements CanActivate {
 
     const e = await this.entitlements.forCompany(ctx.companyId);
     if (!e.subscriptionId) {
+      // h2: refuzul spune si ce abonament a expirat si cand (null = n-a avut niciodata)
+      const lastExpired = await this.entitlements.lastExpired(ctx.companyId);
       throw new ForbiddenException({
         code: ERROR_CODES.SUBSCRIPTION_INACTIVE,
         message: 'No active subscription',
+        details: { lastExpired },
       });
     }
     // abonament activ, dar planul nu include marketplace-ul (ex. plan gratuit fara acces)

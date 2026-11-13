@@ -57,6 +57,9 @@ const PIECES: PieceWithMaterialDef[] = [
 // blatul si rafturile deschise nu au fronturi → fara intrebare de sisteme
 const NO_SYSTEMS_STEPS = new Set(['systemsWorktop', 'systemsShelves']);
 
+// c6: blatul nu primeste badge-ul "Recomandat" (doar afisare, nu schimba ce se salveaza)
+const NO_BADGE_STEPS = new Set(['materialWorktop']);
+
 const dimensionsStep: DimensionGroupStep = {
   id: 'dimensions',
   type: 'dimension-group',
@@ -118,6 +121,7 @@ export const balconyFlowV2: RoomFlow = {
       pieceConfigSteps(F, PIECES).filter((s) => !NO_SYSTEMS_STEPS.has(s.id)),
       'LEMN_MASIV',
       woodRecommended,
+      NO_BADGE_STEPS,
     ),
     {
       id: 'sketch',

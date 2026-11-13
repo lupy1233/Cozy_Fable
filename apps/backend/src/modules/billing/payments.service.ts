@@ -28,6 +28,7 @@ import { CHECKOUT_EXPIRES_MINUTES, StripeService, type CreateCheckoutSessionInpu
 import { randomUUID } from 'node:crypto';
 import { loadIdempotentCheckpoint, lockIdempotentOperation, saveIdempotentCheckpoint, saveIdempotentResult } from '../../common/idempotency/idempotent-operation';
 import { SubscriptionsService } from './subscriptions.service';
+import { activeSubscriptionWhere } from '../entitlements/entitlements.service';
 import { BillingReadinessService } from './billing-readiness.service';
 import { withDeletedRecords } from '../../infra/prisma/soft-delete';
 import { billingManagerIds } from './billing-recipients';
@@ -116,6 +117,7 @@ export class PaymentsService {
     await this.readiness.assertReady(); // aparare in adancime (garda HTTP acopera deja)
     const recovered = await this.recoverPurchase(companyId, userId);
     if (recovered) return recovered;
+    await this.assertCanBuyCredits(companyId);
     const pkg = await this.prisma.creditPackage.findUnique({ where: { id: input.creditPackageId } });
     if (!pkg || !pkg.isActive) {
       throw new HttpException(
@@ -189,8 +191,29 @@ export class PaymentsService {
         409,
       );
     }
+    // h2: o comanda de credite ramasa PENDING nu se plateste dupa expirarea abonamentului
+    if (order.orderType === 'CREDIT_PACKAGE') await this.assertCanBuyCredits(companyId);
     const tier = order.planId ? ((await this.planCodes()).get(order.planId) ?? null) : null;
     return this.attachCheckout(order, userId, tier);
+  }
+
+  // h2 (decizie PO h2-3): fara abonament activ pachetele de credite sunt oprite — creditele
+  // nu se pot folosi pana la reactivare, deci nu primim plati fara folos. Abonamentul se
+  // cumpara in continuare (asa se reactiveaza).
+  private async assertCanBuyCredits(companyId: string): Promise<void> {
+    const active = await this.prisma.subscription.findFirst({
+      where: { companyId, ...activeSubscriptionWhere() },
+      select: { id: true },
+    });
+    if (!active) {
+      throw new HttpException(
+        {
+          code: ERROR_CODES.CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION,
+          message: 'Credits can be bought only with an active subscription',
+        },
+        403,
+      );
+    }
   }
 
   private async recoverPurchase(companyId: string, userId: string): Promise<PurchaseResultDto | null> {

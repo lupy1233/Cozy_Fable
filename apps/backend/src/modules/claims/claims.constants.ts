@@ -1,4 +1,4 @@
-import { SLA_WARNING_BEFORE_HOURS } from '@marketplace/shared';
+import { SLA_WARNING_BEFORE_HOURS, type MarketplaceClosedReason } from '@marketplace/shared';
 import type { ClaimSlotStatus, RequestStatus } from '@prisma/client';
 
 // docs 3.1/4.8 — maxim 3 claim-uri active per cerere: cheia system_settings
@@ -7,9 +7,11 @@ import type { ClaimSlotStatus, RequestStatus } from '@prisma/client';
 // Statusuri de cerere in care se poate da claim (3.1) — setul LITERAL din invarianta 3.1.
 export const CLAIMABLE_STATUSES: RequestStatus[] = ['IN_MARKETPLACE', 'CLAIMED_PARTIAL'];
 
-// E-admin-platform-10: varianta A (sloturi libere decid) e OPRITA implicit; invarianta 3.1
-// ramane literala pana cand PO decide (DECIZIE NECESARA). CLAIMED_FULL nu intra niciodata:
-// plinul il decide oricum numarul de sloturi.
+// E-admin-platform-10 / a1 (PO 2026-11-13): varianta A (sloturile libere decid) e PORNITA
+// implicit — cererea ramane claimabila si dupa prima oferta (inclusiv in NEGOTIATION, dupa o
+// cerere de modificare, SA-15) pana se ocupa locurile sau clientul accepta. Comutatorul din
+// Admin poate reveni la setul literal. CLAIMED_FULL nu intra niciodata: plinul il decide
+// oricum numarul de sloturi.
 export const SETTING_CLAIMS_OPEN_AFTER_FIRST_OFFER = 'claims_open_after_first_offer';
 export const CLAIMABLE_STATUSES_AFTER_FIRST_OFFER: RequestStatus[] = ['OFFERS_RECEIVED', 'NEGOTIATION'];
 
@@ -18,6 +20,26 @@ export function claimableStatuses(openAfterFirstOffer: boolean): RequestStatus[]
   return openAfterFirstOffer
     ? [...CLAIMABLE_STATUSES, ...CLAIMABLE_STATUSES_AFTER_FIRST_OFFER]
     : CLAIMABLE_STATUSES;
+}
+
+// a1 — de ce o cerere PUBLICATA nu (mai) poate fi preluata; null = inca se poate prelua.
+// Folosit de pagina din piata (REQUEST_NO_LONGER_CLAIMABLE) si de cardul clientului.
+const ACCEPTED_LIKE: RequestStatus[] = ['ACCEPTED', 'IN_EXECUTION', 'DELIVERED_BY_COMPANY', 'COMPLETED', 'DISPUTED'];
+const CLAIM_PHASE: RequestStatus[] = [...CLAIMABLE_STATUSES, 'CLAIMED_FULL', ...CLAIMABLE_STATUSES_AFTER_FIRST_OFFER];
+
+export function marketplaceClosedReason(input: {
+  status: RequestStatus;
+  occupied: number;
+  maxClaims: number;
+  openAfterFirstOffer: boolean;
+}): MarketplaceClosedReason | null {
+  const { status, occupied, maxClaims, openAfterFirstOffer } = input;
+  if (ACCEPTED_LIKE.includes(status)) return 'OFFER_ACCEPTED';
+  if (status === 'EXPIRED') return 'EXPIRED';
+  if (!CLAIM_PHASE.includes(status)) return 'CLOSED';
+  if (status === 'CLAIMED_FULL' || occupied >= maxClaims) return 'SLOTS_FULL';
+  if (!claimableStatuses(openAfterFirstOffer).includes(status)) return 'FIRST_OFFER_RULE';
+  return null;
 }
 
 // Statusuri de claim care ocupa un slot (conteaza la max 3 + "deja claimat").

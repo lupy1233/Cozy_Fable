@@ -728,6 +728,19 @@ export class NotificationEmailsService {
           path: claimsPath,
         };
       case 'project.case_opened': {
+        // reclamatie dupa finalizare (in garantie): nu e o propunere de anulare, deci alt text
+        if (payload.reason === 'WARRANTY_CLAIM') {
+          return {
+            subject: ro
+              ? `Clientul a raportat o problemă după finalizare — ${requestTitle}`
+              : `The client reported a problem after completion — ${requestTitle}`,
+            intro: ro
+              ? `Clientul a raportat o problemă cu mobilierul livrat pentru „${requestTitle}”. Echipa Cozy Home analizează raportul și te contactează.`
+              : `The client reported a problem with the furniture delivered for “${requestTitle}”. The Cozy Home team is reviewing the report and will contact you.`,
+            cta: ro ? 'Deschide preluarea' : 'Open the claim',
+            path: claimsPath,
+          };
+        }
         const toClient = payload.openedBy === 'COMPANY';
         return {
           subject: ro

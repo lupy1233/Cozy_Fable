@@ -3,6 +3,7 @@ import { ForbiddenException, HttpException, Injectable, Logger, NotFoundExceptio
 import {
   ERROR_CODES,
   type AdminDisputeItemDto,
+  type CompanyCompletionDto,
   type CreateReviewInput,
   type ResolveDisputeInput,
   type ReviewDto,
@@ -17,6 +18,8 @@ import { QUEUE_DELIVERY_AUTOCOMPLETE } from '../../infra/queues/queues.module';
 import { ClaimSettlementService } from '../billing/claim-settlement.service';
 import type { CompanyContext } from '../../common/company-context/company-context';
 import type { DeliveryAutocompleteJob } from './delivery-autocomplete.processor';
+import { SettingsService } from '../../common/settings/settings.service';
+import { readClaimContactAccessSettings, resolveClaimContextAccess } from '../quotes/claim-context-access';
 
 // Decizia PO 2026-08-23 (pasul 5, F1): livrarea neconfirmata de client se confirma
 // AUTOMAT la 14 zile calendaristice de la delivered_at — altfel creditele castigatorului
@@ -26,6 +29,30 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function autoCompleteJobId(requestId: string, deliveredAt: Date): string {
   return `auto-complete-${requestId}-${deliveredAt.getTime()}`;
+}
+
+type CaseReader = Pick<Prisma.TransactionClient, 'requestProjectCase'>;
+
+// e2-1 (PO 2026-11-13, completeaza D-L1-1): ceasul de 14 zile e OPRIT cat timp proiectul are
+// un caz OPEN; dupa ce adminul inchide cazul, termenul REPORNESTE de la resolved_at (cea mai
+// recenta inchidere de dupa livrare). Intoarce momentul de start al ceasului sau null (oprit).
+export async function autoCompleteClockStart(
+  db: CaseReader,
+  requestId: string,
+  deliveredAt: Date,
+): Promise<Date | null> {
+  const open = await db.requestProjectCase.findFirst({ where: { requestId, status: 'OPEN' }, select: { id: true } });
+  if (open) return null;
+  const lastResolved = await db.requestProjectCase.findFirst({
+    where: { requestId, resolvedAt: { gte: deliveredAt } },
+    orderBy: { resolvedAt: 'desc' },
+    select: { resolvedAt: true },
+  });
+  return lastResolved?.resolvedAt && lastResolved.resolvedAt > deliveredAt ? lastResolved.resolvedAt : deliveredAt;
+}
+
+export function autoCompleteDue(clockStart: Date | null, now: number = Date.now()): boolean {
+  return !!clockStart && now >= clockStart.getTime() + AUTO_COMPLETE_DAYS * DAY_MS;
 }
 
 // Sprint 8 — livrare → COMPLETED (cu consum credite castigator) + review + dispute (4.18).
@@ -40,6 +67,9 @@ export class FulfillmentService {
     @InjectQueue(QUEUE_DELIVERY_AUTOCOMPLETE)
     private readonly autoCompleteQueue: Queue<DeliveryAutocompleteJob>,
     private readonly outbox: OutboxService,
+    // injectat de Nest (modul global); implicitul tine compatibile constructiile manuale din
+    // harness-urile de test (src/test/money-services.ts) — SettingsService citeste direct din DB
+    private readonly settings: SettingsService = new SettingsService(prisma),
   ) {}
 
   // Firma castigatoare marcheaza livrarea (ACCEPTED → DELIVERED_BY_COMPANY).
@@ -160,6 +190,10 @@ export class FulfillmentService {
     if (!request.deliveredAt || Date.now() < request.deliveredAt.getTime() + AUTO_COMPLETE_DAYS * DAY_MS) {
       return false; // re-livrare cu ceas nou intre timp / job vechi
     }
+    // e2-1: raport deschis → ceas oprit; inchis de admin → termenul curge de la inchidere
+    if (!autoCompleteDue(await autoCompleteClockStart(this.prisma, requestId, request.deliveredAt))) {
+      return false;
+    }
     const result = await this.completeDelivered(requestId, true);
     if (!result.completed) return false;
     this.logger.log(`request ${requestId} auto-COMPLETED dupa ${AUTO_COMPLETE_DAYS} zile de la livrare`);
@@ -176,9 +210,14 @@ export class FulfillmentService {
       await tx.$queryRaw`SELECT id FROM requests WHERE id = ${requestId} FOR UPDATE`;
       const request = await tx.request.findUnique({ where: { id: requestId } });
       if (!request || (autoCompleted && (!request.deliveredAt || Date.now() < request.deliveredAt.getTime() + AUTO_COMPLETE_DAYS * DAY_MS))) return { completed: false as const };
+      // e2-1: re-verificat SUB lock (deschiderea cazului ia acelasi FOR UPDATE pe cerere)
+      if (autoCompleted && !autoCompleteDue(await autoCompleteClockStart(tx, requestId, request.deliveredAt!))) {
+        return { completed: false as const };
+      }
       const res = await tx.request.updateMany({
         where: { id: requestId, status: 'DELIVERED_BY_COMPANY', deletedAt: null },
-        data: { status: 'COMPLETED' },
+        // e2-2: completed_at = baza ferestrei de raportare in garantie
+        data: { status: 'COMPLETED', completedAt: new Date() },
       });
       if (res.count === 0) return { completed: false as const };
       const winning = await tx.quote.findFirst({ where: { requestId, status: 'ACCEPTED' } });
@@ -320,6 +359,78 @@ export class FulfillmentService {
       include: { dispute: true },
     });
     return review ? this.toReviewDto(review, !!review.dispute) : null;
+  }
+
+  // e2 pasul 4: fisa firmei castigatoare (IDOR → 404). Review m5: aceleasi reguli de acces ca
+  // fisa de lucru (resolveClaimContextAccess): vizibilitate non-FULL → 404; textele clientului
+  // (comentariul recenziei, nota raportului) doar cand fisa ar arata si ea datele clientului.
+  async getCompletionForCompany(
+    ctx: CompanyContext,
+    actingUserId: string,
+    requestId: string,
+  ): Promise<CompanyCompletionDto> {
+    const winning = await this.prisma.quote.findFirst({
+      where: { requestId, status: 'ACCEPTED', companyId: ctx.companyId },
+      select: {
+        id: true,
+        claimSlot: {
+          select: { status: true, createdAt: true, updatedAt: true, claimedByUserId: true, assignedToUserId: true },
+        },
+      },
+    });
+    const request = winning
+      ? await this.prisma.request.findUnique({
+          where: { id: requestId },
+          select: { id: true, status: true, deliveredAt: true, completedAt: true, deletedAt: true },
+        })
+      : null;
+    if (!winning || !request || request.deletedAt) {
+      throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Request not found' });
+    }
+    const [revealPolicy, retentionDays] = await readClaimContactAccessSettings(this.settings);
+    const access = resolveClaimContextAccess({
+      slotStatus: winning.claimSlot.status,
+      requestDeletedAt: request.deletedAt,
+      slotCreatedAt: winning.claimSlot.createdAt,
+      slotUpdatedAt: winning.claimSlot.updatedAt,
+      requestDeliveredAt: request.deliveredAt,
+      claimedByUserId: winning.claimSlot.claimedByUserId,
+      assignedToUserId: winning.claimSlot.assignedToUserId,
+      memberRole: ctx.memberRole,
+      actingUserId,
+      revealPolicy,
+      retentionDays,
+      now: Date.now(),
+    });
+    if (access.visibility !== 'FULL') {
+      throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Request not found' });
+    }
+    const hideText = !access.clientVisible;
+    const [review, openCase] = await Promise.all([
+      this.prisma.review.findUnique({ where: { requestId }, include: { dispute: true } }),
+      this.prisma.requestProjectCase.findFirst({
+        where: { requestId, status: 'OPEN', openedBy: 'CLIENT' },
+        select: { reason: true, note: true, createdAt: true },
+      }),
+    ]);
+    return {
+      requestId,
+      requestStatus: request.status,
+      deliveredAt: request.deliveredAt?.toISOString() ?? null,
+      completedAt: request.completedAt?.toISOString() ?? null,
+      review: review
+        ? {
+            rating: review.rating,
+            comment: hideText ? null : review.comment,
+            disputed: !!review.dispute,
+            createdAt: review.createdAt.toISOString(),
+          }
+        : null,
+      openCase: openCase
+        ? { reason: openCase.reason, note: hideText ? null : openCase.note, createdAt: openCase.createdAt.toISOString() }
+        : null,
+      clientTextsHidden: hideText,
+    };
   }
 
   // --- admin dispute ---

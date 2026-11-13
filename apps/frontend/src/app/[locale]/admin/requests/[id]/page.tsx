@@ -363,6 +363,7 @@ function CasesSection({ detail }: { detail: AdminRequestDetailDto }) {
         <CaseCard
           key={c.id}
           projectCase={c}
+          requestStatus={detail.status}
           onDismiss={() => {
             dismiss.reset();
             setDismissOpen(true);
@@ -410,7 +411,15 @@ function CasesSection({ detail }: { detail: AdminRequestDetailDto }) {
 
 // Un caz raportat. Cel deschis iese in fata (chihlimbar = cere o decizie a adminului);
 // cele inchise raman ca istoric, pe card obisnuit.
-function CaseCard({ projectCase: c, onDismiss }: { projectCase: ProjectCaseDto; onDismiss: () => void }) {
+function CaseCard({
+  projectCase: c,
+  requestStatus,
+  onDismiss,
+}: {
+  projectCase: ProjectCaseDto;
+  requestStatus: AdminRequestDetailDto['status'];
+  onDismiss: () => void;
+}) {
   const t = useTranslations('Admin.requests');
   const tf = useTranslations('Fulfillment.projectCase');
   const format = useFormatter();
@@ -454,6 +463,9 @@ function CaseCard({ projectCase: c, onDismiss }: { projectCase: ProjectCaseDto; 
         {c.creditOutcome && (
           <p className={cn(!open && 'text-muted-foreground')}>{t(`outcomeLabel.${c.creditOutcome}`)}</p>
         )}
+        {/* e2-2: reclamatia in garantie nu atinge starea si creditele; e2-1: ceasul oprit */}
+        {open && c.reason === 'WARRANTY_CLAIM' && <p>{t('detail.warrantyHint')}</p>}
+        {open && requestStatus === 'DELIVERED_BY_COMPANY' && <p>{t('detail.pausedHint')}</p>}
       </div>
       {open && (
         <Button
