@@ -58,6 +58,8 @@ Adaugare 2026-11-13 (etapa 4): quote.declined (refuzul clientului, catre membrii
 
 Adaugare 2026-11-14 (etapa 5): execution.stage_updated (firma castigatoare a bifat o etapa de executie; doar catre clientul cererii, clopotel fara e-mail; prin outbox, cheie fixa `execution.stage_updated:<requestId>:<stage>` — cel mult o notificare pe etapa, re-bifarea nu mai anunta; payload `{ requestId, stage, companyId, companyName, requestTitle }`; debifarea nu publica nimic) si request.no_coverage (cerere publicata fara nicio firma care acopera zona; catre administratorii activi — nestersi, neblocati, neanonimizati —, clopotel + e-mail; acoperirea si destinatarii se citesc inaintea tranzactiei publicarii (o eroare nu opreste publicarea), iar inregistrarea in outbox se face in tranzactie, cheie `request.no_coverage:<requestId>`; payload `{ requestId, requestTitle, city, county }`). Semnalul de sesiune `auth_expired` (nu e eveniment de domeniu) merge din 2026-11-14 doar la socketurile sesiunilor revocate (3.13).
 
+Adaugare 2026-11-14 (etapa 7): request.company_withdrew (o firma a renuntat la preluare — voluntar, motiv validat automat sau retragere aprobata de admin; doar catre clientul cererii, clopotel + e-mail; prin outbox, cheie `request.company_withdrew:<claimSlotId>` — o singura data pe preluare; payload `{ requestId, requestTitle }`, fara numele firmei; inchiderile automate nu il publica — D-E7-5) si documents.pdf_failed (un PDF — oferta, proforma, factura — nu s-a putut genera; catre adminii activi, clopotel fara e-mail; prin outbox, cheie `documents.pdf_failed:<YYYY-MM-DD>` in Europe/Bucharest — cel mult o alerta pe zi; payload `{ day, kind }`; inregistrarea alertei nu ascunde niciodata eroarea originala; cel mult o incercare pe zi pe proces, iar pe slotul standby (`DEPLOYMENT_MODE=standby`) doar jurnal, fara scriere in baza — D-E7-17, D-E7-24).
+
 ### 3.6 Frontend state boundaries
 
 - TanStack Query: orice date din API (single source of truth).
@@ -72,6 +74,8 @@ Adaugare 2026-11-14 (etapa 5): execution.stage_updated (firma castigatoare a bif
 
 - Memoria ciornei din browser (adăugat 2026-11-13, etapa 2, b8 / b2 / b3): ciorna cererii noi stă în localStorage, cheia `mm_configurator_v1` (versiunea persist 5). Editarea unei cereri publicate are memoria ei, în sessionStorage, pe o cheie per cerere `mm_configurator_edit_v1:<id>` (`apps/frontend/src/stores/configurator-keys.ts`); editarea nu scrie niciodată în ciorna nouă. La ieșirea din editare memoria editării se aruncă și store-ul revine imediat pe ciorna nouă; cheia din sessionStorage se șterge după o fereastră scurtă de reluare (`EDIT_RESUME_WINDOW_MS` = 2 s), ca remontarea aceleiași cereri (schimbarea limbii, StrictMode) să reia editarea. Se aruncă imediat la deschiderea altei cereri în editare, la montarea `/requests/new`, la deconectare și după „Salvează modificările”. „Date generale” se scriu în ciornă la ~400 ms după ultima schimbare, fără validare (validarea strictă rămâne la „Continuă la sumar”); după publicare salvarea ciornei se oprește, iar memoria se golește abia la plecarea de pe pagină.
 
+- Paginile cu cont (adăugat 2026-11-14, etapa 7, f4 + reparația buclei de la sesiunea pierdută — D-E7-7, D-E7-8): `useMe` are `retryOnMount: false` — după un `/auth/me` eșuat, „cine sunt eu” nu se reia singur la montarea unei componente noi, ci doar explicit (login, logout, semnalul de sesiune pierdută, socketul, refetch). O pagină cu cont NU montează componente care cer cont (`useMe`, `useWallet`, mesajul de abonament…) cât „cine sunt eu” e în încărcare SAU în eroare: arată scheletul până la redirect. Garda e comună: `useRequireAuth(rol?)` din `apps/frontend/src/lib/require-auth.tsx` (`loading` / `ok` / `wrongRole`; fără sesiune → `/login?redirect=…` prin `safeRedirect`; rol greșit → `RoleOnlyScreen`). Nicio pagină nu mai face `router.replace('/login')` sau `router.replace('/dashboard')` pe rol de mână. După revizuire (D-E7-21): `useMe` are și `refetchOnWindowFocus: (query) => query.state.status === 'error'` — reia „cine sunt eu” la revenirea în tab DOAR cât e în eroare (o cerere, `retry: false`), ca un tab rămas „vizitator” să afle de un login făcut în alt tab; cu sesiunea bună nu se cere nimic, iar restul aplicației rămâne cu `refetchOnWindowFocus: false` (`providers.tsx`).
+
 ### 3.7 Webhook plată mock
 
 Calea A (UI admin): POST /admin/payments/:id/confirm. Calea B (webhook): POST /webhooks/payment {paymentId, status, signature}, signature = HMAC-SHA256 cu secret din .env + Idempotency-Key + replay protection. Ambele apelează PaymentsService.confirm(paymentId, source), source ∈ {admin, webhook}, înregistrat în audit log.
@@ -79,6 +83,8 @@ Calea A (UI admin): POST /admin/payments/:id/confirm. Calea B (webhook): POST /w
 ### 3.8 Geocoding
 
 Nominatim (public cu user-agent custom + rate limit 1 req/s via BullMQ dedicat, sau self-host mediagis/nominatim). Write-time (la submit cerere și la setare locație firmă): salvezi address_text + lat + lng. geocoding_cache (query_normalized, lat, lng, provider, expires_at), TTL 90 zile. Filtre de rază: Haversine în SQL (PostGIS opțional la scalare).
+
+Adăugare 2026-11-14 (etapa 7, b12 — D-E7-9): geocodarea cererii folosește doar `address_text`, orașul, județul și țara; `requests.address_details` („Bloc, scară, apartament”) nu se trimite niciodată la geocodare.
 
 ### 3.9 Audit log
 

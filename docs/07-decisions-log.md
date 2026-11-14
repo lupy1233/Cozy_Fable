@@ -1562,6 +1562,218 @@ _Punctul (3) inlocuit la 2026-11-14 de D-E6-43: valorile cu zecimale sau litere 
 
 **Impact: **Constatarile m4, m6, m1 ale revizorului de fluxuri. Completeaza D-E6-26, D-E6-39.
 
+### D-E7-1. Firma vede suma estimata de client inainte de preluare (2026-11-13, PO a7-1)
+
+**Decizie: **Da, firma vede suma estimata (nu e data de contact) inainte sa plateasca preluarea; panoul de preluare spune de unde vine costul: „Costul vine din bugetul minim estimat de client (X lei; 1 credit = Y lei)”.
+
+**Rationale: **Firma decide mai bine daca merita creditele; clientul nu pierde nimic personal. Costul in credite se calculeaza chiar din aceasta suma (4.8).
+
+**Impact: **Suma era deja livrata la b11 (etapa 3). Randul nou: `claim-panel-notes.tsx`; `FirmRulesDto…claimCost.creditValueRon` (shared `legal.ts`, `LegalService`). docs/03 4.8.
+
+### D-E7-2. Lista de tari a adresei ramane (2026-11-13, PO b12-1)
+
+**Decizie: **Adresa de montaj poate fi in oricare din cele 23 de tari de azi; nu se reduce la Romania. Cum ajunge la firme o cerere din alta tara se hotaraste la intrebarea g0-12 (deschisa, neinceputa in etapa 7).
+
+**Rationale: **Raspunsul PO: „exista firme care lucreaza cu clienti si din alte tari, si invers clienti care cauta firme romanesti pentru un montaj in afara tarii”.
+
+**Impact: **`details-step.tsx` neschimbat la lista; tara apare la afisare doar cand nu e Romania (`formatDisplayAddress`). docs/04 `requests.country`.
+
+### D-E7-3. Fila „Ciorne” in „Cererile mele” (2026-11-13, PO d5-1)
+
+**Decizie: **„Cererile mele” are o fila „Ciorne” cu „Continua” si „Sterge”, doar pentru ciornele legate de cont.
+
+**Rationale: **Clientul isi reia ciorna de pe orice dispozitiv; pana acum singurul loc era dialogul „Ai o cerere inceputa” din acelasi browser.
+
+**Impact: **`GET /requests/my-drafts`, `POST /requests/:id/draft-token` (docs/04); `my-drafts-list.tsx`, `use-requests.ts` (`useMyDrafts`, `useContinueDraft`). Detalii: D-E7-11, D-E7-12.
+
+### D-E7-4. Imaginea 3D a piesei e vizibila clientului (2026-11-13, PO d4-1)
+
+**Decizie: **Clientul vede imaginea 3D a piesei ca miniatura in Sumar si pe pagina cererii — exact ce primesc firmele. Inlocuieste partea „invizibil pentru client” din D-3D-4 (`archive/10-tylko-3d-configurator-sprints.md`); imaginea ramane automata.
+
+**Rationale: **Clientul vede ce primesc firmele; imaginea nu se mai pierde in tacere (urca pe ciorna, nu la publicare).
+
+**Impact: **`review-room-card.tsx`, `snapshot3d-sync.tsx`, `piece3d/snapshot3d-renderer.tsx`, `stores/snapshot3d.ts`, `configurator-store.ts`; pagina cererii foloseste `RoomSpecCard` cu atasamentele (audience `client`). Detalii: D-E7-14. docs/03 4.17 (nota imaginii 3D).
+
+### D-E7-5. Clientul e anuntat cand o firma renunta (2026-11-13, alegere marunta din plan, fara PO — se poate schimba)
+
+**Decizie: **Cand o firma renunta la preluare (voluntar, motiv validat automat sau retragere aprobata de admin), clientul primeste clopotel + e-mail „O firma a renuntat; cererea e din nou disponibila pentru alte firme”, o singura data pe preluare, fara numele firmei. Inchiderile automate (termen depasit, neatribuire) nu trimit mesajul.
+
+**Rationale: **Clientul afla imediat ca cererea e din nou deschisa; fara mesaje in rafala la expirari.
+
+**Impact: **Eveniment nou `request.company_withdrew` (cheie outbox pe slot), `withdrawals.service.ts` (`notifyClientCompanyWithdrew`), `notification-emails.service.ts`, `notification-bell.tsx` (link spre pagina cererii), `use-socket.ts`. docs/02 3.5, docs/03 4.15.
+
+### D-E7-6. Cod propriu pentru preluarea interzisa rolului (2026-11-14, pasii planului etapei 7 — a7)
+
+**Decizie: **Angajatul fara acces complet (`EMPLOYEE_MANAGED`, fara `CLAIMS_CREATE`) primeste 403 `CLAIM_ROLE_NOT_ALLOWED` la preluare, nu `FORBIDDEN`; in interfata butonul e dezactivat, cu „Preluarea o face proprietarul, un manager sau un angajat cu acces complet”. Permisiunea `CLAIMS_CREATE` exista deja (OWNER, MANAGER, EMPLOYEE_TRUSTED — D-E1-4).
+
+**Rationale: **`FORBIDDEN` ajungea la om ca mesajul despre atribuire („Doar proprietarul sau un manager poate atribui preluarea.”).
+
+**Impact: **`claims.service.ts`, shared `error-codes.ts`, `marketplace/[id]/page.tsx`, texte RO/EN. docs/ERROR_CODES.md.
+
+### D-E7-7. Garda comuna `useRequireAuth(rol)`; rol gresit = ecran, nu redirect tacut (2026-11-14, pasii planului f4 + agent; butonul „Intra cu alt cont” de confirmat de PO)
+
+**Decizie: **Toate paginile cu cont folosesc `useRequireAuth(rol?)` (`lib/require-auth.tsx`; stari `loading` / `ok` / `wrongRole`): fara sesiune → `/login?redirect=<cale + query>` (prin `safeRedirect`, D-E2-7; cu `reason=expired` la sesiunea pierduta, D-E5-25); rol gresit → `RoleOnlyScreen` „Pagina e doar pentru clienti / firme / administratori”, cu „Mergi la Panou” si „Intra cu alt cont” (deconectare, apoi login cu intoarcere pe aceeasi pagina). Pe detaliu 403/404 → „Cererea nu exista sau nu e a ta” / „Preluarea nu exista sau nu e a firmei tale”; alta eroare → „Reincearca”.
+
+**Rationale: **Fiecare pagina isi facea singura verificarea, fara adresa de intoarcere; unele nu verificau deloc si aratau „Nu am putut incarca datele”. Butonul „Intra cu alt cont” a fost adaugat de agent (planul cerea doar butonul spre Panou).
+
+**Impact: **Paginile `marketplace`, `marketplace/claims`, `marketplace/claims/[claimSlotId]`, `marketplace/[id]`, `requests/[id]`, `requests/[id]/offers`, `admin/{page, companies, disputes, inspiration, payments, requests, requests/[id], withdrawals}`, `marketplace/{messages, wallet}`, `company`. Regulile mai fine decat rolul raman (cumpararea din portofel `BILLING_MANAGE`, contoarele adminului, conversatia echipei). docs/02 3.6.
+
+### D-E7-8. „Cine sunt eu” nu se reia singur dupa o eroare; pagina cu cont nu monteaza componente cu cont cat el nu e gata (2026-11-14, reparatia defectului D1 din verificarea etapelor 4–6)
+
+**Decizie: **`useMe` are `retryOnMount: false`: dupa un `/auth/me` esuat, interogarea se reface doar explicit (login, logout, semnalul de sesiune pierduta, socketul, refetch). O pagina cu cont arata scheletul cat „cine sunt eu” e in incarcare SAU in eroare (pana la redirect) si nu monteaza componente care cer cont (de ex. `SubscriptionStatusNotice`). Ascultatorul de sesiune pierduta (`resetQueries`) ramane: reia o singura data interogarile active, pentru formularul public.
+
+**Rationale: **Pe „Piata” si „Preluari”, montarea mesajului de abonament relua `/auth/me` → „pending” → scheletul il demonta → eroare → il monta iar: mii de cereri, garda de login rechemata la fiecare ciclu. `resetQueries` nu era cauza.
+
+**Impact: **`hooks/use-auth.ts`, `marketplace/page.tsx`, `marketplace/claims/page.tsx`; test `session-lost-loop.test.tsx`. docs/02 3.6.
+
+### D-E7-9. Blocul si apartamentul intr-un camp separat (2026-11-14, aleasa de agent, de confirmat de PO)
+
+**Decizie: **„Bloc, scara, apartament” se salveaza in coloana proprie `requests.address_details` (max 100), nu lipit la `address_text`; pasul planului „se adauga la adresa salvata” se aplica la afisare. Regula de acces e a strazii (doar cu acces la contacte). Nu se trimite la geocodare si nu intra in audit.
+
+**Rationale: **Asa supravietuieste editarii si alegerii unei sugestii, iar geocodarea primeste adresa curata. Planul nu prevedea coloana; migrarea a fost planificata in contractul etapei.
+
+**Impact: **Migrarea `20261114140000_request_address_details`; DTO-uri, `requests.service.ts`, `quotes.service.ts` (fisa de lucru), shared `request.schemas.ts` / `quote.schemas.ts`, `address-autocomplete.tsx`, `details-step.tsx`, `review-step.tsx`, `configurator-wizard.tsx`. docs/04, docs/03 4.2, docs/02 3.8.
+
+### D-E7-10. Mutarea fragmentelor de adresa si regula dublurilor la afisare (2026-11-14, aleasa de agent, de confirmat de PO)
+
+**Decizie: **(1) Fragmentele „bl. / sc. / ap. / et. / interfon” tastate in adresa trec singure in campul nou la alegerea unei sugestii, doar daca acesta e gol. (2) La afisare (`formatDisplayAddress`) orasul se sare doar cand e egal cu judetul sau apare in adresa ca segment intreg intre virgule („Strada Cluj 3, Cluj” ramane intreg); tara apare doar cand nu e Romania, cu numele ei in limba aplicatiei. (3) „Completeaza orasul.” (`cityRequired`) doar la oras; judetul si adresa goale raman la b9.
+
+**Rationale: **Sa nu se suprascrie ce a scris clientul; sa nu se taie nume de strazi care contin numele orasului.
+
+**Impact: **`address-autocomplete.tsx`, shared `address-format.ts`, `use-display-address.ts`.
+
+### D-E7-11. „Continua” pe o ciorna emite un acces nou (2026-11-14, aleasa de agent, de confirmat de PO)
+
+**Decizie: **„Continua” din fila „Ciorne” cere `POST /requests/:id/draft-token`, care emite un token nou (tokenul ciornei e pastrat doar ca hash, deci cel vechi nu se poate reda). Browserul vechi nu mai deschide ciorna din tokenul lui: acolo formularul porneste o ciorna noua, iar ciorna ramane in lista contului.
+
+**Rationale: **Singurul mod de a deschide ciorna pe alt dispozitiv fara a pastra tokenul in clar.
+
+**Impact: **`requests.service.ts` (`reissueDraftTokenForClient`, scriere conditionata pe DRAFT; altfel 400 `REQUEST_NOT_EDITABLE`), `requests.controller.ts`.
+
+_Adusa la zi 2026-11-14 de D-E7-26: browserul vechi nu mai porneste o ciorna noua; arata „Ciorna a fost continuata pe alt dispozitiv…” si opreste salvarile._
+
+### D-E7-12. Fila „Ciorne” ascunde ciornele fara nicio camera (2026-11-14, aleasa de agent, de confirmat de PO)
+
+**Decizie: **Lista arata doar ciornele legate de cont care au macar o camera in starea formularului; ciornele create din oficiu la deschiderea formularului nu apar.
+
+**Rationale: **N-au nimic de continuat; ar umple lista.
+
+**Impact: **`requests.service.ts` (`listDraftsForClient`), `draft-list.ts` (`draftRoomTypes`, `draftCity`).
+
+### D-E7-13. Istoricul „O firma a avut acces la datele tale pana pe …” (2026-11-14, aleasa de agent, de confirmat de PO)
+
+**Decizie: **Cardul „Cine vede cererea” arata, fara numele firmei, fiecare preluare inchisa in care firma vedea deja contactele in clipa inchiderii (inclusiv firmele neselectate dupa acceptare), evaluata cu aceeasi functie ca fisa de lucru si cu politica de dezvaluire de azi; data = `claim_slots.withdrawn_at`, altfel `updated_at` (dupa revizuire, m2 server).
+
+_Limitare lasata PO dupa revizuire (m1 server): daca adminul schimba `claim_contact_reveal_policy` (`ON_CLAIM` ↔ `AFTER_GRACE`), istoricul preluarilor inchise inainte poate fi inexact (o firma care a vazut datele lipseste, sau una care nu le-a vazut apare). Reparatia sigura = o coloana noua pe slot cu momentul din care firma a putut vedea datele — DECIZIE NECESARA PO._
+
+**Rationale: **Clientul afla ca o firma i-a vazut datele, chiar daca acum nu le mai are; inainte vedea „Nicio firma inca”.
+
+**Impact: **`RequestVisibilityDto.pastContactAccess`, `requests.service.ts` (`getVisibilityForClient`), `request-visibility-card.tsx`.
+
+### D-E7-14. Cand urca imaginea 3D si cand pleaca (2026-11-14, aleasa de agent, de confirmat de PO)
+
+**Decizie: **(1) Imaginea urca pe ciorna la iesirea de pe ecranul 3D si la ~2,5 s dupa ultima schimbare, prin incarcarea existenta de atasamente (presign → confirm), fara server nou; fisierul vechi se sterge la inlocuire (daca stergerea esueaza, se sterge inainte de publicare). (2) `roomInstances[].snapshot3dKey` tine minte configuratia; o imagine cu alta cheie e „mai veche” si nu pleaca la publicare (se scoate din raspunsuri, fisierul se sterge). (3) La Sumar, imaginea lipsa / veche se deseneaza ascuns, piesa cu piesa (1,5 s + incercari la 0,5 s, cel mult ~7 s; peste 15 s = esec); un PNG sub ~8.000 de caractere = „doar fundal” = esec; esecul se spune pe card, publicarea merge. (4) La editarea unei cereri publicate nimic nu urca inainte de „Salveaza” (abatere mica de la pasul 1, doar la editare); imaginea veche se sterge dupa salvare.
+
+**Rationale: **Imaginea nu se mai pierde la reincarcare; firmele nu vad un fisier nou pe o cerere nesalvata; o imagine veche nu mai pleaca dupa o publicare esuata.
+
+**Impact: **Fara migrare (camp optional in starea ciornei). Ramane nereparat (bug mai vechi): `copyRoomAnswers` pierde referintele la fisierele camerei tinta.
+
+### D-E7-15. Limitele conversatiei aratate pe ecran (2026-11-14, pasii planului g3 + agent; contorul de confirmat de PO)
+
+**Decizie: **Contorul „n / 5.000” apare de la 4.000 de caractere (80% din limita), nu tot timpul; limita se numara pe textul fara spatiile de la capete (ca pe server); campul nu are `maxLength` (un text lipit nu se taie, primeste explicatia). `MESSAGE_MAX_LENGTH = 5000` e o constanta locala in `chat-panel.tsx`, fixata de un test pe server (`@MaxLength(5000)`). Selectorul de fisiere foloseste `ATTACHMENT_ACCEPT` si `checkAttachmentFile` din formularul de cerere.
+
+**Rationale: **Contorul tot timpul ar fi zgomot; taierea in tacere ar pierde text.
+
+**Impact: **`chat-panel.tsx`, `chat/dto/chat.dto.spec.ts`. docs/03 4.14.
+
+### D-E7-16. Comanda tine minte cand proforma a plecat pe e-mail (2026-11-14, ceruta de pasul 3 al g4; migrarea aprobata de coordonator, de confirmat de PO)
+
+**Decizie: **Coloana noua `mock_billing_orders.proforma_emailed_at` (TIMESTAMPTZ, NULL) se scrie o singura data, dupa ce un e-mail de transfer a plecat cu proforma atasata. Portofelul spune „ti-am trimis proforma” doar cand e completata; altfel „Factura proforma o poti descarca oricand de aici.” (text schimbat dupa revizuire, m11 interfata: nu mai pomeneste e-mailul, deci e corect si la comenzile vechi). Marcajul doar pentru e-mailul catre OWNER / MANAGER: D-E7-23. Un esec la scrierea marcajului nu retrimite e-mailul.
+
+**Rationale: **E-mailul pleaca si fara proforma (randare esuata, comanda de test, date fiscale neconfigurate), iar textul o promitea mereu. Agentul s-a oprit la migrare (contractul etapei); coordonatorul a aprobat-o.
+
+**Impact: **Migrarea `20261114150000_billing_order_proforma_emailed_at`; `billing-documents.service.ts` (`markProformaEmailed`), `notification-emails.service.ts`, `payments.service.ts`, `BillingOrderDto.proformaEmailedAt`, `bank-transfer-panel.tsx`.
+
+### D-E7-17. PDF-urile: eroare clara, alerta adminilor, browser local doar in dezvoltare (2026-11-14, pasii planului g4 + agent)
+
+**Decizie: **(1) Rutele PDF ale ofertei pun tipul si numele fisierului doar pe raspunsul reusit (`quotePdfFile`, ca la factura); orice randare esuata (oferta, proforma, factura) raspunde 503 `DOCUMENT_RENDER_FAILED` (JSON). (2) „Descarca PDF” la oferta descarca prin aplicatie si arata mesajul la eroare. (3) Randarea esuata scrie un avertisment in jurnal si clopotelul `documents.pdf_failed` catre adminii activi, o data pe zi (cheia are data zilei, Europe/Bucharest), fara e-mail. (4) Daca Chrome-ul versiunii puppeteer lipseste, doar in afara productiei si fara `PUPPETEER_EXECUTABLE_PATH` se foloseste un Chrome / Edge instalat; pe productie nu se ghiceste nimic (`Dockerfile.app` neschimbat).
+
+**Rationale: **Cauza locala: puppeteer 25.1.0 cauta Chrome 149.0.7827.22, iar in `~/.cache/puppeteer` era doar 156.0.8078.47 — orice PDF dadea 500, iar ruta ofertei trimitea eroarea ca „PDF” stricat.
+
+**Impact: **Nou `billing/pdf-browser.ts`; `quote-pdf.service.ts`, `invoice-pdf.service.ts`, `quotes.controller.ts`, `offer-pdf-button.tsx`, `notification-bell.tsx`, `use-socket.ts`. Pe productie: cele doua butoane de apasat o data dupa lansare (presupunerea etapei).
+
+### D-E7-18. Dialogul de retragere a ofertei: termenul de pe fisa, penalizarea la conditional (2026-11-14, pasii planului a7; detaliul cu regulile neincarcate ales de agent)
+
+**Decizie: **Dialogul arata termenul de pe fisa (fara cele 12 ore de gratie), gratia pe un rand separat („termenul e 17 nov., 23:59; mai ai 12 ore de gratie”), iar pierderea preluarii si penalizarea la conditional („daca nu trimiti o oferta noua pana atunci”). Datele de pe cardul firmei sunt in ora Romaniei. Dupa revizuire (m6 interfata): termenul vine din `slaDeadlineAt` al preluarii (aceeasi sursa ca fisa), iar orele de gratie = momentul ratarii minus termen, ambele de la server — nu se mai calculeaza din regulile de azi (`withdrawSlaDeadline` scos). Confirmarea de preluare e o notificare pornita inainte de navigare (pagina fisei neschimbata).
+
+**Rationale: **Dialogul arata termenul plus gratia, iar fisa termenul fara gratie; penalizarea era spusa ca sigura.
+
+**Impact: **`offer-card.tsx`, `marketplace/[id]/page.tsx`; test `offer-card-withdraw.test.tsx`.
+
+### D-E7-19. Reparatiile din verificarea in browser a etapelor 4–6 (2026-11-14, hotararea coordonatorului)
+
+**Decizie: **(1) Cardul „Acordul vostru”: datele in limba aplicatiei si in ora Romaniei, sumele cu „lei”, moneda variantei confirmate, „azi” in ora Romaniei. (2) `/requests/<id>/edit` pe o cerere needitabila nu deschide editorul (aceeasi regula ca butonul „Editeaza”, `request-editability.ts`; serverul refuza oricum salvarea). (3) In randul „Alta piesa” v2 optiunea de material are eticheta scurta „Decide firma” (`pieces.firmDecidesShort`), cu textul lung sub lista cand e aleasa. (4) „Băncuță” cu diacritice in textele holului. (5) Bucla de la sesiunea pierduta: D-E7-8.
+
+**Rationale: **Defectele D1 / D2 ale verificatorului A (oferte / cont, 9 din 10 puncte trecute) si D1 / D2 / D3 ale verificatorului B (formularul nou, 9 din 9 puncte trecute).
+
+**Impact: **`agreement-card.tsx`, `requests/[id]/edit/page.tsx`, `step-renderer.tsx`, `ro.json` / `en.json` (prin fragmente). Fara efect pe cost sau pe date.
+
+### D-E7-20. Blocul se ascunde la afisare doar cand e deja intocmai in strada; mutarea automata prinde formele lipite (2026-11-14, dupa revizuirea de cod — M1 server, m10 interfata; de confirmat de PO)
+
+**Decizie: **`formatDisplayAddress` sare „Bloc, scara, apartament” doar cand fiecare bucata a lui (intre virgule) e un segment intreg al strazii, identic dupa normalizare (cu numere): „4” langa „Str. Lalelelor 14” / „… 14, 077190 Voluntari” si „B” langa „Strada București 5” raman afisate; „Str. X 10, bl. A2, ap. 14” + „bl. A2, ap. 14” nu se repeta. O adresa veche cu blocul lipit in strada fara virgula („Str. X 10 bl. A2”) il poate arata de doua ori — lasat asa. Mutarea automata (regex cu `u`, fara litera / cifra inainte) recunoaste „bl12”, „blA2”, „sc2”, „ap3”, „et4” si „bl. Ă2”, fara sa atinga „Aprodul”, „Blaj”, „Școlii”, „Scării”, „Apeductului”, „Etajului”.
+
+**Rationale: **Comparatia pe subsir ascundea apartamentul (salvat corect) din Sumar, de pe pagina cererii si de pe fisa firmei. Un bloc afisat de doua ori e mai putin grav decat un apartament pierdut.
+
+**Impact: **shared `address-format.ts`, `address-autocomplete.tsx`; teste `address-format.test.ts`, `address-autocomplete.test.tsx`. Completeaza D-E7-10.
+
+### D-E7-21. „Cine sunt eu” se verifica o data la revenirea in tab, doar cat e in eroare (2026-11-14, dupa revizuirea de cod — M1 interfata)
+
+**Decizie: **`useMe` are, pe langa `retryOnMount: false` (D-E7-8), `refetchOnWindowFocus: (query) => query.state.status === 'error'`: un tab ramas „vizitator” reface `/auth/me` la revenirea in tab, o singura cerere (`retry: false`). Cu sesiunea buna revenirea nu cere nimic; restul aplicatiei ramane cu `refetchOnWindowFocus: false` (`providers.tsx`). `/requests` („Cererile mele”) trece si ea pe `useRequireAuth('CLIENT')` + `RoleOnlyScreen` (m8 interfata).
+
+**Rationale: **Dupa reparatia buclei, un tab deschis ca vizitator nu afla de login-ul facut in alt tab (cazul tipic: confirmarea e-mailului, b4) si paginile cu cont il trimiteau la login.
+
+**Impact: **`hooks/use-auth.ts`, `requests/page.tsx`; `session-lost-loop.test.tsx` (+4 cazuri; cu `refetchOnWindowFocus: false` cazurile noi pica). docs/02 3.6. Completeaza D-E7-7, D-E7-8.
+
+### D-E7-22. La editare, cel mult o imagine 3D pe piesa (2026-11-14, dupa revizuirea de cod — M2, m1, m2, m3 interfata; de confirmat de PO)
+
+**Decizie: **(1) Editarea unei cereri publicate tine minte, pe cerere, in localStorage (`stores/edit-snapshot-files.ts`), fisierele 3D urcate si nesalvate (`uploads`) si imaginile salvate pe care le-a inlocuit (`replaced`). Dupa o salvare reusita se sterg toate cele nefolosite de cererea salvata (si cele de la o incercare esuata de dinainte); la aruncarea editarii (abandon, fereastra expirata) se sterg cele urcate; la urmatoarea intrare in editare construita din cerere se sterge tot ce cererea salvata nu foloseste. (2) „Publica” / „Salveaza” asteapta desenarea ascunsa in curs (cel mult 15 s; dupa limita piesa e marcata esuata si publicarea merge) si stergerile imaginilor inlocuite de pe ciorna (cel mult 10 s; esecul ajunge in `discardedFiles`). (3) Verificarea WebGL se face o data pe pagina, cu contextul de proba inchis imediat; desenarea ascunsa ruleaza cate una si elibereaza contextul (`WEBGL_lose_context`) dupa fiecare piesa.
+
+**Rationale: **O salvare esuata urmata de una reusita lasa imaginea veche pe cerere, iar o editare abandonata o lasa pe cea noua — fisiere nelegate de nicio camera, aratate la „Atasamente” si trimise firmelor.
+
+**Impact: **`snapshot3d-sync.tsx`, `review-step.tsx`, nou `stores/edit-snapshot-files.ts`. Completeaza D-E7-14.
+
+### D-E7-23. Proforma e „trimisa” doar cand e-mailul a ajuns la proprietar sau manager (2026-11-14, dupa revizuirea de cod — m5 server)
+
+**Decizie: **`markProformaEmailed` se cheama doar din `sendForEvent` (e-mailul catre OWNER / MANAGER); copia catre adresa de facturare a firmei (contabil) nu mai marcheaza `proforma_emailed_at`.
+
+**Rationale: **Cand toti OWNER / MANAGER au e-mailurile oprite, portofelul ii spunea proprietarului „ti-am trimis proforma”, desi o primise doar contabilul.
+
+**Impact: **`notification-emails.service.ts` (+ test). Completeaza D-E7-16.
+
+### D-E7-24. PDF-ul ofertei se salveaza cu nume propriu; alerta si browserul de PDF mai cuminti (2026-11-14, dupa revizuirea de cod — m7 interfata, m6 / m7 server; numele de confirmat de PO)
+
+**Decizie: **(1) „Descarca PDF” salveaza fisierul ca `oferta-<firma>-v<versiune>.pdf` (`offerPdfFileName`: fara diacritice si caractere nepermise, firma cel mult 40 de caractere; acelasi nume si in engleza). (2) Alerta `documents.pdf_failed` incearca cel mult o data pe zi pe proces (frana in memorie), deci un GET ratat nu mai deschide o tranzactie la fiecare cerere; pe slotul standby (`DEPLOYMENT_MODE=standby`) doar jurnal, nicio scriere in baza. (3) `PdfBrowserHolder` (in `pdf-browser.ts`, folosit de `quote-pdf` si `invoice-pdf`): o singura pornire comuna la cereri simultane, o pornire ratata nu ramane tinuta minte, iar dupa o randare ratata browserul se inchide si se uita.
+
+**Rationale: **Trei oferte descarcate deveneau `oferta.pdf`, `oferta (1).pdf`…; Chromium cazut pe productie insemna o scriere la fiecare descarcare (si pe standby); un Chrome agatat dar „conectat” dadea 503 pana la repornire, iar doua cereri la pornire lansau doua procese.
+
+**Impact: **`offer-pdf-button.tsx`, `pdf-browser.ts`, `quote-pdf.service.ts`, `invoice-pdf.service.ts` (+ teste). Completeaza D-E7-17.
+
+### D-E7-25. Lista de ciorne: cel mult 20, filtrata in SQL (2026-11-14, dupa revizuirea de cod — m4 server; limita de confirmat de PO)
+
+**Decizie: **`GET /requests/my-drafts` face o singura interogare SQL cu `LIMIT 20` (cele mai recente dupa `updated_at`); ciornele fara camere se filtreaza in SQL (cu `CASE`, ca sa nu crape pe un JSON care nu e lista); din `configurator_state` se citesc doar tipurile de camera (cel mult 20) si orasul.
+
+**Rationale: **Un cont cu multe ciorne create din oficiu citea la fiecare deschidere a filei toate JSON-urile intregi.
+
+**Impact: **`requests.service.ts` (`listDraftsForClient`), `draft-list.ts`; integrare scrisa `requests.drafts-list.integration.spec.ts`. Completeaza D-E7-12.
+
+### D-E7-26. „Continua” intreaba inainte sa inlocuiasca; celalalt dispozitiv afla (2026-11-14, dupa revizuirea de cod — m4 / m9 interfata, m3 server; de confirmat de PO)
+
+**Decizie: **(1) Daca browserul are o cerere inceputa (`hasUnpublishedLocalDraft`), „Continua” din lista intreaba o singura data; fara acord nu se goleste nimic. Dupa „Continua”, un semn in sessionStorage (`draft-continue.ts`) face formularul sa sara o data peste „Continui sau incepi din nou?” (altfel „Incepe una noua” ar fi sters chiar ciorna aleasa). (2) Pe celalalt dispozitiv, o salvare care primeste 404 (`DRAFT_TOKEN_INVALID`, tokenul a fost inlocuit) opreste salvarile automate si reincercarile si arata „Ciorna a fost continuata pe alt dispozitiv… Deschide-o din «Cererile mele» → «Ciorne»”; ce e pe ecran ramane, nu se porneste alta ciorna. (3) Butoanele „Continua” / „Sterge” au nume accesibile distincte (de ex. „Continua ciorna: Bucatarie, Baie · salvata acum 1 ora”).
+
+**Rationale: **Modificarile netrimise din browser se pierdeau fara avertisment; pe celalalt dispozitiv un 404 arata „Ciorna salvata doar pe acest dispozitiv” si se reincerca la fiecare schimbare; cititorul de ecran auzea „Continua, Sterge, Continua…”.
+
+**Impact: **`my-drafts-list.tsx`, nou `components/configurator/draft-continue.ts`, `configurator-wizard.tsx` (`sendDraft`); cheile `Requests.drafts.*`, `Configurator.draft.continuedElsewhere` / `openMyDrafts`. Completeaza D-E7-11.
+
 # 9. Checklist uman: ce faci acum
 
 - Citește integral acest document o dată. Verifică Decisions Log (Secțiunea 8, inclusiv 8.4). Dacă o decizie te deranjează, schimb-o ACUM în document, înainte ca agentul să scrie cod.

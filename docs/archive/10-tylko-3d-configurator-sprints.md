@@ -122,7 +122,7 @@ R1–R6 se pornesc doar cu acordul tau, in ordinea de mai jos.
 | D-3D-1 | Cu ce piese pornim? | Biblioteca + dulap (cel mai aproape de Tylko, cel mai mare impact vizual). |
 | D-3D-2 | 3D inlocuieste flow-ul de intrebari sau coexista? | Coexista: in flow-ul piesei, pasul de dimensiuni ofera „Configureaza in 3D” (implicit pe desktop) si varianta clasica cu campuri (fallback + preferinta utilizator). |
 | D-3D-3 | Aratam pret orientativ pe config? | NU in MVP — marketplace-ul e pe oferte de la ateliere; un pret afisat de noi ancoreaza gresit negocierea. Reevaluam la R6. |
-| D-3D-4 | Snapshot-ul PNG e obligatoriu la publish? | Da, automat si invizibil pentru client (o poza ajuta enorm atelierele). |
+| D-3D-4 | Snapshot-ul PNG e obligatoriu la publish? | Da, automat si invizibil pentru client (o poza ajuta enorm atelierele). _Partea „invizibil pentru client” inlocuita la 2026-11-14 de D-E7-4 / D-E7-14 (docs/07, PO d4-1): clientul vede imaginea ca miniatura in Sumar si pe pagina cererii; urca pe ciorna dupa ecranul 3D, nu la publicare._ |
 
 ## 5. Riscuri si limitari cunoscute
 
