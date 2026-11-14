@@ -60,10 +60,12 @@ function CreditsPill() {
     <Link
       href="/marketplace/wallet"
       aria-label={wallet.data ? t('creditsAria', { count: wallet.data.available }) : t('credits')}
-      className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-border-2 bg-surface-2 px-3 transition-colors hover:border-muted-2 xl:px-3.5"
+      className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-border-2 bg-surface-2 px-3 transition-colors hover:border-muted-2"
     >
-      <Coins className="size-4 text-walnut xl:hidden" aria-hidden />
-      <span className="label hidden xl:inline">{t('credits')}</span>
+      {/* eticheta ramane doar pentru cititoarele de ecran: la 1280 px cu meniul firmei
+          (6 legaturi) + numele contului nu e loc si pentru „CREDITE" (acoperea „Firma mea") */}
+      <Coins className="size-4 text-walnut" aria-hidden />
+      <span className="sr-only">{t('credits')}</span>
       <span className="font-mono text-ui font-medium tabular-nums">{value}</span>
     </Link>
   );
@@ -110,12 +112,12 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-surface/90 backdrop-blur-md backdrop-saturate-150">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:gap-3 sm:px-6">
-        <div className="flex min-w-0 items-center gap-4 xl:gap-6">
+        <div className="flex min-w-0 items-center gap-4">
           <Link href={homeHref} aria-label="Cozy Home" className="shrink-0">
             <CozyHomeLogo compactOnMobile={role !== null} />
           </Link>
           {/* sub lg linkurile se muta in meniul hamburger */}
-          <nav aria-label={t('mainNav')} className="hidden items-center gap-0.5 lg:flex xl:gap-1">
+          <nav aria-label={t('mainNav')} className="hidden items-center gap-0.5 lg:flex">
             {links.map((l) => {
               const active = l.href === current;
               return (
@@ -124,7 +126,7 @@ export function AppHeader() {
                   href={l.href}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
-                    'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-2 text-ui transition-colors xl:px-3 xl:py-2.5 xl:text-sm',
+                    'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-2 text-ui transition-colors xl:py-2.5 xl:text-sm',
                     active
                       ? 'bg-walnut-soft font-medium text-walnut-deep'
                       : 'text-muted-foreground hover:bg-secondary hover:text-foreground',

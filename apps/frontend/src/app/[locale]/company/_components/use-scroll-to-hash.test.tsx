@@ -58,6 +58,22 @@ describe('useScrollToHashSection', () => {
     expect(scrollIntoView).not.toHaveBeenCalled();
   });
 
+  it('„Inapoi” in interiorul aplicatiei (popstate chiar inainte de montare) → nici derulare, nici focus', () => {
+    // ceasul testului e dat un minut inapoi, ca momentul retinut sa nu atinga testele urmatoare
+    vi.setSystemTime(new Date(Date.now() - 60_000));
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    const { getByRole } = render(<Page />);
+    vi.runAllTimers();
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(getByRole('heading', { name: 'Portofoliu' })).not.toHaveFocus();
+    // dupa fereastra de 2 s o navigare noua se poarta din nou normal
+    vi.advanceTimersByTime(2500);
+    const again = render(<Page />);
+    vi.runAllTimers();
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    again.unmount();
+  });
+
   it('pagina deja derulata (pozitie restaurata) → nu deruleaza din nou', () => {
     Object.defineProperty(window, 'scrollY', { value: 640, configurable: true });
     render(<Page />);

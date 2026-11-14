@@ -2527,7 +2527,7 @@
     "reviewSummaryBack": "Înapoi",
     "warranty": {
       "title": "Ai o problemă cu mobilierul?",
-      "intro": "Poți raporta o problemă până pe {date} (garanție de {months} luni). Raportul ajunge la echipa Cozy Home, iar firma este anunțată.",
+      "intro": "Poți raporta o problemă până pe {date} (garanție de {months, plural, one {# lună} few {# luni} other {# de luni}}). Raportul ajunge la echipa Cozy Home, iar firma este anunțată.",
       "closed": "Perioada în care puteai raporta o problemă s-a încheiat pe {date}.",
       "open": "Raportează o problemă",
       "placeholder": "Descrie problema: ce piesă, ce s-a întâmplat și de când",
@@ -4493,7 +4493,8 @@
       "showInfoFor": "Detalii: {option}",
       "hideInfo": "Înapoi la opțiune",
       "linearMetreNote": "„m liniar” înseamnă metru liniar: lungimea măsurată de-a lungul peretelui. De exemplu, 3 m de mobilier pe un perete = 3 metri liniari. Prețul e orientativ.",
-      "notRecommendedHere": "Nerecomandat aici"
+      "notRecommendedHere": "Nerecomandat aici",
+      "linearMetreShort": "m liniar = un metru de mobilier, măsurat de-a lungul peretelui"
     },
     "diagram": {
       "islandLength": "L",
@@ -8117,7 +8118,7 @@
       "dimsUnknown": "Dimensiuni nespecificate",
       "designHelpCompany": "Clientul cere proiectare cu plată pentru această cameră",
       "designHelpClient": "Ai cerut proiectare cu plată pentru această cameră",
-      "furnitureLinear": "Mobilier: ~{m} m liniari",
+      "furnitureLinear": "Mobilier: ~{m, plural, one {# m liniar} other {# m liniari}}",
       "designHelpDetails": "Detaliile se stabilesc cu firma.",
       "approxLength": "Lungime aproximativă: {m} m",
       "firmRecommendation": "Recomandarea firmei",
@@ -8149,7 +8150,8 @@
       "saveHint": "Nimic nu se schimbă până nu apeși „Salvează modificările”, la ultimul pas.",
       "phaseReview": "Verifică și salvează",
       "repostTitle": "Republici cererea cu modificări",
-      "repostNote": "Când salvezi, cererea primește modificările și ajunge din nou la firme, cu un nou termen de expirare. Republicarea se poate face o singură dată și nu se numără la editări."
+      "repostNote": "Când salvezi, cererea primește modificările și ajunge din nou la firme, cu un nou termen de expirare. Republicarea se poate face o singură dată și nu se numără la editări.",
+      "reviewSubtitle": "Aruncă o ultimă privire peste detalii înainte să salvezi — firmele văd modificările după salvare."
     },
     "clientOnly": {
       "note": "Cererile se publică dintr-un cont de client.",

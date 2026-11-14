@@ -4493,7 +4493,8 @@
       "showInfoFor": "Details: {option}",
       "hideInfo": "Back to option",
       "linearMetreNote": "“Linear metre” means the length measured along the wall — for example, 3 m of furniture along one wall is 3 linear metres. The price is a guide only.",
-      "notRecommendedHere": "Not recommended here"
+      "notRecommendedHere": "Not recommended here",
+      "linearMetreShort": "linear metre = one metre of furniture, measured along the wall"
     },
     "diagram": {
       "islandLength": "L",
@@ -8117,7 +8118,7 @@
       "dimsUnknown": "Dimensions not specified",
       "designHelpCompany": "The client asks for paid design for this room",
       "designHelpClient": "You asked for paid design for this room",
-      "furnitureLinear": "Furniture: ~{m} linear m",
+      "furnitureLinear": "Furniture: ~{m, number} linear m",
       "designHelpDetails": "The details are agreed with the company.",
       "approxLength": "Approximate length: {m} m",
       "firmRecommendation": "Company's recommendation",
@@ -8149,7 +8150,8 @@
       "saveHint": "Nothing changes until you press “Save changes” at the last step.",
       "phaseReview": "Review and save",
       "repostTitle": "You are reposting the request with changes",
-      "repostNote": "When you save, the request gets your changes and goes back to companies with a new expiry date. You can repost only once, and it does not count as an edit."
+      "repostNote": "When you save, the request gets your changes and goes back to companies with a new expiry date. You can repost only once, and it does not count as an edit.",
+      "reviewSubtitle": "Give the details one last look before you save — companies see the changes once you save."
     },
     "clientOnly": {
       "note": "Requests are published from a client account.",

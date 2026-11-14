@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ro from '@/messages/ro.json';
 import { config3dKey, snapshot3dStatus } from '@/stores/snapshot3d';
 import Configurator3dStepUI from './configurator3d-step';
-import { zonePanelScrollDelta } from './sticky-scene';
+import { sceneBottomAfterScroll, zonePanelScrollDelta } from './sticky-scene';
 
 // Revizuire M1 / m7: corectarea automata "Push" de la montare ruleaza doar pe ciorne; la
 // editarea unei cereri publicate configuratia ramane cum a fost publicata pana cand omul
@@ -119,5 +119,22 @@ describe('zonePanelScrollDelta (M2)', () => {
   });
   it('panoul deja vizibil intreg → fara derulare', () => {
     expect(zonePanelScrollDelta({ top: 420, bottom: 800 }, 400, 844)).toBe(0);
+  });
+});
+
+// verificarea in browser (etapa 8): cu pagina sus, scena nu e inca lipita sub antet
+describe('sceneBottomAfterScroll', () => {
+  it('scena lipita deja (sau fara pozitie lipita) → marginea ei de acum', () => {
+    expect(sceneBottomAfterScroll({ bottom: 398, height: 340 }, 58)).toBe(398);
+    expect(sceneBottomAfterScroll({ bottom: 700, height: 340 }, null)).toBe(700);
+    expect(sceneBottomAfterScroll({ bottom: 700, height: 340 }, Number.NaN)).toBe(700);
+  });
+  it('scena inca nelipita → pozitia ei de dupa derulare, sub antet', () => {
+    expect(sceneBottomAfterScroll({ bottom: 700, height: 340 }, 58)).toBe(398);
+  });
+  it('cu scena nelipita, panoul de sub ecran vine intreg intre scena si marginea de jos', () => {
+    // scena 360–700, panoul 741–1139, ecran 844, antet 58: inainte pagina se misca doar 33 px
+    const sceneBottom = sceneBottomAfterScroll({ bottom: 700, height: 340 }, 58);
+    expect(zonePanelScrollDelta({ top: 741, bottom: 1139 }, sceneBottom, 844)).toBe(1139 - 836);
   });
 });

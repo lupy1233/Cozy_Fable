@@ -8,11 +8,21 @@ import { useEffect } from 'react';
 // - doar la o navigare noua cu ancora: la „Inapoi” / „Inainte” (back_forward) sau cand pagina
 //   e deja derulata (pozitie restaurata de browser) nu atingem pozitia;
 // - dupa derulare, focusul trece pe titlul sectiunii (tastatura, cititoare de ecran).
+// „Inapoi” / „Inainte” in interiorul aplicatiei (fara reincarcare) nu apar in intrarea de
+// navigare a documentului; le recunoastem dupa evenimentul `popstate` de dinaintea montarii.
+const POP_WINDOW_MS = 2000;
+let lastPopAt = 0;
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', () => {
+    lastPopAt = Date.now();
+  });
+}
+
 export function useScrollToHashSection(delayMs = 50) {
   useEffect(() => {
     const id = window.location.hash.slice(1);
     if (!id) return;
-    if (isBackForward()) return;
+    if (isBackForward() || Date.now() - lastPopAt < POP_WINDOW_MS) return;
     // Pagina deja derulata: fie browserul a restaurat pozitia, fie Next a derulat singur la
     // ancora (navigare din aplicatie, cu datele firmei deja incarcate). Pozitia nu se mai atinge;
     // focusul trece pe titlu doar daca sectiunea chiar e sus in fereastra (cazul Next).

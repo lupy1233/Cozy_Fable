@@ -143,7 +143,7 @@ export function RoomSpecCard({
   const isRoom = ROOM_KIND[room.roomType] === 'room';
   const ceiling = dims?.slots.find((s) => s.labelKey === CEILING_SLOT_LABEL)?.value;
   const headerParts: string[] = [];
-  if (!designHelp && room.lengthM > 0) headerParts.push(t('roomSpec.furnitureLinear', { m: format.number(room.lengthM, { maximumFractionDigits: 1 }) }));
+  if (!designHelp && room.lengthM > 0) headerParts.push(t('roomSpec.furnitureLinear', { m: Math.round(room.lengthM * 10) / 10 })); // numar: „1 m liniar”, „2,4 m liniari”
   if (typeof ceiling === 'number' && ceiling > 0) headerParts.push(t('roomSpec.ceiling', { value: formatDimension(ceiling, dimOpts) }));
   // m4: cererile din formularul manual de dinainte de configurator (answers NULL) au
   // lungimea / latimea / inaltimea scrise chiar de client → raman "L × l × H".

@@ -486,6 +486,10 @@ export function ConfiguratorWizard({ editId, repost = false }: { editId?: string
   // noi (localStorage) nu e atinsa. La reincarcarea paginii editarea se reia din tab;
   // altfel se construieste din cererea publicata. Iesirea (fara salvare) o arunca.
   const editRequest = useRequest(editId ?? '');
+  // Nota de editare tine contoarele de la intrarea in editare: dupa salvare cererea reincarcata
+  // are deja o editare in plus si nota sarea o clipa pe „editarea 2 din 3” (verificarea in browser).
+  const firstLoadedRequest = useRef<RequestDto | undefined>(undefined);
+  if (isEdit && editRequest.data && !firstLoadedRequest.current) firstLoadedRequest.current = editRequest.data;
   const [editReady, setEditReady] = useState(false);
   useEffect(() => {
     if (!isEdit || !editId || hydrated.current || !editRequest.data) return;
@@ -734,15 +738,17 @@ export function ConfiguratorWizard({ editId, repost = false }: { editId?: string
   // cand incep intrebarile, deci asezarea paginii nu sare intre cele doua faze
   const showBasket = phase === 'cart';
   const showSide = showSheet || showBasket;
-  const headTitle = inReview ? t('review.title') : t(isEdit ? 'editTitle' : 'title');
+  // la editare ultimul pas salveaza, nu publica (republicarea cu modificari publica din nou)
+  const editReview = inReview && isEdit && !repost;
+  const headTitle = inReview ? t(editReview ? 'edit.phaseReview' : 'review.title') : t(isEdit ? 'editTitle' : 'title');
   const headSubtitle = inReview
-    ? t('review.subtitle')
+    ? t(editReview ? 'edit.reviewSubtitle' : 'review.subtitle')
     : isEdit
       ? t('editSubtitle')
       : phase === 'start'
         ? t('subtitle')
         : null;
-  const editedRequest = isEdit ? editRequest.data : undefined;
+  const editedRequest = isEdit ? (firstLoadedRequest.current ?? editRequest.data) : undefined;
 
   return (
     <div className="flex flex-col gap-6">

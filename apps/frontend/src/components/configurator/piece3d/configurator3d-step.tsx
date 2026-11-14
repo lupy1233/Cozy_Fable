@@ -76,7 +76,7 @@ import { useCabinetFronts } from './use-cabinet-fronts';
 import { Snapshot3dAutoUpload } from '../snapshot3d-sync';
 import { stableKey } from '@/stores/snapshot3d';
 import { isInEditSession } from '@/stores/configurator-store';
-import { useStickyHeaderHeight, zonePanelScrollDelta } from './sticky-scene';
+import { sceneBottomAfterScroll, useStickyHeaderHeight, zonePanelScrollDelta } from './sticky-scene';
 
 // Step-ul configurator-3d (R2/R3): model 3D live + controale directe.
 // D-3D-2 (aprobat): 3D si "campurile clasice" COEXISTA ca doua moduri de UI
@@ -473,9 +473,12 @@ function CabinetControls({
     const panel = zonePanelRef.current;
     const scene = sceneRef.current;
     if (!small || !panel || !scene) return;
+    // scena inca nelipita (pagina e sus): limita e pozitia ei de dupa derulare, sub antet
+    const sceneStyle = window.getComputedStyle(scene);
+    const stickyTop = sceneStyle.position === 'sticky' ? parseFloat(sceneStyle.top) : null;
     const delta = zonePanelScrollDelta(
       panel.getBoundingClientRect(),
-      scene.getBoundingClientRect().bottom,
+      sceneBottomAfterScroll(scene.getBoundingClientRect(), stickyTop),
       window.innerHeight,
     );
     if (delta !== 0) window.scrollBy({ top: delta });

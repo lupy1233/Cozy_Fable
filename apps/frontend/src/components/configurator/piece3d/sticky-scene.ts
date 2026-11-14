@@ -22,6 +22,18 @@ export function zonePanelScrollDelta(
   return 0;
 }
 
+// Marginea de jos a scenei DUPA derulare. Cat pagina e sus, scena nu e inca lipita: derularea o
+// duce sub antet, deci limita panoului e pozitia ei lipita (`stickyTop` + inaltime), nu cea de
+// acum. Fara asta, atingerea unei zone cu scena nelipita misca pagina doar cativa pixeli si
+// panoul ramane sub ecran (verificarea in browser, etapa 8).
+export function sceneBottomAfterScroll(
+  scene: { bottom: number; height: number },
+  stickyTop: number | null,
+): number {
+  if (stickyTop === null || !Number.isFinite(stickyTop)) return scene.bottom;
+  return Math.min(scene.bottom, stickyTop + scene.height);
+}
+
 // Inaltimea reala a antetului lipit (app-header / public-header, `sticky top-0`), urmarita
 // cand se schimba (meniu pe doua randuri, banner). null = necunoscuta (ramane rezerva 4rem).
 export function useStickyHeaderHeight(): number | null {

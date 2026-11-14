@@ -161,10 +161,18 @@ export function PlayingCard({
               </div>
             </div>
             {showPrice && (
-              <div className="flex items-center gap-2 border-t border-border-2 bg-surface-2 px-4 py-2 text-xs">
-                <Wallet className="h-3.5 w-3.5 text-walnut" />
-                <span className="text-muted-foreground">{t('info.avgPrice')}:</span>
-                <span className="font-medium">{t(info.priceHintKey!)}</span>
+              <div className="flex flex-col gap-0.5 border-t border-border-2 bg-surface-2 px-4 py-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-3.5 w-3.5 shrink-0 text-walnut" />
+                  <span className="text-muted-foreground">{t('info.avgPrice')}:</span>
+                  <span className="font-medium">{t(info.priceHintKey!)}</span>
+                </div>
+                {/* c12-1: metrul liniar e explicat si pe spatele cartonasului (verificarea in browser) */}
+                {/m liniar|linear metre/.test(t(info.priceHintKey!)) && (
+                  <span data-linear-metre-note className="text-meta leading-snug text-muted-foreground">
+                    {t('info.linearMetreShort')}
+                  </span>
+                )}
               </div>
             )}
           </div>
