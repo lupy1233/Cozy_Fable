@@ -60,19 +60,28 @@ test('all furniture keeps working controls and snapshots after visual refinement
   // campurile de dimensiuni sunt type=text + inputMode=decimal (rol textbox)
   const diameter = page.getByRole('textbox', { name: /^Diameter/ });
   await expect(diameter).toHaveAttribute('inputmode', 'decimal');
-  await diameter.fill('70'); await diameter.press('Tab');
-  await expect.poll(async () => [(await config()).widthM, (await config()).depthM]).toEqual([.7, .7]);
-  await diameter.fill('180'); await diameter.press('Tab');
-  await expect.poll(async () => [(await config()).widthM, (await config()).depthM]).toEqual([1.8, 1.8]);
+  // etapa 9: masa rotunda de dining are 80–160 cm
+  await diameter.fill('80'); await diameter.press('Tab');
+  await expect.poll(async () => [(await config()).widthM, (await config()).depthM]).toEqual([.8, .8]);
+  await diameter.fill('160'); await diameter.press('Tab');
+  await expect.poll(async () => [(await config()).widthM, (await config()).depthM]).toEqual([1.6, 1.6]);
   // etapa 5 (e5-3d): o valoare in afara intervalului se corecteaza la limita, cu mesaj despre ce s-a pus
   await diameter.fill('120'); await diameter.press('Tab');
   await expect.poll(async () => [(await config()).widthM, (await config()).depthM]).toEqual([1.2, 1.2]);
   await diameter.fill('200'); await diameter.press('Tab');
-  await expect(page.getByRole('status').filter({ hasText: 'The maximum is 180 cm — we set 180.' })).toBeVisible();
-  await expect(diameter).toHaveValue('180');
-  await expect.poll(async () => [(await config()).widthM, (await config()).depthM]).toEqual([1.8, 1.8]);
-  await tableChoices.nth(1).selectOption('EXTENDABLE');
+  await expect(page.getByRole('status').filter({ hasText: 'The maximum is 160 cm — we set 160.' })).toBeVisible();
+  await expect(diameter).toHaveValue('160');
+  await expect.poll(async () => [(await config()).widthM, (await config()).depthM]).toEqual([1.6, 1.6]);
+  // etapa 9: doua forme; "Extensibilă" e o bifa la masa dreptunghiulara de dining (salvata tot ca EXTENDABLE)
+  await expect(tableChoices.nth(1).locator('option[value="EXTENDABLE"]')).toHaveCount(0);
+  await expect(page.getByRole('checkbox', { name: 'Extendable', exact: true })).toHaveCount(0);
+  await tableChoices.nth(1).selectOption('RECTANGULAR');
+  await page.getByRole('checkbox', { name: 'Extendable', exact: true }).check();
   await expect.poll(async () => (await config()).table.shape).toBe('EXTENDABLE');
+  // etapa 9: butonul "Reframe" de pe scena
+  await expect(page.getByTestId('reframe-3d')).toHaveAccessibleName('Reframe the piece so it is fully in view');
+  await page.getByTestId('reframe-3d').click();
+  await expect(canvas).toBeVisible();
 
   await page.getByRole('button', { name: 'BENCH', exact: true }).press('Enter');
   await page.getByRole('combobox').first().selectOption('WITH_SHOE_SPACE');

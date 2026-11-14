@@ -80,11 +80,21 @@ const preferred: Record<string, string> = {
 // (ambele drumuri, ca la buget); celelalte intrebari da / nu obligatorii primesc "Da"
 export const SAME_FINISH_ANSWER: Record<Locale, boolean> = { en: true, ro: false };
 // etapa 8: un test poate completa singur un ecran de dimensiuni (intoarce valorile in metri)
-export type DimensionsHook = (block: Locator, step: QuestionStep) => Promise<Record<string, number>>;
-async function answerQuestion(block: Locator, step: QuestionStep, answers: AnswerMap, locale: Locale, images: Set<string>, onDimensions?: DimensionsHook) {
+export type DimensionsHook = (block: Locator, step: QuestionStep, answers: AnswerMap) => Promise<Record<string, number>>;
+// etapa 10: alegerile unui test peste `preferred` (single-choice = o valoare, multi-choice = lista)
+export type PreferredAnswers = Record<string, string | string[]>;
+// etapa 10: campul unui slot de dimensiune dupa eticheta; sloturile optionale au in nume si „(opțional)”
+export function dimensionInput(block: Locator, locale: Locale, labelKey: string, optional = false) {
+  const label = escaped(textFor(locale, `Configurator.${labelKey}`));
+  const tag = escaped(textFor(locale, 'Configurator.dimensions.optionalTag'));
+  return block.getByRole('textbox', { name: new RegExp(optional ? `${label}\\s*\\(${tag}\\)$` : `${label}$`) });
+}
+// etapa 10: sloturile optionale se completeaza in EN si raman GOALE in RO (ambele drumuri)
+export const FILL_OPTIONAL_SLOTS: Record<Locale, boolean> = { en: true, ro: false };
+async function answerQuestion(block: Locator, step: QuestionStep, answers: AnswerMap, locale: Locale, images: Set<string>, onDimensions?: DimensionsHook, override: PreferredAnswers = {}) {
   const t = (key: string) => textFor(locale, `Configurator.${key}`);
   if (step.type === 'dimension-group' && onDimensions) {
-    answers[step.id] = await onDimensions(block, step);
+    answers[step.id] = await onDimensions(block, step, answers);
     return;
   }
   // bifa compacta (kitchen v3): fara titlu propriu, doar eticheta bifei
@@ -109,9 +119,13 @@ async function answerQuestion(block: Locator, step: QuestionStep, answers: Answe
     // nu se bifeaza impreuna cu altele; se aleg doar optiunile obisnuite
     const regular = options.filter((option) => !option.exclusive);
     const exclusive = options.filter((option) => option.exclusive);
+    const wanted = override[step.id];
     const chosen = step.type === 'single-choice'
-      ? [options.find((option) => option.value === preferred[step.id]) ?? options.find((option) => option.value === 'ALTUL') ?? options[0]]
-      : regular.slice(0, step.maxSelected ?? regular.length);
+      ? [options.find((option) => option.value === (typeof wanted === 'string' ? wanted : preferred[step.id])) ?? options.find((option) => option.value === 'ALTUL') ?? options[0]]
+      : Array.isArray(wanted)
+        ? regular.filter((option) => wanted.includes(option.value))
+        : regular.slice(0, step.maxSelected ?? regular.length);
+    if (wanted !== undefined) expect(chosen.length, `${step.id}: alegerea testului ${String(wanted)}`).toBeGreaterThan(0);
     if (step.type === 'multi-choice' && exclusive.length > 0 && chosen.length > 0) {
       // o optiune exclusiva goleste restul; o optiune obisnuita o scoate pe cea exclusiva
       await optionButton(chosen[0]).click();
@@ -152,12 +166,21 @@ async function answerQuestion(block: Locator, step: QuestionStep, answers: Answe
     await block.getByRole('button', { name: 'm', exact: true }).click();
     const values: Record<string, number> = {};
     for (const slot of step.slots(answers)) {
+      // etapa 10: slotul optional — „(opțional)” in nume + „de obicei …”; in RO ramane gol
+      const input = dimensionInput(block, locale, slot.labelKey, slot.optional === true);
+      await expect(input).toHaveAttribute('inputmode', 'decimal');
+      if (slot.optional) {
+        // indiciul are si intervalul dupa el: „de obicei 2,4 m · 1,8–3,2 m”
+        if (typeof slot.typicalM === 'number') await expect(block.locator('[data-typical-hint]').filter({ hasText: t('dimensions.typicalHint').replace('{value}', `${decimalText(slot.typicalM, locale)} m`) }).first()).toBeVisible();
+        if (!FILL_OPTIONAL_SLOTS[locale]) {
+          await expect(input).toHaveValue('');
+          continue;
+        }
+      }
       const target = /height/i.test(slot.id) ? 2.6 : /depth/i.test(slot.id) ? 0.6 : /bedCustomWidth/.test(slot.id) ? 1.8 : /bedCustomLength/.test(slot.id) ? 2 : 2.4;
       const increment = slot.step ?? 0.1;
       values[slot.id] = Math.round(Math.min(slot.max, Math.max(slot.min, Math.round(target / increment) * increment)) * 1000) / 1000;
       // campurile de dimensiuni sunt type=text + inputMode=decimal; in romana clientul scrie cu virgula
-      const input = block.getByRole('textbox', { name: new RegExp(`${escaped(t(slot.labelKey))}$`) });
-      await expect(input).toHaveAttribute('inputmode', 'decimal');
       await input.fill(decimalText(values[slot.id], locale));
       await input.blur();
       await expect(input).toHaveValue(decimalText(values[slot.id], locale));
@@ -196,7 +219,7 @@ export async function completeAllRoomRequest(page: Page, locale: Locale, origin 
 // `ownProject`: modul "Am deja un proiect" (pasii de dimensiuni se sar); `approxLength`: textul scris in
 // campul "Lungime aproximativa (m)" de pe ultimul ecran al camerei, cand apare (etapa 5, d3).
 // etapa 8: `onScreen` = apelat la inceputul fiecarui ecran (contor, bara lipita); `onDimensions` = vezi DimensionsHook.
-export async function walkRoomQuestions(page: Page, locale: Locale, roomTypes: readonly RoomType[], flowOf: (type: RoomType) => RoomFlow, capture?: (name: string, block: Locator) => Promise<void>, opts: { ownProject?: boolean; approxLength?: string; onScreen?: (screen: number) => Promise<void>; onDimensions?: DimensionsHook } = {}) {
+export async function walkRoomQuestions(page: Page, locale: Locale, roomTypes: readonly RoomType[], flowOf: (type: RoomType) => RoomFlow, capture?: (name: string, block: Locator) => Promise<void>, opts: { ownProject?: boolean; approxLength?: string; onScreen?: (screen: number) => Promise<void>; onDimensions?: DimensionsHook; preferred?: Partial<Record<RoomType, PreferredAnswers>> } = {}) {
   const t = (key: string) => textFor(locale, `Configurator.${key}`);
   const answers = new Map<RoomType, AnswerMap>(roomTypes.map((type) => [type, {}]));
   const questions = new Map<RoomType, Set<string>>(roomTypes.map((type) => [type, new Set()]));
@@ -215,7 +238,7 @@ export async function walkRoomQuestions(page: Page, locale: Locale, roomTypes: r
       const step = flowOf(type).steps.find((question) => question.id === next.id);
       if (!step) throw new Error(`Unknown question ${type}.${next.id} (flow v${flowOf(type).version})`);
       const block = page.locator(`[data-question-id="${next.id}"][data-room-type="${type}"]`);
-      await answerQuestion(block, step, answers.get(type)!, locale, images, opts.onDimensions);
+      await answerQuestion(block, step, answers.get(type)!, locale, images, opts.onDimensions, opts.preferred?.[type]);
       if (capture && ['LIVING.piecesNeeded', 'DRESSING.interiorModules', 'BEDROOM.bedStorage', 'BEDROOM.bedCustomSize', 'LAUNDRY.applianceSetup'].includes(`${type}.${next.id}`)) await capture(`${type}-${next.id}`, block);
       processed.add(`${type}.${next.id}`);
       questions.get(type)!.add(next.id);
@@ -237,6 +260,26 @@ export async function walkRoomQuestions(page: Page, locale: Locale, roomTypes: r
     expect(validateRoomAnswers(type, answers.get(type)!, { partial: false, version: flowOf(type).version, ownProject: opts.ownProject }), `${type} validation`).toEqual({ ok: true });
   }
   return { answers, questions, images };
+}
+
+// etapa 12: raspunde la intrebarile ecranului de acum (fara „Continua”) — pentru testele de Back / Forward.
+// `answers` = raspunsurile camerei de pana acum (conditiile de vizibilitate); intoarce id-urile raspunse.
+export async function answerCurrentScreen(page: Page, locale: Locale, flowOf: (type: RoomType) => RoomFlow, answers: Map<RoomType, AnswerMap>, opts: { onDimensions?: DimensionsHook; preferred?: Partial<Record<RoomType, PreferredAnswers>> } = {}) {
+  await expect(page.locator('[data-question-id]').first()).toBeVisible();
+  const done: string[] = [];
+  const images = new Set<string>();
+  for (let pass = 0; pass < 30; pass++) {
+    const metadata = await page.locator('[data-question-id]').evaluateAll((elements) => elements.map((element) => ({ id: element.getAttribute('data-question-id')!, room: element.getAttribute('data-room-type')! })));
+    const next = metadata.find((entry) => !done.includes(`${entry.room}.${entry.id}`));
+    if (!next) break;
+    const type = next.room as RoomType;
+    const step = flowOf(type).steps.find((question) => question.id === next.id);
+    if (!step) throw new Error(`Unknown question ${type}.${next.id} (flow v${flowOf(type).version})`);
+    if (!answers.has(type)) answers.set(type, {});
+    await answerQuestion(page.locator(`[data-question-id="${next.id}"][data-room-type="${type}"]`), step, answers.get(type)!, locale, images, opts.onDimensions, opts.preferred?.[type]);
+    done.push(`${type}.${next.id}`);
+  }
+  return done;
 }
 
 // Date generale (EN = suma pe glisor, RO = "Prefer sa nu spun") → Sumar

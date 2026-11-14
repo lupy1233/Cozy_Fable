@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
-import { configuratorContentSchema, CURRENT_FLOW_VERSION, FLOW_VERSIONS_BEFORE_ETAPA6, type RoomType } from '../../../packages/shared/src';
+import { configuratorContentSchema, CURRENT_FLOW_VERSION, ETAPA10_FLOW_VERSION, FLOW_VERSIONS_BEFORE_ETAPA10, type RoomType } from '../../../packages/shared/src';
 import { AUDIT_BUDGET_RON, AUDIT_ROOM_TYPES, completeAllRoomRequest, GREEN_AUDIT_ORIGIN, mockGuestDraft, reloadAndPublishGreenAudit, SAME_FINISH_ANSWER, textFor, uploadSyntheticAuditPng } from './helpers/guided-request';
 
 const realGreen = process.env.GREEN_FORM_AUDIT === '1';
@@ -41,11 +41,12 @@ for (const locale of ['en', 'ro'] as const) {
     const savedDetails = snapshot.details as { budgetRange?: string; budgetEstimateRon?: number | null; budgetChosen?: boolean };
     if (locale === 'en') expect(savedDetails).toMatchObject({ budgetEstimateRon: AUDIT_BUDGET_RON, budgetChosen: true });
     else expect(savedDetails.budgetRange).toBe('UNDISCLOSED');
-    // etapa 6: camerele noi pornesc pe versiunea noua (nu pe una dinainte de etapa 6)
+    // etapa 10: camerele noi pornesc pe versiunile etapei 10 (nu pe una dinainte de etapa 10)
     for (const room of snapshot.roomInstances ?? []) {
       const type = room.roomType as RoomType;
       expect(room.flowVersion, `${type} flowVersion`).toBe(CURRENT_FLOW_VERSION[type]);
-      expect(FLOW_VERSIONS_BEFORE_ETAPA6[type], `${type} new version`).not.toContain(room.flowVersion);
+      expect(room.flowVersion, `${type} etapa 10 version`).toBe(ETAPA10_FLOW_VERSION[type]);
+      expect(FLOW_VERSIONS_BEFORE_ETAPA10[type], `${type} new version`).not.toContain(room.flowVersion);
     }
     // etapa 6: "Acelasi material si aceeasi deschidere?" — EN "Da" (ecranul comun), RO "Nu" (ecran pe fiecare piesa)
     const visited = new Map(audit.rooms.map((room) => [room.type, room.questions]));
@@ -64,6 +65,15 @@ for (const locale of ['en', 'ro'] as const) {
       if (locale === 'ro') expect(visited.get(type), `${type} wardrobe material`).toContain('materialWardrobe');
     }
     expect(savedAnswers.get('DRESSING')?.doorType).toBe('HINGED');
+    // etapa 10: inaltimea dulapului din dormitor e optionala — completata in EN, goala in RO
+    const bedroomDims = savedAnswers.get('BEDROOM')?.dimensions as Record<string, number> | undefined;
+    expect(bedroomDims?.wardrobeWidth, 'BEDROOM.wardrobeWidth').toBeGreaterThan(0);
+    if (locale === 'en') expect(bedroomDims?.wardrobeHeight, 'BEDROOM.wardrobeHeight').toBeGreaterThan(0);
+    else expect(bedroomDims ?? {}, 'BEDROOM.wardrobeHeight goala').not.toHaveProperty('wardrobeHeight');
+    // etapa 10: ecranele noi ale bucatariei, dormitorului, baii si spalatoriei au fost parcurse
+    for (const [type, id] of [['KITCHEN', 'sinkMounting'], ['KITCHEN', 'fridgeType'], ['KITCHEN', 'wallCabinets'], ['BEDROOM', 'wardrobeInterior'], ['BATHROOM', 'basinType'], ['LAUNDRY', 'washerLoading']] as const) {
+      expect(visited.get(type), `${type}.${id}`).toContain(id);
+    }
     expect(visited.get('DRESSING'), 'hinged dressing opening').toContain('openingSystems');
     const content = { rooms: snapshot.roomInstances?.map(({ roomType, answers, flowVersion }) => ({ roomType, answers, flowVersion })), ...snapshot.details as object };
     expect(configuratorContentSchema.safeParse(content).success).toBe(true);

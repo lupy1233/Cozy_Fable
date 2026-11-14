@@ -28,11 +28,14 @@ test('questionnaire option faces remain full-width when selected in fullscreen',
     const box = (await options.nth(i).boundingBox())!;
     expect(box.width).toBeGreaterThan(100);
   }
-  const more = question.getByRole('button', { name: en.Configurator.info.showInfo, exact: true });
+  // etapa 12: butoanele (i) se numesc „Details: {opțiunea}” pe card (si „Details: {întrebarea}” langa titlu)
+  const infoPrefix = new RegExp(`^${en.Configurator.info.showInfoFor.split('{option}')[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`);
+  const more = question.locator('[data-choice-card]').getByRole('button', { name: infoPrefix });
   await expect(more.first()).toBeVisible();
   if (await more.count()) {
     const card = question.locator('[data-choice-card]').first();
-    const infoButton = card.getByRole('button', { name: en.Configurator.info.showInfo, exact: true });
+    const firstLabel = en.Configurator.flows.KITCHEN.layout.options.STRAIGHT.label;
+    const infoButton = card.getByRole('button', { name: en.Configurator.info.showInfoFor.replace('{option}', firstLabel), exact: true });
     await infoButton.scrollIntoViewIfNeeded();
     const cardBounds = await card.boundingBox();
     await card.evaluate((element) => {

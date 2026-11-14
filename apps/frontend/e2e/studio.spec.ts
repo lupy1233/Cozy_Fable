@@ -1,5 +1,9 @@
 import { expect, test } from '@playwright/test';
 import fixture from '../../../docs/implementation/house-demo-fixture.json';
+import en from '../src/messages/en.json';
+
+// etapa 12: engleza britanica (Minimise); numele butoanelor schimbate se citesc din en.json
+const W = en.Studio.workspace;
 
 test('canvas-first workspace keeps its room across tool panels, house views and reload', async ({ page }, info) => {
   test.setTimeout(120_000);
@@ -26,13 +30,13 @@ test('canvas-first workspace keeps its room across tool panels, house views and 
   expect(bounds!.height).toBeGreaterThan(page.viewportSize()!.height * .7);
   await page.getByRole('button', { name: 'Furniture', exact: true }).click();
   await expect(page.getByRole('complementary', { name: 'My pieces', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Minimize panel', exact: true }).press('Enter');
+  await page.getByRole('button', { name: W.minimizePanel, exact: true }).press('Enter');
   await expect(page.getByRole('button', { name: 'Furniture', exact: true })).toHaveAttribute('aria-expanded', 'false');
   await page.getByRole('button', { name: 'Room', exact: true }).click();
   await expect(page.getByRole('complementary', { name: 'Room settings', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Floor: FAG', exact: true }).click();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('mm_studio_v3')!).state.scenes[0].room.floorColor)).toBe('FAG');
-  await page.getByRole('button', { name: 'Minimize panel', exact: true }).click();
+  await page.getByRole('button', { name: W.minimizePanel, exact: true }).click();
   await page.getByRole('button', { name: 'Hide tools', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Furniture', exact: true })).toBeHidden();
   await expect(roomCanvas).toBeVisible();
@@ -53,14 +57,14 @@ test('canvas-first workspace keeps its room across tool panels, house views and 
   await expect(page.locator('canvas').nth(1)).toBeVisible();
   await expect(page.locator('canvas').nth(1).locator('xpath=ancestor::*[@data-wall-mode][1]')).toHaveAttribute('data-wall-mode', 'full');
   await page.screenshot({ path: `../../docs/implementation/screenshots/house-workspace-${info.project.name}.png`, fullPage: true });
-  await page.getByRole('button', { name: 'Expand house tools', exact: true }).click();
+  await page.getByRole('button', { name: W.expandHouseTools, exact: true }).click();
   const width = page.getByLabel('Door width (m)', { exact: true });
   await width.fill('1.1'); await width.blur();
   const edited = await page.evaluate(() => JSON.parse(localStorage.getItem('mm_studio_v3')!).state);
   expect(edited.scenes[0].openings[0].w).toBe(1.1);
   expect(edited.scenes[1].openings[0].w).toBe(1.1);
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
-  await page.getByRole('button', { name: 'Minimize house tools', exact: true }).click();
+  await page.getByRole('button', { name: W.minimizeHouseTools, exact: true }).click();
   await page.getByRole('button', { name: 'House', exact: true }).click();
   await expect(roomCanvas).toBeVisible();
   expect(await originalCanvas!.evaluate((el) => el.isConnected)).toBe(true);

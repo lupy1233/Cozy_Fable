@@ -39,17 +39,21 @@ async function startWithRoom(page: Page, roomType: string) {
 test('ro, phone: the main action sits in the sticky bar on every step; an empty dimension is flagged on its field and the summary shows the same value', async ({ page }) => {
   test.setTimeout(300_000);
   await mockGuestDraft(page);
-  await startWithRoom(page, 'LAUNDRY');
+  // etapa 10: spalatoria noua nu mai cere tavanul fara dulapuri si cere latimea fiecarei piese —
+  // testul trece pe bucataria dreapta (latura A + tavanul, plus insula), care le are pe toate
+  await startWithRoom(page, 'KITCHEN');
   // cos: "Incepe" in bara
   await expectBarAction(page, t('nav.startQuestions'));
   await page.getByRole('button', { name: t('nav.startQuestions'), exact: true }).click();
 
-  const dims = getFlow('LAUNDRY').steps.find((s) => s.id === 'dimensions') as DimensionGroupStep;
-  const slots = dims.slots({});
-  const typed: Record<string, string> = { runA: '245,5', ceilingHeight: '260' };
-  await walkRoomQuestions(page, locale, ['LAUNDRY'], (type) => getFlow(type), undefined, {
+  const typed: Record<string, string> = { runA: '245,5', ceilingHeight: '260', islandLength: '200', islandDepth: '90' };
+  let slots: ReturnType<DimensionGroupStep['slots']> = [];
+  await walkRoomQuestions(page, locale, ['KITCHEN'], (type) => getFlow(type), undefined, {
+    preferred: { KITCHEN: { layout: 'STRAIGHT' } },
     onScreen: async () => expectBarAction(page, t('nav.next')),
-    onDimensions: async (block) => {
+    onDimensions: async (block, step, answers) => {
+      slots = (step as DimensionGroupStep).slots(answers);
+      expect(slots.map((slot) => slot.id)).toEqual(expect.arrayContaining(['runA', 'ceilingHeight']));
       await expect(block.getByRole('button', { name: 'cm', exact: true })).toHaveAttribute('aria-pressed', 'true');
       // "Continua" cu campurile goale: mesajul pe fiecare camp, focus pe primul, nimic sub bara
       await page.locator('[data-sticky-action-bar]').getByRole('button', { name: t('nav.next'), exact: true }).click();
@@ -85,19 +89,19 @@ test('ro, phone: the main action sits in the sticky bar on every step; an empty 
   await fillDetailsAndReview(page, locale);
 
   // Sumar: aceeasi valoare ca in camp ("245,5 cm"); vizitatorul are in bara "Inapoi" + autentificarea
-  const preview = page.locator('[data-review-room-preview="LAUNDRY"]');
+  const preview = page.locator('[data-review-room-preview="KITCHEN"]');
   await expect(preview.getByText('245,5 cm', { exact: true })).toBeVisible();
   await expect(preview.getByText('260 cm', { exact: true })).toBeVisible();
   await expectBarAction(page, t('nav.back'));
   await expectBarAction(page, t('review.loginToPublish'));
 
   // comutatorul pe m in formular → Sumarul urmeaza unitatea
-  await page.getByRole('button', { name: t('review.rooms.edit').replace('{room}', t('rooms.type.LAUNDRY')), exact: true }).click();
+  await page.getByRole('button', { name: t('review.rooms.edit').replace('{room}', t('rooms.type.KITCHEN')), exact: true }).click();
   const primary = page.locator('[data-sticky-action-bar]').getByRole('button', { name: new RegExp(`^(?:${escaped(t('nav.next'))}|${escaped(t('nav.toReview'))})$`) });
   const reviewHeading = page.getByRole('heading', { name: t('review.title'), exact: true });
   let switched = false;
   for (let i = 0; i < 30 && !(await reviewHeading.isVisible()); i++) {
-    const dimBlock = page.locator('[data-question-id="dimensions"][data-room-type="LAUNDRY"]');
+    const dimBlock = page.locator('[data-question-id="dimensions"][data-room-type="KITCHEN"]');
     if (!switched && await dimBlock.isVisible()) {
       await dimBlock.getByRole('button', { name: 'm', exact: true }).click();
       await expect(dimBlock.getByRole('textbox', { name: new RegExp(`${escaped(t(slots[0].labelKey))}$`) })).toHaveValue('2,455');
@@ -167,8 +171,10 @@ test('ro, phone: the bedroom shows "Ecranul N" until the pieces are chosen, then
       });
     },
   });
-  const piecesAt = seen.findIndex((s) => s.ids.includes('piecesNeeded'));
-  expect(piecesAt, 'ecranul pieselor').toBeGreaterThanOrEqual(0);
+  // etapa 10 (dormitorul v4): ecranul stofei depinde de „Pat tapițat?”, deci totalul se stie abia dupa
+  // ecranul saltelei (comportament acceptat, CHANGELOG etapa 10); pana atunci „Ecranul N”
+  const piecesAt = Math.max(seen.findIndex((s) => s.ids.includes('piecesNeeded')), seen.findIndex((s) => s.ids.includes('bedUpholstered')));
+  expect(seen.findIndex((s) => s.ids.includes('piecesNeeded')), 'ecranul pieselor').toBeGreaterThanOrEqual(0);
   const only = new RegExp(`^${escaped(t('nav.screenOnly')).replace('\\{current\\}', '(\\d+)')}$`);
   const of = new RegExp(`^${escaped(t('nav.screenOf')).replace('\\{current\\}', '(\\d+)').replace('\\{total\\}', '(\\d+)')}$`);
   seen.forEach((s, i) => {
