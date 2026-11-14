@@ -26,6 +26,8 @@ Toate operațiile care modifică numărul de claim_slots active ale unui request
 
 Header Idempotency-Key (UUID v4 generat de frontend) pe: POST /requests/:id/claim, /quotes/:id/accept, /quotes, /webhooks/payment, /credits/purchase. Tabel idempotency_keys (key, user_id, endpoint, request_hash, response_body, response_status, expires_at), dedup 24h. Match key+endpoint+hash → răspuns cached; key+endpoint dar hash diferit → 409 Conflict.
 
+Adaugare 2026-11-13 (etapa 4, PO a4-1): si POST /client/quotes/:id/decline (refuzul ofertei de catre client; cheie tranzactionala, ca la acceptare — raspunsul se salveaza in aceeasi tranzactie cu refuzul).
+
 ### 3.3 Timezone și calendar
 
 Toate datetime-urile în PostgreSQL ca TIMESTAMPTZ în UTC. SLA și calendar de business în Europe/Bucharest. Zile lucrătoare: npm date-holidays (sărbători fixe) + tabel business_calendar_holidays (Paște Ortodox + a doua zi, 2025–2028, + override admin pentru punți guvernamentale). SLA materializat în claim_slots.sla_deadline_at la momentul claim-ului; recalculele după clarificări actualizează coloana via worker, nu se calculează la fiecare citire.
@@ -51,6 +53,8 @@ Fișierele NU sunt accesibile prin URL static și NU se servesc prin endpoint Ne
 ### 3.5 Socket.IO și realtime
 
 Auth socket cookie-based (același httpOnly cookie). La handshake, middleware validează access token; expirat → event auth_expired → client face refresh + reconectare. Evenimentele se emit DOAR prin EventBusService.publish(event, payload) (controllerele nu emit direct), care emite pe Socket.IO + enqueue BullMQ pentru notifications. Redis adapter obligatoriu de la Sprint 1. Evenimente minime: claim.created, claim.withdrawn, quote.created, quote.updated, quote.accepted, message.created, request.status_changed, sla.expiring_soon.
+
+Adaugare 2026-11-13 (etapa 4): quote.declined (refuzul clientului, catre membrii firmei: clopotel + e-mail cu motivul; prin outbox) si quote.updated cu `kind` (`CHANGE_REQUESTED` → e-mail firmei; `NEW_VERSION` + `version` → e-mail clientului). Mesajele de sistem din conversatie nu publica message.created.
 
 ### 3.6 Frontend state boundaries
 

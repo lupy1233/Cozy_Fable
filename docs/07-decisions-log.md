@@ -36,6 +36,8 @@
 
 **Rationale: **Interpretarea naturală a regulilor; predictibilă și ușor de UX-uit.
 
+_Completata la 2026-11-13 de D-E4-8 (variantele raman toate vizibile, fiecare cu moneda ei; cererile de modificare raman vizibile dupa raspuns) si de D-E4-1 (clientul poate refuza oferta)._
+
 ### 6. Holidays
 
 **Decizie: **Hibrid: npm date-holidays (fixe) + business_calendar_holidays (Paște + override admin).
@@ -157,6 +159,8 @@ _Rămasă fără obiect la 2026-11-13 prin D-E1-2 (nu mai există întârziere d
 **Rationale: **Flexibil; default sensibil (trusted tot mai puțin preț, managed read-only).
 
 **Impact: **company_offer_field_permissions; verificare la edit ofertă.
+
+_Completata la 2026-11-13 de D-E4-3 … D-E4-6: rubricile noi intra sub cheile existente (TVA, bife, moneda, proiectare → PRICE; termen → DELIVERY_TERM; garantie → WARRANTY); o varianta noua cere acum si DELIVERY_TERM si WARRANTY._
 
 ### Î6. Audit preț
 
@@ -354,6 +358,8 @@ _Rămasă fără obiect la 2026-11-13 prin D-E1-2 (nu mai există întârziere d
 
 _Inlocuita la 2026-11-13 de D-E2-1 (PO g0-8): proiectarea nu mai e o bifa pe cerere, ci consecinta ajutorului cerut pe cel putin o camera; linia `design_fee` din oferta ramane._
 
+_Completata la 2026-11-13 de D-E4-6 (PO g0-11): la cererile cu proiectare, pretul proiectarii si „ce include” sunt obligatorii in oferta, pretul mobilierului ramane ca estimare; D-E4-5 (a3-3) pastreaza regula ca firma nu cere tarif de proiectare la celelalte cereri._
+
 ### D-v6-12. Moneda ofertei
 
 **Decizie: **Firma alege RON sau EUR; clientul vede ambele prin cursul fix configurabil (1 EUR = 5.2 RON).
@@ -362,6 +368,8 @@ _Inlocuita la 2026-11-13 de D-E2-1 (PO g0-8): proiectarea nu mai e o bifa pe cer
 
 **Impact: **quotes.currency; conversie informativă în UI + PDF.
 
+_Completata la 2026-11-13 de D-E4-8: moneda e a variantei (`quote_versions.currency`), aleasa de firma la fiecare varianta; `quotes.currency` = moneda ultimei variante. Cursul ramane `eur_ron_rate`, fara data (D-E4-12)._
+
 ### D-v6-13. Ceas nou la re-publicare
 
 **Decizie: **Cererea revenită în marketplace după ratare SLA în masă primește un nou ceas de 5 zile lucrătoare.
@@ -369,6 +377,8 @@ _Inlocuita la 2026-11-13 de D-E2-1 (PO g0-8): proiectarea nu mai e o bifa pe cer
 **Rationale: **Fără ceas nou, cererea ar putea reveni deja „expirată”; clientul nu trebuie penalizat pentru eșecul firmelor.
 
 **Impact: **Worker-ul de SLA breach total resetează expirarea; nu consumă repost-ul.
+
+_Completata la 2026-11-13 de D-E4-18: acelasi ceas nou de 5 zile lucratoare cand cererea ramane fara niciun loc ocupat dupa refuzul unei oferte._
 
 ### D-v6-14. Monorepo
 
@@ -397,6 +407,8 @@ _Inlocuita la 2026-11-13 de D-E2-1 (PO g0-8): proiectarea nu mai e o bifa pe cer
 **Decizie: **La `acceptQuote`, sloturile ACTIVE (fara oferta) ale celorlalte firme se inchid cu REFUND al creditelor rezervate si chat read-only; firmele care au ofertat si au pierdut raman pe pay-to-play (consum, D anterioara). Jobul de SLA nu mai penalizeaza sloturi ale unei cereri deja ACCEPTED.
 
 **Rationale: **Firma care nu a apucat sa oferteze nu a avut sansa; penalizarea SLA + consumul pe o cerere deja atribuita erau nedrepte.
+
+_Completata la 2026-11-13 de D-E4-1 (PO a4-1): si oferta refuzata de client consuma creditele rezervate (pay-to-play), motiv `OFFER_DECLINED`._
 
 ### D-L0-4. Date demo pe productie (2026-08-19, PO)
 
@@ -725,6 +737,206 @@ _Completata la 2026-11-13 de D-E3-4 (PO d1-1): camera bifata nu mai primeste pie
 **Rationale: **Revizuirea (M3): marimea (S/M/L → termenul firmei, filtrul de marime) include ponderea treptei; cu glisorul care coboara la o treime din estimare (D-E3-2), clientul ar fi putut micsora marimea alegand suma minima. Inainte treapta venea din minimul estimarii, pus din oficiu.
 
 **Impact: **`sizingBudgetRange` (shared) si `sizeWithBudgetFloor` (`publish-rules.ts`), la publicare si la editare; a doua trecere prin calculul marimii doar cand treapta se schimba. Salvarea treptei folosite la marime tine marimea identica si la recalcularile care citesc `budget_range` (previzualizarea din Admin → Marime proiect). docs/03 4.5; docs/04.
+
+### D-E4-1. Clientul poate refuza o oferta: refuz definitiv, creditele se consuma (2026-11-13, PO a4-1)
+
+**Decizie: **Clientul poate refuza o oferta trimisa (SENT). Refuzul e definitiv: oferta devine `DECLINED`, locul firmei se inchide, creditele rezervate se consuma, conversatia devine doar-citire, firma e anuntata (clopotel + e-mail). Locul liber poate fi preluat de alta firma cat cererea ramane deschisa (D-E1-1).
+
+**Rationale: **PO: la fel ca „clientul a ales alta firma”; regula coerenta cu restul (pay-to-play, D-L0-3). Pana acum firma ramanea cu locul si creditele blocate pana expira oferta.
+
+**Impact: **Ruta `POST /client/quotes/:id/decline` (Idempotency-Key, FOR UPDATE pe cerere ca la acceptare, decontare unica prin `ClaimSettlementService`, motiv in registru `OFFER_DECLINED`), cod 409 `QUOTE_NOT_DECLINABLE`, eveniment outbox `quote.declined`, mesaj de sistem `QUOTE_DECLINED` in conversatie. Migrarea `20261113180000_quote_decline_structured_versions` (docs/04). docs/03 4.8, 4.13.
+
+### D-E4-2. Motivul refuzului: optional, din lista scurta + text; firma il vede (2026-11-13, PO a4-2)
+
+**Decizie: **Motivul e optional: pret / termen / alta firma / renunt (`PRICE`, `DELIVERY_TERM`, `OTHER_COMPANY`, `GAVE_UP`) plus un text liber optional (max 500 de caractere). Firma le vede pe oferta, in conversatie si in e-mail.
+
+**Rationale: **Clientul refuza dintr-un clic; firmele primesc semnal util cand e dat.
+
+**Impact: **`quotes.decline_reason` / `decline_note` / `declined_at`. Textul ajunge la firma cu datele de contact mascate (`maskFreeText`, locul ei nu mai e ocupant); clientul il vede neschimbat.
+
+### D-E4-3. Rubrica de TVA obligatorie, cu trei variante (2026-11-13, PO a3-1)
+
+**Decizie: **Fiecare varianta noua de oferta spune obligatoriu: pretul include TVA / nu include TVA / firma nu e platitoare de TVA.
+
+**Rationale: **Tabelul calculeaza „Total cu TVA” corect pentru toate; firma mai bifeaza o rubrica.
+
+**Impact: **`quote_versions.vat_mode`; serverul calculeaza `priceWithVat` / `totalWithVat` cu cota `system_settings.vat_rate` (aceeasi sursa ca facturile). Indemnul „intreaba firma daca pretul include TVA” ramane doar pe ofertele vechi.
+
+### D-E4-4. Termenul si garantia devin obligatorii, structurate (2026-11-13, PO a3-2)
+
+**Decizie: **Termenul (numar + unitate: saptamani sau zile lucratoare) si garantia (in luni) sunt obligatorii la orice varianta noua.
+
+**Rationale: **Tabelul e mereu complet; firma nu mai poate trimite o oferta fara termen.
+
+**Impact: **`quote_versions.delivery_term_value` / `delivery_term_unit` / `warranty_months`; textele `delivery_term` / `warranty` se scriu de server din rubrici. Ofertele vechi raman cu textul liber (variante imuabile). Orice varianta noua cere acum si permisiunile DELIVERY_TERM si WARRANTY din matrice (Î5).
+
+### D-E4-5. Doar bifele „inclus in pret: transport / montaj” (2026-11-13, PO a3-3)
+
+**Decizie: **Oferta are doua bife obligatorii (da / nu): transport inclus in pret, montaj inclus in pret. Fara sume separate si fara tarif de proiectare cerut oricand; proiectarea ceruta de firma la o cerere fara proiectare ramane in descriere.
+
+**Rationale: **Recomandarea PO; decizia D-v6-11 ramane neschimbata pentru proiectare (completata doar de D-E4-6).
+
+**Impact: **`quote_versions.includes_transport` / `includes_assembly`; randurile Transport si Montaj in tabel, pe card si in PDF.
+
+### D-E4-6. Proiectarea cu plata: pretul si „ce include” obligatorii in oferta (2026-11-13, PO g0-11)
+
+**Decizie: **La cererile cu proiectare cu plata, pretul proiectarii si „ce include proiectarea” sunt obligatorii in oferta; pretul mobilierului ramane in aceeasi oferta, ca estimare. La celelalte cereri ambele sunt interzise. Drumul in doi pasi (intai oferta doar pentru proiectare) nu se construieste acum.
+
+**Rationale: **Clientul compara firmele dupa proiectare, iar textele spun drumul descris de PO.
+
+**Impact: **Completeaza D-v6-11. `quote_versions.design_includes` (text, 1–1000); 400 `VALIDATION_ERROR` cu `details.fields` cand lipsesc / sunt trimise unde nu au voie. In formular pretul de sus devine „Pret mobilier (estimare)”; pe card „Mobilier (estimare)” + proiectarea separat.
+
+### D-E4-7. Problema 29 (tabelul de comparare) facuta impreuna cu 19 (refuzul si variantele) (2026-11-13, PO g0-5)
+
+**Decizie: **Problemele 19 (`a4`) si 29 (`a3`) se fac impreuna, in etapa 4.
+
+**Rationale: **O singura schimbare a bazei de date (`quote_versions`) si un singur formular nou de oferta pentru firme.
+
+**Impact: **O singura migrare (`20261113180000_quote_decline_structured_versions`).
+
+### D-E4-8. Moneda pe varianta; toate variantele si cererile de modificare raman vizibile (2026-11-13, pasii planului etapei 4 — a4)
+
+**Decizie: **Moneda devine a variantei (`quote_versions.currency`, backfill din oferta); firma o alege la fiecare varianta, iar varianta noua porneste precompletata din ultima. Clientul si firma vad toate variantele, cu diferentele, iar cererile de modificare raman vizibile dupa raspuns (varianta pe care s-au cerut si varianta care le-a raspuns). Cererea de modificare apare ca mesaj de sistem in conversatie si se trimite pe e-mail firmei; o varianta noua se trimite pe e-mail clientului.
+
+**Rationale: **Pana acum varianta 1 disparea cand venea varianta 2, cererea de modificare nu se mai vedea dupa raspuns, iar formularul variantei noi pornea gol, cu moneda fixata pe toata oferta.
+
+**Impact: **Completeaza D-v6-12 si D-v6-11. `quote_change_requests.answered_by_version_id`; `QuoteDto.changeRequests` (`requestedOnVersion`, `answeredByVersion`); `quote.updated` cu `kind` (`CHANGE_REQUESTED` / `NEW_VERSION`).
+
+### D-E4-9. Firma refuzata nu mai poate prelua aceeasi cerere (2026-11-13, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **La refuz se scrie un rand `request_company_exclusions` cu motivul `QUOTE_DECLINED`; firma refuzata primeste 403 `COMPANY_EXCLUDED_FROM_REQUEST` la o noua preluare, iar cererea nu-i mai apare in piata.
+
+**Rationale: **Agentul de server a citit „refuz definitiv” (a4-1) asa; altfel firma ar putea prelua din nou (platind iar) si retrimite aceeasi oferta.
+
+**Impact: **Reversibil (stergerea randurilor). Daca PO vrea ca firma sa poata prelua din nou, se scoate scrierea excluderii din `declineQuote`. Textele interfetei nu promit firmei o oferta noua.
+
+### D-E4-10. Starea noua a locului: `OFFER_DECLINED` (2026-11-13, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **Locul firmei refuzate trece in starea noua `OFFER_DECLINED` (terminala, nu ocupa loc). Interfata decide „oferta refuzata” doar dupa `quote.status === 'DECLINED'`.
+
+**Rationale: **Starile existente inseamna altceva: `CANCELLED_BY_CLIENT` = cerere stearsa de client, credite returnate; `CANCELLED_REQUEST_ACCEPTED` = clientul a ales alta firma.
+
+**Impact: **Valoare noua in `claim_slot_status` (nu se poate sterge din Postgres). Toate caile de inchidere a locului pleaca doar din ACTIVE / OFFER_SENT, deci un loc refuzat nu se mai deconteaza a doua oara (`ledger-check` consistent). In Admin apare starea bruta si motivul `OFFER_DECLINED` in registru.
+
+### D-E4-11. Campul calculat `totalWithVat` (2026-11-13, adaugat de agenti peste contract, de confirmat de PO)
+
+**Decizie: **Pe fiecare varianta serverul intoarce, pe langa `priceWithVat` (pe pret), si `totalWithVat` = totalul (pret + proiectare) cu aceeasi regula de TVA. Tabelul si cardul folosesc `totalWithVat`, deci arata aceeasi suma.
+
+**Rationale: **La cererile cu proiectare, „Total cu TVA” trebuie sa includa proiectarea; contractul prevedea doar `priceWithVat`.
+
+**Impact: **Fara coloana (calculat la citire); `null` pe variantele vechi.
+
+### D-E4-12. Cursul EUR e setarea `eur_ron_rate`, fara data (2026-11-13, constatare a agentilor, de confirmat de PO)
+
+**Decizie: **Tabelul afiseaza doar cursul folosit („Curs folosit: 1 EUR = … lei.”), fara data cursului ceruta de plan.
+
+**Rationale: **Cursul e o setare fixa din Admin, fara istoric; nu s-a inventat o coloana noua.
+
+**Impact: **Daca PO vrea data, varianta propusa de agentul de server: expunerea `system_settings.updated_at` pentru cheia `eur_ron_rate` pe `QuoteDto`.
+
+### D-E4-13. Insigna „cel mai mic” langa o oferta veche: regula prudenta (2026-11-13, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **O oferta veche (fara rubrica de TVA) nu primeste insigna si o blocheaza pe a celorlalte, daca nu se poate dovedi ca e mai scumpa: castigatorul trebuie sa fie strict sub totalul ei scris, adus in lei (totalul scris e o margine de jos a totalului ei cu TVA). Exemplu: 15.000 vechi langa 18.500 nou → nicio insigna; 20.000 vechi langa 18.500 nou → insigna pe 18.500.
+
+**Rationale: **Fara TVA cunoscut nu se poate compara sigur; insigna nu are voie sa minta.
+
+**Impact: **`lib/offer-compare.ts` (`pickLowest`).
+
+### D-E4-14. „Cel mai rapid” pe zile lucratoare (2026-11-13, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **„Cel mai rapid” se calculeaza pe termenul adus la zile lucratoare (o saptamana = 5 zile, `deliveryWorkingDays`); fara insigna la egalitate (6 saptamani = 30 de zile lucratoare) sau cand o oferta vie are doar termen scris liber. Inlocuieste regula veche pe data livrarii.
+
+**Rationale: **Termenul liber nu se poate compara; o egalitate nu are castigator.
+
+**Impact: **`lib/offer-compare.ts` (`pickFastest`).
+
+### D-E4-15. Bifele transport / montaj pornesc nebifate (2026-11-13, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **In formular bifele pornesc nebifate si se trimit mereu explicit `true` / `false`; nu se cere o alegere activa „da / nu” pentru fiecare.
+
+**Rationale: **Planul nu spunea cum arata alegerea in formular.
+
+**Impact: **O firma care nu bifeaza trimite „nu e inclus”. Se schimba doar in interfata.
+
+### D-E4-16. Varianta noua dintr-o varianta veche nu ghiceste termenul si garantia (2026-11-13, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **Cand varianta precedenta e veche (fara rubrici), formularul variantei noi nu incearca sa citeasca termenul sau garantia din textul liber: rubricile raman goale si trebuie completate.
+
+**Rationale: **O ghicire gresita ar intra intr-o oferta contractuala.
+
+**Impact: **Doar interfata (precompletarea din `offer-builder.tsx`).
+
+### D-E4-17. Tabelul arata lei intregi, cardul sume cu bani (2026-11-13, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **Tabelul de comparare arata lei intregi („11.500 lei”, ca `formatLei` din etapa 3); cardul ofertei si dialogul de acceptare arata sumele exacte, cu 2 zecimale („11.500,00 lei”), „lei” in ambele limbi.
+
+**Rationale: **Cardul arata sumele contractului; tabelul e pentru comparatie.
+
+**Impact: **Unificarea formatului ramane la problema 54 (`c12`).
+
+### D-E4-18. Fara niciun loc ocupat dupa refuz, cererea revine in piata cu ceas nou (2026-11-13, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **Dupa refuz statusul cererii se recalculeaza: daca nu mai ramane niciun loc ocupat (de ex. a fost refuzata singura oferta), cererea revine IN_MARKETPLACE cu ceas nou de expirare de 5 zile lucratoare (ca D-v6-13, fara a consuma repost-ul); daca raman locuri ocupate fara oferta vie, coboara la CLAIMED_PARTIAL / CLAIMED_FULL; altfel ramane in OFFERS_RECEIVED / NEGOTIATION.
+
+**Rationale: **Fara ceas nou cererea ar putea reveni deja expirata; acelasi tipar ca la retragere si la inchiderea ofertelor expirate (`recomputeRequestStatusAfterClaimChange` cu `republishExpiresAt`).
+
+**Impact: **Jobul de expirare se programeaza dupa commit; firmele refuzate nu o mai vad (D-E4-9).
+
+### D-E4-19. Ofertele din datele demo raman „vechi” (2026-11-13, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **Seed-urile demo nu au fost aduse la rubricile noi: ofertele demo apar ca variante vechi (text liber, „—” la calcul, fara insigne calculate pe ele).
+
+**Rationale: **Etapa nu atinge datele demo; ofertele vechi trebuie oricum sa se afiseze corect.
+
+**Impact: **Pe local, pentru a vedea rubricile noi trebuie trimisa o oferta noua.
+
+### D-E4-20. Cota de TVA se ingheata pe varianta (2026-11-14, dupa revizuirea de cod — M1 server)
+
+**Decizie: **La trimiterea fiecarei variante noi se salveaza cota de TVA de atunci (`system_settings.vat_rate`) in `quote_versions.vat_rate_percent`; `vatRatePercent`, `priceWithVat`, `totalWithVat` si PDF-ul o folosesc. Variantele dinainte (coloana NULL) folosesc cota curenta.
+
+**Rationale: **„Totalul cu TVA” al unei oferte trimise nu are voie sa se schimbe cand adminul schimba cota.
+
+**Impact: **Migrarea separata `20261113181000_quote_version_vat_rate` (aditiva, fara backfill). Completeaza D-E4-3 si D-E4-11.
+
+### D-E4-21. Refuzul doar pe o oferta in valabilitate (2026-11-14, dupa revizuirea de cod — M3 server; de confirmat de PO)
+
+**Decizie: **Refuzul unei oferte cu `valid_until` depasit raspunde 409 `QUOTE_EXPIRED`, ca acceptarea, fara scrieri si fara credite; verificat inainte de tranzactie si sub blocare.
+
+**Rationale: **Inainte, acelasi refuz consuma sau nu creditele dupa cat intarzia jobul de valabilitate; acum rezultatul nu mai depinde de job.
+
+**Impact: **Oferta expirata ramane pe drumul ei existent (prelungire / reofertare / inchidere automata). Butonul „Refuz oferta” apare oricum doar pe SENT; dialogul arata „Oferta a expirat.”.
+
+### D-E4-22. La o varianta noua, un camp neschimbat nu cere permisiunea lui (2026-11-14, dupa revizuirea de cod — M1 interfata; de confirmat de PO)
+
+**Decizie: **La revizie / varianta peste limita / reofertare, data livrarii, termenul si garantia se socotesc atinse doar daca difera de ultima varianta; PRICE si DESCRIPTION raman mereu cerute. La v1 nimic nu se schimba, deci un membru fara drept pe termen sau garantie nu poate trimite prima varianta (rubricile sunt obligatorii).
+
+**Rationale: **Formularul precompleteaza data livrarii din varianta veche; un angajat fara drept pe „Data livrarii” nu mai putea raspunde clientului.
+
+**Impact: **Completeaza Î5 si D-E4-4. Eroarea `OFFER_FIELD_NOT_EDITABLE` numeste campurile (`details.fields`), iar interfata le arata.
+
+### D-E4-23. Textele clientului se mascheaza pentru firma si in cererile de modificare (2026-11-14, dupa revizuirea de cod — M2 server)
+
+**Decizie: **Nota de refuz si textele cererilor de modificare (`changeRequests[].requestedText`, `versions[].changeRequest.requestedText`) ajung la firma cu contactele mascate pe toate caile firmei (oferta, lista, fisa de lucru in toate vederile, chitantele actiunilor firmei, inclusiv reluarea idempotenta). Clientul vede textele neschimbate.
+
+**Rationale: **Nota de refuz era mascata, dar cererile de modificare ajungeau nemascate, inclusiv dupa refuz.
+
+**Impact: **Aceeasi regula ca D-E4-2; fara schimbare de schema.
+
+### D-E4-24. Invitatiile la consultanta se inchid la refuz (2026-11-14, dupa revizuirea de cod — M3 interfata)
+
+**Decizie: **La refuz, invitatiile `PENDING_CLIENT` ale ofertei trec in `EXPIRED`; butoanele „Accept / Refuz” ale invitatiilor apar doar pe o oferta SENT in valabilitate.
+
+**Rationale: **Dupa refuz clientul mai vedea butoanele, iar clicul esua fara mesaj.
+
+**Impact: **Stare existenta, fara migrare. Cererile de modificare PENDING raman PENDING (enum-ul nu are o stare potrivita; interfata le arata „Fara raspuns — oferta s-a inchis.”); retragerea aflata la admin ramane in coada — ambele de confirmat de PO.
+
+### D-E4-25. Statistica firmei aduna ofertele in lei (2026-11-14, dupa revizuirea de cod — m8 server; de confirmat de PO)
+
+**Decizie: **Valoarea ofertelor din panoul firmei converteste preturile variantelor in EUR cu `eur_ron_rate` inainte de adunare; totalul e in lei.
+
+**Rationale: **Cu moneda pe varianta, o firma poate amesteca RON si EUR; suma bruta amesteca monede.
+
+**Impact: **`companies.service.ts` (`dashboardStats`); cursul fara data (D-E4-12).
 
 # 9. Checklist uman: ce faci acum
 

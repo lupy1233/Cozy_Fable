@@ -10,7 +10,7 @@ Formular generic structurat pe camere și piese. Câmpuri (derivate din categori
 
 - Opțiunea „Am deja un proiect” — clientul atașează proiectul propriu.
 
-- **Opțiunea „Proiectare contra cost” (D-v6-11, înlocuită parțial la 2026-11-13 de D-E2-1): **din 2026-11-13 nu mai e o bifă separată pe cerere: ajutorul se cere pe cameră, iar requests.includes_paid_design e derivat de server (true dacă măcar o cameră are request_rooms.needs_design_help) — vezi actualizarea etapei 2 de mai jos. Firma include în ofertă o linie separată de preț (quote_versions.design_fee, nullable). NU există flux de plată separat în MVP — design fee face parte din oferta acceptată.
+- **Opțiunea „Proiectare contra cost” (D-v6-11, înlocuită parțial la 2026-11-13 de D-E2-1): **din 2026-11-13 nu mai e o bifă separată pe cerere: ajutorul se cere pe cameră, iar requests.includes_paid_design e derivat de server (true dacă măcar o cameră are request_rooms.needs_design_help) — vezi actualizarea etapei 2 de mai jos. Firma include în ofertă o linie separată de preț (quote_versions.design_fee, nullable). NU există flux de plată separat în MVP — design fee face parte din oferta acceptată. Actualizat 2026-11-13, etapa 4 (PO g0-11, D-E4-6): la cererile cu proiectare, pretul proiectarii si „ce include proiectarea” (quote_versions.design_includes) sunt obligatorii in oferta, iar pretul mobilierului ramane in aceeasi oferta, ca estimare (4.13).
 
 - Draft anonim cu token — clientul poate începe fără cont; cererea e nepublicată și recuperabilă.
 
@@ -136,6 +136,8 @@ Actualizare 2026-11-13 (etapa 3, b11 + d1-1): treapta de buget (`budget_range`) 
 
 - Refund la editare cerere post-claim sau la anulări valide (4.15). Creditele se consumă definitiv conform regulilor de anulare/finalizare.
 
+  Actualizat 2026-11-13, etapa 4 (PO a4-1): refuzul ofertei de catre client (4.13) CONSUMA creditele rezervate ale firmei refuzate, ca la „clientul a ales alta firma” (pay-to-play, D-L0-3): o singura miscare `CONSUME` in registru, motiv `OFFER_DECLINED`, prin aceeasi decontare unica a locului (`ClaimSettlementService`), si la doua cereri simultane (refuz ‖ acceptare / refuz dublu). Locul firmei trece in `OFFER_DECLINED` (terminal; nu mai ocupa loc).
+
 - Eligibilitate la claim: firmă APPROVED + abonament activ (SubscriptionActiveGuard) + credite suficiente + arie de acoperire îndeplinită + gating-ul planului (4.10) deja deschis + firma NU e în request_company_exclusions pentru cererea respectivă.
 
   Nota de implementare 2026-10-01 (E-admin-platform-58): „abonament activ” = `status = ACTIVE` si `expires_at > now` (predicatul unic `activeSubscriptionWhere`, folosit de garda, SubscriptionsService, workerul de expirare si KPI-ul admin) SI planul abonamentului include functia `MARKETPLACE_ACCESS` (`subscription_plan_features`). Fara abonament → 403 `SUBSCRIPTION_INACTIVE` (neschimbat); abonament pe un plan fara acces → 403 `PLAN_FEATURE_REQUIRED`. Cele 3 planuri existente au accesul activ (backfill) — comportament identic cu cel de dinainte.
@@ -213,6 +215,8 @@ Nota de implementare 2026-10-01 (E-client-9, C7-2): distanta si acoperirea se ma
 
 - **Moneda ofertei (D-v6-12): **firma alege moneda ofertei: RON sau EUR (quotes.currency ENUM, default RON). Clientul vede AMBELE valori, conversia folosind cursul fix configurabil (1 EUR = 5.2 RON). Suma contractuală rămâne cea în moneda aleasă de firmă; conversia e doar informativă în UI și PDF.
 
+  Actualizat 2026-11-13, etapa 4 (a4, D-E4-8): moneda e a VARIANTEI (`quote_versions.currency`), nu a ofertei intregi: firma o alege la fiecare varianta (v2 poate fi in EUR dupa v1 in RON); lipsa la trimitere = moneda variantei precedente (la v1 = RON). `quotes.currency` ramane = moneda ultimei variante. Cursul ramane setarea `eur_ron_rate` din Admin (fara data, fara istoric); conversia ramane informativa.
+
 **După v3 (block UI cu 3 opțiuni): **(a) a 4-a variantă voluntară, peste limită (tracking quotes.extra_versions_count); (b) invitație la sediu pentru consultanță fizică (physical_consultation_invites); (c) „închei negocierea online”.
 
 - **Expirare invitație consultanță (D-v6-8): **dacă clientul nu răspunde în 7 zile calendaristice de la creare → status EXPIRED (physical_consultation_invites.expires_at = created_at + 7d; BullMQ job; configurabil: consultation_invite_expiry_days=7). Firma e notificată la expirare și poate retrimite o invitație nouă.
@@ -224,6 +228,39 @@ Nota de implementare 2026-10-01 (E-client-9, C7-2): distanta si acoperirea se ma
 **Reofertare la expirare — 2 butoane: **Buton A „Păstrez aceleași date” extinde valid_until cu N zile (default 14, configurabil), NU e versiune nouă, NU consumă slot, audit în quote_validity_extensions; max 2 extensii × 14 zile = +28 zile maxim. Buton B „Modifică” = versiune nouă, consumă slot; dacă sunt deja 3 → block-ul de mai sus.
 
 **Permisiuni câmpuri ofertă: **matrice configurabilă per firmă (company_offer_field_permissions: company_id, role, field_key, can_edit). Câmpuri: PRICE, DELIVERY_TERM, DELIVERY_DATE, WARRANTY, DESCRIPTION. Default seed la onboarding firmă: owner/manager pot orice; trusted poate orice mai puțin PRICE; managed read-only. Owner-ul ajustează matricea.
+
+  Actualizat 2026-11-13, etapa 4 (a3): fara chei noi — rubricile noi intra sub cheile existente: TVA (`vatMode`), bifele transport / montaj, moneda variantei, pretul proiectarii si „ce include” → PRICE; termenul structurat (numar + unitate) → DELIVERY_TERM; garantia in luni → WARRANTY. Fiindca termenul si garantia sunt obligatorii, orice varianta noua cere acum PRICE, DESCRIPTION, DELIVERY_TERM si WARRANTY (pana acum PRICE + DESCRIPTION): un rol fara DELIVERY_TERM sau WARRANTY in matrice nu mai poate trimite oferte.
+
+  Actualizat 2026-11-14, etapa 4 dupa revizuire (D-E4-22): la o varianta noua (revizie, varianta peste limita, reofertare), un camp retrimis neschimbat fata de varianta precedenta nu cere permisiunea lui (DELIVERY_DATE / DELIVERY_TERM / WARRANTY); PRICE si DESCRIPTION raman mereu cerute. La v1 nimic nu se schimba: un rol fara DELIVERY_TERM sau WARRANTY nu poate trimite prima varianta. Eroarea `OFFER_FIELD_NOT_EDITABLE` numeste campurile (`details.fields`).
+
+**Rubricile ofertei (actualizat 2026-11-13, etapa 4 — PO a3-1, a3-2, a3-3, g0-11): **la orice varianta noua (v1, revizie, varianta peste limita, reofertare) sunt obligatorii:
+- TVA, cu trei variante: pretul include TVA / nu include TVA / firma nu e platitoare de TVA (a3-1);
+- termenul, ca numar + unitate (saptamani sau zile lucratoare), si garantia, in luni (a3-2);
+- bifele „Inclus in pret: transport” si „Inclus in pret: montaj”, trimise explicit da / nu (a3-3: doar bife, fara sume separate; in formular pornesc nebifate — D-E4-15). Proiectarea ceruta de firma la o cerere fara proiectare cu plata ramane in descriere.
+- La cererile cu proiectare cu plata (`includes_paid_design`), pretul proiectarii SI „ce include proiectarea” (text, max 1000) sunt obligatorii; pretul mobilierului ramane in aceeasi oferta, ca estimare („Pret mobilier (estimare)”). La celelalte cereri ambele sunt interzise (g0-11, completeaza D-v6-11).
+- Textele libere vechi (termen, garantie) nu se mai trimit: serverul le scrie din rubrici („6 săptămâni”, „30 de zile lucrătoare”, „24 de luni”), ca PDF-ul, e-mailurile si codul vechi sa ramana lizibile. O varianta fara rubrici (formular vechi) e refuzata cu 400 `VALIDATION_ERROR`.
+- Cota de TVA folosita la calcul se ingheata pe varianta la trimitere (`quote_versions.vat_rate_percent`, din `vat_rate`); o schimbare ulterioara a cotei din Admin nu muta ofertele deja trimise; variantele dinainte folosesc cota curenta (actualizat 2026-11-14, D-E4-20). TVA-ul din rubrica se aplica si tarifului de proiectare in totalul cu TVA (de confirmat de PO).
+- La schimbarea monedei intr-o varianta noua, sumele nu se convertesc singure: formularul avertizeaza si nu trimite daca pretul, preturile pe camere sau tariful de proiectare au ramas aceleasi numere ca in varianta precedenta (actualizat 2026-11-14).
+- Ofertele / variantele trimise inainte de etapa 4 raman cu textul lor liber (variantele sunt imuabile; nimic nu se rescrie); pe ecrane apar cu textul, iar la calcule cu „—”.
+- Varianta noua porneste precompletata din ultima varianta (data livrarii doar daca nu a trecut); dintr-o varianta veche, termenul si garantia nu se ghicesc din textul liber — raman goale si trebuie completate (D-E4-16).
+
+**Variantele si cererile de modificare (actualizat 2026-11-13, etapa 4 — a4): **clientul si firma vad toate variantele ofertei (v1, v2…), fiecare in moneda ei, cu diferentele fata de varianta precedenta (pret, termen, descriere…). Fiecare cerere de modificare ramane vizibila si dupa raspuns, langa varianta pe care s-a cerut si langa varianta care i-a raspuns. Cererea de modificare apare si ca mesaj de sistem in conversatia cu firma, iar firma primeste e-mail; la o varianta noua clientul primeste e-mail. Firma vede textele libere ale clientului din oferta (cereri de modificare, nota de refuz) cu contactele mascate, pe toate ecranele ei (actualizat 2026-11-14, D-E4-23). O cerere de modificare ramasa fara raspuns pe o oferta inchisa apare „Fara raspuns — oferta s-a inchis.” (in date ramane PENDING).
+
+**Refuzul ofertei de catre client (actualizat 2026-11-13, etapa 4 — PO a4-1, a4-2): **
+- Clientul poate refuza o oferta trimisa (`SENT`) a cererii lui, cat cererea e in OFFERS_RECEIVED / NEGOTIATION, din butonul „Refuz oferta” (dialog cu consecintele: refuzul e definitiv, firma e anuntata, conversatia ramane doar de citit; refuzul pleaca doar la „Da, refuz oferta”). Butonul nu apare pe ofertele EXPIRED.
+- Motivul e optional, din lista scurta (pret / termen / alta firma / renunt), plus un text optional de cel mult 500 de caractere; firma le vede (textul ajunge la firma cu datele de contact mascate, ca la celelalte texte libere pentru firme fara acces).
+- Refuzul e definitiv: oferta devine `DECLINED`, locul firmei se inchide (`OFFER_DECLINED`), creditele rezervate se consuma (ca la „clientul a ales alta firma”, 4.8), conversatia cu firma devine doar-citire si primeste un mesaj de sistem cu refuzul, firma primeste clopotel + e-mail cu motivul. Pe o oferta refuzata firma nu mai poate revizui / reoferta / prelungi / retrage / invita, iar clientul nu mai poate cere modificare, prelungire sau accepta (409).
+- Firma refuzata nu mai poate prelua aceeasi cerere (excludere `QUOTE_DECLINED`, 403 `COMPANY_EXCLUDED_FROM_REQUEST`; cererea nu-i mai apare in piata) — aleasa de agenti, de confirmat de PO (D-E4-9).
+- Locul eliberat poate fi preluat de alta firma cat cererea e deschisa (D-E1-1). Statusul cererii se recalculeaza: daca nu mai ramane niciun loc ocupat, cererea revine IN_MARKETPLACE cu ceas nou de expirare de 5 zile lucratoare (ca la D-v6-13); daca raman locuri ocupate fara nicio oferta vie, coboara la CLAIMED_PARTIAL / CLAIMED_FULL; altfel ramane in OFFERS_RECEIVED / NEGOTIATION.
+- Refuzul se poate face doar pe o oferta in valabilitate: dupa `valid_until` → 409 `QUOTE_EXPIRED`, ca la acceptare, fara credite (actualizat 2026-11-14, D-E4-21). La refuz, invitatiile la consultanta deschise se inchid (EXPIRED) si butoanele lor dispar (D-E4-24). O retragere a firmei aflata la admin ramane in coada; aprobarea ulterioara da 409.
+- O a doua cerere de refuz, refuzul unei oferte acceptate / retrase / expirate / inlocuite sau pe un loc deja inchis → 409 `QUOTE_NOT_DECLINABLE`. Oferta refuzata ramane vizibila clientului („Ai refuzat aceasta oferta pe …”) si firmei („Clientul a refuzat oferta pe …”, cu motivul sau „Clientul nu a spus motivul”), fara actiuni.
+
+**Tabelul de comparare a ofertelor (actualizat 2026-11-13, etapa 4 — a3): **
+- Rubricile, in ordine: Pret (in moneda variantei, cu „≈ … lei” sub sumele in euro), TVA, Total in lei cu TVA, Proiectare (doar cand o oferta are pret de proiectare), Termen (unitatea firmei + „adica N zile lucratoare” + data, daca exista), Garantie, Transport, Montaj, Valabilitate. Exemplul de pe prima pagina are aceleasi rubrici, in aceeasi ordine, fara Proiectare.
+- „Total in lei, cu TVA” = totalul variantei (pret + proiectare) cu TVA, calculat de server (`totalWithVat`: neschimbat la „include TVA” / „neplatitor”, × (1 + cota inghetata a variantei) la „nu include TVA”), adus in lei cu cursul `eur_ron_rate` pentru EUR. Sub tabel apare cursul folosit, doar cand exista o oferta in euro (fara data: cursul e o setare fara istoric — D-E4-12). Tabelul arata lei intregi; cardul ofertei arata sumele cu bani (unificarea — problema 54, D-E4-17).
+- Insignele se dau doar intre ofertele care mai pot fi alese (SENT in valabilitate si ACCEPTED; actualizat 2026-11-14: o oferta SENT cu valabilitatea trecuta ramane in tabel, fara insigne), cu cel putin doua oferte si un minim unic; ofertele retrase / expirate / inlocuite / refuzate raman coloane cu starea lor, fara insigne.
+- „Cel mai mic” pe totalul in lei cu TVA, rotunjit la lei intregi cum se afiseaza (doua sume care arata la fel = egalitate, fara insigna). Fara curs valid, oferta in euro arata „—” la total, fara „≈ lei”, si iese din comparatie. O oferta veche (fara rubrica de TVA) nu primeste insigna si o blocheaza pe a celorlalte, daca nu se poate dovedi ca e mai scumpa: castigatorul trebuie sa fie strict sub totalul ei scris, adus in lei (regula prudenta, aleasa de agenti — D-E4-13).
+- „Cel mai rapid” pe termenul in zile lucratoare (o saptamana = 5 zile); fara insigna la egalitate (de ex. 6 saptamani = 30 de zile lucratoare) sau cand o oferta vie are doar termen scris liber (aleasa de agenti — D-E4-14).
 
 **Audit preț: **modificarea prețului e o versiune nouă cu audit log standard, FĂRĂ workflow suplimentar de aprobare (prețul e deja protejat la nivel de rol prin matrice).
 
@@ -241,7 +278,7 @@ Anularea cu refund se auto-aprobă dacă motivul e în lista predefinită (cu va
 
 | **reason_type** | **Validare automată / efect** |
 | --- | --- |
-| CLIENT_UNRESPONSIVE_48H | ultimul mesaj al firmei in chat sau ultima clarificare ceruta de firma are ≥ 48h si clientul nu a mai scris / nu a raspuns dupa el → AUTO_APPROVED + refund (E-company-3: fara mesaj al firmei motivul nu se aplica). |
+| CLIENT_UNRESPONSIVE_48H | ultimul mesaj al firmei in chat sau ultima clarificare ceruta de firma are ≥ 48h si clientul nu a mai scris / nu a raspuns dupa el → AUTO_APPROVED + refund (E-company-3: fara mesaj al firmei motivul nu se aplica). Actualizat 2026-11-14 (etapa 4): cererea de modificare a ofertei conteaza ca activitate a clientului (`chat_threads.last_client_message_at`). |
 | REQUEST_MODIFIED_POST_CLAIM | requests.last_edit_at > claim_slots.created_at si firma nu a trimis nicio versiune de oferta dupa last_edit_at → AUTO_APPROVED + refund (E-company-3). |
 | CLIENT_CONTACT_INVALID | log bounce email automat sau upload dovadă → AUTO_APPROVED + refund. |
 | CLIENT_REQUESTED_CANCELLATION | confirmare client în chat (quick reply) → AUTO_APPROVED + refund. |
