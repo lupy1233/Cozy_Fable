@@ -210,6 +210,8 @@ _Completata la 2026-11-13 de D-E4-3 … D-E4-6: rubricile noi intra sub cheile e
 
 **Impact: **La login: revocă refresh_tokens active, emite familie nouă; socket vechi → auth_expired.
 
+_Inlocuita la 2026-11-13 de hotararea PO f3-1 (D-E5-10, implementata in etapa 5): cel mult 5 sesiuni active pe cont; a sasea autentificare o revoca pe cea mai veche, iar `auth_expired` ajunge doar la sesiunile revocate; deconectarea inchide doar sesiunea curenta; schimbarea / resetarea parolei si blocarea contului revoca tot. Invarianta 02 §3.13 adusa la zi. Textul de mai sus ramane doar istoricul deciziei initiale._
+
 ### Î13. Limbi
 
 **Decizie: **B — RO + EN complet, switcher, emails/PDF per preferință.
@@ -519,6 +521,8 @@ _Completata la 2026-11-13 de D-E1-5 (PO e2-1): un caz de proiect OPEN opreste fi
 **Rationale: **Clientul vede limita si corecteaza singur; nicio valoare nu se schimba fara stirea lui.
 
 **Impact: **Se poate schimba (varianta: ajustare la limita cu mesaj vizibil). docs/03 4.1.
+
+_Inlocuita partial la 2026-11-14 de D-E5-21 (etapa 5, b7): la campurile de dimensiune din 3D valoarea se corecteaza la limita, cu mesaj („Minimul e 60 cm — am pus 60”); numarul de sertare / polite ramane refuzat cu mesaj, ca mai sus._
 
 ### D-E2-1. Ajutorul la proiectare se cere pe camera (2026-11-13, PO g0-8 + b8-1)
 
@@ -937,6 +941,244 @@ _Completata la 2026-11-13 de D-E3-4 (PO d1-1): camera bifata nu mai primeste pie
 **Rationale: **Cu moneda pe varianta, o firma poate amesteca RON si EUR; suma bruta amesteca monede.
 
 **Impact: **`companies.service.ts` (`dashboardStats`); cursul fara data (D-E4-12).
+
+### D-E5-1. „Alta piesa”: dimensiunile vor fi optionale (2026-11-13, PO c10-1)
+
+**Decizie: **La „Alta piesa” dimensiunile (latime, inaltime, adancime in cm) sunt optionale; clientul completeaza ce stie, firma le vede in descrierea piesei. Acum (etapa 5, fara versiune noua de formular) intra doar campul „Detalii” pe fiecare rand (descrierea care exista deja, max 2000) si limita vizibila de 150 la nume; dimensiunile vin in etapa 6, cu versiunea noua a fluxului.
+
+**Rationale: **Fara dimensiuni firma nu poate da pret; obligatorii, l-ar bloca pe clientul care nu a masurat.
+
+**Impact: **`step-renderer.tsx` (`PieceRows`); fara schimbare de date. Dimensiunile ajung la firma ca text in descriere, nu ca numere.
+
+### D-E5-2. Cardurile din cos spun doar ce se poate alege azi (2026-11-13, PO c10-2)
+
+**Decizie: **Descrierile comodei TV, bibliotecii, biroului si pantofarului din cos si subtitlul 3D al pantofarului se rescriu dupa ce ofera configuratorul 3D (fara birou pe colt, perete media, vitrine, pantofar rabatabil cu banca). Listele de pe randul „Alta piesa” arata doar materialele (PAL, MDF infoliat, MDF vopsit, MDF furniruit, Lemn masiv, Altul) si deschiderile (Maner / Push / Usi glisante) oferite azi; validarea accepta in continuare valorile vechi.
+
+**Rationale: **O zi de lucru; clientul nu mai e dezamagit. Readucerea optiunilor ar fi munca in 3D (problema 44).
+
+**Impact: **Doar texte (ro/en) si listele din interfata.
+
+### D-E5-3. Ponderile provizorii ale celor 7 piese noi (2026-11-13, PO d3-1 + g0-10)
+
+**Decizie: **Pana vine estimarea din aplicatia de ofertare, pondere de tip (`ROOM_TYPE`): canapea `PIECE_SOFA` 3, bufet `PIECE_SIDEBOARD` 2, mobilier de baie `PIECE_BATHROOM_VANITY` 2, mobilier de hol `PIECE_ENTRYWAY` 2, corp suspendat `PIECE_WALL_CABINET` 1, fotoliu `PIECE_ARMCHAIR` 1, taburet `PIECE_OTTOMAN` 1. Se schimba oricand din Admin → Marime proiect, fara lansare. Cererile deja publicate nu se recalculeaza.
+
+**Rationale: **Azi valorau 0: o canapea de 3 locuri iesea 4 credite, o pereche de noptiere 5 (acum canapeaua 7). La d3-1 PO a trimis la calculul din aplicatia de ofertare; la g0-10 a ales valorile propuse ca provizorii.
+
+**Impact: **`seed.ts` + migrarea `20261114100000_piece_weights_room_approx_length` (`ON CONFLICT (key, option) DO NOTHING`, pentru ca adminul poate doar edita randuri existente). docs/03 4.5.
+
+### D-E5-4. „Lungime aproximativa” cu proiect propriu (2026-11-13, PO d3-2)
+
+**Decizie: **Cu „Am deja un proiect” ramane un camp optional „lungime aproximativa” (m) pe camera; daca e gol, camera conteaza „sub 2 m”, ca azi.
+
+**Rationale: **O bucatarie in U de 8 m cu proiect tehnic era mai ieftina de preluat decat aceeasi bucatarie descrisa prin formular (recomandarea era „2–4 m” implicit; PO a ales campul).
+
+**Impact: **`request_rooms.approx_length_m NUMERIC(5,2) NULL`; intrarea `approxLengthM` pe camera (publicare, editare, estimare), permisa doar cu `hasOwnProject` (altfel 400 `VALIDATION_ERROR`, `validation.approxLengthWithoutOwnProject`); intra la `ROOM_SIZE` doar cand lungimea derivata din dimensiuni e 0 (`roomSizeLengthM` in shared). Detaliile alese de agenti: D-E5-22.
+
+### D-E5-5. Costul preluarii: minim 1 credit, fara maxim (2026-11-13, PO d3-3)
+
+**Decizie: **Costul unei preluari urmeaza doar punctajul: minim 1 credit, fara maxim (`claim_cost_min = 1`, `claim_cost_max = 0`). Propunerea 3..25 credite nu se aplica.
+
+**Rationale: **Alegerea PO (altfel decat recomandarea 3..25). Risc acceptat: proiectele foarte mari pot costa mai mult decat vor firmele sa plateasca.
+
+**Impact: **Fara cod; inchide DECIZIE NECESARA despre plafon din docs/03 4.5 si 4.8 si docs/04 5.4. Setarile raman editabile din Admin → Setari.
+
+### D-E5-6. Clientul primeste datele persoanei responsabile dupa acceptare (2026-11-13, PO e1-1)
+
+**Decizie: **Dupa acceptare clientul primeste numele, e-mailul si telefonul (daca e completat) persoanei responsabile de cerere, plus numele, CUI-ul si adresa firmei — doar pentru firma cu oferta acceptata.
+
+**Rationale: **Fara schimbari in baza de date (firma nu are telefon / e-mail propriu); clientul vorbeste cu omul care lucreaza la proiect.
+
+**Impact: **`GET /requests/:id/fulfillment` (`ClientFulfillmentDto`), verificare pe server: `company` / `contact` = `null` inainte de acceptare si niciodata pentru alta firma. Regula de alegere a persoanei: D-E5-14. docs/03 4.18.
+
+### D-E5-7. Etape informative dupa acceptare (2026-11-13, PO e1-2)
+
+**Decizie: **Firma castigatoare bifeaza etapele Masuratori, Contract, Productie, Montaj; clientul le vede. Etapele nu blocheaza livrarea si nu schimba starea cererii.
+
+**Rationale: **Clientul vede progresul (recomandarea era „nu acum”; PO a ales etapele).
+
+**Impact: **Enum `ExecutionStage`, tabel `request_execution_stages` (un rand = etapa bifata; debifarea sterge randul); `PUT /company/requests/:id/stages/:stage`, 409 `EXECUTION_STAGE_NOT_EDITABLE` in afara ACCEPTED / IN_EXECUTION / DELIVERED_BY_COMPANY; eveniment `execution.stage_updated`. Migrarea `20261114110000_execution_stages_delivery_min_days`.
+
+### D-E5-8. „Livrat” doar dupa un numar minim de zile de la acceptare (2026-11-13, PO e1-3)
+
+**Decizie: **Firma poate marca proiectul livrat doar dupa `delivery_min_days_after_accept` zile de la acceptarea ofertei (implicit 7; 0 = fara limita; se schimba din Admin → Setari).
+
+**Rationale: **Firma putea apasa „livrat” la un minut dupa acceptare (recomandarea era doar un dialog clar; PO a ales pragul). O firma care livreaza repede trebuie sa astepte.
+
+**Impact: **Setare noua (0–365); `POST /company/requests/:id/deliver` → 409 `DELIVERY_TOO_EARLY` cu `details.earliestDeliveryAt`, verificat sub blocarea cererii; `CompanyCompletionDto.earliestDeliveryAt`. Pragul se socoteste de la `quotes.accepted_at`.
+
+### D-E5-9. Usile dulapului se intreaba o singura data (2026-11-13, PO c3-1)
+
+**Decizie: **„Ce usi are dulapul?” ramane, iar maner / push se intreaba doar la usi batante. Acum (etapa 5, fara versiune noua) intra doar redenumirea optiunii comune „Glisante” in „Uși glisante (culisante)” si scoaterea sertarelor din descrierea ei; intrebarea unica vine in etapa 6.
+
+**Rationale: **Clientul putea raspunde „Batante” si apoi „Glisante”; un ecran mai putin la usile glisante, iar costul tine cont de ele.
+
+**Impact: **Cheia `common.systems.GLISANTE` (toate fluxurile, fisa firmei, Sumar, inspiratie, Admin → Marime proiect). D-E5-20.
+
+### D-E5-10. Pana la 5 dispozitive pe cont (2026-11-13, PO f3-1)
+
+**Decizie: **Un cont poate fi folosit in acelasi timp pe pana la 5 dispozitive; al saselea il scoate pe cel mai vechi.
+
+**Rationale: **Telefon si laptop merg impreuna. Inlocuieste Î12 (decizia B, o singura sesiune) si invarianta 02 §3.13 in forma veche.
+
+**Impact: **`MAX_ACTIVE_SESSIONS = 5`; login peste limita revoca cea mai veche familie si trimite `auth_expired` doar ei; logout = doar sesiunea curenta (D-E5-16); schimbarea / resetarea parolei si blocarea contului revoca tot. Partea „paginile care tac” se repara oricum: semnal global → login cu intoarcere (D-E5-17).
+
+### D-E5-11. Clientului i se spune doar cand nu e nicio firma in zona (2026-11-13, PO a6-1)
+
+**Decizie: **Fara numar de firme: doar un avertisment cand nu exista nicio firma care acopera zona cererii.
+
+**Rationale: **Clientul nu e mintit; nu dezvaluim cat de putine firme avem in alte zone.
+
+**Impact: **`RequestVisibilityDto.coverage` (`COVERED` / `NONE` / `UNKNOWN`); `POST /requests/drafts/:token/coverage` pentru Sumar. „Firma care acopera” = aprobata (sau cu suspendarea expirata), abonament activ cu `MARKETPLACE_ACCESS`, o locatie cu raza peste punctul aproximat — aceeasi formula ca piata, fara excluderi. docs/03 4.2.
+
+### D-E5-12. Publicarea fara firma in zona merge, iar echipa e anuntata (2026-11-13, PO a6-2)
+
+**Decizie: **Clientul poate publica si fara nicio firma in zona, cu avertisment; echipa Cozy Home e anuntata sa caute o firma.
+
+**Rationale: **Clientul nu pierde cererea; echipa poate recruta firme acolo unde e cerere.
+
+**Impact: **Eveniment `request.no_coverage` catre administratori (clopotel + e-mail), prin outbox, in tranzactia publicarii. D-E5-19.
+
+### D-E5-13. Cine poate bifa etapele (2026-11-13, aleasa de agenti, de confirmat de PO — nepotrivire server / interfata)
+
+**Decizie: **Serverul foloseste regula existenta a fisei de lucru (`resolveClaimContextAccess`): OWNER, MANAGER si EMPLOYEE_TRUSTED pe orice proiect castigat; EMPLOYEE_MANAGED doar pe preluarea luata de el sau atribuita lui (altfel 403). Interfata arata bifele active doar pentru OWNER / MANAGER si persoana atribuita; ceilalti le vad doar de citit.
+
+**Rationale: **Contractul etapei spunea „OWNER / MANAGER sau angajatul atribuit”; agentul de server a refolosit regula fisei de lucru in loc sa faca una noua. Diferenta (angajatul de incredere neatribuit) ramane de hotarat.
+
+**Impact: **De ales o singura regula si aliniat fie `fulfillment.service.ts` (`setExecutionStage`), fie `marketplace/claims/[claimSlotId]/page.tsx` (`canEditStages`).
+
+_Adusa la zi 2026-11-14, dupa revizuirea de cod: interfata urmeaza acum regula serverului — bifele sunt active cand fisa de lucru e vizibila complet (`FULL`) si preluarea nu e „neatribuita tie” (`canEditExecutionStages`), deci si angajatul de incredere neatribuit si cel care a preluat. Ramane de confirmat de PO doar regula in sine._
+
+### D-E5-14. Contactul aratat clientului si cat timp (2026-11-13, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **Persoana de contact = cea atribuita preluarii castigatoare; daca lipseste sau contul ei nu mai e activ → cel care a preluat; daca nici el → proprietarul firmei. „Activ” = nesters, neblocat, neanonimizat si inca membru al firmei castigatoare; daca nimeni nu e activ, `contact = null`. Panoul clientului cu contactul si firma apare doar in ACCEPTED / IN_EXECUTION / DELIVERED_BY_COMPANY (dupa finalizare nu mai apare, desi serverul trimite in continuare datele). Pe fisa firmei etapele apar doar cat se pot bifa.
+
+**Rationale: **Ordinea de rezerva vine din contract; restul = cea mai mica varianta, se poate extinde.
+
+**Impact: **`getFulfillmentForClient`, `client-fulfillment.tsx`, `claim-completion-card.tsx`.
+
+_Adusa la zi 2026-11-14, dupa revizuirea de cod: contactul si datele firmei NU se mai ascund dupa finalizare. Serverul trimite `company` / `contact` / `stages` doar in ACCEPTED, IN_EXECUTION, DELIVERED_BY_COMPANY, COMPLETED si DISPUTED (`CLIENT_CONTACT_STATUSES`), iar in CANCELLED sau alta stare `null` / `[]` (`acceptedAt` ramane); panoul clientului le arata ori de cate ori serverul le trimite (etapele doar de citit). Ordinea de alegere a persoanei si etapele firmei afisate doar cat se pot bifa raman ca mai sus._
+
+### D-E5-15. Bifarea unei etape trimite clopotel clientului (2026-11-13, hotararea coordonatorului, de confirmat de PO)
+
+**Decizie: **La bifare clientul primeste clopotel (fara e-mail); debifarea nu anunta nimic; o etapa debifata si bifata din nou anunta din nou; bifarea dubla a aceleiasi etape nu trimite a doua notificare.
+
+**Rationale: **Clientul afla de progres fara e-mailuri in plus.
+
+**Impact: **`execution.stage_updated` (cheie outbox cu momentul bifarii); nu e in lista de e-mailuri; legatura din clopotel duce clientul la `/requests/:id/offers`.
+
+_Adusa la zi 2026-11-14 de D-E5-26: clientul e anuntat doar la prima bifare a unei etape; re-bifarea dupa debifare nu mai anunta._
+
+### D-E5-16. Deconectarea inchide doar dispozitivul curent (2026-11-13, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **„Deconectare” revoca doar sesiunea curenta si deconecteaza doar socketurile ei. Nu exista buton „deconecteaza-ma de peste tot”; ca sa inchizi toate sesiunile, schimbi parola.
+
+**Rationale: **Urmeaza din f3-1: cu mai multe dispozitive, iesirea de pe telefon nu trebuie sa scoata laptopul (inainte logout-ul deconecta socketurile tuturor dispozitivelor).
+
+**Impact: **`revokeByRawToken` intoarce `{ userId, familyId }`; `emitAuthExpired(userId, [familyId])`.
+
+### D-E5-17. Redirect la login doar de pe paginile cu cont (2026-11-13, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **La sesiune pierduta, redirectul la `/login?redirect=…&reason=expired` se face doar de pe paginile cu cont, dintr-o lista fixa in cod (`ACCOUNT_PREFIXES`, `lib/session-lost.ts`); pe paginile publice si de autentificare doar se goleste starea contului. „A avut sesiune” = „cine sunt eu” era in cache sau `/auth/me` a raspuns 401. Semnalul se emite cel mult o data la 5 s.
+
+**Rationale: **Fara bucla pe login si fara redirect al vizitatorilor; `PUBLIC_PATHS` din `metadata.ts` nu se poate importa in client.
+
+**Impact: **O pagina noua cu cont trebuie adaugata in `ACCOUNT_PREFIXES`.
+
+### D-E5-18. Limita la verificarea zonei din Sumar (2026-11-13, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **`POST /requests/drafts/:token/coverage` primeste cel mult 10 apeluri pe minut (geocodarea e un apel extern); la esecul geocodarii raspunsul e `UNKNOWN`, iar Sumarul nu arata niciun avertisment.
+
+**Rationale: **Valoare mica, usor de schimbat.
+
+**Impact: **`@Throttle` pe ruta; peste limita → 429 `RATE_LIMITED`.
+
+_Adusa la zi 2026-11-14 de D-E5-27: limita de 10/min se tine pe ciorna (peste ea `UNKNOWN`, fara geocodare), iar limita pe IP a rutei e 60/min._
+
+### D-E5-19. Anuntul catre admini doar la publicare (2026-11-13, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **`request.no_coverage` se scrie o singura data pe cerere, la publicare; republicarea (repost) si schimbarea adresei la editare nu il retrimit. Acoperirea se calculeaza pentru orice cerere cu coordonate, dar avertismentul se arata clientului doar cat cererea e in piata. In Sumar textul spune ca echipa „va fi anuntata”, pe card ca „a fost anuntata”.
+
+**Rationale: **Sarcina cerea evenimentul doar la publicare.
+
+**Impact: **Cheia outbox `request.no_coverage:<requestId>`.
+
+### D-E5-20. „Sliding doors” si valorile vechi din liste (2026-11-13, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **In engleza „Uși glisante (culisante)” devine „Sliding doors” (fara dublet). Explicatia optiunii (titlu + text) nu mai pomeneste sertarele. Pe randul „Alta piesa”, o valoare veche deja salvata (MDF, BUTON_PRESIUNE, GOLA, AVENTOS) ramane afisata si bifata; odata debifata sau schimbata, nu mai poate fi aleasa din nou. Descrierea living-ului („…vitrine”) ramane, pentru ca living-ul are inca vitrina.
+
+**Rationale: **„Doar optiunile de azi” (c10-2), fara sa stricam piesele salvate.
+
+**Impact: **Fragmentele i18n `e5-form`; `PIECE_ROW_MATERIALS` / `PIECE_ROW_SYSTEMS` in `step-renderer.tsx` (copiate local, nu exportate din shared).
+
+### D-E5-21. Campurile de dimensiune din 3D: corectare cu mesaj si citire in metri (2026-11-14, alegere din planul etapei 5 + agenti, de confirmat de PO)
+
+**Decizie: **La latime / inaltime / adancime, latime coloana si inaltime rand (si la piesele din catalog si la mobilier), o valoare in afara limitelor se corecteaza la limita cu mesaj („Minimul e 60 cm — am pus 60”), campul golit pastreaza valoarea veche cu „Am pastrat valoarea anterioara”, iar o valoare sub 10 scrisa cu virgula sau punct se citeste in metri („1,2” → 120 cm, „Am inteles 120 cm”). Ce scoate o regula geometrica revine cand regula nu mai e incalcata, doar in aceeasi sesiune a pasului (se pierde la reincarcare); motivul se afiseaza (inclusiv pentru polite, minim 10 cm intre ele; bara de haine doar la piesele care o pot avea).
+
+**Rationale: **Pasii 1 si 5 ai planului b7 si alegerea marunta din plan („1,2” → 120 cm). Inlocuieste, pentru campurile de dimensiune, refuzul din D-E1-11.
+
+**Impact: **`explainPieceCleanup`, `columnStepperLimits`, `DESK_TWO_PEDESTALS_MIN_W` (shared); `use-dimension-field.ts`. Numarul de sertare / polite ramane refuzat cu mesaj (D-E1-11). docs/03 4.1.
+
+_Adusa la zi 2026-11-14, dupa revizuirea de cod: citirea in metri se face doar cand valoarea × 100 intra in limitele campului („8,5” la inaltimea randului ramane 8,5 cm si e corectat la minim; inaltimea randului are ca maxim inaltimea interioara a coloanei); pragurile din mesaje vin din constantele reale ale regulilor (de ex. a doua casetiera de la 127,1 cm); numerele de bare / polite / sertare micsorate de geometrie au si ele explicatie („Am lasat 2 sertare: …”); mesajele sunt anuntate cititoarelor de ecran. Fara buton „nu mai pastra” pentru intentie (de confirmat de PO)._
+
+### D-E5-22. Detaliile lungimii aproximative (2026-11-13, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **Intre 0,1 si 50 m, cel mult doua zecimale. Campul apare pe ultimul ecran al camerei, doar cand fluxul are un pas de dimensiuni in metri liniari ascuns de proiectul propriu (piesele cu 3D nu il au). Valoarea se salveaza asa cum a dat-o clientul chiar daca exista si dimensiuni (atunci nu conteaza la cost).
+
+**Rationale: **Limitele din sarcina; nu se pierde ce a scris clientul.
+
+**Impact: **`APPROX_LENGTH_MIN_M` / `APPROX_LENGTH_MAX_M` (shared `mapping.ts`); DTO `@Min` / `@Max` / `maxDecimalPlaces: 2`.
+
+_Inlocuita partial la 2026-11-14, dupa revizuirea de cod (constatarea mare M1 configurator): valoarea NU se mai pastreaza cand nu se aplica. Regula `approxLengthApplies(roomType, answers, version)` (shared `engine.ts`) = fluxul camerei are, cu raspunsurile de acum, un pas de dimensiuni in metri liniari SI lungimea derivata din dimensiuni e 0; altfel campul nu apare, formularul goleste valoarea (la schimbarea raspunsurilor, la copierea camerei, la incarcarea ciornei), interfata nu o trimite, serverul nu o salveaza si nu o pune in punctaj (si in previzualizarea din Admin, si in estimarea din piata). Campul nu apare nici cand dimensiunile ramase ascunse de „Am deja un proiect” dau deja o lungime (alegerea agentului, m10). Cel mult 2 zecimale: `APPROX_LENGTH_DECIMALS = 2` + `hasAtMostDecimals` (shared), mesaj `validation.approxLengthTooManyDecimals`, fara rotunjire pe tacute._
+
+### D-E5-23. Cazuri de margine la livrare si etape (2026-11-13, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **O oferta acceptata fara `accepted_at` (date vechi) nu are prag (`earliestDeliveryAt = null`). `PUT .../stages/:stage` de la o firma fara oferta acceptata → 409 `EXECUTION_STAGE_NOT_EDITABLE` (nu 404). `autoCompleteAt = null` si cat un caz deschis opreste ceasul. Data finalizarii automate din dialogul de livrare = azi + zilele de finalizare automata (14), pentru ca serverul nu o are inainte de livrare. Insigna „Livrata” e scurtata la „Livrata — asteapta clientul”; textul complet e in celula de termen.
+
+**Rationale: **Varianta cea mai putin restrictiva pentru date vechi; literal din contract la 409.
+
+**Impact: **`fulfillment.service.ts`, `claim-completion-card.tsx`.
+
+### D-E5-24. Bifarea etapelor nu intra in jurnalul de audit (2026-11-13, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **Fara `@Audit` pe `PUT .../stages/:stage`; randul pastreaza cine (`completed_by_user_id`) si cand (`completed_at`) a bifat; la debifare randul se sterge, deci istoricul debifarilor nu se pastreaza.
+
+**Rationale: **Etapele sunt informative si nu misca bani sau stari.
+
+**Impact: **`request_execution_stages`.
+
+_Inlocuita la 2026-11-14 de D-E5-26: bifarea etapelor intra acum in jurnalul de audit._
+
+### D-E5-25. Tinta comuna la login dupa o sesiune pierduta (2026-11-14, dupa revizuirea de cod — M1/M2 interfata cu cont; textul de confirmat de PO)
+
+**Decizie: **Toate cele 20 de garzi ale paginilor cu cont si ascultatorul global folosesc aceeasi tinta (`useLoginRedirect`, `lib/use-login-redirect.ts`): `/login?redirect=<pagina curenta>` plus `&reason=expired` doar daca omul chiar avea o sesiune (ascultatorul a actionat sau pagina a pornit cu indiciul de sesiune). Fereastra de 5 s porneste doar dupa un redirect efectiv; un 401 primit dupa o reimprospatare reusita semnaleaza si el sesiunea pierduta. Pagina cererii la client si detaliul din piata au si plasa „401 + `me.isError` → login”. Textul de pe login ramane „Te-ai autentificat pe alt dispozitiv sau sesiunea a expirat. Intra din nou.” — presupune cauza (serverul nu o spune).
+
+**Rationale: **Revizuirea: doua pagini puteau ramane pe „se incarca” la nesfarsit, iar garda veche ducea la login fara mesaj si fara intoarcere. Vizitatorului fara cont nu i se spune ca „sesiunea a expirat”.
+
+**Impact: **Completeaza D-E5-17. `session-lost.ts` (`loginTarget`, `sessionLostTarget`, `wasSessionLost`), `use-auth.ts` (fanionul se goleste la login / logout).
+
+### D-E5-26. O notificare pe etapa; bifarea in audit si cu limita (2026-11-14, dupa revizuirea de cod — m2/m3 server, m3 interfata)
+
+**Decizie: **Cheia evenimentului e fixa, `execution.stage_updated:<requestId>:<stage>`, deci clientul primeste cel mult o notificare pe etapa (prima bifare; debifarea si re-bifarea nu anunta). Payload-ul are si `companyId` (numele firmei se pune la livrare), iar clopotelul arata „<Firma> a bifat etapa: <etapa>”. Ruta `PUT /company/requests/:id/stages/:stage` are `@Audit('EXECUTION_STAGE_UPDATED', 'request')` (jurnalul retine etapa, nu nume sau texte) si `@Throttle` 30 de apeluri pe minut.
+
+**Rationale: **Bifari / debifari repetate trimiteau clientului notificari in serie; bifarea e o actiune a firmei vizibila clientului, deci intra in audit.
+
+**Impact: **Inlocuieste D-E5-24 si completeaza D-E5-15. `fulfillment.service.ts`, `fulfillment.controller.ts`, `audit-snapshot.ts` (`stage` in `CODES`), `notification-bell.tsx` (`executionStageTitle`).
+
+### D-E5-27. Verificarea zonei nu poate opri publicarea; limita pe ciorna (2026-11-14, dupa revizuirea de cod — m1/m5/m6 server; contorul si enumerarea de confirmat de PO)
+
+**Decizie: **La publicare, acoperirea si lista adminilor se citesc inaintea tranzactiei; o eroare inseamna „nu se trimite nimic”, iar publicarea merge. Anuntul `request.no_coverage` merge doar la adminii activi (nestersi, neblocati, neanonimizati). Limita de 10 verificari pe minut din Sumar se tine pe ciorna (contor in memoria serverului, fereastra fixa de 60 s; peste ea `UNKNOWN`, fara geocodare); limita pe IP a rutei e 60/min, ca frana larga. O eroare a interogarii de acoperire da tot `UNKNOWN`. Ramane posibil sa afli daca o zona e acoperita intreband adrese diferite (urmare a a6-1).
+
+**Rationale: **Pe productie `TRUSTED_CLIENT_IP_HEADER` nu e setat, deci limitele pe IP sunt comune tuturor; throttler-ul proiectului nu poate da o limita pe ciorna diferita de cea pe IP. Geocodarea foloseste deja `geocoding_cache`, deci aceeasi adresa nu se geocodeaza de doua ori.
+
+**Impact: **Completeaza D-E5-12, D-E5-18, D-E5-19. Contorul se goleste la repornire si nu e comun intre instante (azi un singur slot activ).
+
+### D-E5-28. Eticheta comuna „Uși glisante (culisante)” ramane (2026-11-14, constatarea mare M2 configurator, lasata PO)
+
+**Decizie: **Cheia comuna `common.systems.GLISANTE` ramane redenumita, desi eticheta apare si la piese fara usi si pe cererile deja publicate; pretul din explicatie e cel de la dulap (+800–2.000 lei).
+
+**Rationale: **Planul (c3, partea fara versiune noua) cerea redenumirea textului comun; rezolvarea completa (regula unica de deschidere, fara „Glisante” in lista comuna) vine la problema 27 (`c2`).
+
+**Impact: **De confirmat de PO pana la problema 27. Completeaza D-E5-9, D-E5-20.
 
 # 9. Checklist uman: ce faci acum
 
