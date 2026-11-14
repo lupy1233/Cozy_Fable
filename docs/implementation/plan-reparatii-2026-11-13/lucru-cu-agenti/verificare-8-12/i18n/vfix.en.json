@@ -1,0 +1,50 @@
+{
+  "Configurator": {
+    "flows": {
+      "BEDROOM": {
+        "v4": {
+          "bedLength": {
+            "summaryLabel": "Mattress length",
+            "subtitle": "Optional. Most mattresses are 200 cm long; some are 190 cm."
+          },
+          "bedFabric": {
+            "summaryLabel": "Bed fabric",
+            "subtitle": "Optional. The fabric that covers the upholstered bed."
+          },
+          "wardrobeInterior": {
+            "summaryLabel": "Wardrobe interior",
+            "subtitle": "Optional. Pick everything you'd use. If you're not sure, the company will suggest a layout."
+          }
+        }
+      },
+      "BATHROOM": {
+        "v4": {
+          "basinType": {
+            "summaryLabel": "Basin type",
+            "subtitle": "Optional. The company builds the top and the unit around the basin. If you're not sure, pick \"Not sure\"."
+          },
+          "basinSupply": {
+            "summaryLabel": "Who supplies the basin",
+            "subtitle": "Optional. So the company knows whether to include it in the offer."
+          }
+        }
+      },
+      "HALLWAY": {
+        "v3": {
+          "hallWidth": {
+            "summaryLabel": "Hallway width",
+            "subtitle": "Optional. It helps the company choose how deep the pieces should be."
+          }
+        }
+      },
+      "LAUNDRY": {
+        "v4": {
+          "washerLoading": {
+            "summaryLabel": "Washing machine loading",
+            "subtitle": "Optional. It changes how the cabinet around it is built."
+          }
+        }
+      }
+    }
+  }
+}

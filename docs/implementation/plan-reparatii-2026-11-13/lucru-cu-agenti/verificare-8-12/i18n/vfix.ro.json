@@ -1,0 +1,50 @@
+{
+  "Configurator": {
+    "flows": {
+      "BEDROOM": {
+        "v4": {
+          "bedLength": {
+            "summaryLabel": "Lungime saltea",
+            "subtitle": "Opțional. Cele mai multe saltele au 200 cm; unele au 190 cm."
+          },
+          "bedFabric": {
+            "summaryLabel": "Stofă pat",
+            "subtitle": "Opțional. Stofa cu care se îmbracă patul tapițat."
+          },
+          "wardrobeInterior": {
+            "summaryLabel": "Interior dulap",
+            "subtitle": "Opțional. Alege tot ce ți-ar folosi. Dacă nu știi, firma îți propune o împărțire."
+          }
+        }
+      },
+      "BATHROOM": {
+        "v4": {
+          "basinType": {
+            "summaryLabel": "Tip lavoar",
+            "subtitle": "Opțional. Firma face blatul și corpul după lavoar. Dacă nu știi, alege „Nu știu”."
+          },
+          "basinSupply": {
+            "summaryLabel": "Cine aduce lavoarul",
+            "subtitle": "Opțional. Ca firma să știe dacă îl include în ofertă."
+          }
+        }
+      },
+      "HALLWAY": {
+        "v3": {
+          "hallWidth": {
+            "summaryLabel": "Lățime hol",
+            "subtitle": "Opțional. Ajută firma să aleagă adâncimea pieselor."
+          }
+        }
+      },
+      "LAUNDRY": {
+        "v4": {
+          "washerLoading": {
+            "summaryLabel": "Încărcare mașină de spălat",
+            "subtitle": "Opțional. Schimbă felul în care se face dulapul din jurul ei."
+          }
+        }
+      }
+    }
+  }
+}

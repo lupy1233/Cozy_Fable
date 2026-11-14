@@ -3390,6 +3390,54 @@ _Limitare lasata PO dupa revizuire (m1 server): daca adminul schimba `claim_cont
 
 **Impact: **Niciunul in cod.
 
+### D-V-1. Cine preia cererea nu primeste clopotel pentru propria preluare (2026-11-14, dupa verificarea in browser a etapelor 8–12; alegerea coordonatorului; de confirmat de PO)
+
+**Decizie: **`claim.created` trimite acum si `actorUserId` (cel care a preluat), deci regula din etapa 9 „cine face actiunea nu primeste nimic pentru ea” (`withoutActor`) se aplica si preluarii. Ceilalti membri ai firmei si clientul primesc in continuare; e-mailul catre client ramane.
+
+**Rationale: **Verificatorul a gasit clopotelul la cel care preluase; preluarea lipsea din lista evenimentelor tratate in etapa 9. Aceeasi regula ca la mesaje, oferte si acceptare.
+
+**Impact: **`claims.service.ts`, `claims.service.spec.ts`.
+
+### D-V-2. Intrebarea de clarificare duce la pagina ofertelor (2026-11-14, alegerea coordonatorului; de confirmat de PO)
+
+**Decizie: **E-mailul „are o întrebare la cererea ta” si clopotelul clientului duc la `/requests/<id>/offers` („Oferte și conversații”), unde sunt intrebarea, campul de raspuns si istoricul; textul e-mailului spune pagina pe nume. Inainte duceau la pagina cererii, unde intrebarea nu apare.
+
+**Rationale: **Clientul ajungea pe o pagina fara intrebare. Varianta cealalta (mutarea casetei pe pagina cererii) schimba asezarea paginilor si nu a fost ceruta.
+
+**Impact: **`notification-emails.service.ts` (+ spec), `notification-bell.tsx`.
+
+### D-V-3. Texte adaugate dupa verificare (2026-11-14, alegerile coordonatorului; de confirmat de PO)
+
+**Decizie: **(a) Etichete scurte pentru 7 intrebari noi ale formularului: „Lungime saltea”, „Stofă pat”, „Interior dulap”, „Tip lavoar”, „Cine aduce lavoarul”, „Lățime hol”, „Încărcare mașină de spălat”; subtitlurile lor incep cu „Opțional.”, ca la intrebarile noi ale bucatariei. (b) Pe spatele cartonasului care se intoarce, sub pretul pe metru liniar: „m liniar = un metru de mobilier, măsurat de-a lungul peretelui” (fraza lunga ramane in fereastra de detalii). (c) La editarea unei cereri publicate ultimul pas se numeste „Verifică și salvează”, cu subtitlu despre salvare; la republicarea cu modificari ramane „Verifică și publică”. (d) „garanție de {n} luni” are plural romanesc („24 de luni”); „Mobilier: ~1 m liniar” la singular. (e) Cheile `Company.lat` / `Company.lng` („Latitudine” / „Longitudine”) raman: formularul de inscriere a firmei le foloseste inca.
+
+**Rationale: **Gasite de verificatori pe ecran: titluri-intrebare in Sumar si la firma, nota lipsa pe cartonas, „publică” pe o salvare, „24 luni”, „1 m liniari”, „Company.lat”.
+
+**Impact: **`ro.json` / `en.json` (fragmentele `vfix*` din `lucru-cu-agenti/verificare-8-12/i18n/`), `playing-card.tsx`, `configurator-wizard.tsx`, `room-spec-card.tsx`, teste noi (`playing-card.test.tsx`, `onboarding-labels.test.ts`).
+
+### D-V-4. Nota de editare si derularea la sectiune: ce se tine pe loc (2026-11-14, alegerile coordonatorului; de confirmat de PO)
+
+**Decizie: **(a) Nota „editarea N din 3” foloseste contoarele de la intrarea in editare pe toata durata editarii; in modul „Republică cu modificări” ramane nota de republicare si dupa ce cererea reincarcata e din nou in piata. (b) Dupa „Republică” se reincarca si cardul „Cine vede cererea”. (c) Pe pagina firmei, la o navigare noua spre `#sectiune`: daca Next a derulat deja la ancora, pozitia nu se mai atinge, dar focusul trece pe titlu doar daca sectiunea e sus in fereastra; dupa „Inapoi” / „Inainte” in aplicatie (un `popstate` in ultimele 2 secunde) nu se intampla nimic. (d) Pe telefon, cand scena 3D nu e inca lipita sub antet, panoul zonei atinse se aduce pe ecran socotind pozitia scenei de dupa derulare.
+
+**Rationale: **Verificatorii au vazut: nota sarind pe „editarea 1 din 3… consumă una” la republicare si pe „2 din 3” la salvare; cardul ramas pe „a expirat”; focusul lipsa la clic din cardul „Pregătește-ți firma”; panoul zonei ramas sub ecran.
+
+**Impact: **`configurator-wizard.tsx`, `use-requests.ts`, `use-repost-with-changes.ts`, `use-scroll-to-hash.ts` (+ test), `piece3d/sticky-scene.ts`, `configurator3d-step.tsx` (+ teste), `illustrations/question-anchor.tsx` (+ test: banda zonelor fara suspendate).
+
+### D-V-5. Ce a ramas pentru PO dupa verificarea in browser (2026-11-14; DECIZIE NECESARA unde scrie)
+
+**Decizie: **Nereparate, fiindca cer o hotarare de produs sau tin de date: (1) DECIZIE NECESARA — angajatul fara drept pe pret nu poate trimite nicio varianta de oferta, nici cu pretul neschimbat (`touchedFieldKeys`: pretul si descrierea sunt mereu socotite atinse), desi mesajul ii spune sa lase rubrica neschimbata; variante: pretul neschimbat fata de varianta dinainte nu mai conteaza, sau mesajul spune limpede ca trimiterea cere dreptul pe pret; (2) `/admin/jobs` arata doar joburile esuate — nu are pornire de mana; (3) istoricul de credite nu se inchide pe soldul portofelului la firmele cu credite puse direct in portofel (fara rand de sold initial), inclusiv pe productie; (4) „Saltea 140 × 200 cm” langa „Lungime saltea 190 cm” (varianta: marimile saltelei doar cu latimea); (5) costul unei bucatarii mari trece de 25 de credite (26) — `claim_cost_max` e gol; (6) inscrierea firmei cere latitudine / longitudine tastate de mana; (7) „Email facturare (opțional)” e pas obligatoriu in cardul de pornire; (8) la o biblioteca veche, schimbarea latimii reface structura dupa regula „coloana de cel mult 80 cm”; (9) marunte: focusul ramas pe „Continuă” la o alegere goala, telefonul scris in „Mesaj pentru firme” trece fara mesaj, „3 points of penalty” in engleza, plansa dressingului nu e la scara, randul de sertare peste plafon revine fara mesaj, butoanele „Șterge zona” / „De la capăt” sub 44 px pe telefon, portofelul arata o clipa textul Stripe.
+
+**Rationale: **Planul nu le acopera sau schimbarea ar inventa o regula.
+
+**Impact: **Niciunul in cod.
+
+### D-V-6. Antetul firmei: pastila de credite fara eticheta pe ecran (2026-11-14, alegerea coordonatorului dupa masuratori in browser; de confirmat de PO)
+
+**Decizie: **In antet, pastila de credite arata la orice latime iconita si numarul; eticheta „CREDITE” ramane doar pentru cititoarele de ecran. Legaturile din meniu pastreaza la `xl` padding-ul de la `lg`, iar numele si firma din butonul contului se taie la `7rem` (inainte `9.5rem`).
+
+**Rationale: **La 1280 px si mai lat (continutul antetului are latime fixa), cu sase legaturi in meniul firmei, pastila acoperea „Firma mea”: de la −26 px cu un nume obisnuit pana la −103 px in engleza cu nume lung. Doar strangerea legaturilor nu ajungea. Dupa schimbare raman 17–106 px liberi in toate cazurile masurate; sub 1280 px si pe telefon nu s-a schimbat nimic. Varianta cealalta (eticheta pastrata, meniu cu text de 13 px) ramanea la limita (~8 px).
+
+**Impact: **`app-header.tsx`, `account-menu.tsx`. Defectul venea din redesign, nu din etapele de reparatii.
+
 # 9. Checklist uman: ce faci acum
 
 - Citește integral acest document o dată. Verifică Decisions Log (Secțiunea 8, inclusiv 8.4). Dacă o decizie te deranjează, schimb-o ACUM în document, înainte ca agentul să scrie cod.

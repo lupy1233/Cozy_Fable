@@ -1,0 +1,7 @@
+{
+  "Configurator": {
+    "roomSpec": {
+      "furnitureLinear": "Furniture: ~{m, number} linear m"
+    }
+  }
+}
