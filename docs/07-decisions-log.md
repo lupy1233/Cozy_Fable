@@ -2094,6 +2094,374 @@ _Limitare lasata PO dupa revizuire (m1 server): daca adminul schimba `claim_cont
 
 **Impact: **Niciunul in etapa 8. Completeaza D-E8-12.
 
+### D-E9-1. Frontul de sertar are cel mult 50 cm; zona mai inalta se strange (2026-11-13, PO l1-1)
+
+**Decizie: **In configuratorul 3D un front de sertar are cel mult 50 cm (`DRAWER_FRONT_H_MAX = 0.5`, shared `questionnaire/piece3d/edit-rules.ts`). O zona de sertare mai inalta se blocheaza la n × 50 cm, iar restul inaltimii trece la zonele vecine fara sertare; coloana care are doar sertare primeste mai multe sertare, pana cand frontul incape. Minimul de 15 cm ramane. Dulapul nou porneste cu randul de sertare blocat la 100 cm (2 × 50). Motivul afisat: `DRAWER_FRONT_MAX`.
+
+**Rationale: **Raspunsul PO (altfel decat variantele propuse, maxim 30 cm): „maxim 50 de cm zona se strange”. Azi dulapul de 280 cm iesea cu sertare de ~67 cm, care nu exista in realitate.
+
+**Impact: **`edit-rules.ts`, `cleanup-notes.ts`, `config.ts` (`initialPieceConfig`), `configurator3d-step.tsx`. Se aplica doar la creare / editare / redeschiderea ciornelor (D-E9-12). docs/03 4.1.
+
+### D-E9-2. Biblioteca: coloana de cel mult 80 cm; comoda TV: cel putin 35 cm (2026-11-13, PO l1-2)
+
+**Decizie: **Coloana de biblioteca are cel mult 80 cm (`BOOKCASE_COLUMN_W_MAX = 0.8`; se adauga coloane, blocajele coboara, „−” la coloane urmeaza noua limita, campul are maximul 80). Comoda TV are cel putin 35 cm inaltime (`TV_UNIT_HEIGHT_MIN = 0.35`; minimul campului e 35). Ajustarea se explica prin mecanismul de motiv de la etapa 5 (`BOOKCASE_COLUMN_WIDTH`, `TV_UNIT_HEIGHT`) si e reversibila prin „intentie”. Ciornele in afara limitelor se ajusteaza la redeschidere, cu mesaj.
+
+**Rationale: **Raspunsul PO (recomandarea): clientul nu mai poate cere piese greu de facut (polita de PAL se curbeaza peste ~80 cm; la 25 cm abia incape un sertar).
+
+**Impact: **`edit-rules.ts`, `model.ts` (`canRemoveColumn` cu `columnWidthMaxFor`), `cleanup-notes.ts`. Cererile publicate cu coloane de 100 cm raman valide (D-E9-12). docs/03 4.1.
+
+### D-E9-3. „Extensibila” e o bifa separata, doar la masa dreptunghiulara de dining; se salveaza tot ca forma `EXTENDABLE` (2026-11-13, PO l1-3; salvarea — alegerea agentului, de confirmat de PO)
+
+**Decizie: **Interfata arata doua forme (Dreptunghiulara / Rotunda) si bifa „Extensibila” doar la masa dreptunghiulara de dining. Nu exista camp nou: bifa scrie `table.shape = 'EXTENDABLE'` / `'RECTANGULAR'`, iar `shape ∈ {RECTANGULAR, EXTENDABLE}` se afiseaza ca „Dreptunghiulara” + bifa. Fluxul v4 puncteaza in continuare `TABLE_EXTENDABLE` si scrie „extensibila” in textul pentru firma.
+
+**Rationale: **Raspunsul PO (recomandarea): extensibil devine optiune pentru masa dreptunghiulara de dining, formele raman doua, cererile vechi raman valide. Un camp separat ar fi cerut o versiune noua de flux (fluxurile sunt inghetate).
+
+**Impact: **`furniture-controls.tsx`, `edit-rules.ts`; `TABLE_SHAPES` ramane cu `EXTENDABLE`. E2e `furniture-quality.spec.ts` de adus la zi (bifa „Extendable”).
+
+### D-E9-4. Tipurile de zona se afiseaza mereu in ordinea Deschis · Sertare · Usa (2026-11-13, pas din plan)
+
+**Decizie: **Butoanele de tip de zona apar la toate piesele in ordinea Deschis · Sertare · Usa (`PIECE3D_ZONE_TYPE_ORDER`, `zoneTypesInDisplayOrder`). Tipul implicit al zonei noi ramane separat, ca azi (`PIECE3D_RULES[kind].zoneTypes[0]`).
+
+**Rationale: **Planul (problema 44, pasul 3): ordinea diferea intre piese pentru ca lista servea si ca tip implicit.
+
+**Impact: **`edit-rules.ts`, `configurator3d-step.tsx`. Nimic schimbat in ce se salveaza.
+
+### D-E9-5. E-mailul unei preluari merge la responsabil + proprietar si manageri (2026-11-13, PO g1-1)
+
+**Decizie: **La evenimentele unei preluari — mesaj de la client (`message.created`), oferta acceptata, cererea de modificare (`quote.updated` cu `CHANGE_REQUESTED`), refuzul ofertei, `clarification.answered`, `request.edited_after_claim`, finalizarea (`delivery.confirmed`), recenzia (`review.created`) — din firma primesc e-mail responsabilul preluarii (`claim_slots.assigned_to_user_id`) + OWNER / MANAGER (conturi nesterse, neblocate); fara responsabil, doar OWNER / MANAGER. Ceilalti membri primesc doar clopotelul. Un singur ajutator: `claimCompanyEmailRecipients` (`notifications/notification-rules.ts`); payload-urile vechi fara `claimSlotId` cad pe ultima preluare a firmei pe cerere.
+
+**Rationale: **Raspunsul PO (recomandarea): mai putine e-mailuri inutile; conducerea vede tot.
+
+**Impact: **`notification-rules.ts` (`CLAIM_COMPANY_EMAIL_EVENTS`), `notifications.processor.ts`, `notification-emails.service.ts`; `claimSlotId` / `companyId` adaugate in payload la mesaj, finalizare, recenzie. Finalizarea si recenzia trimit acum si e-mail firmei. docs/03 4.14.
+
+### D-E9-6. Cererea noua in zona: clopotel cand devine vizibila + rezumat zilnic pe e-mail (2026-11-13, PO g1-2)
+
+**Decizie: **Firmele afla de o cerere noua prin clopotelul `request.new_in_area` („Cerere noua in zona ta”), trimis cand cererea le devine vizibila dupa regula listei din piata (intarzierea planului, raza, excluderile, locurile libere — chiar `MarketplaceService.list`, nerescrisa), plus un rezumat zilnic pe e-mail. Fara e-mail pe fiecare cerere. Parametrii alesi de agent: D-E9-19 … D-E9-22.
+
+**Rationale: **Raspunsul PO (recomandarea): reactie rapida in aplicatie fara sa inunde e-mailul.
+
+**Impact: **Noi `notifications/new-requests.service.ts` + `new-requests.processor.ts` (coada `new-requests`, in `/admin/jobs`), `marketplace.module.ts` (`exports: [MarketplaceService]`), coloana `companies.new_requests_digest_until` (migrarea `20261114190000_notification_events`). docs/03 4.10, 4.14; docs/04.
+
+### D-E9-7. Ciornele neatinse se sterg: vizitatori dupa 7 zile, clienti cu cont dupa 90 (2026-11-13, PO f6-1)
+
+**Decizie: **Un job zilnic la 03:30, ora Romaniei (coada `draft-cleanup`, jobul `cleanup.drafts`), sterge ciornele `DRAFT` neatinse (dupa `updated_at`): fara cont (`client_user_id IS NULL`) dupa `guest_draft_retention_days` (implicit 7), cu cont dupa `client_draft_retention_days` (implicit 90), impreuna cu fisierele lor din storage si randurile din `attachments`. Acelasi job curata ciornele deja marcate sterse si fisierele lor ramase. Valorile se schimba din Admin → Setari.
+
+**Rationale: **Raspunsul PO (altfel decat recomandarea, 30 de zile pentru toate): mai putine date straine pastrate, mai mult timp pentru clientii reali.
+
+**Impact: **Noi `requests/draft-cleanup.service.ts` / `.processor.ts`; migrarea `20261114170000_draft_retention`; `setting-defaults.ts`, `admin.service.ts` (`SETTING_VALUE_RULES`), `audit-snapshot.ts`, `seed.ts`, `setting-catalog.ts`. Detalii: D-E9-32, D-E9-33, D-E9-36. docs/03 4.1, 4.21; docs/02 3.4.
+
+### D-E9-8. Republicarea cu modificari e un pas separat, nu consuma editari (2026-11-13, PO f6-2)
+
+**Decizie: **Cererea expirata se poate republica o singura data, identic (ca pana acum) sau „cu modificari”: `POST /requests/:id/repost-with-changes` aplica formularul si republica in aceeasi tranzactie, cu termen nou, cu aceeasi garda `REPOST_ALREADY_USED`. Nu consuma din cele 3 editari inainte de preluare si nici din editarea de dupa preluare.
+
+**Rationale: **Raspunsul PO (recomandarea): clientul poate ajusta liber bugetul, termenul si mesajul o data, apoi are tot 3 editari.
+
+**Impact: **`requests.service.ts` (`repostWithChangesForClient`), `requests.controller.ts`, interfata (`use-repost-with-changes.ts`, pagina cererii, pagina de editare, `review-step.tsx`, `configurator-wizard.tsx`). Detalii: D-E9-35. docs/03 4.4.
+
+### D-E9-9. Ciornele „[TEST AUDIT]” de pe productie se sterg acum, cu copie si dupa „da”-ul PO (2026-11-13, PO f6-3)
+
+**Decizie: **Scriptul `apps/backend/scripts/cleanup-test-audit-drafts.cjs` ia doar ciornele `DRAFT` cu „[TEST AUDIT]” in mesaj. Implicit doar listeaza si scrie o copie JSON; sterge (cu fisierele) doar cu `--delete --yes`, plafon 200 (`--max`). Se ruleaza pe productie doar dupa ce PO vede lista si spune „da”.
+
+**Rationale: **Raspunsul PO (altfel decat recomandarea, „le lasa jobul la termen”): stergere acum, cu copie de rezerva inainte.
+
+**Impact: **Scriptul nou; NErulat. Comenzile: CHANGELOG, etapa 9, „La lansare”. Detalii: D-E9-37.
+
+### D-E9-10. Valoarea ofertelor pe panoul firmei: „X lei + Y EUR”, fara conversie (2026-11-13, alegere marunta din plan)
+
+**Decizie: **`CompanyDashboardStatsDto.quotesTotals: { RON, EUR }` (GROUP BY pe moneda variantei, fara curs) inlocuieste `quotesTotalRon` (care convertea euro cu `eur_ron_rate`). Panoul afiseaza „X lei + Y EUR”; o moneda cu total 0 nu apare; fara oferte „0,00 lei”.
+
+**Rationale: **Alegere marunta din plan (se poate schimba): exact, fara curs; putin mai lung pe ecran. Panoul aduna inainte lei si euro in aceeasi suma.
+
+**Impact: **`companies.service.ts` (`quoteTotalsByCurrency`), `company.schemas.ts`, `dashboard/page.tsx` + `format-quote-totals.ts`. Inlocuieste, doar pentru panou, conversia din etapa 4.
+
+### D-E9-11. Reincadrarea camerei 3D: prag 20%, iesirea din cadru la schimbarea gabaritului, butonul „Reincadreaza” (2026-11-14, alegerea agentului `e9-3d`, de confirmat de PO)
+
+**Decizie: **Camera se reincadreaza singura cand diagonala gabaritului creste cu peste 20% fata de ultima incadrare (`REFRAME_GROWTH = 1.2`, `piece3d/camera-reframe.ts`) sau cand, dupa o schimbare de gabarit, piesa iese din cadru; un zoom apropiat al omului e respectat; altfel orbita omului ramane. Iesirea din cadru se verifica doar la schimbarea dimensiunilor, nu la redimensionarea ferestrei. Butonul „Reincadreaza” (44 px pe telefon, `data-testid="reframe-3d"`) revine la incadrarea initiala. Pe desktop scena are `min(640px, 100dvh − 7rem)`, cel putin 500 px; coloana de comenzi ramane 330 px.
+
+**Rationale: **Planul cerea reincadrare „cand piesa nu mai incape sau creste peste ~20%”; pragul exact si cazul ferestrei nu erau fixate.
+
+**Impact: **`stable-orbit-camera.tsx`, `piece-canvas.tsx`, `configurator3d-step.tsx`.
+
+### D-E9-12. Regulile 3D noi se aplica doar la creare, editare si redeschiderea ciornelor (2026-11-14, alegerea agentului `e9-3d` dupa contract, de confirmat de PO)
+
+**Decizie: **Pasul 3D salveaza mereu `editPieceConfig(kind, intent)` = curatarea veche + `applyPieceEditRules` (pura, idempotenta). Schema `pieceConfig3dSchema` si `normalizePieceConfig` raman permisive (le foloseste si Studio), deci cererile publicate trec validarea neschimbate si costa la fel. Ciornele in afara limitelor se ajusteaza o data, la redeschidere, cu motiv (ciornele vechi de dulap cu sertare inalte isi strang zona); dupa revizuire (m1 3D) motivul apare doar la redeschidere, iar la editarile urmatoare `DRAWER_FRONT_MAX` se arata doar cand randul chiar s-a schimbat fata de configuratia salvata. Masa din ciorne: D-E9-38. Cererile publicate se ajusteaza doar cand omul schimba ceva la piesa. Validarea mesei rotunde accepta de la min(70, minimul tipului) pana la 180 cm.
+
+**Rationale: **Contractul etapei: o regula noua de geometrie nu are voie sa schimbe ce s-a salvat sau costul cererilor publicate (ca la etapele 5 si 8).
+
+**Impact: **`edit-rules.ts`, `furniture-config.ts`, `furniture-controls.tsx`, `configurator3d-step.tsx`. Instantaneele fluxurilor neatinse. docs/02 3.6.
+
+### D-E9-13. Cand e „pus de regula” blocajul unui rand de sertare (2026-11-14, alegerea agentului `e9-3d`; corectata dupa revizuirea de cod — M1 3D)
+
+**Decizie: **Un blocaj de rand de sertare e socotit pus de regula DOAR daca e egal cu numarul de sertare × 50 cm in configuratia salvata anterior SI are aceeasi valoare in intentie (omul nu l-a schimbat) — `releaseRuleDrawerLocks(intent, previous)`. Eliberarea se face numai cand editarea porneste de la ce e salvat (redeschidere sau prima editare: `editPieceConfig(kind, intent, previous)`); `applyPieceEditRules` nu mai elibereaza nimic, doar coboara la plafon ce e peste el. Valoarea scrisa sau pusa cu lacatul (inclusiv 50 / 100 / 150 cm) ramane; un blocaj de om de pe o cerere veche nu se pierde cand se schimba alt lucru. Un blocaj al omului peste maxim coboara la maxim, cu motiv.
+
+**Rationale: **Prima varianta („orice multiplu de 50 cm = pus de regula”) stergea pe loc valoarea tastata de om (50 / 100 / 150 cm, exact cele mai firesti), uneori cu un motiv fals. Revizorul a gasit-o; reparata inainte de comit.
+
+**Impact: **`edit-rules.ts`, `configurator3d-step.tsx`; teste noi in `edit-rules.test.ts` (blocaj de om la 50 / 100 / 150 cm cu 1–3 sertare) si `configurator3d-step-edit-rules.test.tsx` (scrii 50 in „Inaltime rand” si ramane 50).
+
+### D-E9-14. Diametrul mesei rotunde pe tip: dining 80–160, cafea 50–100, consola 60–100 cm (2026-11-14, alegerea agentului `e9-3d`, de confirmat de PO)
+
+**Decizie: **`TABLE_ROUND_DIAMETER` (shared `furniture-config.ts`): DINING 0,8–1,6 m, COFFEE 0,5–1,0 m, CONSOLE 0,6–1,0 m, aplicat la creare / editare cu mesajul „La tipul ales, masa rotunda are intre {min} si {max} cm…”. Validarea cererilor ramane 70–180 cm, largita in jos la 50 / 60 cm pentru cafea / consola.
+
+**Rationale: **Planul cerea „interval de diametru pe tip”, fara valori; inainte 70–180 cm la orice tip (inclusiv masuta de cafea).
+
+**Impact: **`furniture-config.ts`, `edit-rules.ts`, `furniture-controls.tsx`. E2e `furniture-quality.spec.ts` de adus la zi.
+
+### D-E9-15. Pragurile de persoane la masa: doar avertisment (2026-11-14, alegerea agentului `e9-3d`, de confirmat de PO)
+
+**Decizie: **`TABLE_SEATS_MIN_LENGTH`: dreptunghi 4 → 120, 6 → 160, 8+ → 200 cm; rotund 4 → 90, 6 → 120, 8+ → 150 cm. Sub prag apare avertismentul „Pentru {n} persoane recomandam cel putin {cm} cm…”; nu se corecteaza nimic. Doar la masa de dining; la extensibila se compara lungimea inchisa.
+
+**Rationale: **Planul cerea avertisment cand persoanele nu incap; pragurile nu erau date.
+
+**Impact: **`edit-rules.ts` (`tableSeatsShortfall`), `furniture-controls.tsx`.
+
+### D-E9-16. De la rotund inapoi la dreptunghi, adancimea nu mai sare pe maxim (2026-11-14, alegerea agentului `e9-3d`, de confirmat de PO)
+
+**Decizie: **La trecerea de la rotund la dreptunghi, adancimea revine la cea de dinainte; cand nu se stie, ia implicitul tipului (`TABLE_RECT_DEPTH_DEFAULT`: dining 90, cafea 60, consola 40 cm).
+
+**Rationale: **Planul: trecerea la rotund / extensibil nu mai muta tacit adancimea pe maxim (inainte lua diametrul, deci de obicei 120 cm).
+
+**Impact: **`edit-rules.ts`, `furniture-controls.tsx`.
+
+### D-E9-17. E-mailul „Cererea ta e publicata” fara clopotel; pleaca si la republicare (2026-11-14, alegerea din contractul etapei, de confirmat de PO)
+
+**Decizie: **`request.published` (payload `{ requestId, requestTitle, clientUserId, expiresAt }`) se scrie prin outbox la publicare (cheie `request.published:<id>:client`) si la ambele republicari (`request.published:<id>:repost`). Clientul primeste doar e-mail, cu legatura spre cerere si data expirarii (ora Romaniei, limba lui). Randul din `notifications` exista (ca e-mailul sa plece exact o data), dar e ascuns din clopotel si din numarul de necitite (`EMAIL_ONLY_EVENTS`).
+
+**Rationale: **Clientul a publicat chiar el cererea; clopotelul ar repeta o actiune proprie (problema 45). Republicarea e tot o publicare.
+
+**Impact: **`notification-rules.ts`, `notification-emails.service.ts`, `notifications.service.ts`, `requests.service.ts`.
+
+### D-E9-18. Cine face actiunea nu primeste clopotel sau e-mail; semnalul pe socket ramane (2026-11-14, contractul etapei + alegerea agentului `e9-notif`, de confirmat de PO)
+
+**Decizie: **`actorUserId` in payload (mesaj, acceptare, refuz, cererea de modificare, finalizare, recenzie, cele trei evenimente de clarificare / editare si — dupa revizuire, m5 notificari — oferta trimisa `quote.created` si variantele noi `quote.updated` NEW_VERSION) scoate autorul din destinatari, intr-un singur loc (`withoutActor`, procesorul cozii de notificari), si pentru clopotel, si pentru e-mail. Deci nici membrul firmei care trimite oferta nu mai primeste clopotel pentru propria oferta. Autorul primeste in continuare evenimentul pe socket (doar invalidare de cache, utila pentru celelalte file deschise ale lui).
+
+**Rationale: **Problema 45: clientul primea in clopotel propriul mesaj si propria acceptare; revizorul a gasit acelasi lucru la ofertare (pasul 1 din plan e general).
+
+**Impact: **`notification-rules.ts`, `notifications.processor.ts`; `chat.service.ts`, `quotes.service.ts` (`recordQuoteEvent`, `reviseQuote`, `extraVersion`, `reofferModify`), `fulfillment.service.ts` (doar campuri adaugate).
+
+### D-E9-19. Anuntul „cerere noua”: scanare la un minut, doar perechile care tocmai au devenit vizibile, toti membrii firmei (2026-11-14, alegerea din contractul etapei si a agentului `e9-notif`; corectata dupa revizuirea de cod — M1 notificari; de confirmat de PO)
+
+**Decizie: **Jobul `scan.new-in-area` (coada `new-requests`, repetat la 60 s) ia doar cererile in stare care se poate prelua, publicate in fereastra = intarzierea maxima a planurilor (citita din planuri, cel putin 60 min) + 20 min de recuperare (`SCAN_CATCH_UP_MS`) + 30 s (`VISIBILITY_SETTLE_MS`), adica implicit 80,5 min (nu 3 ore). O pereche (cerere, firma) e „scadenta” cand publicarea + intarzierea planului firmei cade in (acum − 20 min − 30 s, acum − 30 s]; lista din piata (`MarketplaceService.list`, regula de vizibilitate nerescrisa) se cere pentru o firma DOAR daca are o pereche scadenta neverificata inca. Perechile deja anuntate se afla dintr-o singura interogare pe cheile outbox; o pereche verificata (vizibila sau nu) e tinuta minte in memoria instantei pana iese din fereastra. Firmele eligibile (nesterse, aprobate sau cu suspendarea expirata, abonament activ + `MARKETPLACE_ACCESS`, aceleasi predicate ca garda) se citesc dintr-o singura interogare, tinuta in memorie 5 minute, si doar cand exista cereri recente. Fiecare pereche vizibila primeste un eveniment `request.new_in_area` (payload `{ requestId, requestTitle, companyId }`, cheie `request.new_in_area:<cerere>:<firma>`) catre toti membrii activi ai firmei (clopotel, fara e-mail), la cel mult ~1 minut dupa ce cererea devine vizibila.
+
+**Rationale: **Prima varianta (fereastra de 3 ore, lista din piata ceruta pentru fiecare firma la fiecare minut) costa ~250 de interogari pe minut la 50 de firme, toata ziua. Acum: 1 interogare pe rulare cand nu e nimic nou; o cerere care devine vizibila costa o singura data (~38 de interogari la 25 de firme). Azi intarzierea e 0 la toate planurile (PO a1-2).
+
+**Impact: **`new-requests.service.ts`, `new-requests.processor.ts`, `notification-bell.tsx` (legatura `/marketplace/<id>`); test de integrare nou `new-requests.integration.spec.ts`. Limita de recuperare: D-E9-41.
+
+### D-E9-20. Rezumatul zilnic: 08:00, proprietar + manageri, cel mult 20 de cereri, fara dubluri (2026-11-14, alegerea agentului `e9-notif`, de confirmat de PO)
+
+**Decizie: **Jobul `digest.new-requests` (cron `0 8 * * *`, `Europe/Bucharest`) trimite fiecarei firme eligibile un singur e-mail, catre OWNER / MANAGER, cu cererile anuntate in intervalul (max(`companies.new_requests_digest_until`, acum − 24 h), acum] care sunt inca vizibile. Cel mult 20 in e-mail, restul „Si inca N…”; nimic daca nu sunt cereri; respecta dezabonarea existenta. Ordinea (dupa revizuire, m1 notificari): lista din piata → revendicarea marcajului (`updateMany where new_requests_digest_until = valoarea citita`) imediat inainte de trimitere → trimiterea. O eroare a listei nu muta marcajul, deci reluarea jobului trimite rezumatul; doua rulari suprapuse nu trimit de doua ori; daca nicio cerere nu mai e vizibila, nici marcaj, nici e-mail. Daca SMTP-ul pica la toti destinatarii dupa marcaj, ramane un avertisment in jurnal cu id-ul firmei, fara retrimitere (fara dubluri). In subiect „de” urmeaza regula romaneasca (20, 100, 120 „de cereri”; 101–119 „cereri”).
+
+**Rationale: **PO g1-2 a ales rezumatul zilnic; ora si plafonul nu erau date. Prima varianta muta marcajul inainte de lista, deci o eroare pierdea rezumatul zilei.
+
+**Impact: **`new-requests.service.ts`, `notification-emails.service.ts` (`DIGEST_MAX_ITEMS = 20`), coloana `companies.new_requests_digest_until`.
+
+### D-E9-21. La republicare, anuntul „cerere noua” nu se repeta pentru firmele care l-au primit (2026-11-14, alegerea agentului `e9-notif`, de confirmat de PO)
+
+**Decizie: **Cheia outbox e per (cerere, firma), pe viata: o firma care a primit deja anuntul pentru o cerere nu-l mai primeste la republicare; una care nu l-a primit (abonament nou, raza noua) il primeste, pentru ca scanarea porneste de la `published_at`, pus pe „acum” la republicare. Rezumatul urmeaza randurile outbox, deci nici el nu repeta cererea.
+
+**Rationale: **Varianta mai mica, aceeasi pentru ambele republicari, fara cod in plus in `requests.service.ts`.
+
+**Impact: **`new-requests.service.ts`.
+
+### D-E9-22. Anuntul si rezumatul au doar titlul mascat si localitatea (2026-11-14, regula din sarcina, aplicata de agentul `e9-notif`)
+
+**Decizie: **`request.new_in_area` si rezumatul contin doar titlul mascat (`maskFreeText`, ca in piata) si localitatea / judetul; niciun contact, adresa exacta sau numele clientului. Titlul se mascheaza si in `EventBusService.publish`, pentru ca outbox-ul il rehidrateaza brut.
+
+**Rationale: **Firma nu a preluat inca cererea (4.2).
+
+**Impact: **`event-bus.service.ts`, `new-requests.service.ts`, `notification-emails.service.ts`.
+
+### D-E9-23. Butonul se numeste „Anuleaza plata”, nu „Anuleaza comanda” (2026-11-14, alegerea agentului `e9-wallet` dupa glosar, de confirmat de PO)
+
+**Decizie: **In portofel: „Anuleaza plata” / „Cancel payment”, dialogul „Anulezi plata?”, „Da, anuleaza plata” / „Nu, pastrez plata”. Ruta ramane `POST /billing/orders/:id/cancel`.
+
+**Rationale: **Glosarul (etapa 8, D-E8-4) interzice „comanda” pentru platile firmei; planul scria „Anuleaza comanda”.
+
+**Impact: **`orders-section.tsx`, `cancel-order-dialog.tsx`, fragmentul `e9-wallet`.
+
+### D-E9-24. Firma isi anuleaza plata in asteptare: si cele Stripe, fara e-mail; adminul neschimbat (2026-11-14, alegerea agentului `e9-wallet`, de confirmat de PO)
+
+**Decizie: **`POST /billing/orders/:id/cancel` (`CompanyManagerGuard` — OWNER / MANAGER; `@Audit('PAYMENT_CANCELLED', 'mock_billing_order')`) refoloseste `PaymentsService.cancel` cu `source: 'company'`: doar plata proprie (altfel 404 `PAYMENT_NOT_FOUND`), `PENDING` (altfel 409 `PAYMENT_ALREADY_CONFIRMED`), nemarcata „Am platit” (409 `PAYMENT_REPORTED_PAID`, verificat inainte si sub acelasi `FOR UPDATE`; `updateMany` cu `paymentClaimedAt: null`); deja anulata → acelasi raspuns (idempotent si la doua apeluri simultane). Si platile Stripe: sesiunea se expira intai, ca la admin. Nu pleaca niciun e-mail. Adminul poate anula in continuare si o plata marcata „Am platit”.
+
+**Rationale: **Sarcina nu excludea Stripe; acelasi drum ca anularea de admin. Firma care a trimis deja banii nu trebuie sa-si poata anula plata (dialogul ii spune sa apese „Am platit”).
+
+**Impact: **`payments.controller.ts` (`cancelOrder`), `payments.service.ts`, `error-codes.ts`, `critical-audit-metadata.spec.ts`. docs/03 4.17; docs/ERROR_CODES.md.
+
+### D-E9-25. „Istoric credite”: cine il vede si cum arata suma (2026-11-14, alegerea agentului `e9-wallet`, de confirmat de PO)
+
+**Decizie: **`GET /billing/credit-history?cursor=&limit=` are rolurile soldului (orice membru al unei firme aprobate); 20 de randuri implicit, cel mult 50; cursorul = id-ul ultimei miscari vazute, comparat doar in firma proprie; doar citire. Suma cu semn = schimbarea creditelor DISPONIBILE; la `CONSUME` apare „0 disponibile” si „−n rezervate”. „Dupa” = soldul dupa miscare, calculat in SQL cu o fereastra pe (`created_at`, `id`), deci nu depinde de pagina; doua miscari din aceeasi tranzactie se ordoneaza dupa id (ordinea dintre ele e arbitrara, soldul de la capat e corect). Motivele vechi scrise liber sau necunoscute → „Alta miscare” (`OTHER`). Cererea legata apare doar daca preluarea e a firmei proprii.
+
+**Rationale: **Soldul mare din portofel e „Disponibile”; registrul exista, lipsea doar citirea.
+
+**Impact: **Nou `billing/credit-history.service.ts`, `billing.controller.ts`, `billing.schemas.ts`, `credit-history-section.tsx`, `use-billing.ts`. Fara migrare (indexul pe `company_id` exista).
+
+### D-E9-26. Soldul initial demo intra in registru; portofelele demo de pe productie — decizia PO (2026-11-14, alegerea agentului `e9-wallet`; DECIZIE NECESARA PO)
+
+**Decizie: **`prisma/seed-demo.ts` scrie, dupa crearea fiecarui portofel demo, o miscare `GRANT` cu motivul `OPENING_BALANCE` egala cu soldul initial (portofelele demo se creeaza acolo, nu in `seed.ts`). Pe productie, portofelele primite prin scriptul „200 de credite demo” au sold fara miscare: istoricul lor nu ajunge la sold. NU s-a scris migrare de date. Remediul posibil: cate un `GRANT` / `OPENING_BALANCE` egal cu `balance − (GRANT − RESERVE + REFUND)` pe fiecare portofel deviat (diferenta o arata `LedgerCheckService`).
+
+**Rationale: **Planul cerea ca istoricul demo sa ajunga la sold; o scriere pe productie o hotaraste PO.
+
+**Impact: **`seed-demo.ts`; `OPENING_BALANCE` in `credit_transactions.reason` (docs/04).
+
+### D-E9-27. „Valabila pana pe …” langa plata in asteptare (2026-11-14, pas din plan, aplicat de agentul `e9-wallet`)
+
+**Decizie: **Langa suma platii in asteptare apare „Valabila pana pe {data}; dupa aceea se anuleaza automat.”, din `transferExpiresAt` (setarea `bank_transfer_expiry_days`), doar daca setarea e pornita si plata nu e marcata „Am platit”.
+
+**Rationale: **Planul (problema 46, pasul 4).
+
+**Impact: **`orders-section.tsx`; DTO neschimbat.
+
+### D-E9-28. „Preluare activa” la editarea dupa preluare = `ACTIVE` sau `OFFER_SENT` (2026-11-14, alegerea agentului `e9-trace`, de confirmat de PO)
+
+**Decizie: **`request.edited_after_claim` se scrie cate unul pe fiecare preluare `ACTIVE` / `OFFER_SENT` (`OPEN_CLAIM_STATUSES`), catre membrii firmei, cheie `request.edited_after_claim:<claimSlotId>:<nr. editarii dupa preluare>`. In practica e de obicei doar `ACTIVE`, pentru ca editarea dupa preluare e permisa doar inainte de prima oferta.
+
+**Rationale: **Planul spunea „firmele cu preluare activa”, fara lista de stari.
+
+**Impact: **`requests.service.ts` (ramura de editare, nu republicare).
+
+### D-E9-29. „Ce s-a schimbat”: ce se compara si cum se potrivesc camerele (2026-11-14, alegerea agentului `e9-trace`, de confirmat de PO)
+
+**Decizie: **`GET /claims/:id/request-changes` → `{ edit: null | { editedAt, comparable, fields[], rooms[] } }`, din ultimele doua copii `request_versions`. Se spune doar CE s-a schimbat, fara valori: bugetul, termenul, mesajul pentru firme, localitatea, proiectarea cu plata, „Am deja un proiect”, pozele de inspiratie, camerele adaugate / scoase / modificate. Strada, blocul si contactele nu se compara. Camerele se potrivesc in trei treceri (dupa revizuire, m3 notificari): (1) dupa `sourceLocalId`, (2) camerele cu continut identic, (3) restul dupa tip, in ordine — deci „scot primul din doua dulapuri” da corect „Camera scoasa: Dulap 1”. Limita ramasa: daca la prima editare clientul scoate o camera SI o modifica pe alta de acelasi tip, trecerea (3) poate inversa perechea (fara id-uri stabile nu se poate deosebi). `snapshot3d` si scenele din Studio se ignora (ar da diferente false); la fel fisierele generale ale cererii si pozele de inspiratie pe copiile vechi (`inspirationPhotoIds`). Versiuni de chestionar diferite → se compara copia bruta a camerei (tipul, raspunsurile fara `snapshot3d`, proiectarea cu plata, lungimea aproximativa); identica → camera nu apare, altfel doar „Camera X a fost modificata”; format necomparabil → mesaj fara detalii. Caseta apare doar pe preluare deschisa si doar daca ultima copie e mai noua decat preluarea firmei.
+
+**Rationale: **Riscul din plan: diferente false intre versiuni de flux.
+
+**Impact: **Nou `requests/request-version-diff.ts`, `clarifications.service.ts` (`editChangesForClaim`), `lifecycle.controller.ts`, `request-changes-notice.tsx`. Tipurile sunt dublate backend / frontend (de mutat in shared, optional).
+
+### D-E9-30. Clarificarile: evenimente, destinatari si istoricul la client (2026-11-14, pas din plan + contractul etapei)
+
+**Decizie: **`clarification.asked` (catre client: clopotel + e-mail, legatura spre cerere) si `clarification.answered` (catre membrii firmei: clopotel; e-mail doar la responsabil + conducere, D-E9-5), prin outbox in aceeasi tranzactie, chei `clarification.asked:<id>` / `clarification.answered:<id>`; payload `{ requestId, requestTitle, claimSlotId, companyId, companyName, clientUserId, actorUserId }`. Refuzul nu scrie eveniment. Clientul vede si „Intrebari la care ai raspuns” (firma, data intrebarii, intrebarea, „Raspunsul tau:”, data raspunsului); endpointul clientului intoarce si `companyName`.
+
+**Rationale: **Planul (problema 47, pasii 1–2): intrebarea si raspunsul nu lasau nicio urma.
+
+**Impact: **`clarifications.service.ts`, `client-clarifications.tsx`, `notification-emails.service.ts`, `notification-bell.tsx`, `use-socket.ts`. docs/03 4.11.
+
+### D-E9-31. Confirmarea la editarea dupa preluare: dialog in aplicatie, starea din cache (2026-11-14, alegerea agentului `e9-trace`, de confirmat de PO)
+
+**Decizie: **La salvarea editarii unei cereri `CLAIMED_PARTIAL` / `CLAIMED_FULL` apare dialogul „Salvezi modificarile?” (nu `window.confirm`), cu efectul asupra firmelor si „Dupa preluare, cererea se poate modifica doar o data.”; „Nu acum” nu salveaza. Starea se ia din cache-ul `['request', id]` incarcat de formular; daca lipseste, salvarea pleaca direct, ca inainte (serverul decide). La republicarea cu modificari dialogul nu apare.
+
+**Rationale: **Planul (problema 47, pasul 5).
+
+**Impact: **Nou `components/configurator/post-claim-edit-confirm.tsx`, `review-step.tsx`.
+
+### D-E9-32. Numele si limitele setarilor de pastrare a ciornelor (2026-11-14, alegerea agentului `e9-drafts`, de confirmat de PO)
+
+**Decizie: **Cheile `guest_draft_retention_days` (7) si `client_draft_retention_days` (90), in grupul Admin „Date de contact si firme”, intregi 1–3650 (0 ar sterge orice ciorna, deci e refuzat la salvare). O valoare sub 1 sau stricata in baza cade pe implicit pe server.
+
+**Rationale: **Planul lasa numele si limitele la alegere.
+
+**Impact: **`setting-defaults.ts`, `admin.service.ts`, `audit-snapshot.ts` (`NUMERIC_SETTINGS`), `setting-catalog.ts`, `draft-cleanup.service.ts`.
+
+### D-E9-33. Jobul de curatare: „atinsa” = `updated_at`, loturi, ordinea stergerii (2026-11-14, alegerea agentului `e9-drafts`, de confirmat de PO)
+
+**Decizie: **„Atinsa” = `requests.updated_at` (Prisma `@updatedAt`): salvarea automata a formularului si „Continua” o muta; simpla deschidere fara schimbare nu. Listarea candidatilor (dupa revizuire, M1 ciorne) se face cu SQL brut (`listCandidates`, `$queryRaw`), ca sa vada si randurile marcate sterse (filtrul Prisma de stergere logica `softDeleteReads` le ascundea): `status = 'DRAFT'` si (`deleted_at` pus de peste 30 de minute — D-E9-43 — sau pragul 7 / 90 de zile pe `updated_at`), sortat dupa `id`, loturi de 50, cel mult 1.000 de ciorne pe rulare. Pe fiecare ciorna: marcare `deleted_at` sub `FOR UPDATE` (reverificand starea si pragul), apoi stergerea fisierelor din storage (un fisier folosit si de alt rand se pastreaza), apoi randurile `attachments` — doar pe perechile (`id`, `storage_key`) sterse la pasul anterior — si ciorna, sub o a doua blocare. Un rand a carui cheie s-a schimbat intre timp ramane, ciorna e sarita si se reia la rularea urmatoare; la fel un esec S3. Reincercari: 3, cu asteptare exponentiala.
+
+**Rationale: **Riscul din plan: un job gresit filtrat poate sterge ciorne la care omul lucreaza sau fisierele cererilor publicate. Prima varianta (listare prin Prisma) nu ar fi curatat niciodata ciornele aruncate si nici o ciorna ramasa dupa un esec de storage; testele nu prindeau, pentru ca simulau listarea. Testul de integrare ruleaza acum `run()` cu filtrul de stergere logica activ.
+
+**Impact: **`draft-cleanup.service.ts`, `draft-cleanup.processor.ts`. docs/02 3.4.
+
+### D-E9-34. Limita de ciorne noi: 10 pe minut pe IP sigur, altfel 120 pe minut (2026-11-14, pas din plan; corectata dupa revizuirea de cod — M2 ciorne; de confirmat de PO)
+
+**Decizie: **Pe `POST /requests/drafts` limita se decide pe fiecare cerere (`draftCreateLimit`): 10 pe minut (`DRAFT_CREATE_LIMIT_PER_CLIENT_IP`) doar cand IP-ul vine din antetul de incredere (`clientIpSource = 'header'`: `TRUSTED_CLIENT_IP_HEADER` configurat si antetul prezent); altfel 120 pe minut (`DRAFT_CREATE_LIMIT_SHARED_IP`). Limita globala de 100 pe minut si celelalte nu se schimba. La 429 formularul arata „Prea multe cereri incepute intr-un timp scurt. Incearca din nou peste un minut.” (`Configurator.bootstrap.rateLimited`), iar „Incearca din nou” ramane dezactivat 60 de secunde, fara reincercare automata. `TRUSTED_CLIENT_IP_HEADER` ramane de setat pe productie, dar nu mai blocheaza lansarea.
+
+**Rationale: **Prima varianta (10 pe minut fix) putea bloca formularul pentru toti vizitatorii in spatele gateway-ului, unde toti au acelasi IP: al 11-lea om dintr-un minut primea 429. Cu 120 pe minut pentru IP-ul comun, riscul ramane doar la trafic foarte mare (peste 120 de ciorne noi pe minut, la un loc).
+
+**Impact: **`requests.controller.ts`, `configurator-wizard.tsx`, fragmentul `e9-drafts`. Local si in e2e sursa e `socket`, deci limita e 120 pe minut.
+
+### D-E9-35. Republicarea cu modificari: fara `last_edit_at`, fisierele pe cererea expirata (2026-11-14, alegerea agentului `e9-drafts`, de confirmat de PO)
+
+**Decizie: **Republicarea cu modificari nu scrie `last_edit_at` (nu e editare) si nu schimba contoarele de editare; verificarea contactelor din texte se inregistreaza cu `trigger = EDIT`. Emite aceleasi evenimente ca republicarea identica (`request.status_changed` cu cheia `request.reposted:<id>` si `request.published`). Pe o cerere expirata se pot urca / scoate fisiere (schite, imaginea 3D) doar cat republicarea nu a fost folosita. Un fisier scos din formular la „Republica cu modificari” se sterge imediat, chiar daca omul renunta apoi la republicare: modificarea fisierelor nu e legata de republicare (la fel ca la editarea cererii aflate in piata; lasat asa dupa revizuire, m6 ciorne). Pe cererea expirata (si pe ciorna) cardul de stergere nu mai spune „Preluarile active ale firmelor vor fi anulate”; randurile din dialog despre oferte, conversatii si credite raman.
+
+**Rationale: **PO f6-2: pas separat de editari.
+
+**Impact: **`requests.service.ts`, `requests/[id]/page.tsx`, `request-editability.ts`.
+
+### D-E9-36. Publicarea reverifica ciorna sub blocare; cursa ramasa la 03:30 (2026-11-14, alegerea agentului `e9-drafts`, de confirmat de PO)
+
+**Decizie: **Publicarea citeste ciorna cu `FOR UPDATE`; o ciorna marcata stearsa de job chiar atunci primeste `DRAFT_TOKEN_INVALID`, in loc sa fie publicata pe jumatate. La fel salvarea automata (D-E9-44): primeste 404, iar formularul porneste o ciorna noua si pastreaza progresul din browser. Ramane un caz foarte ingust: ciorna de pe server a unui om care revine exact cand o marcheaza jobul (dupa 7 / 90 de zile de pauza) se sterge; fisierele unei cereri publicate nu se pierd.
+
+**Rationale: **Invarianta: jobul nu are voie sa stearga fisierele cererilor publicate.
+
+**Impact: **`requests.service.ts` (publicarea), `draft-cleanup.service.ts`. docs/02 3.4.
+
+### D-E9-37. Scriptul „[TEST AUDIT]”: ce ia si cum se ruleaza (2026-11-14, alegerea agentului `e9-drafts`, de confirmat de PO)
+
+**Decizie (corectata dupa revizuirea de cod — m3, m4 ciorne): **Scriptul cauta fragmentul `[test audit` fara deosebire de majuscule (prinde si „[TEST AUDIT SD-01]”) in titlu, in mesaj, in toata starea formularului (`configurator_state`) si in camerele / piesele materializate (`request_rooms.answers`, `request_items.name` / `description`), doar pe `DRAFT` (inclusiv cele deja marcate sterse), cu reverificare sub `FOR UPDATE` in ambele tranzactii; lista are coloanele `account` si `marker` (unde s-a gasit marcajul). `--backup-dir` e obligatoriu si un folder din repo e refuzat. Fara `--delete --yes` doar listeaza si scrie copia JSON (cu `contactDetections`), fara nicio scriere in baza sau storage. La `--delete`, inaintea oricarei stergeri, descarca fisierele fiecarei ciorne in `<backup-dir>/files-<data>/<id>/`; o descarcare esuata → ciorna nu se sterge (`backupFailed`); un obiect deja lipsa din storage apare la `filesMissingInStorage`. Plafon 200 (`--max`). Adresa bazei trebuie pusa explicit in mediu (`DATABASE_URL`, altfel `DATABASE_PUBLIC_URL`), citita inainte de Prisma; fara ea scriptul refuza (altfel Prisma ar fi incarcat singur `apps/backend/.env`, adica baza locala). Se scrie doar numele variabilei, niciodata adresa. Copia contine date de contact ale conturilor de test: se pastreaza in afara repo-ului si se sterge dupa confirmare.
+
+**Rationale: **PO f6-3: intai lista si copia, stergerea doar dupa „da”. Revizorul a aratat ca marcajul apare si in numele pieselor si in texte de camera (lista ar fi iesit incompleta), ca `railway run` da adresa interna a bazei si ca o copie in repo se putea comite din greseala. La verificarea refuzurilor, scriptul a rulat o data, doar cu SELECT, pe baza LOCALA de lucru (0 ciorne, nimic scris); productia nu a fost atinsa — de aici regula adresei puse explicit.
+
+**Impact: **`apps/backend/scripts/cleanup-test-audit-drafts.cjs`; NErulat pe productie. Comenzile: CHANGELOG, etapa 9, „La lansare”.
+
+### D-E9-38. Masa din ciorne se ajusteaza o data, la redeschidere (2026-11-14, dupa revizuirea de cod — m5 3D; de confirmat de PO)
+
+**Decizie: **O ciorna de masa (nu si o cerere publicata) cu diametrul in afara noilor intervale pe tip (D-E9-14) se ajusteaza o data, la redeschiderea pasului, cu motiv — la fel ca biblioteca si comoda TV. O cerere publicata ramane neatinsa pana la prima schimbare facuta de om, apoi se ajusteaza cu motiv.
+
+**Rationale: **Inainte o ciorna cu masa de cafea rotunda de 180 cm s-ar fi publicat asa (validarea accepta pana la 180 cm), spre deosebire de celelalte limite noi.
+
+**Impact: **`furniture-controls.tsx`; teste in `furniture-controls-table.test.tsx`.
+
+### D-E9-39. Bifa „Extensibila” e tinuta minte la ocolul prin alt tip sau forma (2026-11-14, dupa revizuirea de cod — m6 3D)
+
+**Decizie: **La ocolul Dining → Cafea → Dining si Dreptunghi → Rotund → Dreptunghi, bifa „Extensibila” revine bifata. Dupa ce omul o debifeaza, nu mai revine. Se salveaza tot `shape: 'EXTENDABLE'` (D-E9-3); pe tipurile / formele fara extensie nu ramane nicio valoare fara sens.
+
+**Rationale: **Inainte bifa se pierdea pe tacute la ocol.
+
+**Impact: **`furniture-controls.tsx`.
+
+### D-E9-40. Regula sertarelor nu elibereaza blocajele omului; „−” dezactivat la minimul de sertare (2026-11-14, dupa revizuirea de cod — m2, m3, m7, m8 3D)
+
+**Decizie: **Cand un rand de sertare trebuie strans si nu exista o vecina libera fara sertare, regula NU mai elibereaza blocajul pus de om pe o vecina: cresc sertarele (cu motiv), ca in coloana doar cu sertare. Minimul de sertare pentru ca frontul sa incapa in 50 cm se calculeaza (`drawerCountMinFor`): in modul 3D „−” e dezactivat la minim, cu motivul `config3d.drawersMinForFront`; in modul cu campuri valorile sub minim sunt refuzate cu mesajul „intre {min} si {max}”. Texte: `drawerFrontMax` foloseste doar „rand” („…am micsorat randul de sertare (restul a trecut la randurile vecine) sau am pus mai multe sertare.”); `BOOKCASE_COLUMN_WIDTH` spune ajustarea („O coloana de biblioteca are cel mult {max} cm latime — am pus {max} cm.”, cheia `config3d.bookcaseColumnLowered`).
+
+**Rationale: **Revizorul: omul pierdea fara motiv o nisa blocata; „−” parea activ, dar sertarele reveneau.
+
+**Impact: **`edit-rules.ts`, `configurator3d-step.tsx`, fragmentul `e9-3d`. Verificat pe 135 de combinatii (dulap 180 / 220 / 280 cm, 4 zone) ca nicio zona de sertare nu urca peste 160 cm si regula e idempotenta.
+
+### D-E9-41. Anunturile „cerere noua” pierdute daca notificarile stau oprite peste 20 de minute; firmele eligibile tinute 5 minute in memorie (2026-11-14, dupa revizuirea de cod — M1 notificari; de confirmat de PO)
+
+**Decizie: **O rulare sarita sau intarziata, o repornire sau o coada blocata pana la 20 de minute nu pierde anuntul (perechea ramane scadenta 20 de minute, iar cheia outbox opreste dublura). Peste 20 de minute de oprire, anunturile perechilor devenite vizibile in pauza NU mai pleaca (si nu apar nici in rezumat); cererile raman in lista firmei. Lista firmelor eligibile e tinuta in memorie 5 minute, deci un abonament nou sau expirat se vede in anunturi cu cel mult 5 minute intarziere.
+
+**Rationale: **Pretul ferestrei scurte care face scanarea ieftina (D-E9-19).
+
+**Impact: **`new-requests.service.ts` (`SCAN_CATCH_UP_MS`, `ELIGIBLE_CACHE_MS`); limita e scrisa intr-un test.
+
+### D-E9-42. E-mailul de recenzie sub 3 stele nu mai promite ascunderea publica (2026-11-14, dupa revizuirea de cod — m4 notificari)
+
+**Decizie: **Propozitia din e-mailul `review.created` catre firma devine „Pentru ca nota e sub 3 stele, echipa Cozy Home analizeaza recenzia.” / „Because the rating is below 3 stars, the Cozy Home team is reviewing it.” (fara „inainte sa apara public”).
+
+**Rationale: **Recenziile nu sunt afisate public nicaieri azi (verificat in cod), deci promisiunea nu era adevarata.
+
+**Impact: **`notification-emails.service.ts`; test RO + EN.
+
+### D-E9-43. Pauza de 30 de minute inainte de curatarea unei ciorne aruncate (2026-11-14, dupa revizuirea de cod — M1 / m1 ciorne; de confirmat de PO)
+
+**Decizie: **O ciorna marcata stearsa („Incepe o cerere noua”, stergerea din cont) e luata de jobul de curatare abia dupa 30 de minute de la `deleted_at` (`DRAFT_CLEANUP_DELETED_GRACE_MS`). Ciornele neatinse 7 / 90 de zile nu au aceasta pauza.
+
+**Rationale: **O urcare de fisier sau o sigilare pornita chiar inainte de „Incepe o cerere noua” are timp sa se termine, ca sa nu ramana fisiere fara rand in storage.
+
+**Impact: **`draft-cleanup.service.ts`. docs/02 3.4.
+
+### D-E9-44. Salvarea automata refuza ciorna marcata stearsa (2026-11-14, dupa revizuirea de cod — m2 ciorne)
+
+**Decizie: **`patchDraft` scrie cu `updateMany` conditionat pe `status = 'DRAFT'` si `deleted_at IS NULL`; daca nu atinge niciun rand → 404 `DRAFT_TOKEN_INVALID`, iar contactele nu se mai scriu. Formularul trateaza deja 404: porneste o ciorna noua si pastreaza progresul local.
+
+**Rationale: **Inainte o salvare in curs putea scrie intr-o ciorna tocmai marcata de job si primea 200, desi ciorna se stergea.
+
+**Impact: **`requests.service.ts` (`patchDraft`).
+
+### D-E9-45. Limita de o editare dupa preluare e verificata in tranzactie, sub blocarea cererii (2026-11-14, dupa revizuirea de cod — m2 notificari / clarificari)
+
+**Decizie: **In tranzactia editarii: `SELECT … FOR UPDATE` pe cerere, limitele de editare (`assertEditableAndCount`) reverificate pe valorile blocate, apoi contoarele scrise pe acelasi rand. A doua salvare simultana vede contorul crescut si primeste `EDIT_LIMIT_POST_CLAIM_REACHED`. Verificarea de dinaintea tranzactiei ramane, ca refuz rapid. In interfata, al doilea clic pe „Da, salveaza” e ignorat (inclusiv in animatia de inchidere), iar „Salveaza modificarile” e blocat cat salvarea e in curs.
+
+**Rationale: **Un dublu clic putea trece de limita si scria doua versiuni aproape identice, iar firma vedea apoi „nu s-a schimbat nimic” in caseta.
+
+**Impact: **`requests.service.ts`, `post-claim-edit-confirm.tsx`, `review-step.tsx`; test de integrare cu doua editari pornite deodata (trecut, rulat de `e9-drafts`). docs/02 3.4.
+
+### D-E9-46. Titlul cererii e mascat in „Istoric credite” (2026-11-14, dupa revizuirea de cod — m5 portofel)
+
+**Decizie: **Titlul cererii legate din istoricul creditelor trece prin `maskFreeText`, ca in piata si in vederea limitata a fisei; titlul gol ramane `null` („Cerere fara titlu”). Legatura spre fisa ramane pe toate randurile: fisa se deschide pentru orice preluare a firmei proprii (vederea limitata, fara contacte, la preluarile inchise si cererile sterse).
+
+**Rationale: **Un titlu vechi cu telefon sau e-mail s-ar fi vazut de orice membru al firmei, inclusiv pe preluarile retrase sau pe cererile sterse.
+
+**Impact: **`credit-history.service.ts`; 2 teste noi.
+
 # 9. Checklist uman: ce faci acum
 
 - Citește integral acest document o dată. Verifică Decisions Log (Secțiunea 8, inclusiv 8.4). Dacă o decizie te deranjează, schimb-o ACUM în document, înainte ca agentul să scrie cod.

@@ -38,6 +38,10 @@ Reguli generale:
 | **Termen de răspuns** / Response deadline | Timpul firmei pentru a trimite oferta după preluare. | „SLA”, „Termen ofertă (SLA)”, „SLA în pauză” |
 | **Anulată: nu a fost atribuită la timp** / Cancelled: not assigned in time | Preluarea anulată pentru că nimeni din echipă nu a primit-o. | „Anulată (neatribuită)” |
 | **Ce vrei să mobilezi?** / What do you want to furnish? | Titlul coșului; subtitlul pomenește camerele și piesele. | „Ce camere vrei să mobilezi?” |
+| **Istoric credite** / Credit history | Secțiunea din portofel cu fiecare mișcare de credite a firmei (etapa 9). O mișcare fără nume cunoscut: „Altă mișcare” / „Other movement”. | — |
+| **Anulează plata** / Cancel payment | Firma își anulează plata în așteptare, înainte de „Am plătit” (etapa 9). | „Anulează comanda” la plățile firmei |
+| **Republică cu modificări** / Repost with changes | Clientul republică o cerere expirată, o singură dată, cu formularul schimbat; butonul de salvare: „Republică cu modificările” / „Repost with these changes” (etapa 9). | — |
+| **Reîncadrează** / Reframe | Butonul din scena 3D care aduce piesa întreagă în cadru (etapa 9). | — |
 
 Etichetele scurte din Sumar și din Fișă numesc întrebarea, nu un răspuns: „Tip de balcon: Deschis”,
 nu „Balcon închis: Deschis”.
