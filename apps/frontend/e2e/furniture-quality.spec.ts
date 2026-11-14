@@ -12,6 +12,7 @@ test('all furniture keeps working controls and snapshots after visual refinement
   const canvas = page.locator('canvas').first();
   await expect(page.locator('pre')).toContainText('widthM', { timeout: 30_000 });
 
+  const withFronts: string[] = [];
   for (const kind of ['BOOKCASE', 'WARDROBE', 'TV_UNIT', 'SHOE_CABINET', 'DRESSER', 'NIGHTSTAND', 'DESK']) {
     await page.getByRole('button', { name: kind, exact: true }).press('Enter');
     await expect(canvas).toBeVisible();
@@ -23,12 +24,23 @@ test('all furniture keeps working controls and snapshots after visual refinement
         await expect.poll(async () => (await config())[`${label.toLowerCase()}M`]).toBeCloseTo(target, 3);
       }
     }
-    await page.getByRole('button', { name: 'With handle', exact: true }).press('Enter');
-    await expect.poll(async () => (await config()).frontStyle).toBe('HANDLE');
+    // etapa 8: alegerea manerului apare doar cand piesa are fronturi (usi / sertare); o piesa doar cu
+    // polite deschise (biblioteca de la pornire, noptiera la dimensiunile minime) nu are frontStyle
+    const hasFronts = ((await config()).columns as { zones: { type: string }[] }[]).some((c) => c.zones.some((z) => z.type !== 'OPEN'));
+    if (hasFronts) withFronts.push(kind);
+    if (!hasFronts) {
+      await expect(page.getByRole('button', { name: 'With handle', exact: true })).toHaveCount(0);
+      expect((await config()).frontStyle).toBeUndefined();
+    } else {
+      await page.getByRole('button', { name: 'With handle', exact: true }).press('Enter');
+      await expect.poll(async () => (await config()).frontStyle).toBe('HANDLE');
+    }
     await page.getByTitle('Walnut', { exact: true }).press('Space');
     await expect.poll(async () => (await config()).finish).toBe('NUC');
   }
 
+  // dulapul (usi batante) si comoda TV (sertare) pornesc cu fronturi
+  expect(withFronts).toEqual(expect.arrayContaining(['WARDROBE', 'TV_UNIT']));
   await page.getByRole('button', { name: 'BED', exact: true }).press('Enter');
   await page.getByRole('combobox', { name: 'What mattress size?', exact: true }).selectOption('S_90');
   await expect.poll(async () => (await config()).widthM).toBe(1.03);

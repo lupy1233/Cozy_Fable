@@ -79,8 +79,14 @@ const preferred: Record<string, string> = {
 // etapa 6: "Acelasi material si aceeasi deschidere pentru toate piesele?" — "Da" in EN, "Nu" in RO
 // (ambele drumuri, ca la buget); celelalte intrebari da / nu obligatorii primesc "Da"
 export const SAME_FINISH_ANSWER: Record<Locale, boolean> = { en: true, ro: false };
-async function answerQuestion(block: Locator, step: QuestionStep, answers: AnswerMap, locale: Locale, images: Set<string>) {
+// etapa 8: un test poate completa singur un ecran de dimensiuni (intoarce valorile in metri)
+export type DimensionsHook = (block: Locator, step: QuestionStep) => Promise<Record<string, number>>;
+async function answerQuestion(block: Locator, step: QuestionStep, answers: AnswerMap, locale: Locale, images: Set<string>, onDimensions?: DimensionsHook) {
   const t = (key: string) => textFor(locale, `Configurator.${key}`);
+  if (step.type === 'dimension-group' && onDimensions) {
+    answers[step.id] = await onDimensions(block, step);
+    return;
+  }
   // bifa compacta (kitchen v3): fara titlu propriu, doar eticheta bifei
   if (step.type === 'boolean' && step.toggleStyle === 'checkbox') {
     await expect(block.getByText(t(step.cardLabelKey ?? step.titleKey), { exact: true })).toBeVisible();
@@ -189,7 +195,8 @@ export async function completeAllRoomRequest(page: Page, locale: Locale, origin 
 // (cea curenta pentru camerele noi, versiunea fixata pentru o ciorna veche).
 // `ownProject`: modul "Am deja un proiect" (pasii de dimensiuni se sar); `approxLength`: textul scris in
 // campul "Lungime aproximativa (m)" de pe ultimul ecran al camerei, cand apare (etapa 5, d3).
-export async function walkRoomQuestions(page: Page, locale: Locale, roomTypes: readonly RoomType[], flowOf: (type: RoomType) => RoomFlow, capture?: (name: string, block: Locator) => Promise<void>, opts: { ownProject?: boolean; approxLength?: string } = {}) {
+// etapa 8: `onScreen` = apelat la inceputul fiecarui ecran (contor, bara lipita); `onDimensions` = vezi DimensionsHook.
+export async function walkRoomQuestions(page: Page, locale: Locale, roomTypes: readonly RoomType[], flowOf: (type: RoomType) => RoomFlow, capture?: (name: string, block: Locator) => Promise<void>, opts: { ownProject?: boolean; approxLength?: string; onScreen?: (screen: number) => Promise<void>; onDimensions?: DimensionsHook } = {}) {
   const t = (key: string) => textFor(locale, `Configurator.${key}`);
   const answers = new Map<RoomType, AnswerMap>(roomTypes.map((type) => [type, {}]));
   const questions = new Map<RoomType, Set<string>>(roomTypes.map((type) => [type, new Set()]));
@@ -198,6 +205,7 @@ export async function walkRoomQuestions(page: Page, locale: Locale, roomTypes: r
     if (await page.getByRole('heading', { name: t('uploads.title'), exact: true }).isVisible()) break;
     await expect(page.locator('[data-question-id]').first()).toBeVisible();
     const before = await page.locator('[data-question-id]').first().evaluate((element) => `${element.getAttribute('data-room-type')}.${element.getAttribute('data-question-id')}`);
+    if (opts.onScreen) await opts.onScreen(screen);
     const processed = new Set<string>();
     for (let pass = 0; pass < 30; pass++) {
       const metadata = await page.locator('[data-question-id]').evaluateAll((elements) => elements.map((element) => ({ id: element.getAttribute('data-question-id')!, room: element.getAttribute('data-room-type')! })));
@@ -207,7 +215,7 @@ export async function walkRoomQuestions(page: Page, locale: Locale, roomTypes: r
       const step = flowOf(type).steps.find((question) => question.id === next.id);
       if (!step) throw new Error(`Unknown question ${type}.${next.id} (flow v${flowOf(type).version})`);
       const block = page.locator(`[data-question-id="${next.id}"][data-room-type="${type}"]`);
-      await answerQuestion(block, step, answers.get(type)!, locale, images);
+      await answerQuestion(block, step, answers.get(type)!, locale, images, opts.onDimensions);
       if (capture && ['LIVING.piecesNeeded', 'DRESSING.interiorModules', 'BEDROOM.bedStorage', 'BEDROOM.bedCustomSize', 'LAUNDRY.applianceSetup'].includes(`${type}.${next.id}`)) await capture(`${type}-${next.id}`, block);
       processed.add(`${type}.${next.id}`);
       questions.get(type)!.add(next.id);

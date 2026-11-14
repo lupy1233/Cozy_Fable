@@ -51,8 +51,35 @@ const request = {
   inspirationPhotoIds: [], inspirationPhotos: [], configuratorState: null, studioScenes: [],
 };
 
-test('ro: offers table compares totals in lei with VAT and a declined offer becomes "Refuzată" with a single request', async ({ page }) => {
+// etapa 8: pe telefon (sub sm) compararea e pe carduri — cate un card pe rubrica, firma in `dt`,
+// valoarea in `dd`; pe desktop ramane tabelul. Aceleasi valori asteptate pe ambele.
+function compareView(page: Page, phone: boolean) {
+  const table = page.getByRole('table');
+  return {
+    async expectLayout() {
+      if (phone) {
+        await expect(page.locator('[data-compare-cards]')).toBeVisible();
+        await expect(table).toHaveCount(0);
+      } else {
+        await expect(table).toBeVisible();
+        await expect(page.locator('[data-compare-cards]')).toHaveCount(0);
+      }
+    },
+    // valoarea rubricii pentru firma (index = ordinea coloanelor / randurilor)
+    cell(rubric: 'totalLeiVat' | 'status', label: string, index: number, company: string) {
+      if (phone) {
+        const row = page.locator(`[data-compare-rubric="${rubric}"]`).locator('dl > div').nth(index);
+        return { row, firm: row.locator('dt'), value: row.locator('dd'), company };
+      }
+      const tr = table.getByRole('row').filter({ has: page.getByRole('rowheader', { name: label, exact: true }) });
+      return { row: tr, firm: null, value: tr.getByRole('cell').nth(index), company };
+    },
+  };
+}
+
+test('ro: offers table compares totals in lei with VAT and a declined offer becomes "Refuzată" with a single request', async ({ page }, testInfo) => {
   test.setTimeout(120_000);
+  const phone = testInfo.project.name === 'mobile';
   const Q = ro.Quotes;
   let declined = false;
   const declineCalls: unknown[] = [];
@@ -80,14 +107,20 @@ test('ro: offers table compares totals in lei with VAT and a declined offer beco
   });
   await page.goto('/ro/requests/req-e2e/offers');
   await expect(page.getByRole('heading', { name: Q.offersTitle, exact: true })).toBeVisible({ timeout: 60_000 });
-  const table = page.getByRole('table');
-  const totalRow = table.getByRole('row').filter({ has: page.getByRole('rowheader', { name: Q.compare.totalLeiVat, exact: true }) });
-  await expect(totalRow).toBeVisible();
-  const cells = totalRow.getByRole('cell');
-  await expect(cells.nth(0)).toContainText(/12[.  ]?100/);
-  await expect(cells.nth(0)).not.toContainText(Q.compare.lowest);
-  await expect(cells.nth(1)).toContainText(/11[.  ]?000/);
-  await expect(cells.nth(1)).toContainText(Q.compare.lowest);
+  const view = compareView(page, phone);
+  await view.expectLayout();
+  if (phone) await expect(page.locator('[data-compare-rubric="totalLeiVat"] h3')).toHaveText(Q.compare.totalLeiVat);
+  const alfaTotal = view.cell('totalLeiVat', Q.compare.totalLeiVat, 0, 'Firma Alfa');
+  const betaTotal = view.cell('totalLeiVat', Q.compare.totalLeiVat, 1, 'Firma Beta');
+  await expect(alfaTotal.row).toBeVisible();
+  if (phone) {
+    await expect(alfaTotal.firm!).toHaveText('Firma Alfa');
+    await expect(betaTotal.firm!).toHaveText('Firma Beta');
+  }
+  await expect(alfaTotal.value).toContainText(/12[.   ]?100/);
+  await expect(alfaTotal.value).not.toContainText(Q.compare.lowest);
+  await expect(betaTotal.value).toContainText(/11[.   ]?000/);
+  await expect(betaTotal.value).toContainText(Q.compare.lowest);
   // firma deschisa = prima cu oferta de ales (Alfa): refuzul pleaca abia dupa confirmare, o singura data
   const offer = page.getByRole('region', { name: Q.offerFrom.replace('{company}', 'Firma Alfa') });
   await offer.getByRole('button', { name: Q.decline.open, exact: true }).click();
@@ -99,9 +132,10 @@ test('ro: offers table compares totals in lei with VAT and a declined offer beco
   await expect(dialog).toBeHidden();
   await expect(offer.getByText(new RegExp(`· ${Q.status.DECLINED}`))).toBeVisible();
   await expect(offer.getByRole('button', { name: Q.decline.open, exact: true })).toHaveCount(0);
-  // in tabel: Alfa ramane cu starea ei, fara insigna
-  const statusRow = table.getByRole('row').filter({ has: page.getByRole('rowheader', { name: Q.compare.status, exact: true }) });
-  await expect(statusRow.getByRole('cell').nth(0)).toHaveText(Q.status.DECLINED);
+  // in tabel / pe card: Alfa ramane cu starea ei, fara insigna
+  const alfaStatus = view.cell('status', Q.compare.status, 0, 'Firma Alfa');
+  if (phone) await expect(alfaStatus.firm!).toHaveText('Firma Alfa');
+  await expect(alfaStatus.value).toHaveText(Q.status.DECLINED);
   expect(declineCalls).toEqual([{ reason: 'PRICE' }]);
 });
 

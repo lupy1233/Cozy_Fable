@@ -23,8 +23,13 @@ for (const locale of ['en', 'ro'] as const) {
     }, realGreen ? () => uploadSyntheticAuditPng(page, locale) : undefined);
     expect(audit.rooms).toHaveLength(10);
     const dressingPreview = page.locator('[data-review-room-preview="DRESSING"]');
-    await expect(dressingPreview).toContainText(textFor(locale, 'Configurator.flows.DRESSING.interiorModules.options.HANGING_RODS.label'));
-    await expect(dressingPreview).not.toContainText(/HANGING_RODS|SHOE_RACK|Material dorit:/);
+    // etapa 8: modulele interioare sunt sub "Vezi toate raspunsurile" (randurile 'extra'), nu in lista scurta
+    const dressingMore = dressingPreview.locator('xpath=ancestor::section[1]').locator('[data-review-room-more]');
+    await expect(dressingMore.locator('summary')).toHaveText(textFor(locale, 'Configurator.review.rooms.allAnswers'));
+    await dressingMore.locator('summary').click();
+    await expect(dressingMore).toContainText(textFor(locale, 'Configurator.flows.DRESSING.interiorModules.options.HANGING_RODS.label'));
+    await expect(dressingPreview).not.toContainText(textFor(locale, 'Configurator.flows.DRESSING.interiorModules.options.HANGING_RODS.label'));
+    for (const block of [dressingPreview, dressingMore]) await expect(block).not.toContainText(/HANGING_RODS|SHOE_RACK|Material dorit:/);
     const dressingReviewPath = testInfo.outputPath('localized-dressing-review.png');
     await dressingPreview.locator('..').screenshot({ path: dressingReviewPath });
     await testInfo.attach('localized-dressing-review', { path: dressingReviewPath, contentType: 'image/png' });
