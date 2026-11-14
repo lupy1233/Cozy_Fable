@@ -8,7 +8,8 @@ import { allFixtureFlows, fixtureAnswers, FIXTURE_VARIANTS } from './firm-text.f
 describe('punctajul cererilor obisnuite e neschimbat de textele pentru firma', () => {
   it('intrarile de scor pe toate flow-urile, versiunile si variantele de raspuns', async () => {
     const out: Record<string, unknown> = {};
-    for (const { roomType, version, flow } of allFixtureFlows()) {
+    // etapa 6: doar versiunile de dinainte (instantaneul ramane byte-identic)
+    for (const { roomType, version, flow } of allFixtureFlows({ only: 'legacy' })) {
       for (const variant of FIXTURE_VARIANTS) {
         const answers = fixtureAnswers(flow, variant);
         out[`${roomType}@v${version}/${variant}`] = collectScoreEntries(roomType, answers, version);

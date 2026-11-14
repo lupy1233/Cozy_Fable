@@ -1,9 +1,11 @@
 'use client';
 
 import {
+  firmRecommendations,
   ROOM_KIND,
   summarizeAnswers,
   type AnswerMap,
+  type FirmRecommendation,
   type AnswerSummaryEntry,
   type AttachmentDto,
   type RequestItemDto,
@@ -26,7 +28,31 @@ import { PieceViewer3dDialog } from './piece3d/dynamic';
 // dimensiuni, note, fisiere. Randarea Q→A completa ramane in pasul Review.
 
 // intrebarile de material/sisteme sunt deja reprezentate de items-urile derivate
-const MATERIAL_STEP = /^(material|frontMaterial|openingSystems|systems)/;
+// (etapa 6: si intrebarea comuna "acelasi material..." si bifa pistoanelor)
+const MATERIAL_STEP = /^(material|frontMaterial|openingSystems|systems|sameFinish|liftUp)/;
+
+// Etapa 6 (DESIGN §6.2): piesele la care clientul a ales "Nu stiu — vreau recomandarea
+// firmei", re-derivate din raspunsuri (aceeasi functie ca pe server). Cererile vechi → [].
+// Potrivire dupa nume (ordinea pieselor din baza de date nu e garantata) — N18.
+function firmRecommendationsByName(room: RequestRoomDto, answers: AnswerMap | null) {
+  const byName = new Map<string, { material: boolean; opening: boolean }>();
+  if (!answers) return byName;
+  let recs: FirmRecommendation[] = [];
+  try {
+    recs = firmRecommendations(room.roomType, answers, room.flowVersion ?? 1);
+  } catch {
+    // versiune neinregistrata / raspunsuri incomplete → fisa ca inainte
+    return byName;
+  }
+  for (const r of recs) {
+    const prev = byName.get(r.itemName);
+    byName.set(r.itemName, {
+      material: r.material || prev?.material === true,
+      opening: r.opening || prev?.opening === true,
+    });
+  }
+  return byName;
+}
 
 // eticheta slotului de tavan (ceilingHeightSlot din shared) — singura sursa a inaltimii date de client
 const CEILING_SLOT_LABEL = 'common.slots.ceilingHeight';
@@ -112,9 +138,17 @@ export function RoomSpecCard({
     ? legacyDims
     : headerParts.length > 0 ? headerParts.join(' · ') : t('roomSpec.dimsUnknown');
 
+  const firmRecs = designHelp ? new Map<string, { material: boolean; opening: boolean }>() : firmRecommendationsByName(room, answers);
   const itemLine = (it: RequestItemDto) => {
     const systems = it.systems.map((s) => t(`common.systems.${s}.label`)).join(', ');
-    return { material: t(`common.materials.${it.material}.label`), systems };
+    const rec = firmRecs.get(it.name);
+    return {
+      material: t(`common.materials.${it.material}.label`),
+      systems,
+      // "Recomandarea firmei" in locul etichetei "Altul"; deschiderea doar cand piesa nu are sisteme
+      firmMaterial: rec?.material === true && it.material === 'ALTUL',
+      firmOpening: rec?.opening === true && it.systems.length === 0,
+    };
   };
 
   return (
@@ -242,8 +276,19 @@ export function RoomSpecCard({
                       <ContactSafeText text={it.name} />
                     </span>
                     <span className="flex flex-wrap items-center gap-1.5">
-                      <Badge tone="walnut">{line.material}</Badge>
+                      {line.firmMaterial ? (
+                        <Badge tone="amber" data-firm-recommendation="material">
+                          {t('roomSpec.firmRecommendation')}
+                        </Badge>
+                      ) : (
+                        <Badge tone="walnut">{line.material}</Badge>
+                      )}
                       {line.systems && <Badge tone="muted">{line.systems}</Badge>}
+                      {line.firmOpening && (
+                        <Badge tone="amber" data-firm-recommendation="opening">
+                          {t('roomSpec.firmRecommendationOpening')}
+                        </Badge>
+                      )}
                     </span>
                     {it.description && (
                       <span className="w-full text-xs text-muted-foreground">

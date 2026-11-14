@@ -3,7 +3,15 @@
 // Rezolvare: harta per camera (roomType.stepId.optionValue) → harta comuna per
 // valoare (materiale/sisteme, valabile in orice camera) → null (fallback icon lucide).
 import type { RoomType } from '@marketplace/shared';
-import { IlluNo, IlluYes, type IllustrationProps } from './common';
+import {
+  IlluFirmDecides,
+  IlluMirrorFrameless,
+  IlluMirrorMetal,
+  IlluNo,
+  IlluNoFronts,
+  IlluYes,
+  type IllustrationProps,
+} from './common';
 import { showroomPhoto, type ShowroomConcept } from './showroom-atlas';
 import { optionPhoto } from './option-photo';
 import {
@@ -212,6 +220,8 @@ export const ROOM_OPTION_PHOTOS: Partial<Record<RoomType, StepMap>> = {
     enclosed: optionPhotos({ ENCLOSED: 'balcony-enclosed', OPEN: 'balcony-open' }),
     piecesNeeded: optionPhotos({ WORKTOP: 'balcony-worktop' }),
   },
+  // etapa 6: holul v2 intreaba tipul usilor dulapului, ca dormitorul
+  HALLWAY: { wardrobeDoorType: WARDROBE_DOOR_PHOTOS },
   PIECE_WARDROBE: { doorType: WARDROBE_DOOR_PHOTOS },
   PIECE_DESK: { shape: DESK_SHAPE_PHOTOS },
   PIECE_BED: { bedSize: MATTRESS_PHOTOS, storage: optionPhotos({ DRAWERS: 'bed-side-drawers' }) },
@@ -570,6 +580,21 @@ const COMMON_BY_VALUE: Record<string, Illustration> = {
   MANER: PhotoManer,
   GOLA: PhotoGola,
   AVENTOS: PhotoAventos,
+  // etapa 6 — valorile speciale din seturile noi (finish-sets.ts); prefixele
+  // MIRROR_ / WORKTOP_ nu se ciocnesc cu valorile blatului de bucatarie
+  FIRM_DECIDES: IlluFirmDecides,
+  NO_FRONTS: IlluNoFronts,
+  PISTONS: PhotoAventos,
+  MDF_INTEGRAL: PhotoMdfVopsit,
+  MIRROR_FRAMELESS: IlluMirrorFrameless,
+  MIRROR_FRAME_WOOD: PhotoLemnMasiv,
+  MIRROR_FRAME_MDF: PhotoMdfVopsit,
+  MIRROR_FRAME_METAL: IlluMirrorMetal,
+  WORKTOP_PAL_POSTFORMED: optionPhoto('countertop-pal'),
+  WORKTOP_HPL: optionPhoto('countertop-hpl'),
+  WORKTOP_HPL_COMPACT: IlluCountertopHpl,
+  WORKTOP_QUARTZ: optionPhoto('countertop-quartz'),
+  WORKTOP_SOLID_WOOD: IlluCountertopWood,
 };
 
 export function getIllustration(

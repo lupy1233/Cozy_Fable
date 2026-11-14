@@ -10,6 +10,12 @@ function satisfy(condition: Condition | undefined, answers: AnswerMap) {
   if (!condition) return;
   if ('all' in condition) condition.all.forEach((child) => satisfy(child, answers));
   else if ('any' in condition) satisfy(condition.any[0], answers);
+  // etapa 6: `{ not }` — booleanul pe dos, altfel raspunsul lipsa nu satisface conditia interioara
+  else if ('not' in condition) {
+    const inner = condition.not;
+    if ('equals' in inner && typeof inner.equals === 'boolean') answers[inner.questionId] = !inner.equals;
+    else if ('equals' in inner || 'in' in inner) delete answers[inner.questionId];
+  }
   else if ('equals' in condition) answers[condition.questionId] = condition.equals;
   else answers[condition.questionId] = Array.isArray(answers[condition.questionId]) ? condition.in : condition.in[0];
 }

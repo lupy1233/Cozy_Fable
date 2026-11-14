@@ -57,7 +57,10 @@ export function prepareStudioTransfer(data: StudioDraftData, currentRooms: RoomI
       const changed = !previous || previous.roomType !== roomType || JSON.stringify(previous.answers.config3d) !== JSON.stringify(piece.config);
       const answers = { ...(previous?.roomType === roomType ? previous.answers : {}), config3d: piece.config, ...(piece.kind === 'NIGHTSTAND' ? { count: 'ONE' } : {}) };
       if (changed) delete (answers as Record<string, unknown>).snapshot3d;
-      generated.push({ localId, roomType, flowVersion: CURRENT_FLOW_VERSION[roomType], answers, completed: changed ? false : previous.completed, sourceStudio: { sceneId: scene.id, placementId: placement.id } });
+      // etapa 6 (DESIGN §7): piesa existenta isi pastreaza versiunea (raspunsurile ei sunt pe
+      // versiunea aceea); doar piesele noi primesc versiunea curenta
+      const flowVersion = previous?.roomType === roomType ? previous.flowVersion : CURRENT_FLOW_VERSION[roomType];
+      generated.push({ localId, roomType, flowVersion, answers, completed: changed ? false : previous.completed, sourceStudio: { sceneId: scene.id, placementId: placement.id } });
       pieces[piece.id] = piece;
     }
     snapshots.push({ scene, pieces, ...(data.house ? { house: data.house } : {}), requestEntryIds, requestEntryIdKind: 'LOCAL' });

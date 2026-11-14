@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NEW_PIECE_KINDS, defaultPieceConfig, defaultStudioHouse, type StudioDraftData } from '@marketplace/shared';
+import { CURRENT_FLOW_VERSION, NEW_PIECE_KINDS, defaultPieceConfig, defaultStudioHouse, type StudioDraftData } from '@marketplace/shared';
 import { prepareStudioTransfer, synchronizeStudioSnapshots, invalidStudioRequestEntries } from './studio-transfer';
 import { studioVersionedStorage } from './studio-persistence';
 
@@ -25,7 +25,7 @@ describe('studio request transfer and recovery', () => {
     const transfer = prepareStudioTransfer(JSON.parse(JSON.stringify(data)), [], [], id);
     if (!transfer.ok) throw new Error(transfer.error);
     expect(transfer.roomInstances[0].roomType).toBe(`PIECE_${kind}`);
-    expect(transfer.roomInstances[0].flowVersion).toBe(1);
+    expect(transfer.roomInstances[0].flowVersion).toBe(CURRENT_FLOW_VERSION[`PIECE_${kind}`]);
     expect(transfer.roomInstances[0].answers.config3d).toEqual(data.pieces.p.config);
     expect(transfer.studioScenes[0].pieces.p.config).toEqual(data.pieces.p.config);
   });
@@ -47,6 +47,22 @@ describe('studio request transfer and recovery', () => {
     data.scenes[0].placements.pop();
     const removed = prepareStudioTransfer(data, second.roomInstances, second.studioScenes, id); if (!removed.ok) throw new Error();
     expect(removed.roomInstances).toHaveLength(1);
+  });
+  it('etapa 6: a resent existing piece keeps its flow version, new pieces get the current one', () => {
+    const data = fixture(), first = prepareStudioTransfer(data, [], [], id); if (!first.ok) throw new Error();
+    const current = CURRENT_FLOW_VERSION.PIECE_NIGHTSTAND;
+    expect(first.roomInstances.every((r) => r.flowVersion === current)).toBe(true);
+    // piesa trimisa inainte de o versiune noua: raspunsurile ei sunt pe versiunea veche
+    first.roomInstances[0].flowVersion = current - 1;
+    data.scenes[0].placements.push({ id: 'three', pieceId: 'p', x: 1.6, z: 0, rotation: 0 });
+    const second = prepareStudioTransfer(data, first.roomInstances, first.studioScenes, id); if (!second.ok) throw new Error();
+    expect(second.roomInstances.map((r) => r.flowVersion)).toEqual([current - 1, current, current]);
+    // alt tip de piesa pe acelasi loc = piesa noua → versiunea curenta
+    data.pieces.p = { ...data.pieces.p, kind: 'DRESSER', config: defaultPieceConfig('DRESSER') };
+    data.scenes[0].placements = [data.scenes[0].placements[0]];
+    const third = prepareStudioTransfer(data, second.roomInstances, second.studioScenes, id); if (!third.ok) throw new Error();
+    expect(third.roomInstances[0].roomType).toBe('PIECE_DRESSER');
+    expect(third.roomInstances[0].flowVersion).toBe(CURRENT_FLOW_VERSION.PIECE_DRESSER);
   });
   it('editing a single quoted unit does not edit a shared library duplicate', () => {
     const transfer = prepareStudioTransfer(fixture(), [], [], id); if (!transfer.ok) throw new Error();

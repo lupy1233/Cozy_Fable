@@ -1,5 +1,29 @@
-import { collectScoreEntries, CURRENT_FLOW_VERSION, ERROR_CODES, type AnswerMap } from '@marketplace/shared';
+import {
+  BODY_NOTE,
+  collectScoreEntries,
+  CURRENT_FLOW_VERSION,
+  defaultPieceConfig,
+  ERROR_CODES,
+  ETAPA6_FLOW_VERSION,
+  evalCondition,
+  FIRM_DECIDES,
+  FIRM_MATERIAL_NOTE,
+  FIRM_OPENING_NOTE,
+  FLOW_REGISTRY,
+  FLOW_VERSIONS_BEFORE_ETAPA6,
+  FRAME_BY_FIRM_NOTE,
+  NO_FRONTS,
+  NO_FRONTS_NOTE,
+  pruneAnswers,
+  visibleOptions,
+  type AnswerMap,
+  type QuestionStep,
+  type RoomFlow,
+  type RoomType,
+} from '@marketplace/shared';
 import { BadRequestException } from '@nestjs/common';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { computeSizing, type SizingConfigRow } from '../sizing/sizing.service';
 import { ConfiguratorService, droppedDesignHelpUploadIds, type ProcessedRoom } from './configurator.service';
 import type { ConfiguratorRoomInputDto } from './dto/request.dto';
@@ -91,10 +115,15 @@ describe('ConfiguratorService', () => {
     ].map(([key, option, weight]) => ({ key: key as string, option: option as string, weight: weight as number }));
     const thresholds = [{ size: 'S', minScore: 0, maxScore: null }];
     const kitchen = {
-      roomType: 'KITCHEN', flowVersion: CURRENT_FLOW_VERSION.KITCHEN,
+      // etapa 6: cifrele d1-1 sunt pe versiunile de dinainte (kitchen v3, bedroom v2); pe bedroom v3
+      // `systemsWardrobe` la usi glisante e respins, iar camera goala v3 deriva alte piese implicite
+      roomType: 'KITCHEN', flowVersion: Math.max(...FLOW_VERSIONS_BEFORE_ETAPA6.KITCHEN),
       answers: { layout: 'STRAIGHT', hasIsland: false, dimensions: { runA: 3, ceilingHeight: 2.6 }, frontMaterialBase: 'PAL', openingSystemsBase: ['PUSH'], openingSystemsWall: ['PUSH'], countertop: 'PAL' },
     } as unknown as ConfiguratorRoomInputDto;
-    const room2 = bedroom({ piecesNeeded: ['WARDROBE'], wardrobeDoorType: 'SLIDING', dimensions: { wardrobeWidth: 2.4, ceilingHeight: 2.6 }, materialWardrobe: 'MDF_INFOLIAT', systemsWardrobe: ['GLISANTE'] });
+    const room2 = {
+      ...bedroom({ piecesNeeded: ['WARDROBE'], wardrobeDoorType: 'SLIDING', dimensions: { wardrobeWidth: 2.4, ceilingHeight: 2.6 }, materialWardrobe: 'MDF_INFOLIAT', systemsWardrobe: ['GLISANTE'] }),
+      flowVersion: Math.max(...FLOW_VERSIONS_BEFORE_ETAPA6.BEDROOM),
+    };
     const cost = (rooms: ConfiguratorRoomInputDto[]) =>
       computeSizing(W, thresholds, { scoreEntries: service.processRooms(rooms).scoreEntries, budgetRange: 'UNDISCLOSED', includesPaidDesign: false }).creditCost;
     // costul vechi: camera bifata primea piesele implicite (ce facea deriveRoom pe raspunsuri goale)
@@ -182,5 +211,292 @@ describe('ConfiguratorService — approxLengthM', () => {
     const processed = service.processRooms([kitchen({ needsDesignHelp: true, approxLengthM: 8 })], { ownProject: true });
     expect(processed.rooms[0].approxLengthM).toBeNull();
     expect(roomSize(processed.rooms)?.optionKey).toBe('UNDER_2M');
+  });
+});
+
+// etapa 6 (DESIGN §7 "Server", pachet F): versiunile noi ale formularului (material + deschidere pe
+// un ecran, "decide firma", "fara usi sau sertare") stau inregistrate langa cele vechi. Serverul
+// accepta orice versiune inregistrata, deci fiecare camera se valideaza si se puncteaza pe versiunea ei.
+// Versiunile sunt fixate explicit (nu CURRENT_FLOW_VERSION), ca testele sa ramana valabile dupa valul 3.
+describe('ConfiguratorService — etapa 6 (versiunile noi ale formularului)', () => {
+  const OLD = (rt: RoomType) => Math.max(...FLOW_VERSIONS_BEFORE_ETAPA6[rt]);
+  const NEW = (rt: RoomType) => ETAPA6_FLOW_VERSION[rt];
+  const room = (roomType: RoomType, flowVersion: number, answers: Record<string, unknown>): ConfiguratorRoomInputDto =>
+    ({ roomType, flowVersion, answers }) as ConfiguratorRoomInputDto;
+
+  // ponderile reale din prisma/seed.ts (SIZING_CONFIG), citite din fisier — o singura sursa
+  const SEED_SRC = readFileSync(join(__dirname, '../../../prisma/seed.ts'), 'utf8');
+  const MIGRATION_SRC = readFileSync(
+    join(__dirname, '../../../prisma/migrations/20261114120000_kitchen_countertop_firm_decides/migration.sql'),
+    'utf8',
+  );
+  const SEED_WEIGHTS: SizingConfigRow[] = [
+    ...SEED_SRC.matchAll(/\{\s*key:\s*'([A-Z0-9_]+)',\s*option:\s*'([A-Z0-9_]+)',\s*weight:\s*(-?\d+)\s*\}/g),
+  ].map((m) => ({ key: m[1], option: m[2], weight: Number(m[3]) }));
+  const baseScore = (rooms: ConfiguratorRoomInputDto[]) =>
+    computeSizing(SEED_WEIGHTS, [{ size: 'S', minScore: 0, maxScore: null }], {
+      scoreEntries: service.processRooms(rooms).scoreEntries,
+      budgetRange: 'UNDISCLOSED',
+      includesPaidDesign: false,
+    }).baseScore;
+
+  // aceleasi raspunsuri ca la testul costului de mai sus (bucatarie dreapta 3 m, PAL, Push)
+  const KITCHEN = {
+    layout: 'STRAIGHT', hasIsland: false, dimensions: { runA: 3, ceilingHeight: 2.6 },
+    frontMaterialBase: 'PAL', openingSystemsBase: ['PUSH'], openingSystemsWall: ['PUSH'], countertop: 'PAL',
+  };
+  // dulap 2,4 m cu usi glisante; pe versiunea veche deschiderea se intreba separat
+  const WARDROBE_NEW = { piecesNeeded: ['WARDROBE'], wardrobeDoorType: 'SLIDING', dimensions: { wardrobeWidth: 2.4, ceilingHeight: 2.6 }, materialWardrobe: 'MDF_INFOLIAT' };
+  const WARDROBE_OLD = { ...WARDROBE_NEW, systemsWardrobe: ['GLISANTE'] };
+  const HALL_WARDROBE = { piecesNeeded: ['WARDROBE'], wardrobeDoorType: 'SLIDING', dimensions: { wardrobeWidth: 2, ceilingHeight: 2.6 }, materialWardrobe: 'PAL' };
+  const BENCH = { piecesNeeded: ['BENCH'], dimensions: { benchWidth: 1 }, materialBench: 'PAL' };
+  const pieceRow = (extra: Record<string, unknown> = {}) => ({
+    name: 'Raft baie', material: 'PAL', systems: ['MANER'], quantity: 1, description: 'Cu două uși', ...extra,
+  });
+  const issues = (fn: () => unknown) => (errorOf(fn).details ?? []) as { roomIndex: number; stepId: string; messageKey: string }[];
+
+  it('fiecare tip de camera are o versiune noua inregistrata, dupa cele vechi (care raman inregistrate)', () => {
+    for (const rt of Object.keys(FLOW_VERSIONS_BEFORE_ETAPA6) as RoomType[]) {
+      expect(NEW(rt)).toBeGreaterThan(OLD(rt));
+      for (const v of [...FLOW_VERSIONS_BEFORE_ETAPA6[rt], NEW(rt)]) expect(FLOW_REGISTRY[rt][v]).toBeDefined();
+    }
+  });
+
+  it('publicare cu camere pe versiunile noi: bucatarie, dormitor, hol si "Alta piesa"', () => {
+    const processed = service.processRooms([
+      room('KITCHEN', NEW('KITCHEN'), KITCHEN),
+      room('BEDROOM', NEW('BEDROOM'), WARDROBE_NEW),
+      room('HALLWAY', NEW('HALLWAY'), { ...BENCH, systemsBench: [NO_FRONTS] }),
+      room('PIECES', NEW('PIECES'), { pieces: [pieceRow()] }),
+    ]);
+    expect(processed.rooms.map((r) => r.flowVersion)).toEqual([NEW('KITCHEN'), NEW('BEDROOM'), NEW('HALLWAY'), NEW('PIECES')]);
+  });
+
+  it('republicare / editare pe versiunile vechi: raspunsurile raman valide si costul e acelasi (32)', () => {
+    const rooms = [room('KITCHEN', OLD('KITCHEN'), KITCHEN), room('BEDROOM', OLD('BEDROOM'), WARDROBE_OLD)];
+    const processed = service.processRooms(rooms);
+    expect(processed.rooms.map((r) => r.flowVersion)).toEqual([OLD('KITCHEN'), OLD('BEDROOM')]);
+    expect(baseScore(rooms)).toBe(32);
+  });
+
+  it('aceleasi alegeri pe versiunile noi costa la fel (32): glisantele vin din tipul usilor, fara intrebare', () => {
+    expect(baseScore([room('KITCHEN', NEW('KITCHEN'), KITCHEN), room('BEDROOM', NEW('BEDROOM'), WARDROBE_NEW)])).toBe(32);
+    const wardrobe = service.processRooms([room('BEDROOM', NEW('BEDROOM'), WARDROBE_NEW)]).rooms[0].derived.items[0];
+    expect(wardrobe.systems).toEqual(['GLISANTE']);
+  });
+
+  it('cerere mixta (camera veche + camera adaugata la editare pe versiunea noua) e acceptata', () => {
+    const processed = service.processRooms([room('KITCHEN', OLD('KITCHEN'), KITCHEN), room('BEDROOM', NEW('BEDROOM'), WARDROBE_NEW)]);
+    expect(processed.rooms.map((r) => r.flowVersion)).toEqual([OLD('KITCHEN'), NEW('BEDROOM')]);
+  });
+
+  it.each<[string, RoomType, Record<string, unknown>, string]>([
+    ['blatul bucatariei', 'KITCHEN', { ...KITCHEN, countertop: FIRM_DECIDES }, 'countertop'],
+    ['materialul fronturilor', 'KITCHEN', { ...KITCHEN, frontMaterialBase: FIRM_DECIDES }, 'frontMaterialBase'],
+    ['deschiderea corpurilor de baza', 'KITCHEN', { ...KITCHEN, openingSystemsBase: [FIRM_DECIDES] }, 'openingSystemsBase'],
+    ['materialul dulapului', 'BEDROOM', { ...WARDROBE_OLD, materialWardrobe: FIRM_DECIDES }, 'materialWardrobe'],
+    ['deschiderea bancutei din hol', 'HALLWAY', { ...BENCH, systemsBench: [FIRM_DECIDES] }, 'systemsBench'],
+  ])('FIRM_DECIDES e respins pe versiunea veche (%s)', (_label, rt, answers, stepId) => {
+    const body = errorOf(() => service.processRooms([room(rt, OLD(rt), answers)]));
+    expect(body.code).toBe(ERROR_CODES.CONFIGURATOR_ANSWERS_INVALID);
+    expect(body.details).toContainEqual({ roomIndex: 0, stepId, messageKey: 'validation.optionInvalid' });
+  });
+
+  it('NO_FRONTS e respins pe versiunea veche si acceptat pe cea noua (bancuta din hol → fara sisteme)', () => {
+    expect(issues(() => service.processRooms([room('HALLWAY', OLD('HALLWAY'), { ...BENCH, systemsBench: [NO_FRONTS] })])))
+      .toContainEqual({ roomIndex: 0, stepId: 'systemsBench', messageKey: 'validation.optionInvalid' });
+    const item = service.processRooms([room('HALLWAY', NEW('HALLWAY'), { ...BENCH, systemsBench: [NO_FRONTS] })]).rooms[0].derived.items[0];
+    expect(item.systems).toEqual([]);
+    expect(item.description).toContain(NO_FRONTS_NOTE);
+  });
+
+  it('o optiune exclusiva impreuna cu alta e respinsa pe versiunea noua (validation.exclusiveOption)', () => {
+    expect(issues(() => service.processRooms([room('KITCHEN', NEW('KITCHEN'), { ...KITCHEN, openingSystemsBase: ['PUSH', FIRM_DECIDES] })])))
+      .toContainEqual({ roomIndex: 0, stepId: 'openingSystemsBase', messageKey: 'validation.exclusiveOption' });
+  });
+
+  it.each<[RoomType, Record<string, unknown>]>([
+    ['BEDROOM', WARDROBE_NEW],
+    ['HALLWAY', HALL_WARDROBE],
+  ])('dulap cu usi glisante (%s): un raspuns la deschiderea dulapului e respins pe versiunea noua', (rt, answers) => {
+    expect(issues(() => service.processRooms([room(rt, NEW(rt), { ...answers, systemsWardrobe: ['MANER'] })])))
+      .toContainEqual({ roomIndex: 0, stepId: 'systemsWardrobe', messageKey: 'validation.unknownAnswer' });
+    // fara raspunsul la deschidere, aceeasi camera trece
+    expect(service.processRooms([room(rt, NEW(rt), answers)]).rooms[0].derived.items[0].systems).toEqual(['GLISANTE']);
+  });
+
+  it('"Alta piesa" v2 cu dimensiuni: descrierea piesei salvate le contine; fara dimensiuni, nimic in plus', () => {
+    const [withDims, without] = service.processRooms([
+      room('PIECES', NEW('PIECES'), { pieces: [pieceRow({ widthCm: 120, heightCm: 80, depthCm: 40 })] }),
+      room('PIECES', NEW('PIECES'), { pieces: [pieceRow()] }),
+    ]).rooms.map((r) => r.derived.items[0]);
+    expect(withDims.description).toContain('Cu două uși');
+    expect(withDims.description).toContain('Dimensiuni: 120 × 80 × 40 cm (lățime × înălțime × adâncime)');
+    expect(withDims).not.toHaveProperty('widthCm');
+    expect(without.description).toBe('Cu două uși');
+    // pe versiunea veche randul nu cunoaste "decide firma" la material
+    expect(issues(() => service.processRooms([room('PIECES', OLD('PIECES'), { pieces: [pieceRow({ material: FIRM_DECIDES })] })])))
+      .toContainEqual(expect.objectContaining({ roomIndex: 0, stepId: 'pieces' }));
+  });
+
+  it('"decide firma": piesa salvata are ALTUL, fara sisteme, cu nota (si fara "Corp: PAL standard")', () => {
+    const kitchen = service.processRooms([
+      room('KITCHEN', NEW('KITCHEN'), { ...KITCHEN, frontMaterialBase: FIRM_DECIDES, openingSystemsBase: [FIRM_DECIDES] }),
+    ]).rooms[0].derived;
+    const base = kitchen.items[0];
+    expect(base).toMatchObject({ name: 'Corpuri de bază', material: 'ALTUL', systems: [] });
+    expect(base.description).toContain(FIRM_MATERIAL_NOTE);
+    expect(base.description).toContain(FIRM_OPENING_NOTE);
+    expect(base.description).not.toContain(BODY_NOTE);
+    expect(kitchen.firmRecommendations).toContainEqual({ itemName: 'Corpuri de bază', material: true, opening: true });
+
+    const wardrobe = service.processRooms([room('BEDROOM', NEW('BEDROOM'), { ...WARDROBE_NEW, materialWardrobe: FIRM_DECIDES })]).rooms[0].derived.items[0];
+    expect(wardrobe).toMatchObject({ material: 'ALTUL', systems: ['GLISANTE'] });
+    expect(wardrobe.description).toContain(FIRM_MATERIAL_NOTE);
+
+    const piece = service.processRooms([
+      room('PIECES', NEW('PIECES'), { pieces: [pieceRow({ material: 'ALTUL', materialChoice: FIRM_DECIDES, systems: [], openingChoice: FIRM_DECIDES })] }),
+    ]).rooms[0].derived.items[0];
+    expect(piece).toMatchObject({ material: 'ALTUL', systems: [] });
+    expect(piece.description).toContain(FIRM_MATERIAL_NOTE);
+  });
+
+  it('randul de scor KITCHEN_COUNTERTOP:FIRM_DECIDES exista in seed si in migrare, cu aceeasi valoare (0)', () => {
+    const seedRows = SEED_WEIGHTS.filter((r) => r.key === 'KITCHEN_COUNTERTOP' && r.option === FIRM_DECIDES);
+    expect(seedRows).toEqual([{ key: 'KITCHEN_COUNTERTOP', option: FIRM_DECIDES, weight: 0 }]);
+    const migrationRows = [...MIGRATION_SRC.matchAll(/gen_random_uuid\(\)::text,\s*'([A-Z0-9_]+)',\s*'([A-Z0-9_]+)',\s*(-?\d+)\s*\)/g)]
+      .map((m) => ({ key: m[1], option: m[2], weight: Number(m[3]) }));
+    expect(migrationRows).toEqual(seedRows);
+    expect(MIGRATION_SRC).toMatch(/ON CONFLICT \("key", "option"\) DO NOTHING;/);
+    // migrarea doar adauga randul (fara schimbari de schema sau de ponderi existente)
+    expect(MIGRATION_SRC.replace(/^--.*$/gm, '')).not.toMatch(/\b(ALTER|UPDATE|DELETE|DROP|CREATE)\b/i);
+  });
+
+  it('blatul "decide firma" da 0 puncte: acelasi cost ca blatul PAL, cu intrarea de scor proprie', () => {
+    const firm = room('KITCHEN', NEW('KITCHEN'), { ...KITCHEN, countertop: FIRM_DECIDES });
+    expect(service.processRooms([firm]).scoreEntries).toContainEqual({ category: 'KITCHEN_COUNTERTOP', optionKey: FIRM_DECIDES });
+    expect(baseScore([firm])).toBe(baseScore([room('KITCHEN', NEW('KITCHEN'), KITCHEN)]));
+  });
+
+  // raspunsuri generate determinist (aceeasi reteta ca firm-text.fixtures.ts din shared, care nu e
+  // exportat): prima optiune vizibila, fara optiunile exclusive, dimensiuni la mijlocul intervalului
+  function generatedAnswers(flow: RoomFlow): AnswerMap {
+    const answerFor = (step: QuestionStep, answers: AnswerMap): AnswerMap[string] | undefined => {
+      switch (step.type) {
+        case 'single-choice':
+          return visibleOptions(step, answers)[0]?.value;
+        case 'multi-choice': {
+          const plain = visibleOptions(step, answers).filter((o) => !o.exclusive);
+          return plain.length > 0 ? plain.slice(0, Math.max(1, step.minSelected ?? 1)).map((o) => o.value) : undefined;
+        }
+        case 'boolean':
+          return true;
+        case 'dimension-group':
+          return Object.fromEntries(step.slots(answers).map((s) => [s.id, Math.round(((s.min + s.max) / 2) * 100) / 100]));
+        case 'number':
+          return step.min;
+        case 'text':
+          return 'note client';
+        case 'pieces':
+          return [{ name: 'Raft perete', material: 'PAL', systems: ['MANER'], quantity: 2 }] as unknown as AnswerMap[string];
+        case 'configurator-3d':
+          return defaultPieceConfig(step.piece) as unknown as AnswerMap[string];
+        default:
+          return undefined;
+      }
+    };
+    let answers: AnswerMap = {};
+    for (const step of flow.steps) {
+      if (step.hidden || (step.visibleIf && !evalCondition(step.visibleIf, answers))) continue;
+      const value = answerFor(step, answers);
+      if (value !== undefined) answers = { ...answers, [step.id]: value };
+    }
+    return pruneAnswers(flow, answers);
+  }
+
+  const rejectedRooms = (versionOf: (rt: RoomType) => number) =>
+    (Object.keys(FLOW_VERSIONS_BEFORE_ETAPA6) as RoomType[]).flatMap((rt) => {
+      try {
+        service.processRooms([room(rt, versionOf(rt), generatedAnswers(FLOW_REGISTRY[rt][versionOf(rt)]))]);
+        return [];
+      } catch (err) {
+        return [{ roomType: rt, version: versionOf(rt), error: err instanceof BadRequestException ? err.getResponse() : String(err) }];
+      }
+    });
+
+  it('fiecare flux vechi (ultima versiune dinainte de etapa 6) trece publicarea cu raspunsuri generate', () => {
+    expect(rejectedRooms(OLD)).toEqual([]);
+  });
+
+  it('fiecare flux nou (cele 28) trece publicarea cu raspunsuri generate', () => {
+    expect(rejectedRooms(NEW)).toEqual([]);
+  });
+
+  // revizuire m5: testul de mai sus trece si pentru un schelet { ...vechi, version: N } — aici, pe fluxuri
+  // reprezentative, un comportament pe care il are DOAR versiunea noua
+  describe('versiunile noi nu sunt copii ale celor vechi', () => {
+    const stepIds = (rt: RoomType, v: number) => FLOW_REGISTRY[rt][v].steps.map((s) => s.id);
+    const step = (rt: RoomType, v: number, id: string) => FLOW_REGISTRY[rt][v].steps.find((s) => s.id === id);
+    const optionValues = (rt: RoomType, v: number, id: string) =>
+      ((step(rt, v, id) as { options?: { value: string }[] } | undefined)?.options ?? []).map((o) => o.value);
+
+    it('dormitor: intrebarea comuna exista doar pe versiunea noua; "decide firma" acceptat la material', () => {
+      expect(stepIds('BEDROOM', OLD('BEDROOM'))).not.toContain('sameFinishAll');
+      expect(stepIds('BEDROOM', NEW('BEDROOM'))).toContain('sameFinishAll');
+      expect(service.processRooms([room('BEDROOM', NEW('BEDROOM'), { ...WARDROBE_NEW, materialWardrobe: FIRM_DECIDES })]).rooms).toHaveLength(1);
+    });
+
+    it('hol: tipul usilor dulapului e nou; cuierul si oglinda nu mai au pas de deschidere', () => {
+      expect(stepIds('HALLWAY', OLD('HALLWAY'))).toEqual(expect.arrayContaining(['systemsCoatUnit', 'systemsMirror']));
+      expect(stepIds('HALLWAY', OLD('HALLWAY'))).not.toContain('wardrobeDoorType');
+      expect(stepIds('HALLWAY', NEW('HALLWAY'))).toContain('wardrobeDoorType');
+      expect(stepIds('HALLWAY', NEW('HALLWAY'))).not.toEqual(expect.arrayContaining(['systemsCoatUnit']));
+      expect(stepIds('HALLWAY', NEW('HALLWAY'))).not.toContain('systemsMirror');
+    });
+
+    it('bucatarie: blatul "decide firma" doar pe versiunea noua (si se publica)', () => {
+      expect(optionValues('KITCHEN', OLD('KITCHEN'), 'countertop')).not.toContain(FIRM_DECIDES);
+      expect(optionValues('KITCHEN', NEW('KITCHEN'), 'countertop')).toContain(FIRM_DECIDES);
+      expect(service.processRooms([room('KITCHEN', NEW('KITCHEN'), { ...KITCHEN, countertop: FIRM_DECIDES })]).rooms).toHaveLength(1);
+    });
+
+    it('baie: pasul de deschidere pe piesa exista doar pe versiunea noua', () => {
+      expect(stepIds('BATHROOM', OLD('BATHROOM'))).not.toContain('systemsVanity');
+      expect(stepIds('BATHROOM', NEW('BATHROOM'))).toEqual(expect.arrayContaining(['systemsVanity', 'sameFinishAll']));
+    });
+
+    it('"Alta piesa": randul v2 (rowVersion 2) doar pe versiunea noua', () => {
+      expect((step('PIECES', OLD('PIECES'), 'pieces') as { rowVersion?: number }).rowVersion).toBeUndefined();
+      expect((step('PIECES', NEW('PIECES'), 'pieces') as { rowVersion?: number }).rowVersion).toBe(2);
+    });
+
+    it('comoda TV ghidata: fara pasul openingSystems (o singura sursa, 3D), cu bifa de pistoane', () => {
+      expect(stepIds('PIECE_TV_UNIT', OLD('PIECE_TV_UNIT'))).toContain('openingSystems');
+      expect(stepIds('PIECE_TV_UNIT', NEW('PIECE_TV_UNIT'))).not.toContain('openingSystems');
+      expect(stepIds('PIECE_TV_UNIT', NEW('PIECE_TV_UNIT'))).toContain('liftUpDoors');
+      expect(optionValues('PIECE_TV_UNIT', NEW('PIECE_TV_UNIT'), 'material')).toContain(FIRM_DECIDES);
+    });
+
+    it('canapea de catalog: fara pas de material pe versiunea noua, piesa ALTUL + "Cadru: il alege firma"', () => {
+      expect(stepIds('PIECE_SOFA', OLD('PIECE_SOFA'))).toContain('material');
+      expect(stepIds('PIECE_SOFA', NEW('PIECE_SOFA'))).not.toContain('material');
+      const flow = FLOW_REGISTRY.PIECE_SOFA[NEW('PIECE_SOFA')];
+      const item = service.processRooms([room('PIECE_SOFA', NEW('PIECE_SOFA'), generatedAnswers(flow))]).rooms[0].derived.items[0];
+      expect(item.material).toBe('ALTUL');
+      expect(item.description).toContain(FRAME_BY_FIRM_NOTE);
+    });
+  });
+
+  // revizuire m5 / DESIGN §5.11: randul "Alta piesa" v2 la publicare
+  it.each<[string, Record<string, unknown>, string]>([
+    ['latime 0', { widthCm: 0 }, 'validation.dimensionOutOfRange'],
+    ['inaltime 601', { heightCm: 601 }, 'validation.dimensionOutOfRange'],
+    ['adancime 12.5', { depthCm: 12.5 }, 'validation.dimensionOutOfRange'],
+    ['cheie necunoscuta pe rand', { color: 'alb' }, 'validation.unknownAnswer'],
+    ['openingChoice cu sisteme', { openingChoice: NO_FRONTS, systems: ['MANER'] }, 'validation.exclusiveOption'],
+    ['materialChoice fara ALTUL', { materialChoice: FIRM_DECIDES, material: 'PAL' }, 'validation.answerInvalid'],
+  ])('"Alta piesa" v2: randul cu %s e respins la publicare', (_label, extra, messageKey) => {
+    expect(issues(() => service.processRooms([room('PIECES', NEW('PIECES'), { pieces: [pieceRow(extra)] })])))
+      .toContainEqual({ roomIndex: 0, stepId: 'pieces', messageKey });
   });
 });

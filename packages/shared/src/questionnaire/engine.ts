@@ -1,15 +1,17 @@
 import { z } from 'zod';
 import type { RoomType } from '../enums';
 import { requestItemSchema, type RequestItemInput } from '../request.schemas';
+import { evalCondition } from './condition';
 import { CURRENT_FLOW_VERSION, FLOW_REGISTRY } from './flows';
 import { itemQuantityBucket, roomSizeBucket, roomSizeLengthM } from './mapping';
+import { pieceRowV2Schema } from './pieces-row';
 import { isPieceConfig3d, pieceConfig3dSchema } from './piece3d/config';
 import type {
   AnswerMap,
   AnswerSummaryEntry,
   ChoiceOption,
-  Condition,
   DerivedRoom,
+  FirmRecommendation,
   QuestionStep,
   RoomFlow,
   ScoreEntry,
@@ -37,18 +39,9 @@ export function isFlowVersionRegistered(roomType: RoomType, version: number): bo
   return FLOW_REGISTRY[roomType]?.[version] !== undefined;
 }
 
-export function evalCondition(cond: Condition, answers: AnswerMap): boolean {
-  if ('all' in cond) return cond.all.every((c) => evalCondition(c, answers));
-  if ('any' in cond) return cond.any.some((c) => evalCondition(c, answers));
-
-  const answer = answers[cond.questionId];
-  if ('equals' in cond) return answer === cond.equals;
-  // `in`: primitiv → apartenenta; string[] → intersectie nevida
-  if (Array.isArray(answer)) {
-    return answer.some((v) => typeof v === 'string' && cond.in.includes(v));
-  }
-  return typeof answer === 'string' && cond.in.includes(answer);
-}
+// evalCondition sta in ./condition (folosita si de constructorul fluxurilor noi, fara
+// import circular); re-exportata aici — API public neschimbat.
+export { evalCondition };
 
 export function isStepVisible(step: QuestionStep, answers: AnswerMap): boolean {
   return step.visibleIf ? evalCondition(step.visibleIf, answers) : true;
@@ -79,7 +72,7 @@ export function stepAnswerSchema(step: QuestionStep, answers: AnswerMap): z.ZodT
       const values = visibleOptions(step, answers).map((o) => o.value);
       const min = step.minSelected ?? (step.optional ? 0 : 1);
       const max = step.maxSelected ?? values.length;
-      return z
+      const schema = z
         .array(
           z.enum(values as [string, ...string[]], {
             errorMap: () => ({ message: 'validation.optionInvalid' }),
@@ -88,6 +81,13 @@ export function stepAnswerSchema(step: QuestionStep, answers: AnswerMap): z.ZodT
         .min(min, 'validation.minOneOption')
         .max(max, 'validation.tooManyOptions')
         .refine((arr) => new Set(arr).size === arr.length, 'validation.optionInvalid');
+      // etapa 6: optiunile exclusive se aleg doar singure (lipsa lor = schema de dinainte)
+      const exclusive = new Set(step.options.filter((o) => o.exclusive).map((o) => o.value));
+      if (exclusive.size === 0) return schema;
+      return schema.refine(
+        (arr) => !arr.some((v) => exclusive.has(v)) || arr.length === 1,
+        'validation.exclusiveOption',
+      );
     }
     case 'boolean':
       return z.boolean({ errorMap: () => ({ message: 'validation.answerInvalid' }) });
@@ -116,7 +116,7 @@ export function stepAnswerSchema(step: QuestionStep, answers: AnswerMap): z.ZodT
     }
     case 'pieces':
       return z
-        .array(requestItemSchema)
+        .array(step.rowVersion === 2 ? pieceRowV2Schema : requestItemSchema)
         .min(step.minPieces, 'validation.minPieces')
         .max(step.maxPieces, 'validation.maxPieces');
     case 'upload':
@@ -388,6 +388,17 @@ export function deriveRoomForFirms(
 ): DerivedRoom {
   const flow = getFlow(roomType, version);
   return opts.needsDesignHelp === true ? emptyDerivedRoom() : flow.deriveRoom(answers);
+}
+
+// Etapa 6: piesele la care clientul a ales "Nu stiu — vreau recomandarea firmei" (material
+// si/sau deschidere). Re-derivat din raspunsuri (nu se salveaza); fluxurile vechi → [].
+export function firmRecommendations(
+  roomType: RoomType,
+  answers: AnswerMap,
+  version?: number,
+  opts: DeriveOptions = {},
+): FirmRecommendation[] {
+  return deriveRoomForFirms(roomType, answers, version, opts).firmRecommendations ?? [];
 }
 
 export function collectScoreEntries(

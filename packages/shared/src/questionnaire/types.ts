@@ -25,11 +25,15 @@ export type AnswerMap = Record<string, AnswerValue>;
 // Conditii serializabile (date, nu functii) — evaluate identic FE/BE, testabile.
 // `equals`: egalitate stricta cu un primitiv.
 // `in`: pentru raspuns primitiv = apartenenta; pentru raspuns string[] = intersectie nevida.
+// Etapa 6 (optionale, folosite doar de versiunile noi):
+// - `atLeast` pe `in`: pe raspuns string[] cere cel putin N potriviri (implicit 1); ignorat pe primitiv;
+// - `not`: negatia unei conditii (ex. "intrebarea comuna NU e Da").
 export type Condition =
   | { questionId: string; equals: AnswerPrimitive }
-  | { questionId: string; in: string[] }
+  | { questionId: string; in: string[]; atLeast?: number }
   | { all: Condition[] }
-  | { any: Condition[] };
+  | { any: Condition[] }
+  | { not: Condition };
 
 // Pointer catre o optiune de scoring din project_sizing_config (key + option).
 export interface ScoringRef {
@@ -66,6 +70,10 @@ export interface ChoiceOption {
   // (ex. MDF recomandat cand baia nu e ventilata). Nu afecteaza validarea.
   recommendedIf?: Condition;
   scoring?: ScoringRef;
+  // etapa 6, doar la multi-choice: optiunea se poate alege DOAR singura
+  // ("Nu stiu — vreau recomandarea firmei", "Fara usi sau sertare");
+  // validarea respinge combinatia cu alte optiuni (validation.exclusiveOption).
+  exclusive?: boolean;
 }
 
 export interface DimensionSlot {
@@ -126,7 +134,14 @@ export type DimensionGroupStep = BaseStep & {
 };
 export type NumberStep = BaseStep & { type: 'number'; min: number; max: number; step?: number };
 export type TextStep = BaseStep & { type: 'text'; maxLength: number; multiline?: boolean };
-export type PiecesStep = BaseStep & { type: 'pieces'; minPieces: number; maxPieces: number };
+// rowVersion 2 (etapa 6, "Alta piesa" v2): randurile se valideaza cu pieceRowV2Schema
+// (dimensiuni in cm, "decide firma", "fara usi sau sertare"); lipsa = requestItemSchema (ca inainte).
+export type PiecesStep = BaseStep & {
+  type: 'pieces';
+  minPieces: number;
+  maxPieces: number;
+  rowVersion?: 2;
+};
 // Upload schita/proiect per camera. Raspunsul = string[] de attachment id-uri
 // (uuid) deja create prin fluxul presign/confirm; backend-ul verifica la publish
 // ca id-urile apartin cererii. Step-urile upload sunt intotdeauna optionale.
@@ -161,6 +176,17 @@ export interface DerivedRoom {
   widthM: number;
   heightM: number;
   items: RequestItemInput[];
+  // etapa 6 (optional; fluxurile vechi nu il pun): piesele la care clientul a ales
+  // "Nu stiu — vreau recomandarea firmei". NU se salveaza in baza de date — fisa firmei
+  // il re-deriva din raspunsuri (firmRecommendations din engine).
+  firmRecommendations?: FirmRecommendation[];
+}
+
+// Marcajul "recomandarea firmei" pe o piesa derivata (potrivire dupa itemName = item.name).
+export interface FirmRecommendation {
+  itemName: string;
+  material: boolean;
+  opening: boolean;
 }
 
 export interface RoomFlow {

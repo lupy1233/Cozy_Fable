@@ -19,7 +19,8 @@ vi.mock('./piece3d/dynamic', () => ({ Configurator3dStep: () => null }));
 vi.mock('./room-sketch-upload', () => ({ RoomSketchUpload: () => null }));
 
 // c10: randul "Alta piesa" — Detalii legat de description, limite vizibile, liste de azi
-const flow = getFlow('PIECES');
+// etapa 6: fixat pe v1 (randul vechi, inca folosit de ciornele / cererile v1); randul v2 e in step-renderer-v6.test.tsx
+const flow = getFlow('PIECES', 1);
 const step = flow.steps.find((s) => s.id === 'pieces') as QuestionStep;
 const T = ro.Configurator;
 

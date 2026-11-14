@@ -6,7 +6,7 @@ import {
 } from '../../engine';
 import { defaultPieceConfig, normalizePieceConfig, type PieceConfig3d } from '../../piece3d';
 import type { AnswerMap } from '../../types';
-import { CURRENT_FLOW_VERSION } from '../index';
+import { CURRENT_FLOW_VERSION, FLOW_VERSIONS_BEFORE_ETAPA6 } from '../index';
 import { pieceBookcaseFlowV3, pieceNightstandFlowV3, pieceWardrobeFlowV3 } from './v3';
 
 // Flow-urile v3 (configurator 3D, docs/10 R3): validare completa la publish,
@@ -26,8 +26,9 @@ function bookcaseAnswers(overrides: Partial<AnswerMap> = {}): AnswerMap {
   return { config3d: config, material: 'PAL', ...overrides };
 }
 
-describe('piesele-carcasa pornesc pe v3', () => {
-  it('CURRENT_FLOW_VERSION e 3 pentru toate cele 10 piese', () => {
+// etapa 6: piesele pornesc acum pe v4; v3 ramane inregistrata (cererile vechi se valideaza pe ea)
+describe('piesele-carcasa au pornit pe v3 pana la etapa 6', () => {
+  it('CURRENT_FLOW_VERSION e 4 pentru toate cele 10 piese, iar v3 ramane in FLOW_VERSIONS_BEFORE_ETAPA6', () => {
     for (const rt of [
       'PIECE_BOOKCASE',
       'PIECE_WARDROBE',
@@ -37,11 +38,12 @@ describe('piesele-carcasa pornesc pe v3', () => {
       'PIECE_NIGHTSTAND',
       'PIECE_DESK',
     ] as const) {
-      expect(CURRENT_FLOW_VERSION[rt], rt).toBe(3);
+      expect(CURRENT_FLOW_VERSION[rt], rt).toBe(4);
+      expect(FLOW_VERSIONS_BEFORE_ETAPA6[rt], rt).toContain(3);
     }
-    expect(CURRENT_FLOW_VERSION.PIECE_BED).toBe(3);
-    expect(CURRENT_FLOW_VERSION.PIECE_TABLE).toBe(3);
-    expect(CURRENT_FLOW_VERSION.PIECE_BENCH).toBe(3);
+    expect(CURRENT_FLOW_VERSION.PIECE_BED).toBe(4);
+    expect(CURRENT_FLOW_VERSION.PIECE_TABLE).toBe(4);
+    expect(CURRENT_FLOW_VERSION.PIECE_BENCH).toBe(4);
   });
 });
 

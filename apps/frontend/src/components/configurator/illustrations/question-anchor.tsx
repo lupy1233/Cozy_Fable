@@ -10,6 +10,8 @@
 // corp; altfel null (ramane iconul lucide).
 import {
   getFlow,
+  PIECE_ALL_GROUP,
+  SAME_FINISH_STEP_ID,
   type AnswerMap,
   type QuestionStep,
   type RoomType,
@@ -101,6 +103,19 @@ const KITCHEN_ZONE_BY_STEP: Record<string, string> = {
   openingSystemsIsland: 'ISLAND_UNITS',
 };
 
+// Piesele care intra in intrebarea comuna: lista din conditia pasului sameFinishAll
+// (`piecesNeeded in <comune>`, pusa de constructorul din shared). null = nu se stie.
+function commonPieceValues(roomType: RoomType, flowVersion: number | undefined): string[] | null {
+  try {
+    const step = getFlow(roomType, flowVersion).steps.find((s) => s.id === SAME_FINISH_STEP_ID);
+    const cond = step?.visibleIf;
+    if (cond && 'in' in cond && cond.questionId === 'piecesNeeded') return cond.in;
+  } catch {
+    // versiune neinregistrata
+  }
+  return null;
+}
+
 function buildItems(
   roomType: RoomType,
   flowVersion: number | undefined,
@@ -125,6 +140,16 @@ export function getQuestionTargets(
 ): TargetStrip | null {
   // doar intrebarile de material / sisteme de deschidere au banda-tinta
   if (!/material|system/i.test(step.id)) return null;
+
+  // etapa 6: ecranul comun `piece:ALL` — toate piesele comune bifate, toate vizate
+  if (step.screenGroup === PIECE_ALL_GROUP) {
+    const selected = Array.isArray(answers.piecesNeeded) ? (answers.piecesNeeded as string[]) : [];
+    const commons = commonPieceValues(roomType, flowVersion);
+    const values = commons ? selected.filter((v) => commons.includes(v)) : selected;
+    const items = buildItems(roomType, flowVersion, 'piecesNeeded', values);
+    if (items.length > 0) return { items, active: '*' };
+    return null;
+  }
 
   // flow-urile per-piesa: toate piesele selectate, activa cea din screenGroup
   const piece = step.screenGroup?.match(/^piece:([A-Z0-9_]+)/)?.[1];

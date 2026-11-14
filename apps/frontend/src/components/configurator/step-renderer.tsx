@@ -12,6 +12,14 @@ import {
   type ItemSystem,
   type Material,
   type RequestItemInput,
+  type PieceRowV2,
+  FIRM_DECIDES,
+  NO_FRONTS,
+  PIECE_ROW_DESCRIPTION_MAX,
+  PIECE_ROW_DIM_MAX_CM,
+  PIECE_ROW_DIM_MIN_CM,
+  PIECE_ROW_V2_SYSTEMS,
+  pieceRowV2Schema,
 } from '@marketplace/shared';
 import { Info, Plus, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -299,8 +307,15 @@ export function StepRenderer(props: StepRendererProps) {
   if (step.type === 'multi-choice') {
     const options = visibleOptions(step, answers);
     const selected = Array.isArray(value) ? (value as string[]) : [];
-    const toggle = (v: string) =>
-      onChange(selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v]);
+    // etapa 6: optiunile `exclusive` ("Nu stiu — vreau recomandarea firmei", "Fara usi
+    // sau sertare") se aleg singure — bifarea lor goleste restul, bifarea altei optiuni
+    // le scoate. Fara optiuni exclusive (versiunile vechi): comportament neschimbat.
+    const exclusiveValues = new Set(step.options.filter((o) => o.exclusive).map((o) => o.value));
+    const toggle = (v: string) => {
+      if (selected.includes(v)) return onChange(selected.filter((x) => x !== v));
+      if (exclusiveValues.has(v)) return onChange([v]);
+      onChange([...selected.filter((x) => !exclusiveValues.has(x)), v]);
+    };
     if (inline) {
       return (
         <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} inline counter={counter}>
@@ -346,6 +361,31 @@ export function StepRenderer(props: StepRendererProps) {
     // inline (add-on pe acelasi ecran, ex. insula): acelasi card "carte de joc"
     // ca optiunile intrebarii principale, dar cu bifa de checkbox (U1, PO r4) —
     // aliniat in aceeasi grila ca sa citeasca drept "inca un cartonas"
+    // M1 (etapa 6): o intrebare da / nu OBLIGATORIE pe un ecran cu alte intrebari (ex.
+    // sameFinishAll, bedUpholstered din dormitor v3) e perechea Da / Nu, fara nimic ales
+    // (PO c14-2); starea aleasa e anuntata prin aria-pressed, ca la celelalte cartonase.
+    // Bifele optionale (insula, LED) raman cartonasul unic de mai jos.
+    if (inline && !step.optional) {
+      const YesIllu = getIllustration(roomType, step.id, 'YES') ?? BOOLEAN_ILLUSTRATIONS.yes;
+      return (
+        <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} inline counter={counter}>
+          <div role="group" aria-label={t(step.titleKey)} data-boolean-pair className="grid gap-4 sm:grid-cols-2">
+            <PlayingCard
+              selected={value === true}
+              onSelect={() => onChange(true)}
+              title={t('common.boolean.yes')}
+              visual={<YesIllu />}
+            />
+            <PlayingCard
+              selected={value === false}
+              onSelect={() => onChange(false)}
+              title={t('common.boolean.no')}
+              visual={<BOOLEAN_ILLUSTRATIONS.no />}
+            />
+          </div>
+        </StepShell>
+      );
+    }
     if (inline) {
       const Illu = getIllustration(roomType, step.id, 'YES');
       const on = value === true;
@@ -519,23 +559,35 @@ export function StepRenderer(props: StepRendererProps) {
   }
 
   if (step.type === 'text') {
+    const text = typeof value === 'string' ? value : '';
+    // c7: contor "x / max" sub campurile cu limita (de ex. materialul scris la "Altul"),
+    // ca la randul "Alta piesa"; limita din validare ramane cea din flux
+    const textCounterId = `${inputId}-text-counter`;
+    const hasMax = typeof step.maxLength === 'number';
     return (
       <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} inline={inline} counter={counter}>
         {step.multiline ? (
           <Textarea
             rows={4}
             maxLength={step.maxLength}
-            value={typeof value === 'string' ? value : ''}
+            aria-describedby={hasMax ? textCounterId : undefined}
+            value={text}
             onChange={(e) => onChange(e.target.value)}
           />
         ) : (
           <Input
             maxLength={step.maxLength}
-            value={typeof value === 'string' ? value : ''}
+            aria-describedby={hasMax ? textCounterId : undefined}
+            value={text}
             onChange={(e) => onChange(e.target.value)}
           />
         )}
-        <ContactInTextHint value={typeof value === 'string' ? value : ''} />
+        {hasMax && (
+          <p id={textCounterId} className="mt-1 text-right text-micro text-muted-foreground">
+            {t('pieces.charCounter', { count: text.length, max: step.maxLength })}
+          </p>
+        )}
+        <ContactInTextHint value={text} />
       </StepShell>
     );
   }
@@ -571,13 +623,25 @@ export function StepRenderer(props: StepRendererProps) {
     );
   }
 
-  // pieces
+  // pieces — rowVersion 2 (etapa 6, "Alta piesa" v2) are randul nou; v1 ramane neschimbat
+  const v2Rows = step.rowVersion === 2 && Array.isArray(value) ? (value as unknown as PieceRowV2[]) : [];
+  // m2: la v2, eroarea unui rand se arata langa campul lui; sus ramane doar eroarea
+  // pasului care nu tine de un rand (de ex. "adauga cel putin o piesa")
+  const rowHasError = Boolean(error) && v2Rows.some((r) => Object.keys(pieceRowV2Errors(r)).length > 0);
   return (
-    <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} counter={counter}>
-      <PieceRows
-        pieces={Array.isArray(value) ? (value as RequestItemInput[]) : []}
-        onChange={(next) => onChange(next)}
-      />
+    <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={rowHasError ? undefined : error} counter={counter}>
+      {step.rowVersion === 2 ? (
+        <PieceRowsV2
+          pieces={v2Rows}
+          onChange={(next) => onChange(next as unknown as AnswerValue)}
+          showErrors={Boolean(error)}
+        />
+      ) : (
+        <PieceRows
+          pieces={Array.isArray(value) ? (value as RequestItemInput[]) : []}
+          onChange={(next) => onChange(next)}
+        />
+      )}
     </StepShell>
   );
 }
@@ -722,5 +786,315 @@ function PieceRows({
           {t('pieces.add')}
         </Button>
       </div>
+  );
+}
+
+// Etapa 6 (c10, DESIGN §5.11): randul "Alta piesa" v2 — dimensiuni optionale in cm,
+// "Nu stiu — vreau recomandarea firmei" la material (salvat ca ALTUL + materialChoice) si
+// deschiderea obligatorie cu iesirile exclusive "Decide firma" / "Fara usi sau sertare"
+// (openingChoice, fara sisteme). Validarea = pieceRowV2Schema din shared.
+type PieceRowDimKey = 'widthCm' | 'heightCm' | 'depthCm';
+type PieceRowOptionalKey = PieceRowDimKey | 'materialChoice' | 'openingChoice';
+const PIECE_ROW_DIMS: { key: PieceRowDimKey; labelKey: string }[] = [
+  { key: 'widthCm', labelKey: 'pieces.width' },
+  { key: 'heightCm', labelKey: 'pieces.height' },
+  { key: 'depthCm', labelKey: 'pieces.depth' },
+];
+const PIECE_ROW_OPENING_EXITS = [FIRM_DECIDES, NO_FRONTS] as const;
+
+// m2 (revizuire): erorile fiecarui rand, dupa camp — din aceeasi schema ca pe server.
+// Cheile fara prefixul `validation.` (itemNameTooShort, quantityTooLow) primesc textul campului.
+export type PieceRowField = 'name' | 'material' | 'quantity' | 'description' | 'systems' | PieceRowDimKey;
+export function pieceRowV2Errors(row: unknown): Partial<Record<PieceRowField, string>> {
+  const parsed = pieceRowV2Schema.safeParse(row);
+  if (parsed.success) return {};
+  const out: Partial<Record<PieceRowField, string>> = {};
+  for (const issue of parsed.error.issues) {
+    const field = issue.path[0];
+    const key: PieceRowField =
+      typeof field === 'string' && ['name', 'material', 'quantity', 'description', 'widthCm', 'heightCm', 'depthCm'].includes(field)
+        ? (field as PieceRowField)
+        : 'systems';
+    if (out[key]) continue;
+    if (key === 'name') out.name = 'pieces.errors.name';
+    else if (key === 'systems') out.systems = issue.message === 'validation.exclusiveOption' ? issue.message : 'pieces.errors.opening';
+    else if (key === 'widthCm' || key === 'heightCm' || key === 'depthCm')
+      out[key] = typeof (row as Record<string, unknown> | null)?.[key] === 'string' ? 'pieces.errors.wholeCm' : 'validation.dimensionOutOfRange';
+    else out[key] = issue.message.startsWith('validation.') ? issue.message : 'validation.answerInvalid';
+  }
+  return out;
+}
+
+// m1 (revizuire + hotararea coordonatorului): ce vede omul e ce sta in raspuns. Un intreg se
+// salveaza ca numar; un text nevalid ("12,5", "60.5", litere) se salveaza ca TEXT — marcaj pe
+// care pieceRowV2Schema il respinge (validation.dimensionOutOfRange), deci "Continua" e blocat
+// si randul nu se poate publica; eroarea apare pe camp. Gol → cheia scoasa (dimensiune optionala).
+export function pieceDimFromText(raw: string): number | string | undefined {
+  const trimmed = raw.trim();
+  if (trimmed === '') return undefined;
+  return /^\d+$/.test(trimmed) ? Number(trimmed) : raw;
+}
+
+function PieceDimInput({
+  id,
+  value,
+  describedBy,
+  onValue,
+}: {
+  id: string;
+  // number = valoarea salvata; string = textul nevalid pastrat ca marcaj
+  value: unknown;
+  describedBy: string;
+  onValue: (v: number | string | undefined) => void;
+}) {
+  const t = useTranslations('Configurator');
+  const text = typeof value === 'number' || typeof value === 'string' ? String(value) : '';
+  const notWhole = typeof value === 'string';
+  const invalidRange = typeof value === 'number' && (value < PIECE_ROW_DIM_MIN_CM || value > PIECE_ROW_DIM_MAX_CM);
+  const invalid = notWhole || invalidRange;
+  const errorId = `${id}-error`;
+  return (
+    <>
+      <div className="relative">
+        <Input
+          id={id}
+          inputMode="numeric"
+          maxLength={6}
+          value={text}
+          aria-describedby={invalid ? `${errorId} ${describedBy}` : describedBy}
+          aria-invalid={invalid || undefined}
+          className={invalid ? 'border-crimson pr-10' : 'pr-10'}
+          onChange={(e) => onValue(pieceDimFromText(e.target.value))}
+        />
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+          cm
+        </span>
+      </div>
+      {invalid && (
+        <p id={errorId} className="mt-1 text-meta text-crimson">
+          {notWhole
+            ? t('pieces.errors.wholeCm')
+            : `${t('validation.dimensionOutOfRange')} (${PIECE_ROW_DIM_MIN_CM}–${PIECE_ROW_DIM_MAX_CM} cm)`}
+        </p>
+      )}
+    </>
+  );
+}
+
+function PieceRowsV2({
+  pieces,
+  onChange,
+  showErrors,
+}: {
+  pieces: PieceRowV2[];
+  onChange: (next: PieceRowV2[]) => void;
+  // dupa un "Continua" respins: erorile fiecarui rand, langa campul cu problema
+  showErrors: boolean;
+}) {
+  const t = useTranslations('Configurator');
+  const uid = useId();
+  const addPiece = () =>
+    onChange([...pieces, { name: '', material: 'PAL', systems: [], quantity: 1, description: '' }]);
+  // patch + chei scoase de tot (schema e .strict(): campurile renuntate nu raman in raspuns)
+  const setPiece = (i: number, patch: Partial<PieceRowV2>, remove: PieceRowOptionalKey[] = []) =>
+    onChange(
+      pieces.map((p, idx) => {
+        if (idx !== i) return p;
+        const next: PieceRowV2 = { ...p, ...patch };
+        for (const k of remove) delete next[k];
+        return next;
+      }),
+    );
+  const checkLabel = 'flex min-h-11 cursor-pointer items-center gap-2 pr-1';
+
+  return (
+    <div className="flex flex-col gap-3">
+      {pieces.map((piece, i) => {
+        const firmMaterial = piece.materialChoice === FIRM_DECIDES;
+        const materialValue = firmMaterial ? FIRM_DECIDES : piece.material;
+        const materials: string[] = PIECE_ROW_MATERIALS.includes(piece.material) || firmMaterial
+          ? [...PIECE_ROW_MATERIALS]
+          : [piece.material, ...PIECE_ROW_MATERIALS];
+        const systems: string[] = [
+          ...PIECE_ROW_V2_SYSTEMS,
+          ...piece.systems.filter((s) => !(PIECE_ROW_V2_SYSTEMS as readonly string[]).includes(s)),
+        ];
+        const details = piece.description ?? '';
+        const nameCounterId = `${uid}-${i}-name-counter`;
+        const nameErrorId = `${uid}-${i}-name-error`;
+        const detailsCounterId = `${uid}-${i}-details-counter`;
+        const otherHintId = `${uid}-${i}-other-material-hint`;
+        const dimsHintId = `${uid}-${i}-dims-hint`;
+        const openingErrorId = `${uid}-${i}-opening-error`;
+        const otherMaterial = piece.material === 'ALTUL' && !firmMaterial;
+        const errors = showErrors ? pieceRowV2Errors(piece) : {};
+        const fieldError = (key: 'material' | 'quantity' | 'description') =>
+          errors[key] ? <p className="text-meta text-crimson">{t(errors[key]!)}</p> : null;
+        return (
+          <div
+            key={i}
+            data-piece-row-version="2"
+            data-row-invalid={Object.keys(errors).length > 0 || undefined}
+            className={`flex flex-col gap-2 rounded-lg border bg-surface-2 p-3 ${
+              Object.keys(errors).length > 0 ? 'border-crimson' : 'border-border-2'
+            }`}
+          >
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <Field label={t('pieces.name')} className="col-span-2">
+                <Input
+                  value={piece.name}
+                  maxLength={PIECE_NAME_MAX}
+                  aria-describedby={errors.name ? `${nameErrorId} ${nameCounterId}` : nameCounterId}
+                  aria-invalid={errors.name ? true : undefined}
+                  className={errors.name ? 'border-crimson' : undefined}
+                  onChange={(e) => setPiece(i, { name: e.target.value })}
+                />
+                {errors.name && (
+                  <p id={nameErrorId} className="text-meta text-crimson">
+                    {t(errors.name)}
+                  </p>
+                )}
+                <p id={nameCounterId} className="self-end text-micro text-muted-foreground">
+                  {t('pieces.charCounter', { count: piece.name.length, max: PIECE_NAME_MAX })}
+                </p>
+                <ContactInTextHint value={piece.name} />
+              </Field>
+              <Field label={t('pieces.material')}>
+                <Select
+                  value={materialValue}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === FIRM_DECIDES) setPiece(i, { material: 'ALTUL', materialChoice: FIRM_DECIDES });
+                    else setPiece(i, { material: v as Material }, ['materialChoice']);
+                  }}
+                >
+                  {materials.map((m) => (
+                    <option key={m} value={m}>
+                      {t(`common.materials.${m}.label`)}
+                    </option>
+                  ))}
+                  <option value={FIRM_DECIDES}>{t('pieces.firmDecides')}</option>
+                </Select>
+                {fieldError('material')}
+              </Field>
+              <Field label={t('pieces.quantity')}>
+                <Input
+                  type="number"
+                  min={1}
+                  value={piece.quantity}
+                  onChange={(e) => setPiece(i, { quantity: Number(e.target.value) || 1 })}
+                />
+                {fieldError('quantity')}
+              </Field>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              {PIECE_ROW_DIMS.map(({ key, labelKey }) => {
+                const v = piece[key];
+                const id = `${uid}-${i}-${key}`;
+                return (
+                  <Field key={key} label={t(labelKey)} htmlFor={id}>
+                    <PieceDimInput
+                      id={id}
+                      value={v}
+                      describedBy={dimsHintId}
+                      onValue={(next) => {
+                        if (next === undefined) setPiece(i, {}, [key]);
+                        else {
+                          // textul nevalid ramane in raspuns ca marcaj respins de schema
+                          setPiece(i, { [key]: next } as unknown as Partial<PieceRowV2>);
+                        }
+                      }}
+                    />
+                  </Field>
+                );
+              })}
+              <p id={dimsHintId} className="col-span-3 text-meta text-muted-foreground">
+                {t('pieces.dimensionsHint')}
+              </p>
+            </div>
+            <Field label={t('pieces.details')}>
+              <Textarea
+                rows={2}
+                value={details}
+                maxLength={PIECE_ROW_DESCRIPTION_MAX}
+                placeholder={t('pieces.detailsPlaceholder')}
+                aria-describedby={otherMaterial ? `${otherHintId} ${detailsCounterId}` : detailsCounterId}
+                onChange={(e) => setPiece(i, { description: e.target.value })}
+              />
+              {otherMaterial && (
+                <p id={otherHintId} className="text-xs text-muted-foreground">
+                  {t('pieces.otherMaterialHint')}
+                </p>
+              )}
+              {fieldError('description')}
+              <p id={detailsCounterId} className="self-end text-micro text-muted-foreground">
+                {t('pieces.charCounter', { count: details.length, max: PIECE_ROW_DESCRIPTION_MAX })}
+              </p>
+              <ContactInTextHint value={details} />
+            </Field>
+            <fieldset
+              className="flex flex-wrap items-center gap-x-4 text-sm"
+              aria-describedby={errors.systems ? openingErrorId : undefined}
+              aria-invalid={errors.systems ? true : undefined}
+            >
+              <legend className="mb-1 w-full text-xs font-medium text-muted-foreground">
+                {t('pieces.openingTitle')}
+              </legend>
+              {systems.map((s) => (
+                <label key={s} className={checkLabel}>
+                  <input
+                    type="checkbox"
+                    className="h-5 w-5 shrink-0 accent-walnut"
+                    checked={!piece.openingChoice && piece.systems.includes(s as ItemSystem)}
+                    onChange={(e) => {
+                      const set = new Set(piece.systems);
+                      if (e.target.checked) set.add(s as ItemSystem);
+                      else set.delete(s as ItemSystem);
+                      // o deschidere reala scoate iesirea exclusiva
+                      setPiece(i, { systems: [...set] }, ['openingChoice']);
+                    }}
+                  />
+                  {t(`common.systems.${s}.label`)}
+                </label>
+              ))}
+              {PIECE_ROW_OPENING_EXITS.map((exit) => (
+                <label key={exit} className={checkLabel}>
+                  <input
+                    type="checkbox"
+                    className="h-5 w-5 shrink-0 accent-walnut"
+                    checked={piece.openingChoice === exit}
+                    onChange={(e) => {
+                      if (e.target.checked) setPiece(i, { systems: [], openingChoice: exit });
+                      else setPiece(i, {}, ['openingChoice']);
+                    }}
+                  />
+                  {t(exit === FIRM_DECIDES ? 'pieces.firmDecides' : 'pieces.noFronts')}
+                </label>
+              ))}
+              {errors.systems && (
+                <p id={openingErrorId} className="w-full text-meta text-crimson">
+                  {t(errors.systems)}
+                </p>
+              )}
+            </fieldset>
+            {/* m6: "Sterge" tine de rand, nu de grupul "Cum se deschide" */}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => onChange(pieces.filter((_, idx) => idx !== i))}
+                className="flex min-h-11 items-center gap-1 px-2 text-sm text-crimson"
+              >
+                <X className="h-4 w-4" />
+                {t('pieces.remove')}
+              </button>
+            </div>
+          </div>
+        );
+      })}
+      <Button type="button" variant="secondary" size="sm" onClick={addPiece} className="self-start">
+        <Plus className="mr-1 h-4 w-4" />
+        {t('pieces.add')}
+      </Button>
+    </div>
   );
 }

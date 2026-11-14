@@ -12,7 +12,8 @@ function recommendedOn(steps: QuestionStep[], stepId: string, material: string) 
 
 describe('c6 — fara "Recomandat" pe blat', () => {
   it('spalatorie v2: blatul fara badge, celelalte piese cu MDF infoliat recomandat', () => {
-    const { steps, version } = getFlow('LAUNDRY');
+    // etapa 6: fixat pe v2 (v3 are setul de blaturi, testat in flows/rooms-b.v6.test.ts)
+    const { steps, version } = getFlow('LAUNDRY', 2);
     expect(version).toBe(2);
     expect(recommendedOn(steps, 'materialCountertop', 'MDF_INFOLIAT')).toBeUndefined();
     for (const id of ['materialApplianceHousing', 'materialStorage', 'materialSinkUnit']) {
@@ -24,7 +25,7 @@ describe('c6 — fara "Recomandat" pe blat', () => {
   });
 
   it('balcon v2: blatul fara badge, celelalte piese cu lemn masiv recomandat', () => {
-    const { steps, version } = getFlow('BALCONY');
+    const { steps, version } = getFlow('BALCONY', 2);
     expect(version).toBe(2);
     expect(recommendedOn(steps, 'materialWorktop', 'LEMN_MASIV')).toBeUndefined();
     for (const id of ['materialStorageBench', 'materialTallCabinet', 'materialShelves']) {

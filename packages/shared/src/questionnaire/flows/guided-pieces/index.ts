@@ -33,3 +33,14 @@ export {
   pieceNightstandFlowV3,
   pieceDeskFlowV3,
 } from './v3';
+// etapa 6 (versiunile noi; schelete in valul 1, continut in valul 2)
+export {
+  pieceWardrobeFlowV4,
+  pieceTvUnitFlowV4,
+  pieceBookcaseFlowV4,
+  pieceDeskFlowV4,
+  pieceDresserFlowV4,
+  pieceShoeCabinetFlowV4,
+  pieceNightstandFlowV4,
+} from './v4';
+export { pieceBedFlowV4, pieceTableFlowV4, pieceBenchFlowV4 } from './furniture-v4';

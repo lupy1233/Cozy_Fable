@@ -919,6 +919,21 @@ export function pieceConfigTotals(config: PieceConfig3d): Piece3dTotals {
   return totals;
 }
 
+// Etapa 6 (c2, o singura sursa): piesa configurata 3D are fronturi (usi / sertare)?
+// Adevarat la o zona DOOR / DRAWERS / TILT_OUT, la usi glisante, la lavoarul cu depozitare
+// inchisa sau la pantofarul cu usi. Pur; nu schimba derivarile versiunilor vechi.
+// `kind` e pastrat in semnatura pentru regulile viitoare pe tip de piesa.
+export function configHasFronts(kind: Piece3dKind, config: PieceConfig3d): boolean {
+  void kind;
+  if (config.doorMode === 'SLIDING') return true;
+  if (config.columns.some((c) => c.zones.some((z) => z.type === 'DOOR' || z.type === 'DRAWERS' || z.type === 'TILT_OUT'))) {
+    return true;
+  }
+  if (config.vanity && config.vanity.storage !== 'OPEN') return true;
+  if (config.entryway?.shoeStorage === 'DOORS') return true;
+  return false;
+}
+
 const FINISH_LABEL_RO: Record<Piece3dFinish, string> = {
   ALB: 'alb',
   CREM: 'crem',

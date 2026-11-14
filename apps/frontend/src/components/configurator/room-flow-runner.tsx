@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { useConfiguratorStore } from '@/stores/configurator-store';
 import { ApproxLengthField, needsApproxLength } from './approx-length-field';
 import { InfoDialog } from './info-dialog';
+import { screenSections } from './kitchen-front-zones';
 import { isStudioNightstand, roomScreens, validateStep } from './room-screens';
 import { StepRenderer } from './step-renderer';
 
@@ -130,9 +131,15 @@ export function RoomFlowRunner({
 
   // Pur vizual: bifa compacta si textul conditionat ("Altul" → descrie) tin de
   // intrebarea de dinaintea lor — nu primesc numar si nici linie despartitoare.
+  // Etapa 6 (N12): campul "Altul" (`<material>Other`) e completarea materialului, nu o
+  // intrebare in plus — fara numar in contorul "1/3", chiar si fara visibleIf.
   const isFollowUp = (s: QuestionStep) =>
-    (s.type === 'boolean' && s.toggleStyle === 'checkbox') || (s.type === 'text' && Boolean(s.visibleIf));
-  const numbered = screen.filter((s) => !isFollowUp(s));
+    (s.type === 'boolean' && s.toggleStyle === 'checkbox') ||
+    (s.type === 'text' && (Boolean(s.visibleIf) || s.id.endsWith('Other')));
+  // c14: la bucatarie, ecranul "Fronturi" se aseaza pe zone (doar vizual); in rest o singura sectiune
+  const sections = screenSections(room.roomType, screen, room.answers);
+  const rendered = sections.flatMap((sec) => sec.steps);
+  const numbered = rendered.filter((s) => !isFollowUp(s));
   const counterOf = (s: QuestionStep) =>
     numbered.length > 1 && numbered.includes(s) ? `${numbered.indexOf(s) + 1}/${numbered.length}` : undefined;
 
@@ -235,34 +242,50 @@ export function RoomFlowRunner({
           transition={{ duration: reduce ? 0 : 0.22, ease: 'easeOut' }}
           className="flex flex-col"
         >
-          {screen.map((s, si) => (
-            // intrebarile ecranului sunt despartite de o linie fina; bifa si
-            // textul conditionat raman lipite de intrebarea lor
-            <div
-              key={s.id}
-              className={cn(si > 0 && (isFollowUp(s) ? 'mt-4' : 'mt-7 border-t border-border pt-6'))}
+          {sections.map((sec, xi) => (
+            <section
+              key={sec.zone ?? 'shared'}
+              aria-labelledby={sec.zone ? `zone-${room.localId}-${sec.zone}` : undefined}
+              className={cn('flex flex-col', xi > 0 && 'mt-9 border-t-2 border-border pt-6')}
             >
-              <StepRenderer
-                step={s}
-                answers={room.answers}
-                roomType={room.roomType}
-                flowVersion={room.flowVersion}
-                inline={si > 0}
-                counter={counterOf(s)}
-                uploadContext={{ target: uploadTarget, hasOwnProject, roomCount: rooms.length }}
-                config3dContext={{ onSnapshot: (dataUrl) => setSnapshot3d(room.localId, dataUrl) }}
-                onChange={(value) => {
-                  setErrors((prev) => {
-                    const next = { ...prev };
-                    delete next[s.id];
-                    return next;
-                  });
-                  setAnswer(room.localId, s.id, value);
-                }}
-                onInfo={openInfo}
-                error={errors[s.id]}
-              />
-            </div>
+              {sec.zone && (
+                <h3
+                  id={`zone-${room.localId}-${sec.zone}`}
+                  className="mb-4 font-serif text-xl leading-tight text-walnut"
+                >
+                  {t(`flows.KITCHEN.v3.zones.${sec.zone}`)}
+                </h3>
+              )}
+              {sec.steps.map((s, zi) => (
+                // intrebarile ecranului sunt despartite de o linie fina; bifa si
+                // textul conditionat raman lipite de intrebarea lor (in fiecare zona)
+                <div
+                  key={s.id}
+                  className={cn(zi > 0 && (isFollowUp(s) ? 'mt-4' : 'mt-7 border-t border-border pt-6'))}
+                >
+                  <StepRenderer
+                    step={s}
+                    answers={room.answers}
+                    roomType={room.roomType}
+                    flowVersion={room.flowVersion}
+                    inline={rendered.indexOf(s) > 0}
+                    counter={counterOf(s)}
+                    uploadContext={{ target: uploadTarget, hasOwnProject, roomCount: rooms.length }}
+                    config3dContext={{ onSnapshot: (dataUrl) => setSnapshot3d(room.localId, dataUrl) }}
+                    onChange={(value) => {
+                      setErrors((prev) => {
+                        const next = { ...prev };
+                        delete next[s.id];
+                        return next;
+                      });
+                      setAnswer(room.localId, s.id, value);
+                    }}
+                    onInfo={openInfo}
+                    error={errors[s.id]}
+                  />
+                </div>
+              ))}
+            </section>
           ))}
         </motion.div>
       </div>

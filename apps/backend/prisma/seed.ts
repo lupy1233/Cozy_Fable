@@ -90,6 +90,8 @@ const SIZING_CONFIG: { key: string; option: string; weight: number }[] = [
   // optiunile v2 din 2026-07-08 (PAL/HPL); LAMINATE/WOOD raman pentru kitchen v1
   { key: 'KITCHEN_COUNTERTOP', option: 'PAL', weight: 0 },
   { key: 'KITCHEN_COUNTERTOP', option: 'HPL', weight: 0 },
+  // etapa 6 (kitchen v4): blatul "decide firma" — 0 puncte (PO c6-1); acelasi rand in migrarea 20261114120000
+  { key: 'KITCHEN_COUNTERTOP', option: 'FIRM_DECIDES', weight: 0 },
   // BUDGET
   { key: 'BUDGET', option: 'UNDER_5K', weight: 1 },
   { key: 'BUDGET', option: 'FROM_5K_TO_15K', weight: 3 },

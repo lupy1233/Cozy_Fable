@@ -4327,7 +4327,19 @@
       "details": "Details (optional)",
       "detailsPlaceholder": "Approximate size, colour, where it goes, what you want inside — anything that helps the company understand the piece.",
       "otherMaterialHint": "You chose “Other”: write here which material you want.",
-      "charCounter": "{count} / {max} characters"
+      "charCounter": "{count} / {max} characters",
+      "width": "Width",
+      "height": "Height",
+      "depth": "Depth",
+      "dimensionsHint": "Optional, in centimetres. We add them to the piece description for the company.",
+      "firmDecides": "Not sure — I want the company's recommendation",
+      "noFronts": "No doors or drawers",
+      "openingTitle": "How it opens",
+      "errors": {
+        "name": "Write a name for the piece, at least 2 characters.",
+        "opening": "Choose how the piece opens: Handle, Push, “Not sure” or “No doors or drawers”.",
+        "wholeCm": "Write a whole number of centimetres."
+      }
     },
     "apiErrors": {
       "CONFIGURATOR_ANSWERS_INVALID": "Some answers couldn't be validated. Check the highlighted steps.",
@@ -4369,7 +4381,8 @@
       "designHelpWithStudioPiece": "This piece is placed in Studio, so it is already configured: you can't ask for help with it. Untick the help box or remove the piece from Studio.",
       "approxLengthOutOfRange": "The approximate length must be between 0.1 and 50 m.",
       "approxLengthTooManyDecimals": "Use at most two decimals, for example 6.25.",
-      "approxLengthWithoutOwnProject": "The approximate length can only be given with “I already have a project”. Choose that mode or clear the length."
+      "approxLengthWithoutOwnProject": "The approximate length can only be given with “I already have a project”. Choose that mode or clear the length.",
+      "exclusiveOption": "This option can only be chosen on its own. Untick the others or drop it."
     },
     "common": {
       "boolean": {
@@ -4391,7 +4404,7 @@
             "pros3": "The melamine surface shrugs off everyday scratches",
             "cons1": "Edges need ABS banding, or they show and wear",
             "cons2": "Swells if water reaches an unsealed cut",
-            "price": "250–450 RON/lm"
+            "price": "250–450 RON per linear metre"
           }
         },
         "MDF": {
@@ -4405,7 +4418,7 @@
             "pros3": "Edges finish cleanly, no applied banding needed",
             "cons1": "Costs more than chipboard for the same piece",
             "cons2": "The boards are heavy — large units need matching hardware",
-            "price": "450–800 RON/lm"
+            "price": "450–800 RON per linear metre"
           }
         },
         "MDF_INFOLIAT": {
@@ -4419,7 +4432,7 @@
             "pros3": "Allows routed fronts, with frames or classic patterns",
             "cons1": "Next to an oven or hob, the foil can peel over time",
             "cons2": "A narrower colour palette than painted MDF",
-            "price": "350–600 RON/lm"
+            "price": "350–600 RON per linear metre"
           }
         },
         "MDF_VOPSIT": {
@@ -4433,7 +4446,7 @@
             "pros3": "A scratch can be repainted locally, no front replacement",
             "cons1": "Among the most expensive front options",
             "cons2": "Paint can chip on a direct knock",
-            "price": "500–900 RON/lm"
+            "price": "500–900 RON per linear metre"
           }
         },
         "MDF_FURNIR": {
@@ -4447,7 +4460,7 @@
             "pros3": "Can be stained to the shade you want, just like wood",
             "cons1": "Rare veneers cost close to solid wood",
             "cons2": "Deep scratches cut through the thin veneer layer",
-            "price": "600–1100 RON/lm"
+            "price": "600–1100 RON per linear metre"
           }
         },
         "LEMN_MASIV": {
@@ -4461,7 +4474,7 @@
             "pros3": "Can be sanded and refinished to look new again",
             "cons1": "The most expensive material option",
             "cons2": "Moves with humidity — it can crack or warp",
-            "price": "900–1800 RON/lm"
+            "price": "900–1800 RON per linear metre"
           }
         },
         "ALTUL": {
@@ -4475,7 +4488,7 @@
       },
       "pieceSystems": {
         "title": "Which opening system?",
-        "subtitle": "For this piece's doors and drawers — you can pick several."
+        "subtitle": "For the piece's doors and drawers. If the piece has none, choose the closest option or write it in the details."
       },
       "systems": {
         "PUSH": {
@@ -4540,7 +4553,7 @@
             "pros2": "Nothing sticks out — nothing to catch as you pass by",
             "cons1": "Routing and the profile add to the price",
             "cons2": "Demanding to fit — a job for an experienced team",
-            "price": "+150–300 RON/lm"
+            "price": "+150–300 RON per linear metre"
           }
         },
         "AVENTOS": {
@@ -4555,6 +4568,140 @@
             "cons2": "The arms need periodic adjustment to stay balanced",
             "price": "+250–500 RON/unit"
           }
+        }
+      },
+      "finish": {
+        "firmDecides": {
+          "label": "Not sure — I want the company's recommendation",
+          "description": "The company suggests the right option when it sends you a quote."
+        },
+        "frontMaterial": {
+          "subtitle": "For doors and drawers. The carcass is made of standard chipboard.",
+          "subtitleIntegral": "For doors and drawers. The carcass is usually standard chipboard; if you want the carcass in MDF too, choose “Fully MDF”."
+        },
+        "panelMaterial": {
+          "subtitle": "For the boards of this piece."
+        },
+        "woodMaterial": {
+          "subtitle": "What the piece should be made of."
+        },
+        "mirror": {
+          "subtitle": "The frame around the mirror.",
+          "MIRROR_FRAMELESS": {
+            "label": "No frame",
+            "description": "A plain mirror with polished edges"
+          },
+          "MIRROR_FRAME_WOOD": {
+            "label": "Wooden frame",
+            "description": "Warm, goes well with wooden furniture"
+          },
+          "MIRROR_FRAME_MDF": {
+            "label": "Painted MDF frame",
+            "description": "Painted in the colour you want"
+          },
+          "MIRROR_FRAME_METAL": {
+            "label": "Metal frame",
+            "description": "Slim, modern look"
+          }
+        },
+        "worktop": {
+          "subtitle": "The worktop material. Choose by how often water gets on it.",
+          "WORKTOP_PAL_POSTFORMED": {
+            "label": "Postformed chipboard",
+            "description": "The most affordable, with a rounded edge",
+            "info": {
+              "title": "Postformed chipboard worktop",
+              "body": "A chipboard panel with a decorative layer that also wraps the front edge. Fine for everyday use, as long as water does not sit on the joints."
+            }
+          },
+          "WORKTOP_HPL": {
+            "label": "HPL",
+            "description": "Hard surface, scratch resistant",
+            "info": {
+              "title": "HPL worktop",
+              "body": "A panel covered with high-pressure laminate (HPL). It resists scratches and moderate heat well."
+            }
+          },
+          "WORKTOP_HPL_COMPACT": {
+            "label": "Compact HPL (water resistant)",
+            "description": "Solid, does not swell with water",
+            "info": {
+              "title": "Compact HPL worktop",
+              "body": "A thin board made entirely of pressed HPL layers. It does not swell with water, so it suits areas next to sinks and washing machines."
+            }
+          },
+          "WORKTOP_QUARTZ": {
+            "label": "Quartz",
+            "description": "Engineered stone, very durable",
+            "info": {
+              "title": "Quartz worktop",
+              "body": "Engineered stone made of quartz and resin. It does not absorb water and is easy to clean; it is the most expensive option."
+            }
+          },
+          "WORKTOP_SOLID_WOOD": {
+            "label": "Solid wood",
+            "description": "Warm and natural, needs care",
+            "info": {
+              "title": "Solid wood worktop",
+              "body": "A natural wood worktop. It looks warm and can be restored by sanding, but it needs oiling from time to time, especially near water."
+            }
+          }
+        },
+        "integralMdf": {
+          "label": "Fully MDF (carcass and fronts)",
+          "description": "The carcass too, not just the doors — for high humidity",
+          "info": {
+            "title": "Fully MDF",
+            "body": "Both the carcass and the fronts are made of MDF, not just the doors and drawers. It is a rare choice, for bathrooms or balconies with high humidity. The company confirms whether you need it."
+          }
+        },
+        "wood": {
+          "LEMN_MASIV": {
+            "label": "Solid wood",
+            "description": "Natural wood, the most durable"
+          },
+          "MDF_FURNIR": {
+            "label": "Natural wood veneer",
+            "description": "Real wood look at a lower price"
+          },
+          "PAL": {
+            "label": "Wood-effect chipboard",
+            "description": "The most affordable option"
+          }
+        },
+        "opening": {
+          "subtitle": "You can tick more than one. For the doors and drawers of this piece.",
+          "NO_FRONTS": {
+            "label": "No doors or drawers",
+            "description": "The piece has no doors and no drawers.",
+            "info": {
+              "title": "No doors or drawers",
+              "body": "Choose this if the piece has nothing to open: only shelves or open space."
+            }
+          },
+          "PISTONS": {
+            "label": "Lift-up, on gas struts (up or down)",
+            "description": "The door lifts or drops and stays open",
+            "info": {
+              "title": "Lift-up doors on gas struts",
+              "body": "The door opens upwards or downwards and gas struts hold it open. Used on wall cabinets and low units."
+            }
+          }
+        },
+        "sameAll": {
+          "title": "Same material and same opening for all pieces?",
+          "subtitle": "For the units with doors or drawers. The bed, coffee table, mirror, shelves and worktop have their own question."
+        },
+        "allMaterial": {
+          "title": "Front material — all units"
+        },
+        "allOpening": {
+          "title": "Opening — all units"
+        },
+        "liftUp": {
+          "title": "Doors on gas struts",
+          "cardLabel": "Some doors open up or down, on gas struts",
+          "subtitle": "Tick this if you want lift-up doors. You choose handle or push in the 3D model."
         }
       }
     },
@@ -4714,7 +4861,7 @@
               "info": {
                 "title": "Laminated chipboard worktop",
                 "body": "Chipboard core with a laminated surface — the affordable standard, hundreds of designs.",
-                "price": "RON 150–300/lm",
+                "price": "150–300 RON per linear metre",
                 "pros1": "Lowest price — easy to replace years later without regrets",
                 "pros2": "Hundreds of designs: wood, stone, plain colours",
                 "cons1": "Edges swell if water gets past the sealing",
@@ -4727,7 +4874,7 @@
               "info": {
                 "title": "HPL worktop",
                 "body": "High-pressure laminate — far denser and tougher than standard chipboard.",
-                "price": "RON 400–800/lm",
+                "price": "400–800 RON per linear metre",
                 "pros1": "Handles water, scratches and daily wear far better than chipboard",
                 "pros2": "Can be slim, for a clean, modern line",
                 "cons1": "Roughly double the price of a standard laminate top",
@@ -4740,7 +4887,7 @@
               "info": {
                 "title": "Laminate countertop",
                 "body": "Laminated chipboard — the budget option with the widest choice of designs.",
-                "price": "RON 150–350/lm",
+                "price": "150–350 RON per linear metre",
                 "pros1": "The lowest-priced worktop of all",
                 "pros2": "Designs for any style, from wood to concrete",
                 "cons1": "Deep scratches cannot be repaired",
@@ -4753,7 +4900,7 @@
               "info": {
                 "title": "Quartz countertop",
                 "body": "Engineered stone — among the most durable and hygienic worktops.",
-                "price": "RON 600–1,200/lm",
+                "price": "600–1,200 RON per linear metre",
                 "pros1": "Nearly impossible to scratch in everyday use",
                 "pros2": "Non-porous surface: doesn't stain, easy to keep hygienic",
                 "cons1": "Among the priciest worktop options",
@@ -4766,7 +4913,7 @@
               "info": {
                 "title": "Granite countertop",
                 "body": "Natural stone — durable, with a unique pattern in every slab.",
-                "price": "RON 700–1,400/lm",
+                "price": "700–1,400 RON per linear metre",
                 "pros1": "Natural stone that takes decades of daily use",
                 "pros2": "Every slab has a one-of-a-kind pattern",
                 "cons1": "Needs periodic sealing, or it can stain",
@@ -4779,7 +4926,7 @@
               "info": {
                 "title": "Wood countertop",
                 "body": "Solid wood — a warm look, cared for with periodic oiling.",
-                "price": "RON 400–900/lm",
+                "price": "400–900 RON per linear metre",
                 "pros1": "Warms up any kitchen — works in modern styles too",
                 "pros2": "Scratches sand out; the top can be refinished any time",
                 "cons1": "Needs regular oiling, especially around the sink",
@@ -4829,6 +4976,16 @@
           "frontMaterial": {
             "title": "Which material do you want for the fronts?",
             "subtitle": "We use it for the whole kitchen. Below you can pick different materials per zone."
+          },
+          "zones": {
+            "base": "Base units",
+            "wall": "Wall units",
+            "island": "Island"
+          }
+        },
+        "v4": {
+          "frontMaterial": {
+            "title": "Material for the fronts (doors and drawers)"
           }
         }
       },
@@ -5011,7 +5168,7 @@
         },
         "material": {
           "title": "Which material?",
-          "subtitle": "The material of the interior modules."
+          "subtitle": "For the whole dressing: the carcass and the doors, if it has any."
         },
         "notes": {
           "title": "Anything else?",
@@ -5043,6 +5200,15 @@
         "sketch": {
           "title": "Do you have a sketch of the space?",
           "subtitle": "Optional — a simple sketch with measurements helps companies quote a precise price."
+        },
+        "v4": {
+          "material": {
+            "title": "Material — walk-in closet",
+            "subtitle": "With doors: the material is for the doors and drawers, the carcass is made of standard chipboard. Without doors: the material is for the whole closet."
+          },
+          "openingSystems": {
+            "title": "How do the closet doors open?"
+          }
         }
       },
       "BEDROOM": {
@@ -5268,6 +5434,26 @@
         "sketch": {
           "title": "Do you have a room sketch?",
           "subtitle": "Optional — the room plan, with the bed and wardrobe positions."
+        },
+        "v3": {
+          "materialWardrobe": {
+            "title": "Front material — wardrobe"
+          },
+          "materialBed": {
+            "title": "Material — bed"
+          },
+          "materialNightstands": {
+            "title": "Front material — nightstands"
+          },
+          "materialDresser": {
+            "title": "Front material — dresser"
+          },
+          "materialTvUnit": {
+            "title": "Front material — TV unit"
+          },
+          "materialVanity": {
+            "title": "Front material — vanity"
+          }
         }
       },
       "LIVING": {
@@ -5441,6 +5627,26 @@
         "sketch": {
           "title": "Do you have a sketch of the space?",
           "subtitle": "Optional — the TV wall, with measurements and outlets marked."
+        },
+        "v4": {
+          "materialTvUnit": {
+            "title": "Front material — TV area"
+          },
+          "materialBookshelf": {
+            "title": "Front material — bookcase"
+          },
+          "materialDisplay": {
+            "title": "Front material — display cabinet"
+          },
+          "materialCoffeeTable": {
+            "title": "Material — coffee table"
+          },
+          "materialShelves": {
+            "title": "Material — shelves"
+          },
+          "materialOtherPiece": {
+            "title": "Front material — your piece"
+          }
         }
       },
       "OFFICE": {
@@ -5565,6 +5771,20 @@
         "sketch": {
           "title": "Do you have a room sketch?",
           "subtitle": "Optional — the working wall, with outlets and the window marked."
+        },
+        "v3": {
+          "materialDesk": {
+            "title": "Front material — desk"
+          },
+          "materialBookshelf": {
+            "title": "Front material — bookcase"
+          },
+          "materialStorage": {
+            "title": "Front material — storage"
+          },
+          "materialShelves": {
+            "title": "Material — shelves"
+          }
         }
       },
       "BATHROOM": {
@@ -5644,6 +5864,26 @@
         "notes": {
           "title": "Anything else?",
           "subtitle": "Optional — anything that helps the companies understand your project."
+        },
+        "v3": {
+          "materialVanity": {
+            "title": "Front material — vanity unit"
+          },
+          "materialMirror": {
+            "title": "Front material — mirror cabinet"
+          },
+          "materialTall": {
+            "title": "Front material — tall cabinet"
+          },
+          "systemsVanity": {
+            "title": "Opening — vanity unit"
+          },
+          "systemsMirror": {
+            "title": "Opening — mirror cabinet"
+          },
+          "systemsTall": {
+            "title": "Opening — tall cabinet"
+          }
         }
       },
       "HALLWAY": {
@@ -5753,6 +5993,53 @@
         "sketch": {
           "title": "Do you have a hallway sketch?",
           "subtitle": "Optional — wall lengths and door positions help with quoting."
+        },
+        "wardrobeDoorType": {
+          "title": "What doors for the wardrobe?",
+          "subtitle": "How the wardrobe opens.",
+          "options": {
+            "SLIDING": {
+              "label": "Sliding",
+              "description": "Glide on tracks, no clearance needed",
+              "info": {
+                "title": "Sliding doors",
+                "body": "Doors glide on tracks, one passing in front of the other — the natural choice for a narrow hallway.",
+                "pros1": "Not a single centimetre of clearance needed in front",
+                "pros2": "Large panels, clean front — flatters wide wardrobes",
+                "cons1": "One door always covers half the interior",
+                "price": "+800–2,000 lei"
+              }
+            },
+            "HINGED": {
+              "label": "Hinged",
+              "description": "Classic, open fully",
+              "info": {
+                "title": "Hinged doors",
+                "body": "Classic doors on hinges — open both and see the whole interior at a glance. They need about 50 cm of clearance in front.",
+                "pros1": "Full access: the whole interior visible at once",
+                "pros2": "The most affordable option, with easy-to-adjust hinges",
+                "cons1": "Each door needs ~50 cm of clearance in front",
+                "price": "+300–900 lei"
+              }
+            }
+          }
+        },
+        "v2": {
+          "materialShoeCabinet": {
+            "title": "Front material — shoe cabinet"
+          },
+          "materialCoatUnit": {
+            "title": "Material — coat rack"
+          },
+          "materialWardrobe": {
+            "title": "Front material — wardrobe"
+          },
+          "materialBench": {
+            "title": "Front material — bench"
+          },
+          "materialMirror": {
+            "title": "Mirror frame"
+          }
         }
       },
       "LAUNDRY": {
@@ -5874,6 +6161,20 @@
         "sketch": {
           "title": "Do you have a sketch of the space?",
           "subtitle": "Optional — water hookups and outlet positions help a lot."
+        },
+        "v3": {
+          "materialApplianceHousing": {
+            "title": "Front material — appliance housing"
+          },
+          "materialStorage": {
+            "title": "Front material — storage cabinets"
+          },
+          "materialCountertop": {
+            "title": "Material — worktop"
+          },
+          "materialSinkUnit": {
+            "title": "Front material — sink unit"
+          }
         }
       },
       "PANTRY": {
@@ -5966,6 +6267,14 @@
         "sketch": {
           "title": "Do you have a pantry sketch?",
           "subtitle": "Optional — wall sizes and the door position."
+        },
+        "v3": {
+          "materialShelves": {
+            "title": "Material — open shelves"
+          },
+          "materialCabinets": {
+            "title": "Front material — closed cabinets"
+          }
         }
       },
       "BALCONY": {
@@ -6056,6 +6365,20 @@
         "sketch": {
           "title": "Do you have a balcony sketch?",
           "subtitle": "Optional — length, depth and window positions."
+        },
+        "v3": {
+          "materialStorageBench": {
+            "title": "Front material — storage bench"
+          },
+          "materialTallCabinet": {
+            "title": "Front material — tall cabinet"
+          },
+          "materialWorktop": {
+            "title": "Material — worktop"
+          },
+          "materialShelves": {
+            "title": "Material — shelves"
+          }
         }
       },
       "PIECE_WARDROBE": {
@@ -6142,6 +6465,11 @@
         "config3d": {
           "title": "Build your wardrobe in 3D",
           "subtitle": "Choose the width, split the columns and decide each zone: hanging rod, shelves, drawers or doors."
+        },
+        "v4": {
+          "material": {
+            "title": "Material for the wardrobe fronts"
+          }
         }
       },
       "PIECE_TV_UNIT": {
@@ -6214,6 +6542,11 @@
         "config3d": {
           "title": "Build your TV unit in 3D",
           "subtitle": "Adjust the dimensions and pick each zone: open, drawers or doors."
+        },
+        "v4": {
+          "material": {
+            "title": "Material for the TV unit fronts"
+          }
         }
       },
       "PIECE_BOOKCASE": {
@@ -6288,6 +6621,11 @@
         "config3d": {
           "title": "Build your bookcase in 3D",
           "subtitle": "Drag the sliders and click zones — the model updates live, and the company receives your exact configuration."
+        },
+        "v4": {
+          "material": {
+            "title": "Material for the bookcase fronts"
+          }
         }
       },
       "PIECE_DESK": {
@@ -6370,6 +6708,11 @@
         "config3d": {
           "title": "Build your desk in 3D",
           "subtitle": "Choose the top and configure the pedestals: drawers or doors."
+        },
+        "v4": {
+          "material": {
+            "title": "Material for the desk fronts"
+          }
         }
       },
       "PIECE_BED": {
@@ -6459,6 +6802,11 @@
         "config3d": {
           "title": "Create your bed",
           "subtitle": "Choose mattress size, frame upholstery and storage. See the result in 3D."
+        },
+        "v4": {
+          "material": {
+            "title": "What should the bed be made of?"
+          }
         }
       },
       "PIECE_DRESSER": {
@@ -6526,6 +6874,11 @@
         "config3d": {
           "title": "Build your dresser in 3D",
           "subtitle": "Adjust the dimensions and split the body into drawers, doors or open zones."
+        },
+        "v4": {
+          "material": {
+            "title": "Material for the dresser fronts"
+          }
         }
       },
       "PIECE_TABLE": {
@@ -6627,6 +6980,11 @@
         "config3d": {
           "title": "Create your table",
           "subtitle": "Choose its use, shape and dimensions, with a live showroom preview."
+        },
+        "v4": {
+          "material": {
+            "title": "What should the table be made of?"
+          }
         }
       },
       "PIECE_SHOE_CABINET": {
@@ -6691,6 +7049,11 @@
         "config3d": {
           "title": "Build your shoe cabinet in 3D",
           "subtitle": "Choose the dimensions and what each column has: doors, drawers or open niches."
+        },
+        "v4": {
+          "material": {
+            "title": "Material for the shoe cabinet fronts"
+          }
         }
       },
       "PIECE_NIGHTSTAND": {
@@ -6769,6 +7132,11 @@
         "config3d": {
           "title": "Build your nightstand in 3D",
           "subtitle": "Adjust the dimensions and pick the mix of drawers and open zones."
+        },
+        "v4": {
+          "material": {
+            "title": "Material for the nightstand fronts"
+          }
         }
       },
       "PIECE_BENCH": {
@@ -6839,6 +7207,11 @@
         "config3d": {
           "title": "Create your bench",
           "subtitle": "Set its width, storage and seat upholstery."
+        },
+        "v4": {
+          "material": {
+            "title": "Material for the bench"
+          }
         }
       },
       "PIECE_SIDEBOARD": {
@@ -6848,11 +7221,16 @@
         },
         "material": {
           "title": "What material for the structure?",
-          "subtitle": "Confirm the construction material with the maker."
+          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the project details."
         },
         "sketch": {
           "title": "Do you have a sketch?",
           "subtitle": "Optional — dimensions, references or installation details."
+        },
+        "v2": {
+          "material": {
+            "title": "Material for the sideboard fronts"
+          }
         }
       },
       "PIECE_WALL_CABINET": {
@@ -6862,11 +7240,16 @@
         },
         "material": {
           "title": "What material for the structure?",
-          "subtitle": "Confirm the construction material with the maker."
+          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the project details."
         },
         "sketch": {
           "title": "Do you have a sketch?",
           "subtitle": "Optional — dimensions, references or installation details."
+        },
+        "v2": {
+          "material": {
+            "title": "Material for the wall cabinet fronts"
+          }
         }
       },
       "PIECE_BATHROOM_VANITY": {
@@ -6876,11 +7259,16 @@
         },
         "material": {
           "title": "What material for the structure?",
-          "subtitle": "Confirm the construction material with the maker."
+          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the project details."
         },
         "sketch": {
           "title": "Do you have a sketch?",
           "subtitle": "Optional — dimensions, references or installation details."
+        },
+        "v2": {
+          "material": {
+            "title": "Material for the vanity unit fronts"
+          }
         }
       },
       "PIECE_ENTRYWAY": {
@@ -6890,11 +7278,16 @@
         },
         "material": {
           "title": "What material for the structure?",
-          "subtitle": "Confirm the construction material with the maker."
+          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the project details."
         },
         "sketch": {
           "title": "Do you have a sketch?",
           "subtitle": "Optional — dimensions, references or installation details."
+        },
+        "v2": {
+          "material": {
+            "title": "Material for the entryway unit fronts"
+          }
         }
       },
       "PIECE_SOFA": {
@@ -6948,7 +7341,9 @@
       "furnitureLinear": "Furniture: ~{m} linear m",
       "ceilingHeight": "Ceiling: {m} m",
       "designHelpDetails": "The details are agreed with the company.",
-      "approxLength": "Approximate length: {m} m"
+      "approxLength": "Approximate length: {m} m",
+      "firmRecommendation": "Company's recommendation",
+      "firmRecommendationOpening": "Opening: company's recommendation"
     },
     "contactInText": {
       "hint": "It looks like you typed a phone number, email or link. Companies can't see these before they claim your request: add them in the Contact step and only the companies that claim it will get them.",

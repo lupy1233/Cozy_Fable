@@ -8,7 +8,8 @@ import { defaultPieceConfig, describePieceConfig } from './piece3d';
 // cantitate, material, sisteme, dimensiuni) pentru fiecare flow si versiune.
 function collect() {
   const out: Record<string, unknown> = {};
-  for (const { roomType, version, flow } of allFixtureFlows()) {
+  // etapa 6: doar versiunile de dinainte (instantaneul ramane byte-identic)
+  for (const { roomType, version, flow } of allFixtureFlows({ only: 'legacy' })) {
     for (const variant of FIXTURE_VARIANTS) {
       const derived = flow.deriveRoom(fixtureAnswers(flow, variant));
       out[`${roomType}@v${version}/${variant}`] = {

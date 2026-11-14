@@ -4,7 +4,7 @@
 // (pasii optionali sar — prinde valorile puse din oficiu).
 import { ROOM_TYPES, type RoomType } from '../enums';
 import { evalCondition, pruneAnswers, visibleOptions } from './engine';
-import { FLOW_REGISTRY } from './flows';
+import { FLOW_REGISTRY, FLOW_VERSIONS_BEFORE_ETAPA6 } from './flows';
 import { defaultPieceConfig } from './piece3d';
 import type { AnswerMap, QuestionStep, RoomFlow } from './types';
 
@@ -28,7 +28,11 @@ function answerFor(step: QuestionStep, answers: AnswerMap, variant: FixtureVaria
     case 'single-choice':
       return pick(visibleOptions(step, answers), variant)?.value;
     case 'multi-choice': {
-      const values = visibleOptions(step, answers).map((o) => o.value);
+      // etapa 6: optiunile exclusive ("decide firma", "fara usi") se aleg doar singure —
+      // fixture-ul le sare ca sa ramana valid (fluxurile vechi nu au optiuni exclusive)
+      const visible = visibleOptions(step, answers);
+      const plain = visible.filter((o) => !o.exclusive);
+      const values = (plain.length > 0 ? plain : visible.slice(0, 1)).map((o) => o.value);
       if (values.length === 0) return undefined;
       const max = step.maxSelected ?? values.length;
       if (variant === 'last') return values.slice(0, max);
@@ -47,7 +51,10 @@ function answerFor(step: QuestionStep, answers: AnswerMap, variant: FixtureVaria
     case 'text':
       return variant === 'middle' ? 'stejar natur' : 'note client';
     case 'pieces':
-      return [{ name: 'Raft perete', material: 'PAL', systems: [], quantity: 2 }];
+      // rowVersion 2 cere deschiderea (sau o iesire) — randul ramane valid
+      return step.rowVersion === 2
+        ? ([{ name: 'Raft perete', material: 'PAL', systems: [], quantity: 2, openingChoice: 'NO_FRONTS' }] as unknown as AnswerMap[string])
+        : [{ name: 'Raft perete', material: 'PAL', systems: [], quantity: 2 }];
     case 'upload':
       return undefined;
     case 'configurator-3d':
@@ -67,10 +74,20 @@ export function fixtureAnswers(flow: RoomFlow, variant: FixtureVariant): AnswerM
   return pruneAnswers(flow, answers);
 }
 
-export function allFixtureFlows(): { roomType: RoomType; version: number; flow: RoomFlow }[] {
+// only: 'legacy' = versiunile de dinainte de etapa 6 (instantaneele vechi, byte-identice);
+// 'etapa6' = versiunile noi (instantaneele score-v6 / firm-text-v6, generate in valul 3).
+export function allFixtureFlows(
+  opts: { only?: 'legacy' | 'etapa6' } = {},
+): { roomType: RoomType; version: number; flow: RoomFlow }[] {
+  const keep = (roomType: RoomType, version: number) => {
+    if (!opts.only) return true;
+    const legacy = (FLOW_VERSIONS_BEFORE_ETAPA6[roomType] ?? []).includes(version);
+    return opts.only === 'legacy' ? legacy : !legacy;
+  };
   return ROOM_TYPES.flatMap((roomType) =>
     Object.values(FLOW_REGISTRY[roomType] ?? {})
       .sort((a, b) => a.version - b.version)
+      .filter((flow) => keep(roomType, flow.version))
       .map((flow) => ({ roomType, version: flow.version, flow })),
   );
 }
