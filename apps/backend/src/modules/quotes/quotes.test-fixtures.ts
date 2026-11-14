@@ -256,6 +256,8 @@ export function makeService(opts: ServiceOpts = {}) {
       findMany: jest.fn().mockResolvedValue(
         ['PRICE', 'DESCRIPTION', 'DELIVERY_TERM', 'DELIVERY_DATE', 'WARRANTY'].map((fieldKey) => ({ fieldKey, canEdit: true })),
       ),
+      // h1-2: numarul randurilor firmei (0 = matricea de la inscriere)
+      count: jest.fn().mockResolvedValue(1),
     },
     quoteChangeRequest: { findUnique: jest.fn().mockResolvedValue(null) },
     quoteVersion: { findUnique: jest.fn().mockResolvedValue(null) },

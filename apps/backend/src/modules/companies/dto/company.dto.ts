@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsEmail,
@@ -8,7 +9,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  IsUrl,
+  IsUUID,
   Matches,
   Max,
   MaxLength,
@@ -19,6 +20,7 @@ import {
 } from 'class-validator';
 import { CompanyMemberRole, OfferFieldKey } from '@prisma/client';
 import { MIN_COVERAGE_RADIUS_KM } from '@marketplace/shared';
+import { OFFER_PERMISSIONS_MAX_ENTRIES } from '../companies.constants';
 
 export class OnboardCompanyDto {
   @IsString()
@@ -125,15 +127,19 @@ export class CompanyLocationDto {
   @MaxLength(100)
   city: string;
 
+  // h1 (etapa 11): coordonatele sunt optionale — interfata nu le mai cere; fara ele serverul
+  // geocodeaza adresa (invarianta 3.8). Una fara cealalta nu se accepta.
+  @ValidateIf((o: CompanyLocationDto) => o.lat !== undefined || o.lng !== undefined)
   @IsNumber()
   @Min(-90)
   @Max(90)
-  lat: number;
+  lat?: number;
 
+  @ValidateIf((o: CompanyLocationDto) => o.lat !== undefined || o.lng !== undefined)
   @IsNumber()
   @Min(-180)
   @Max(180)
-  lng: number;
+  lng?: number;
 
   // D-v6-10: coverage_radius_km per locatie; E-client-9: minim = celula grilei de confidentialitate
   @IsNumber()
@@ -172,10 +178,16 @@ export class PortfolioItemDto {
   @MaxLength(2000)
   description?: string;
 
+  // h1 (etapa 11): poza vine dintr-o incarcare a firmei (presign → PUT → confirm), nu dintr-o
+  // adresa scrisa de om; adresele vechi (image_url) raman doar pentru lucrarile existente.
   @IsOptional()
-  @IsUrl()
-  @MaxLength(2000)
-  imageUrl?: string;
+  @IsUUID()
+  attachmentId?: string;
+}
+
+export class SetPortfolioImageDto {
+  @IsUUID()
+  attachmentId: string;
 }
 
 class OfferFieldPermissionEntryDto {
@@ -191,6 +203,8 @@ class OfferFieldPermissionEntryDto {
 
 export class UpdateOfferPermissionsDto {
   @IsArray()
+  // m7 (revizuire h1): cel mult roluri × campuri (fara mii de upsert-uri intr-o tranzactie)
+  @ArrayMaxSize(OFFER_PERMISSIONS_MAX_ENTRIES)
   @ValidateNested({ each: true })
   @Type(() => OfferFieldPermissionEntryDto)
   permissions: OfferFieldPermissionEntryDto[];

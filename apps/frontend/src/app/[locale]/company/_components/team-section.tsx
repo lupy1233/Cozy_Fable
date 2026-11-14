@@ -47,6 +47,7 @@ export function TeamSection({ company, canManage }: { company: CompanyDto; canMa
   const remove = useRemoveMember();
   const changeRole = useChangeMemberRole();
   const emailErrorId = useId();
+  const helpId = useId();
   const [form, setForm] = useState<CompanyMemberInviteInput>(EMPTY_INVITE);
   const [emailInvalid, setEmailInvalid] = useState(false);
   // eliminarea cere confirmare; tinta ramane in stare si dupa inchidere
@@ -57,6 +58,10 @@ export function TeamSection({ company, canManage }: { company: CompanyDto; canMa
     const { key } = apiErrorKey(err);
     return t.has(key) ? t(key) : t('apiErrors.INTERNAL_ERROR');
   };
+  // h1-1: e-mailul fara cont de firma → mesajul sta pe campul de e-mail (nu in alerta generala)
+  const noCompanyAccount =
+    !!add.error && apiErrorKey(add.error).key === 'apiErrors.MEMBER_NO_COMPANY_ACCOUNT';
+  const emailHasError = emailInvalid || noCompanyAccount;
 
   const askRemove = (m: CompanyMemberDto) => {
     remove.reset();
@@ -157,6 +162,11 @@ export function TeamSection({ company, canManage }: { company: CompanyDto; canMa
             onSubmit={submit}
             className="flex flex-wrap items-end gap-3.5 border-t border-border bg-surface-2 px-4 py-5 sm:px-6"
           >
+            {/* h1-1: pasii, inainte de orice eroare — colegul isi face singur cont de firma */}
+            <div id={helpId} className="basis-full space-y-1 text-ui text-muted-foreground">
+              <p>{t('addMemberHelp.step1')}</p>
+              <p>{t('addMemberHelp.step2')}</p>
+            </div>
             <Field label={t('memberEmail')} className="min-w-0 flex-[2_1_260px]">
               <Input
                 className="h-11"
@@ -165,11 +175,13 @@ export function TeamSection({ company, canManage }: { company: CompanyDto; canMa
                 autoComplete="off"
                 maxLength={254}
                 value={form.email}
-                aria-invalid={emailInvalid || undefined}
-                aria-describedby={emailInvalid ? emailErrorId : undefined}
+                aria-invalid={emailHasError || undefined}
+                aria-describedby={emailHasError ? `${emailErrorId} ${helpId}` : helpId}
                 onChange={(e) => {
                   setForm({ ...form, email: e.target.value });
                   setEmailInvalid(false);
+                  // mesajul „nu are cont de firma” tine de e-mailul vechi
+                  if (noCompanyAccount) add.reset();
                 }}
               />
             </Field>
@@ -196,12 +208,12 @@ export function TeamSection({ company, canManage }: { company: CompanyDto; canMa
               {t('addMember')}
             </Button>
             {/* erorile stau pe rand propriu, ca butonul sa ramana aliniat cu campurile */}
-            {emailInvalid && (
+            {emailHasError && (
               <p id={emailErrorId} role="alert" className="basis-full text-xs text-crimson">
-                {t('validation.invalidEmail')}
+                {emailInvalid ? t('validation.invalidEmail') : t('apiErrors.MEMBER_NO_COMPANY_ACCOUNT')}
               </p>
             )}
-            {add.error && (
+            {add.error && !noCompanyAccount && (
               <Alert tone="crimson" icon={<AlertTriangle />} role="alert" className="basis-full">
                 {errorText(add.error)}
               </Alert>

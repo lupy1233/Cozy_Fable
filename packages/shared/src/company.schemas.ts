@@ -188,6 +188,35 @@ export interface CompanyDashboardStatsDto {
   activePenaltyPoints: number;
   // E-admin-platform-44 — "De facut acum" (preluari neatribuite, termene SLA apropiate)
   actions: DashboardActionItemDto[];
+  // h1 (etapa 11): pasii "Pregateste-ti firma"; null pentru angajati (nu pot face pasii).
+  // Optional in tip: raspunsurile vechi (cache) nu il au.
+  setup?: CompanySetupDto | null;
+}
+
+// h1 (etapa 11) — pasii de pornire ai firmei, calculati pe server din datele existente.
+// Obligatorii: PORTFOLIO, LOCATIONS, BILLING_EMAIL. Optionale (nu intra in progres): TEAM si
+// OFFER_PERMISSIONS (doar proprietarului; doar legatura, niciodata „facut” — revizuire m1).
+export const COMPANY_SETUP_STEPS = [
+  'PORTFOLIO',
+  'LOCATIONS',
+  'TEAM',
+  'BILLING_EMAIL',
+  'OFFER_PERMISSIONS',
+] as const;
+export type CompanySetupStepKey = (typeof COMPANY_SETUP_STEPS)[number];
+
+export interface CompanySetupStepDto {
+  key: CompanySetupStepKey;
+  done: boolean;
+  optional: boolean;
+}
+
+export interface CompanySetupDto {
+  steps: CompanySetupStepDto[];
+  // doar pasii obligatorii
+  requiredDone: number;
+  requiredTotal: number;
+  complete: boolean;
 }
 
 // Partener afisat public pe landing (/partners): firma APPROVED + portofoliu.

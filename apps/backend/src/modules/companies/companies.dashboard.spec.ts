@@ -22,6 +22,8 @@ function setup(role: string) {
     penaltyEvent: { aggregate: jest.fn().mockResolvedValue({ _sum: { points: 0 } }) },
     $queryRaw: jest.fn().mockResolvedValue([{ quotes: 0, total: 0 }]),
     user: { findMany: jest.fn().mockResolvedValue([]) },
+    // h1 (etapa 11): pasii "Pregateste-ti firma" (testati in companies.setup.spec.ts)
+    company: { findUnique: jest.fn().mockResolvedValue(null) },
   };
   const service = new CompaniesService(prisma, {} as any, {} as any, {} as any);
   return { service, prisma, claimFindMany, assignDeadlineAt, slaDeadlineAt };

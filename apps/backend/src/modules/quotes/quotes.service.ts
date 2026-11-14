@@ -92,6 +92,7 @@ import {
   WITHDRAW_WINDOW_WORKING_DAYS,
 } from './quotes.constants';
 import { deliveryTermText, touchedFieldKeys, warrantyText, type PreviousOfferFields } from './quotes.helpers';
+import { editableOfferFields } from '../companies/companies.constants';
 import { readClaimContactAccessSettings, resolveClaimContextAccess, type ClaimContextAccess } from './claim-context-access';
 import type { OfferFieldsDto } from './dto/quote.dto';
 import type { QuoteValidityJob } from './quote-validity.processor';
@@ -1824,10 +1825,18 @@ export class QuotesService {
     // revizuire (interfata M1): varianta precedenta — o valoare retrimisa neschimbata nu e editare
     previous?: PreviousOfferFields,
   ): Promise<void> {
-    const perms = await this.prisma.companyOfferFieldPermission.findMany({
-      where: { companyId, role },
-    });
-    const allowed = new Set(perms.filter((p) => p.canEdit).map((p) => p.fieldKey));
+    // h1-2: proprietarul trece mereu; firma fara niciun rand → matricea de la inscriere
+    let allowed: ReturnType<typeof editableOfferFields>;
+    if (role === 'OWNER') {
+      allowed = editableOfferFields(role, [], true);
+    } else {
+      const perms = await this.prisma.companyOfferFieldPermission.findMany({
+        where: { companyId, role },
+      });
+      const companyHasRows =
+        perms.length > 0 || (await this.prisma.companyOfferFieldPermission.count({ where: { companyId } })) > 0;
+      allowed = editableOfferFields(role, perms, companyHasRows);
+    }
     const touched = touchedFieldKeys(dto, previous);
     const denied = touched.filter((k) => !allowed.has(k));
     if (denied.length > 0) {

@@ -15,6 +15,7 @@ import { LoadError, QueryState } from '@/components/ui/query-state';
 import { Select } from '@/components/ui/select';
 import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import { PublicShell } from '../_components/public-shell';
+import { PortfolioImage } from '../company/_components/portfolio-image';
 
 // auto-fill (nu auto-fit): cu 1-2 firme dupa filtrare, cardurile isi pastreaza latimea
 const GRID = 'grid grid-cols-[repeat(auto-fill,minmax(min(330px,100%),1fr))] gap-5';
@@ -129,14 +130,15 @@ export default function PartnersPage() {
                     <div className="mt-auto grid grid-cols-3 gap-2">
                       {[0, 1, 2].map((i) => {
                         const item = p.portfolio[i];
+                        // h1: imagine de rezerva si cand poza nu se incarca
                         return item?.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
+                          <PortfolioImage
                             key={i}
                             src={item.imageUrl}
                             alt={item.title}
-                            loading="lazy"
                             className="aspect-square w-full rounded-lg border border-border object-cover"
+                            fallbackClassName="aspect-square rounded-lg border border-dashed border-border-2 bg-surface-2"
+                            iconClassName="size-4"
                           />
                         ) : (
                           <div

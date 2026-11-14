@@ -644,6 +644,43 @@
     "greeting": "Hi, {name}",
     "account": {
       "title": "Your account"
+    },
+    "setup": {
+      "title": "Get your company ready",
+      "intro": "A few short steps and clients see a complete company, and you can take on requests without surprises.",
+      "progress": "{done} of {total}",
+      "progressLabel": "Steps done: {done} of {total}",
+      "optional": "optional",
+      "done": "Done",
+      "todo": "To do",
+      "go": "Open",
+      "review": "View",
+      "step": {
+        "PORTFOLIO": {
+          "title": "Fill in your portfolio",
+          "hint": "Clients find it easier to choose a company that shows the furniture it has made."
+        },
+        "LOCATIONS": {
+          "title": "Add a location and the radius you work in",
+          "hint": "You see the requests in your area, within the distance you choose."
+        },
+        "TEAM": {
+          "title": "Add your colleagues to the team",
+          "hint": "Your colleague creates a Company account with their own email, then you add them here."
+        },
+        "BILLING_EMAIL": {
+          "title": "Fill in the billing email",
+          "hint": "This is where we send pro forma invoices and invoices (for example, to your accountant)."
+        },
+        "OFFER_PERMISSIONS": {
+          "title": "Check who can change what in offers",
+          "hint": "Choose which offer fields managers and employees can change."
+        }
+      }
+    },
+    "trial": {
+      "active": "You are on a free trial: the {plan} plan is free until {date}. It does not renew automatically: to keep taking on requests, choose a plan in your Wallet. Any credits left stay in your account.",
+      "toWallet": "See plans"
     }
   },
   "Auth": {
@@ -767,8 +804,6 @@
     "addressText": "Address",
     "county": "County",
     "city": "City",
-    "lat": "Latitude",
-    "lng": "Longitude",
     "submit": "Submit for verification",
     "dashboardTitle": "My company",
     "status": "Status",
@@ -787,8 +822,6 @@
     "coverageRadiusKm": "Coverage radius (km)",
     "coverageRadiusLabel": "coverage radius {km} km",
     "coverageRadiusHint": "You only see requests from clients within this radius. The minimum radius is {min} km, and location changes are logged.",
-    "latHint": "Decimal coordinate, e.g. 46.7712",
-    "lngHint": "Decimal coordinate, e.g. 23.6236",
     "country": "Country",
     "countryRomania": "Romania",
     "addLocation": "Add location",
@@ -812,7 +845,6 @@
     "portfolio": "Portfolio",
     "portfolioTitle": "Title",
     "portfolioDescription": "Description",
-    "portfolioImageUrl": "Image URL",
     "addPortfolioItem": "Add project",
     "noPortfolio": "No projects in your portfolio yet. Add a few finished pieces — they help with verification and build client trust.",
     "offerPermissions": "Offer field permissions",
@@ -850,7 +882,14 @@
       "FORBIDDEN": "You don't have permission for this action.",
       "VALIDATION_ERROR": "Some fields aren't filled in correctly. Check them and submit again.",
       "INTERNAL_ERROR": "Something unexpected went wrong. Please try again in a moment.",
-      "DATABASE_BUSY": "The server is responding slowly right now, so the action was not saved. Please try again in a few seconds."
+      "DATABASE_BUSY": "The server is responding slowly right now, so the action was not saved. Please try again in a few seconds.",
+      "GEOCODING_FAILED": "We couldn't find the address on the map. Check the street, city and county, then try again.",
+      "FILE_SCAN_BLOCKED": "The photo didn't pass the safety check or isn't ready yet. Choose another photo and try again.",
+      "COMPANY_PORTFOLIO_LIMIT_REACHED": "You've reached the limit of {max} projects in your portfolio. Delete one to add another.",
+      "COMPANY_SUSPENDED": "Your company is suspended, so you can't upload new photos right now.",
+      "COMPANY_NOT_APPROVED": "Your company's application was rejected, so you can't upload new photos.",
+      "RATE_LIMITED": "Too many attempts in a short time. Please try again later.",
+      "MEMBER_NO_COMPANY_ACCOUNT": "This person doesn't have a company account yet. Ask them to sign up as a Company with this email (or with another address, if this one already has a client account), then add them here."
     },
     "marketplaceLink": "Available requests",
     "subscriptionBanner": {
@@ -875,7 +914,6 @@
     "sectionsNav": "Page sections",
     "navPermissions": "Offer permissions",
     "locationsHint": "You see the requests within each location's radius",
-    "newLocationAddress": "New location address",
     "coverageRadius": "Coverage radius",
     "deleteLocationAction": "Delete…",
     "deleteLocationAria": "Delete location {address}",
@@ -896,16 +934,38 @@
     },
     "removing": "Removing…",
     "portfolioHint": "Shown on the Partner firms page and during company verification",
-    "addPortfolioHint": "Title, description and a link to a photo",
+    "addPortfolioHint": "Title, description and a photo from your computer",
     "addPortfolioTitle": "Add a project to your portfolio",
-    "portfolioImageUrlHint": "Optional. A public link to a photo of the piece, like https://…",
     "deletePortfolioAria": "Delete project {title}",
     "deletePortfolioConfirm": {
       "title": "Delete this project from your portfolio?",
       "body": "“{title}” will no longer appear in the company portfolio.",
       "confirm": "Delete project"
     },
-    "permissionAria": "{field} — {role}"
+    "permissionAria": "{field} — {role}",
+    "locationAddress": "Location address",
+    "locationAddressHint": "Pick the address from the suggestions. We work out the map position from the address, so you don't need to type coordinates.",
+    "radiusOption": "{km} km",
+    "saveLocation": "Save location",
+    "editLocationAction": "Edit",
+    "editLocationAria": "Edit the location {address}",
+    "portfolioImage": "Project photo",
+    "portfolioImageHint": "Optional. One JPG, PNG or WEBP photo, up to 25 MB.",
+    "portfolioImagePick": "Choose a photo",
+    "portfolioImageChange": "Choose another photo",
+    "portfolioImageUploading": "Uploading the photo…",
+    "portfolioImageRejectType": "You can only upload JPG, PNG or WEBP photos.",
+    "addPortfolioImage": "Add a photo",
+    "replacePortfolioImage": "Change photo",
+    "replacePortfolioImageAria": "Change the photo of the project {title}",
+    "locationCityOnlyNote": "We couldn't find the exact address, so we used the city centre. Check the address.",
+    "portfolioImagePending": "The photo is still being checked. Try again in a few seconds.",
+    "portfolioImageRetry": "Try again",
+    "addMemberHelp": {
+      "step1": "1. Your colleague creates their own Cozy Home account, as a Company, with their email address.",
+      "step2": "2. Enter the same email here and pick a role. Your colleague gets a notification in the app; if your company is approved and their email is confirmed, they also get an email."
+    },
+    "ownerAlwaysAllowed": "The owner can always edit every offer field, so the owner's boxes can't be unticked."
   },
   "AdminInspiration": {
     "title": "The Idea Book",
@@ -4004,7 +4064,8 @@
         "rejected": "Your company registration was rejected",
         "suspended": "Your company was suspended",
         "unsuspended": "Your company's suspension was lifted",
-        "submitted": "New company awaiting verification"
+        "submitted": "New company awaiting verification",
+        "member_added": "You were added to a company team"
       },
       "dispute": {
         "opened": "New dispute (review below 3 stars)",

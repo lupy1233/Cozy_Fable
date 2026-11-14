@@ -81,8 +81,18 @@ async function main() {
     where: { companyId: { in: demoCompanyIds } },
     select: { id: true },
   });
+  // h1 (etapa 11): pozele din portofoliu — atasate lucrarilor (entity_id = lucrarea) sau inca
+  // neatasate (entity_id = firma); cheile ajung in fisierul de chei ca restul
+  const demoPortfolioItems = await prisma.companyPortfolioItem.findMany({
+    where: { companyId: { in: demoCompanyIds } },
+    select: { id: true },
+  });
   const attachmentWhere = {
     OR: [
+      {
+        entityType: 'COMPANY_PORTFOLIO',
+        entityId: { in: [...demoCompanyIds, ...demoPortfolioItems.map((p) => p.id)] },
+      },
       { entityType: 'REQUEST', entityId: { in: demoRequestIds } },
       { entityType: 'MESSAGE', entityId: { in: demoThreads.map((t) => t.id) } },
       { entityType: 'QUOTE_VERSION', entityId: { in: demoQuoteVersions.map((q) => q.id) } },

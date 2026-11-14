@@ -34,6 +34,8 @@ export const ERROR_CODES = {
   COMPANY_REAPPLY_BLOCKED: 'COMPANY_REAPPLY_BLOCKED',
   CUI_ALREADY_REGISTERED: 'CUI_ALREADY_REGISTERED',
   MEMBER_ALREADY_EXISTS: 'MEMBER_ALREADY_EXISTS',
+  // h1-1 (etapa 11): e-mailul nu are cont de tip Firma (inexistent sau cont de client — acelasi raspuns)
+  MEMBER_NO_COMPANY_ACCOUNT: 'MEMBER_NO_COMPANY_ACCOUNT',
   LAST_OWNER_CANNOT_LEAVE: 'LAST_OWNER_CANNOT_LEAVE',
 
   // Cereri
@@ -182,6 +184,8 @@ export const ERROR_CODES = {
   // locatii in ultimele 24h (429)
   COMPANY_LOCATION_LIMIT_REACHED: 'COMPANY_LOCATION_LIMIT_REACHED',
   COMPANY_LOCATION_CHANGE_LIMIT: 'COMPANY_LOCATION_CHANGE_LIMIT',
+  // h1 (etapa 11) - plafonul de lucrari din portofoliul firmei atins (409, details.max)
+  COMPANY_PORTFOLIO_LIMIT_REACHED: 'COMPANY_PORTFOLIO_LIMIT_REACHED',
   // E-admin-platform-58 - planul abonamentului activ nu include functia ceruta (403,
   // details.feature) / plan gratuit (0 lei) cumparat online (409) / cod de plan deja folosit (409)
   PLAN_FEATURE_REQUIRED: 'PLAN_FEATURE_REQUIRED',

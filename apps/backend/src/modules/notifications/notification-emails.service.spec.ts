@@ -872,6 +872,69 @@ describe('g1: evenimente noi si destinatarii firmei', () => {
   });
 });
 
+describe('h1-1 (etapa 11): company.member_added → colegul adaugat', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const emailedIds = (prisma: any) => prisma.user.findMany.mock.calls[0]?.[0]?.where?.id?.in;
+  const ion = { id: 'u-new', email: 'ion@demo.ro', name: 'Ion', languagePreference: 'RO' };
+  const payload = { companyId: 'c1', companyName: 'Lemn & Stil <script>x</script>', memberUserId: 'u-new', role: 'EMPLOYEE_TRUSTED', actorUserId: 'm1' };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const withStatus = (prisma: any, status: string) => prisma.company.findUnique.mockResolvedValue({ name: 'X', billingEmail: null, status });
+
+  it('firma aprobata: e-mail DOAR colegului; corpul escapat, subiectul text simplu (m9), rolul, legatura', async () => {
+    const { service, prisma, mail } = makeService([ion]);
+    withStatus(prisma, 'APPROVED');
+    await service.sendForEvent('company.member_added', ['u-new', 'm1'], payload);
+    expect(emailedIds(prisma)).toEqual(['u-new']);
+    const [to, subject, html] = mail.send.mock.calls[0];
+    expect(to).toBe('ion@demo.ro');
+    // subiectul nu e HTML: fara &amp; / &lt;
+    expect(subject).toBe('Ai fost adăugat în firma Lemn & Stil <script>x</script>');
+    expect(html).toContain('Lemn &amp; Stil &lt;script&gt;x&lt;/script&gt;');
+    expect(html).not.toContain('<script>');
+    expect(html).toContain('Angajat de încredere');
+    expect(html).toContain('/ro/company');
+    expect(String(subject) + String(html)).not.toMatch(/atelier/i);
+  });
+
+  it('subiectul scoate randurile noi din numele firmei', async () => {
+    const { service, prisma, mail } = makeService([ion]);
+    withStatus(prisma, 'APPROVED');
+    await service.sendForEvent('company.member_added', ['u-new'], { ...payload, companyName: 'A\r\nBcc: x@y.ro' });
+    expect(mail.send.mock.calls[0][1]).toBe('Ai fost adăugat în firma A Bcc: x@y.ro');
+  });
+
+  it.each(['PENDING_VERIFICATION', 'REJECTED', 'SUSPENDED'])('firma %s → niciun e-mail (clopotelul ramane)', async (status) => {
+    const { service, prisma, mail } = makeService([ion]);
+    withStatus(prisma, status);
+    await service.sendForEvent('company.member_added', ['u-new'], payload);
+    expect(prisma.user.findMany).not.toHaveBeenCalled();
+    expect(mail.send).not.toHaveBeenCalled();
+  });
+
+  it('readaugare in <24h (emailSuppressed) → niciun e-mail, nici la firma aprobata', async () => {
+    const { service, prisma, mail } = makeService([ion]);
+    withStatus(prisma, 'APPROVED');
+    await service.sendForEvent('company.member_added', ['u-new'], { ...payload, emailSuppressed: true });
+    expect(mail.send).not.toHaveBeenCalled();
+  });
+
+  it('in engleza', async () => {
+    const { service, prisma, mail } = makeService([{ ...ion, languagePreference: 'EN' }]);
+    withStatus(prisma, 'APPROVED');
+    await service.sendForEvent('company.member_added', ['u-new'], payload);
+    const [, subject, html] = mail.send.mock.calls[0];
+    expect(subject).toContain('You were added to the company');
+    expect(html).toContain('Trusted employee');
+    expect(html).toContain('/en/company');
+  });
+
+  it('payload fara memberUserId → niciun e-mail', async () => {
+    const { service, prisma } = makeService([ion]);
+    await service.sendForEvent('company.member_added', ['u-new'], { companyId: 'c1', role: 'MANAGER' });
+    expect(prisma.user.findMany).not.toHaveBeenCalled();
+  });
+});
+
 describe('g1-2: rezumatul zilnic „cereri noi in zona ta”', () => {
   const items = [
     { requestId: 'r1', title: 'Dulap <i>dormitor</i>', city: 'Iași', county: 'Iași' },

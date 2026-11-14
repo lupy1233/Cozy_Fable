@@ -644,6 +644,43 @@
     "greeting": "Bună, {name}",
     "account": {
       "title": "Contul tău"
+    },
+    "setup": {
+      "title": "Pregătește-ți firma",
+      "intro": "Câțiva pași scurți și clienții văd o firmă completă, iar tu poți prelua cereri fără surprize.",
+      "progress": "{done} din {total}",
+      "progressLabel": "Pași făcuți: {done} din {total}",
+      "optional": "opțional",
+      "done": "Făcut",
+      "todo": "De făcut",
+      "go": "Deschide",
+      "review": "Vezi",
+      "step": {
+        "PORTFOLIO": {
+          "title": "Completează portofoliul",
+          "hint": "Clienții aleg mai ușor o firmă care arată mobilierul pe care l-a făcut."
+        },
+        "LOCATIONS": {
+          "title": "Adaugă o locație și raza în care lucrezi",
+          "hint": "Vezi cererile din zona ta, după distanța aleasă."
+        },
+        "TEAM": {
+          "title": "Adaugă colegii în echipă",
+          "hint": "Colegul își face cont de tip Firmă cu e-mailul lui, apoi îl adaugi aici."
+        },
+        "BILLING_EMAIL": {
+          "title": "Completează e-mailul de facturare",
+          "hint": "Aici trimitem proformele și facturile (de exemplu, contabilului)."
+        },
+        "OFFER_PERMISSIONS": {
+          "title": "Verifică cine poate schimba ce în oferte",
+          "hint": "Alegi ce câmpuri ale ofertei pot modifica managerii și angajații."
+        }
+      }
+    },
+    "trial": {
+      "active": "Ești în perioada de probă: planul {plan} e gratuit până pe {date}. După aceea nu se reînnoiește automat: ca să preiei în continuare cereri, alegi un plan în Portofel. Creditele rămase rămân în cont.",
+      "toWallet": "Vezi planurile"
     }
   },
   "Auth": {
@@ -767,8 +804,6 @@
     "addressText": "Adresă",
     "county": "Județ",
     "city": "Oraș",
-    "lat": "Latitudine",
-    "lng": "Longitudine",
     "submit": "Trimite spre verificare",
     "dashboardTitle": "Firma mea",
     "status": "Status",
@@ -787,8 +822,6 @@
     "coverageRadiusKm": "Rază de acoperire (km)",
     "coverageRadiusLabel": "rază de acoperire {km} km",
     "coverageRadiusHint": "Vezi doar cererile clienților aflați în această rază. Raza minimă este de {min} km, iar modificările locațiilor sunt înregistrate.",
-    "latHint": "Coordonată zecimală, ex. 46.7712",
-    "lngHint": "Coordonată zecimală, ex. 23.6236",
     "country": "Țară",
     "countryRomania": "România",
     "addLocation": "Adaugă locație",
@@ -812,7 +845,6 @@
     "portfolio": "Portofoliu",
     "portfolioTitle": "Titlu",
     "portfolioDescription": "Descriere",
-    "portfolioImageUrl": "URL imagine",
     "addPortfolioItem": "Adaugă proiect",
     "noPortfolio": "Niciun proiect în portofoliu. Adaugă câteva lucrări finalizate — ajută la verificare și dau încredere clienților.",
     "offerPermissions": "Permisiuni pe câmpurile ofertei",
@@ -850,7 +882,14 @@
       "FORBIDDEN": "Nu ai permisiunea necesară pentru această acțiune.",
       "VALIDATION_ERROR": "Unele câmpuri nu sunt completate corect. Verifică-le și trimite din nou.",
       "INTERNAL_ERROR": "A apărut o eroare neașteptată. Încearcă din nou peste câteva momente.",
-      "DATABASE_BUSY": "Serverul răspunde greu acum, așa că acțiunea nu a fost salvată. Încearcă din nou în câteva secunde."
+      "DATABASE_BUSY": "Serverul răspunde greu acum, așa că acțiunea nu a fost salvată. Încearcă din nou în câteva secunde.",
+      "GEOCODING_FAILED": "Nu am găsit adresa pe hartă. Verifică strada, orașul și județul, apoi încearcă din nou.",
+      "FILE_SCAN_BLOCKED": "Poza nu a trecut de verificarea de siguranță sau nu e gata încă. Alege altă poză și încearcă din nou.",
+      "COMPANY_PORTFOLIO_LIMIT_REACHED": "Ai ajuns la limita de {max} lucrări în portofoliu. Șterge una ca să adaugi alta.",
+      "COMPANY_SUSPENDED": "Firma este suspendată, așa că nu poți încărca poze noi acum.",
+      "COMPANY_NOT_APPROVED": "Înscrierea firmei a fost respinsă, așa că nu poți încărca poze noi.",
+      "RATE_LIMITED": "Ai făcut prea multe încercări într-un timp scurt. Mai încearcă puțin mai târziu.",
+      "MEMBER_NO_COMPANY_ACCOUNT": "Persoana nu are încă un cont de firmă. Roag-o să se înregistreze ca Firmă cu acest e-mail (sau cu altă adresă, dacă pe aceasta are deja cont de client), apoi adaug-o aici."
     },
     "marketplaceLink": "Cereri disponibile",
     "subscriptionBanner": {
@@ -875,7 +914,6 @@
     "sectionsNav": "Secțiunile paginii",
     "navPermissions": "Permisiuni pe ofertă",
     "locationsHint": "Vezi cererile din raza fiecărei locații",
-    "newLocationAddress": "Adresa noii locații",
     "coverageRadius": "Rază de acoperire",
     "deleteLocationAction": "Șterge…",
     "deleteLocationAria": "Șterge locația {address}",
@@ -896,16 +934,38 @@
     },
     "removing": "Se elimină…",
     "portfolioHint": "Apare pe pagina Firme partenere și la verificarea firmei",
-    "addPortfolioHint": "Titlu, descriere și un link către o poză",
+    "addPortfolioHint": "Titlu, descriere și o poză din calculator",
     "addPortfolioTitle": "Adaugă un proiect în portofoliu",
-    "portfolioImageUrlHint": "Opțional. Link public către o poză a lucrării, de forma https://…",
     "deletePortfolioAria": "Șterge proiectul {title}",
     "deletePortfolioConfirm": {
       "title": "Ștergi acest proiect din portofoliu?",
       "body": "„{title}” nu va mai apărea în portofoliul firmei.",
       "confirm": "Șterge proiectul"
     },
-    "permissionAria": "{field} — {role}"
+    "permissionAria": "{field} — {role}",
+    "locationAddress": "Adresa locației",
+    "locationAddressHint": "Alege adresa din sugestii. Poziția pe hartă o calculăm noi din adresă, nu trebuie să scrii coordonate.",
+    "radiusOption": "{km} km",
+    "saveLocation": "Salvează locația",
+    "editLocationAction": "Modifică",
+    "editLocationAria": "Modifică locația {address}",
+    "portfolioImage": "Poza proiectului",
+    "portfolioImageHint": "Opțional. O singură poză JPG, PNG sau WEBP, de cel mult 25 MB.",
+    "portfolioImagePick": "Alege o poză",
+    "portfolioImageChange": "Alege altă poză",
+    "portfolioImageUploading": "Se încarcă poza…",
+    "portfolioImageRejectType": "Poți încărca doar poze JPG, PNG sau WEBP.",
+    "addPortfolioImage": "Adaugă o poză",
+    "replacePortfolioImage": "Schimbă poza",
+    "replacePortfolioImageAria": "Schimbă poza proiectului {title}",
+    "locationCityOnlyNote": "Nu am găsit adresa exactă; am folosit centrul orașului. Verifică adresa.",
+    "portfolioImagePending": "Poza e încă în verificare. Încearcă din nou peste câteva secunde.",
+    "portfolioImageRetry": "Reîncearcă",
+    "addMemberHelp": {
+      "step1": "1. Colegul își face singur cont pe Cozy Home, ca Firmă, cu adresa lui de e-mail.",
+      "step2": "2. Scrii aici același e-mail și alegi rolul. Colegul primește o notificare în aplicație; dacă firma e aprobată și are e-mailul confirmat, primește și un e-mail."
+    },
+    "ownerAlwaysAllowed": "Proprietarul poate modifica mereu toate câmpurile ofertei, așa că rubricile lui nu se pot debifa."
   },
   "AdminInspiration": {
     "title": "Caietul de idei",
@@ -4004,7 +4064,8 @@
         "rejected": "Înregistrarea firmei a fost respinsă",
         "suspended": "Firma ta a fost suspendată",
         "unsuspended": "Suspendarea firmei a fost ridicată",
-        "submitted": "Firmă nouă în așteptarea verificării"
+        "submitted": "Firmă nouă în așteptarea verificării",
+        "member_added": "Ai fost adăugat în echipa unei firme"
       },
       "dispute": {
         "opened": "Dispută nouă (recenzie sub 3 stele)",

@@ -17,6 +17,18 @@ export function isSanitizableImage(mime: string): mime is SanitizableImageMime {
   return (SANITIZABLE_IMAGE_MIME as readonly string[]).includes(mime);
 }
 
+// h1 (etapa 11): tipul imaginii dupa CONTINUT (semnatura de la inceputul fisierului), nu dupa
+// extensie sau antetul trimis de browser. SVG / HTML / orice altceva → null.
+export function detectImageMime(bytes: Uint8Array): SanitizableImageMime | null {
+  const at = (i: number) => bytes[i];
+  if (bytes.length >= 3 && at(0) === 0xff && at(1) === 0xd8 && at(2) === 0xff) return 'image/jpeg';
+  const png = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  if (bytes.length >= 8 && png.every((b, i) => at(i) === b)) return 'image/png';
+  const ascii = (from: number, to: number) => String.fromCharCode(...bytes.subarray(from, to));
+  if (bytes.length >= 12 && ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP') return 'image/webp';
+  return null;
+}
+
 // Arunca la imagine corupta/necunoscuta (failOn: 'error') — apelantul marcheaza BLOCKED.
 export async function sanitizeImage(input: Buffer, mime: SanitizableImageMime): Promise<Buffer> {
   const pipeline = sharp(input, {

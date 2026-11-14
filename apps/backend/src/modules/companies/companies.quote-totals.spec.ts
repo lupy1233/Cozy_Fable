@@ -47,6 +47,7 @@ describe('CompaniesService.dashboardStats — quotesTotals', () => {
       penaltyEvent: { aggregate: jest.fn().mockResolvedValue({ _sum: { points: 0 } }) },
       $queryRaw: queryRaw,
       user: { findMany: jest.fn().mockResolvedValue([]) },
+      company: { findUnique: jest.fn().mockResolvedValue(null) },
     };
     const service = new CompaniesService(prisma, {} as any, {} as any, {} as any);
     const stats = await service.dashboardStats('u1');

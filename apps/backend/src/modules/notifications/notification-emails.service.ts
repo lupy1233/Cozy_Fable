@@ -69,7 +69,17 @@ const EMAILED_EVENTS = new Set([
   'clarification.asked',
   'clarification.answered',
   'request.edited_after_claim',
+  // h1-1 (etapa 11): colegul adaugat in firma (tinta unica = colegul; vezi recipientsFor)
+  'company.member_added',
 ]);
+
+// h1-1: numele rolului din firma, in limba destinatarului (ca in pagina firmei)
+const MEMBER_ROLE_TEXT: Record<string, { ro: string; en: string }> = {
+  OWNER: { ro: 'Proprietar', en: 'Owner' },
+  MANAGER: { ro: 'Manager', en: 'Manager' },
+  EMPLOYEE_TRUSTED: { ro: 'Angajat de încredere', en: 'Trusted employee' },
+  EMPLOYEE_MANAGED: { ro: 'Angajat coordonat', en: 'Managed employee' },
+};
 
 // g1-2: rezumatul zilnic arata cel mult atatea cereri (restul = „si inca N”)
 const DIGEST_MAX_ITEMS = 20;
@@ -180,6 +190,13 @@ function esc(v: unknown): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+// m9 (revizuire h1): subiectul NU e HTML (nodemailer il trimite ca text) → fara esc(), dar fara
+// caractere de control / randuri noi. Folosit deocamdata doar la company.member_added.
+function subjectText(v: unknown): string {
+  // eslint-disable-next-line no-control-regex
+  return String(v ?? '').replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 interface EmailContent {
@@ -442,6 +459,16 @@ export class NotificationEmailsService {
       case 'request.published':
       case 'clarification.asked':
         return clientUserId ? [clientUserId] : [];
+      // h1-1: DOAR colegul adaugat. Revizuire M1: e-mail doar din firme APROBATE (numele unei
+      // firme neverificate e text liber nevazut de admin) si nu din nou la o readaugare in <24h
+      // (emailSuppressed, pus de addMember); clopotelul ramane in ambele cazuri.
+      case 'company.member_added': {
+        const memberUserId = typeof payload.memberUserId === 'string' ? payload.memberUserId : null;
+        const companyId = typeof payload.companyId === 'string' ? payload.companyId : null;
+        if (!memberUserId || !companyId || payload.emailSuppressed === true) return [];
+        const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { status: true } });
+        return company?.status === 'APPROVED' ? [memberUserId] : [];
+      }
       // mesaj nou → doar partea CEALALTA a conversatiei; la firma doar responsabilul + conducerea
       case 'message.created':
         if (payload.senderRole === 'COMPANY') return clientUserId ? [clientUserId] : [];
@@ -876,6 +903,23 @@ export class NotificationEmailsService {
           cta: ro ? 'Lasă o recenzie' : 'Leave a review',
           path: `/${lang}/requests/${requestId}/offers`,
         };
+      // h1-1 (etapa 11): colegul a fost adaugat in firma
+      case 'company.member_added': {
+        const roleText = MEMBER_ROLE_TEXT[String(payload.role ?? '')]?.[lang] ?? '';
+        const roleLine = roleText
+          ? ro ? ` Rolul tău: <strong>${esc(roleText)}</strong>.` : ` Your role: <strong>${esc(roleText)}</strong>.`
+          : '';
+        return {
+          subject: ro
+            ? `Ai fost adăugat în firma ${subjectText(payload.companyName)}`
+            : `You were added to the company ${subjectText(payload.companyName)}`,
+          intro: ro
+            ? `Ai fost adăugat în echipa firmei <strong>${companyName}</strong> pe Cozy Home.${roleLine} Te poți conecta cu contul tău de firmă ca să vezi panoul firmei.`
+            : `You were added to the team of <strong>${companyName}</strong> on Cozy Home.${roleLine} Sign in with your company account to see the company dashboard.`,
+          cta: ro ? 'Deschide panoul firmei' : 'Open the company dashboard',
+          path: `/${lang}/company`,
+        };
+      }
       case 'company.unsuspended':
         return {
           subject: ro

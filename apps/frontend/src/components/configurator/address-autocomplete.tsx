@@ -77,11 +77,14 @@ export function AddressAutocomplete({
   defaultValue,
   error,
   country = 'RO',
+  label,
   onText,
   onResolved,
 }: {
   defaultValue: string;
   error?: string;
+  // h1 (etapa 11): eticheta campului (locatiile firmei); implicit „Strada” din formularul de cerere
+  label?: string;
   // ISO2 — restrictioneaza sugestiile la tara aleasa (F5, item 19: livram si international)
   country?: string;
   // tastare manuala: actualizeaza doar addressText (nu atinge judet/oras)
@@ -163,7 +166,7 @@ export function AddressAutocomplete({
   }, []);
 
   return (
-    <Field label={t('field.street')} htmlFor={inputId} error={error}>
+    <Field label={label ?? t('field.street')} htmlFor={inputId} error={error}>
       <div className="relative">
         <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input

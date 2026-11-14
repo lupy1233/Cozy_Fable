@@ -25,6 +25,7 @@ import { FirmRulesLink } from '../_components/firm-rules-link';
 import { RequestStatusBadge } from '../_components/request-progress';
 import { TodoNowCard } from '../_components/todo-now-card';
 import { UnpublishedDraftCard } from './_components/unpublished-draft-card';
+import { CompanySetupCard, TrialNotice } from './_components/company-setup-card';
 import { formatQuoteTotals } from './_components/format-quote-totals';
 import {
   SubscriptionStatusNotice,
@@ -387,15 +388,28 @@ function CompanyDashboard({ user }: { user: AuthUser }) {
   const s = stats.data;
   // firma inca ne-creata (onboarding -> 404) -> fara statistici; orice alta eroare se vede, cu Reincearca
   const noCompany = stats.isError && stats.error instanceof ApiError && stats.error.status === 404;
+  // h1 (etapa 11): firma care nu si-a terminat pregatirea vede intai pasii, nu „Nimic urgent acum”
+  const setup = s?.setup ?? null;
+  const setupPending = !!setup && !setup.complete;
+  const noActions = (s?.actions ?? []).length === 0;
 
   return (
     <div className="flex flex-col gap-7">
       <DashboardHeader
         name={user.name}
-        subtitle={s ? <TodoSummary items={s.actions ?? []} variant="firm" /> : undefined}
+        subtitle={
+          s ? (
+            setupPending && noActions ? (
+              t('setup.progressLabel', { done: setup.requiredDone, total: setup.requiredTotal })
+            ) : (
+              <TodoSummary items={s.actions ?? []} variant="firm" />
+            )
+          ) : undefined
+        }
         actions={<CompanyPills />}
       />
       <SubscriptionStatusNotice />
+      <TrialNotice />
 
       {stats.isPending ? (
         <DashboardSkeleton />
@@ -415,27 +429,31 @@ function CompanyDashboard({ user }: { user: AuthUser }) {
       ) : s ? (
         <div className={TWO_COLUMNS}>
           <div className="flex min-w-0 flex-col gap-6">
-            <TodoNowCard
-              items={s.actions ?? []}
-              emptyAction={
-                // h2: fara abonament, pasul util e reactivarea, nu un marketplace gol
-                lapsed ? (
-                  <Button asChild variant="walnut" size="lg">
-                    <Link href="/marketplace/wallet#subscription">
-                      {tm('subscriptionStatus.reactivate')}
-                      <ArrowRight aria-hidden />
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button asChild variant="outline" size="lg">
-                    <Link href="/marketplace">
-                      {t('company.toMarketplace')}
-                      <ArrowRight aria-hidden />
-                    </Link>
-                  </Button>
-                )
-              }
-            />
+            <CompanySetupCard setup={setup} />
+            {/* cu pasi de pornire nefacuti si nimic urgent, lista goala nu mai apare */}
+            {!(setupPending && noActions) && (
+              <TodoNowCard
+                items={s.actions ?? []}
+                emptyAction={
+                  // h2: fara abonament, pasul util e reactivarea, nu un marketplace gol
+                  lapsed ? (
+                    <Button asChild variant="walnut" size="lg">
+                      <Link href="/marketplace/wallet#subscription">
+                        {tm('subscriptionStatus.reactivate')}
+                        <ArrowRight aria-hidden />
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button asChild variant="outline" size="lg">
+                      <Link href="/marketplace">
+                        {t('company.toMarketplace')}
+                        <ArrowRight aria-hidden />
+                      </Link>
+                    </Button>
+                  )
+                }
+              />
+            )}
 
             {/* cifrele preluarilor si ale ofertelor */}
             <div className="grid grid-cols-[repeat(auto-fit,minmax(min(170px,100%),1fr))] gap-4">

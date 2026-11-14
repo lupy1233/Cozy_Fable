@@ -26,6 +26,7 @@ import { OfferPermissionsSection } from './offer-permissions-section';
 import { PortfolioSection } from './portfolio-section';
 import { SectionNav } from './section-nav';
 import { TeamSection } from './team-section';
+import { useScrollToHashSection } from './use-scroll-to-hash';
 
 // Starea verificarii firmei, la vedere in antet. Culoarea spune cine are mutarea:
 // info = asteapta verificarea adminului, sage = in regula, crimson = problema.
@@ -56,6 +57,9 @@ export function CompanyDashboard({ company }: { company: CompanyDto }) {
     { id: 'portfolio', label: t('portfolio') },
     { id: 'permissions', label: t('navPermissions') },
   ];
+
+  // h1 (etapa 11): legaturile din „Pregateste-ti firma” (Panou) → /company#sectiune
+  useScrollToHashSection();
 
   return (
     <div className="flex flex-col gap-7">

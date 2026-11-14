@@ -80,7 +80,9 @@ export type DomainEvent =
   // editarea cererii dupa preluare (→ firmele cu preluare activa). Clopotel + e-mail.
   | 'clarification.asked'
   | 'clarification.answered'
-  | 'request.edited_after_claim';
+  | 'request.edited_after_claim'
+  // h1 (etapa 11): un coleg a fost adaugat in firma — doar colegul adaugat (clopotel + e-mail)
+  | 'company.member_added';
 
 // Invarianta 3.5: TOATE evenimentele trec prin publish() —
 // emite pe Socket.IO si pune in coada de notificari. Controllerele nu emit direct.

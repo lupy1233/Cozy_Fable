@@ -115,6 +115,8 @@ const TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   'clarification.asked': MessageCircleQuestionMark,
   'clarification.answered': MessageSquare,
   'request.edited_after_claim': PenLine,
+  // h1 (etapa 11): colegul a fost adaugat in firma (doar colegul adaugat)
+  'company.member_added': UserPlus,
 };
 
 type Payload = Record<string, unknown> | null;
@@ -182,6 +184,8 @@ function hrefFor(type: string, payload: Payload, role: string | undefined): stri
       return '/marketplace/wallet';
     }
     if (type === 'company.approved' || type === 'company.unsuspended') return '/marketplace';
+    // h1: colegul adaugat → panoul firmei
+    if (type === 'company.member_added') return '/company';
     if (type === 'company.rejected' || type === 'company.suspended' || type === 'penalty.applied' || type === 'review.created' || type === 'dispute.decided') {
       return '/company';
     }

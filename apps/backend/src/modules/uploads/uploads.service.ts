@@ -20,9 +20,14 @@ import { StorageService } from '../../infra/storage/storage.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
 import { QUEUE_UPLOADS } from '../../infra/queues/queues.module';
-import { isSanitizableImage, sanitizeImage } from './image-sanitizer';
+import { detectImageMime, isSanitizableImage, sanitizeImage } from './image-sanitizer';
 
 const UPLOAD_URL_TTL_SECONDS = 15 * 60;
+
+// h1 (etapa 11): pozele din portofoliul firmei (publice). La scan, tipul se verifica si dupa
+// continut: o imagine al carei inceput nu se potriveste cu tipul declarat e respinsa (BLOCKED).
+export const PORTFOLIO_ENTITY_TYPE = 'COMPANY_PORTFOLIO';
+const STRICT_CONTENT_ENTITY_TYPES: readonly string[] = [PORTFOLIO_ENTITY_TYPE];
 
 // E-client-9 (C7-3): cheile de dupa confirm/scan NU mai contin numele fisierului (poate
 // contine numele/adresa clientului); extensia vine din MIME-ul verificat.
@@ -200,6 +205,10 @@ export class UploadsService {
   ): Promise<'DONE' | 'STALE' | 'REJECTED'> {
     if (!isSanitizableImage(a.mimeType)) return 'REJECTED';
     const bytes = await this.storage.getObjectBytes(a.storageKey, MAX_ATTACHMENT_BYTES);
+    if (STRICT_CONTENT_ENTITY_TYPES.includes(a.entityType) && detectImageMime(bytes) !== a.mimeType) {
+      this.logger.warn(`Image content does not match the declared type for attachment ${a.id}`);
+      return 'REJECTED';
+    }
     let out: Buffer;
     try {
       out = await sanitizeImage(bytes, a.mimeType);
@@ -323,10 +332,15 @@ export class UploadsService {
         message: 'Attachment not ready',
       });
     }
-    await db.attachment.updateMany({
-      where: { id: { in: attachmentIds } },
+    // h1 (revizuire m3): mutarea e conditionata pe aceleasi conditii ca citirea (entitatea-sursa,
+    // SAFE) — un rand mutat intre timp de o cerere concurenta nu se mai muta a doua oara
+    const moved = await db.attachment.updateMany({
+      where: { id: { in: attachmentIds }, entityType, entityId: fromEntityId, status: 'SAFE' },
       data: { entityId: toEntityId },
     });
+    if (moved.count !== attachmentIds.length) {
+      throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Attachment not found' });
+    }
     return rows
       .map((r) => ({ ...r, entityId: toEntityId }))
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());

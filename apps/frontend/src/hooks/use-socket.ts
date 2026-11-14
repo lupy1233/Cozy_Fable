@@ -171,6 +171,8 @@ export function useRealtimeSync(): void {
     s.on('company.suspended', onCompany);
     s.on('company.unsuspended', onCompany);
     s.on('penalty.applied', onCompany);
+    // h1 (etapa 11): colegul adaugat in firma → datele firmei, contul si clopotelul
+    s.on('company.member_added', onCompany);
     s.on('payment.confirmed', onBilling);
     s.on('subscription.expiring', onBilling);
     // E-company-24: transfer bancar (date de plata, reminder, anulare automata) + "Am platit" (admin)
@@ -233,6 +235,7 @@ export function useRealtimeSync(): void {
       s.off('company.suspended', onCompany);
       s.off('company.unsuspended', onCompany);
       s.off('penalty.applied', onCompany);
+      s.off('company.member_added', onCompany);
       s.off('payment.confirmed', onBilling);
       s.off('subscription.expiring', onBilling);
       s.off('payment.transfer_instructions', onBilling);
