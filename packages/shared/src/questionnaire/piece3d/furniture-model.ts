@@ -5,15 +5,27 @@ import { isNewFurnitureKind } from './catalog-config';
 import { buildCatalogPanels } from './catalog-model';
 
 // Geometrie noua, in gabaritul declarat; asternutul este context vizual, nu articol ofertat.
-export function buildFurniturePanels(config: PieceConfig3d, kind: Piece3dKind): Panel3d[] {
+// `mattressWidthM` (intern, etapa 10): latimea saltelei "Alta marime", in locul celei standard.
+export function buildFurniturePanels(config: PieceConfig3d, kind: Piece3dKind, mattressWidthM?: number): Panel3d[] {
   if (isNewFurnitureKind(kind)) return buildCatalogPanels(config, kind);
   const { widthM: w, heightM: h, depthM: d } = config;
   const panels: Panel3d[] = [];
   const box = (role: Panel3d['role'], x: number, y: number, z: number, pw: number, ph: number, pd: number, extra: Partial<Panel3d> = {}) =>
     panels.push({ role, x, y, z, w: pw, h: ph, d: pd, ...extra });
+  if (kind === 'BED' && config.bed?.customSize) {
+    // Etapa 10 ("Alta marime"): patul se construieste pe salteaua de 200 cm (latimea = cea aleasa),
+    // apoi se intinde pe lungime: piesele lungi se scaleaza, capetele (tablia, piciorul) se muta.
+    const k = config.bed.customSize.lengthM / 2;
+    const base = buildFurniturePanels({ ...config, depthM: 2.2, bed: { ...config.bed, customSize: undefined } }, kind, config.bed.customSize.widthM);
+    return base.map((p) => ({
+      ...p,
+      z: Math.abs(p.z) >= 1 ? p.z + Math.sign(p.z) * (k - 1) : p.z * k,
+      d: p.d > 0.3 ? p.d * k : p.d,
+    }));
+  }
   if (kind === 'BED' && config.bed) {
     const bed = config.bed;
-    const mw = BED_MATTRESS_WIDTH[bed.mattressSize];
+    const mw = mattressWidthM ?? BED_MATTRESS_WIDTH[bed.mattressSize];
     const rail = bed.upholstered ? 0.09 : 0.045;
     const fabric = bed.upholstered ? { surface: 'FABRIC' as const, radius: 0.025 } : {};
     box('FURNITURE', 0, h / 2, -d / 2 + 0.055, w, h, 0.11, { radius: 0.009, grainAxis: 'X', ...fabric });

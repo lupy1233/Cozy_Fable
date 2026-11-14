@@ -3731,6 +3731,49 @@
         },
         "TABLE_EXTENDABLE": {
           "title": "Masă · Extensibilă"
+        },
+        "KITCHEN_WALL_CABINETS": {
+          "title": "Bucătărie · Corpuri suspendate"
+        },
+        "KITCHEN_SINK_MOUNTING": {
+          "title": "Bucătărie · Montajul chiuvetei"
+        },
+        "KITCHEN_SINK_MATERIAL": {
+          "title": "Bucătărie · Materialul chiuvetei"
+        },
+        "KITCHEN_FRIDGE": {
+          "title": "Bucătărie · Frigider"
+        },
+        "BED_FABRIC": {
+          "title": "Pat tapițat · Stofă"
+        },
+        "WARDROBE_INTERIOR": {
+          "title": "Dulap dormitor · Interior",
+          "help": "Se adună pentru fiecare modul bifat."
+        },
+        "BATHROOM_BASIN_TYPE": {
+          "title": "Baie · Tipul lavoarului"
+        },
+        "BATHROOM_BASIN_SUPPLY": {
+          "title": "Baie · Cine aduce lavoarul"
+        },
+        "LAUNDRY_LOADING": {
+          "title": "Spălătorie · Încărcarea mașinii de spălat"
+        },
+        "HALLWAY_WIDTH": {
+          "title": "Hol · Lățimea holului"
+        },
+        "SOFA_SEATS": {
+          "title": "Canapea · Locuri"
+        },
+        "SOFA_LAYOUT": {
+          "title": "Canapea · Formă"
+        },
+        "SOFA_SLEEPER": {
+          "title": "Canapea · Extensibilă"
+        },
+        "SOFA_STORAGE": {
+          "title": "Canapea · Ladă de depozitare"
         }
       },
       "options": {
@@ -3767,6 +3810,73 @@
         "BED_STORAGE": {
           "LIFT_UP": "Ladă rabatabilă",
           "DRAWERS": "Sertare"
+        },
+        "KITCHEN_WALL_CABINETS": {
+          "WALL_CABINETS": "Cu corpuri suspendate",
+          "NO_WALL_CABINETS": "Fără corpuri suspendate",
+          "FIRM_DECIDES": "Nu știu — vreau recomandarea firmei"
+        },
+        "KITCHEN_SINK_MOUNTING": {
+          "INSET": "Încastrată în blat",
+          "UNDERMOUNT": "Montată sub blat",
+          "FIRM_DECIDES": "Nu știu — vreau recomandarea firmei"
+        },
+        "KITCHEN_SINK_MATERIAL": {
+          "STAINLESS": "Inox",
+          "COMPOSITE": "Compozit (granit)",
+          "CERAMIC": "Ceramică",
+          "FIRM_DECIDES": "Nu știu — vreau recomandarea firmei"
+        },
+        "KITCHEN_FRIDGE": {
+          "BUILT_IN": "Încorporabil, în corp de mobilier",
+          "FREESTANDING": "Independent",
+          "FIRM_DECIDES": "Nu știu — vreau recomandarea firmei"
+        },
+        "BED_FABRIC": {
+          "WOVEN": "Țesătură",
+          "BOUCLE": "Bouclé",
+          "VELVET": "Catifea",
+          "FIRM_DECIDES": "Nu știu — vreau recomandarea firmei"
+        },
+        "WARDROBE_INTERIOR": {
+          "HANGING_RODS": "Bare de agățat",
+          "SHELVES": "Rafturi",
+          "DRAWERS": "Sertare",
+          "SHOE_RACK": "Suport de pantofi",
+          "ACCESSORIES": "Accesorii",
+          "LED_LIGHTING": "Iluminare LED",
+          "FIRM_DECIDES": "Nu știu — vreau recomandarea firmei"
+        },
+        "BATHROOM_BASIN_TYPE": {
+          "COUNTERTOP_BASIN": "Lavoar pe blat",
+          "INSET_BASIN": "Lavoar încastrat în blat",
+          "INTEGRATED_BASIN": "Blat cu lavoar integrat",
+          "FIRM_DECIDES": "Nu știu — vreau recomandarea firmei"
+        },
+        "BATHROOM_BASIN_SUPPLY": {
+          "CLIENT": "Îl aduce clientul",
+          "FIRM": "Îl aduce firma",
+          "FIRM_DECIDES": "Nu știu — vreau recomandarea firmei"
+        },
+        "LAUNDRY_LOADING": {
+          "FRONT": "Încărcare frontală",
+          "TOP": "Încărcare de sus",
+          "FIRM_DECIDES": "Nu știu — vreau recomandarea firmei"
+        },
+        "HALLWAY_WIDTH": {
+          "NARROW": "Hol îngust (sub 1,2 m)",
+          "WIDE": "Hol generos",
+          "FIRM_DECIDES": "Nu știu — o măsoară firma"
+        },
+        "SOFA_SEATS": {
+          "SEATS_2": "2 locuri",
+          "SEATS_3": "3 locuri",
+          "SEATS_4": "4 locuri"
+        },
+        "SOFA_LAYOUT": {
+          "STRAIGHT": "Dreaptă",
+          "CHAISE_LEFT": "Cu șezlong în stânga",
+          "CHAISE_RIGHT": "Cu șezlong în dreapta"
         }
       }
     },
@@ -4416,7 +4526,11 @@
         "mattress": "Saltea: {size}",
         "storage": "Depozitare: {value}",
         "seats": "Persoane: {value}",
-        "colorApprox": "Culoare: aproape de {color}"
+        "colorApprox": "Culoare: aproape de {color}",
+        "mattressCustom": "Saltea: {w} × {l} (altă mărime)",
+        "openLength": "Lungime deschisă: {value}",
+        "sofaSleeper": "Extensibilă",
+        "sofaStorage": "Cu ladă de depozitare"
       },
       "snapshotAlt": "Vizualizarea 3D a piesei configurate",
       "furniture": {
@@ -4431,7 +4545,13 @@
         "openStorage": "Deschide depozitarea",
         "closeStorage": "Închide depozitarea",
         "seatsTooSmall": "Pentru {seats} persoane recomandăm cel puțin {cm} cm — la dimensiunea aleasă nu încap toți.",
-        "diameterClamped": "La tipul ales, masa rotundă are între {min} și {max} cm în diametru — am pus {value} cm."
+        "diameterClamped": "La tipul ales, masa rotundă are între {min} și {max} cm în diametru — am pus {value} cm.",
+        "customSize": "Altă mărime",
+        "mattressWidth": "Lățime saltea",
+        "mattressLength": "Lungime saltea",
+        "openLengthToggle": "Știu lungimea mesei deschise",
+        "openLength": "Lungime deschisă",
+        "customHeightToggle": "Vreau altă înălțime (de obicei {value})"
       },
       "catalog": {
         "seats": "Locuri",
@@ -4494,7 +4614,9 @@
           "NONE": "Fără",
           "LEFT": "Stânga",
           "RIGHT": "Dreapta"
-        }
+        },
+        "sleeper": "Extensibilă (se face pat)",
+        "sofaStorage": "Ladă de depozitare"
       },
       "drawersTooShort": "Un sertar cere minim {cm} cm de înălțime — zona e prea joasă.",
       "shelvesNeedSpace": "Polițele cer minim {cm} cm de spațiu între ele.",
@@ -5224,6 +5346,72 @@
             "title": "Material pentru fronturi (uși și sertare)",
             "summaryLabel": "Material fronturi"
           }
+        },
+        "v5": {
+          "wallCabinets": {
+            "title": "Vrei corpuri suspendate?",
+            "summaryLabel": "Corpuri suspendate",
+            "subtitle": "Opțional. Corpurile de sus, prinse pe perete deasupra blatului.",
+            "options": {
+              "WALL_CABINETS": {
+                "label": "Cu corpuri suspendate",
+                "description": "Dulapuri și deasupra blatului"
+              },
+              "NO_WALL_CABINETS": {
+                "label": "Fără corpuri suspendate",
+                "description": "Doar corpuri jos; peretele de sus rămâne liber"
+              }
+            }
+          },
+          "sinkMounting": {
+            "title": "Cum se montează chiuveta?",
+            "summaryLabel": "Montaj chiuvetă",
+            "subtitle": "Opțional. Firma face decupajul în blat după felul montajului.",
+            "options": {
+              "INSET": {
+                "label": "Încastrată în blat",
+                "description": "Marginea chiuvetei stă pe blat"
+              },
+              "UNDERMOUNT": {
+                "label": "Montată sub blat",
+                "description": "Chiuveta e prinsă dedesubt; blatul trece peste margine"
+              }
+            }
+          },
+          "sinkMaterial": {
+            "title": "Din ce material e chiuveta?",
+            "summaryLabel": "Material chiuvetă",
+            "subtitle": "Opțional.",
+            "options": {
+              "STAINLESS": {
+                "label": "Inox",
+                "description": "Rezistentă și ușor de curățat"
+              },
+              "COMPOSITE": {
+                "label": "Compozit (granit)",
+                "description": "Mată, în culori asortate cu blatul"
+              },
+              "CERAMIC": {
+                "label": "Ceramică",
+                "description": "Lucioasă, aspect clasic"
+              }
+            }
+          },
+          "fridgeType": {
+            "title": "Ce fel de frigider ai?",
+            "summaryLabel": "Frigider",
+            "subtitle": "Opțional. De el depinde dacă firma face un corp pentru frigider.",
+            "options": {
+              "BUILT_IN": {
+                "label": "Încorporabil, în corp de mobilier",
+                "description": "Frigiderul stă ascuns în spatele unei uși de mobilier"
+              },
+              "FREESTANDING": {
+                "label": "Independent",
+                "description": "Frigiderul stă la vedere, lângă corpuri"
+              }
+            }
+          }
         }
       },
       "PIECES": {
@@ -5455,6 +5643,11 @@
             "title": "Cum se deschid ușile dressingului?",
             "summaryLabel": "Deschiderea ușilor"
           }
+        },
+        "v5": {
+          "dimensions": {
+            "subtitle": "Lungimea fiecărui perete cu mobilier (A, B, C) și înălțimea dulapului."
+          }
         }
       },
       "BEDROOM": {
@@ -5508,7 +5701,8 @@
             "dresserWidth": "Lățime comodă",
             "tvUnitWidth": "Lățime comodă TV",
             "vanityWidth": "Lățime măsuță toaletă",
-            "nightstandWidth": "Lățime noptieră"
+            "nightstandWidth": "Lățime noptieră",
+            "wardrobeHeight": "Înălțime dulap"
           }
         },
         "notes": {
@@ -5710,6 +5904,84 @@
           "materialVanity": {
             "title": "Material pentru fronturi — măsuță toaletă",
             "summaryLabel": "Material fronturi — măsuță toaletă"
+          }
+        },
+        "v4": {
+          "dimensions": {
+            "subtitle": "Lățimea fiecărei piese alese; înălțimea dulapului, dacă o știi. Tavanul doar dacă ai ales dulapul."
+          },
+          "bedSize": {
+            "options": {
+              "D_120": {
+                "label": "120 × 200 cm",
+                "description": "O persoană, cu spațiu în plus"
+              }
+            },
+            "info": {
+              "body": "Dimensiunile uzuale în România: 90 × 200 (o persoană), 120 × 200 (o persoană, cu spațiu în plus), 140 × 200 (două persoane, compact), 160 × 200 (matrimonialul standard), 180 × 200 (king). Unele saltele au 190 cm lungime — o alegi mai jos. Atenție: salteaua nu e inclusă în mobilier."
+            }
+          },
+          "bedLength": {
+            "title": "Ce lungime are salteaua?",
+            "subtitle": "Cele mai multe saltele au 200 cm; unele au 190 cm.",
+            "options": {
+              "L_200": {
+                "label": "200 cm",
+                "description": "Lungimea obișnuită"
+              },
+              "L_190": {
+                "label": "190 cm",
+                "description": "Saltea mai scurtă"
+              }
+            }
+          },
+          "bedFabric": {
+            "title": "Ce stofă vrei pentru pat?",
+            "subtitle": "Stofa cu care se îmbracă patul tapițat.",
+            "options": {
+              "WOVEN": {
+                "label": "Țesătură",
+                "description": "Stofă clasică, rezistentă, ușor de întreținut"
+              },
+              "BOUCLE": {
+                "label": "Bouclé",
+                "description": "Stofă cu bucle mici, moale la atingere"
+              },
+              "VELVET": {
+                "label": "Catifea",
+                "description": "Stofă fină, cu luciu discret"
+              }
+            }
+          },
+          "wardrobeInterior": {
+            "title": "Ce vrei în interiorul dulapului?",
+            "subtitle": "Alege tot ce ți-ar folosi. Dacă nu știi, firma îți propune o împărțire.",
+            "options": {
+              "HANGING_RODS": {
+                "label": "Bare de agățat",
+                "description": "Pentru cămăși, rochii, sacouri"
+              },
+              "SHELVES": {
+                "label": "Rafturi",
+                "description": "Haine împăturite, cutii, genți"
+              },
+              "DRAWERS": {
+                "label": "Sertare",
+                "description": "Lenjerie, tricouri, accesorii mici"
+              },
+              "SHOE_RACK": {
+                "label": "Suport de pantofi",
+                "description": "Rafturi înclinate sau suporturi"
+              },
+              "ACCESSORIES": {
+                "label": "Accesorii",
+                "description": "Pantalonar, suport de curele/cravate"
+              },
+              "LED_LIGHTING": {
+                "label": "Iluminare LED",
+                "description": "Iluminare LED în interiorul dulapului"
+              }
+            }
           }
         }
       },
@@ -5913,6 +6185,11 @@
           "materialOtherPiece": {
             "title": "Material pentru fronturi — piesa ta"
           }
+        },
+        "v5": {
+          "dimensions": {
+            "subtitle": "Lățimea fiecărei piese alese; înălțimea doar la piesele înalte, dacă o știi. Tavanul doar dacă ai bibliotecă sau vitrină."
+          }
         }
       },
       "OFFICE": {
@@ -6000,7 +6277,9 @@
             "deskWidthC": "Lățime birou C",
             "bookshelfWidth": "Lățime bibliotecă",
             "storageWidth": "Lățime dulap depozitare",
-            "shelvesTotal": "Lățimea zonei cu rafturi"
+            "shelvesTotal": "Lățimea zonei cu rafturi",
+            "bookshelfHeight": "Înălțime bibliotecă",
+            "storageHeight": "Înălțime dulap depozitare"
           }
         },
         "notes": {
@@ -6057,6 +6336,11 @@
           "materialShelves": {
             "title": "Material — rafturi"
           }
+        },
+        "v4": {
+          "dimensions": {
+            "subtitle": "Lățimea fiecărei piese alese; înălțimea bibliotecii sau a dulapului, dacă o știi. Tavanul doar dacă ai bibliotecă sau dulap."
+          }
         }
       },
       "BATHROOM": {
@@ -6085,7 +6369,9 @@
           "slots": {
             "vanityWidth": "Lățime lavoar",
             "mirrorWidth": "Lățime dulap oglindă",
-            "tallStorageWidth": "Lățime coloană"
+            "tallStorageWidth": "Lățime coloană",
+            "mirrorHeight": "Înălțime dulap oglindă",
+            "tallStorageHeight": "Înălțime coloană"
           }
         },
         "ventilation": {
@@ -6165,6 +6451,43 @@
           "systemsTall": {
             "title": "Deschidere — coloana"
           }
+        },
+        "v4": {
+          "dimensions": {
+            "subtitle": "Lățimea fiecărei piese alese. Dacă ai ales dulapul cu oglindă sau coloana, îți cerem și înălțimea tavanului; înălțimea lor o poți da dacă o știi."
+          },
+          "basinType": {
+            "title": "Ce fel de lavoar vrei?",
+            "subtitle": "Firma face blatul și corpul după lavoar. Dacă nu știi, alege „Nu știu”.",
+            "options": {
+              "COUNTERTOP_BASIN": {
+                "label": "Lavoar pe blat",
+                "description": "Cuva stă deasupra blatului, ca un vas."
+              },
+              "INSET_BASIN": {
+                "label": "Lavoar încastrat în blat",
+                "description": "Cuva intră într-o decupare din blat; se vede doar marginea."
+              },
+              "INTEGRATED_BASIN": {
+                "label": "Blat cu lavoar integrat",
+                "description": "Blatul și cuva sunt o singură piesă, fără îmbinări."
+              }
+            }
+          },
+          "basinSupply": {
+            "title": "Cine aduce lavoarul?",
+            "subtitle": "Ca firma să știe dacă îl include în ofertă.",
+            "options": {
+              "CLIENT": {
+                "label": "Îl aduc eu (am deja sau îl cumpăr)",
+                "description": "Firma face corpul după lavoarul tău."
+              },
+              "FIRM": {
+                "label": "Să-l aducă firma",
+                "description": "Firma propune lavoarul și îl include în ofertă."
+              }
+            }
+          }
         }
       },
       "HALLWAY": {
@@ -6235,7 +6558,9 @@
             "coatUnitWidth": "Lățime cuier/panou",
             "wardrobeWidth": "Lățime dulap",
             "benchWidth": "Lățime băncuță",
-            "mirrorWidth": "Lățime oglindă"
+            "mirrorWidth": "Lățime oglindă",
+            "wardrobeHeight": "Înălțime dulap",
+            "coatUnitHeight": "Înălțime cuier/panou"
           }
         },
         "materialShoeCabinet": {
@@ -6323,6 +6648,29 @@
           },
           "materialMirror": {
             "title": "Rama oglinzii"
+          }
+        },
+        "v3": {
+          "dimensions": {
+            "subtitle": "Lățimea fiecărei piese alese; înălțimea dulapului de hol sau a cuierului, dacă o știi. Tavanul doar dacă ai ales una dintre ele."
+          },
+          "hallWidth": {
+            "title": "Cât de lat e holul?",
+            "subtitle": "Ajută firma să aleagă adâncimea pieselor.",
+            "options": {
+              "NARROW": {
+                "label": "Hol îngust (sub 1,2 m)",
+                "description": "Firma ține cont de lățimea holului când propune adâncimea pieselor."
+              },
+              "WIDE": {
+                "label": "Hol generos",
+                "description": "Loc suficient pentru piese de adâncime obișnuită."
+              },
+              "FIRM_DECIDES": {
+                "label": "Nu știu — o măsoară firma",
+                "description": "Firma măsoară holul când vine la măsurători."
+              }
+            }
           }
         }
       },
@@ -6417,7 +6765,13 @@
           "title": "Dimensiuni",
           "subtitle": "Lungimea peretelui principal și înălțimea tavanului.",
           "slots": {
-            "runA": "Lungime perete principal"
+            "runA": "Lungime perete principal",
+            "applianceHousingWidth": "Lățime dulap încastrare electrocasnice",
+            "applianceHousingHeight": "Înălțime dulap încastrare electrocasnice",
+            "storageWidth": "Lățime dulapuri depozitare",
+            "storageHeight": "Înălțime dulapuri depozitare",
+            "countertopWidth": "Lățime blat de lucru",
+            "sinkUnitWidth": "Lățime corp cu cuvă"
           }
         },
         "material": {
@@ -6467,6 +6821,25 @@
           "materialSinkUnit": {
             "title": "Material pentru fronturi — corpul cu cuvă",
             "summaryLabel": "Material fronturi — corp cu cuvă"
+          }
+        },
+        "v4": {
+          "dimensions": {
+            "subtitle": "Lungimea peretelui, pentru context, și lățimea fiecărei piese alese. Dacă ai ales dulapul pentru electrocasnice sau dulapurile de depozitare, îți cerem și înălțimea tavanului; înălțimea lor o poți da dacă o știi."
+          },
+          "washerLoading": {
+            "title": "Cum se încarcă mașina de spălat?",
+            "subtitle": "Schimbă felul în care se face dulapul din jurul ei.",
+            "options": {
+              "FRONT": {
+                "label": "Încărcare frontală",
+                "description": "Ușa e în față; se poate pune sub blat sau sub uscător."
+              },
+              "TOP": {
+                "label": "Încărcare de sus",
+                "description": "Capacul se deschide în sus; deasupra trebuie să rămână loc liber."
+              }
+            }
           }
         }
       },
@@ -6539,11 +6912,14 @@
         },
         "dimensions": {
           "title": "Dimensiuni",
-          "subtitle": "Lungimea fiecărei laturi cu rafturi și înălțimea tavanului.",
+          "subtitle": "Lungimea fiecărei laturi mobilate și înălțimea tavanului.",
           "slots": {
             "runA": "Lungime latura A",
             "runB": "Lungime latura B",
-            "runC": "Lungime latura C"
+            "runC": "Lungime latura C",
+            "shelvesWidth": "Lățime rafturi",
+            "cabinetsWidth": "Lățime dulapuri",
+            "cabinetsHeight": "Înălțime dulapuri"
           }
         },
         "material": {
@@ -6572,6 +6948,11 @@
           "materialCabinets": {
             "title": "Material pentru fronturi — dulapurile închise",
             "summaryLabel": "Material fronturi — dulapuri închise"
+          }
+        },
+        "v4": {
+          "dimensions": {
+            "subtitle": "Lungimea pereților, pentru context, și lățimea rafturilor / dulapurilor pe care le vrei. Dacă ai ales dulapuri, îți cerem și înălțimea tavanului; înălțimea dulapurilor o poți da dacă o știi."
           }
         }
       },
@@ -6637,7 +7018,12 @@
           "subtitle": "Lungimea utilă și adâncimea liberă a balconului, plus înălțimea tavanului.",
           "slots": {
             "balconyLength": "Lungime utilă",
-            "balconyDepth": "Adâncime liberă"
+            "balconyDepth": "Adâncime liberă",
+            "storageBenchWidth": "Lățime bancă cu ladă",
+            "tallCabinetWidth": "Lățime dulap balcon",
+            "tallCabinetHeight": "Înălțime dulap balcon",
+            "worktopWidth": "Lățime blat de lucru",
+            "shelvesWidth": "Lățime rafturi"
           }
         },
         "material": {
@@ -6680,6 +7066,11 @@
           },
           "materialShelves": {
             "title": "Material — rafturile"
+          }
+        },
+        "v4": {
+          "dimensions": {
+            "subtitle": "Lungimea și adâncimea balconului, pentru context, și lățimea fiecărei piese alese. Dacă ai ales dulapul, îți cerem și înălțimea tavanului; înălțimea dulapului o poți da dacă o știi."
           }
         }
       },
@@ -7706,7 +8097,9 @@
       "approxLength": "Lungime aproximativă: {m} m",
       "firmRecommendation": "Recomandarea firmei",
       "firmRecommendationOpening": "Deschidere: recomandarea firmei",
-      "ceiling": "Tavan: {value}"
+      "ceiling": "Tavan: {value}",
+      "dimNotGiven": "nespecificată de client (de obicei {value})",
+      "dimNotGivenPlain": "nespecificată de client"
     },
     "contactInText": {
       "hint": "Se pare că ai scris un telefon, un email sau un link. Firmele nu le văd înainte de preluare: adaugă-le în secțiunea Preferințe de contact din Date generale și le primesc doar firmele care preiau cererea.",
@@ -7758,7 +8151,8 @@
     },
     "dimensions": {
       "optionalTag": "opțional",
-      "typicalHint": "de obicei {value}"
+      "typicalHint": "de obicei {value}",
+      "notGiven": "Nu ai dat-o — o stabilești cu firma"
     }
   },
   "Legal": {

@@ -91,12 +91,21 @@ export function config3dChipItems(
   if (config.sofa) { option('seats', config.sofa.seats); option('layout', config.sofa.layout); option('arms', config.sofa.arms); option('cushions', config.sofa.cushions); }
   if (config.armchair) option('arms', config.armchair.arms);
   if (config.sofa) push(`${t('config3d.catalog.bodyDepth')}: ${dim(config.sofa.bodyDepthM)}`);
+  // etapa 10: canapeaua extensibila / cu lada (doar cand e aleasa; configuratiile vechi neschimbate)
+  if (config.sofa?.sleeper) push(t('config3d.chips.sofaSleeper'));
+  if (config.sofa?.storage) push(t('config3d.chips.sofaStorage'));
   if (config.ottoman) { option('shape', config.ottoman.shape); if (config.ottoman.storage) push(t('config3d.catalog.storage')); }
   if (config.vanity) { option('mounting', config.vanity.mounting); option('basins', config.vanity.basins); option('storageLayout', config.vanity.storage); option('countertop', config.vanity.countertop); if (config.vanity.storage !== 'OPEN') option('handles', config.vanity.handles); }
   if (config.entryway) { option('hooks', config.entryway.hooks); option('mirror', config.entryway.mirror); option('shoeStorage', config.entryway.shoeStorage); if (config.entryway.upperShelf) push(t('config3d.catalog.upperShelf')); if (config.entryway.upholsteredSeat) push(t('config3d.catalog.upholsteredSeat')); }
   if (config.mountingHeightM !== undefined) push(`${t('config3d.catalog.mountingHeight')}: ${dim(config.mountingHeightM)}`);
   if (config.bed) {
-    push(t('config3d.chips.mattress', { size: t(`flows.PIECE_BED.bedSize.options.${config.bed.mattressSize}.label`) }));
+    // etapa 10: "Altă mărime" inlocuieste salteaua standard
+    const custom = config.bed.customSize;
+    if (custom) {
+      const w = locale ? formatDimension(custom.widthM, { unit: 'cm', locale }) : `${Math.round(custom.widthM * 100)} cm`;
+      const l = locale ? formatDimension(custom.lengthM, { unit: 'cm', locale }) : `${Math.round(custom.lengthM * 100)} cm`;
+      push(t('config3d.chips.mattressCustom', { w: w.replace(/ cm$/, ''), l }));
+    } else push(t('config3d.chips.mattress', { size: t(`flows.PIECE_BED.bedSize.options.${config.bed.mattressSize}.label`) }));
     push(t('config3d.chips.storage', { value: lowerFirst(t(`flows.PIECE_BED.storage.options.${config.bed.storage}.label`)) }));
     if (config.bed.upholstered) push(t('config3d.furniture.upholstered'));
   }
@@ -104,6 +113,8 @@ export function config3dChipItems(
     push(t(`flows.PIECE_TABLE.tableType.options.${config.table.type}.label`));
     push(t(`flows.PIECE_TABLE.shape.options.${config.table.shape}.label`));
     if (config.table.seats) push(t('config3d.chips.seats', { value: t(`flows.PIECE_TABLE.seats.options.${config.table.seats}.label`) }));
+    // etapa 10: lungimea deschisa (inaltimea aleasa apare deja in chip-ul de dimensiuni)
+    if (config.table.openLengthM !== undefined) push(t('config3d.chips.openLength', { value: dim(config.table.openLengthM) }));
   }
   if (config.bench) {
     push(t(`flows.PIECE_BENCH.style.options.${config.bench.style}.label`));

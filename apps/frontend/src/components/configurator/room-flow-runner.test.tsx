@@ -1,7 +1,7 @@
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
-import { CURRENT_FLOW_VERSION, type AnswerMap, type RoomType } from '@marketplace/shared';
+import { CURRENT_FLOW_VERSION, ETAPA6_FLOW_VERSION, type AnswerMap, type RoomType } from '@marketplace/shared';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import ro from '@/messages/ro.json';
 import { DIMENSION_UNIT_STORAGE_KEY } from '@/lib/dimension-unit';
@@ -19,11 +19,11 @@ beforeAll(() => {
   Element.prototype.scrollIntoView = vi.fn();
 });
 
-function setRoom(roomType: RoomType, answers: AnswerMap = {}, screenOf?: (room: RoomInstance) => number) {
+function setRoom(roomType: RoomType, answers: AnswerMap = {}, screenOf?: (room: RoomInstance) => number, flowVersion?: number) {
   const room: RoomInstance = {
     localId: '11111111-1111-4111-8111-111111111111',
     roomType,
-    flowVersion: CURRENT_FLOW_VERSION[roomType],
+    flowVersion: flowVersion ?? CURRENT_FLOW_VERSION[roomType],
     answers,
     completed: false,
   };
@@ -95,7 +95,8 @@ describe('RoomFlowRunner — "Continua" pe dimensiuni goale (39.1) si bara de jo
   const dimsScreen = (room: RoomInstance) => roomScreens(room, false).findIndex((s) => s.some((q) => q.type === 'dimension-group'));
 
   it('mesaj per camp, rezumat cu numarul golurilor si focus pe primul camp gol', async () => {
-    setRoom('LAUNDRY', {}, dimsScreen);
+    // etapa 10 (valul 2): fixat pe spalatoria etapei 6 (peretele + tavanul, doua campuri obligatorii)
+    setRoom('LAUNDRY', {}, dimsScreen, ETAPA6_FLOW_VERSION.LAUNDRY);
     renderRunner();
     expect(useConfiguratorStore.getState().activeStepIndex).toBeGreaterThanOrEqual(0);
     await userEvent.click(screen.getByRole('button', { name: T.nav.next }));

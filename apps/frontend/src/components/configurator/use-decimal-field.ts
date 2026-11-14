@@ -26,7 +26,9 @@ export function cmRangeText(minM: number, maxM: number, locale: string): string 
 
 export interface DecimalFieldOptions {
   value: number | undefined;
-  onValue: (value: number | undefined) => void;
+  // al doilea argument (etapa 10): `invalid` = textul NU e gol, dar nu se poate scrie
+  // (nu e numar sau e refuzat de validate). Apelantii vechi il ignora → comportament neschimbat.
+  onValue: (value: number | undefined, info?: { invalid: boolean }) => void;
   commitOn: 'change' | 'blur';
   // mesaj de refuz pentru o valoare citita (ex. in afara intervalului); null = ok
   validate?: (value: number) => string | null;
@@ -75,7 +77,8 @@ export function useDecimalField({
     // ce vede clientul e ce se trimite (m7): textul gol SAU nevalid goleste
     // raspunsul, ca validarea pasului sa opreasca "Continua" la campul obligatoriu
     const parsed = parseDecimal(raw);
-    onValue(parsed.kind === 'number' && !validate?.(parsed.value) ? parsed.value : undefined);
+    const ok = parsed.kind === 'number' && !validate?.(parsed.value);
+    onValue(ok ? parsed.value : undefined, { invalid: !ok && parsed.kind !== 'empty' });
   };
 
   const commitBlur = (raw: string) => {

@@ -1,0 +1,681 @@
+{
+ "KITCHEN@v5/first": {
+  "dims": [
+   7.9,
+   1.05,
+   3
+  ],
+  "items": [
+   "1× Corpuri de bază | PAL | MANER | Corp: PAL standard; Electrocasnice: cuptor; Chiuvetă: inox, încastrată în blat",
+   "1× Corpuri suspendate | PAL | MANER | Corp: PAL standard",
+   "1× Insulă | PAL | MANER | Corp: PAL standard"
+  ]
+ },
+ "KITCHEN@v5/last": {
+  "dims": [
+   2.2,
+   0.6,
+   2
+  ],
+  "items": [
+   "1× Corpuri de bază | ALTUL | MANER,PUSH,GOLA | Material: clientul vrea recomandarea firmei; Electrocasnice: cuptor, plită, hotă, mașină de spălat vase, frigider, cuptor cu microunde; Frigider: clientul vrea recomandarea firmei; Chiuvetă: clientul vrea recomandarea firmei",
+   "1× Corpuri suspendate | ALTUL | MANER,PUSH,GOLA,AVENTOS | Material: clientul vrea recomandarea firmei; Uși rabatabile pe pistoane (în sus sau în jos); Corpuri suspendate: clientul vrea recomandarea firmei"
+  ],
+  "firm": [
+   "Corpuri de bază: material=true opening=false",
+   "Corpuri suspendate: material=true opening=false"
+  ]
+ },
+ "KITCHEN@v5/middle": {
+  "dims": [
+   8.88,
+   0.87,
+   2.6
+  ],
+  "items": [
+   "1× Corpuri de bază | MDF_FURNIR | PUSH,GOLA | Corp: PAL standard; Electrocasnice: mașină de spălat vase, frigider, cuptor cu microunde; Frigider: independent; Chiuvetă: ceramică, montată sub blat; Fără corpuri suspendate",
+   "1× Insulă | MDF_FURNIR | PUSH,GOLA | Corp: PAL standard"
+  ]
+ },
+ "KITCHEN@v5/requiredOnly": {
+  "dims": [
+   5.5,
+   0.6,
+   3
+  ],
+  "items": [
+   "1× Corpuri de bază | PAL | MANER | Corp: PAL standard",
+   "1× Corpuri suspendate | PAL | MANER | Corp: PAL standard"
+  ]
+ },
+ "DRESSING@v5/first": {
+  "dims": [
+   5.5,
+   0.6,
+   2.5
+  ],
+  "items": [
+   "1× Dressing | PAL | GLISANTE | Interior: bare de agățat; Corp: PAL standard"
+  ]
+ },
+ "DRESSING@v5/last": {
+  "dims": [
+   2.2,
+   0.6,
+   1.8
+  ],
+  "items": [
+   "1× Dressing | ALTUL |  | Interior: bare de agățat, rafturi, sertare, suport de pantofi, accesorii; iluminare LED; Material: clientul vrea recomandarea firmei"
+  ],
+  "firm": [
+   "Dressing: material=true opening=false"
+  ]
+ },
+ "DRESSING@v5/middle": {
+  "dims": [
+   10.54,
+   0.6,
+   2.22
+  ],
+  "items": [
+   "1× Dressing | MDF_FURNIR | PUSH | Interior: suport de pantofi, accesorii; iluminare LED; Corp: PAL standard"
+  ]
+ },
+ "DRESSING@v5/requiredOnly": {
+  "dims": [
+   5.5,
+   0.6,
+   2.5
+  ],
+  "items": [
+   "1× Dressing | PAL | GLISANTE | Interior: bare de agățat; Corp: PAL standard"
+  ]
+ },
+ "LIVING@v5/first": {
+  "dims": [
+   3,
+   0.6,
+   2.6
+  ],
+  "items": [
+   "1× Comodă TV suspendată | PAL | MANER | Corp: PAL standard; Cu iluminare LED"
+  ]
+ },
+ "LIVING@v5/last": {
+  "dims": [
+   2.9999999999999996,
+   0.6,
+   2
+  ],
+  "items": [
+   "1× Ansamblu TV cu dulapuri | ALTUL | MANER,PUSH,AVENTOS | Material: clientul vrea recomandarea firmei; Uși rabatabile pe pistoane (în sus sau în jos); Cu iluminare LED",
+   "1× Bibliotecă | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei; Cu iluminare LED",
+   "1× Vitrină | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei; Cu iluminare LED",
+   "1× Măsuță cafea | ALTUL |  | Material: clientul vrea recomandarea firmei",
+   "1× Rafturi suspendate | ALTUL |  | Material: clientul vrea recomandarea firmei; Cu iluminare LED",
+   "1× note client | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei"
+  ],
+  "firm": [
+   "Ansamblu TV cu dulapuri: material=true opening=false",
+   "Bibliotecă: material=true opening=false",
+   "Vitrină: material=true opening=false",
+   "Măsuță cafea: material=true opening=false",
+   "Rafturi suspendate: material=true opening=false",
+   "note client: material=true opening=false"
+  ]
+ },
+ "LIVING@v5/middle": {
+  "dims": [
+   4.89,
+   0.6,
+   2.6
+  ],
+  "items": [
+   "1× Măsuță cafea | PAL | ",
+   "1× Rafturi suspendate | MDF_FURNIR |  | Cu iluminare LED",
+   "1× stejar natur | MDF_FURNIR | PUSH | Corp: PAL standard"
+  ]
+ },
+ "LIVING@v5/requiredOnly": {
+  "dims": [
+   3,
+   0.6,
+   2.6
+  ],
+  "items": [
+   "1× Comodă TV suspendată | PAL | MANER | Corp: PAL standard"
+  ]
+ },
+ "OFFICE@v4/first": {
+  "dims": [
+   1.9,
+   0.6,
+   2.6
+  ],
+  "items": [
+   "1× Birou | PAL | MANER | Corp: PAL standard"
+  ]
+ },
+ "OFFICE@v4/last": {
+  "dims": [
+   3.3,
+   0.6,
+   2
+  ],
+  "items": [
+   "1× Birou | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei",
+   "1× Bibliotecă | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei",
+   "1× Dulap depozitare | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei",
+   "1× Rafturi perete | ALTUL |  | Material: clientul vrea recomandarea firmei"
+  ],
+  "firm": [
+   "Birou: material=true opening=false",
+   "Bibliotecă: material=true opening=false",
+   "Dulap depozitare: material=true opening=false",
+   "Rafturi perete: material=true opening=false"
+  ]
+ },
+ "OFFICE@v4/middle": {
+  "dims": [
+   3.33,
+   0.6,
+   2.6
+  ],
+  "items": [
+   "1× Dulap depozitare | MDF_FURNIR | PUSH | Corp: PAL standard",
+   "1× Rafturi perete | MDF_FURNIR | "
+  ]
+ },
+ "OFFICE@v4/requiredOnly": {
+  "dims": [
+   1.9,
+   0.6,
+   2.6
+  ],
+  "items": [
+   "1× Birou | PAL | MANER | Corp: PAL standard"
+  ]
+ },
+ "BEDROOM@v4/first": {
+  "dims": [
+   3.3,
+   0.6,
+   3
+  ],
+  "items": [
+   "1× Dulap dormitor | PAL | GLISANTE | Corp: PAL standard; Interior dulap: bare de agățat"
+  ]
+ },
+ "BEDROOM@v4/last": {
+  "dims": [
+   3.6499999999999995,
+   0.6,
+   2
+  ],
+  "items": [
+   "1× Dulap dormitor | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei; Interior dulap: bare de agățat, rafturi, sertare, suport de pantofi, accesorii, iluminare LED",
+   "1× Cadru pat | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei; saltea 70 × 160 cm (altă mărime), sertare laterale",
+   "2× Noptiere | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei",
+   "1× Comodă | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei",
+   "1× Comodă TV | ALTUL | MANER,PUSH,AVENTOS | Material: clientul vrea recomandarea firmei; Uși rabatabile pe pistoane (în sus sau în jos)",
+   "1× Măsuță toaletă | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei"
+  ],
+  "firm": [
+   "Dulap dormitor: material=true opening=false",
+   "Cadru pat: material=true opening=false",
+   "Noptiere: material=true opening=false",
+   "Comodă: material=true opening=false",
+   "Comodă TV: material=true opening=false",
+   "Măsuță toaletă: material=true opening=false"
+  ]
+ },
+ "BEDROOM@v4/middle": {
+  "dims": [
+   3.8899999999999997,
+   0.6,
+   2.6
+  ],
+  "items": [
+   "1× Comodă | MDF_FURNIR | PUSH | Corp: PAL standard",
+   "1× Comodă TV | MDF_FURNIR | PUSH | Corp: PAL standard",
+   "1× Măsuță toaletă | MDF_FURNIR | PUSH | Corp: PAL standard"
+  ]
+ },
+ "BEDROOM@v4/requiredOnly": {
+  "dims": [
+   3.3,
+   0.6,
+   3
+  ],
+  "items": [
+   "1× Dulap dormitor | PAL | GLISANTE | Corp: PAL standard"
+  ]
+ },
+ "BATHROOM@v4/first": {
+  "dims": [
+   1.7,
+   0.6,
+   2.6
+  ],
+  "items": [
+   "1× Corp lavoar | PAL | MANER | Corp: PAL standard; Lavoar: pe blat, adus de client"
+  ]
+ },
+ "BATHROOM@v4/last": {
+  "dims": [
+   1,
+   0.6,
+   2
+  ],
+  "items": [
+   "1× Corp lavoar | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei; Lavoar: clientul vrea recomandarea firmei",
+   "1× Dulap oglindă | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei",
+   "1× Coloană baie | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei"
+  ],
+  "firm": [
+   "Corp lavoar: material=true opening=false",
+   "Dulap oglindă: material=true opening=false",
+   "Coloană baie: material=true opening=false"
+  ]
+ },
+ "BATHROOM@v4/middle": {
+  "dims": [
+   1.4700000000000002,
+   0.6,
+   2.6
+  ],
+  "items": [
+   "1× Dulap oglindă | LEMN_MASIV | PUSH | Corp: PAL standard",
+   "1× Coloană baie | LEMN_MASIV | PUSH | Corp: PAL standard"
+  ]
+ },
+ "BATHROOM@v4/requiredOnly": {
+  "dims": [
+   1.7,
+   0.6,
+   2.6
+  ],
+  "items": [
+   "1× Corp lavoar | PAL | MANER | Corp: PAL standard"
+  ]
+ },
+ "HALLWAY@v3/first": {
+  "dims": [
+   1.45,
+   0.5,
+   2.6
+  ],
+  "items": [
+   "1× Pantofar | PAL | MANER | Corp: PAL standard"
+  ]
+ },
+ "HALLWAY@v3/last": {
+  "dims": [
+   2.3,
+   0.5,
+   2
+  ],
+  "items": [
+   "1× Pantofar | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei",
+   "1× Cuier cu panou | ALTUL |  | Material: clientul vrea recomandarea firmei",
+   "1× Dulap de hol | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei",
+   "1× Băncuță hol | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei",
+   "1× Oglindă cu poliță | ALTUL |  | Ramă: clientul vrea recomandarea firmei"
+  ],
+  "firm": [
+   "Pantofar: material=true opening=false",
+   "Cuier cu panou: material=true opening=false",
+   "Dulap de hol: material=true opening=false",
+   "Băncuță hol: material=true opening=false",
+   "Oglindă cu poliță: material=true opening=false"
+  ]
+ },
+ "HALLWAY@v3/middle": {
+  "dims": [
+   2.93,
+   0.5,
+   2.6
+  ],
+  "items": [
+   "1× Dulap de hol | MDF_FURNIR | PUSH | Corp: PAL standard",
+   "1× Băncuță hol | MDF_FURNIR | PUSH | Corp: PAL standard",
+   "1× Oglindă cu poliță | MDF_VOPSIT |  | Ramă: MDF vopsit"
+  ]
+ },
+ "HALLWAY@v3/requiredOnly": {
+  "dims": [
+   1.45,
+   0.5,
+   2.6
+  ],
+  "items": [
+   "1× Pantofar | PAL | MANER | Corp: PAL standard"
+  ]
+ },
+ "PANTRY@v4/first": {
+  "dims": [
+   2.7,
+   0.6,
+   2.6
+  ],
+  "items": [
+   "1× Rafturi debara | PAL | "
+  ]
+ },
+ "PANTRY@v4/last": {
+  "dims": [
+   0.8,
+   0.6,
+   2
+  ],
+  "items": [
+   "1× Rafturi debara | ALTUL |  | Material: clientul vrea recomandarea firmei",
+   "1× Dulapuri debara | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei"
+  ],
+  "firm": [
+   "Rafturi debara: material=true opening=false",
+   "Dulapuri debara: material=true opening=false"
+  ]
+ },
+ "PANTRY@v4/middle": {
+  "dims": [
+   1.78,
+   0.6,
+   2.6
+  ],
+  "items": [
+   "1× Dulapuri debara | MDF_FURNIR | PUSH | Corp: PAL standard"
+  ]
+ },
+ "PANTRY@v4/requiredOnly": {
+  "dims": [
+   2.7,
+   0.6,
+   2.6
+  ],
+  "items": [
+   "1× Rafturi debara | PAL | "
+  ]
+ },
+ "LAUNDRY@v4/first": {
+  "dims": [
+   1.3,
+   0.6,
+   3
+  ],
+  "items": [
+   "1× Dulap încastrare electrocasnice | PAL | MANER | Corp: PAL standard; Aparate: doar mașină de spălat; Încărcare: frontală"
+  ]
+ },
+ "LAUNDRY@v4/last": {
+  "dims": [
+   0.8,
+   0.6,
+   2
+  ],
+  "items": [
+   "1× Dulap încastrare electrocasnice | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei; Aparate: mașină de spălat și uscător alăturate; Încărcare: clientul vrea recomandarea firmei",
+   "1× Dulapuri depozitare | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei",
+   "1× Blat de lucru | ALTUL |  | Blat: clientul vrea recomandarea firmei",
+   "1× Corp cu cuvă | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei"
+  ],
+  "firm": [
+   "Dulap încastrare electrocasnice: material=true opening=false",
+   "Dulapuri depozitare: material=true opening=false",
+   "Blat de lucru: material=true opening=false",
+   "Corp cu cuvă: material=true opening=false"
+  ]
+ },
+ "LAUNDRY@v4/middle": {
+  "dims": [
+   2.2600000000000002,
+   0.6,
+   2.6
+  ],
+  "items": [
+   "1× Blat de lucru | ALTUL |  | Blat: cuarț; Aparate: mașină de spălat și uscător suprapuse; Încărcare: clientul vrea recomandarea firmei",
+   "1× Corp cu cuvă | MDF_FURNIR | PUSH | Corp: PAL standard"
+  ]
+ },
+ "LAUNDRY@v4/requiredOnly": {
+  "dims": [
+   1.3,
+   0.6,
+   3
+  ],
+  "items": [
+   "1× Dulap încastrare electrocasnice | PAL | MANER | Corp: PAL standard; Aparate: doar mașină de spălat"
+  ]
+ },
+ "BALCONY@v4/first": {
+  "dims": [
+   1.8,
+   0.6,
+   2.6
+  ],
+  "items": [
+   "1× Bancă cu ladă | PAL | MANER | Corp: PAL standard"
+  ]
+ },
+ "BALCONY@v4/last": {
+  "dims": [
+   0.8,
+   0.4,
+   2
+  ],
+  "items": [
+   "1× Bancă cu ladă | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei",
+   "1× Dulap balcon | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei",
+   "1× Blat de lucru | ALTUL |  | Blat: clientul vrea recomandarea firmei",
+   "1× Rafturi balcon | ALTUL |  | Material: clientul vrea recomandarea firmei"
+  ],
+  "firm": [
+   "Bancă cu ladă: material=true opening=false",
+   "Dulap balcon: material=true opening=false",
+   "Blat de lucru: material=true opening=false",
+   "Rafturi balcon: material=true opening=false"
+  ]
+ },
+ "BALCONY@v4/middle": {
+  "dims": [
+   2.96,
+   0.6,
+   2.6
+  ],
+  "items": [
+   "1× Blat de lucru | ALTUL |  | Blat: cuarț",
+   "1× Rafturi balcon | MDF_FURNIR | "
+  ]
+ },
+ "BALCONY@v4/requiredOnly": {
+  "dims": [
+   1.8,
+   0.6,
+   2.6
+  ],
+  "items": [
+   "1× Bancă cu ladă | PAL | MANER | Corp: PAL standard"
+  ]
+ },
+ "PIECE_BED@v5/first": {
+  "dims": [
+   1.6,
+   2,
+   1
+  ],
+  "items": [
+   "1× Pat | LEMN_MASIV |  | saltea 160 × 200; Configurat 3D: 173 × 100 × 220 cm (lățime × înălțime × adâncime), finisaj stejar"
+  ]
+ },
+ "PIECE_BED@v5/last": {
+  "dims": [
+   1.6,
+   2,
+   1
+  ],
+  "items": [
+   "1× Pat | ALTUL |  | saltea 160 × 200; Configurat 3D: 173 × 100 × 220 cm (lățime × înălțime × adâncime), finisaj stejar; Material: clientul vrea recomandarea firmei"
+  ],
+  "firm": [
+   "Pat: material=true opening=false"
+  ]
+ },
+ "PIECE_BED@v5/middle": {
+  "dims": [
+   1.6,
+   2,
+   1
+  ],
+  "items": [
+   "1× Pat | PAL |  | saltea 160 × 200; Configurat 3D: 173 × 100 × 220 cm (lățime × înălțime × adâncime), finisaj stejar"
+  ]
+ },
+ "PIECE_BED@v5/requiredOnly": {
+  "dims": [
+   1.6,
+   2,
+   1
+  ],
+  "items": [
+   "1× Pat | LEMN_MASIV |  | saltea 160 × 200; Configurat 3D: 173 × 100 × 220 cm (lățime × înălțime × adâncime), finisaj stejar"
+  ]
+ },
+ "PIECE_TABLE@v5/first": {
+  "dims": [
+   1.4,
+   0.8,
+   0.75
+  ],
+  "items": [
+   "1× Masă dining | LEMN_MASIV |  | 6 locuri; Configurat 3D: 140 × 75 × 80 cm (lățime × înălțime × adâncime), finisaj stejar"
+  ]
+ },
+ "PIECE_TABLE@v5/last": {
+  "dims": [
+   1.4,
+   0.8,
+   0.75
+  ],
+  "items": [
+   "1× Masă dining | ALTUL |  | 6 locuri; Configurat 3D: 140 × 75 × 80 cm (lățime × înălțime × adâncime), finisaj stejar; Material: clientul vrea recomandarea firmei"
+  ],
+  "firm": [
+   "Masă dining: material=true opening=false"
+  ]
+ },
+ "PIECE_TABLE@v5/middle": {
+  "dims": [
+   1.4,
+   0.8,
+   0.75
+  ],
+  "items": [
+   "1× Masă dining | PAL |  | 6 locuri; Configurat 3D: 140 × 75 × 80 cm (lățime × înălțime × adâncime), finisaj stejar"
+  ]
+ },
+ "PIECE_TABLE@v5/requiredOnly": {
+  "dims": [
+   1.4,
+   0.8,
+   0.75
+  ],
+  "items": [
+   "1× Masă dining | LEMN_MASIV |  | 6 locuri; Configurat 3D: 140 × 75 × 80 cm (lățime × înălțime × adâncime), finisaj stejar"
+  ]
+ },
+ "PIECE_BENCH@v5/first": {
+  "dims": [
+   1.2,
+   0.4,
+   0.45
+  ],
+  "items": [
+   "1× Băncuță | PAL |  | Configurat 3D: 120 × 45 × 40 cm (lățime × înălțime × adâncime), finisaj stejar"
+  ]
+ },
+ "PIECE_BENCH@v5/last": {
+  "dims": [
+   1.2,
+   0.4,
+   0.45
+  ],
+  "items": [
+   "1× Băncuță | ALTUL |  | Configurat 3D: 120 × 45 × 40 cm (lățime × înălțime × adâncime), finisaj stejar; Material: clientul vrea recomandarea firmei"
+  ],
+  "firm": [
+   "Băncuță: material=true opening=false"
+  ]
+ },
+ "PIECE_BENCH@v5/middle": {
+  "dims": [
+   1.2,
+   0.4,
+   0.45
+  ],
+  "items": [
+   "1× Băncuță | MDF_FURNIR |  | Configurat 3D: 120 × 45 × 40 cm (lățime × înălțime × adâncime), finisaj stejar"
+  ]
+ },
+ "PIECE_BENCH@v5/requiredOnly": {
+  "dims": [
+   1.2,
+   0.4,
+   0.45
+  ],
+  "items": [
+   "1× Băncuță | PAL |  | Configurat 3D: 120 × 45 × 40 cm (lățime × înălțime × adâncime), finisaj stejar"
+  ]
+ },
+ "PIECE_SOFA@v3/first": {
+  "dims": [
+   2.2,
+   0.95,
+   0.85
+  ],
+  "items": [
+   "1× Canapea | ALTUL |  | Configurat 3D: 220 × 85 × 95 cm (lățime × înălțime × adâncime), Tapițerie: țesătură, culoare #a69d8e, Fermitate preferată: medie, Bază: picioare stejar, Locuri: 3, Canapea: dreaptă, Brațe: înguste, Perne: separate, Adâncime corp principal: 95 cm; Cadru: îl alege firma"
+  ],
+  "firm": [
+   "Canapea: material=true opening=false"
+  ]
+ },
+ "PIECE_SOFA@v3/last": {
+  "dims": [
+   2.2,
+   0.95,
+   0.85
+  ],
+  "items": [
+   "1× Canapea | ALTUL |  | Configurat 3D: 220 × 85 × 95 cm (lățime × înălțime × adâncime), Tapițerie: țesătură, culoare #a69d8e, Fermitate preferată: medie, Bază: picioare stejar, Locuri: 3, Canapea: dreaptă, Brațe: înguste, Perne: separate, Adâncime corp principal: 95 cm; Cadru: îl alege firma"
+  ],
+  "firm": [
+   "Canapea: material=true opening=false"
+  ]
+ },
+ "PIECE_SOFA@v3/middle": {
+  "dims": [
+   2.2,
+   0.95,
+   0.85
+  ],
+  "items": [
+   "1× Canapea | ALTUL |  | Configurat 3D: 220 × 85 × 95 cm (lățime × înălțime × adâncime), Tapițerie: țesătură, culoare #a69d8e, Fermitate preferată: medie, Bază: picioare stejar, Locuri: 3, Canapea: dreaptă, Brațe: înguste, Perne: separate, Adâncime corp principal: 95 cm; Cadru: îl alege firma"
+  ],
+  "firm": [
+   "Canapea: material=true opening=false"
+  ]
+ },
+ "PIECE_SOFA@v3/requiredOnly": {
+  "dims": [
+   2.2,
+   0.95,
+   0.85
+  ],
+  "items": [
+   "1× Canapea | ALTUL |  | Configurat 3D: 220 × 85 × 95 cm (lățime × înălțime × adâncime), Tapițerie: țesătură, culoare #a69d8e, Fermitate preferată: medie, Bază: picioare stejar, Locuri: 3, Canapea: dreaptă, Brațe: înguste, Perne: separate, Adâncime corp principal: 95 cm; Cadru: îl alege firma"
+  ],
+  "firm": [
+   "Canapea: material=true opening=false"
+  ]
+ }
+}

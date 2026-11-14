@@ -40,6 +40,7 @@ import {
   type Piece3dCleanupNote,
   type Piece3dColumn,
   type Piece3dColumnLimit,
+  type Piece3dFeature,
   type Piece3dKind,
   type Piece3dSlideDirection,
   type Piece3dZone,
@@ -88,6 +89,9 @@ interface Configurator3dStepUIProps {
   onChange: (value: PieceConfig3d) => void;
   // primeste PNG-ul scenei (debounced) — folosit la publish pentru snapshot (R4)
   onSnapshot?: (dataUrl: string | null) => void;
+  // etapa 10: campurile 3D optionale declarate de pasul curent (Configurator3dStep.features);
+  // lipsa = niciunul → comenzile noi nu apar (versiunile vechi, Studio)
+  features?: readonly Piece3dFeature[];
 }
 
 function hasWebGl(): boolean {

@@ -56,16 +56,19 @@ const PIECE_ROW_FIELD_KEYS: Record<string, string> = {
 
 function dimensionIssue(step: Extract<QuestionStep, { type: 'dimension-group' }>, answers: AnswerMap): StepIssue | undefined {
   const status = dimensionSlotStatus(step, answers);
-  const missing = status.filter((s) => s.state === 'missing');
+  // etapa 10 (revizuire M1): un slot OPTIONAL ajunge "missing" doar cu o valoare care nu e
+  // numar (null = text nevalid scris de interfata) — e gresit, nu necompletat
+  const missing = status.filter((s) => s.state === 'missing' && !s.optional);
+  const badText = status.filter((s) => s.state === 'missing' && s.optional);
   const outOfRange = status.filter((s) => s.state === 'outOfRange');
-  if (missing.length === 0 && outOfRange.length === 0) return undefined;
+  if (missing.length === 0 && outOfRange.length === 0 && badText.length === 0) return undefined;
   const fields: NonNullable<StepIssue['fields']> = {};
   for (const s of missing) fields[s.id] = { key: 'validation.fillField' };
+  for (const s of badText) fields[s.id] = { key: 'validation.notANumber' };
   for (const s of outOfRange) fields[s.id] = { key: 'validation.dimensionRange' };
   // rezumatul de jos: cate campuri lipsesc; doar valori gresite → mesajul de interval
-  return missing.length > 0
-    ? { key: 'validation.dimensionsMissing', values: { count: missing.length }, fields }
-    : { key: 'validation.dimensionOutOfRange', fields };
+  if (missing.length > 0) return { key: 'validation.dimensionsMissing', values: { count: missing.length }, fields };
+  return outOfRange.length > 0 ? { key: 'validation.dimensionOutOfRange', fields } : { key: 'validation.answerInvalid', fields };
 }
 
 // Valideaza raspunsul unui pas; intoarce eroarea (cheie i18n + parametri) sau undefined.

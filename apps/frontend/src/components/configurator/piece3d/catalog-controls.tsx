@@ -1,6 +1,6 @@
 'use client';
 import { useTranslations } from 'next-intl';
-import { NEW_PIECE_RULES, UPHOLSTERY_FABRICS, SEAT_FIRMNESSES, SEATING_BASES, SOFA_LAYOUTS, type Piece3dKind, type PieceConfig3d } from '@marketplace/shared';
+import { NEW_PIECE_RULES, UPHOLSTERY_FABRICS, SEAT_FIRMNESSES, SEATING_BASES, SOFA_LAYOUTS, type Piece3dFeature, type Piece3dKind, type PieceConfig3d, type Sofa3d } from '@marketplace/shared';
 import { Select } from '@/components/ui/select';
 import { PieceDimensionControl } from './dimension-control';
 
@@ -9,7 +9,22 @@ function CatalogSize({ label, value, min, max, onChange }: { label: string; valu
   return <PieceDimensionControl label={label} valueM={value} minM={min} maxM={max} onValueM={onChange} />;
 }
 
-export function CatalogControls({ kind, config, apply }: { kind: Piece3dKind; config: PieceConfig3d; apply: (patch: Partial<PieceConfig3d>) => void }) {
+// etapa 10: comutatoarele canapelei — bifat = true, debifat = cheia scoasa (lipsa = "nu", ca azi)
+function sofaFlag(sofa: Sofa3d, key: 'sleeper' | 'storage', on: boolean): Sofa3d {
+  const next = { ...sofa };
+  if (on) next[key] = true;
+  else delete next[key];
+  return next;
+}
+
+export function CatalogControls({ kind, config, apply, features }: {
+  kind: Piece3dKind;
+  config: PieceConfig3d;
+  apply: (patch: Partial<PieceConfig3d>) => void;
+  // etapa 10: campurile noi declarate de pas (Configurator3dStep.features); lipsa = niciunul
+  features?: readonly Piece3dFeature[];
+}) {
+  const has = (f: Piece3dFeature) => features?.includes(f) === true;
   const t = useTranslations('Configurator');
   const label = (key: string) => t(`config3d.catalog.${key}`);
   const choice = (key: string, value: string | number, options: readonly (string | number)[], set: (v: string) => void) =>
@@ -34,6 +49,8 @@ export function CatalogControls({ kind, config, apply }: { kind: Piece3dKind; co
       {sofa.layout !== 'STRAIGHT' && <CatalogSize label={label('chaiseDepth')} value={sofa.chaiseDepthM} min={1.35} max={2} onChange={chaiseDepthM => apply({ sofa: { ...sofa, chaiseDepthM } })} />}
       {choice('arms', sofa.arms, ['SLIM', 'WIDE'], v => apply({ sofa: { ...sofa, arms: v as typeof sofa.arms } }))}
       {sofa.layout === 'STRAIGHT' && choice('cushions', sofa.cushions, ['SPLIT', 'BENCH'], v => apply({ sofa: { ...sofa, cushions: v as typeof sofa.cushions } }))}
+      {has('SOFA_SLEEPER') && toggle('sleeper', sofa.sleeper === true, on => apply({ sofa: sofaFlag(sofa, 'sleeper', on) }))}
+      {has('SOFA_STORAGE') && toggle('sofaStorage', sofa.storage === true, on => apply({ sofa: sofaFlag(sofa, 'storage', on) }))}
     </>}
     {armchair && choice('arms', armchair.arms, ['SLIM', 'WIDE'], v => apply({ armchair: { arms: v as typeof armchair.arms } }))}
     {ottoman && <>

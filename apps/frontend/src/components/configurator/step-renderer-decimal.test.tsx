@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
-import { getFlow, type AnswerMap, type AnswerValue, type QuestionStep } from '@marketplace/shared';
+import { ETAPA6_FLOW_VERSION, getFlow, type AnswerMap, type AnswerValue, type QuestionStep } from '@marketplace/shared';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import en from '@/messages/en.json';
@@ -14,7 +14,8 @@ vi.mock('./piece3d/dynamic', () => ({ Configurator3dStep: () => null }));
 vi.mock('./room-sketch-upload', () => ({ RoomSketchUpload: () => null }));
 
 // b1: campul comun de dimensiuni din pasii camerelor accepta virgula
-const step = getFlow('LAUNDRY').steps.find((s) => s.id === 'dimensions') as QuestionStep;
+// etapa 10 (valul 2): fixat pe spalatoria etapei 6 (runA + ceilingHeight)
+const step = getFlow('LAUNDRY', ETAPA6_FLOW_VERSION.LAUNDRY).steps.find((s) => s.id === 'dimensions') as QuestionStep;
 
 function Harness({ initial, onAnswers }: { initial?: AnswerValue; onAnswers: (a: AnswerMap) => void }) {
   const [answers, setAnswers] = useState<AnswerMap>(initial ? { dimensions: initial } : {});

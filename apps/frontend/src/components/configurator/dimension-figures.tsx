@@ -306,6 +306,44 @@ export function WallsPlanFigure({
   );
 }
 
+// Walk-in (etapa 10, §5.2): camera inchisa, mobilier pe trei pereti (A sus, B stanga,
+// C dreapta) si golul usii pe al patrulea perete.
+export function WalkInPlanFigure({ v = {} }: { v?: FigureValues }) {
+  const t = 7;
+  const [x, y, w, h] = [64, 40, 280, 200];
+  // golul usii pe peretele de jos, centrat
+  const doorL = x + w / 2 - 24;
+  const doorR = x + w / 2 + 24;
+  return (
+    <svg viewBox="0 0 470 280" className={SVG} aria-hidden="true" data-dimension-figure="walk-in">
+      <g className="text-muted-2" stroke="currentColor" fill="none">
+        <path d={`M${doorL} ${y + h} H${x} V${y} H${x + w} V${y + h} H${doorR}`} strokeWidth={1.6} />
+        <path
+          d={`M${doorL} ${y + h - t} H${x + t} V${y + t} H${x + w - t} V${y + h - t} H${doorR}`}
+          strokeWidth={1}
+          opacity={0.7}
+        />
+        <line x1={doorL} y1={y + h} x2={doorL} y2={y + h - t} strokeWidth={1.2} />
+        <line x1={doorR} y1={y + h} x2={doorR} y2={y + h - t} strokeWidth={1.2} />
+        {/* canatul usii + arcul de deschidere, spre interior */}
+        <g strokeWidth={1.2}>
+          <line x1={doorL} y1={y + h - t} x2={doorL} y2={y + h - t - 48} />
+          <path d={`M${doorL} ${y + h - t - 48} A48 48 0 0 1 ${doorR} ${y + h - t}`} opacity={0.7} />
+        </g>
+      </g>
+      <g className="text-walnut">
+        <Run x={x + t} y={y + t} w={w - 2 * t} h={34} />
+        <Run x={x + t} y={y + t + 34} w={34} h={h - 2 * t - 34 - 30} />
+        <Run x={x + w - t - 34} y={y + t + 34} w={34} h={h - 2 * t - 34 - 30} />
+      </g>
+      <DimH x1={x + t} x2={x + w - t} y={22} letter="A" ext={12} value={v.A} />
+      <DimV y1={y + t + 34} y2={y + h - t - 30} x={44} letter="B" ext={-14} value={v.B} />
+      <DimV y1={y + t + 34} y2={y + h - t - 30} x={364} letter="C" ext={16} value={v.C} />
+      <HeightGauge x={424} value={v.H} />
+    </svg>
+  );
+}
+
 export function BalconyPlanFigure({ v = {} }: { v?: FigureValues } = {}) {
   return (
     <svg viewBox="0 0 470 300" className={SVG} aria-hidden="true">
@@ -467,6 +505,11 @@ interface FrontPieceDef {
   top: number;
   bottom?: number;
   draw: (x: number, w: number) => React.ReactNode;
+  // etapa 10 (§8): piesa desenata fara slot si fara litera (patul, a doua noptiera);
+  // `key` = numele ei, `after` = slotId / key dupa care se aseaza in rand
+  extra?: boolean;
+  key?: string;
+  after?: string;
 }
 
 const HALLWAY_PIECES: FrontPieceDef[] = [
@@ -486,6 +529,8 @@ const HALLWAY_PIECES: FrontPieceDef[] = [
   },
   {
     slotId: 'coatUnitWidth',
+    // etapa 10 (hol v3): inaltimea optionala a cuierului
+    heightSlotId: 'coatUnitHeight',
     w: 68,
     top: 54,
     // cuier: polita sus + carlige
@@ -502,6 +547,7 @@ const HALLWAY_PIECES: FrontPieceDef[] = [
   },
   {
     slotId: 'wardrobeWidth',
+    heightSlotId: 'wardrobeHeight',
     w: 88,
     top: 54,
     // dulap: doua usi cu manere
@@ -562,7 +608,7 @@ export function FrontRowFigure({
   heightLetter?: string;
   v?: FigureValues;
 }) {
-  const pieces = defs.filter((p) => slotIds.includes(p.slotId));
+  const pieces = defs.filter((p) => p.extra || slotIds.includes(p.slotId));
   const anyPieceHeights = pieces.some((p) => p.heightSlotId && letters[p.heightSlotId]);
   const gap = anyPieceHeights ? 34 : 6;
   const sumW = pieces.reduce((s, p) => s + p.w, 0);
@@ -583,6 +629,7 @@ export function FrontRowFigure({
         {placed.map((p) => p.draw(p.x, p.sw))}
       </g>
       {placed.map((p) => {
+        if (p.extra) return null;
         const wLetter = letters[p.slotId] ?? '?';
         const hLetter = p.heightSlotId ? letters[p.heightSlotId] : undefined;
         return (
@@ -714,6 +761,8 @@ const LIVING_PIECES: FrontPieceDef[] = [
 const BEDROOM_PIECES: FrontPieceDef[] = [
   {
     slotId: 'wardrobeWidth',
+    // etapa 10 (dormitor v4): inaltimea optionala a dulapului
+    heightSlotId: 'wardrobeHeight',
     w: 88,
     top: 54,
     draw: (x, w) => (
@@ -789,10 +838,61 @@ const BEDROOM_PIECES: FrontPieceDef[] = [
   },
 ];
 
+// Dormitor (etapa 10, §8): patul ca silueta fara litera (latimea vine din saltea) si a
+// doua noptiera, ca noptierele sa apara ca pereche, cate una de fiecare parte a patului.
+const BEDROOM_BED: FrontPieceDef = {
+  slotId: '',
+  extra: true,
+  key: 'bed',
+  after: 'nightstandWidth',
+  w: 120,
+  top: 150,
+  draw: (x, w) => (
+    <g key="bed" data-figure-extra="bed">
+      {/* tablia, in spate */}
+      <rect x={x + 4} y={150} width={w - 8} height={56} rx={4} fill="currentColor" fillOpacity={0.05} />
+      {/* salteaua + cadrul */}
+      <rect x={x} y={192} width={w} height={16} rx={5} fill="currentColor" fillOpacity={0.12} />
+      <rect x={x} y={208} width={w} height={26} fill="currentColor" fillOpacity={0.08} />
+      <line x1={x + 6} y1={234} x2={x + 6} y2={244} />
+      <line x1={x + w - 6} y1={234} x2={x + w - 6} y2={244} />
+    </g>
+  ),
+};
+
+const BEDROOM_NIGHTSTAND_RIGHT: FrontPieceDef = {
+  slotId: '',
+  extra: true,
+  key: 'nightstandRight',
+  after: 'bed',
+  w: 46,
+  top: 174,
+  draw: (x, w) => (
+    <g key="nightstand-right" data-figure-extra="nightstand">
+      <rect x={x} y={174} width={w} height={70} fill="currentColor" fillOpacity={0.08} />
+      <line x1={x} y1={209} x2={x + w} y2={209} />
+      <line x1={x + w / 2 - 9} y1={191} x2={x + w / 2 + 9} y2={191} strokeWidth={2.4} />
+    </g>
+  ),
+};
+
+function bedroomExtras(answers: AnswerMap, slotIds: string[]): FrontPieceDef[] {
+  const pieces = Array.isArray(answers.piecesNeeded) ? (answers.piecesNeeded as string[]) : [];
+  const hasBed = pieces.includes('BED_FRAME');
+  const hasNightstands = slotIds.includes('nightstandWidth');
+  const out: FrontPieceDef[] = [];
+  if (hasBed) out.push(BEDROOM_BED);
+  // fara pat, a doua noptiera sta direct langa prima
+  if (hasNightstands) out.push(hasBed ? BEDROOM_NIGHTSTAND_RIGHT : { ...BEDROOM_NIGHTSTAND_RIGHT, after: 'nightstandWidth' });
+  return out;
+}
+
 // Birou (camera): piesele fara birou; biroul are vederea de sus proprie.
 const OFFICE_FRONT_PIECES: FrontPieceDef[] = [
   {
     slotId: 'bookshelfWidth',
+    // etapa 10 (birou v4): inaltimi optionale
+    heightSlotId: 'bookshelfHeight',
     w: 72,
     top: 64,
     draw: (x, w) => (
@@ -806,6 +906,7 @@ const OFFICE_FRONT_PIECES: FrontPieceDef[] = [
   },
   {
     slotId: 'storageWidth',
+    heightSlotId: 'storageHeight',
     w: 84,
     top: 74,
     draw: (x, w) => (
@@ -850,6 +951,8 @@ const BATHROOM_PIECES: FrontPieceDef[] = [
   },
   {
     slotId: 'mirrorWidth',
+    // etapa 10 (baie v4): inaltimi optionale
+    heightSlotId: 'mirrorHeight',
     w: 56,
     top: 64,
     bottom: 144,
@@ -864,6 +967,7 @@ const BATHROOM_PIECES: FrontPieceDef[] = [
   },
   {
     slotId: 'tallStorageWidth',
+    heightSlotId: 'tallStorageHeight',
     w: 44,
     top: 54,
     draw: (x, w) => (
@@ -1005,7 +1109,7 @@ function rowLetters(
   defs: FrontPieceDef[],
   slotIds: string[],
 ): { letters: Record<string, string>; widthSlots: string[] } {
-  const selected = defs.filter((p) => slotIds.includes(p.slotId));
+  const selected = defs.filter((p) => !p.extra && slotIds.includes(p.slotId));
   const letters: Record<string, string> = {};
   let heights = 0;
   selected.forEach((p, i) => {
@@ -1037,15 +1141,18 @@ function rowFigure(
   slotIds: string[],
   values: Record<string, string> | undefined,
   ceilingSlot?: string,
+  // etapa 10 (§8): piesele fara slot (desenate, fara litera), asezate dupa `after`
+  extras: FrontPieceDef[] = [],
 ): DimensionFigure | null {
   const { letters, widthSlots } = rowLetters(defs, slotIds);
+  const rowDefs = withExtras(defs, slotIds, extras);
   if (widthSlots.length === 0) return null;
   const withHeight = Boolean(ceilingSlot && slotIds.includes(ceilingSlot));
   if (ceilingSlot && withHeight) letters[ceilingSlot] = 'H';
   return {
     node: (
       <FrontRowFigure
-        defs={defs}
+        defs={rowDefs}
         slotIds={slotIds}
         letters={letters}
         withHeight={withHeight}
@@ -1054,6 +1161,19 @@ function rowFigure(
     ),
     letters,
   };
+}
+
+// Randul de piese cu extras inserate: dupa piesa (aleasa) / extra-ul numit in `after`,
+// altfel la capat.
+function withExtras(defs: FrontPieceDef[], slotIds: string[], extras: FrontPieceDef[]): FrontPieceDef[] {
+  if (extras.length === 0) return defs;
+  const out = defs.filter((p) => slotIds.includes(p.slotId));
+  for (const e of extras) {
+    const i = e.after ? out.findIndex((p) => (p.extra ? p.key : p.slotId) === e.after) : -1;
+    if (i >= 0) out.splice(i + 1, 0, e);
+    else out.push(e);
+  }
+  return out;
 }
 
 export function getDimensionFigure(
@@ -1101,10 +1221,15 @@ function figureFor(
       };
     }
     case 'DRESSING': {
-      const runs = DRESSING_RUNS[String(answers.layout)] ?? 1;
+      // etapa 10 (§5.2): numarul laturilor vine din sloturile pasului (v5: walk-in cu A / B / C;
+      // v3 / v4 raman cu 2), cu rezerva pe forma
+      const fromSlots = Object.keys(RUNS_LETTERS).filter((id) => slotIds.includes(id)).length;
+      const runs = fromSlots > 0 ? fromSlots : (DRESSING_RUNS[String(answers.layout)] ?? 1);
       const letters = { ...RUNS_LETTERS, wardrobeHeight: 'H' };
+      const v = byLetter(letters, values);
       return {
-        node: <WallsPlanFigure runs={runs} v={byLetter(letters, values)} />,
+        node:
+          answers.layout === 'WALK_IN' && runs >= 3 ? <WalkInPlanFigure v={v} /> : <WallsPlanFigure runs={runs} v={v} />,
         letters,
       };
     }
@@ -1140,7 +1265,7 @@ function figureFor(
         const letters = { bedCustomWidth: 'A', bedCustomLength: 'B' };
         return { node: <MattressFigure v={byLetter(letters, values)} />, letters };
       }
-      return rowFigure(BEDROOM_PIECES, slotIds, values, 'ceilingHeight');
+      return rowFigure(BEDROOM_PIECES, slotIds, values, 'ceilingHeight', bedroomExtras(answers, slotIds));
     case 'BATHROOM':
       return rowFigure(BATHROOM_PIECES, slotIds, values, 'ceilingHeight');
     case 'OFFICE': {
@@ -1161,8 +1286,15 @@ function figureFor(
       // literele randului continua dupa cele ale biroului (A-C rezervate)
       const offset = hasDesk ? 3 : 0;
       const rowLettersShifted: Record<string, string> = {};
+      let heights = 0;
       widthSlots.forEach((id, i) => {
         rowLettersShifted[id] = String.fromCharCode(65 + offset + i);
+        // etapa 10 (birou v4): inaltimea optionala a piesei → H1, H2… (ca living)
+        const heightSlot = OFFICE_FRONT_PIECES.find((p) => p.slotId === id)?.heightSlotId;
+        if (heightSlot && rowSlotIds.includes(heightSlot)) {
+          heights += 1;
+          rowLettersShifted[heightSlot] = `H${heights}`;
+        }
       });
       const withHeight = slotIds.includes('ceilingHeight');
       if (withHeight) rowLettersShifted.ceilingHeight = 'H';

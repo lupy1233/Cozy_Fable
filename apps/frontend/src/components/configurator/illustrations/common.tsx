@@ -93,4 +93,34 @@ export function IlluMirrorMetal({ className }: IllustrationProps) {
   );
 }
 
+// --- Etapa 10: cine aduce lavoarul (baie v4) ---
+
+// "Il aduc eu": cutie + persoana
+export function IlluSupplyClient({ className }: IllustrationProps) {
+  return (
+    <Svg className={className}>
+      <circle cx="38" cy="22" r="8" />
+      <path d="M24 76V50a14 14 0 0 1 28 0v26" />
+      <path d="M50 52l12 6" strokeWidth={2.5} />
+      <rect x="62" y="44" width="34" height="30" rx="2" />
+      <path d="M62 54h34M79 44v10" strokeWidth={2} />
+    </Svg>
+  );
+}
+
+// "Sa-l aduca firma": cutie in camionul de livrare
+export function IlluSupplyFirm({ className }: IllustrationProps) {
+  return (
+    <Svg className={className}>
+      <path d="M14 64V28h54v36" />
+      <path d="M68 40h18l14 14v10H68" />
+      <path d="M76 40v14h24" strokeWidth={2} />
+      <circle cx="32" cy="68" r="7" />
+      <circle cx="86" cy="68" r="7" />
+      <rect x="28" y="36" width="24" height="20" rx="1.5" strokeWidth={2} />
+      <path d="M28 44h24M40 36v8" strokeWidth={1.5} />
+    </Svg>
+  );
+}
+
 export { Svg as IllustrationSvg };

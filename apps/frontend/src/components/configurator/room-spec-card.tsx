@@ -133,6 +133,13 @@ export function RoomSpecCard({
   // clientul in unitatea aleasa in formular (c4, PO c4-1).
   const fmtM = (v: number) => format.number(v, { maximumFractionDigits: 2 });
   const dimOpts = { unit: dimUnit, locale };
+  // slot optional gol (etapa 10): clientul vede textul lui, firma "nespecificată de client (de obicei …)"
+  const missingDimText = (typicalM?: number): string => {
+    if (audience === 'client') return t('dimensions.notGiven');
+    return typeof typicalM === 'number'
+      ? t('roomSpec.dimNotGiven', { value: formatDimension(typicalM, { unit: 'cm', locale }) })
+      : t('roomSpec.dimNotGivenPlain');
+  };
   const isRoom = ROOM_KIND[room.roomType] === 'room';
   const ceiling = dims?.slots.find((s) => s.labelKey === CEILING_SLOT_LABEL)?.value;
   const headerParts: string[] = [];
@@ -329,9 +336,13 @@ export function RoomSpecCard({
         )}
 
         {/* dimensiunile raspunse (sloturile exacte) */}
-        {dims && dims.slots.length > 0 && (
+        {dims && (dims.slots.length > 0 || (dims.missing?.length ?? 0) > 0) && (
           <p className="font-mono text-xs text-muted-foreground">
-            {dims.slots.map((s) => `${t(s.labelKey)}: ${formatDimension(s.value, dimOpts)}`).join(' · ')}
+            {[
+              ...dims.slots.map((s) => `${t(s.labelKey)}: ${formatDimension(s.value, dimOpts)}`),
+              // etapa 10 (E10-N21): sloturile optionale lasate goale; firma vede valoarea tipica in cm
+              ...(dims.missing ?? []).map((s) => `${t(s.labelKey)}: ${missingDimText(s.typicalM)}`),
+            ].join(' · ')}
           </p>
         )}
 

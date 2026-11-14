@@ -260,7 +260,7 @@ describe('summarizeAnswers', () => {
 
 describe('deriveRoom pentru toate flow-urile → forma valida', () => {
   it('fiecare flow deriva o camera cu minim un item si dimensiuni pozitive', () => {
-    // raspunsuri minime pentru VERSIUNEA CURENTA a fiecarui flow.
+    // raspunsuri minime pentru versiunea ETAPEI 6 a fiecarui flow (fixata explicit la comutarea etapei 10).
     // Record<RoomType, ...> — exhaustiv la compilare: un RoomType nou fara
     // raspunsuri minimale aici nu compileaza.
     const minimal: Record<(typeof ROOM_TYPES)[number], AnswerMap> = {
@@ -396,10 +396,10 @@ describe('deriveRoom pentru toate flow-urile → forma valida', () => {
     };
 
     for (const roomType of ROOM_TYPES) {
-      const flow = getFlow(roomType);
+      const flow = getFlow(roomType, ETAPA6_FLOW_VERSION[roomType]);
       const answers = minimal[roomType];
       // sanity: raspunsurile minime trec validarea la publish
-      const valid = validateRoomAnswers(roomType, answers, { partial: false });
+      const valid = validateRoomAnswers(roomType, answers, { partial: false, version: ETAPA6_FLOW_VERSION[roomType] });
       expect(valid, `${roomType} answers valide`).toEqual({ ok: true });
 
       const derived = flow.deriveRoom(answers);
@@ -558,8 +558,8 @@ describe('kitchen v3 — 6 sectiuni fixe, acelasi material implicit (PO 2026-11-
   };
 
   it('bucataria noua a pornit pe v3 pana la etapa 6; acum porneste pe v4, iar v3 ramane inregistrata', () => {
-    expect(CURRENT_FLOW_VERSION.KITCHEN).toBe(4);
-    expect(getFlow('KITCHEN').version).toBe(4);
+    expect(ETAPA6_FLOW_VERSION.KITCHEN).toBe(4);
+    expect(getFlow('KITCHEN', 4).version).toBe(4);
     expect(getFlow('KITCHEN', 3).version).toBe(3);
   });
 
@@ -768,19 +768,19 @@ describe('collectScoreEntries — regresie fata de semantica SizingService', () 
 describe('v2 pentru dressing/living/bedroom/office — versiuni si compatibilitate FROZEN', () => {
   it('versiunile curente (etapa 6: toate pe versiunea noua)', () => {
     // inainte de etapa 6: DRESSING/LIVING 3, BEDROOM/OFFICE/PANTRY/LAUNDRY/BALCONY 2, HALLWAY/PIECES 1, piesele ghidate 3
-    expect(CURRENT_FLOW_VERSION.DRESSING).toBe(4);
-    expect(CURRENT_FLOW_VERSION.LIVING).toBe(4);
-    expect(CURRENT_FLOW_VERSION.BEDROOM).toBe(3);
-    expect(CURRENT_FLOW_VERSION.OFFICE).toBe(3);
-    expect(CURRENT_FLOW_VERSION.HALLWAY).toBe(2);
-    expect(CURRENT_FLOW_VERSION.PANTRY).toBe(3);
-    expect(CURRENT_FLOW_VERSION.LAUNDRY).toBe(3);
-    expect(CURRENT_FLOW_VERSION.BALCONY).toBe(3);
-    expect(CURRENT_FLOW_VERSION.PIECE_WARDROBE).toBe(4);
-    expect(CURRENT_FLOW_VERSION.PIECE_BED).toBe(4);
-    expect(CURRENT_FLOW_VERSION.PIECE_TABLE).toBe(4);
-    expect(CURRENT_FLOW_VERSION.PIECE_BENCH).toBe(4);
-    expect(CURRENT_FLOW_VERSION.PIECES).toBe(2);
+    expect(ETAPA6_FLOW_VERSION.DRESSING).toBe(4);
+    expect(ETAPA6_FLOW_VERSION.LIVING).toBe(4);
+    expect(ETAPA6_FLOW_VERSION.BEDROOM).toBe(3);
+    expect(ETAPA6_FLOW_VERSION.OFFICE).toBe(3);
+    expect(ETAPA6_FLOW_VERSION.HALLWAY).toBe(2);
+    expect(ETAPA6_FLOW_VERSION.PANTRY).toBe(3);
+    expect(ETAPA6_FLOW_VERSION.LAUNDRY).toBe(3);
+    expect(ETAPA6_FLOW_VERSION.BALCONY).toBe(3);
+    expect(ETAPA6_FLOW_VERSION.PIECE_WARDROBE).toBe(4);
+    expect(ETAPA6_FLOW_VERSION.PIECE_BED).toBe(4);
+    expect(ETAPA6_FLOW_VERSION.PIECE_TABLE).toBe(4);
+    expect(ETAPA6_FLOW_VERSION.PIECE_BENCH).toBe(4);
+    expect(ETAPA6_FLOW_VERSION.PIECES).toBe(2);
   });
 
   it('raspunsurile v1 raman valide contra versiunii 1 (FROZEN), dar nu contra v2', () => {
@@ -1267,7 +1267,8 @@ describe('etapa 6 — motor', () => {
       expect(getFlow(roomType, v).roomType, roomType).toBe(roomType);
       expect(before, roomType).toEqual(Array.from({ length: v - 1 }, (_, i) => i + 1));
       expect(before.every((old) => isFlowVersionRegistered(roomType, old)), roomType).toBe(true);
-      expect(CURRENT_FLOW_VERSION[roomType], roomType).toBe(v);
+      // etapa 10 (valul 2): curentul a trecut mai departe, pe ETAPA10_FLOW_VERSION
+      expect(CURRENT_FLOW_VERSION[roomType], roomType).toBe(ETAPA10_FLOW_VERSION[roomType]);
       expect(v, roomType).toBeGreaterThan(Math.max(...before));
     }
   });
@@ -1399,7 +1400,7 @@ describe('etapa 10 — motor', () => {
     expect(stepAnswerSchema(step('PIECE_BENCH'), {}).safeParse({ ...bench, bench: { ...bench.bench!, customHeightM: 0.45 } }).success).toBe(false);
   });
 
-  it('ETAPA6_FLOW_VERSION ramane pe valorile de azi; cele 14 versiuni noi sunt inregistrate, dar CURRENT_FLOW_VERSION nu se muta', () => {
+  it('ETAPA6_FLOW_VERSION ramane pe valorile etapei 6; cele 14 versiuni noi sunt inregistrate si CURRENT_FLOW_VERSION = ETAPA10 (valul 2)', () => {
     const NEW: Partial<Record<RoomType, number>> = {
       KITCHEN: 5, DRESSING: 5, LIVING: 5, OFFICE: 4, BEDROOM: 4, BATHROOM: 4, PANTRY: 4, LAUNDRY: 4, BALCONY: 4, HALLWAY: 3,
       PIECE_BED: 5, PIECE_TABLE: 5, PIECE_BENCH: 5, PIECE_SOFA: 3,
@@ -1411,7 +1412,7 @@ describe('etapa 10 — motor', () => {
       expect(isFlowVersionRegistered(rt, v), rt).toBe(true);
       expect(getFlow(rt, v).version, rt).toBe(v);
       expect(getFlow(rt, v).roomType, rt).toBe(rt);
-      expect(CURRENT_FLOW_VERSION[rt], rt).toBe(ETAPA6_FLOW_VERSION[rt]);
+      expect(CURRENT_FLOW_VERSION[rt], rt).toBe(ETAPA10_FLOW_VERSION[rt]);
       expect(FLOW_VERSIONS_BEFORE_ETAPA10[rt], rt).toEqual([...FLOW_VERSIONS_BEFORE_ETAPA6[rt], ETAPA6_FLOW_VERSION[rt]]);
       // registrul = versiunile de dinainte + (cel mult) versiunea noua
       const expected = NEW[rt] ? [...FLOW_VERSIONS_BEFORE_ETAPA10[rt], NEW[rt]!] : FLOW_VERSIONS_BEFORE_ETAPA10[rt];

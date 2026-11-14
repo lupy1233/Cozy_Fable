@@ -32,6 +32,8 @@ const rangeM = (r: { min: number; max: number }) =>
     .max(r.max, 'validation.dimensionOutOfRange');
 
 export const bedOptionsSchema = z.object({
+  // obligatoriu (cererile vechi). Cu customSize (etapa 10) ramane salvata ultima marime standard,
+  // dar NU mai e folosita: gabaritul, geometria, descrierea, chips si costul citesc intai customSize
   mattressSize: z.enum(BED_MATTRESS_SIZES),
   storage: z.enum(BED_STORAGES),
   upholstered: z.boolean(),
@@ -80,12 +82,42 @@ const tableRoundAcceptedMin = (type: keyof typeof TABLE_ROUND_DIAMETER) =>
   Math.min(0.7, TABLE_ROUND_DIAMETER[type].min);
 
 // Gabaritul include cadrul. Dimensiunile saltelei raman separate pentru oferta/scoring.
+// Etapa 10 (BED_CUSTOM_SIZE): cu "Alta marime" latimea vine din customSize.widthM, iar adancimea
+// = lungimea saltelei + 20 cm (2,2 m la salteaua standard de 200). Fara customSize: ca inainte.
 export function bedFootprint(bed: BedOptions3d): { widthM: number; depthM: number } {
   const rail = bed.upholstered ? 0.09 : 0.045;
+  const mattressW = bed.customSize?.widthM ?? BED_MATTRESS_WIDTH[bed.mattressSize];
   return {
-    widthM: Math.round((BED_MATTRESS_WIDTH[bed.mattressSize] + rail * 2 + 0.04) * 1000) / 1000,
-    depthM: 2.2,
+    widthM: Math.round((mattressW + rail * 2 + 0.04) * 1000) / 1000,
+    depthM: bed.customSize ? Math.round((bed.customSize.lengthM + 0.2) * 1000) / 1000 : 2.2,
   };
+}
+
+// Etapa 10 (TABLE_OPEN_LENGTH): lungimea deschisa a mesei extensibile, fata de lungimea inchisa.
+export function tableOpenLengthRange(widthM: number): { min: number; max: number } {
+  return {
+    min: Math.round((widthM + 0.3) * 1000) / 1000,
+    max: Math.round(Math.min(widthM + 1.2, TABLE_OPEN_LENGTH_ACCEPTED.max) * 1000) / 1000,
+  };
+}
+
+// Etapa 10: inaltimea mesei (TABLE_CUSTOM_HEIGHT) e valabila doar in intervalul tipului ei.
+export function tableCustomHeightFits(type: TableOptions3d['type'], heightM: number): boolean {
+  const r = TABLE_CUSTOM_HEIGHT[type];
+  return heightM >= r.min - 1e-9 && heightM <= r.max + 1e-9;
+}
+
+// Etapa 10: textele pentru firma ale campurilor noi (doar cand campul exista — descrierile
+// configuratiilor vechi raman identice).
+export function describeFurnitureOptions(config: PieceConfig3d): string[] {
+  const cm = (v: number) => Math.round(v * 100);
+  const parts: string[] = [];
+  const size = config.bed?.customSize;
+  if (size) parts.push(`Saltea: ${cm(size.widthM)} × ${cm(size.lengthM)} cm (altă mărime)`);
+  if (config.table?.openLengthM !== undefined) parts.push(`Lungime deschisă: ${cm(config.table.openLengthM)} cm`);
+  if (config.table?.customHeightM !== undefined) parts.push(`Înălțime: ${cm(config.table.customHeightM)} cm`);
+  if (config.bench?.customHeightM !== undefined) parts.push(`Înălțime: ${cm(config.bench.customHeightM)} cm`);
+  return parts;
 }
 
 export function defaultFurnitureConfig(kind: Piece3dKind): PieceConfig3d {
@@ -129,19 +161,43 @@ export function normalizeFurnitureConfig(kind: Piece3dKind, config: PieceConfig3
     } else table.seats ??= 'SIX';
     const limits = TABLE_LENGTH_LIMITS[table.type];
     const widthM = table.shape === 'ROUND' ? clamp(config.widthM, tableRoundAcceptedMin(table.type), 1.8) : clamp(config.widthM, limits.min, limits.max);
-    return { ...next, widthM, depthM: table.shape === 'ROUND' ? widthM : clamp(config.depthM, 0.4, 1.2), heightM: TABLE_HEIGHT[table.type], table };
+    // etapa 10: lungimea deschisa doar la masa extensibila, in intervalul fata de lungimea inchisa
+    if (table.shape !== 'EXTENDABLE') delete table.openLengthM;
+    else if (table.openLengthM !== undefined) {
+      const open = tableOpenLengthRange(widthM);
+      table.openLengthM = clamp(table.openLengthM, open.min, open.max);
+    }
+    // etapa 10: inaltimea aleasa doar in intervalul tipului (la schimbarea tipului revine la implicit)
+    if (table.customHeightM !== undefined) {
+      if (tableCustomHeightFits(table.type, table.customHeightM)) table.customHeightM = clamp(table.customHeightM, 0, 1);
+      else delete table.customHeightM;
+    }
+    return { ...next, widthM, depthM: table.shape === 'ROUND' ? widthM : clamp(config.depthM, 0.4, 1.2), heightM: table.customHeightM ?? TABLE_HEIGHT[table.type], table };
   }
   const bench = benchOptionsSchema.parse(config.bench ?? defaultFurnitureConfig('BENCH').bench);
-  return { ...next, widthM: clamp(config.widthM, 0.6, 2), heightM: 0.45, depthM: 0.4, bench };
+  return { ...next, widthM: clamp(config.widthM, 0.6, 2), heightM: bench.customHeightM ?? 0.45, depthM: 0.4, bench };
 }
+
+const sameOptional = (a: number | undefined, b: number | undefined) =>
+  a === undefined ? b === undefined : b !== undefined && Math.abs(a - b) < 1e-6;
 
 export function validFurnitureConfig(kind: Piece3dKind, config: PieceConfig3d): boolean {
   if (!isFurnitureKind(kind)) return !config.bed && !config.table && !config.bench;
   if (config.columns.length || config.frontStyle !== undefined || config.doorMode !== undefined || config.legs !== undefined) return false;
   if ((kind === 'BED') !== !!config.bed || (kind === 'TABLE') !== !!config.table || (kind === 'BENCH') !== !!config.bench) return false;
-  const canonical = normalizeFurnitureConfig(kind, config);
+  // etapa 10: o optiune in afara plajei (ex. inaltimea bancutei) e deja o eroare a schemei; aici
+  // doar nu lasam curatarea sa arunce in mijlocul validarii
+  let canonical: PieceConfig3d;
+  try {
+    canonical = normalizeFurnitureConfig(kind, config);
+  } catch {
+    return false;
+  }
   return Math.abs(canonical.widthM - config.widthM) < 1e-6 &&
     Math.abs(canonical.depthM - config.depthM) < 1e-6 &&
     Math.abs(canonical.heightM - config.heightM) < 1e-6 &&
-    canonical.table?.type === config.table?.type && canonical.table?.shape === config.table?.shape && canonical.table?.seats === config.table?.seats;
+    canonical.table?.type === config.table?.type && canonical.table?.shape === config.table?.shape && canonical.table?.seats === config.table?.seats &&
+    // etapa 10: lungimea deschisa (doar la extensibila, in interval) si inaltimea pe tip
+    sameOptional(canonical.table?.openLengthM, config.table?.openLengthM) &&
+    sameOptional(canonical.table?.customHeightM, config.table?.customHeightM);
 }

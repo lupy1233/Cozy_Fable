@@ -127,7 +127,10 @@ export function describeCatalogOptions(config: PieceConfig3d): string[] {
   const u = config.upholstery;
   if (u) parts.push(`Tapițerie: ${label(u.fabric)}, culoare ${u.color}`, `Fermitate preferată: ${label(u.firmness)}`, `Bază: ${label(u.base)}`);
   if (config.sofa) parts.push(`Locuri: ${config.sofa.seats}`, `Canapea: ${label(config.sofa.layout)}`, `Brațe: ${label(config.sofa.arms)}`, `Perne: ${label(config.sofa.cushions)}`, `Adâncime corp principal: ${Math.round(config.sofa.bodyDepthM * 100)} cm`,
-    ...(config.sofa.layout === 'STRAIGHT' ? [] : [`Adâncime totală cu șezlong: ${Math.round(pieceDepth(config) * 100)} cm`]));
+    ...(config.sofa.layout === 'STRAIGHT' ? [] : [`Adâncime totală cu șezlong: ${Math.round(pieceDepth(config) * 100)} cm`]),
+    // etapa 10 (SOFA_SLEEPER / SOFA_STORAGE): doar cand campul exista (descrierile vechi identice)
+    ...(config.sofa.sleeper === undefined ? [] : [`Extensibilă: ${yesNo(config.sofa.sleeper)}`]),
+    ...(config.sofa.storage === undefined ? [] : [`Ladă de depozitare: ${yesNo(config.sofa.storage)}`]));
   if (config.armchair) parts.push(`Brațe: ${label(config.armchair.arms)}`);
   if (config.ottoman) parts.push(`Formă: ${label(config.ottoman.shape)}`, `Depozitare: ${yesNo(config.ottoman.storage)}`);
   if (config.vanity) parts.push(`Montaj: ${label(config.vanity.mounting)}`, `Lavoare: ${label(config.vanity.basins)}`, `Depozitare: ${storageLabel(config.vanity.storage)}`,

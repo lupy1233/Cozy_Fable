@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { validateRoomAnswers } from '../engine';
 import { sofaSchema } from './catalog-config';
-import { defaultPieceConfig, PIECE3D_KINDS, type PieceConfig3d } from './config';
+import { defaultPieceConfig, PIECE3D_KINDS, pieceConfig3dSchema, type PieceConfig3d } from './config';
 import { PIECE3D_FEATURES, piece3dFeaturesUsed } from './features';
 import { bedOptionsSchema, benchOptionsSchema, tableOptionsSchema } from './furniture-config';
 
@@ -66,5 +67,20 @@ describe('etapa 10 — schemele primesc campurile noi doar ca optionale', () => 
     expect(benchOptionsSchema.safeParse({ ...base, customHeightM: 0.55 }).success).toBe(true);
     expect(benchOptionsSchema.safeParse({ ...base, customHeightM: 0.34 }).success).toBe(false);
     expect(benchOptionsSchema.safeParse({ ...base, customHeightM: 0.56 }).success).toBe(false);
+  });
+});
+
+// Revizuire 3D (m6): schema Studio valideaza piesa doar cu pieceConfig3dSchema (fara `features`). Inofensiv:
+// scenele Studio se salveaza si se afiseaza read-only; o piesa ajunge in cerere doar ca answers.config3d al
+// unei camere, validat la publicare de motor pe versiunea camerei (studio-publication.ts cere config identic).
+describe('etapa 10 — Studio: campurile noi trec de schema piesei, dar intra in cerere doar prin `features`', () => {
+  it('canapea extensibila: acceptata de pieceConfig3dSchema; in cerere respinsa pe v2, primita pe v3', () => {
+    const sofa = defaultPieceConfig('SOFA');
+    const sleeper: PieceConfig3d = { ...sofa, sofa: { ...sofa.sofa!, sleeper: true, storage: true } };
+    expect(pieceConfig3dSchema('SOFA').safeParse(sleeper).success).toBe(true);
+    expect(validateRoomAnswers('PIECE_SOFA', { config3d: sleeper }, { partial: true, version: 2 })).toEqual({
+      ok: false, errors: [{ stepId: 'config3d', messageKey: 'validation.unknownAnswer' }],
+    });
+    expect(validateRoomAnswers('PIECE_SOFA', { config3d: sleeper }, { partial: true, version: 3 })).toEqual({ ok: true });
   });
 });

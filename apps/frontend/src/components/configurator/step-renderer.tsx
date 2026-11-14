@@ -143,6 +143,27 @@ const cnUnit = (active: boolean) =>
   'rounded-full px-2 py-0.5 uppercase tracking-[0.06em] transition-colors ' +
   (active ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground');
 
+// Rangul unei litere de pe plansa (etapa 10, §8): A, B, C… (alfabetic), apoi H1, H2…,
+// apoi H (tavanul / inaltimea camerei) la final.
+function letterRank(letter: string): [number, number] {
+  if (letter === 'H') return [2, 0];
+  const h = /^H(\d+)$/.exec(letter);
+  if (h) return [1, Number(h[1])];
+  return [0, letter.codePointAt(0) ?? 0];
+}
+
+// Sloturile cu litera in ordinea literelor, cele fara litera dupa ele, in ordinea fluxului.
+export function sortSlotsByLetter<T extends { id: string }>(slots: readonly T[], letters: Record<string, string>): T[] {
+  const lettered = slots.filter((s) => letters[s.id]);
+  const rest = slots.filter((s) => !letters[s.id]);
+  lettered.sort((a, b) => {
+    const [ga, na] = letterRank(letters[a.id]!);
+    const [gb, nb] = letterRank(letters[b.id]!);
+    return ga - gb || na - nb;
+  });
+  return [...lettered, ...rest];
+}
+
 // Campul comun de dimensiuni din pasii camerelor (b1): text cu virgula, ciorna
 // locala a textului; in raspuns se scrie doar textul care se poate citi.
 function DimensionSlotInput({
@@ -163,14 +184,15 @@ function DimensionSlotInput({
   outOfRange: boolean;
   // camp gol marcat dupa un "Continua" respins (39)
   missing: boolean;
-  onMeters: (meters: number | undefined) => void;
+  // invalid = text care nu se poate citi (etapa 10: la slotul optional se scrie null, ca sa nu para gol)
+  onMeters: (meters: number | undefined, invalid: boolean) => void;
   hint: React.ReactNode;
   hintId: string;
 }) {
   const field = useDecimalField({
     value: metersVal === undefined ? undefined : metersVal * factor,
     commitOn: 'change',
-    onValue: (v) => onMeters(v === undefined ? undefined : v / factor),
+    onValue: (v, info) => onMeters(v === undefined ? undefined : v / factor, info?.invalid === true),
   });
   const invalid = outOfRange || missing || field.error !== null;
   const errorId = `${id}-error`;
@@ -472,6 +494,9 @@ export function StepRenderer(props: StepRendererProps) {
       Number.isFinite(values[slot.id]) && (values[slot.id] < slot.min || values[slot.id] > slot.max);
     const isMissing = (slotId: string) =>
       fieldIssues[slotId]?.key === 'validation.fillField' && !Number.isFinite(values[slotId]);
+    // etapa 10 (revizuire M1): slot optional cu text nevalid (salvat null) dupa "Continua"
+    const isBadText = (slotId: string) =>
+      fieldIssues[slotId]?.key === 'validation.notANumber' && !Number.isFinite(values[slotId]);
     // plansa cu litere (A/B/C/H...) — valorile completate apar si langa litere
     // pe desen (feedback PO 2026-07-13), pe langa legenda si campuri
     const valueLabels: Record<string, string> = {};
@@ -479,13 +504,16 @@ export function StepRenderer(props: StepRendererProps) {
       if (Number.isFinite(values[s.id])) valueLabels[s.id] = formatDimension(values[s.id], fmt);
     }
     // 38: cota gresita (in afara intervalului sau goala dupa "Continua") e rosie pe schita
-    const invalidSlots = slots.filter((s) => isOutOfRange(s) || isMissing(s.id)).map((s) => s.id);
+    const invalidSlots = slots.filter((s) => isOutOfRange(s) || isMissing(s.id) || isBadText(s.id)).map((s) => s.id);
     const figure =
       step.id === 'dimensions' || step.id === 'bedCustomSize'
         ? getDimensionFigure(roomType, answers, slots.map((s) => s.id), valueLabels, invalidSlots)
         : null;
     const letterOf = (slotId: string) => figure?.letters[slotId];
-    const legend = slots
+    // etapa 10 (§8): cu plansa, campurile apar in ordinea literelor (A, B, C…, H1, H2…, H
+    // la final), cele fara litera dupa ele, in ordinea fluxului. Doar afisarea; raspunsul nu se schimba.
+    const orderedSlots = figure ? sortSlotsByLetter(slots, figure.letters) : slots;
+    const legend = orderedSlots
       .filter((s) => letterOf(s.id) && Number.isFinite(values[s.id]))
       .map((s) => `${letterOf(s.id)} = ${formatDimension(values[s.id], fmt)}`);
     return (
@@ -523,25 +551,43 @@ export function StepRenderer(props: StepRendererProps) {
           </div>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          {slots.map((slot) => {
+          {orderedSlots.map((slot) => {
             const metersVal = values[slot.id];
             const hasValue = Number.isFinite(metersVal);
             const outOfRange = isOutOfRange(slot);
             const missing = isMissing(slot.id);
+            const badText = isBadText(slot.id);
             const rangeText = formatDimensionRange(slot.min, slot.max, fmt);
             const hintId = `${inputId}-${slot.id}-hint`;
             const letter = letterOf(slot.id);
+            // etapa 10 (c5): slot optional → "(opțional)" langa eticheta + "de obicei {valoare}"
+            // in unitatea aleasa; golul e valid (nu se marcheaza rosu)
+            const optionalTag = slot.optional ? (
+              <span data-optional-tag className="font-normal text-muted-foreground">
+                ({t('dimensions.optionalTag')})
+              </span>
+            ) : null;
+            const typicalText =
+              slot.optional && typeof slot.typicalM === 'number'
+                ? t('dimensions.typicalHint', { value: formatDimension(slot.typicalM, fmt) })
+                : null;
             return (
               <Field
                 key={slot.id}
                 htmlFor={`${inputId}-${slot.id}`}
                 label={
                   letter ? (
-                    <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-flex flex-wrap items-center gap-1.5">
                       <span className="grid h-5 w-5 place-items-center rounded-full border border-brass/60 font-mono text-meta font-bold text-brass">
                         {letter}
                       </span>
                       {t(slot.labelKey)}
+                      {optionalTag}
+                    </span>
+                  ) : optionalTag ? (
+                    <span className="inline-flex flex-wrap items-center gap-1.5">
+                      {t(slot.labelKey)}
+                      {optionalTag}
                     </span>
                   ) : (
                     t(slot.labelKey)
@@ -554,11 +600,15 @@ export function StepRenderer(props: StepRendererProps) {
                   factor={factor}
                   unit={dimensionUnit}
                   outOfRange={outOfRange}
-                  missing={missing}
+                  missing={missing || badText}
                   hintId={hintId}
-                  onMeters={(meters) => {
+                  onMeters={(meters, invalidText) => {
                     const next = { ...values };
-                    if (meters === undefined) delete next[slot.id];
+                    // etapa 10 (revizuire M1): la slotul OPTIONAL golul (cheie lipsa) ar insemna
+                    // "nu ai dat-o"; textul nevalid se scrie null → pasul il marcheaza, motorul il respinge.
+                    // Slotul obligatoriu ramane ca in etapa 8 (cheia se sterge → "Completeaza").
+                    if (meters === undefined && invalidText && slot.optional) (next as Record<string, number | null>)[slot.id] = null;
+                    else if (meters === undefined) delete next[slot.id];
                     else next[slot.id] = fmtNum(meters);
                     onChange(next);
                   }}
@@ -571,6 +621,14 @@ export function StepRenderer(props: StepRendererProps) {
                     ) : missing ? (
                       <p id={hintId} className="mt-1 text-meta text-crimson">
                         {t('validation.fillField', { field: t(slot.labelKey) })}
+                      </p>
+                    ) : badText ? (
+                      <p id={hintId} className="mt-1 text-meta text-crimson">
+                        {t('validation.notANumber')}
+                      </p>
+                    ) : typicalText ? (
+                      <p id={hintId} data-typical-hint className="mt-1 text-meta text-muted-foreground">
+                        {typicalText} · {rangeText}
                       </p>
                     ) : (
                       <p id={hintId} className="mt-1 text-meta text-muted-foreground">
@@ -637,6 +695,7 @@ export function StepRenderer(props: StepRendererProps) {
       <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} inline={inline} counter={counter}>
         <Configurator3dStep
           piece={step.piece}
+          features={step.features}
           value={value}
           onChange={(config) => onChange(config)}
           onSnapshot={config3dContext?.onSnapshot}

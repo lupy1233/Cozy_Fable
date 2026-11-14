@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { inflateSync } from 'node:zlib';
+import { ETAPA10_FLOW_VERSION, type RoomType } from '@marketplace/shared';
 import { describe, expect, it } from 'vitest';
 import { getIllustration, ROOM_OPTION_PHOTOS } from './index';
 import { answerVisualCoverage } from './coverage';
@@ -32,6 +33,46 @@ describe('answer visual registry', () => {
     const current = rows.filter((row) => row.current);
     expect(current.filter((row) => row.visual === 'fallback-icon')).toEqual([]);
     console.info('Answer artwork coverage:', JSON.stringify({ total: rows.length, current: current.length, showroom: current.filter((row) => row.visual.startsWith('Showroom')).length, standalone: current.filter((row) => row.visual.startsWith('OptionPhoto')).length, photos: current.filter((row) => row.visual === 'existing-material-opening-photo').length, retained: current.filter((row) => row.visual.startsWith('retained-diagram')).length, missing: current.filter((row) => row.visual === 'fallback-icon').map((row) => `${row.roomType}.${row.stepId}.${row.value}`) }));
+  });
+  it('etapa 10: the new flow versions (current after the switch) have no fallback-icon', () => {
+    const rows = answerVisualCoverage().filter((row) => ETAPA10_FLOW_VERSION[row.roomType as RoomType] === row.flowVersion);
+    expect(rows.length).toBeGreaterThan(0);
+    const missing = rows.filter((row) => row.visual === 'fallback-icon').map((row) => `${row.roomType} v${row.flowVersion} ${row.stepId}.${row.value}`);
+    expect(missing).toEqual([]);
+  });
+  it('etapa 10: every new option value from the design (§5, §9) has its own artwork', () => {
+    const cases: [RoomType, string, string[]][] = [
+      ['KITCHEN', 'wallCabinets', ['WALL_CABINETS', 'NO_WALL_CABINETS', 'FIRM_DECIDES']],
+      ['KITCHEN', 'sinkMounting', ['INSET', 'UNDERMOUNT', 'FIRM_DECIDES']],
+      ['KITCHEN', 'sinkMaterial', ['STAINLESS', 'COMPOSITE', 'CERAMIC', 'FIRM_DECIDES']],
+      ['KITCHEN', 'fridgeType', ['BUILT_IN', 'FREESTANDING', 'FIRM_DECIDES']],
+      ['BEDROOM', 'bedSize', ['D_120']],
+      ['BEDROOM', 'bedLength', ['L_200', 'L_190', 'FIRM_DECIDES']],
+      ['BEDROOM', 'bedFabric', ['WOVEN', 'BOUCLE', 'VELVET', 'FIRM_DECIDES']],
+      ['BEDROOM', 'wardrobeInterior', ['HANGING_RODS', 'SHELVES', 'DRAWERS', 'SHOE_RACK', 'ACCESSORIES', 'LED_LIGHTING', 'FIRM_DECIDES']],
+      ['BATHROOM', 'basinType', ['COUNTERTOP_BASIN', 'INSET_BASIN', 'INTEGRATED_BASIN', 'FIRM_DECIDES']],
+      ['BATHROOM', 'basinSupply', ['CLIENT', 'FIRM', 'FIRM_DECIDES']],
+      ['LAUNDRY', 'washerLoading', ['FRONT', 'TOP', 'FIRM_DECIDES']],
+      ['HALLWAY', 'hallWidth', ['NARROW', 'WIDE', 'FIRM_DECIDES']],
+    ];
+    for (const [room, step, values] of cases) {
+      const found = values.map((value) => getIllustration(room, step, value));
+      found.forEach((Illustration, i) => expect(Illustration, `${room}.${step}.${values[i]}`).not.toBeNull());
+      // optiunile aceleiasi intrebari nu cad pe acelasi desen
+      expect(new Set(found).size, `${room}.${step}`).toBe(values.length);
+    }
+    // interiorul dulapului din dormitor = aceleasi desene ca modulele dressingului
+    for (const value of ['HANGING_RODS', 'SHELVES', 'DRAWERS', 'SHOE_RACK', 'ACCESSORIES', 'LED_LIGHTING']) {
+      expect(getIllustration('BEDROOM', 'wardrobeInterior', value)?.displayName ?? getIllustration('BEDROOM', 'wardrobeInterior', value)?.name).toBe(getIllustration('DRESSING', 'interiorModules', value)?.displayName ?? getIllustration('DRESSING', 'interiorModules', value)?.name);
+    }
+    // corpurile suspendate = vizualul piesei din bucatarie
+    expect(getIllustration('KITCHEN', 'wallCabinets', 'WALL_CABINETS')).toBe(getIllustration('KITCHEN', 'cabinetZones', 'WALL_UNITS'));
+    // 120 × 200 nu colapseaza pe alta marime
+    for (const other of ['S_90', 'M_140', 'Q_160', 'K_180']) {
+      expect(getIllustration('BEDROOM', 'bedSize', 'D_120')).not.toBe(getIllustration('BEDROOM', 'bedSize', other));
+    }
+    // valorile generice nu intra in harta comuna (coliziuni intre camere)
+    for (const value of ['INSET', 'FRONT', 'TOP', 'CLIENT', 'FIRM', 'NARROW', 'WIDE']) expect(getIllustration('PIECES', 'x', value)).toBeNull();
   });
   it('uses precise standalone concepts instead of semantically different atlas cells', () => {
     for (const [room, step, value, concept] of [

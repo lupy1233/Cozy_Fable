@@ -185,9 +185,18 @@ export function buildSummaryRows(room: SummaryRoom, t: Translate, o: { unit: Dim
           e.slots.forEach((s, i) =>
             rows.push({ ...base, key: `${e.stepId}:${i}`, label: t(s.labelKey), value: formatDimension(s.value, o), mono: true }),
           );
+          // etapa 10: sloturile optionale lasate goale (lipsesc pe fluxurile vechi)
+          (e.missing ?? []).forEach((s, i) =>
+            rows.push({ ...base, key: `${e.stepId}:missing:${i}`, label: t(s.labelKey), value: t('dimensions.notGiven') }),
+          );
           break;
         }
         for (const s of slots) {
+          // etapa 10 (E10-N21): slot optional gol → "Nu ai dat-o — o stabilești cu firma" (nu e eroare)
+          if (s.state === 'skipped') {
+            rows.push({ ...base, key: `${e.stepId}:${s.id}`, label: t(s.labelKey), value: t('dimensions.notGiven') });
+            continue;
+          }
           if (s.state === 'missing' || s.value === undefined) continue;
           rows.push({
             ...base,

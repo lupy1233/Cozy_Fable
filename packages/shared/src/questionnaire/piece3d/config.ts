@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { NEW_PIECE_RULES, upholsterySchema, sofaSchema, armchairSchema, ottomanSchema, vanitySchema, entrywaySchema, validCatalogOptions, describeCatalogOptions, type Upholstery3d, type Sofa3d, type Armchair3d, type Ottoman3d, type Vanity3d, type Entryway3d } from './catalog-config';
-import { bedOptionsSchema, tableOptionsSchema, benchOptionsSchema, defaultFurnitureConfig, isFurnitureKind, normalizeFurnitureConfig, validFurnitureConfig, type BedOptions3d, type TableOptions3d, type BenchOptions3d } from './furniture-config';
+import { bedOptionsSchema, tableOptionsSchema, benchOptionsSchema, defaultFurnitureConfig, describeFurnitureOptions, isFurnitureKind, normalizeFurnitureConfig, validFurnitureConfig, type BedOptions3d, type TableOptions3d, type BenchOptions3d } from './furniture-config';
 // ciclu de import sigur: edit-rules foloseste config.ts doar in functii (nimic la incarcare)
 import { applyPieceEditRules } from './edit-rules';
 
@@ -217,23 +217,27 @@ const col = (...zones: Piece3dZone[]): Piece3dColumn => ({ zones });
 
 export const PIECE3D_RULES: Record<Piece3dKind, Piece3dRules> = {
   ...NEW_PIECE_RULES,
+  // etapa 10: plaja schemei largita pentru "Alta marime" (saltea 0,7-2,2 x 1,6-2,4 m + cadru);
+  // configuratiile fara customSize raman fixate pe gabaritul standard de validFurnitureConfig
   BED: {
-    width: { min: 1.03, max: 2.02, default: 1.73 },
+    width: { min: 0.83, max: 2.42, default: 1.73 },
     height: { min: 1, max: 1, default: 1 },
-    depth: { min: 2.2, max: 2.2, default: 2.2 },
+    depth: { min: 1.8, max: 2.6, default: 2.2 },
     zoneTypes: [], maxZonesPerColumn: 0, maxColumns: 0, minColumns: 0,
     hasPlinth: false, itemName: 'Pat', defaultColumn: () => col(),
   },
   TABLE: {
     width: { min: 0.5, max: 3, default: 1.4 },
-    height: { min: 0.45, max: 0.8, default: 0.75 },
+    // etapa 10: plaja schemei largita pentru inaltimea aleasa (TABLE_CUSTOM_HEIGHT, 0,3-0,9 m)
+    height: { min: 0.3, max: 0.9, default: 0.75 },
     depth: { min: 0.4, max: 1.8, default: 0.8 },
     zoneTypes: [], maxZonesPerColumn: 0, maxColumns: 0, minColumns: 0,
     hasPlinth: false, itemName: 'Masă', defaultColumn: () => col(),
   },
   BENCH: {
     width: { min: 0.6, max: 2, default: 1.2 },
-    height: { min: 0.45, max: 0.45, default: 0.45 },
+    // etapa 10: plaja schemei largita pentru inaltimea aleasa (BENCH_CUSTOM_HEIGHT, 0,35-0,55 m)
+    height: { min: 0.35, max: 0.55, default: 0.45 },
     depth: { min: 0.4, max: 0.4, default: 0.4 },
     zoneTypes: [], maxZonesPerColumn: 0, maxColumns: 0, minColumns: 0,
     hasPlinth: false, itemName: 'Băncuță', defaultColumn: () => col(),
@@ -981,6 +985,8 @@ export function describePieceConfig(kind: Piece3dKind, config: PieceConfig3d): s
   const parts = [
     `Configurat 3D: ${cm(config.widthM)} × ${cm(config.heightM)} × ${cm(config.depthM)} cm (lățime × înălțime × adâncime)`,
     ...describeCatalogOptions(config),
+    // etapa 10: campurile noi ale patului / mesei / bancutei (nimic cand lipsesc)
+    ...describeFurnitureOptions(config),
   ];
   if (!isFurnitureKind(kind) && (kind !== 'DESK' || totals.columns > 0)) {
     parts.push(totals.columns === 1 ? '1 coloană' : `${totals.columns} coloane`);

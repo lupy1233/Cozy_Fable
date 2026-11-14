@@ -1,8 +1,9 @@
 import { defaultPieceConfig, FLOW_REGISTRY, getFlow, type AnswerMap, type DimensionGroupStep, type RoomType } from '@marketplace/shared';
 import { createTranslator } from 'next-intl';
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import en from '@/messages/en.json';
 import ro from '@/messages/ro.json';
+import { registerToyFlow, TOY_ROOM, TOY_VERSION, unregisterToyFlow } from '@/test/flows-v7';
 import { buildSummaryRows, otherTextPairs, rowImportance, summaryLabel, type Translate } from './summary-rows';
 
 // traducator real (ICU) + has(), ca in componente
@@ -164,5 +165,29 @@ describe('pieces', () => {
   it('no row at all when every piece is unnamed', () => {
     const answers: AnswerMap = { pieces: [{ name: '', quantity: 1, material: 'PAL', systems: [] }] };
     expect(buildSummaryRows({ roomType: 'PIECES', answers, flowVersion: 1 }, tRo, RO).some((r) => r.kind === 'pieces')).toBe(false);
+  });
+});
+
+describe('etapa 10 — optional dimension left empty (E10-N21)', () => {
+  beforeAll(registerToyFlow);
+  afterAll(unregisterToyFlow);
+  const room = (dims: Record<string, number>) => ({ roomType: TOY_ROOM, answers: { dimensions: dims }, flowVersion: TOY_VERSION });
+
+  it('shows "Nu ai dat-o — o stabilești cu firma", not invalid, in flow order', () => {
+    const rows = buildSummaryRows(room({ wardrobeWidth: 2 }), tRo, RO).filter((r) => r.kind === 'dimensions');
+    expect(rows.map((r) => [r.label, r.value])).toEqual([
+      [ro.Configurator.flows.BEDROOM.dimensions.slots.wardrobeWidth, '200 cm'],
+      [ro.Configurator.flows.DRESSING.dimensions.slots.wardrobeHeight, 'Nu ai dat-o — o stabilești cu firma'],
+    ]);
+    expect(rows.some((r) => r.invalid)).toBe(false);
+    const enRows = buildSummaryRows(room({ wardrobeWidth: 2 }), tEn, { unit: 'cm', locale: 'en' });
+    expect(enRows.find((r) => r.key === 'dimensions:wardrobeHeight')?.value).toBe(en.Configurator.dimensions.notGiven);
+  });
+
+  it('a given optional value is formatted (and checked) like any other slot', () => {
+    const rows = buildSummaryRows(room({ wardrobeWidth: 2, wardrobeHeight: 2.45 }), tRo, { unit: 'm', locale: 'ro' });
+    expect(rows.find((r) => r.key === 'dimensions:wardrobeHeight')?.value).toBe('2,45 m');
+    const bad = buildSummaryRows(room({ wardrobeWidth: 2, wardrobeHeight: 3.5 }), tRo, RO);
+    expect(bad.find((r) => r.key === 'dimensions:wardrobeHeight')?.invalid).toBe(true);
   });
 });

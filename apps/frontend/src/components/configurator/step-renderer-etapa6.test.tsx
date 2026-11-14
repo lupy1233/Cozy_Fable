@@ -1,7 +1,7 @@
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
-import { getFlow, type AnswerMap, type QuestionStep } from '@marketplace/shared';
+import { ETAPA6_FLOW_VERSION, getFlow, type AnswerMap, type QuestionStep } from '@marketplace/shared';
 import { useState } from 'react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import en from '@/messages/en.json';
@@ -96,7 +96,8 @@ describe('c14: ecranul "Fronturi" al bucatariei pe zone (doar vizual)', () => {
 
   function frontsScreen(answers: AnswerMap) {
     act(() => useConfiguratorStore.getState().addRoomWithAnswers('KITCHEN', answers));
-    const room = useConfiguratorStore.getState().roomInstances[0];
+    // etapa 10 (valul 2): testele c14 raman pe bucataria etapei 6 (camera noua porneste acum pe v5)
+    const room = { ...useConfiguratorStore.getState().roomInstances[0], flowVersion: ETAPA6_FLOW_VERSION.KITCHEN };
     const screens = roomScreens(room, false);
     const index = screens.findIndex((s) => isKitchenFrontsScreen('KITCHEN', s));
     return { room, screens, index };

@@ -3731,6 +3731,49 @@
         },
         "TABLE_EXTENDABLE": {
           "title": "Table · Extendable"
+        },
+        "KITCHEN_WALL_CABINETS": {
+          "title": "Kitchen · Wall cabinets"
+        },
+        "KITCHEN_SINK_MOUNTING": {
+          "title": "Kitchen · Sink mounting"
+        },
+        "KITCHEN_SINK_MATERIAL": {
+          "title": "Kitchen · Sink material"
+        },
+        "KITCHEN_FRIDGE": {
+          "title": "Kitchen · Fridge"
+        },
+        "BED_FABRIC": {
+          "title": "Upholstered bed · Fabric"
+        },
+        "WARDROBE_INTERIOR": {
+          "title": "Bedroom wardrobe · Interior",
+          "help": "Added for each module ticked."
+        },
+        "BATHROOM_BASIN_TYPE": {
+          "title": "Bathroom · Basin type"
+        },
+        "BATHROOM_BASIN_SUPPLY": {
+          "title": "Bathroom · Who supplies the basin"
+        },
+        "LAUNDRY_LOADING": {
+          "title": "Laundry · Washing machine loading"
+        },
+        "HALLWAY_WIDTH": {
+          "title": "Hallway · Hallway width"
+        },
+        "SOFA_SEATS": {
+          "title": "Sofa · Seats"
+        },
+        "SOFA_LAYOUT": {
+          "title": "Sofa · Shape"
+        },
+        "SOFA_SLEEPER": {
+          "title": "Sofa · Sofa bed"
+        },
+        "SOFA_STORAGE": {
+          "title": "Sofa · Storage box"
         }
       },
       "options": {
@@ -3767,6 +3810,73 @@
         "BED_STORAGE": {
           "LIFT_UP": "Lift-up storage",
           "DRAWERS": "Drawers"
+        },
+        "KITCHEN_WALL_CABINETS": {
+          "WALL_CABINETS": "With wall cabinets",
+          "NO_WALL_CABINETS": "No wall cabinets",
+          "FIRM_DECIDES": "Not sure — I want the firm's recommendation"
+        },
+        "KITCHEN_SINK_MOUNTING": {
+          "INSET": "Inset in the countertop",
+          "UNDERMOUNT": "Undermount",
+          "FIRM_DECIDES": "Not sure — I want the firm's recommendation"
+        },
+        "KITCHEN_SINK_MATERIAL": {
+          "STAINLESS": "Stainless steel",
+          "COMPOSITE": "Composite (granite)",
+          "CERAMIC": "Ceramic",
+          "FIRM_DECIDES": "Not sure — I want the firm's recommendation"
+        },
+        "KITCHEN_FRIDGE": {
+          "BUILT_IN": "Built-in, inside a cabinet",
+          "FREESTANDING": "Freestanding",
+          "FIRM_DECIDES": "Not sure — I want the firm's recommendation"
+        },
+        "BED_FABRIC": {
+          "WOVEN": "Woven fabric",
+          "BOUCLE": "Bouclé",
+          "VELVET": "Velvet",
+          "FIRM_DECIDES": "Not sure — I want the firm's recommendation"
+        },
+        "WARDROBE_INTERIOR": {
+          "HANGING_RODS": "Hanging rods",
+          "SHELVES": "Shelves",
+          "DRAWERS": "Drawers",
+          "SHOE_RACK": "Shoe rack",
+          "ACCESSORIES": "Accessories",
+          "LED_LIGHTING": "LED lighting",
+          "FIRM_DECIDES": "Not sure — I want the firm's recommendation"
+        },
+        "BATHROOM_BASIN_TYPE": {
+          "COUNTERTOP_BASIN": "Countertop basin",
+          "INSET_BASIN": "Basin inset in the countertop",
+          "INTEGRATED_BASIN": "Countertop with integrated basin",
+          "FIRM_DECIDES": "Not sure — I want the firm's recommendation"
+        },
+        "BATHROOM_BASIN_SUPPLY": {
+          "CLIENT": "The client supplies it",
+          "FIRM": "The firm supplies it",
+          "FIRM_DECIDES": "Not sure — I want the firm's recommendation"
+        },
+        "LAUNDRY_LOADING": {
+          "FRONT": "Front loading",
+          "TOP": "Top loading",
+          "FIRM_DECIDES": "Not sure — I want the firm's recommendation"
+        },
+        "HALLWAY_WIDTH": {
+          "NARROW": "Narrow hallway (under 1.2 m)",
+          "WIDE": "Spacious hallway",
+          "FIRM_DECIDES": "Not sure — the firm will measure it"
+        },
+        "SOFA_SEATS": {
+          "SEATS_2": "2 seats",
+          "SEATS_3": "3 seats",
+          "SEATS_4": "4 seats"
+        },
+        "SOFA_LAYOUT": {
+          "STRAIGHT": "Straight",
+          "CHAISE_LEFT": "With chaise on the left",
+          "CHAISE_RIGHT": "With chaise on the right"
         }
       }
     },
@@ -4416,7 +4526,11 @@
         "mattress": "Mattress: {size}",
         "storage": "Storage: {value}",
         "seats": "People: {value}",
-        "colorApprox": "Colour: close to {color}"
+        "colorApprox": "Colour: close to {color}",
+        "mattressCustom": "Mattress: {w} × {l} (other size)",
+        "openLength": "Extended length: {value}",
+        "sofaSleeper": "Sofa bed",
+        "sofaStorage": "With storage box"
       },
       "snapshotAlt": "3D preview of the configured piece",
       "furniture": {
@@ -4431,7 +4545,13 @@
         "openStorage": "Open storage",
         "closeStorage": "Close storage",
         "seatsTooSmall": "For {seats} people we recommend at least {cm} cm — not everyone fits at the chosen size.",
-        "diameterClamped": "For this table type a round top is {min}–{max} cm across — we set it to {value} cm."
+        "diameterClamped": "For this table type a round top is {min}–{max} cm across — we set it to {value} cm.",
+        "customSize": "Other size",
+        "mattressWidth": "Mattress width",
+        "mattressLength": "Mattress length",
+        "openLengthToggle": "I know the length when extended",
+        "openLength": "Extended length",
+        "customHeightToggle": "I want a different height (usually {value})"
       },
       "catalog": {
         "seats": "Seats",
@@ -4494,7 +4614,9 @@
           "NONE": "None",
           "LEFT": "Left",
           "RIGHT": "Right"
-        }
+        },
+        "sleeper": "Sofa bed (pulls out into a bed)",
+        "sofaStorage": "Storage box"
       },
       "drawersTooShort": "A drawer needs at least {cm} cm of height — this section is too low.",
       "shelvesNeedSpace": "Shelves need at least {cm} cm of space between them.",
@@ -5224,6 +5346,72 @@
             "title": "Material for the fronts (doors and drawers)",
             "summaryLabel": "Front material"
           }
+        },
+        "v5": {
+          "wallCabinets": {
+            "title": "Do you want wall cabinets?",
+            "summaryLabel": "Wall cabinets",
+            "subtitle": "Optional. The upper cabinets, fixed to the wall above the worktop.",
+            "options": {
+              "WALL_CABINETS": {
+                "label": "With wall cabinets",
+                "description": "Cabinets above the worktop too"
+              },
+              "NO_WALL_CABINETS": {
+                "label": "No wall cabinets",
+                "description": "Base cabinets only; the upper wall stays free"
+              }
+            }
+          },
+          "sinkMounting": {
+            "title": "How is the sink mounted?",
+            "summaryLabel": "Sink mounting",
+            "subtitle": "Optional. The firm cuts the worktop to match the mounting.",
+            "options": {
+              "INSET": {
+                "label": "Inset in the worktop",
+                "description": "The sink rim sits on the worktop"
+              },
+              "UNDERMOUNT": {
+                "label": "Undermount",
+                "description": "The sink is fixed underneath; the worktop covers the rim"
+              }
+            }
+          },
+          "sinkMaterial": {
+            "title": "What is the sink made of?",
+            "summaryLabel": "Sink material",
+            "subtitle": "Optional.",
+            "options": {
+              "STAINLESS": {
+                "label": "Stainless steel",
+                "description": "Durable and easy to clean"
+              },
+              "COMPOSITE": {
+                "label": "Composite (granite)",
+                "description": "Matte, in colours that match the worktop"
+              },
+              "CERAMIC": {
+                "label": "Ceramic",
+                "description": "Glossy, classic look"
+              }
+            }
+          },
+          "fridgeType": {
+            "title": "What kind of fridge do you have?",
+            "summaryLabel": "Fridge",
+            "subtitle": "Optional. It decides whether the firm builds a cabinet for the fridge.",
+            "options": {
+              "BUILT_IN": {
+                "label": "Built-in, inside a cabinet",
+                "description": "The fridge is hidden behind a cabinet door"
+              },
+              "FREESTANDING": {
+                "label": "Freestanding",
+                "description": "The fridge stands in view, next to the cabinets"
+              }
+            }
+          }
         }
       },
       "PIECES": {
@@ -5455,6 +5643,11 @@
             "title": "How do the closet doors open?",
             "summaryLabel": "Door opening"
           }
+        },
+        "v5": {
+          "dimensions": {
+            "subtitle": "The length of each wall with furniture (A, B, C) and the wardrobe height."
+          }
         }
       },
       "BEDROOM": {
@@ -5508,7 +5701,8 @@
             "dresserWidth": "Dresser width",
             "tvUnitWidth": "TV unit width",
             "vanityWidth": "Vanity width",
-            "nightstandWidth": "Nightstand width"
+            "nightstandWidth": "Nightstand width",
+            "wardrobeHeight": "Wardrobe height"
           }
         },
         "notes": {
@@ -5710,6 +5904,84 @@
           "materialVanity": {
             "title": "Front material — vanity",
             "summaryLabel": "Front material — vanity"
+          }
+        },
+        "v4": {
+          "dimensions": {
+            "subtitle": "The width of each piece you chose; the wardrobe height, if you know it. The ceiling only if you chose the wardrobe."
+          },
+          "bedSize": {
+            "options": {
+              "D_120": {
+                "label": "120 × 200 cm",
+                "description": "One person, with extra room"
+              }
+            },
+            "info": {
+              "body": "Common sizes in Romania: 90 × 200 (single), 120 × 200 (single, with extra room), 140 × 200 (compact double), 160 × 200 (the standard double), 180 × 200 (king). Some mattresses are 190 cm long — you can pick that below. Note: the mattress is not included."
+            }
+          },
+          "bedLength": {
+            "title": "How long is the mattress?",
+            "subtitle": "Most mattresses are 200 cm long; some are 190 cm.",
+            "options": {
+              "L_200": {
+                "label": "200 cm",
+                "description": "The usual length"
+              },
+              "L_190": {
+                "label": "190 cm",
+                "description": "A shorter mattress"
+              }
+            }
+          },
+          "bedFabric": {
+            "title": "Which fabric do you want for the bed?",
+            "subtitle": "The fabric that covers the upholstered bed.",
+            "options": {
+              "WOVEN": {
+                "label": "Woven fabric",
+                "description": "Classic, hard-wearing, easy to care for"
+              },
+              "BOUCLE": {
+                "label": "Bouclé",
+                "description": "Small loops, soft to the touch"
+              },
+              "VELVET": {
+                "label": "Velvet",
+                "description": "Fine fabric with a subtle sheen"
+              }
+            }
+          },
+          "wardrobeInterior": {
+            "title": "What do you want inside the wardrobe?",
+            "subtitle": "Pick everything you'd use. If you're not sure, the firm will suggest a layout.",
+            "options": {
+              "HANGING_RODS": {
+                "label": "Hanging rods",
+                "description": "Shirts, dresses, jackets"
+              },
+              "SHELVES": {
+                "label": "Shelves",
+                "description": "Folded clothes, boxes, bags"
+              },
+              "DRAWERS": {
+                "label": "Drawers",
+                "description": "Underwear, t-shirts, small items"
+              },
+              "SHOE_RACK": {
+                "label": "Shoe rack",
+                "description": "Tilted shelves or pull-outs"
+              },
+              "ACCESSORIES": {
+                "label": "Accessories",
+                "description": "Trouser rack, belt/tie holders"
+              },
+              "LED_LIGHTING": {
+                "label": "LED lighting",
+                "description": "LED lighting inside the wardrobe"
+              }
+            }
           }
         }
       },
@@ -5913,6 +6185,11 @@
           "materialOtherPiece": {
             "title": "Front material — your piece"
           }
+        },
+        "v5": {
+          "dimensions": {
+            "subtitle": "The width of each piece you chose; the height only for tall pieces, if you know it. The ceiling only if you have a bookcase or display cabinet."
+          }
         }
       },
       "OFFICE": {
@@ -6000,7 +6277,9 @@
             "deskWidthC": "Desk width C",
             "bookshelfWidth": "Bookcase width",
             "storageWidth": "Storage cabinet width",
-            "shelvesTotal": "Width of the shelving area"
+            "shelvesTotal": "Width of the shelving area",
+            "bookshelfHeight": "Bookcase height",
+            "storageHeight": "Storage cabinet height"
           }
         },
         "notes": {
@@ -6057,6 +6336,11 @@
           "materialShelves": {
             "title": "Material — shelves"
           }
+        },
+        "v4": {
+          "dimensions": {
+            "subtitle": "The width of each piece you chose; the height of the bookcase or cabinet, if you know it. The ceiling only if you have a bookcase or cabinet."
+          }
         }
       },
       "BATHROOM": {
@@ -6085,7 +6369,9 @@
           "slots": {
             "vanityWidth": "Vanity width",
             "mirrorWidth": "Mirror cabinet width",
-            "tallStorageWidth": "Tall storage width"
+            "tallStorageWidth": "Tall storage width",
+            "mirrorHeight": "Mirror cabinet height",
+            "tallStorageHeight": "Tall cabinet height"
           }
         },
         "ventilation": {
@@ -6165,6 +6451,43 @@
           "systemsTall": {
             "title": "Opening — tall cabinet"
           }
+        },
+        "v4": {
+          "dimensions": {
+            "subtitle": "The width of each piece you chose. If you chose the mirror cabinet or the tall cabinet, we also ask for the ceiling height; you can add their height if you know it."
+          },
+          "basinType": {
+            "title": "What kind of basin do you want?",
+            "subtitle": "The company builds the top and the unit around the basin. If you're not sure, pick \"Not sure\".",
+            "options": {
+              "COUNTERTOP_BASIN": {
+                "label": "Countertop basin",
+                "description": "The basin sits on top of the counter, like a bowl."
+              },
+              "INSET_BASIN": {
+                "label": "Inset basin",
+                "description": "The basin drops into a cut-out in the top; only the rim shows."
+              },
+              "INTEGRATED_BASIN": {
+                "label": "Top with integrated basin",
+                "description": "The top and the basin are one piece, with no joints."
+              }
+            }
+          },
+          "basinSupply": {
+            "title": "Who supplies the basin?",
+            "subtitle": "So the company knows whether to include it in the offer.",
+            "options": {
+              "CLIENT": {
+                "label": "I'll bring it (I have one or will buy it)",
+                "description": "The company builds the unit to fit your basin."
+              },
+              "FIRM": {
+                "label": "The company supplies it",
+                "description": "The company suggests a basin and includes it in the offer."
+              }
+            }
+          }
         }
       },
       "HALLWAY": {
@@ -6235,7 +6558,9 @@
             "coatUnitWidth": "Coat panel width",
             "wardrobeWidth": "Wardrobe width",
             "benchWidth": "Bench width",
-            "mirrorWidth": "Mirror width"
+            "mirrorWidth": "Mirror width",
+            "wardrobeHeight": "Wardrobe height",
+            "coatUnitHeight": "Coat panel height"
           }
         },
         "materialShoeCabinet": {
@@ -6323,6 +6648,29 @@
           },
           "materialMirror": {
             "title": "Mirror frame"
+          }
+        },
+        "v3": {
+          "dimensions": {
+            "subtitle": "The width of each piece you chose; the height of the hallway wardrobe or coat rack, if you know it. The ceiling only if you chose one of them."
+          },
+          "hallWidth": {
+            "title": "How wide is the hallway?",
+            "subtitle": "It helps the firm choose how deep the pieces should be.",
+            "options": {
+              "NARROW": {
+                "label": "Narrow hallway (under 1.2 m)",
+                "description": "The firm takes the hallway width into account when it suggests how deep the pieces should be."
+              },
+              "WIDE": {
+                "label": "Roomy hallway",
+                "description": "Enough room for pieces of the usual depth."
+              },
+              "FIRM_DECIDES": {
+                "label": "Not sure — the firm will measure it",
+                "description": "The firm will measure the hallway when it comes to take measurements."
+              }
+            }
           }
         }
       },
@@ -6417,7 +6765,13 @@
           "title": "Dimensions",
           "subtitle": "The length of the main wall and the ceiling height.",
           "slots": {
-            "runA": "Main wall length"
+            "runA": "Main wall length",
+            "applianceHousingWidth": "Appliance housing width",
+            "applianceHousingHeight": "Appliance housing height",
+            "storageWidth": "Storage cabinets width",
+            "storageHeight": "Storage cabinets height",
+            "countertopWidth": "Worktop width",
+            "sinkUnitWidth": "Sink unit width"
           }
         },
         "material": {
@@ -6467,6 +6821,25 @@
           "materialSinkUnit": {
             "title": "Front material — sink unit",
             "summaryLabel": "Front material — sink unit"
+          }
+        },
+        "v4": {
+          "dimensions": {
+            "subtitle": "The wall length, for context, and the width of each piece you chose. If you chose the appliance housing or the storage cabinets, we also ask for the ceiling height; you can add their height if you know it."
+          },
+          "washerLoading": {
+            "title": "How does the washing machine load?",
+            "subtitle": "It changes how the cabinet around it is built.",
+            "options": {
+              "FRONT": {
+                "label": "Front-loading",
+                "description": "The door is at the front; it can go under a worktop or under a dryer."
+              },
+              "TOP": {
+                "label": "Top-loading",
+                "description": "The lid opens upwards; it needs free space above."
+              }
+            }
           }
         }
       },
@@ -6539,11 +6912,14 @@
         },
         "dimensions": {
           "title": "Dimensions",
-          "subtitle": "The length of each shelved side and the ceiling height.",
+          "subtitle": "The length of each furnished side and the ceiling height.",
           "slots": {
             "runA": "Side A length",
             "runB": "Side B length",
-            "runC": "Side C length"
+            "runC": "Side C length",
+            "shelvesWidth": "Shelves width",
+            "cabinetsWidth": "Cabinets width",
+            "cabinetsHeight": "Cabinets height"
           }
         },
         "material": {
@@ -6572,6 +6948,11 @@
           "materialCabinets": {
             "title": "Front material — closed cabinets",
             "summaryLabel": "Front material — closed cabinets"
+          }
+        },
+        "v4": {
+          "dimensions": {
+            "subtitle": "The wall lengths, for context, and the width of the shelves / cabinets you want. If you chose cabinets, we also ask for the ceiling height; you can add the cabinets' height if you know it."
           }
         }
       },
@@ -6637,7 +7018,12 @@
           "subtitle": "The usable length and free depth of the balcony, plus the ceiling height.",
           "slots": {
             "balconyLength": "Usable length",
-            "balconyDepth": "Free depth"
+            "balconyDepth": "Free depth",
+            "storageBenchWidth": "Storage bench width",
+            "tallCabinetWidth": "Balcony cabinet width",
+            "tallCabinetHeight": "Balcony cabinet height",
+            "worktopWidth": "Worktop width",
+            "shelvesWidth": "Shelves width"
           }
         },
         "material": {
@@ -6680,6 +7066,11 @@
           },
           "materialShelves": {
             "title": "Material — shelves"
+          }
+        },
+        "v4": {
+          "dimensions": {
+            "subtitle": "The balcony's length and depth, for context, and the width of each piece you chose. If you chose the cabinet, we also ask for the ceiling height; you can add the cabinet's height if you know it."
           }
         }
       },
@@ -7706,7 +8097,9 @@
       "approxLength": "Approximate length: {m} m",
       "firmRecommendation": "Company's recommendation",
       "firmRecommendationOpening": "Opening: company's recommendation",
-      "ceiling": "Ceiling: {value}"
+      "ceiling": "Ceiling: {value}",
+      "dimNotGiven": "not given by the client (usually {value})",
+      "dimNotGivenPlain": "not given by the client"
     },
     "contactInText": {
       "hint": "It looks like you typed a phone number, email or link. Companies can't see these before they claim your request: add them in the Contact preferences section of General details and only the companies that claim it will get them.",
@@ -7758,7 +8151,8 @@
     },
     "dimensions": {
       "optionalTag": "optional",
-      "typicalHint": "usually {value}"
+      "typicalHint": "usually {value}",
+      "notGiven": "Not given — you'll agree it with the company"
     }
   },
   "Legal": {

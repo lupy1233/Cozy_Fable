@@ -1,11 +1,13 @@
-import { getFlow, type AnswerMap, type DimensionGroupStep, type RoomType } from '@marketplace/shared';
+import { ETAPA6_FLOW_VERSION, getFlow, type AnswerMap, type DimensionGroupStep, type RoomType } from '@marketplace/shared';
 import { describe, expect, it } from 'vitest';
 import type { RoomInstance } from '@/stores/configurator-store';
 import { conditionQuestionIds, dimensionSlotStatus, screenTotalKnown } from './dimension-check';
 import { roomScreens } from './room-screens';
+import { toyDimensions } from '@/test/flows-v7';
 
+// etapa 10 (valul 2): fixat pe versiunile etapei 6 (testele etapei 8 nu urmeaza comutarea)
 function known(roomType: RoomType, answers: AnswerMap, ownProject = false): boolean {
-  const flow = getFlow(roomType);
+  const flow = getFlow(roomType, ETAPA6_FLOW_VERSION[roomType]);
   const room: RoomInstance = { localId: 'r1', roomType, flowVersion: flow.version, answers, completed: false };
   return screenTotalKnown(roomScreens(room, ownProject), flow.steps, answers);
 }
@@ -79,5 +81,38 @@ describe('dimensionSlotStatus', () => {
     const st = dimensionSlotStatus(kitchen, answers);
     expect(st[0]!.state).toBe('outOfRange');
     expect(st[1]!.state).toBe('ok');
+  });
+});
+
+describe('etapa 10 — slot optional (skipped)', () => {
+  it('optional gol → skipped (nu missing); obligatoriu gol → missing; optional cu valoare → verificat la fel', () => {
+    const empty = dimensionSlotStatus(toyDimensions, {});
+    expect(empty.map((s) => [s.id, s.state])).toEqual([
+      ['wardrobeWidth', 'missing'],
+      ['wardrobeHeight', 'skipped'],
+    ]);
+    // valoarea tipica si "optional" vin din slot; slotul obligatoriu ramane cu forma etapei 8
+    expect(empty[1]).toMatchObject({ optional: true, typicalM: 2.4 });
+    expect(empty[0]).not.toHaveProperty('optional');
+    expect(empty[0]).not.toHaveProperty('typicalM');
+
+    const out = dimensionSlotStatus(toyDimensions, { dimensions: { wardrobeWidth: 2, wardrobeHeight: 3.5 } });
+    expect(out[1]).toMatchObject({ state: 'outOfRange', value: 3.5 });
+    const ok = dimensionSlotStatus(toyDimensions, { dimensions: { wardrobeWidth: 2, wardrobeHeight: 2.4 } });
+    expect(ok.every((s) => s.state === 'ok')).toBe(true);
+  });
+
+  it('null / text intr-un slot optional nu e "gol" (ca motorul: dimensionOutOfRange)', () => {
+    const st = dimensionSlotStatus(toyDimensions, { dimensions: { wardrobeWidth: 2, wardrobeHeight: null } as never });
+    expect(st[1]!.state).toBe('missing');
+  });
+
+  it('fluxurile de azi nu au niciodata skipped', () => {
+    for (const rt of ['KITCHEN', 'BEDROOM', 'LIVING', 'HALLWAY'] as RoomType[]) {
+      const step = getFlow(rt, ETAPA6_FLOW_VERSION[rt]).steps.find((s) => s.type === 'dimension-group') as DimensionGroupStep | undefined;
+      if (!step) continue;
+      const answers: AnswerMap = { piecesNeeded: ['WARDROBE', 'BOOKSHELF', 'TV_UNIT', 'SHOE_CABINET'] };
+      expect(dimensionSlotStatus(step, answers).some((s) => s.state === 'skipped'), rt).toBe(false);
+    }
   });
 });
