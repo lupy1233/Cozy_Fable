@@ -52,9 +52,66 @@ Reguli generale:
 | **Pregătește-ți firma** / Get your company ready | Cardul de pe panoul firmei cu pașii de pornire (portofoliu, locație și rază, e-mail de facturare; echipa și permisiunile ofertei — „opțional”) și progresul „{n} din {total}” / „{n} of {total}”; subtitlul: „Pași făcuți: …” / „Steps done: …” (etapa 11). Pașii se deschid cu „Deschide” / „Vezi”. | — |
 | **Modifică** / Edit | Butonul de pe o locație a firmei: schimbi adresa și raza (etapa 11). Coordonatele nu se scriu; le calculăm noi din adresă. | — |
 | **Schimbă poza** / Change photo | Butonul de pe un proiect din portofoliu care are poză; fără poză: „Adaugă o poză” / „Add a photo” (etapa 11). Un proiect are o singură poză, încărcată din calculator. | — |
+| **ciornă** / draft | Peste tot, și în Studio: „Ciornele mele”, „Ciornă salvată în cont.” (etapa 12). | „draft”, „Drafturile mele” în română |
+| **Altă mărime** / Other size | Și la patul din dormitor (etapa 12), ca la patul din 3D. | „Dimensiuni custom”, „Altă dimensiune”, „Custom dimensions” |
+| **company** (EN) | În textele în engleză pentru client: „the company”, „Company decides” (etapa 12). Textele pentru firme mai spun „firm” (trecere separată). | „the firm”, „maker” în textele pentru client |
+| **socket** (EN) | Priza, în engleza britanică; „where the water connections are” la spălătorie (etapa 12). | „outlet”, „hookup” |
+| **Nerecomandat aici** / Not recommended here | Insigna roșie, cu triunghi, pe un material care nu ține în locul ales: PAL și MDF la balcon deschis, PAL la baia fără aerisire. Apare doar unde există insigna „Recomandat”; materialul rămâne de ales (etapa 12, PO c13-1). | — |
+| **Detalii: {opțiune}** / Details: {option} | Numele butonului (i) pentru cititoarele de ecran, pe card și lângă titlul întrebării (etapa 12). | „Vezi detalii despre …” |
+| **Balcon deschis — exterior** | Nota pentru firmă, prima în descrierea pieselor de pe un balcon deschis (balcon v4, etapa 12). | — |
 
 Etichetele scurte din Sumar și din Fișă numesc întrebarea, nu un răspuns: „Tip de balcon: Deschis”,
 nu „Balcon închis: Deschis”.
+
+## Numele pieselor și ale camerelor (etapa 12, `c11`)
+
+Un singur nume pe piesă: în opțiune, în titluri, în câmpuri, în Sumar și în titlul cererii (generat de server).
+Descrierea pieselor pentru firmă din fluxurile versionate rămâne neschimbată.
+
+| RO | EN | Nu se mai folosește |
+|---|---|---|
+| **Comodă TV** | TV unit | „zonă TV”, „TV area” |
+| **Bibliotecă** | Bookcase | — |
+| **Rafturi de perete** | Wall shelves | — |
+| **Dulap de depozitare** | Storage cabinet | — |
+| **Băncuță** | Bench | „Bancuță” |
+| **Noptieră** / 2 Noptiere (după număr) | Nightstand | „Noptiere” la una singură |
+| **Altă piesă** / 2 Alte piese (în titlu) | Other piece | „Piese individuale” ca nume de piesă (rămâne doar numele tabului din coș), „Altceva”, „Something else” |
+| **Birou de lucru** (piesa) | Desk | „Birou” pentru piesă — „Birou” / Office e camera (PO c11-1) |
+| **Debara** | Storage room | „Pantry” (în engleză „Tall / pantry” rămâne: e dulapul de bucătărie) |
+| **Dressing** | Dressing room (în opțiuni: „Walk-in wardrobe”) | „closet” |
+| **Pe un perete** (forma liniară) | Along one wall | „Liniară”, „Drept” ca etichetă, „Straight” |
+
+Sumarul numără ca în coș: „O cameră · 2 piese” / „1 room · 2 pieces”, nu „3 camere”.
+
+## Șablonul de titlu (etapa 12, `c11`)
+
+- Materialul: **„Material — X”**, **„Material pentru fronturi — X”**, **„Material pentru cadru — X”** (tapițate),
+  **„Material pentru ramă — X”** (oglinda). EN: „Material — X”, „Front material — X”, „Frame material — X”.
+- Deschiderea: **„Deschidere — X”** / „Opening — X”.
+- X fără articol hotărât: „Material — corp de lavoar”, nu „— corpul de lavoar”.
+- Listele de piese: **„Ce piese îți trebuie?”** în toate camerele. Schița: „Ai o schiță a {camerei}?” la camere,
+  „Ai o schiță pentru această piesă?” la piese.
+- Piesele 3D: **„Creează {piesa}”** / „Create your {piece}”.
+- Un titlu de peste 40 de caractere are lângă el o etichetă scurtă de rezumat (`summaryLabel`).
+
+## Prețurile orientative (etapa 12, `c12`, PO c12-1)
+
+- RO: **„600–1.100 lei / m liniar”** — punct de mii, liniuță (–) fără spații, „+” doar pentru costuri în plus
+  („+30–60 lei / front”). Unitățile permise, scrise întreg după „ / ”: m liniar, bucată, front, sertar, corp,
+  modul, accesoriu. Se mai acceptă procentele („+10–15% față de …”), comparațiile („față de una fixă”) și
+  „inclus” / „incluse de regulă”.
+- EN: **„600–1,100 lei per linear metre”** — virgulă de mii, „lei” după număr, „per linear metre | piece | front |
+  drawer | unit | module | accessory”, „vs …”, „included” / „usually included”.
+- Nu se mai folosesc: „lei/ml”, „lei/buc”, „lei / buc”, „/lm”, „RON”, „lei pe metru liniar”.
+- Sub orice preț pe metru liniar, fereastra de detalii explică o dată ce e metrul liniar
+  (`Configurator.info.linearMetreNote`).
+- Opțiunea „Fără” nu are preț (cheia lipsește, nu e „inclus”).
+
+## Engleza
+
+O singură engleză, britanică: metre, centimetre, millimetre, colour, grey, centre, minimise, organising, socket,
+„L-shaped” / „U-shaped”.
 
 ## Excepții (rămân așa)
 
@@ -74,3 +131,14 @@ nu „Balcon închis: Deschis”.
 
 Testul `apps/frontend/src/messages/glossary.test.ts` caută variantele vechi în `ro.json` și `en.json`
 și pică dacă apar în afara excepțiilor de mai sus. Un termen nou în glosar = o regulă nouă în test.
+
+De la etapa 12 testul mai oprește:
+- în română: „draft”, „custom”, „showroom”, „live”, „King”, „click”, „slim”, „Amortizarea merită”;
+- în engleză: formele americane, „outlet” și „hookup” (în afara `Admin*` / `Legal.*`);
+- „firm” / „firms” / „firm's” în textele în engleză pentru client (`Configurator`, `Requests`, `Studio`,
+  `Inspiration`, `Notifications.stageUpdated`, `Fulfillment.client*`; excepție: fermitatea pernei,
+  `config3d.catalog.options.FIRM`);
+- abaterile de la glosarul de piese, de la șablonul de titlu, de la „Ce piese îți trebuie?” și de la titlurile 3D.
+
+Prețurile au testul lor, `apps/frontend/src/messages/price-format.test.ts`: aceeași formă și aceleași cifre în
+RO și EN pe orice cheie `Configurator.….price`, și cele viitoare.

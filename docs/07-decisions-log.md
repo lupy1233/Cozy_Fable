@@ -3150,6 +3150,246 @@ _Limitare lasata PO dupa revizuire (m1 server): daca adminul schimba `claim_cont
 
 **Impact: **Niciunul acum; de facut in etapa 12.
 
+### D-E12-1. Pretul materialelor: „lei / m liniar” scris intreg, cu o fraza in detalii (2026-11-13, PO c12-1; textul frazei refacut dupa revizuirea textelor, 2026-11-15)
+
+**Decizie: **Preturile orientative au un singur format. RO: punct de mii, liniuta fara spatii, „+” doar pentru costuri in plus, unitatea dupa „ / ”: „m liniar”, „bucată”, „front”, „sertar” (plus cele existente, D-E12-12). EN: virgula de mii, moneda „lei” dupa numar (glosarul, D-E8), „per linear metre / piece / front / drawer”. Formatul il verifica `apps/frontend/src/messages/price-format.test.ts` pe orice cheie `Configurator.….price`. Ce inseamna metrul liniar se explica o data, in fereastra de detalii, sub pret (D-E12-13). Cifrele nu se schimba.
+
+**Rationale: **„lei/ml” se putea citi „mililitru”; clientul vede cifre reale si afla ce inseamna metrul liniar. Pretul pe metru liniar ramane doar la corpuri (etapa 6, c1).
+
+**Impact: **`ro.json` / `en.json` (fragmentul `e12-price`), `price-format.test.ts`, `info-dialog.tsx`.
+
+### D-E12-2. La ridicarea suspendarii de catre admin punctele active se anuleaza, cu motiv obligatoriu (2026-11-13, PO k2-1 + pasii 2–4 ai planului)
+
+**Decizie: **`POST /admin/companies/:id/unsuspend` cere `{ reason }` (`UnsuspendCompanyDto`: caracterele de control devin spatiu, apoi trim, INAINTE de validare; 3–1000 de caractere; altfel 400 `VALIDATION_ERROR`). In aceeasi tranzactie cu trecerea firmei in APPROVED, evenimentele `penalty_events` COMPANY active (`expires_at > now`) primesc `expires_at = now` (`cancelActiveCompanyPenalties`); nu se sterg. Raspunsul (deci instantaneul de audit `COMPANY_UNSUSPENDED`) are `penaltyPoints`, `count`, `items` [{ id, ruleKey, points }] si `unsuspendReason` (D-E12-17). O penalizare noua porneste de la 0.
+
+**Rationale: **Inainte punctele ramaneau la prag (12 din 12), deci orice penalizare noua suspenda firma din nou pe loc. Ridicarea e un nou inceput; istoricul ramane in audit.
+
+**Impact: **`admin-companies.controller.ts`, `companies.service.ts` (`adminUnsuspend`), `dto/unsuspend-company.dto.ts`, `penalties.service.ts`, dialogul din `admin/companies/[id]`.
+
+### D-E12-3. Adresa publica de contact pe domeniul firmei (2026-11-13, PO i3-1)
+
+**Decizie: **Adresa din subsol si din regulile publice vine din `system_settings.legal_contact_email`; PO creeaza casuta (`contact@` / `suport@` pe domeniul firmei) si o pune in Admin → Setari, iar pe serviciu seteaza `SUPPORT_EMAIL` (reply-to si linia de suport din e-mailurile de cont). Fara cod.
+
+**Rationale: **Azi apare o adresa personala; una pe domeniul firmei arata serios.
+
+**Impact: **Niciunul in cod; pas in „La lansare” (CHANGELOG, etapa 12).
+
+### D-E12-4. Camera „Birou”, piesa „Birou de lucru” (2026-11-13, PO c11-1)
+
+**Decizie: **Piesa-birou se numeste „Birou de lucru” / „Desk” in formular, in Sumar si in titlul cererii (`ROOM_TITLE_LABELS.PIECE_DESK` = „Birou de lucru” / „Birouri de lucru”); camera ramane „Birou” / „Office”. Titlul devine „Birou + Birou de lucru — Oraș”.
+
+**Rationale: **„Birou + Birou — Oraș” era confuz, iar „Birou — București” se putea citi spatiu de birouri.
+
+**Impact: **`requests.service.ts` (`buildRequestTitle`), `ro.json` / `en.json`.
+
+### D-E12-5. La balcon deschis: doar avertisment, fara materiale de exterior noi (2026-11-13, PO c13-1)
+
+**Decizie: **PAL si MDF raman de ales la balcon deschis, cu insigna „Nerecomandat aici” / „Not recommended here” (D-E12-14); la fel PAL la baia fara aerisire. Nu se adauga optiuni de exterior (pasul 6 al problemei 63 nu se face). Pe BALCONY v4 cu balcon deschis, descrierea fiecarei piese pentru firma incepe cu „Balcon deschis — exterior” (D-E12-15).
+
+**Rationale: **Se poate face imediat, fara versiune noua de flux; firma propune materialul de exterior in oferta.
+
+**Impact: **`material-warning.tsx`, `step-renderer.tsx`, `balcony.v4.ts`, instantaneul `firm-text-v7.json` (doar randurile BALCONY v4 deschis).
+
+### D-E12-6. Alegerile marunte din plan: „Storage room”, engleza britanica, fara document la verificare (2026-11-13, plan, fara PO)
+
+**Decizie: **(1) Camera de depozitare: RO „Debara”, EN „Storage room” (si dressingul „Dressing room”); titlurile cererilor romanesti nu se schimba. (2) O singura engleza, britanica (metre, colour, centre, grey, socket). (3) La verificarea firmei nu se cere document; adminul verifica CUI-ul in registrul public (ca azi). (4) Formatul preturilor si sablonul de titlu le fixeaza planul (D-E12-1, D-E12-7).
+
+**Rationale: **Alegerile planului, aprobat de PO.
+
+**Impact: **`en.json`, `glossary.test.ts`.
+
+### D-E12-7. Sablonul de titlu ramane forma etapelor 6 si 10: „Material — X” (2026-11-14, alegere `e12-words`; de confirmat de PO)
+
+**Decizie: **Planul propunea intrebarea „Ce material vrei pentru {piesă}?”; s-a pastrat forma deja aleasa la etapa 6 si folosita in versiunile noi: „Material — X”, „Material pentru fronturi — X”, „Material pentru cadru — X”, „Material pentru ramă — X”, „Deschidere — X”, fara articol hotarat (EN „Material — X”, „Front material — X”, „Opening — X”). Se aplica tuturor camerelor, si versiunilor vechi (aceleasi chei). La titlurile peste 40 de caractere s-au adaugat etichete scurte de rezumat (`summaryLabel`). Testul glosarului verifica forma.
+
+**Rationale: **Contractul etapei: formularea etapei 6 e hotarata; o singura forma peste tot.
+
+**Impact: **`ro.json` / `en.json` (fragmentul `e12-words`), `glossary.test.ts`.
+
+### D-E12-8. „Altă mărime”, nu „Altă dimensiune” (2026-11-14, alegere `e12-words`; de confirmat de PO)
+
+**Decizie: **„Dimensiuni custom” (patul din dormitor) devine „Altă mărime” / „Other size”.
+
+**Rationale: **E termenul din glosar al etapei 10 pentru aceeasi alegere la patul 3D; „dimensiune” e folosit pentru masuri.
+
+**Impact: **`ro.json` / `en.json`.
+
+### D-E12-9. Glosarul de piese; „Altă piesă” la singular, „2 Alte piese” in titlu (2026-11-14, pasul 2 al problemei 62 + alegeri `e12-words`; de confirmat de PO)
+
+**Decizie: **Un nume pe piesa in interfata si in titlul cererii: Comodă TV / TV unit, Bibliotecă / Bookcase, Rafturi de perete / Wall shelves, Dulap de depozitare / Storage cabinet, Băncuță / Bench, Noptieră / Nightstand, Altă piesă / Other piece, Birou de lucru / Desk; „Pe un perete” / „Along one wall” la forma liniara. Titlul cererii: noptierele se numara dupa „Câte noptiere?” (`ONE` → 1, altfel 2, ca fluxul; „Noptieră” / „2 Noptiere”), „Altă piesă” dupa randurile completate („2 Alte piese”). „Piese individuale” ramane doar numele tabului din cos. Descrierea pieselor pentru firma din fluxurile versionate NU se schimba (instantaneele). Titlul se recalculeaza la orice editare, deci o cerere veche il primeste pe cel nou la prima editare.
+
+**Rationale: **Aceeasi piesa avea mai multe nume („zonă TV”, „Piese individuale”, „Noptiere” la una singura).
+
+**Impact: **`requests.service.ts`, `review-step.tsx` (`cartCountLabel`), `ro.json` / `en.json`.
+
+### D-E12-10. „Opening — X” in engleza (2026-11-14, alegere `e12-words`; lasat dupa revizuire — texte m10; de confirmat de PO)
+
+**Decizie: **Titlurile de deschidere raman „Opening — kitchen” etc. (45 de titluri).
+
+**Rationale: **Pereche directa cu „Deschidere — X”. Revizorul a notat ca se poate citi „o deschidere in perete”; varianta propusa: „How it opens — X”.
+
+**Impact: **Niciunul in plus.
+
+### D-E12-11. „company” in textele EN pentru client; textele pentru firme raman cu „firm” (2026-11-15, dupa revizuirea textelor — M2; de confirmat de PO)
+
+**Decizie: **„the firm” → „the company” in 13 texte EN vazute de client (formular, `Requests`, `Fulfillment.client*`, `Notifications.stageUpdated`). `glossary.test.ts` interzice „firm / firms / firm's” in aceste zone (exceptie: `config3d.catalog.options.FIRM`, fermitatea pernei). Textele pentru FIRME (`Marketplace`, `Quotes`, `Lifecycle`, `Company`, `Penalties`, `Billing`, aproximativ 45 de chei), `Legal` si `Admin` raman cu „firm”.
+
+**Rationale: **Glosarul cere „company” pentru client; o trecere pe textele firmelor e separata.
+
+**Impact: **`en.json`, `glossary.test.ts`.
+
+### D-E12-12. Unitati de pret pastrate; pretul scos de pe „Fără” (2026-11-14, alegeri `e12-price` si ale coordonatorului; de confirmat de PO)
+
+**Decizie: **(1) In plus fata de lista din plan raman unitatile existente „corp”, „modul”, „accesoriu” (EN „unit”, „module”, „accessory”), comparatiile („față de una fixă” / „vs …”) si valorile fara cifre („inclus”, „incluse de regulă”). (2) Pretul „inclus” de pe optiunea „Fără” la depozitarea patului (dormitor si piesa-pat) e scos de tot, nu lasat gol: cheile sunt sterse, iar exceptia e scrisa o data in `PRICE_HINTS_REMOVED` (`apps/frontend/src/messages/flow-text-keys.ts`), citita de testele de chei. Pretul se afiseaza doar daca textul exista.
+
+**Rationale: **Planul dadea lista cu „etc.”; un text gol ar fi fost o cheie goala de intretinut.
+
+**Impact: **`ro.json` / `en.json`, `price-format.test.ts`, `flow-text-keys.ts`, `questionnaire-content.test.tsx`.
+
+### D-E12-13. Fraza despre metrul liniar: sub orice pret pe metru liniar, text neutru (2026-11-14, coordonatorul; text refacut dupa revizuirea textelor — M1; de confirmat de PO)
+
+**Decizie: **Cheia `Configurator.info.linearMetreNote` se afiseaza in `info-dialog.tsx` sub pret doar cand textul pretului contine „m liniar” / „linear metre” (materialele, blaturile, profilul Gola). Textul: „„m liniar” înseamnă metru liniar: lungimea măsurată de-a lungul peretelui. De exemplu, 3 m de mobilier pe un perete = 3 metri liniari. Prețul e orientativ.” / „“Linear metre” means the length measured along the wall — for example, 3 m of furniture along one wall is 3 linear metres. The price is a guide only.”
+
+**Rationale: **Prima varianta („cu tot cu corpuri și fronturi”) era falsa la blaturi si la Gola si putea fi citita ca o promisiune despre ce include pretul. Regula pe text e fragila daca preturile se reformuleaza (testul `info-dialog.test.tsx` o prinde).
+
+**Impact: **`info-dialog.tsx`, `info-dialog.test.tsx`, `ro.json` / `en.json`.
+
+### D-E12-14. Avertismentul „Nerecomandat aici” doar unde exista insigna „Recomandat” (2026-11-14, alegere `e12-hints`; de confirmat de PO)
+
+**Decizie: **`material-warning.tsx` (doar afisare) pune avertismentul pe pasii `single-choice` care au deja o alta optiune „Recomandat” activa: la balcon deschis pe PAL si pe toate MDF-urile (inclusiv „Integral din MDF”, MDF furniruit, MDF-ul din v1), la baia neaerisita pe PAL. Blatul (fara insigna din etapa 6, c6), spalatoria, balconul inchis sau fara raspuns nu au avertisment. Insigna are icon + text si intra in numele butonului („PAL Nerecomandat aici”). Ce se salveaza nu se schimba.
+
+**Rationale: **Aceeasi regula ca insigna, potrivita cu textul balconului („PAL-ul și MDF-ul nu rezistă aici, nici înfoliate”). Daca PO il vrea si pe blat, e o regula in plus.
+
+**Impact: **`material-warning.tsx`, `step-renderer.tsx`; cheia `Configurator.info.notRecommendedHere`.
+
+### D-E12-15. Nota „Balcon deschis — exterior”: prima, pe fiecare piesa, doar pe BALCONY v4 (2026-11-14, alegere `e12-hints`; de confirmat de PO)
+
+**Decizie: **`balcony.v4.ts` adauga `BALCONY_OPEN_NOTE` („Balcon deschis — exterior”, cu majuscula, ca celelalte note) prima in descrierea fiecarei piese (si a piesei de rezerva „Mobilier balcon”) cand `enclosed === 'OPEN'`. Versiunile v1–v3 nu se schimba; singurul instantaneu schimbat e `firm-text-v7.json`, randurile `BALCONY@v4/last` si `/middle`.
+
+**Rationale: **Firma afla de exterior fara sa caute in rezumat; contractul permitea doar aceasta exceptie de instantaneu.
+
+**Impact: **`balcony.v4.ts`, `balcony.v4.test.ts`, `firm-text-v7.json`.
+
+### D-E12-16. Consola de admin: codul in tooltip, „Cereri” in meniu si in pagina (2026-11-14, pasii 1 si 6 ai problemei 56 + alegere `e12-admin`; de confirmat de PO)
+
+**Decizie: **`CodeUnder` pune codul tehnic doar in `title` si `data-code` pe eticheta (pe telefon nu se vede — texte / cod m4, lasat). Meniul „Proiecte” devine „Cereri” / „Requests”, la fel titlul paginii, subtitlul si „Înapoi la …”; coloana „Proiect” si „Proiectul nu a fost găsit” raman. Lista contine si comenzi (cereri cu oferta acceptata); varianta „Comenzi” ramane la PO (texte m21).
+
+**Rationale: **Planul cere „Cereri” (cu i1); ecranele de admin sunt in afara glosarului.
+
+**Impact: **`core-list-parts.tsx`, `admin/page.tsx`, fragmentul `e12-admin`.
+
+### D-E12-17. Motivul ridicarii suspendarii in audit — singurul text liber admis, mascat (2026-11-14, pasul 2 al problemei 56; mascarea aleasa de `e12-admin` si de coordonator, refacuta dupa revizuirea de cod — m1, m2; de confirmat de PO)
+
+**Decizie: **`audit-snapshot.ts` accepta cheia `unsuspendReason` si o trece prin `freeReason`: caracterele de control devin spatiu, trim, e-mail → `[email]`, IBAN → `[iban]`, un sir de cifre cu separatori care are cel putin 9 cifre → `[nr]`, taiere la 1000; un motiv care pare sa contina un secret (`secret`, `token`, `password`, `bearer` urmate de separator) → `[ascuns]`. Raspunsul rutei foloseste aceeasi functie (`auditSafeReason`), deci motivul e identic in raspuns si in audit. Datele („14.11.2026”) si sumele raman citibile. Firma nu vede motivul (nu intra in e-mail sau notificare). Corpul cererii nu ajunge in audit (doar raspunsul).
+
+**Rationale: **Planul aprobat de PO cere motivul „salvat in jurnalul de audit al actiunii”; invarianta 3.9 nu admite text liber, deci e o exceptie documentata, cu mascare (docs/02 3.9).
+
+**Impact: **`audit-snapshot.ts` (+ spec), `dto/unsuspend-company.dto.ts`, `companies.service.ts`; `docs/02` 3.9.
+
+### D-E12-18. Ridicarea AUTOMATA a suspendarii nu anuleaza punctele (2026-11-14, alegere `e12-admin`; de confirmat de PO)
+
+**Decizie: **Doar ridicarea facuta de admin anuleaza punctele active. Ridicarea automata la `suspended_until` (`reconciliation.processor.ts`) ramane neschimbata.
+
+**Rationale: **PO a vorbit doar de ridicarea facuta de admin; dupa 6 luni punctele (fereastra de 180 de zile) sunt de obicei expirate.
+
+**Impact: **Niciunul in cod.
+
+### D-E12-19. Aceeasi blocare pe firma la penalizare si la ridicare (2026-11-15, dupa revizuirea de cod — m3)
+
+**Decizie: **`lockCompanyRow` (`SELECT id FROM companies WHERE id = $1 FOR UPDATE`) e luata de `applyPenalty` la inceputul drumului COMPANY (doar cand are tranzactie) si de `adminUnsuspend` inaintea UPDATE-ului firmei si a anularii punctelor. In READ COMMITTED penalizarea asteapta commitul ridicarii si vede punctele anulate; in Serializable primeste serialization failure si se reia (`runTx`). Ordinea de blocare a apelantilor existenti (cererea, apoi firma) nu face cicluri.
+
+**Rationale: **Fara blocare, o penalizare pornita in timpul ridicarii putea numara punctele vechi si suspenda firma din nou.
+
+**Impact: **`penalties.service.ts`, `companies.service.ts`; `companies.unsuspend.integration.spec.ts` (scris, de rulat).
+
+### D-E12-20. Punctele de pe panoul firmei din aceeasi sursa ca lista (2026-11-14, pasul 5 al problemei 56)
+
+**Decizie: **`PenaltyCard` (`dashboard/page.tsx`) ia cifra din `/penalties/me` (care se reimprospateaza la penalizare / suspendare / ridicare); statisticile panoului raman rezerva pana se incarca. Pe server cifra si lista aveau deja acelasi filtru (COMPANY, `expires_at > now`).
+
+**Rationale: **„12 din 12” ramanea pe panou dupa ridicare, din statistici neimprospatate.
+
+**Impact: **`dashboard/page.tsx`.
+
+### D-E12-21. Datele: trei selectii la „Data livrării”, fusul Romaniei global, regula ESLint (2026-11-14, pasii problemei 57 + alegeri `e12-dates`; fusul global dupa revizuirea de cod — m6; de confirmat de PO)
+
+**Decizie: **(1) „Data livrării” = `DatePartsField`: trei selectii native Zi / Luna / An (nu text `zz.ll.aaaa`), `fieldset` + `legend`, valoarea tot `AAAA-LL-ZZ`, validare pe text (fara `Date`); anii = anul curent in Romania + 5 (un an precompletat din afara listei ramane ales). (2) Nicio data minima: campul accepta si o data din trecut, ca inainte (regula `delivery_min_days_after_accept` priveste doar „Marchează ca livrată”); o data trecuta a variantei precedente nu se precompleteaza (comportament vechi, cod m7). (3) `APP_TIME_ZONE = 'Europe/Bucharest'` in `lib/app-time-zone.ts`; next-intl il primeste global (`i18n/request.ts`, `NextIntlClientProvider` din layout); un `timeZone` explicit are intaietate. (4) ESLint interzice `toLocale*String()` fara limba si `Intl.DateTimeFormat()` fara limba. (5) Testele ruleaza cu `TZ = 'Europe/Bucharest'`.
+
+**Rationale: **Pe iOS tastatura numerica n-are punct; selectiile native sunt accesibile fara munca in plus. Fusul global repara dintr-un singur loc toate afisarile fara `timeZone`.
+
+**Impact: **`date-parts-field.tsx`, `offer-builder.tsx`, `lib/app-time-zone.ts`, `lib/sla-deadline.ts`, `i18n/request.ts`, `layout.tsx`, `.eslintrc.json`, `test/setup.ts`; `docs/02` 3.6.
+
+### D-E12-22. Back / Forward in formular prin istoricul browserului, fara adresa (2026-11-14, alegeri `e12-nav` — D-E12-nav-1, nav-2; corectate dupa revizuirea de cod)
+
+**Decizie: **`stores/configurator-history.ts`: `history.pushState` / `replaceState` fara URL (adresa si ruta Next raman), cu starea Next pastrata prin spread; intrarea `cozyConfiguratorNav` tine doar `{ g, i, pos, prev }` — generatia ciornei, pozitia in istoric, locul (faza; la intrebari camera + ecranul) si locul de dinainte. Store-ul ramane sursa de adevar; schimbarile din acelasi clic dau o singura intrare. „Înapoi” din pagina spre `prev` = `history.back()`; spre intrarea urmatoare cunoscuta = `history.forward()`. Generatia (aleatoare) sta in `sessionStorage` (`mm_configurator_nav_v1:new` / `:edit:<id>`) si se schimba la golirea ciornei, la publicare / salvare si la o nepotrivire; intrarile altei generatii si ale ecranelor care nu mai exista se sar in directia mersului. Prima intrare are `prev: null`, deci Back iese din pagina. Dupa revizuire: plasa de 1 s nu mai face al doilea pas inapoi; cheile `mm_configurator_nav_v1:*` se sterg la deconectare (`clearConfiguratorMemory`).
+
+**Rationale: **Tot formularul sta pe o singura adresa; fara istoric, Back scotea omul din formular.
+
+**Impact: **`configurator-history.ts`, `configurator-wizard.tsx`, `configurator-store.ts`; `docs/02` 3.6.
+
+### D-E12-23. Forward nu trece de un ecran incomplet; ce adauga intrari; dialogurile si focusul (2026-11-15, alegeri `e12-nav`, corectate dupa revizuirea de cod — m11, m16, m17; de confirmat de PO)
+
+**Decizie: **(1) La Forward, daca ecranul de pe care pleaca omul nu trece validarea de la „Continuă” (`canLeaveScreenForward`: cos cu macar o camera, `validateStepIssue` pe pasii ecranului, `detailsPassValidation` la Date generale), istoricul revine pe acel ecran si formularul cere „Continuă” (`requestContinue`, contor doar in memorie); fisierele nu se verifica la Forward (le opresc Sumarul si serverul). (2) Clicul pe pilula unei camere si pe o faza trecuta din bara de sus adauga si ele o intrare. (3) Un dialog deschis se inchide la Back / Forward ca la Escape („Ai o cerere începută” inchis = „Continuă”). (4) La orice schimbare de ecran, titlul ecranului nou primeste focus (`tabIndex=-1`, fara derulare); la incarcarea paginii nu. Pe ecranele de intrebari, `room-flow-runner.tsx` asculta `continueRequest` si face „Continuă” (mesajele si focusul pe primul camp gresit).
+
+**Rationale: **Forward ar fi dus omul pana la Sumar peste ecrane incomplete; dialogul ramas deschis peste alt ecran deruta.
+
+**Impact: **`configurator-wizard.tsx`, `configurator-store.ts`, `details-step.tsx`, `configurator-history.ts`, `room-flow-runner.tsx`.
+
+### D-E12-24. E-mailul la inregistrare vine din ciorna; telefonul pe canalul e-mail (2026-11-14, alegere `e12-nav` — D-E12-nav-3)
+
+**Decizie: **Formularul de inregistrare deschis cu `redirect=/requests/new` ia primul contact EMAIL valid din ciorna (store), doar daca campul e gol; nimic prin adresa paginii; telefonul nu se completeaza. Un telefon scris pe canalul e-mail primeste la „Continuă la sumar” mesajul „Pare un număr de telefon. Schimbă canalul pe „Telefon”.” (`Requests.validation.contactEmailIsPhone`); schema din shared nu s-a schimbat. Pe un calculator comun, urmatorul vizitator poate vedea e-mailul celui dinainte — aceeasi expunere ca ciorna (cod m18, lasat).
+
+**Rationale: **Vizitatorul nu mai scrie e-mailul de doua ori.
+
+**Impact: **`(auth)/register/page.tsx`, `draft-email.ts`, `details-step.tsx`.
+
+### D-E12-25. Numele butoanelor (i): „Detalii: {opțiune}” (2026-11-15, dupa revizuirea textelor — m17; de confirmat de PO)
+
+**Decizie: **`Configurator.info.showInfoFor` = „Detalii: {option}” / „Details: {option}”, pe cardurile mari, langa titlul intrebarii si pe cartonasele mici (de ex. „Detalii: Ce formă are bucătăria?”).
+
+**Rationale: **„Vezi detalii despre Ce formă are…?” era stangaci; „Detalii: …” merge si cu optiunea, si cu intrebarea.
+
+**Impact: **`ro.json` / `en.json`; `e2e/fullscreen-rendering.spec.ts` de adus la zi.
+
+### D-E12-26. Regulile publice: forma propozitiilor, versiunea juridica, cheile vechi (2026-11-14, alegeri `e12-misc`; de confirmat de PO)
+
+**Decizie: **(1) Termenele: toate egale → „{n} pentru orice proiect”; doua egale → „{a} pentru proiectele mici și medii, {b} pentru cele mari” (si analog „… mici, … medii și mari”, „… mici și mari, … medii”); „proiect”, ca restul textului `Legal.*`. (2) La 0 puncte propozitia pierde partea cu punctele; aceeasi regula in panoul si dialogul de preluare, la „Retrage oferta” si la retragerea voluntara; cat se incarca regulile — varianta fara puncte (cod m8). (3) `LEGAL_TERMS_VERSION` nemarita: s-a schimbat doar forma, nu sensul (texte m20). (4) Cheile vechi `Marketplace.claimPanel.ruleSla` si `Marketplace.claimRulesNote` raman in fisiere, nefolosite.
+
+**Rationale: **Planul (pasii 1–3 ai problemei 60); revizorul a confirmat ca sensul juridic e acelasi.
+
+**Impact: **`firm-rules-article.tsx`, `claim-penalty-text.tsx`, `offer-card.tsx`, `claim-lifecycle-panel.tsx`, `legal-messages.test.ts`.
+
+### D-E12-27. E-mailul „Parola ta a fost schimbată”: fara precompletare, data lunga, asteptat in raspuns (2026-11-14, alegeri `e12-misc` si ale coordonatorului; de confirmat de PO)
+
+**Decizie: **(1) Butonul de pe ecranul de succes, „Intră în cont”, nu precompleteaza e-mailul (varianta a): pagina de resetare are doar tokenul, iar a afla e-mailul ar cere serverului adresa pe baza tokenului. (2) Data in forma lunga, in limba contului si ora Romaniei, 24 h. (3) Fara `SUPPORT_EMAIL`: „Dacă nu ai fost tu, resetează parola.” (fara „scrie-ne”); cu adresa: „… și scrie-ne la {adresa} (sau răspunde direct la acest email).” (adresa prin `esc()`). (4) Trimiterea e asteptata (`await`) in raspuns, best-effort, ca celelalte e-mailuri de cont (cod m9, lasat).
+
+**Rationale: **Pasul 3 din plan nu se putea face fara a expune adresa celui care are tokenul; managerul de parole completeaza oricum e-mailul.
+
+**Impact: **`auth.service.ts`, `auth-email.ts`, `reset-password/page.tsx`.
+
+### D-E12-28. Subiectele e-mailurilor: text simplu, 120 de caractere pe valoare (2026-11-14, adaosul la etapa 12 — D-E11-35; prag ales de `e12-misc`; de confirmat de PO)
+
+**Decizie: **In `notification-emails.service.ts` toate valorile din subiecte trec prin `subjectText` (fara `esc()`): caracterele de control C0 / C1 si U+2028 / U+2029 devin spatiu, spatiile se comprima, fiecare valoare se taie la 120 de caractere cu „…”. Corpul ramane escapat cu `esc()`.
+
+**Rationale: **Subiectul e text simplu (`MailService`), deci `esc()` il strica; curatarea randurilor noi opreste antetele strecurate.
+
+**Impact: **`notification-emails.service.ts` (+ spec).
+
+### D-E12-29. Curatenia: 37 de chei, testul permanent, exceptiile (2026-11-14, alegeri `e12-clean`; de confirmat de PO)
+
+**Decizie: **Se sterg (RO si EN) cheile pe care nicio versiune de flux si nicio componenta nu le citeste: `HALLWAY.depthProfile`, `HALLWAY.openingSystems`, `OFFICE.cableManagement` (din plan) si, in plus, `DRESSING.toCeiling`, `BEDROOM.wardrobeToCeiling` (pasul exista doar la `PIECE_WARDROBE` / `PIECE_BOOKCASE`, cu cheile lor). Testul `flow-text-keys.test.ts` ramane permanent. Exceptii, in `flow-text-keys.ts`: `PRICE_HINTS_REMOVED` (D-E12-12) si `KNOWN_MISSING_OPTIONAL_KEYS` = `KITCHEN.layout.options.PARALLEL.info.pros3` (bucataria paralela v1 a avut mereu doua avantaje; fereastra filtreaza cu `has`; nu s-a inventat un text). In plus: `useUnsuspendCompany` vechi sters; `portfolioItemSchema.imageUrl` scos din shared; pragul de control din `price-format.test.ts` coborat de la 80 la 75 de preturi (dupa ce s-au sters doua preturi nefolosite). Readucerea cheilor: se scot randurile din `e12-clean.remove.json` si se ruleaza din nou imbinarea.
+
+**Rationale: **Planul (problema 59); dovezile pe toate versiunile si in tot codul, in raportul `e12-clean`.
+
+**Impact: **`ro.json` / `en.json`, `flow-text-keys.ts` (+ test), `use-company.ts`, `company.schemas.ts`.
+
+### D-E12-30. Ce a ramas lasat dupa revizuire (2026-11-15; de confirmat de PO)
+
+**Decizie: **Raman asa: texte m5 („Altă piesă” la singular, „2 Alte piese” in titlu; varianta „2 piese diverse”), m10 („Opening — X”, D-E12-10), m20 (versiunea juridica, D-E12-26), m21 („Cereri” in admin, D-E12-16); cod m4 (codul doar in tooltip), m7 (data trecuta nu se precompleteaza — comportament vechi), m9 (e-mailul de parola asteptat in raspuns, D-E12-27), m10 (titlul unei cereri vechi se recalculeaza la prima editare, D-E12-9), m13 (`prev` vechi dupa o corectura — doar intrari in plus), m18 (e-mailul vizitatorului anterior pe un calculator comun, D-E12-24).
+
+**Rationale: **Riscuri mici, comportamente mai vechi decat etapa sau alegeri de produs.
+
+**Impact: **Niciunul in cod.
+
 # 9. Checklist uman: ce faci acum
 
 - Citește integral acest document o dată. Verifică Decisions Log (Secțiunea 8, inclusiv 8.4). Dacă o decizie te deranjează, schimb-o ACUM în document, înainte ca agentul să scrie cod.
