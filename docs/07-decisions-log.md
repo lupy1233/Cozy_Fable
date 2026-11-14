@@ -2870,6 +2870,286 @@ _Limitare lasata PO dupa revizuire (m1 server): daca adminul schimba `claim_cont
 
 **Impact: **`laundry.v4.ts` neschimbat.
 
+### D-E11-1. Proprietarul are mereu toate drepturile pe campurile ofertei; coloana lui nu se editeaza (2026-11-13, PO h1-2)
+
+**Decizie: **Rolul OWNER din `company_members` trece mereu verificarea campurilor ofertei (`editableOfferFields` in `companies.constants.ts`, folosit de `QuotesService.assertFieldPermissions`), fara sa citeasca `company_offer_field_permissions`. `GET /companies/me` arata OWNER cu toate campurile bifate (`effectiveOfferFieldPermissions`). In pagina firmei coloana „Proprietar” e bifata, dezactivata si legata de explicatia „Proprietarul poate modifica mereu toate câmpurile ofertei…”. Inlocuieste regula „Owner-ul ajusteaza matricea” in sensul ca isi putea scoate singur drepturile.
+
+**Rationale: **Raspunsul PO (recomandarea): nimeni nu se mai poate bloca singur; un proprietar cu randurile debifate nu mai putea trimite oferte.
+
+**Impact: **`companies.constants.ts`, `quotes.service.ts`, `companies.service.ts` (`getMyCompany`, `updateOfferPermissions`), `offer-permissions-section.tsx`. docs/03 4.13.
+
+### D-E11-2. Firma fara niciun rand de permisiuni primeste matricea de la inscriere (2026-11-13, pasul 1 al planului; PO h1-2)
+
+**Decizie: **Daca firma nu are NICIUN rand in `company_offer_field_permissions`, rolurile care nu sunt proprietar primesc matricea de la inscriere (`defaultOfferFieldPermissions`, o singura sursa): MANAGER tot, EMPLOYEE_TRUSTED tot in afara de PRICE, EMPLOYEE_MANAGED nimic. Firma care are randuri ramane pe ele: un rand lipsa pentru un rol (altul decat proprietarul) = „nu are voie”, ca inainte. Matricea implicita nu da nimanui mai mult decat cea de la inscriere.
+
+**Rationale: **Firmele demo aprobate ulterior nu aveau randuri, iar serverul refuza orice camp; acum o firma fara randuri poate oferta. Riscul din plan (o firma care si-a sters intentionat randurile) nu exista in interfata: aceasta nu poate sterge randuri, doar le schimba.
+
+**Impact: **`effectiveOfferFieldPermissions`, `editableOfferFields`; `quotes.service.ts` numara randurile firmei doar cand rolul nu are randuri. docs/03 4.13.
+
+### D-E11-3. Datele demo creeaza permisiunile pentru toate firmele (2026-11-13, pasul 1 al planului)
+
+**Decizie: **`prisma/seed-demo.ts` scrie matricea de la inscriere (`defaultOfferFieldPermissions`) pentru fiecare firma demo, indiferent de stare (inainte doar pentru cele `APPROVED` la incarcare). Firmele din `seed-inspiration.ts` si `seed-green-inspiration.ts` nu primesc randuri: nu au membri, iar D-E11-2 le acopera oricum.
+
+**Rationale: **O firma demo aprobata ulterior trebuie sa poata oferta imediat.
+
+**Impact: **Doar seed-ul local; firmele demo deja existente pe productie nu se rescriu (le acopera D-E11-1 si D-E11-2).
+
+### D-E11-4. Colegul isi face singur cont de Firma; e adaugat dupa e-mail si primeste clopotel + e-mail (2026-11-13, PO h1-1)
+
+**Decizie: **Ramane fluxul de azi: colegul se inregistreaza singur ca Firma, apoi proprietarul sau managerul il adauga dupa e-mail. Formularul arata cei doi pasi deasupra campurilor, iar un e-mail fara cont de firma primeste un mesaj clar pe camp (D-E11-8). Adaugarea scrie evenimentul `company.member_added` prin outbox, in aceeasi tranzactie (cheie `company.member_added:<id randului din company_members>`), catre colegul adaugat: clopotel („Ai fost adăugat în echipa unei firme”) + e-mail („Ai fost adăugat în firma X”, cu rolul si „Deschide panoul firmei”). Cel care adauga nu primeste nimic (`actorUserId`). Fara invitatie cu link, fara tabele noi.
+
+**Rationale: **Raspunsul PO (recomandarea): fara date noi; colegul nu mai afla din intamplare ca a fost adaugat.
+
+**Impact: **`companies.service.ts` (`addMember`), `event-bus.service.ts`, `notification-emails.service.ts`, `notification-bell.tsx`, `use-socket.ts`, `team-section.tsx`. docs/03 4.7, docs/02 3.5.
+
+### D-E11-5. O singura poza pe lucrare din portofoliu, incarcata din calculator (2026-11-13, alegere marunta din plan)
+
+**Decizie: **O lucrare din portofoliu are cel mult o poza, incarcata de firma prin legaturi presemnate (presign → PUT → confirm, ca la fisierele cererii), nu o adresa de poza scrisa de om. „Schimba poza” o inlocuieste pe cea veche.
+
+**Rationale: **Alegerea marunta din plan (se poate schimba), fara date noi; incape in estimare.
+
+**Impact: **`portfolio-images.service.ts`, rutele noi de portofoliu, `portfolio-section.tsx`. docs/03 4.6, docs/02 3.4.
+
+### D-E11-6. Incercarea de a schimba drepturile proprietarului e ignorata, fara eroare (2026-11-14, alegere `e11-team`; de confirmat de PO)
+
+**Decizie: **`PUT /companies/me/offer-permissions` scoate in tacere randurile `role = OWNER` din cerere si salveaza restul. Randurile OWNER vechi din baza raman cum sunt; doar nu mai conteaza. Interfata nu mai trimite randurile proprietarului.
+
+**Rationale: **Un refuz cu eroare ar fi stricat clientii vechi (o pagina deschisa inainte de lansare) care trimit matricea intreaga.
+
+**Impact: **`companies.service.ts` (`updateOfferPermissions`).
+
+### D-E11-7. Prima salvare la o firma fara randuri scrie intai matricea de la inscriere (2026-11-14, alegere `e11-team`; de confirmat de PO)
+
+**Decizie: **Daca firma nu are niciun rand, salvarea scrie intai matricea de la inscriere (`createMany`, `skipDuplicates`), apoi schimbarile trimise, in acelasi lot.
+
+**Rationale: **Fara asta, o salvare partiala ar fi creat randuri doar pentru o parte din roluri, iar celelalte ar fi trecut de pe matricea implicita pe „nu are voie” (D-E11-2).
+
+**Impact: **`companies.service.ts` (`updateOfferPermissions`).
+
+### D-E11-8. Cod nou `MEMBER_NO_COMPANY_ACCOUNT`, acelasi raspuns pentru „nu exista” si „cont de client” (2026-11-14, alegere `e11-team`; de confirmat de PO)
+
+**Decizie: **`POST /companies/me/members` cu un e-mail care nu are cont activ de tip Firma raspunde 404 `MEMBER_NO_COMPANY_ACCOUNT` (inainte `NOT_FOUND`), cu acelasi `message` si cand contul nu exista, si cand e cont de client. Interfata arata „Persoana nu are încă un cont de firmă. Roag-o să se înregistreze ca Firmă cu acest e-mail, apoi adaug-o aici.” sub campul de e-mail; mesajul dispare cand se schimba e-mailul.
+
+**Rationale: **Mesajul cerut de plan pe camp; raspunsul nu dezvaluie mai mult decat inainte (nu spune daca e-mailul are cont de client).
+
+**Impact: **`error-codes.ts`, `docs/ERROR_CODES.md`, `team-section.tsx`.
+
+### D-E11-9. E-mailul catre colegul adaugat: doar din firme aprobate, o data la 24 h; legatura la pagina firmei (2026-11-14, alegere `e11-team`, corectata dupa revizuirea de cod — M1 permisiuni; de confirmat de PO)
+
+**Decizie: **Clopotelul `company.member_added` pleaca mereu. E-mailul pleaca doar daca: firma e `APPROVED` (citit la trimitere, in `recipientsFor`); acelasi coleg NU a mai fost adaugat in aceeasi firma in ultimele 24 de ore (`MEMBER_ADDED_EMAIL_DEDUP_MS`: `addMember` numara, in tranzactia adaugarii, randurile `domain_event_outbox` `company.member_added` cu aceeasi tinta si acelasi `payload.companyId`; daca gaseste, pune `emailSuppressed: true` in payload); contul are e-mail confirmat si e abonat la e-mailuri, ca toate celelalte. Fara Reply-To de suport. Subiectul e text simplu (`subjectText`: fara `esc()`, fara caractere de control / randuri noi); corpul ramane escapat. Legatura (si cea din clopotel) duce la `/company`. Titlul clopotelului e fix, fara numele firmei; numele e in e-mail (completat la livrare din `companyId`).
+
+**Rationale: **Revizuirea: o firma neverificata, cu un nume ales liber (de ex. „Ai castigat…”), putea trimite in bucla, prin adaugare–scoatere, e-mailuri din domeniul Cozy Home unui cont strain. Numele unei firme aprobate a fost vazut de admin. Outbox-ul e scris sincron in tranzactie, deci o bucla rapida nu poate ocoli numararea (notificarile sunt scrise asincron de worker).
+
+**Impact: **`notification-emails.service.ts`, `notification-bell.tsx`, `companies.service.ts` (`addMember`), `companies.constants.ts`. Completat de D-E11-29.
+
+### D-E11-10. Poza de portofoliu sta pe randul `attachments`, fara coloana noua; `image_url` doar pentru lucrarile vechi (2026-11-14, alegere `e11-place`; de confirmat de PO)
+
+**Decizie: **Nicio migrare. Incarcarea se scrie in `attachments` cu `entity_type = 'COMPANY_PORTFOLIO'` (text liber) si `entity_id = company_id` cat asteapta, apoi se muta pe lucrare (`entity_id` = id-ul lucrarii) doar daca e SAFE. Poza veche a lucrarii (alt rand `COMPANY_PORTFOLIO` pe aceeasi lucrare) si `image_url` se scot. `company_portfolio_items.image_url` nu se mai scrie: `PortfolioItemDto.imageUrl` e refuzat (`VALIDATION_ERROR`); lucrarile vechi cu `image_url` se afiseaza ca inainte. Raspunsurile (`GET /companies/me`, `/companies/partners`) dau in `imageUrl` legatura presemnata a pozei SAFE, altfel adresa veche.
+
+**Rationale: **O coloana noua ar fi cerut migrare; tabelul generic de fisiere tine deja cheia, starea scanarii si regulile de stergere.
+
+**Impact: **`portfolio-images.service.ts`, `companies.service.ts`, `company.dto.ts`. docs/04. Ramane in shared `portfolioItemSchema.imageUrl`, nefolosit de interfata (de scos la o atingere viitoare).
+
+### D-E11-11. Reguli mai stricte pentru pozele de portofoliu (publice) (2026-11-14, alegere `e11-place`; de confirmat de PO)
+
+**Decizie: **Doar JPEG / PNG / WebP (nu PDF / ZIP / SVG), cel mult 25 MB. Verificarea dupa CONTINUT (`detectImageMime`: semnatura de la inceputul fisierului = tipul declarat, altfel BLOCKED) se face doar pentru `COMPANY_PORTFOLIO`; fisierele cererii raman cum erau. Cel mult 3 incarcari neatasate deodata pe firma (`MAX_STAGED_PORTFOLIO_UPLOADS`); cele neatasate mai vechi de o ora se sterg (rand + fisier) la urmatoarea incarcare a firmei. Corectat dupa revizuirea de cod (m2 securitate): stergerea se face rand cu rand, conditionat pe `entity_type`, `entity_id = firma` si aceeasi cheie, iar fisierul se sterge doar daca randul chiar s-a sters — o poza atasata intre citire si stergere ramane.
+
+**Rationale: **Poza de portofoliu e publica (pagina „Firme partenere”), deci un fisier HTML / SVG deghizat nu are voie sa treaca. La fisierele cererii o verificare stricta ar fi blocat pozele clientilor cu extensia gresita.
+
+**Impact: **`uploads.service.ts` (`STRICT_CONTENT_ENTITY_TYPES`), `image-sanitizer.ts`, `portfolio-images.service.ts`. docs/02 3.4.
+
+### D-E11-12. Poza e optionala la adaugarea unei lucrari (2026-11-14, alegere `e11-place`; de confirmat de PO)
+
+**Decizie: **O lucrare se poate adauga fara poza (ca inainte cu adresa pozei); poza se poate pune si mai tarziu („Adaugă o poză” / „Schimbă poza” pe card).
+
+**Rationale: **Nu schimbam ce era permis; pasul de portofoliu din card cere doar o lucrare.
+
+**Impact: **`PortfolioItemDto.attachmentId?`.
+
+### D-E11-13. Coordonatele locatiei le calculeaza serverul (Nominatim), nu Google (2026-11-14, alegere `e11-place`; de confirmat de PO)
+
+**Decizie: **Interfata nu mai trimite `lat` / `lng`. Serverul geocodeaza adresa (`GeoService`, Nominatim, invarianta 3.8, cache 90 de zile). La modificare, daca adresa, orasul si judetul raman aceleasi (comparate fara majuscule si spatii in plus), coordonatele salvate raman. Clientii vechi pot trimite in continuare amandoua coordonatele. Sugestiile Google raman doar ajutor la scris (completeaza judetul si orasul); fara cheie Google campul e text simplu. Blocul / apartamentul pierdute de sugestie se lipesc la sfarsitul adresei.
+
+**Rationale: **Componenta de adresa e „doar UI” (fara coordonate Google salvate), iar cererile se geocodeaza deja pe server; acelasi drum pentru locatii.
+
+**Impact: **`companies.service.ts` (`resolveLocationCoords`), `company.dto.ts`, `locations-section.tsx`, `address-autocomplete.tsx` (prop `label`). docs/02 3.8, docs/03 4.8. Dupa revizuirea de cod: limitele din D-E11-22 … D-E11-24, nota „doar orasul” (D-E11-27); coordonatele scrise de mana raman acceptate de API (D-E11-34).
+
+### D-E11-14. Valorile din selectorul de raza (2026-11-14, alegere `e11-place`; de confirmat de PO)
+
+**Decizie: **2, 5, 10, 15, 20, 30, 50, 75, 100, 150, 200, 300 km (pornind de la `MIN_COVERAGE_RADIUS_KM` = 2). Implicit 50 la adaugare, ca inainte. O raza salvata care nu e in lista apare ca optiune in plus. Serverul accepta in continuare 2–1000 km.
+
+**Rationale: **Planul cerea un selector, fara valori.
+
+**Impact: **`locations-section.tsx` (`RADIUS_OPTIONS_KM`).
+
+### D-E11-15. Plafoanele locatiilor apar ca mesaj al formularului (2026-11-14, alegere `e11-place`)
+
+**Decizie: **`COMPANY_LOCATION_CHANGE_LIMIT` (schimbari pe 24 h) si `COMPANY_LOCATION_LIMIT_REACHED` (numar de locatii) apar ca mesaj al formularului; `GEOCODING_FAILED` sub campul de adresa, raza sub minim sub selector.
+
+**Rationale: **Plafoanele nu tin de un singur camp.
+
+**Impact: **`locations-section.tsx`.
+
+### D-E11-16. Pasul „permisiunile ofertei” din card e doar o legatura optionala (2026-11-14, alegere `e11-dash`, corectata dupa revizuirea de cod — m1 permisiuni, hotararea coordonatorului; de confirmat de PO)
+
+**Decizie: **OFFER_PERMISSIONS ramane in card doar la proprietar, ca legatura „opțional” spre matrice (ca echipa), mereu `done: false`, si NU intra in progres. Serverul nu mai numara randurile de permisiuni (`offerPermissionRows` scos din `CompanySetupFacts` si din interogare). Prima varianta („facut cand firma are macar un rand”) era practic mereu „Făcut”: firmele reale primesc randurile la inscriere, iar cu matricea implicita (D-E11-2) lipsa randurilor nu mai e o problema de rezolvat.
+
+**Rationale: **Planul cerea permisiunile „văzute / setate”, ceea ce nu se poate masura fara date noi (coloana sau jurnal — varianta (c) a revizorului, neaplicata). Varianta (b), pastrarea, ar fi aratat o bifa la un pas pe care proprietarul nu l-a deschis.
+
+**Impact: **`companySetupSteps`, `loadCompanySetup`, comentariul din shared `company.schemas.ts`, `company-setup-card.tsx`.
+
+### D-E11-17. Progresul = 3 pasi obligatorii, la proprietar si la manager (2026-11-14, alegere `e11-dash`, corectata dupa revizuirea de cod; de confirmat de PO)
+
+**Decizie: **Pasii, in ordine: PORTFOLIO, LOCATIONS, BILLING_EMAIL (obligatorii), TEAM (optional), OFFER_PERMISSIONS (optional, doar proprietarului, D-E11-16). Progresul numara cei 3 pasi obligatorii, la proprietar si la manager → „X din 3”. Angajatii: fara card (`setup: null`, fara interogare). Cardul doar indruma: nu schimba ce poate face firma.
+
+**Rationale: **Echipa nu e o conditie ca firma sa lucreze; permisiunile exista mereu (D-E11-2). Inainte de revizuire proprietarul avea 4 pasi obligatorii (cu permisiunile).
+
+**Impact: **`companySetupSteps`, `company-setup-card.tsx`.
+
+### D-E11-18. Pasul „echipa” e facut de la 2 membri cu cont activ (2026-11-14, alegere `e11-dash`; de confirmat de PO)
+
+**Decizie: **TEAM e „facut” cand firma are cel putin 2 membri al caror cont nu e sters. E pas optional (insigna „opțional”), nu tine progresul pe loc.
+
+**Rationale: **Proprietarul singur nu e o echipa; firma de o persoana poate termina pregatirea.
+
+**Impact: **`loadCompanySetup` (`members: { where: { user: { deletedAt: null } } }`).
+
+### D-E11-19. Cardul dispare cand e gata; tine locul lui „Nimic urgent acum” (2026-11-14, alegere `e11-dash`; de confirmat de PO)
+
+**Decizie: **Cardul „Pregătește-ți firma” e primul in coloana principala cat pregatirea nu e gata. Fara nimic urgent, lista goala „De făcut acum” nu mai apare, iar subtitlul spune „Pași făcuți: X din Y”; cu ceva urgent, „De făcut acum” apare sub card. Cand pasii obligatorii sunt facuti, cardul dispare de tot (nu ramane strans intr-un rand).
+
+**Rationale: **Un rand permanent pe panou ar fi zgomot dupa pornire.
+
+**Impact: **`dashboard/page.tsx`, `company-setup-card.tsx`.
+
+### D-E11-20. Fraza despre proba: data, fara reinnoire, doar proprietarul si managerii (2026-11-14, alegere `e11-dash`, corectata dupa revizuirea de cod — m4 permisiuni; de confirmat de PO)
+
+**Decizie: **Pe panou, o firma in proba (`GET /billing/entitlements`: `isTrial`, `expiresAt`, numele planului) vede: „Ești în perioada de probă: planul {plan} e gratuit până pe {data}. După aceea nu se reînnoiește automat: ca să preiei în continuare cereri, alegi un plan în Portofel. Creditele rămase rămân în cont.” + „Vezi planurile”. Data in ora Romaniei; fara „mai sunt N zile” (raspunsul nu are zilele). O vad doar proprietarul si managerii (`companyCan(company, 'BILLING_MANAGE')`; entitlements se cer doar pentru ei): angajatul nu poate alege un plan, deci fraza „alegi un plan în Portofel” nu i se potriveste (corectat dupa revizuire; inainte o vedeau toti membrii). Fara proba (plan platit sau fara abonament) nu apare nimic. „Nu se reînnoiește automat” vine din plan (pasul 5), „creditele rămân în cont” din h2-2; nicio regula noua despre proba.
+
+**Rationale: **Aceeasi sursa si formulare ca mesajul unificat de abonament (h2).
+
+**Impact: **`company-setup-card.tsx` (`TrialSentence`, `TrialNotice`). docs/03 4.16.
+
+### D-E11-21. Stergerea firmelor demo curata pozele de portofoliu (2026-11-14, limita lasata de `e11-place`, reparata dupa revizuirea de cod — m8 securitate; de confirmat de PO)
+
+**Decizie: **`prisma/cleanup-demo.ts` sterge, in tranzactia lui, si randurile `attachments` `COMPANY_PORTFOLIO` ale firmelor demo (pe lucrarile lor si cele neatasate, pe firma) si le scrie cheile in `cleanup-demo-storage-keys.txt`, ca restul fisierelor. Scriptul nu sterge nimic din bucket (conventia lui): obiectele se sterg de mana, cu `mc` / `aws` dupa lista. In aplicatie firmele se sterg doar logic (`deletedAt`), iar pozele lor nu mai primesc legaturi (`listPartners` cere APPROVED si `deletedAt: null`). Stergerea sau inlocuirea unei lucrari nu lasa orfani (fisierele se sterg dupa commit; un esec de storage scrie in jurnal cheia neutra a obiectului ramas — m9).
+
+**Rationale: **Pozele din casele oamenilor nu trebuie tinute fara termen dupa stergerea firmei (GDPR, cost).
+
+**Impact: **`prisma/cleanup-demo.ts`, `portfolio-images.service.ts` (`deleteObjects`).
+
+### D-E11-22. Limite de frecventa pe rutele noi (2026-11-14, dupa revizuirea de cod — M1, M2 securitate; de confirmat de PO)
+
+**Decizie: **`POST /companies/me/locations` si `PUT /companies/me/locations/:id`: 10 pe minut. `POST /companies/me/portfolio/images`, `POST /companies/me/portfolio/images/:attachmentId/confirm`, `PUT /companies/me/portfolio/:id/image`: 30 pe minut, ca rutele vecine de incarcare (cerere, oferte, chat, inspiratie). Ambele sunt pe IP (garda globala) si depind, ca toate, de `TRUSTED_CLIENT_IP_HEADER` (etapa 9, D-E9-34). Depasire → 429 `RATE_LIMITED`.
+
+**Rationale: **Fara ele, ruta de locatii putea fi folosita ca amplificator catre Nominatim, iar incarcarile nu aveau nicio limita.
+
+**Impact: **`companies.controller.ts`. Limita pe echipa: D-E11-29.
+
+### D-E11-23. Cache negativ de 10 minute la geocodare, doar pentru „nu exista” (2026-11-14, dupa revizuirea de cod — M1 securitate; propus de coordonator; de confirmat de PO)
+
+**Decizie: **`GeoService` tine minte in memorie, 10 minute, adresele (aceeasi cheie ca in `geocoding_cache`) la care Nominatim a raspuns „nu exista” la TOATE treptele; cel mult 5.000 de intrari. Erorile HTTP, de retea, timeout-urile si coordonatele nevalide NU intra in cache. Se aplica si la publicarea cererilor. Cache-ul se pierde la repornire si nu e comun intre servere.
+
+**Rationale: **Aceeasi adresa inventata trimisa de multe ori nu mai ajunge la serviciul extern. O pana a serviciului nu trebuie sa blocheze 10 minute publicarea cererilor clientilor.
+
+**Impact: **`geo.service.ts` (`NEGATIVE_CACHE_TTL_MS`, `NEGATIVE_CACHE_MAX`); test nou `geo.negative-cache.spec.ts`. docs/02 3.8.
+
+### D-E11-24. Cel mult 10 geocodari esuate pe ora pe firma (2026-11-14, dupa revizuirea de cod — M1 securitate; propus de coordonator; de confirmat de PO)
+
+**Decizie: **Fiecare `GEOCODING_FAILED` pe o ruta de locatie creste un contor Redis pe firma (`company-geo-fail:<companyId>`, fereastra fixa de o ora de la primul esec, `SET NX PX` + `INCR`, ca blocarea la login). La 10 (`COMPANY_GEOCODE_FAILURES_PER_HOUR`), rutele de locatie raspund 429 `COMPANY_LOCATION_CHANGE_LIMIT` fara sa mai cheme serviciul extern. O modificare care nu schimba adresa (fara geocodare) trece in continuare. Se numara doar „adresa negasita”, nu erorile de retea. Fara Redis, cererea trece (fail open: raman limita pe ruta si cache-ul negativ).
+
+**Rationale: **Plafonul de schimbari pe 24h numara doar schimbarile reusite (din audit), deci incercarile esuate nu il consumau.
+
+**Impact: **`companies.service.ts` (`assertGeocodeFailuresBelowLimit`, `recordGeocodeFailure`). docs/ERROR_CODES.md.
+
+### D-E11-25. Cel mult 30 de lucrari in portofoliu pe firma (2026-11-14, dupa revizuirea de cod — M2 securitate; valoare aleasa de `e11-place`; de confirmat de PO)
+
+**Decizie: **`MAX_PORTFOLIO_ITEMS = 30` (constanta in `uploads/portfolio-images.service.ts`, nu setare din Admin), verificat in tranzactia de adaugare, dupa `SELECT … FROM companies … FOR UPDATE`. Peste → 409 `COMPANY_PORTFOLIO_LIMIT_REACHED` cu `details.max`, cod nou, text RO / EN („Ai ajuns la limita de {max} lucrări în portofoliu. Șterge una ca să adaugi alta.”). Firmele care au deja mai multe isi pastreaza lucrarile; pot sterge si schimba poza, nu pot adauga.
+
+**Rationale: **Plafonul de 3 incarcari neatasate se elibera la fiecare atasare, deci un cont putea urca la nesfarsit poze de 25 MB (cost de stocare fara plafon, coada comuna de verificare a fisierelor clientilor blocata). O setare in Admin ar fi cerut o migrare de date.
+
+**Impact: **`companies.service.ts` (`addPortfolioItem`), `error-codes.ts`, `docs/ERROR_CODES.md`. docs/03 4.6.
+
+### D-E11-26. Firmele suspendate sau respinse nu incarca poze (2026-11-14, dupa revizuirea de cod — M2, m11 securitate; de confirmat de PO)
+
+**Decizie: **La presign, confirmare si atasare (adaugare cu poza, „Schimbă poza”): firma `SUSPENDED` → 403 `COMPANY_SUSPENDED`, firma `REJECTED` → 403 `COMPANY_NOT_APPROVED`, cu text propriu in formular. Firmele `PENDING_VERIFICATION` (isi pregatesc portofoliul pentru verificare) si `APPROVED` pot. Stergerea lucrarilor ramane permisa tuturor.
+
+**Rationale: **Nimic din ce incarca ele nu ajunge public (`listPartners` cere APPROVED), dar consumau spatiu si coada de verificare.
+
+**Impact: **`companies.service.ts` (`assertCanUploadPortfolioImages`).
+
+### D-E11-27. Nota neblocanta cand s-a gasit doar orasul (2026-11-14, dupa revizuirea de cod — m6 securitate; de confirmat de PO)
+
+**Decizie: **Geocodarea spune treapta reusita (`GeoResult.precision`: `ADDRESS` la prima treapta, cu adresa; `CITY` la treptele cu orasul). Cand locatia s-a salvat cu centrul orasului, raspunsul rutei de locatie are in plus `geocodePrecision: 'CITY'`, iar sub locatia salvata apare „Nu am găsit adresa exactă; am folosit centrul orașului. Verifică adresa.” Salvarea nu e refuzata. Limita: la un raspuns din `geocoding_cache` (90 de zile) treapta nu e cunoscuta (tabelul nu are coloana), deci nota nu apare.
+
+**Rationale: **Pentru o firma din Bucuresti, centrul orasului poate fi la cativa km de adresa, la o raza minima de 2 km; firma trebuie sa afle. Cererile se comporta la fel ca inainte (R7).
+
+**Impact: **`geo.service.ts`, `companies.service.ts` (`LocationWriteResult`), `locations-section.tsx`.
+
+### D-E11-28. Un cont blocat nu poate fi adaugat in echipa (2026-11-14, dupa revizuirea de cod — m8 permisiuni)
+
+**Decizie: **Cautarea colegului cere si `blockedAt: null`. Un cont blocat primeste acelasi 404 `MEMBER_NO_COMPANY_ACCOUNT`, cu acelasi mesaj.
+
+**Rationale: **Inainte un cont blocat putea fi adaugat, iar acum ar fi primit si e-mail (trimiterea nu filtreaza conturile blocate).
+
+**Impact: **`companies.service.ts` (`addMember`).
+
+### D-E11-29. Cel mult 10 adaugari de colegi pe ora; adaugarile simultane → 409 (2026-11-14, dupa revizuirea de cod — M1, m10 permisiuni; de confirmat de PO)
+
+**Decizie: **`POST /companies/me/members`: 10 pe ora pe utilizator (`ADD_MEMBER_LIMIT_PER_HOUR`, `UserThrottlerGuard`; garda globala aplica in plus limita pe IP) → 429 `RATE_LIMITED`, cu text propriu in formular. Scoaterea unui coleg nu are limita noua. Doua adaugari simultane ale aceluiasi om (in aceeasi firma sau in doua) → 409 `MEMBER_ALREADY_EXISTS` (din P2002 pe unicitatea `company_members.user_id`; inainte 409 `CONCURRENT_MODIFICATION`).
+
+**Rationale: **Opreste bucla adaugare–scoatere (D-E11-9); limita pe utilizator nu depinde de `TRUSTED_CLIENT_IP_HEADER`.
+
+**Impact: **`companies.controller.ts`, `companies.constants.ts`, `companies.service.ts`. docs/ERROR_CODES.md.
+
+### D-E11-30. Lista de permisiuni trimisa la salvare are cel mult 20 de randuri (2026-11-14, dupa revizuirea de cod — m7 permisiuni)
+
+**Decizie: **`UpdateOfferPermissionsDto.permissions` are `@ArrayMaxSize(OFFER_PERMISSIONS_MAX_ENTRIES)` = 4 roluri × 5 campuri = 20; mai mult → 400 `VALIDATION_ERROR`.
+
+**Rationale: **Proprietarul putea trimite mii de randuri, adica mii de scrieri intr-o tranzactie (exista dinainte).
+
+**Impact: **`company.dto.ts`, `companies.constants.ts`.
+
+### D-E11-31. Derularea la sectiune doar la navigare noua, cu focus pe titlu (2026-11-14, dupa revizuirea de cod — m5 permisiuni; de confirmat de PO)
+
+**Decizie: **Pagina firmei (`useScrollToHashSection`, `company/_components/use-scroll-to-hash.ts`) deruleaza la sectiunea din `#` doar la o navigare noua: nu la „Inapoi” / „Inainte” (`performance` navigation `type === 'back_forward'`) si nu cand pagina e deja derulata (`scrollY > 0`). Dupa derulare, focusul trece pe titlul sectiunii (`tabindex="-1"` + `focus({ preventScroll: true })`). Limita: la „Inapoi” facut in aplicatie Next nu raporteaza `back_forward`, deci acolo protectia e doar `scrollY > 0` (daca pozitia restaurata e chiar sus, pagina ajunge la ancora — inofensiv).
+
+**Rationale: **Derularea stricase pozitia restaurata de browser la „Inapoi”, iar cine foloseste tastatura sau un cititor de ecran ramanea la inceputul paginii.
+
+**Impact: **`company-dashboard.tsx`, `use-scroll-to-hash.ts`; test nou `use-scroll-to-hash.test.tsx`.
+
+### D-E11-32. „Reîncearcă” fara o noua incarcare (2026-11-14, dupa revizuirea de cod — m4 securitate; de confirmat de PO)
+
+**Decizie: **Dialogul si cardul tin minte id-ul pozei deja urcate (`useUploadPortfolioImage({ file, resumeAttachmentId?, onUploaded? })`). Dupa o adaugare sau atasare picata, ori dupa o verificare prea lunga, „Reîncearcă” doar reconfirma aceeasi incarcare si o ataseaza, fara un nou PUT. Alt fisier ales sau un 404 → se urca din nou. Text propriu pentru verificarea lunga: „Poza e încă în verificare. Încearcă din nou peste câteva secunde.” Refuzurile din cauza starii firmei si limitele de frecventa au textul lor.
+
+**Rationale: **Inainte, dupa 3 reincercari, firma primea `FILE_LIMIT_REACHED` timp de o ora, fara sa poata face ceva.
+
+**Impact: **`use-company.ts`, `portfolio-section.tsx`.
+
+### D-E11-33. Reparatii de corectitudine dupa revizuire (2026-11-14 — m3, m7, m10 securitate; m2, m3 permisiuni)
+
+**Decizie: **(1) Atasarea pozei ia `pg_advisory_xact_lock('portfolio_item:<id>')`, iar `UploadsService.relink` muta doar randurile cu sursa si `entity_type` date si `SAFE` (`updateMany` conditionat, cu verificarea numarului; altfel 404) — doua atasari simultane nu mai dau doua poze pe lucrare; regula mai stricta se aplica si la chat / oferte, pe aceleasi conditii pe care le verifica deja citirea. (2) La locatii, geocodarea se face inaintea tranzactiei, apoi, sub `pg_advisory_xact_lock('company_locations:<companyId>')`, plafonul de schimbari se reverifica si se scrie — si la modificare, ca la adaugare. (3) `usePartners` isi reia datele la 4 minute, ca legaturile de 5 minute sa nu expire pe pagina deschisa. (4) Textele echipei: mesajul de pe camp adauga „(sau cu altă adresă, dacă pe aceasta are deja cont de client)”, iar pasul 2 spune „Colegul primește o notificare în aplicație; dacă firma e aprobată și are e-mailul confirmat, primește și un e-mail.”
+
+**Rationale: **Constatarile mici ale revizorilor.
+
+**Impact: **`portfolio-images.service.ts`, `uploads.service.ts`, `companies.service.ts`, `use-company.ts`; fragmentul `e11-team`.
+
+### D-E11-34. Ce a ramas lasat dupa revizuire (2026-11-14 — m1, m5 securitate; m6 permisiuni; de confirmat de PO)
+
+**Decizie: **Raman asa: (1) API-ul accepta in continuare `lat` / `lng` scrise de mana (amandoua), decuplate de adresa — compatibilitate cu clientii vechi; interfata nu le mai trimite. (2) Legatura de urcare (presigned PUT) ramane folosibila 15 minute si dupa confirmare; o urcare repetata lasa un obiect privat fara rand, care nu poate deveni public — tipar mostenit de la fisierele cererii; remediul e o regula de expirare pe bucket pentru obiectele care nu sunt `clean-` / `sealed-` (CHANGELOG etapa 11, „La lansare”). (3) Cat cardul de pornire tine locul lui „De făcut acum”, butonul „Reactivează abonamentul” apare o singura data, in mesajul de abonament de deasupra cardului (nu de doua ori); readucerea listei ar fi readus „Nimic urgent acum”. Limite ramase la reparatii: fereastra de cateva milisecunde intre plafonul de schimbari de locatie si randul de audit scris dupa commit (D-E11-33); nota „doar orasul” lipseste la raspunsurile din cache-ul vechi (D-E11-27); fisierele din bucket ale firmelor demo sterse se sterg de mana (D-E11-21).
+
+**Rationale: **Riscuri mici sau de compatibilitate; remedierea tine de configurarea bucketului sau de o decizie de produs.
+
+**Impact: **Niciunul in cod.
+
+### D-E11-35. Subiectele e-mailurilor existente trec prin `esc()` — reparat doar la e-mailul nou (2026-11-14, defect vechi gasit la revizuire — m9 permisiuni)
+
+**Decizie: **`MailService.send` trimite subiectul ca text simplu (nodemailer nu decodeaza entitatile), deci un subiect trecut prin `esc()` apare literal: `Lemn & Stil` → `Lemn &amp; Stil`. In etapa 11 s-a reparat doar `company.member_added` (`subjectText`). Acelasi tipar ramane la: `requestTitle` in subiectele despre cereri si oferte (`quote.created`, `quote.updated`, `quote.declined`, `claim.created`, `quote.accepted`, `claim.withdrawn`, `delivery.*`, `project.*`, `quote.expired*`, `request.*`, `withdrawal.decided`, `clarification.*`, `review.created`), `companyName` la `message.created` si `clarification.asked`, `ref` la plati (inofensiv). Se repara toate odata in etapa 12.
+
+**Rationale: **Defect din afara etapei; o reparatie transversala are nevoie de testele tuturor e-mailurilor.
+
+**Impact: **Niciunul acum; de facut in etapa 12.
+
 # 9. Checklist uman: ce faci acum
 
 - Citește integral acest document o dată. Verifică Decisions Log (Secțiunea 8, inclusiv 8.4). Dacă o decizie te deranjează, schimb-o ACUM în document, înainte ca agentul să scrie cod.

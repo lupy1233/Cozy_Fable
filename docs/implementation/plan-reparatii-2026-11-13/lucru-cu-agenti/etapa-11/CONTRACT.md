@@ -35,3 +35,11 @@ Etapa nu ar trebui să aibă nevoie de migrări. Dacă un agent crede că are ne
 ## Foldere
 - Fragmente i18n: `C:\Users\Wolf\AppData\Local\Temp\claude\51a4fe9ce30fc601\021e0df7-d6c7-42ac-993b-05ae92e81192\scratchpad\reparatii\etapa-11\i18n`
 - Rapoarte: `…\reparatii\etapa-11\rapoarte\<id-agent>.md` (scrie-l devreme, adu-l la zi pe parcurs).
+
+## Adaos (starea reală la pornirea etapei, 2026-11-14)
+- Baza: commitul `c95c2f2` (ultimul al etapei 10). `<COMMIT_BAZA>` pentru îmbinarea textelor = `c95c2f2`.
+- Etapa 9 a schimbat modulul de notificări: cine a făcut acțiunea nu mai primește (câmpul `actorUserId` în payload, scos într-un singur loc în procesor); e-mailurile sunt în `notification-emails.service.ts` (totul prin `esc()`), titlurile clopoțelului în `notification-bell.tsx`, înregistrarea evenimentului în `use-socket.ts`. `e11-team` urmează exact același tipar pentru `company.member_added` (numele e deja în `DomainEvent`).
+- Etapa 9 a adăugat în portofel istoricul creditelor și mesajul unificat de abonament / probă; `e11-dash` refolosește datele și formularea de acolo pentru fraza despre proba gratuită.
+- Pagina firmei: `apps/frontend/src/app/[locale]/company/` (`page.tsx`, `_components/{company-dashboard,company-section,locations-section,offer-permissions-section,portfolio-section,section-nav,team-section}.tsx`). Panoul firmei cu „Nimic urgent acum”: caută cheia în `ro.json` (`…empty` / `summaryFirm`) și componenta care o afișează — e al lui `e11-dash`.
+- Glosarul (`docs/glosar.md`) și testul lui (`apps/frontend/src/messages/glossary.test.ts`) se aplică tuturor textelor noi.
+- Calculatorul e folosit de om: toate comenzile de test / build prin `low.cjs` (2 locuri la coadă), țintite.

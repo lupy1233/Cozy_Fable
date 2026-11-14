@@ -49,6 +49,9 @@ Reguli generale:
 | **Altă mărime** / Other size | A cincea alegere de saltea la patul din 3D, cu lățimea și lungimea saltelei (etapa 10). | — |
 | **Lungime deschisă** / Extended length | Lungimea mesei extensibile când e deschisă; bifa: „Știu lungimea mesei deschise” (etapa 10). | — |
 | **Extensibilă (se face pat)** / Sofa bed (pulls out into a bed) | Canapeaua care se desface în pat; pe fișă „Extensibilă” (etapa 10). Masa extensibilă rămâne „Extensibilă” / „Extendable”. | — |
+| **Pregătește-ți firma** / Get your company ready | Cardul de pe panoul firmei cu pașii de pornire (portofoliu, locație și rază, e-mail de facturare; echipa și permisiunile ofertei — „opțional”) și progresul „{n} din {total}” / „{n} of {total}”; subtitlul: „Pași făcuți: …” / „Steps done: …” (etapa 11). Pașii se deschid cu „Deschide” / „Vezi”. | — |
+| **Modifică** / Edit | Butonul de pe o locație a firmei: schimbi adresa și raza (etapa 11). Coordonatele nu se scriu; le calculăm noi din adresă. | — |
+| **Schimbă poza** / Change photo | Butonul de pe un proiect din portofoliu care are poză; fără poză: „Adaugă o poză” / „Add a photo” (etapa 11). Un proiect are o singură poză, încărcată din calculator. | — |
 
 Etichetele scurte din Sumar și din Fișă numesc întrebarea, nu un răspuns: „Tip de balcon: Deschis”,
 nu „Balcon închis: Deschis”.
