@@ -1014,6 +1014,8 @@ _Completata la 2026-11-13 de D-E3-4 (PO d1-1): camera bifata nu mai primeste pie
 
 **Impact: **Cheia `common.systems.GLISANTE` (toate fluxurile, fisa firmei, Sumar, inspiratie, Admin → Marime proiect). D-E5-20.
 
+_Adusa la zi 2026-11-14 de D-E6-14: intrebarea unica despre usi e in versiunile noi (dulapul din dormitor si, ca intrebare noua, dulapul de hol)._
+
 ### D-E5-10. Pana la 5 dispozitive pe cont (2026-11-13, PO f3-1)
 
 **Decizie: **Un cont poate fi folosit in acelasi timp pe pana la 5 dispozitive; al saselea il scoate pe cel mai vechi.
@@ -1179,6 +1181,386 @@ _Inlocuita la 2026-11-14 de D-E5-26: bifarea etapelor intra acum in jurnalul de 
 **Rationale: **Planul (c3, partea fara versiune noua) cerea redenumirea textului comun; rezolvarea completa (regula unica de deschidere, fara „Glisante” in lista comuna) vine la problema 27 (`c2`).
 
 **Impact: **De confirmat de PO pana la problema 27. Completeaza D-E5-9, D-E5-20.
+
+_Adusa la zi 2026-11-14 de D-E6-2 (etapa 6, problema 27): in versiunile noi ale formularului „Glisante” nu mai e in nicio lista de deschidere (usile glisante sunt tip de usi). Eticheta comuna ramane doar pe cererile si ciornele de pe versiunile vechi._
+
+### D-E6-1. Deschiderea se intreaba doar la piesele cu usi sau sertare (2026-11-13, PO c2-1)
+
+**Decizie: **Pasul de deschidere exista doar la piesele cu fronturi. Fiecare piesa are semnul „are fronturi”: da (pas obligatoriu), nu (fara pas: rafturi, cuier, rafturi de perete, masuta, oglinda, blat, pat fara sertare) sau poate (pas cu optiunea exclusiva „Fara usi sau sertare”: birou, biblioteca, masa de toaleta, banca de hol, banca de balcon, „alta piesa” din living, „Alta piesa”). Patul din dormitor are deschidere doar la depozitare cu sertare; dulapul doar la usi batante. Baia (lavoar, dulap cu oglinda, dulap inalt) si dressingul cu usi batante primesc pasul. La piesele ghidate cu 3D deschiderea vine doar din 3D (ecranul separat de la comoda TV, biblioteca si comoda dispare).
+
+**Rationale: **Azi era obligatorie si la piese fara usi; clientul bifa ceva fals, iar firma platea credite pentru un sistem care nu exista.
+
+**Impact: **Doar in versiunile noi (D-E6-15). Constructorul `flows/piece-finish.ts` (`FinishPieceDef.fronts` / `frontsIf`), `NO_FRONTS` in `flows/finish-sets.ts`; `piece3d/config.ts` `configHasFronts`. docs/03 4.1.
+
+### D-E6-2. Lista unica de deschidere; usile glisante sunt tip de usi (2026-11-13, PO c2-2)
+
+**Decizie: **Peste tot: Maner / Push (fara maner) / Nu stiu — vreau recomandarea firmei. La bucatarie in plus Gola (baza, suspendate, insula) si Aventos (suspendate). Precizarea PO (usi pe pistoane, in sus sau in jos, la anumite corpuri): optiunea „Rabatabila, pe pistoane (in sus sau in jos)” la corpurile suspendate ale bucatariei si la comoda TV din living si dormitor; la piesele ghidate (comoda TV, bufet, corp suspendat) e o bifa pe ecranul materialului (D-E6-17). „Glisante” iese din deschidere si devine tip de usi (dulap dormitor, dulap hol, dressing, dulap 3D).
+
+**Rationale: **Patru liste diferite; „Glisante” amesteca usile culisante cu sertarele pe glisiere.
+
+**Impact: **`openingOptions(kind, { pistons, noFronts })` cu `OpeningSetKind` = `GENERAL` / `KITCHEN_BASE` / `KITCHEN_WALL` / `KITCHEN_ISLAND`. Completeaza D-E5-9 si inchide D-E5-28 pentru versiunile noi. docs/03 4.1.
+
+### D-E6-3. Mai multe feluri de deschidere pe o piesa (2026-11-13, PO c2-3)
+
+**Decizie: **Clientul poate bifa mai multe feluri de deschidere (de ex. maner si push), ca azi; costul ia varianta cea mai scumpa. „Fara usi sau sertare” si „Nu stiu…” se aleg singure.
+
+**Rationale: **Alegerea PO (altfel decat recomandarea „unul singur”): mai flexibil.
+
+**Impact: **`SYSTEM` cu `pick: 'max'` neschimbat; capabilitate noua `ChoiceOption.exclusive` (D-E6-15). docs/03 4.5.
+
+### D-E6-4. „Material pentru fronturi”; corpul e PAL standard (2026-11-13, PO c1-1)
+
+**Decizie: **La corpuri o singura intrebare, „Material pentru fronturi (usi si sertare)”; subtitlul spune ca corpul e din PAL standard, iar firma vede in descrierea piesei „Corp: PAL standard”. Cine vrea alt corp scrie la „Altul” sau in detalii. Precizarea PO (cazuri rare in bai sau pe balcoane, integral din MDF): optiunea „Integral din MDF (corp si fronturi)” la piesele din baie, la banca si dulapul de balcon si la mobilierul de baie din catalog; se puncteaza ca MDF-ul de azi (D-E6-19).
+
+**Rationale: **Firma nu stia daca „MDF vopsit” inseamna fronturi, corp sau tot; zero intrebari in plus.
+
+**Impact: **Setul `BODY` din `materialSetOptions`; nota `BODY_NOTE`; `MDF_INTEGRAL` → `MDF` + `INTEGRAL_MDF_NOTE`. O singura coloana de material pe piesa (fara schimbare de schema). docs/03 4.1, docs/04 5.5.
+
+### D-E6-5. Tapitatele nu mai au intrebare de material (2026-11-13, PO c1-2)
+
+**Decizie: **Canapea, fotoliu, taburet: nicio intrebare de material; cadrul il decide firma. Piesa se salveaza cu `ALTUL` si nota „Cadru: îl alege firma”; pe fisa apare „Recomandarea firmei”.
+
+**Rationale: **Un ecran mai putin; tapiteria se alege deja in 3D; costul ia punctaj mediu, ca la „Altul”.
+
+**Impact: **`guided-pieces/catalog-v2.ts`. Cost +1 fata de PAL (D-E6-34). docs/03 4.5.
+
+### D-E6-6. Seturi proprii la oglinda, masa si pat (2026-11-13, PO c1-3)
+
+**Decizie: **Oglinda: rama (Fara rama / Rama din lemn / Rama din MDF vopsit / Rama metalica / Nu stiu…). Masa si patul: setul de lemn (D-E6-20). Fara pret pe metru liniar.
+
+**Rationale: **Pretul „lei/ml” si lista de fronturi nu au sens la o rama sau la o masa.
+
+**Impact: **Seturile `MIRROR` si `WOOD`; valorile se salveaza pe enum-ul `Material` existent (docs/04 5.5).
+
+### D-E6-7. „Nu stiu — vreau recomandarea firmei” la material, deschidere si blat (2026-11-13, PO c7-1)
+
+**Decizie: **Optiune comuna, fara text obligatoriu, in toate listele de material, de deschidere si la blat. Restul intrebarilor raman cum sunt. Fisa firmei arata „Recomandarea firmei” in locul etichetei „Altul” si „Deschidere: recomandarea firmei” (marcaj recalculat din raspunsuri, nu din text).
+
+**Rationale: **Singura iesire de acest fel era la televizorul comodei TV; clientul alegea la intamplare.
+
+**Impact: **Valoarea `FIRM_DECIDES` in raspunsuri; material → `ALTUL` + `FIRM_MATERIAL_NOTE` (oglinda / blat: nota lor), deschidere → `[]` + `FIRM_OPENING_NOTE`. `firmRecommendations(roomType, answers, version)` (shared) folosita de `room-spec-card.tsx`; `DerivedRoom.firmRecommendations` nu se salveaza.
+
+### D-E6-8. Cat costa „decide firma” (2026-11-13, PO c7-2)
+
+**Decizie: **La material ca „Altul” (2 puncte), la deschidere 0. La blatul bucatariei 0 (ca toate blaturile).
+
+**Rationale: **Nu incurajeaza trisatul si nu pedepseste firma; nu cere setari noi.
+
+**Impact: **Fara randuri noi la material / deschidere; un rand nou `KITCHEN_COUNTERTOP:FIRM_DECIDES` (D-E6-12). docs/03 4.5.
+
+### D-E6-9. Materialul si deschiderea aceleiasi piese pe un singur ecran (2026-11-13, PO c14-1)
+
+**Decizie: **Fiecare piesa are un ecran cu materialul si deschiderea (si, unde e cazul, intrebarea care o precede: tipul usilor la dulap, depozitarea la pat, cate noptiere), cel mult 3 intrebari pe ecran.
+
+**Rationale: **Dormitorul cu toate piesele ajungea la 20 de ecrane; acum 10 (sau 8 cu raspunsul comun).
+
+**Impact: **INLOCUIESTE hotararea PO din 2026-07-13 (material si deschidere pe ecrane separate, `docs/archive/12-feedback-po-formulare-sprints.md` S2) si inchide DECIZIE NECESARA nr. 1 din `docs/implementation/form-redesign-2026-11-10.md`, pentru versiunile noi; versiunile vechi raman cu doua ecrane pe piesa. Grupul de ecran `piece:<VALUE>` (acelasi id de intrebare, alt grup).
+
+### D-E6-10. Intrebarea „Acelasi material si aceeasi deschidere pentru toate piesele?” (2026-11-13, PO c14-2)
+
+**Decizie: **In camerele cu cel putin doua corpuri cu fronturi bifate, pe ecranul listei de piese, fara raspuns preselectat. „Da” → un singur ecran comun la final (material + deschidere), copiat pe fiecare piesa la salvare; „Nu” → cate un ecran pe piesa.
+
+**Rationale: **La bucatarie exista deja o astfel de bifa; in celelalte camere fiecare piesa se intreba separat.
+
+**Impact: **Pasii `sameFinishAll`, `materialAll`, `materialAllOther`, `systemsAll` (grupul `piece:ALL`); `buildFinishItems` copiaza raspunsul comun. Ce piese cuprinde: D-E6-26; debaraua fara: D-E6-32. Afisarea cu doua cartonase Da / Nu: D-E6-42.
+
+### D-E6-11. „Am deja un proiect”: materialul si deschiderea raman obligatorii (2026-11-13, PO c14-3)
+
+**Decizie: **In modul „Am deja un proiect” materialul si deschiderea raman obligatorii, cu „decide firma” printre optiuni. Regula din 2026-07-31 (doar dimensiunile si schitele se sar, CHANGELOG OWN_PROJECT) ramane valabila.
+
+**Rationale: **Alegerea PO (altfel decat recomandarea „optionale”): firma primeste mereu un raspuns pe fisa.
+
+**Impact: **Fara schimbare in `validateRoomAnswers`.
+
+### D-E6-12. Blatul: „decide firma” la bucatarie, setul de blaturi la spalatorie si balcon (2026-11-13, PO c6-1 / c6-2 — partea cu versiune noua)
+
+**Decizie: **Blatul bucatariei ramane obligatoriu si primeste „Nu stiu — vreau recomandarea firmei” (0 puncte). La spalatorie si balcon blatul are setul de blaturi: PAL postformat, HPL, HPL compact (rezistent la apa), cuart, lemn masiv, decide firma; fara „Recomandat”, fara deschidere.
+
+**Rationale: **Clientul care nu stie are o iesire; la spalatorie / balcon setul de fronturi era nepotrivit pentru umezeala.
+
+**Impact: **`kitchenCountertopOptionsV4()`, setul `WORKTOP`; rand nou `project_sizing_config` `KITCHEN_COUNTERTOP` / `FIRM_DECIDES` = 0 in `seed.ts` si in migrarea `20261114120000_kitchen_countertop_firm_decides` (`ON CONFLICT DO NOTHING`). Completeaza D-E1-10.
+
+### D-E6-13. „Alta piesa”: dimensiuni in cm si listele dupa regula unica (2026-11-13, PO c10-1 — partea cu versiune noua)
+
+**Decizie: **Fiecare rand are Latime / Inaltime / Adancime optionale, in cm; firma le vede in descrierea piesei. Materialul are „Nu stiu…”; deschiderea urmeaza regula unica (D-E6-29).
+
+**Rationale: **Fara dimensiuni firma nu poate da pret (D-E5-1).
+
+**Impact: **`PiecesStep.rowVersion: 2`, `pieceRowV2Schema` si `derivePieceRowsV2` (`questionnaire/pieces-row.ts`), `pieces.v2.ts`; `request_items` fara coloane noi. Completeaza D-E5-1.
+
+### D-E6-14. Usile dulapului o singura data, si la hol (2026-11-13, PO c3-1 — partea cu versiune noua)
+
+**Decizie: **La dulapul din dormitor „Ce usi are dulapul?” sta pe ecranul dulapului; deschiderea apare doar la batante; glisantele se salveaza direct GLISANTE. Aceeasi regula, ca intrebare noua, la dulapul de hol.
+
+**Rationale: **D-E5-9.
+
+**Impact: **`wardrobeDoorType` + `fixedSystems` in `bedroom.v3.ts` si `hallway.v2.ts` (chei noi `flows.HALLWAY.wardrobeDoorType.*`); un raspuns `systemsWardrobe` la glisante e refuzat (`validation.unknownAnswer`). Completeaza D-E5-9.
+
+### D-E6-15. Versiune noua pentru toate cele 28 de fluxuri; cererile vechi raman pe a lor (2026-11-13, presupunerea planului etapei 6)
+
+**Decizie: **Toate cele 28 de fluxuri au versiune noua (fiecare are o intrebare de material care primeste „decide firma”). Cererile publicate si ciornele in curs raman pe versiunea lor (se rezuma, se editeaza si costa la fel); doar camerele adaugate dupa lansare primesc versiunea noua (si intr-o cerere veche editata: cereri mixte, fiecare camera validata pe versiunea ei). Studio 3D pastreaza versiunea unei piese deja aduse. Nicio schimbare de schema; nicio valoare noua de enum.
+
+**Rationale: **O optiune noua inseamna alta validare, deci alta versiune; versiunile vechi trebuie sa o refuze.
+
+**Impact: **`FLOW_REGISTRY` cu versiunile vechi si noi; `CURRENT_FLOW_VERSION` comutat pe `ETAPA6_FLOW_VERSION` intr-un commit separat (D-E6-36); `FLOW_VERSIONS_BEFORE_ETAPA6` pentru testele de invarianta (instantaneele vechi byte-identice). Capabilitati noi in motor, toate optionale: `Condition` `{ not }` si `in` cu `atLeast`, `ChoiceOption.exclusive` (`validation.exclusiveOption`), `PiecesStep.rowVersion: 2`, `DerivedRoom.firmRecommendations`. `evalCondition` mutat in `questionnaire/condition.ts` (re-exportat din `engine.ts`, ca sa evite un import circular). Costul se schimba doar pentru cererile noi; firmele trebuie anuntate (docs/03 4.5). docs/04 5.5.
+
+### D-E6-16. „Pe pistoane” se salveaza ca Aventos (2026-11-14, N1, aleasa de coordonator, de confirmat de PO)
+
+**Decizie: **Optiunea „Rabatabila, pe pistoane” (`PISTONS`) se salveaza ca `AVENTOS` (3 puncte) cu nota „Uși rabatabile pe pistoane (în sus sau în jos)” in descriere; fisa arata „Aventos” langa nota.
+
+**Rationale: **Acelasi fel de mecanism de ridicare; fara valoare noua de enum. Alternativa `BUTON_PRESIUNE` (1 punct) nu are sens.
+
+**Impact: **`resolveOpening(values, { pistons })`, `PISTONS_NOTE`.
+
+### D-E6-17. Pistoanele la piesele 3D sunt o bifa, nu o optiune in 3D (2026-11-14, N2, de confirmat de PO)
+
+**Decizie: **Comoda TV ghidata, bufetul si corpul suspendat de catalog au pe ecranul materialului bifa „Unele usi se deschid in sus sau in jos, pe pistoane” (`liftUpDoors`) → AVENTOS + nota. Maner / push raman alegerea din 3D.
+
+**Rationale: **Configuratorul 3D are doar Push / Maner; o valoare noua in 3D ar fi munca in 3D.
+
+**Impact: **`liftUpDoorsStep()` in `guided-pieces/v4.ts`, folosit si de `catalog-v2.ts`.
+
+### D-E6-18. Fara „decide firma” la deschiderea pieselor 3D (2026-11-14, N3, de confirmat de PO)
+
+**Decizie: **La piesele ghidate cu 3D deschiderea vine doar din 3D (lista e acolo), fara „decide firma”. 3D fara maner ales = fara sistem, ca la versiunea veche (problema 43 `d2` „Push implicit” ramane a ei).
+
+**Rationale: **O singura sursa (PO c2, pasul 5).
+
+**Impact: **`frontStyleSystemsV4` in `guided-pieces/v4.ts`.
+
+### D-E6-19. „Integral din MDF” se taxeaza ca MDF (2026-11-14, N4, de confirmat de PO)
+
+**Decizie: **`MDF_INTEGRAL` se salveaza ca `MDF` (randul `MATERIAL:MDF` = 2 puncte) cu nota „Corp și fronturi din MDF”, fara nota „Corp: PAL standard”.
+
+**Rationale: **PO: „se puncteaza ca MDF-ul de azi”; alternativa `MDF_VOPSIT` (3) ar fi mai scumpa.
+
+**Impact: **Valoarea legacy `MDF` revine in date prin aceasta optiune (docs/04 5.5).
+
+### D-E6-20. Continutul setului de lemn (2026-11-14, N5, de confirmat de PO)
+
+**Decizie: **Masa si patul: Lemn masiv (`LEMN_MASIV`) / Furnir de lemn natural (`MDF_FURNIR`) / PAL cu decor lemn (`PAL`) / Nu stiu…; fara „Altul” (cine vrea altceva scrie in detalii / schita).
+
+**Rationale: **Varianta mica; tine ecranul patului la cel mult 3 intrebari.
+
+**Impact: **Setul `WOOD` (`WOOD_OPTION_VALUES`).
+
+### D-E6-21. Pretul pe metru liniar ramane la piesele din placi (2026-11-14, N6, de confirmat de PO)
+
+**Decizie: **Rafturile, cuierul, rafturile de perete, banca ghidata si rafturile debaralei au lista de placi (setul `PANEL`: ca la corpuri, fara „Integral din MDF”, fara nota de corp), cu pret pe metru liniar. Pretul dispare doar la lemn, oglinda si blat.
+
+**Rationale: **Sunt tot mobilier din placi.
+
+**Impact: **Pretul vine din optiuni (`priceHintKey`), fara steag nou pe pas.
+
+### D-E6-22. Lista pieselor cu pistoane (2026-11-14, N7, de confirmat de PO)
+
+**Decizie: **Exact lista PO: bucataria (suspendate), corpul suspendat, bufetul, comoda TV (din living, din dormitor si ghidata). Dulapul cu oglinda din baie nu are pistoane (candidat de intrebat).
+
+**Rationale: **PO: „spune daca lista e alta”.
+
+**Impact: **`pistons: true` in `living.v4.ts`, `bedroom.v3.ts`; `liftUpDoors` in `guided-pieces/v4.ts` (comoda TV) si `catalog-v2.ts` (bufet, corp suspendat).
+
+### D-E6-23. Pistoanele la bucatarie doar la suspendate (2026-11-14, N8, de confirmat de PO)
+
+**Decizie: **„Rabatabila, pe pistoane” apare doar la corpurile suspendate (unde e si Aventos), nu la baza si insula.
+
+**Rationale: **Acolo se folosesc mecanismele de ridicare.
+
+**Impact: **`KITCHEN_WALL` in `openingOptions`; `resolveOpening(v, { pistons: true })` doar pe suspendate in `kitchen.v4.ts`.
+
+### D-E6-24. Dressingul deschis nu are intrebare de deschidere (2026-11-14, N9, de confirmat de PO)
+
+**Decizie: **Dressing cu usi glisante → GLISANTE fara intrebare; cu usi batante → deschiderea pe ecranul materialului (fara „Fara usi sau sertare”); fara usi → fara sisteme si fara intrebare, chiar daca are sertare.
+
+**Rationale: **Planul spune „dressingul cu usi batante”.
+
+**Impact: **`dressing.v4.ts` (`openingSystems` pe `materialScreen`, `visibleIf` `doorType = HINGED`).
+
+### D-E6-25. Patul din 3D nu are intrebare de deschidere (2026-11-14, N10, de confirmat de PO)
+
+**Decizie: **Patul ghidat (3D) nu are deschidere, ca azi (3D-ul patului nu are manere); regula „doar la sertare” se aplica patului din dormitor.
+
+**Rationale: **Varianta mica.
+
+**Impact: **`guided-pieces/furniture-v4.ts` (`systems` mereu `[]` la pat, masa, banca).
+
+### D-E6-26. Ce cuprinde intrebarea comuna (2026-11-14, N11, de confirmat de PO)
+
+**Decizie: **Doar corpurile cu fronturi (setul `BODY`, fronturi da / poate). Patul, masuta, oglinda, rafturile, blatul isi pastreaza ecranul. Ecranul comun nu are pistoane (cine vrea pistoane la comoda TV raspunde „Nu”). „Fara usi sau sertare” apare pe ecranul comun doar daca exista o piesa comuna „poate” si nicio piesa „da” bifata (inclusiv dulapul, chiar daca usile lui sunt glisante). Intrebarea apare doar in fluxurile cu intrebare comuna si doar cu cel putin doua piese comune bifate.
+
+**Rationale: **Seturile si regulile difera la celelalte piese.
+
+**Impact: **`isCommonFinishPiece`, `pieceFinishSteps` (`systemsAll`).
+
+### D-E6-27. Campul „Altul” nu se numara la „cel mult 3 intrebari” (2026-11-14, N12, de confirmat de PO)
+
+**Decizie: **Campul text „Altul” (`*Other`) e completarea intrebarii de material: nu primeste numar in contorul ecranului si nu se numara la limita de 3.
+
+**Rationale: **Fara asta dormitorul nu coboara sub 10 ecrane.
+
+**Impact: **`room-flow-runner.tsx` (calculul numerotarii).
+
+### D-E6-28. Bucataria ramane cu ecranul „Fronturi” pe zone (2026-11-14, N16, de confirmat de PO)
+
+**Decizie: **Ecranul „Fronturi” al bucatariei ramane unul singur, cu pana la 9 intrebari, impartit vizual in zone: „Corpuri de baza / Corpuri suspendate / Insula” (aceleasi nume ca piesele de pe fisa firmei). Fara „materiale diferite”, materialul comun si bifa stau sus, iar zonele au doar deschiderea; cu bifa, ea ramane in zona „Corpuri de baza”, sub materialul de baza. Bucataria nu are intrebarea comuna (are deja bifa „materiale diferite pe zone”).
+
+**Rationale: **Impartirea in 3 ecrane ar fi o alta versiune si mai multe ecrane. Zonele se fac din interfata (problema 53, pasul 1), pe id-uri de pas, deci merg pe v3 si pe v4.
+
+**Impact: **`kitchen-front-zones.ts`, `room-flow-runner.tsx`; chei `flows.KITCHEN.v3.zones.{base,wall,island}`.
+
+### D-E6-29. „Alta piesa”: deschiderea obligatorie, fara „Usi glisante” (2026-11-14, N13, de confirmat de PO)
+
+**Decizie: **Pe randul v2 deschiderea e obligatorie: Maner / Push sau una dintre iesirile exclusive „Nu stiu — vreau recomandarea firmei” / „Fara usi sau sertare”. „Usi glisante” iese (regula unica); clientul o scrie in „Detalii”.
+
+**Rationale: **Regula unica de deschidere, cu iesiri.
+
+**Impact: **`pieceRowV2Schema` (`openingChoice`, `PIECE_ROW_V2_SYSTEMS`); mesaje `validation.minOneOption` / `optionInvalid` / `exclusiveOption`. Randurile v1 neschimbate.
+
+### D-E6-30. „Alta piesa”: limitele dimensiunilor si costul (2026-11-14, N14, de confirmat de PO)
+
+**Decizie: **Latime / inaltime / adancime: intregi 1–600 cm, doar in descrierea piesei („Dimensiuni: 120 × 80 × 40 cm (lățime × înălțime × adâncime)” sau doar cele date). Lungimea pentru cost ramane euristica v1 (1 m pe bucata, minim 0,5 m). „Detalii” are limita 1800 (loc pentru note in limita de 2000 a descrierii).
+
+**Rationale: **Schimbarea costului tine de `d3` / `c5`.
+
+**Impact: **`PIECE_ROW_DIM_MIN_CM`, `PIECE_ROW_DIM_MAX_CM`, `PIECE_ROW_DESCRIPTION_MAX`; `validation.dimensionOutOfRange`.
+
+### D-E6-31. Materialul lipsa = „Altul” in versiunile noi (2026-11-14, N15, de confirmat de PO)
+
+**Decizie: **Cand raspunsul de material lipseste (doar in previzualizarea ciornelor; la publicare pasul e obligatoriu), piesa e `ALTUL` peste tot in versiunile noi (inainte: „Altul” la piesele de catalog, PAL la celelalte, CP-30). Debaraua fara stil de depozitare ales are piesa de rezerva „Rafturi debara” cu `ALTUL` (inainte PAL).
+
+**Rationale: **Un singur implicit.
+
+**Impact: **`DEFAULT_MATERIAL_WHEN_MISSING = 'ALTUL'`.
+
+### D-E6-32. Debaraua fara intrebarea comuna (2026-11-14, N17, de confirmat de PO)
+
+**Decizie: **Debaraua are doar doua zone cu seturi diferite (rafturi = placi, fara deschidere; dulapuri = corpuri cu deschidere), deci nu are intrebarea comuna. Materialul si deschiderea dulapurilor stau pe ecranul lor (`piece:CABINETS`).
+
+**Rationale: **Varianta mica.
+
+**Impact: **`pantry.v3.ts` (`common: false`).
+
+### D-E6-33. Insigna „Recomandarea firmei” se potriveste dupa numele piesei (2026-11-14, N18, de confirmat de PO)
+
+**Decizie: **Fisa recalculeaza `firmRecommendations` din raspunsuri si pune insigna pe piesele cu acelasi nume (piesele din baza de date nu au ordine garantata). Doua piese cu acelasi nume in aceeasi camera o primesc amandoua. Insigna e ambra; „Fara usi sau sertare” nu primeste insigna (nu e o recomandare a firmei; nota e deja in descriere). Daca recalcularea esueaza, fisa arata ca azi.
+
+**Rationale: **Fara coloana noua; acceptabil.
+
+**Impact: **`room-spec-card.tsx`; chei `roomSpec.firmRecommendation`, `roomSpec.firmRecommendationOpening`.
+
+### D-E6-34. Tapitatele costa cu 1 punct mai mult (2026-11-14, N19, de confirmat de PO)
+
+**Decizie: **Canapea, fotoliu, taburet: `ALTUL` (2 puncte) + „Cadru: îl alege firma” + insigna „Recomandarea firmei”, deci +1 fata de PAL de azi.
+
+**Rationale: **PO c1-2: „costul ia punctaj mediu, ca azi la „Altul””.
+
+**Impact: **docs/03 4.5 (exemplul E: 7 → 8).
+
+### D-E6-35. Holul: textul intrebarii despre usi (2026-11-14, N20, de confirmat de PO)
+
+**Decizie: **Copie a textului din dormitor, cu chei proprii `flows.HALLWAY.wardrobeDoorType.*`; explicatia usilor glisante e adaptata la hol („alegerea fireasca intr-un hol ingust”).
+
+**Rationale: **Varianta mica.
+
+**Impact: **Doar texte; ilustratiile = pozele usilor de la dormitor.
+
+### D-E6-36. Comutarea pe versiunile noi intr-un commit separat; lansarea = PO (2026-11-14, N21, de confirmat de PO)
+
+**Decizie: **`CURRENT_FLOW_VERSION` trece pe versiunile noi intr-un commit separat al coordonatorului; lansarea pe productie o face PO, cu anunt catre firme (costul se schimba la cererile noi; doua cereri asemanatoare pot costa diferit o vreme).
+
+**Rationale: **Comutarea e reversibila dintr-o linie pe tip de camera; fluxurile noi raman in registru.
+
+**Impact: **`flows/index.ts`. La intoarcerea pe codul dinainte de etapa 6, camerele salvate pe versiunile noi nu se mai pot publica / edita (`CONFIGURATOR_FLOW_VERSION_UNSUPPORTED`).
+
+_Facuta 2026-11-14 (valul 3): `CURRENT_FLOW_VERSION` e pe versiunile noi pentru toate cele 28 de tipuri; instantanee noi `score-v6.json` / `firm-text-v6.json`, cele vechi byte-identice; testul de cost `apps/backend/src/modules/sizing/score-v6.spec.ts` confirma exemplele A–E. Lansarea ramane la PO._
+
+### D-E6-37. Titlurile pe piesa (2026-11-14, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **Fiecare piesa are titlul ei (altfel rezumatul ar repeta acelasi titlu): „Material pentru fronturi — <piesa>” la corpuri, „Material — <piesa>” la lemn, placi si blat, „Rama oglinzii” la oglinda. La bucatarie titlul nou „Material pentru fronturi (usi si sertare)” e doar pe corpurile de baza; suspendatele si insula isi pastreaza titlul pe zona (toate trei primesc subtitlul comun). Deschiderea are titlu nou doar la baie si la dressing („Cum se deschid usile dressingului?”); in rest cheile existente („Deschidere pentru …”). Dressingul are subtitlu propriu: „Corpul se face din PAL standard. La dressingul fara usi, materialul ales e pentru tot dressingul.” Titlurile pieselor ghidate spun „Material pentru fronturile …” si la biblioteca / birou, care pot ramane fara fronturi.
+
+**Rationale: **Abaterile A1, A2 (e6-kd), titlurile alese de e6-rooms-a / e6-rooms-b, P4 (e6-guided).
+
+**Impact: **Chei `flows.<ROOM>.v<N>.<materialStepId>.title`, `flows.BATHROOM.v3.systems*.title`, `flows.DRESSING.v4.material.{title,subtitle}`, `flows.DRESSING.v4.openingSystems.title`, `flows.PIECE_*.v4.material.title`, `flows.PIECE_*.v2.material.title`.
+
+_Adusa la zi 2026-11-14 de D-E6-45: titlul dressingului e acum neutru, „Material — dressing”, iar subtitlul: „Cu uși: materialul e pentru uși și sertare, corpul se face din PAL standard. Fără uși: materialul e pentru tot dressingul.”_
+
+### D-E6-38. Cand apare nota „Corp: PAL standard” (2026-11-14, aleasa de agenti, de confirmat de PO)
+
+**Decizie: **Nota apare la corpurile cu fronturi (da sau poate), si la „Altul” (inaintea notei „Material dorit: …”). Nu apare la „Integral din MDF”, la „decide firma”, cand lipseste raspunsul, la „Alta piesa” (randul v2) si la piesele 3D fara fronturi (biblioteca deschisa, hol cu pantofar deschis — acolo materialul e al intregii piese). La dressing apare doar la usi glisante sau batante; in descrierea dressingului notele vin dupa textul existent (interior, LED).
+
+**Rationale: **Abaterile D5 (e6-found), A3, A4 (e6-kd), P1 (e6-guided); proiectul era ambiguu la „Altul”.
+
+**Impact: **`buildFinishItems`, `kitchen.v4.ts`, `dressing.v4.ts`, `guided-pieces/v4.ts`.
+
+_Adusa la zi 2026-11-14 de D-E6-41: nota nu mai apare nici la o piesa aleasa „Fara usi sau sertare” (pe ecranul piesei sau pe cel comun)._
+
+### D-E6-39. Pistoane si maner la piesele 3D fara fronturi (2026-11-14, aleasa de agenti, de confirmat de PO — al doilea punct de reparat sau de acceptat)
+
+**Decizie: **Bifa de pistoane da AVENTOS chiar daca piesa 3D nu are fronturi (proiectul, literal). La bufetul / corpul suspendat de catalog manerul din 3D (`frontStyle`) se ia ca la versiunea veche, fara verificarea `configHasFronts`, deci un bufet complet deschis poate primi Maner; corpurile ghidate (v4) verifica fronturile.
+
+**Rationale: **Abaterile P2, P3 (e6-guided): „ca la v1”. Neconcordanta intre corpurile ghidate si catalog.
+
+**Impact: **`guided-pieces/v4.ts`, `catalog-v2.ts`. De semnalat si: `describePieceConfig` (piece3d, inghetat) scrie „fronturi cu maner” si la piese fara fronturi.
+
+_Inlocuita la 2026-11-14, dupa revizuirea de cod (m2 / m3 fluxuri): o piesa 3D fara fronturi (`configHasFronts` fals) nu primeste nici maner / push din `frontStyle`, nici AVENTOS si nota de pistoane din bifa `liftUpDoors` — atat corpurile ghidate v4 (comoda TV), cat si bufetul / corpul suspendat de catalog v2 (`finishPieceItem`, `catalog-v2.ts`). Bufetul complet deschis ramane cu `systems: []`, fara puncte de sistem. Textul „fronturi cu maner” din descrierea 3D ramane (D-E6-46)._
+
+### D-E6-40. Alegeri marunte ale agentilor (2026-11-14, de confirmat de PO)
+
+**Decizie: **(1) La pat, masa si banca ghidate fluxul vechi primeste raspunsurile fara material, ca „Material dorit” sa nu apara de doua ori. (2) Un pas care precede piesa (tipul usilor, depozitarea, cate noptiere) fara conditie proprie apare doar cand piesa e bifata. (3) Randul „Alta piesa” v2: un camp de dimensiune golit dispare din raspuns; cel mult 4 cifre; valorile din afara 1–600 raman in raspuns ca sa le refuze validarea. (4) Pe „Alta piesa” v1 randul nu e strict: chei in plus (de ex. `widthCm`) trec validarea si raman in raspunsurile salvate, dar sunt ignorate la derivare (asa era si inainte).
+
+**Rationale: **Rapoartele e6-guided (P5), e6-found (D7, D8), e6-ui, e6-kd / e6-seed.
+
+**Impact: **Fara efect pe cost.
+
+_Punctul (3) inlocuit la 2026-11-14 de D-E6-43: valorile cu zecimale sau litere raman in camp si blocheaza pasul._
+
+### D-E6-41. Fara „Corp: PAL standard” la piesele alese „Fara usi sau sertare” (2026-11-14, dupa revizuirea de cod — M1 fluxuri; de confirmat de PO)
+
+**Decizie: **Cand deschiderea unei piese se rezolva la „Fara usi sau sertare” (pe ecranul piesei sau pe ecranul comun), descrierea nu mai primeste „Corp: PAL standard”; ramane doar „Fără uși sau sertare” (plus „Material dorit: …” la „Altul”). Materialul ales ramane cel salvat si punctat.
+
+**Rationale: **Firma citea „corp din PAL, fara fronturi, material MDF vopsit” si nu intelegea pe ce se pune materialul. Acum regula e aceeasi ca la piesele 3D fara fronturi (D-E6-38). Schimba randul „banca Fara usi sau sertare” din tabelul proiectului (§6.1).
+
+**Impact: **`flows/piece-finish.ts` (`buildFinishItems`: nota corpului doar fara `NO_FRONTS_NOTE`); teste in `piece-finish.test.ts`, `rooms-a.v6.test.ts`, `rooms-b.v6.test.ts`. Completeaza D-E6-38.
+
+### D-E6-42. Intrebarile da / nu obligatorii de pe un ecran cu alte intrebari au doua cartonase (2026-11-14, dupa revizuirea de cod — M1 interfata; de confirmat de PO)
+
+**Decizie: **O intrebare da / nu obligatorie aflata pe acelasi ecran cu alte intrebari se arata ca doua cartonase, „Da” si „Nu”, fara nimic ales; „Nu” se poate alege direct. Se aplica la „Acelasi material si aceeasi deschidere pentru toate piesele?” (cele 7 fluxuri cu intrebare comuna) si la „Pat tapitat?” din dormitorul nou. Bifele optionale de pe acelasi ecran (insula, LED, pistoane) raman un singur cartonas.
+
+**Rationale: **Inainte aparea doar cartonasul „Da”; „Nu” se obtinea doar apasand de doua ori, iar starea „Nu” arata ca „neatins” (PO c14-2 cerea Da / Nu fara raspuns preselectat).
+
+**Impact: **`step-renderer.tsx` (grup cu `aria-label` = titlul intrebarii, `aria-pressed`); nicio versiune veche nu are o asemenea intrebare. Completeaza D-E6-10.
+
+### D-E6-43. „Alta piesa”: dimensiunile cu zecimale sau litere blocheaza pasul (2026-11-14, dupa revizuirea de cod — m1 interfata; hotararea coordonatorului, de confirmat de PO)
+
+**Decizie: **Campurile in cm accepta doar numere intregi. Un text ca „12,5”, „60.5” sau cu litere ramane in camp, cu eroarea „Scrie un număr întreg de centimetri.”, si blocheaza „Continua”; nu se rotunjeste si nu se lipesc cifrele. Un intreg se salveaza ca numar; campul golit scoate dimensiunea.
+
+**Rationale: **Inainte virgula disparea pe tacute („12,5” devenea 125 cm in descrierea pentru firma).
+
+**Impact: **`step-renderer.tsx` (textul gresit se salveaza ca text, pe care `pieceRowV2Schema` il respinge cu `validation.dimensionOutOfRange`; serverul il respinge la fel); cheia `Configurator.pieces.errors.wholeCm`. Inlocuieste punctul (3) din D-E6-40.
+
+### D-E6-44. „Alta piesa”: erorile langa camp, tinte de atingere mai mari (2026-11-14, dupa revizuirea de cod — m2 / m6 interfata)
+
+**Decizie: **Dupa un „Continua” respins, fiecare rand gresit are chenar rosu si eroarea langa campul ei (nume, deschidere sub „Cum se deschide”, dimensiune, material, cantitate, detalii); eroarea generala de sus apare doar pentru erori de pas. Un rand nou nu arata erori inainte de „Continua”. Etichetele bifelor au cel putin 44 px inaltime, iar „Sterge” e scos din grupul „Cum se deschide”.
+
+**Rationale: **Deschiderea a devenit obligatorie pe rand (D-E6-29), deci eroarea apare mai des; clientul nu stia ce rand sa repare.
+
+**Impact: **`step-renderer.tsx` (`PieceRowsV2`, erorile din `pieceRowV2Schema`); chei `Configurator.pieces.errors.{name,opening,wholeCm}`.
+
+### D-E6-45. Texte aliniate dupa revizuire (2026-11-14, dupa revizuirea de cod — m4 interfata, m3 interfata)
+
+**Decizie: **(1) La piesele cu „Integral din MDF” (si pe ecranul comun cand o piesa comuna il are) subtitlul de material nu mai spune ca piesa e din PAL: „Pentru uși și sertare. De obicei corpul se face din PAL standard; dacă vrei și corpul din MDF, alege „Integral din MDF”.” (2) Descrierea optiunii „Fara usi sau sertare”: „Piesa nu are nici uși, nici sertare.” (3) Titlul dressingului: „Material — dressing” (D-E6-37). (4) Titlurile de zona ale bucatariei apar doar pe ecranul unic „Fronturi” (v3 / v4), nu si pe ecranul de deschidere al bucatariei v2.
+
+**Rationale: **Textele contraziceau optiunile de pe acelasi ecran; zona aparea pe o versiune veche, nedeclarat.
+
+**Impact: **Cheia noua `common.finish.frontMaterial.subtitleIntegral` (`frontMaterialSubtitleKey`, `finish-sets.ts`; folosita de constructor si de lavoarul de catalog); `common.finish.opening.NO_FRONTS.description`; `flows.DRESSING.v4.material.title`; `kitchen-front-zones.ts` (`isKitchenFrontsScreen` cere si `separateFrontMaterials`).
+
+### D-E6-46. Lasate asa dupa revizuire (2026-11-14, constatari ale revizuirii de cod; de confirmat de PO)
+
+**Decizie: **(1) Descrierea din 3D scrie „fronturi cu maner” si la o piesa fara fronturi (`describePieceConfig`, cod inghetat, comun cu versiunile vechi; sistemele si costul sunt corecte). (2) Pe ecranul comun o banca (sau alta piesa „poate”) nu poate fi „Fara usi sau sertare” cand e bifat si un corp care are sigur usi: primeste deschiderea celorlalte (de ex. Maner, +1 punct); iesirea e raspunsul „Nu”. (3) Daca dupa „Da” lista scade sub 2 piese comune, raspunsul comun dispare si clientul raspunde din nou pe piesa ramasa (nimic gresit nu se salveaza).
+
+**Rationale: **(1) Fisierul e inghetat; filtrul ar trebui pus separat in fluxurile noi. (2) E regula D-E6-26. (3) Impact mic; ar cere copierea raspunsului in interfata.
+
+**Impact: **Constatarile m4, m6, m1 ale revizorului de fluxuri. Completeaza D-E6-26, D-E6-39.
 
 # 9. Checklist uman: ce faci acum
 
