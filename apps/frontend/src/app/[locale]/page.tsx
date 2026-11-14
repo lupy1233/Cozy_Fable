@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
 import { Check } from 'lucide-react';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { INSPIRATION_PINS, LANDING_PIN_IDS } from '@/lib/inspiration';
 import { cn } from '@/lib/utils';
+import { LandingCompareDemo } from './_components/landing-compare-demo';
 import { MaterialExplainer } from './_components/material-explainer';
 import { PublicHeader } from './_components/public-header';
 import { SiteFooter } from './_components/site-footer';
@@ -50,28 +51,10 @@ export async function generateMetadata({
 export default function LandingPage() {
   const t = useTranslations('LandingV2');
   const ti = useTranslations('Inspiration');
-  const tc = useTranslations('Common');
-  const format = useFormatter();
 
   const ideaPins = LANDING_PIN_IDS.slice(0, 8)
     .map((id) => INSPIRATION_PINS.find((p) => p.id === id)!)
     .filter(Boolean);
-
-  // tabelul-exemplu din hero: aceleasi rubrici ca oferta reala (pret, termen,
-  // garantie); "montaj" nu e camp structurat in oferta, deci nu il promitem aici
-  const firms = [
-    { name: t('compare.firmA'), price: 13900, weeks: 6, months: 24 },
-    { name: t('compare.firmB'), price: 11450, weeks: 8, months: 12 },
-    { name: t('compare.firmC'), price: 14200, weeks: 7, months: 24 },
-  ];
-  const lowestPrice = Math.min(...firms.map((f) => f.price));
-  const fastestTerm = Math.min(...firms.map((f) => f.weeks));
-
-  const cell = 'border-b border-border px-4 py-3.5 text-left align-top font-normal sm:px-5 sm:py-4';
-  // coloana cu cel mai mic pret e evidentiata pe toata inaltimea tabelului
-  const col = (f: (typeof firms)[number]) => (f.price === lowestPrice ? 'bg-surface-2' : undefined);
-  const value = 'font-mono text-ui';
-  const best = 'rounded-full bg-sage-soft px-2 py-px text-xs font-medium text-sage';
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -114,81 +97,8 @@ export default function LandingPage() {
             </ul>
           </div>
 
-          <figure className="min-w-0 overflow-hidden rounded-xl border border-border bg-surface shadow-lg">
-            <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4 sm:px-5">
-              <span className="heading-card">{t('compare.title')}</span>
-              <span className="font-mono text-meta uppercase tracking-[0.05em] text-muted-foreground">
-                {t('compare.example')}
-              </span>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[460px] border-collapse">
-                <thead>
-                  <tr>
-                    <th scope="col" className={cn(cell, 'w-[22%]')}>
-                      <span className="label">{t('compare.field')}</span>
-                    </th>
-                    {firms.map((f) => (
-                      <th key={f.name} scope="col" className={cn(cell, 'font-medium', col(f))}>
-                        {f.name}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <th scope="row" className={cn(cell, 'text-muted-foreground')}>
-                      {t('compare.rowPrice')}
-                    </th>
-                    {firms.map((f) => {
-                      const lowest = f.price === lowestPrice;
-                      return (
-                        <td key={f.name} className={cn(cell, col(f))}>
-                          <span className="flex flex-col items-start gap-1.5">
-                            <span className={cn(value, lowest && 'font-medium')}>
-                              {tc('money', { amount: format.number(f.price) })}
-                            </span>
-                            {lowest && <span className={best}>{t('compare.lowest')}</span>}
-                          </span>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                  <tr>
-                    <th scope="row" className={cn(cell, 'text-muted-foreground')}>
-                      {t('compare.rowTerm')}
-                    </th>
-                    {firms.map((f) => {
-                      const fastest = f.weeks === fastestTerm;
-                      return (
-                        <td key={f.name} className={cn(cell, col(f))}>
-                          <span className="flex flex-col items-start gap-1.5">
-                            <span className={cn(value, fastest && 'font-medium')}>
-                              {t('compare.weeks', { n: f.weeks })}
-                            </span>
-                            {fastest && <span className={best}>{t('compare.fastest')}</span>}
-                          </span>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                  <tr>
-                    <th scope="row" className={cn(cell, 'border-b-0 text-muted-foreground')}>
-                      {t('compare.rowWarranty')}
-                    </th>
-                    {firms.map((f) => (
-                      <td key={f.name} className={cn(cell, 'border-b-0', value, col(f))}>
-                        {t('compare.months', { n: f.months })}
-                      </td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <figcaption className="border-t border-border bg-surface-2 px-4 py-3.5 text-ui text-muted-foreground sm:px-5">
-              {t('compare.caption')}
-            </figcaption>
-          </figure>
+          {/* a3: tabelul-exemplu are aceleasi rubrici ca tabelul real de comparare */}
+          <LandingCompareDemo />
         </section>
 
         <SectionRule />

@@ -1,12 +1,23 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { MAX_QUOTE_VERSIONS } from '@marketplace/shared';
-import { useFormatter, useTranslations } from 'next-intl';
-import { forwardRef, useId, useState, type InputHTMLAttributes } from 'react';
+import {
+  createQuoteSchema,
+  MAX_DELIVERY_TERM_VALUE,
+  MAX_DESIGN_INCLUDES_LENGTH,
+  MAX_QUOTE_VERSIONS,
+  MAX_WARRANTY_MONTHS,
+  QUOTE_DELIVERY_TERM_UNITS as DELIVERY_TERM_UNITS,
+  QUOTE_VAT_MODES as VAT_MODES,
+  type OfferFieldKey,
+  type QuoteVersionDto,
+} from '@marketplace/shared';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { forwardRef, useId, useMemo, useState, type InputHTMLAttributes } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { ApiError } from '@/lib/api';
+import { formatDecimal, parseDecimal } from '@/lib/decimal';
 import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { cn } from '@/lib/utils';
 import { useCreateQuote, useExtraVersion, useReoffer, useReviseQuote } from '@/hooks/use-quotes';
@@ -17,32 +28,66 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
-// Numerele optionale vin din inputuri ca '' cand sunt goale; z.coerce le facea
-// 0 → pica positive() FARA mesaj afisat si formularul nu se trimitea deloc
-// (bug F7: "firma nu poate raspunde"). Golul devine explicit undefined.
-const optionalPositive = (int = false) =>
-  z.preprocess(
-    (v) => (v === '' || v == null ? undefined : Number(v)),
-    (int ? z.number().int() : z.number()).positive().optional(),
-  );
+// m8 (revizuire etapa 4): aceleasi plafoane ca serverul, citite din schema comuna (shared),
+// ca formularul sa spuna campul inainte de "Datele trimise nu sunt valide".
+const MAX_PRICE = createQuoteSchema.shape.price.maxValue ?? 100_000_000;
+const MAX_DESIGN_FEE = createQuoteSchema.shape.designFee.unwrap().maxValue ?? MAX_PRICE;
+const MAX_VALIDITY_DAYS = createQuoteSchema.shape.validityDays.unwrap().maxValue ?? 365;
 
-const TERM_UNITS = ['WEEKS', 'WORKING_DAYS'] as const;
+// Numerele vin din inputuri ca '' cand sunt goale; z.coerce le facea 0 → pica positive()
+// FARA mesaj afisat si formularul nu se trimitea deloc (bug F7: "firma nu poate raspunde").
+// Golul devine explicit undefined.
+const emptyToUndefined = (v: unknown) => (v === '' || v == null ? undefined : Number(v));
+// m12: sumele accepta virgula si punctul ("12,5" = 12.5), cu cititorul comun (lib/decimal);
+// textul nevalid devine NaN → pica schema cu mesajul aplicatiei (nu ramane o valoare veche)
+export function parseAmount(v: unknown): number | undefined {
+  if (typeof v === 'number') return v;
+  if (v == null) return undefined;
+  const p = parseDecimal(String(v));
+  return p.kind === 'empty' ? undefined : p.kind === 'number' ? p.value : Number.NaN;
+}
+// variantele obligatorii au functia lor, ca tipul sa ramana `number` (nu `number | undefined`)
+const requiredAmount = (max: number) => z.preprocess(parseAmount, z.number().positive().max(max));
+const optionalAmount = (max: number) =>
+  z.preprocess(parseAmount, z.number().positive().max(max).optional());
+const requiredWhole = (max: number) =>
+  z.preprocess(emptyToUndefined, z.number().int().positive().max(max));
+const optionalWhole = (max: number) =>
+  z.preprocess(emptyToUndefined, z.number().int().positive().max(max).optional());
 
-// Design 2026-11: fiecare camp are unitatea langa el. Termenul de livrare si garantia se
-// completeaza ca numar + unitate si pleaca spre API tot ca text ("8 saptamani", "12 luni") —
-// contractul ofertei (deliveryTerm / warranty = string) ramane neschimbat.
-const formSchema = z.object({
-  price: z.coerce.number().positive(),
-  designFee: optionalPositive(),
-  currency: z.enum(['RON', 'EUR']).optional(),
-  deliveryTermValue: optionalPositive(true),
-  deliveryTermUnit: z.enum(TERM_UNITS).optional(),
-  deliveryDate: z.string().optional(),
-  warrantyMonths: optionalPositive(true),
-  description: z.string().min(1),
-  validityDays: optionalPositive(true),
-});
-type FormValues = z.input<typeof formSchema>;
+// a3 (etapa 4): termenul (numar + unitate), garantia in luni, rubrica de TVA si bifele
+// "inclus in pret" pleaca SEPARAT spre API si sunt obligatorii; textele libere
+// deliveryTerm / warranty nu se mai trimit (serverul le completeaza din rubrici).
+// g0-11: la cererile cu proiectare cu plata, pretul proiectarii si "ce include" sunt obligatorii.
+function buildSchema(paidDesign: boolean) {
+  return z.object({
+    price: requiredAmount(MAX_PRICE),
+    designFee: paidDesign ? requiredAmount(MAX_DESIGN_FEE) : optionalAmount(MAX_DESIGN_FEE),
+    designIncludes: paidDesign
+      ? z.string().trim().min(1).max(MAX_DESIGN_INCLUDES_LENGTH)
+      : z.string().optional(),
+    currency: z.enum(['RON', 'EUR']),
+    vatMode: z.enum(VAT_MODES),
+    deliveryTermValue: requiredWhole(MAX_DELIVERY_TERM_VALUE),
+    deliveryTermUnit: z.enum(DELIVERY_TERM_UNITS),
+    deliveryDate: z.string().optional(),
+    warrantyMonths: requiredWhole(MAX_WARRANTY_MONTHS),
+    includesTransport: z.boolean(),
+    includesAssembly: z.boolean(),
+    description: z.string().trim().min(1),
+    validityDays: optionalWhole(MAX_VALIDITY_DAYS),
+  });
+}
+
+// M1: cheile matricei de permisiuni (details.fields din OFFER_FIELD_NOT_EDITABLE) → eticheta campului
+const FIELD_KEY_LABEL: Record<OfferFieldKey, string> = {
+  PRICE: 'builder.fieldKey.PRICE',
+  DELIVERY_TERM: 'builder.deliveryTerm',
+  DELIVERY_DATE: 'builder.deliveryDate',
+  WARRANTY: 'builder.warranty',
+  DESCRIPTION: 'builder.description',
+};
+type FormValues = z.input<ReturnType<typeof buildSchema>>;
 
 // camerele cererii, pentru defalcarea pretului (F7, item 22)
 type OfferRoom = { id: string; roomType: string };
@@ -55,38 +100,84 @@ type Props = (
   | { kind: 'reoffer'; quoteId: string; includesPaidDesign: boolean; onDone?: () => void }
 ) & {
   rooms?: OfferRoom[];
-  // moneda ofertei existente (revise / extra / reoffer) — unitatea de langa campurile de pret;
-  // la 'create' unitatea urmeaza moneda aleasa in formular
+  // moneda ofertei existente — alegerea implicita cand nu exista o varianta precedenta
   currency?: OfferCurrency;
+  // a4: ultima varianta trimisa; varianta noua porneste precompletata din ea
+  previous?: QuoteVersionDto;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+// data livrarii din varianta precedenta se pastreaza doar daca nu a trecut
+function futureDate(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: APP_TIME_ZONE }).format(new Date());
+  return iso.slice(0, 10) >= today ? iso.slice(0, 10) : '';
+}
+
+// a4: valorile de pornire ale variantei noi = ultima varianta (rubricile lipsa raman goale)
+function defaultsFrom(
+  previous: QuoteVersionDto | undefined,
+  currency: OfferCurrency | undefined,
+  locale: string,
+): FormValues {
+  const p = previous;
+  // sumele se scriu in formatul limbii ("1250,5" in romana), ca sa poata fi recitite de parseDecimal
+  const money = (n: number | null | undefined) => (n == null ? '' : formatDecimal(n, locale, 2));
+  return {
+    price: money(p?.price),
+    designFee: money(p?.designFee),
+    designIncludes: p?.designIncludes ?? '',
+    currency: p?.currency ?? currency ?? 'RON',
+    vatMode: p?.vatMode ?? undefined,
+    deliveryTermValue: p?.deliveryTermValue ?? '',
+    deliveryTermUnit: p?.deliveryTermUnit ?? 'WEEKS',
+    deliveryDate: futureDate(p?.deliveryDate),
+    warrantyMonths: p?.warrantyMonths ?? '',
+    includesTransport: p?.includesTransport ?? false,
+    includesAssembly: p?.includesAssembly ?? false,
+    description: p?.description ?? '',
+    validityDays: '',
+  } as FormValues;
+}
+
 export function OfferBuilder(props: Props) {
   const t = useTranslations('Quotes');
   const tc = useTranslations('Configurator');
-  const tu = useTranslations('Legal.firmRules.units');
   const format = useFormatter();
+  const locale = useLocale();
   const uid = useId();
   const isCreate = props.kind === 'create';
+  const paidDesign = props.includesPaidDesign;
   const quoteId = props.kind === 'create' ? '' : props.quoteId;
   const create = useCreateQuote();
   const revise = useReviseQuote(quoteId);
   const extra = useExtraVersion(quoteId);
   const reoffer = useReoffer(quoteId);
+  const schema = useMemo(() => buildSchema(paidDesign), [paidDesign]);
+  // m10: varianta din care s-a completat formularul se fixeaza la deschidere (eticheta si
+  // valorile vin din aceeasi varianta, chiar daca oferta se reimprospateaza intre timp)
+  const [previous] = useState(props.previous);
   const {
     register,
     handleSubmit,
     setValue,
+    setError,
     control,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(formSchema) });
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: defaultsFrom(previous, props.currency, locale),
+  });
   const pickedCurrency = useWatch({ control, name: 'currency' });
   const validityRaw = useWatch({ control, name: 'validityDays' });
 
-  // unitatea de langa sume: moneda aleasa (create) sau moneda ofertei (daca apelantul o da)
-  const currency: OfferCurrency | undefined = isCreate ? (pickedCurrency ?? 'RON') : props.currency;
-  const moneyUnit = currency ? t(`builder.unit.${currency}`) : undefined;
+  // unitatea de langa sume urmeaza moneda aleasa (moneda e a variantei, nu a ofertei)
+  const currency: OfferCurrency = pickedCurrency ?? 'RON';
+  const moneyUnit = t(`builder.unit.${currency}`);
+  // M2: moneda schimbata fata de varianta precedenta — sumele nu se convertesc singure
+  const currencyChanged = !!previous && previous.currency !== currency;
+  const [roomErrors, setRoomErrors] = useState<Record<string, boolean>>({});
 
   // "Valabila pana la ..." — doar cand firma a scris un numar de zile (altfel se aplica implicitul din setari)
   const validityDays = Number(validityRaw);
@@ -101,50 +192,101 @@ export function OfferBuilder(props: Props) {
   // Defalcare pe camere (F7): cand TOATE camerele au pret, totalul se
   // calculeaza singur si campul de pret se blocheaza pe suma.
   const rooms = props.rooms ?? [];
-  const [roomPrices, setRoomPrices] = useState<Record<string, string>>({});
-  const filled = rooms.filter((r) => Number(roomPrices[r.id]) > 0);
+  // a4: defalcarea precedenta se preia doar daca acopera toate camerele (altfel pret unic)
+  const [roomPrices, setRoomPrices] = useState<Record<string, string>>(() => {
+    const prev = previous?.roomPrices ?? [];
+    const covered = rooms.length > 0 && rooms.every((r) => prev.some((rp) => rp.requestRoomId === r.id));
+    return covered
+      ? Object.fromEntries(prev.map((rp) => [rp.requestRoomId, formatDecimal(rp.price, locale, 2)]))
+      : {};
+  });
+  const roomAmount = (raw: string | undefined) => parseAmount(raw ?? '');
+  const positive = (n: number | undefined) => n != null && Number.isFinite(n) && n > 0;
+  const filled = rooms.filter((r) => positive(roomAmount(roomPrices[r.id])));
   const allFilled = rooms.length > 0 && filled.length === rooms.length;
   const partial = filled.length > 0 && !allFilled;
 
   const setRoomPrice = (roomId: string, raw: string) => {
     const next = { ...roomPrices, [roomId]: raw };
     setRoomPrices(next);
-    const nextFilled = rooms.filter((r) => Number(next[r.id]) > 0);
+    setRoomErrors((e) => ({ ...e, [roomId]: false }));
+    const nextFilled = rooms.filter((r) => positive(roomAmount(next[r.id])));
     if (rooms.length > 0 && nextFilled.length === rooms.length) {
-      const sum = nextFilled.reduce((acc, r) => acc + Number(next[r.id]), 0);
-      setValue('price', Math.round(sum * 100) / 100, { shouldValidate: true });
+      const sum = nextFilled.reduce((acc, r) => acc + roomAmount(next[r.id])!, 0);
+      setValue('price', formatDecimal(Math.round(sum * 100) / 100, locale, 2), { shouldValidate: true });
     }
   };
 
   const active =
     props.kind === 'create' ? create : props.kind === 'revise' ? revise : props.kind === 'extra' ? extra : reoffer;
-  const apiErr = active.error instanceof ApiError ? active.error.code : null;
+  const apiError = active.error instanceof ApiError ? active.error : null;
+  const apiErr = apiError?.code ?? null;
+  // M1: serverul numeste campurile pentru care membrul nu are drept (details.fields)
+  const deniedFields =
+    apiErr === 'OFFER_FIELD_NOT_EDITABLE'
+      ? ((apiError?.details as { fields?: unknown } | undefined)?.fields as string[] | undefined)?.filter(
+          (k): k is OfferFieldKey => k in FIELD_KEY_LABEL,
+        ) ?? []
+      : [];
+  const apiErrorText =
+    deniedFields.length > 0
+      ? t('builder.fieldsNotEditable', {
+          fields: deniedFields.map((k) => t(FIELD_KEY_LABEL[k])).join(', '),
+        })
+      : apiErr
+        ? t.has(`apiErrors.${apiErr}`)
+          ? t(`apiErrors.${apiErr}`)
+          : t('apiErrors.INTERNAL_ERROR')
+        : null;
 
   const onSubmit = (v: FormValues) => {
     if (partial) return; // defalcare incompleta: completeaza tot sau goleste
-    const termValue = v.deliveryTermValue ? Number(v.deliveryTermValue) : null;
-    const warrantyMonths = v.warrantyMonths ? Number(v.warrantyMonths) : null;
+    // valorile sunt deja validate de schema (numere pozitive, enum-uri)
+    const s = schema.parse(v);
+    // M2: moneda schimbata, dar o suma a ramas exact cea din varianta precedenta → nu pleaca
+    if (previous && s.currency !== previous.currency) {
+      let blocked = false;
+      const sameRooms = allFilled
+        ? rooms.filter((r) => {
+            const old = previous.roomPrices.find((rp) => rp.requestRoomId === r.id);
+            return old != null && roomAmount(roomPrices[r.id]) === old.price;
+          })
+        : [];
+      if (sameRooms.length > 0) {
+        setRoomErrors(Object.fromEntries(sameRooms.map((r) => [r.id, true])));
+        blocked = true;
+      } else if (!allFilled && s.price === previous.price) {
+        setError('price', { type: 'sameAmount' });
+        blocked = true;
+      }
+      if (paidDesign && s.designFee != null && s.designFee === previous.designFee) {
+        setError('designFee', { type: 'sameAmount' });
+        blocked = true;
+      }
+      if (blocked) return;
+    }
     const base = {
-      price: Number(v.price),
-      designFee: v.designFee ? Number(v.designFee) : undefined,
-      deliveryTerm: termValue
-        ? v.deliveryTermUnit === 'WORKING_DAYS'
-          ? tu('workingDay', { n: termValue })
-          : t('builder.termWeeks', { n: termValue })
-        : undefined,
-      deliveryDate: v.deliveryDate || undefined,
-      warranty: warrantyMonths ? tu('month', { n: warrantyMonths }) : undefined,
-      description: v.description,
-      validityDays: v.validityDays ? Number(v.validityDays) : undefined,
+      price: s.price,
+      currency: s.currency,
+      vatMode: s.vatMode,
+      deliveryTermValue: s.deliveryTermValue,
+      deliveryTermUnit: s.deliveryTermUnit,
+      warrantyMonths: s.warrantyMonths,
+      includesTransport: s.includesTransport,
+      includesAssembly: s.includesAssembly,
+      // proiectarea exista doar pe cererile cu proiectare cu plata (altfel serverul o refuza)
+      ...(paidDesign && s.designFee != null
+        ? { designFee: s.designFee, designIncludes: (s.designIncludes ?? '').trim() }
+        : {}),
+      deliveryDate: s.deliveryDate || undefined,
+      description: s.description,
+      validityDays: s.validityDays,
       roomPrices: allFilled
-        ? rooms.map((r) => ({ requestRoomId: r.id, price: Number(roomPrices[r.id]) }))
+        ? rooms.map((r) => ({ requestRoomId: r.id, price: roomAmount(roomPrices[r.id])! }))
         : undefined,
     };
     if (props.kind === 'create') {
-      create.mutate(
-        { ...base, claimSlotId: props.claimSlotId, currency: v.currency },
-        { onSuccess: () => props.onDone?.() },
-      );
+      create.mutate({ ...base, claimSlotId: props.claimSlotId }, { onSuccess: () => props.onDone?.() });
     } else if (props.kind === 'revise') {
       revise.mutate({ ...base, changeRequestId: props.changeRequestId }, { onSuccess: () => props.onDone?.() });
     } else if (props.kind === 'extra') {
@@ -175,36 +317,98 @@ export function OfferBuilder(props: Props) {
     currency: `${uid}-currency`,
     desc: `${uid}-desc`,
     descHint: `${uid}-desc-hint`,
+    vat: `${uid}-vat`,
+    included: `${uid}-included`,
+    designIncludes: `${uid}-design-includes`,
+    designNote: `${uid}-design-note`,
   };
 
-  // randul pretului: total calculat din camere (blocat) sau pret unic scris de firma
+  const sameAmountText = previous
+    ? t('validation.sameAmountOtherCurrency', {
+        n: previous.version,
+        currency: t(`builder.currencyName.${currency}`),
+      })
+    : '';
+
+  // randul pretului: total calculat din camere (blocat) sau pret unic scris de firma;
+  // a3: rubrica de TVA si bifele "inclus in pret" stau langa pret
   const priceRow = (
-    <div className="flex flex-col gap-1.5 rounded-lg bg-surface-2 px-4 py-3.5">
+    <div className="flex flex-col gap-3 rounded-lg bg-surface-2 px-4 py-3.5">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <Label htmlFor={ids.price} className="text-sm font-semibold">
-          {t('builder.price')}
+          {paidDesign ? t('builder.priceFurnitureEstimate') : t('builder.price')}
         </Label>
         <UnitInput
           id={ids.price}
-          type="number"
-          step="0.01"
+          type="text"
           inputMode="decimal"
+          autoComplete="off"
           {...register('price')}
           readOnly={allFilled}
           title={allFilled ? t('builder.priceLocked') : undefined}
           unit={moneyUnit}
+          aria-invalid={errors.price ? true : undefined}
           wrapperClassName="shrink-0"
           className="w-32 flex-none text-right font-mono read-only:cursor-default read-only:font-medium"
         />
       </div>
-      {errors.price && <p className="text-xs text-crimson">{t('validation.priceInvalid')}</p>}
+      {/* M2: moneda schimbata fata de varianta precedenta — sumele raman numerele vechi */}
+      {currencyChanged && (
+        <p role="status" className="text-xs font-medium text-amber">
+          {t('builder.currencyChanged', { currency: t(`builder.currencyName.${currency}`) })}
+        </p>
+      )}
+      {errors.price && (
+        <p className="text-xs text-crimson">
+          {errors.price.type === 'sameAmount'
+            ? sameAmountText
+            : t('validation.priceRange', { max: format.number(MAX_PRICE) })}
+        </p>
+      )}
       {partial && <p className="text-xs text-amber">{t('builder.roomPricesPartial')}</p>}
+
+      <fieldset
+        className="flex min-w-0 flex-col gap-1.5"
+        aria-describedby={errors.vatMode ? `${ids.vat}-error` : undefined}
+      >
+        <legend className="mb-1.5 text-sm font-medium">{t('builder.vat.label')}</legend>
+        <div className="flex flex-wrap gap-x-5 gap-y-1.5">
+          {VAT_MODES.map((mode) => (
+            <label key={mode} className="flex min-h-9 cursor-pointer items-center gap-2 text-sm">
+              <input type="radio" value={mode} className="accent-walnut" {...register('vatMode')} />
+              {t(`builder.vat.${mode}`)}
+            </label>
+          ))}
+        </div>
+        {errors.vatMode && (
+          <p id={`${ids.vat}-error`} className="text-xs text-crimson">
+            {t('validation.vatRequired')}
+          </p>
+        )}
+      </fieldset>
+
+      <fieldset className="flex min-w-0 flex-col gap-1.5">
+        <legend className="mb-1.5 text-sm font-medium">{t('builder.included.label')}</legend>
+        <div className="flex flex-wrap gap-x-5 gap-y-1.5">
+          <label className="flex min-h-9 cursor-pointer items-center gap-2 text-sm">
+            <input type="checkbox" className="accent-walnut" {...register('includesTransport')} />
+            {t('builder.included.transport')}
+          </label>
+          <label className="flex min-h-9 cursor-pointer items-center gap-2 text-sm">
+            <input type="checkbox" className="accent-walnut" {...register('includesAssembly')} />
+            {t('builder.included.assembly')}
+          </label>
+        </div>
+        <p className="text-xs text-muted-foreground">{t('builder.included.hint')}</p>
+      </fieldset>
     </div>
   );
 
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
+      // m12: validarea o face schema, cu mesajele aplicatiei (nu baloanele browserului)
+      noValidate
       aria-labelledby={ids.title}
       className={cn(
         'flex flex-col',
@@ -222,6 +426,11 @@ export function OfferBuilder(props: Props) {
             {t('builder.versionOf', { n: 1, max: MAX_QUOTE_VERSIONS })}
           </span>
         )}
+        {previous && (
+          <p className="w-full text-ui text-muted-foreground">
+            {t('builder.prefilledFrom', { n: previous.version })}
+          </p>
+        )}
       </div>
 
       {/* pret per camera (F7, item 22): total calculat automat */}
@@ -230,24 +439,30 @@ export function OfferBuilder(props: Props) {
           <legend className="mb-2.5 text-sm font-semibold">{t('builder.roomPrices')}</legend>
           {rooms.map((r, i) => {
             const roomId = `${uid}-room-${r.id}`;
+            const raw = roomPrices[r.id] ?? '';
+            const invalid = raw.trim() !== '' && !positive(roomAmount(raw));
             return (
-              <div key={r.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                <label htmlFor={roomId} className="min-w-0 flex-[1_1_200px] text-sm">
-                  {i + 1}. {tc(`rooms.type.${r.roomType}`)}
-                </label>
-                <UnitInput
-                  id={roomId}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  inputMode="decimal"
-                  value={roomPrices[r.id] ?? ''}
-                  onChange={(e) => setRoomPrice(r.id, e.target.value)}
-                  placeholder="0"
-                  unit={moneyUnit}
-                  wrapperClassName="shrink-0"
-                  className="w-32 flex-none text-right font-mono"
-                />
+              <div key={r.id} className="flex flex-col gap-1">
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                  <label htmlFor={roomId} className="min-w-0 flex-[1_1_200px] text-sm">
+                    {i + 1}. {tc(`rooms.type.${r.roomType}`)}
+                  </label>
+                  <UnitInput
+                    id={roomId}
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    value={raw}
+                    onChange={(e) => setRoomPrice(r.id, e.target.value)}
+                    placeholder="0"
+                    unit={moneyUnit}
+                    aria-invalid={invalid || roomErrors[r.id] ? true : undefined}
+                    wrapperClassName="shrink-0"
+                    className="w-32 flex-none text-right font-mono"
+                  />
+                </div>
+                {invalid && <p className="text-xs text-crimson">{t('validation.amountInvalid')}</p>}
+                {roomErrors[r.id] && <p className="text-xs text-crimson">{sameAmountText}</p>}
               </div>
             );
           })}
@@ -257,27 +472,53 @@ export function OfferBuilder(props: Props) {
         priceRow
       )}
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(220px,100%),1fr))] gap-5">
-        {props.includesPaidDesign && (
+      {/* g0-11: proiectarea cu plata — pretul si ce include, separat de pretul mobilierului */}
+      {paidDesign && (
+        <fieldset
+          className="flex min-w-0 flex-col gap-3 rounded-lg border border-border-2 px-4 py-3.5"
+          aria-describedby={ids.designNote}
+        >
+          <legend className="px-1 text-sm font-semibold">{t('builder.design.title')}</legend>
+          <p id={ids.designNote} className="text-xs text-muted-foreground">
+            {t('builder.design.note')}
+          </p>
           <Field
             label={t('builder.designFee')}
             htmlFor={ids.fee}
-            error={errors.designFee ? t('validation.amountInvalid') : undefined}
+            error={
+              errors.designFee
+                ? errors.designFee.type === 'sameAmount'
+                  ? sameAmountText
+                  : t('validation.designFeeRange', { max: format.number(MAX_DESIGN_FEE) })
+                : undefined
+            }
           >
             <UnitInput
               id={ids.fee}
-              type="number"
-              step="0.01"
+              type="text"
+              autoComplete="off"
               inputMode="decimal"
               {...register('designFee')}
               unit={moneyUnit}
+              wrapperClassName="max-w-xs"
             />
           </Field>
-        )}
+          <Field
+            label={t('builder.design.includes')}
+            htmlFor={ids.designIncludes}
+            hint={t('builder.design.includesHint')}
+            error={errors.designIncludes ? t('validation.designIncludesRequired') : undefined}
+          >
+            <Textarea id={ids.designIncludes} rows={3} maxLength={1000} {...register('designIncludes')} />
+          </Field>
+        </fieldset>
+      )}
+
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(220px,100%),1fr))] gap-5">
         <Field
           label={t('builder.deliveryTerm')}
           htmlFor={ids.term}
-          error={errors.deliveryTermValue ? t('validation.wholeNumber') : undefined}
+          error={errors.deliveryTermValue ? t('validation.wholeNumberMax', { max: MAX_DELIVERY_TERM_VALUE }) : undefined}
         >
           <div className="flex gap-2">
             <Input
@@ -290,13 +531,8 @@ export function OfferBuilder(props: Props) {
               className="h-11 w-20 shrink-0"
             />
             <div className="min-w-0 flex-1">
-              <Select
-                aria-label={t('builder.termUnitLabel')}
-                defaultValue="WEEKS"
-                {...register('deliveryTermUnit')}
-                className="h-11"
-              >
-                {TERM_UNITS.map((u) => (
+              <Select aria-label={t('builder.termUnitLabel')} {...register('deliveryTermUnit')} className="h-11">
+                {DELIVERY_TERM_UNITS.map((u) => (
                   <option key={u} value={u}>
                     {t(`builder.termUnit.${u}`)}
                   </option>
@@ -311,7 +547,7 @@ export function OfferBuilder(props: Props) {
         <Field
           label={t('builder.warranty')}
           htmlFor={ids.warranty}
-          error={errors.warrantyMonths ? t('validation.wholeNumber') : undefined}
+          error={errors.warrantyMonths ? t('validation.wholeNumberMax', { max: MAX_WARRANTY_MONTHS }) : undefined}
         >
           <UnitInput
             id={ids.warranty}
@@ -326,7 +562,7 @@ export function OfferBuilder(props: Props) {
         <Field
           label={t('builder.validity')}
           htmlFor={ids.validity}
-          error={errors.validityDays ? t('validation.wholeNumber') : undefined}
+          error={errors.validityDays ? t('validation.wholeNumberMax', { max: MAX_VALIDITY_DAYS }) : undefined}
           hint={validUntil ? t('validUntil', { date: validUntil }) : undefined}
         >
           <UnitInput
@@ -340,14 +576,13 @@ export function OfferBuilder(props: Props) {
             unit={t('builder.unitDays')}
           />
         </Field>
-        {isCreate && (
-          <Field label={t('builder.currency')} htmlFor={ids.currency}>
-            <Select id={ids.currency} defaultValue="RON" {...register('currency')} className="h-11">
-              <option value="RON">RON</option>
-              <option value="EUR">EUR</option>
-            </Select>
-          </Field>
-        )}
+        {/* a4: moneda e a variantei — se poate schimba la fiecare varianta noua */}
+        <Field label={t('builder.currency')} htmlFor={ids.currency}>
+          <Select id={ids.currency} {...register('currency')} className="h-11">
+            <option value="RON">{t('builder.currencyOption.RON')}</option>
+            <option value="EUR">{t('builder.currencyOption.EUR')}</option>
+          </Select>
+        </Field>
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -359,9 +594,9 @@ export function OfferBuilder(props: Props) {
         </p>
       </div>
 
-      {apiErr && (
+      {apiErrorText && (
         <p role="alert" className="text-sm text-crimson">
-          {t.has(`apiErrors.${apiErr}`) ? t(`apiErrors.${apiErr}`) : t('apiErrors.INTERNAL_ERROR')}
+          {apiErrorText}
         </p>
       )}
 

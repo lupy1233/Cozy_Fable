@@ -636,3 +636,49 @@ describe('evenimente de facturare E-company-24', () => {
     expect(prisma.domainEventOutbox.updateMany).not.toHaveBeenCalled();
   });
 });
+
+// a4 (2026-11-13): varianta noua → clientul; cererea de modificare → firma; refuzul → firma
+describe('evenimente a4 (oferte: varianta noua, cerere de modificare, refuz)', () => {
+  const member = { id: 'm1', email: 'firma@demo.ro', name: 'Ana', languagePreference: 'RO' };
+  const base = { clientUserId: 'u-client', requestTitle: 'Bucatarie', companyName: 'A Mobila', requestId: 'r1', companyId: 'c1', claimSlotId: 's1' };
+
+  it('quote.updated NEW_VERSION → e-mail DOAR clientului, cu numarul variantei', async () => {
+    const { service, prisma, mail } = makeService([radu], ['m1']);
+    await service.sendForEvent('quote.updated', ['m1', 'u-client'], { ...base, kind: 'NEW_VERSION', version: 2 });
+    expect(prisma.user.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: { in: ['u-client'] } }) }));
+    expect(mail.send).toHaveBeenCalledWith('radu@demo.ro', expect.stringContaining('Variantă nouă'), expect.stringContaining('varianta 2'), expect.anything());
+  });
+
+  it('quote.updated CHANGE_REQUESTED → e-mail DOAR membrilor firmei, link la preluare', async () => {
+    const { service, prisma, mail } = makeService([member], ['m1']);
+    await service.sendForEvent('quote.updated', ['m1', 'u-client'], { ...base, kind: 'CHANGE_REQUESTED' });
+    expect(prisma.user.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: { in: ['m1'] } }) }));
+    expect(mail.send).toHaveBeenCalledWith('firma@demo.ro', expect.stringContaining('modificare'), expect.stringContaining('/ro/marketplace/claims/s1'), expect.anything());
+  });
+
+  it('quote.updated fara kind (prelungire, invitatie etc.) → fara e-mail', async () => {
+    const { service, prisma, mail } = makeService([radu, member], ['m1']);
+    await service.sendForEvent('quote.updated', ['m1', 'u-client'], base);
+    expect(prisma.user.findMany).not.toHaveBeenCalled();
+    expect(mail.send).not.toHaveBeenCalled();
+  });
+
+  it('quote.declined → e-mail firmei cu motivul si nota (escapata), creditele consumate', async () => {
+    const { service, mail } = makeService([member], ['m1']);
+    await service.sendForEvent('quote.declined', ['m1'], { ...base, reason: 'PRICE', note: 'prea <b>scump</b>', consumed: true });
+    const [to, subject, html] = mail.send.mock.calls[0];
+    expect(to).toBe('firma@demo.ro');
+    expect(subject).toContain('Clientul a refuzat oferta');
+    expect(html).toContain('Motivul indicat: prețul');
+    expect(html).toContain('prea &lt;b&gt;scump&lt;/b&gt;');
+    expect(html).toContain('s-au consumat');
+  });
+
+  it('quote.declined fara motiv, in engleza', async () => {
+    const { service, mail } = makeService([{ ...member, languagePreference: 'EN' }], ['m1']);
+    await service.sendForEvent('quote.declined', ['m1'], { ...base, reason: null, note: null, consumed: true });
+    const [, subject, html] = mail.send.mock.calls[0];
+    expect(subject).toContain('The client declined your offer');
+    expect(html).not.toContain('Reason given');
+  });
+});

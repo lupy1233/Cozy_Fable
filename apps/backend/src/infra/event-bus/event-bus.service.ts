@@ -47,6 +47,8 @@ export type DomainEvent =
   | 'quote.expired'
   | 'quote.expired_closed'
   | 'quote.extension_requested'
+  // a4 (2026-11-13): clientul a refuzat oferta (doar membrii firmei; clopotel + e-mail)
+  | 'quote.declined'
   // E-admin-platform-44: termene apropiate
   | 'request.expiry_reminder'
   | 'claim.assign_warning'

@@ -164,6 +164,8 @@ export function useRealtimeSync(): void {
     s.on('quote.expired', onQuote);
     s.on('quote.extension_requested', onQuote);
     s.on('quote.expired_closed', onClaimClosed);
+    // a4: refuzul clientului inchide locul firmei — oferta, preluarile, conversatia si clopotelul se refac
+    s.on('quote.declined', onClaimClosed);
     s.on('project.case_opened', onProject);
     s.on('project.case_responded', onProject);
     s.on('project.case_dismissed', onProject);
@@ -210,6 +212,7 @@ export function useRealtimeSync(): void {
       s.off('quote.expired', onQuote);
       s.off('quote.extension_requested', onQuote);
       s.off('quote.expired_closed', onClaimClosed);
+      s.off('quote.declined', onClaimClosed);
       s.off('project.case_opened', onProject);
       s.off('project.case_responded', onProject);
       s.off('project.case_dismissed', onProject);

@@ -17,6 +17,7 @@ import { QuotesService } from '../modules/quotes/quotes.service';
 import { FulfillmentService } from '../modules/fulfillment/fulfillment.service';
 import { RequestsService } from '../modules/requests/requests.service';
 import type { UploadsService } from '../modules/uploads/uploads.service';
+import type { MessageCryptoService } from '../modules/chat/message-crypto.service';
 
 // E-admin-platform-14 — serviciile REALE care misca bani, legate de un PrismaService de test.
 // Doar marginile sunt stub-uri: cozile BullMQ (add/remove fara Redis), event bus-ul (fara
@@ -48,6 +49,8 @@ export function createMoneyServices(prisma: PrismaService) {
     toAttachmentDtos: async () => [],
   } as unknown as UploadsService;
 
+  // a4: mesajele de sistem din conversatie se scriu in clar in testele de integrare
+  const messageCrypto = { encrypt: (s: string | null) => s, decrypt: (s: string | null) => s } as unknown as MessageCryptoService;
   const settings = new SettingsService(prisma);
   const credits = new CreditsService(prisma);
   const settlement = new ClaimSettlementService(credits);
@@ -58,7 +61,7 @@ export function createMoneyServices(prisma: PrismaService) {
   const withdrawals = new WithdrawalsService(prisma, settlement, penalties, eventBus, calendar, q, q, outbox);
   const claimAssign = new ClaimAssignProcessor(prisma, settlement, eventBus, calendar, q, outbox);
   const slaBreach = new SlaBreachProcessor(prisma, settlement, penalties, calendar, eventBus, q, outbox);
-  const quotes = new QuotesService(prisma, settings, outbox, calendar, uploads, settlement, q, q, q, q, q);
+  const quotes = new QuotesService(prisma, settings, outbox, calendar, uploads, settlement, q, q, q, q, q, q, messageCrypto);
   const fulfillment = new FulfillmentService(prisma, eventBus, settlement, q, outbox);
   // deleteForClient foloseste doar prisma/settlement/outbox; restul dependintelor nu sunt atinse
   const requests = new RequestsService(

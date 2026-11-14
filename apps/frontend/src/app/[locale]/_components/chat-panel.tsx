@@ -1,5 +1,6 @@
 'use client';
 
+import { MESSAGE_SYSTEM_KINDS, type MessageDto } from '@marketplace/shared';
 import { Paperclip } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
@@ -14,6 +15,44 @@ import { Button } from '@/components/ui/button';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+
+// a4 (etapa 4): mesajele de sistem scrise de server in conversatie (MessageDto.systemKind):
+// cererea de modificare (body = textul cererii, payload.version) si refuzul ofertei
+// (body = nota clientului, payload.reason). Se afiseaza ca o nota centrata, nu ca un balon.
+type ChatMessage = MessageDto;
+// un tip necunoscut (server mai nou) cade pe balonul obisnuit
+const isSystemMessage = (m: ChatMessage): boolean =>
+  MESSAGE_SYSTEM_KINDS.some((k) => k === m.systemKind);
+
+function SystemMessage({ m, when }: { m: ChatMessage; when: string }) {
+  const t = useTranslations('Chat');
+  const tq = useTranslations('Quotes');
+  const { systemKind, systemPayload } = m;
+  const version = typeof systemPayload?.version === 'number' ? systemPayload.version : null;
+  const reason = typeof systemPayload?.reason === 'string' ? systemPayload.reason : null;
+  const title =
+    systemKind === 'QUOTE_DECLINED'
+      ? t('system.quoteDeclined')
+      : version != null
+        ? t('system.changeRequestedOn', { n: version })
+        : t('system.changeRequested');
+  return (
+    <div role="note" className="flex flex-col items-center gap-1 self-center text-center">
+      <div className="max-w-[92%] rounded-lg border border-dashed border-border-2 bg-surface-2 px-3.5 py-2 text-ui">
+        <p className="font-medium">{title}</p>
+        {systemKind === 'QUOTE_DECLINED' && reason && tq.has(`declineReasons.${reason}`) && (
+          <p className="text-muted-foreground">
+            {tq('declined.reasonLabel')} {tq(`declineReasons.${reason}`)}
+          </p>
+        )}
+        {m.body && <p className="whitespace-pre-wrap break-words">“{m.body}”</p>}
+      </div>
+      <p className="font-mono text-meta text-muted-foreground">
+        {m.senderName} · {when}
+      </p>
+    </div>
+  );
+}
 
 export function ChatPanel({
   threadId,
@@ -121,7 +160,10 @@ export function ChatPanel({
         {messages.isSuccess && messages.data.length === 0 && (
           <p className="text-sm text-muted-foreground">{t('empty')}</p>
         )}
-        {messages.data?.map((m) => (
+        {messages.data?.map((m) =>
+          isSystemMessage(m) ? (
+            <SystemMessage key={m.id} m={m} when={stamp(m.createdAt)} />
+          ) : (
           <div
             key={m.id}
             className={cn(
@@ -156,7 +198,8 @@ export function ChatPanel({
               {m.isMine ? t('you') : m.senderName} · {stamp(m.createdAt)}
             </p>
           </div>
-        ))}
+          ),
+        )}
       </div>
 
       {readOnly ? (

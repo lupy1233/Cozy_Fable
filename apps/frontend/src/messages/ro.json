@@ -16,15 +16,8 @@
       "firmA": "Firma A",
       "firmB": "Firma B",
       "firmC": "Firma C",
-      "rowPrice": "Preț",
-      "rowTerm": "Termen",
-      "rowWarranty": "Garanție",
-      "lowest": "cel mai mic",
-      "fastest": "cel mai rapid",
-      "weeks": "{n} săpt.",
-      "months": "{n} luni",
       "caption": "Exemplu ilustrativ. Ofertele reale apar în contul tău, în același tabel.",
-      "field": "Rubrică"
+      "validFor": "{n, plural, =1 {valabilă o zi} few {valabilă # zile} other {valabilă # de zile}}"
     },
     "journeyKicker": "Cum funcționează",
     "journeyTitle": "Drumul până la mobila ta",
@@ -1422,7 +1415,8 @@
       "SLA_EXPIRED": "Termen SLA depășit",
       "CANCELLED_REQUEST_ACCEPTED": "Închisă — clientul a ales altă firmă",
       "CANCELLED_PROJECT": "Închisă — proiect anulat",
-      "CANCELLED_OFFER_EXPIRED": "Închisă — oferta a expirat fără decizie"
+      "CANCELLED_OFFER_EXPIRED": "Închisă — oferta a expirat fără decizie",
+      "OFFER_DECLINED": "Închisă — clientul a refuzat oferta"
     },
     "wallet": {
       "title": "Portofel de credite",
@@ -1644,7 +1638,12 @@
     "attach": "Atașează un fișier",
     "readOnly": "Conversația este doar pentru citit — nu se mai pot trimite mesaje.",
     "you": "Tu",
-    "messageTo": "Mesaj către {name}"
+    "messageTo": "Mesaj către {name}",
+    "system": {
+      "changeRequested": "Clientul a cerut o modificare a ofertei",
+      "changeRequestedOn": "Clientul a cerut o modificare la versiunea {n}",
+      "quoteDeclined": "Clientul a refuzat oferta"
+    }
   },
   "Messages": {
     "title": "Mesaje",
@@ -1728,7 +1727,8 @@
       "DISCUSSION": "În discuție",
       "OFFER_SENT": "Ofertă primită",
       "ACCEPTED": "Ofertă acceptată",
-      "CLOSED": "Conversație închisă"
+      "CLOSED": "Conversație închisă",
+      "DECLINED": "Ofertă refuzată"
     },
     "versionLabel": "Versiunea {n}",
     "extraTag": "suplimentară",
@@ -1783,7 +1783,8 @@
       "WITHDRAWN": "Retrasă",
       "EXPIRED": "Expirată",
       "ACCEPTED": "Acceptată",
-      "SUPERSEDED": "Înlocuită"
+      "SUPERSEDED": "Înlocuită",
+      "DECLINED": "Refuzată"
     },
     "builder": {
       "createTitle": "Trimite oferta",
@@ -1806,7 +1807,7 @@
       "versionOf": "Varianta {n} din cel mult {max}",
       "submitCreate": "Trimite oferta",
       "createNote": "După trimitere, termenul SLA nu se mai aplică. Poți retrage oferta sau răspunde cu o variantă nouă dacă clientul cere o modificare.",
-      "descriptionHint": "Spune ce este inclus: materiale, feronerie, transport, montaj, TVA. Clientul compară ofertele pe aceleași rubrici.",
+      "descriptionHint": "Spune ce este inclus: materiale, feronerie, finisaje. Clientul compară ofertele pe aceleași rubrici.",
       "validity": "Valabilitatea ofertei",
       "unitMonths": "luni",
       "unitDays": "zile",
@@ -1819,13 +1820,52 @@
         "WEEKS": "săptămâni",
         "WORKING_DAYS": "zile lucrătoare"
       },
-      "termWeeks": "{n, plural, one {# săptămână} few {# săptămâni} other {# de săptămâni}}"
+      "termWeeks": "{n, plural, one {# săptămână} few {# săptămâni} other {# de săptămâni}}",
+      "priceFurnitureEstimate": "Preț mobilier (estimare)",
+      "prefilledFrom": "Am completat formularul cu varianta {n}. Schimbă doar ce e nou.",
+      "currencyOption": {
+        "RON": "lei (RON)",
+        "EUR": "euro (EUR)"
+      },
+      "vat": {
+        "label": "TVA",
+        "VAT_INCLUDED": "Prețul include TVA",
+        "VAT_EXCLUDED": "Prețul nu include TVA",
+        "NOT_VAT_PAYER": "Firma nu e plătitoare de TVA"
+      },
+      "included": {
+        "label": "Inclus în preț",
+        "transport": "Transport",
+        "assembly": "Montaj",
+        "hint": "Bifează doar ce intră în prețul de mai sus."
+      },
+      "design": {
+        "title": "Proiectare",
+        "note": "Clientul a cerut proiectare cu plată și compară firmele după ea. Spune cât costă proiectarea și ce include. Prețul mobilierului de mai sus rămâne o estimare: îl stabiliți definitiv după proiect.",
+        "includes": "Ce include proiectarea",
+        "includesHint": "De exemplu: măsurători la fața locului, planșe 2D, randări 3D, câte runde de modificări."
+      },
+      "fieldKey": {
+        "PRICE": "Preț (cu TVA, monedă, ce e inclus în preț, proiectare)"
+      },
+      "currencyChanged": "Ai schimbat moneda. Sumele nu se convertesc singure: scrie prețul în {currency}.",
+      "currencyName": {
+        "RON": "lei",
+        "EUR": "euro"
+      },
+      "fieldsNotEditable": "Nu ai dreptul să schimbi: {fields}. Lasă aceste rubrici cum erau în varianta precedentă sau roagă un coleg care are dreptul să trimită varianta."
     },
     "validation": {
       "priceInvalid": "Prețul introdus nu este valid.",
       "descriptionRequired": "Descrierea este obligatorie.",
       "wholeNumber": "Introdu un număr întreg mai mare decât zero.",
-      "amountInvalid": "Suma introdusă nu este validă."
+      "amountInvalid": "Suma introdusă nu este validă.",
+      "vatRequired": "Alege dacă prețul include TVA.",
+      "designIncludesRequired": "Scrie ce include proiectarea.",
+      "sameAmountOtherCurrency": "Suma e aceeași ca în versiunea {n}, deși moneda s-a schimbat. Scrie suma în {currency}.",
+      "priceRange": "Scrie o sumă mai mare decât zero, de cel mult {max}.",
+      "designFeeRange": "Scrie prețul proiectării: o sumă mai mare decât zero, de cel mult {max}.",
+      "wholeNumberMax": "Scrie un număr întreg între 1 și {max}."
     },
     "apiErrors": {
       "QUOTE_VERSION_LIMIT_REACHED": "Ai atins limita de 3 variante ale ofertei.",
@@ -1855,7 +1895,8 @@
       "QUOTE_NOT_MODIFIABLE": "Oferta nu mai poate fi modificată în starea ei actuală.",
       "ASSIGNED_USER_HAS_ACTIVE_CLAIM": "Nu poți retrage oferta acum: membrul atribuit are deja o altă preluare fără ofertă. Trimite oferta pe acea preluare sau atribuie-o altui coleg, apoi încearcă din nou.",
       "QUOTE_VERSION_CHANGED": "Firma a trimis o versiune nouă a ofertei. Verifică noile condiții de mai jos și confirmă din nou.",
-      "QUOTE_WITHDRAW_SLA_ACK_REQUIRED": "Termenul de răspuns a trecut, așa că retragerea ofertei închide imediat preluarea. Confirmă explicit ca să continui."
+      "QUOTE_WITHDRAW_SLA_ACK_REQUIRED": "Termenul de răspuns a trecut, așa că retragerea ofertei închide imediat preluarea. Confirmă explicit ca să continui.",
+      "QUOTE_NOT_DECLINABLE": "Oferta nu mai poate fi refuzată: între timp a fost acceptată, retrasă sau a expirat. Reîncarcă pagina."
     },
     "acceptedOn": "Acceptată pe {date}",
     "expiredClientHint": "Oferta a expirat și nu mai poate fi acceptată. Poți cere firmei să o prelungească.",
@@ -1901,7 +1942,6 @@
       "title": "Ofertele, una lângă alta",
       "hint": "Aceleași rubrici pentru fiecare firmă",
       "field": "Rubrică",
-      "total": "Total",
       "term": "Termen",
       "warranty": "Garanție",
       "status": "Valabilitate",
@@ -1913,7 +1953,26 @@
       "openChat": "Vezi conversația",
       "fastest": "cel mai rapid",
       "daysLeft": "{n, plural, =0 {mai puțin de o zi} =1 {mai este o zi} few {mai sunt # zile} other {mai sunt # de zile}}",
-      "openedBelow": "Deschisă mai jos"
+      "openedBelow": "Deschisă mai jos",
+      "price": "Preț",
+      "approx": "≈ {amount}",
+      "vat": "TVA",
+      "vatIncluded": "include TVA",
+      "vatExcluded": "nu include TVA",
+      "vatAdded": "se adaugă {rate}%",
+      "vatNotPayer": "firma nu e plătitoare de TVA",
+      "vatUnknown": "oferta nu spune dacă are TVA",
+      "totalLeiVat": "Total în lei, cu TVA",
+      "design": "Proiectare",
+      "weeks": "{n, plural, =1 {o săptămână} few {# săptămâni} other {# de săptămâni}}",
+      "workingDays": "{n, plural, =1 {o zi lucrătoare} few {# zile lucrătoare} other {# de zile lucrătoare}}",
+      "termEquals": "adică {days}",
+      "months": "{n, plural, =1 {o lună} few {# luni} other {# de luni}}",
+      "transport": "Transport",
+      "assembly": "Montaj",
+      "included": "inclus în preț",
+      "notIncluded": "nu e inclus",
+      "rateNote": "Curs folosit: 1 EUR = {rate} lei."
     },
     "offersSubtitleFor": "{request} · drumul cererii tale la fiecare firmă care a preluat-o.",
     "firmsTabsLabel": "Firmele care au preluat cererea",
@@ -1925,7 +1984,75 @@
     "changeCancel": "Renunță",
     "noDesignFee": "fără tarif de proiectare",
     "deliveryBy": "până la {date}",
-    "inactiveNote": "Oferta nu mai este activă, așa că nu mai poate fi acceptată."
+    "inactiveNote": "Oferta nu mai este activă, așa că nu mai poate fi acceptată.",
+    "vatShown": {
+      "VAT_INCLUDED": "Prețul include TVA",
+      "VAT_EXCLUDED": "Prețul nu include TVA",
+      "NOT_VAT_PAYER": "Firma nu e plătitoare de TVA",
+      "excludedWithTotal": "Nu include TVA · cu TVA ({rate}%): {amount}"
+    },
+    "includedShown": {
+      "transportYes": "Transport inclus",
+      "transportNo": "Transport neinclus",
+      "assemblyYes": "Montaj inclus",
+      "assemblyNo": "Montaj neinclus"
+    },
+    "furnitureEstimate": "Mobilier (estimare)",
+    "designEstimateNote": "Prețul mobilierului e o estimare. Se stabilește definitiv după proiect.",
+    "acceptConfirmPaymentHint": "Înainte să confirmi, întreabă firma în conversație care sunt condițiile de plată.",
+    "history": {
+      "title": "Variantele ofertei",
+      "shownAbove": "cea de mai sus",
+      "sentOn": "Trimisă pe {date}",
+      "answersChange": "Răspuns la cererea de modificare:",
+      "changeAsked": "Modificare cerută pe {date}:",
+      "changePending": "Încă fără răspuns de la firmă.",
+      "changeAnswered": "Firma a răspuns cu versiunea {n}.",
+      "changeFulfilled": "Firma a răspuns cu o variantă nouă.",
+      "changeRejected": "Firma a refuzat această modificare.",
+      "showTerms": "Vezi toate condițiile versiunii {n}",
+      "diffTitle": "Față de versiunea {n}:",
+      "diff": {
+        "total": "Total: {from} → {to} ({delta})",
+        "totalCurrency": "Total: {from} → {to} (altă monedă)",
+        "delivery": "Termen: {from} → {to}",
+        "warranty": "Garanție: {from} → {to}",
+        "vat": "TVA: {from} → {to}",
+        "included": "Inclus în preț: {from} → {to}",
+        "design": "Proiectarea s-a schimbat.",
+        "description": "Descrierea s-a schimbat.",
+        "none": "Aceleași condiții ca versiunea {n}."
+      },
+      "changeClosed": "Fără răspuns — oferta s-a închis."
+    },
+    "declineReasons": {
+      "PRICE": "Prețul",
+      "DELIVERY_TERM": "Termenul",
+      "OTHER_COMPANY": "Am ales altă firmă",
+      "GAVE_UP": "Renunț la proiect"
+    },
+    "decline": {
+      "open": "Refuz oferta",
+      "title": "Refuzi oferta de la {company}?",
+      "body": "Refuzul e definitiv: nu mai poți accepta această ofertă și nici cere alte modificări. {company} va fi anunțată, iar conversația cu ea rămâne doar de citit.",
+      "reasonLabel": "De ce o refuzi? (opțional; firma vede răspunsul)",
+      "clearReason": "Fără motiv",
+      "noteLabel": "Vrei să-i spui ceva firmei? (opțional)",
+      "noteHint": "{used} din {max} caractere",
+      "cancel": "Înapoi",
+      "confirm": "Da, refuz oferta",
+      "pending": "Se trimite…"
+    },
+    "declined": {
+      "client": "Ai refuzat această ofertă.",
+      "clientOn": "Ai refuzat această ofertă pe {date}.",
+      "company": "Clientul a refuzat oferta.",
+      "companyOn": "Clientul a refuzat oferta pe {date}.",
+      "reasonLabel": "Motiv:",
+      "noReason": "Clientul nu a spus motivul.",
+      "clientNext": "Firma a fost anunțată. Conversația cu ea rămâne doar de citit.",
+      "companyNext": "Oferta s-a închis și nu mai poate fi schimbată."
+    }
   },
   "Lifecycle": {
     "slaTitle": "SLA și stare",
@@ -1957,7 +2084,8 @@
       "COMPLETED": "Finalizată",
       "CANCELLED_REQUEST_ACCEPTED": "Închisă — clientul a ales altă firmă",
       "CANCELLED_PROJECT": "Închisă — proiect anulat",
-      "CANCELLED_OFFER_EXPIRED": "Închisă — oferta a expirat fără decizie"
+      "CANCELLED_OFFER_EXPIRED": "Închisă — oferta a expirat fără decizie",
+      "OFFER_DECLINED": "Închisă — clientul a refuzat oferta"
     },
     "reason": {
       "CLIENT_UNRESPONSIVE_48H": "Clientul nu a răspuns 48 de ore",
@@ -3511,7 +3639,10 @@
         "accepted": "Ofertă acceptată",
         "expired": "O ofertă a expirat",
         "expired_closed": "O ofertă expirată a fost închisă",
-        "extension_requested": "Clientul cere prelungirea ofertei"
+        "extension_requested": "Clientul cere prelungirea ofertei",
+        "updated_NEW_VERSION": "Variantă nouă a ofertei",
+        "updated_CHANGE_REQUESTED": "Clientul cere o modificare a ofertei",
+        "declined": "Clientul a refuzat oferta"
       },
       "message": {
         "created": "Mesaj nou"

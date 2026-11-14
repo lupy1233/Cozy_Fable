@@ -17,6 +17,7 @@ import {
   type ClaimQuoteContextDto,
   type CreateConsultationInviteInput,
   type CreateQuoteInput,
+  type DeclineQuoteInput,
   type ExtendValidityInput,
   type ExtraQuoteVersionInput,
   type PresignUploadResultDto,
@@ -49,8 +50,14 @@ import {
   QUEUE_CONSULTATION_EXPIRY,
   QUEUE_PROJECT_DEADLINES,
   QUEUE_QUOTE_VALIDITY,
+  QUEUE_REQUEST_EXPIRATION,
   QUEUE_SLA_BREACH,
 } from '../../infra/queues/queues.module';
+import type { RequestExpirationJob } from '../requests/request-expiration.processor';
+import { scheduleRequestExpiryReminder } from '../requests/request-expiry-reminder';
+import { MessageCryptoService } from '../chat/message-crypto.service';
+import { insertSystemMessage } from '../chat/system-message';
+import { VAT_RATE_DEFAULT, VAT_RATE_SETTING } from '../billing/vat';
 import type { CompanyContext } from '../../common/company-context/company-context';
 import { UploadsService, type PresignInput } from '../uploads/uploads.service';
 import { maskFreeText, maskRoomForFirm, maskSceneData, maskSceneName } from '../../common/privacy/contact-masking';
@@ -60,6 +67,7 @@ import {
   DEFAULT_DELIVERY_REMINDER_DAYS_BEFORE,
   OCCUPYING_CLAIM_STATUSES,
   OPEN_CLAIM_STATUSES,
+  REPUBLISH_EXPIRY_WORKING_DAYS,
   SETTING_DELIVERY_REMINDER_DAYS_BEFORE,
   SLA_GRACE_WARNING_JOB,
   SLA_WARNING_JOB,
@@ -83,7 +91,7 @@ import {
   SETTING_VALIDITY_DAYS,
   WITHDRAW_WINDOW_WORKING_DAYS,
 } from './quotes.constants';
-import { touchedFieldKeys } from './quotes.helpers';
+import { deliveryTermText, touchedFieldKeys, warrantyText, type PreviousOfferFields } from './quotes.helpers';
 import { readClaimContactAccessSettings, resolveClaimContextAccess, type ClaimContextAccess } from './claim-context-access';
 import type { OfferFieldsDto } from './dto/quote.dto';
 import type { QuoteValidityJob } from './quote-validity.processor';
@@ -101,6 +109,7 @@ import {
   nonExtraCount,
   pendingChangeCount,
   toQuoteDto,
+  versionCurrency,
   withChangeRequest,
   withChangeStatus,
   withExtension,
@@ -133,10 +142,32 @@ function stripConsultationAddress(quote: QuoteDto): QuoteDto {
     consultationInvites: quote.consultationInvites.map((inv) => ({ ...inv, locationAddress: '' })),
   };
 }
+// a4 + revizuire M2: pe caile firmei, textele libere ale clientului din oferta (nota de refuz,
+// cererile de modificare — istoricul complet si cererea de pe fiecare varianta) trec prin aceeasi
+// mascare a contactelor; clientul le vede brute.
+function maskDeclineNoteForCompany(quote: QuoteDto): QuoteDto {
+  const maskChange = <C extends { requestedText: string }>(c: C): C => ({ ...c, requestedText: maskFreeText(c.requestedText) });
+  return {
+    ...quote,
+    declineNote: quote.declineNote ? maskFreeText(quote.declineNote) : quote.declineNote,
+    changeRequests: quote.changeRequests.map(maskChange),
+    versions: quote.versions.map((v) => (v.changeRequest ? { ...v, changeRequest: maskChange(v.changeRequest) } : v)),
+  };
+}
+// actiunile clientului prin lockedQuoteMutation (restul sunt ale firmei → chitanta mascata)
+const CLIENT_ACTIONS: ReadonlySet<QuoteAction> = new Set<QuoteAction>(['REQUEST_CHANGE', 'CONSULTATION_RESPOND']);
 type RoomTypes = Map<string, RoomPriceInput['roomType']>;
-// Pre-citiri facute IN AFARA tranzactiei (cursul + atasamentele versiunilor existente).
-type Preloaded = { rate: number; attachments: Map<string, AttachmentDto[]> };
-type MutationOutcome<T> = { result: T; next: QuoteFull; attachments?: Map<string, AttachmentDto[]> };
+// Pre-citiri facute IN AFARA tranzactiei (cursul, cota TVA + atasamentele versiunilor existente).
+type Preloaded = { rate: number; vatRate: number; attachments: Map<string, AttachmentDto[]> };
+// a4: ce spune evenimentul quote.updated (alege destinatarii e-mailului: varianta noua → client,
+// cerere de modificare → firma)
+type QuoteEventExtra = { kind: 'NEW_VERSION' | 'CHANGE_REQUESTED'; version?: number; changeRequestId?: string };
+type MutationOutcome<T> = {
+  result: T;
+  next: QuoteFull;
+  attachments?: Map<string, AttachmentDto[]>;
+  event?: QuoteEventExtra;
+};
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 // Tranzitii inainte ale statusului cererii (nu da inapoi): din ce statusuri urca la tinta.
@@ -165,6 +196,10 @@ export class QuotesService {
     @InjectQueue(QUEUE_CLAIM_ASSIGN) private readonly assignQueue: Queue<ClaimAssignJob>,
     // E-admin-platform-3: reminder de livrare + termen depasit, programate dupa accept
     @InjectQueue(QUEUE_PROJECT_DEADLINES) private readonly deadlinesQueue: Queue<ProjectDeadlineJob>,
+    // a4: refuzul poate goli cererea de ocupanti → re-publicare cu ceas nou de expirare
+    @InjectQueue(QUEUE_REQUEST_EXPIRATION) private readonly expirationQueue: Queue<RequestExpirationJob>,
+    // a4: corpul mesajelor de sistem din conversatie se cripteaza ca orice mesaj (PO r6)
+    private readonly messageCrypto: MessageCryptoService,
   ) {}
 
   // ===== COMPANY: trimitere oferta v1 =====
@@ -198,8 +233,9 @@ export class QuotesService {
     const validityDays = await this.resolveValidityDays(dto.validityDays);
     const validUntil = new Date(Date.now() + validityDays * DAY_MS);
     const currency: QuoteCurrency = dto.currency ?? 'RON';
-    const [rate, company] = await Promise.all([
+    const [rate, vatRate, company] = await Promise.all([
       this.eurRonRate(),
+      this.vatRate(),
       this.prisma.company.findUnique({ where: { id: ctx.companyId }, select: { name: true } }),
     ]);
     const quoteId = randomUUID();
@@ -236,7 +272,7 @@ export class QuotesService {
         },
       });
       const version = await tx.quoteVersion.create({
-        data: this.versionData(quoteId, 1, false, dto, actingUserId, validUntil),
+        data: this.versionData(quoteId, 1, false, dto, actingUserId, validUntil, currency, vatRate),
       });
       const roomPrices = await this.writeRoomPrices(tx, version.id, dto.roomPrices, roomTypes);
       const attachments = await this.relinkAttachments(tx, dto.attachmentIds, slot.id, version.id);
@@ -246,13 +282,14 @@ export class QuotesService {
         requestId: slot.requestId,
         companyId: ctx.companyId,
         clientUserId: req.client_user_id,
+        claimSlotId: slot.id,
       });
       const full = withNewVersion(
         { ...quote, company: { name: company?.name ?? '' }, versions: [], consultationInvites: [] },
         version,
         roomPrices,
       );
-      const dtoOut = toQuoteDto(full, new Map([[version.id, attachments]]), rate);
+      const dtoOut = toQuoteDto(full, new Map([[version.id, attachments]]), rate, undefined, vatRate);
       if (getIdempotentOperation()?.transactional) await saveIdempotentResult(tx, dtoOut);
       return { receipt: dtoOut, versionId: version.id };
     });
@@ -326,7 +363,22 @@ export class QuotesService {
         data: { quoteVersionId: version.id, clientUserId: userId, requestedText: dto.requestedText },
       });
       await this.bumpRequestForward(tx, req, 'NEGOTIATION');
-      return { result: row.id, next: withChangeRequest(current, version.id, row) };
+      // a4 (pas 5): cererea apare si in conversatie, ca mesaj de sistem (textul clientului)
+      const versionNo = current.versions.find((v) => v.id === version.id)?.version ?? null;
+      await insertSystemMessage(tx, this.messageCrypto, {
+        claimSlotId: s.claim_slot_id,
+        senderUserId: userId,
+        kind: 'QUOTE_CHANGE_REQUESTED',
+        body: dto.requestedText,
+        payload: { quoteId: quote.id, quoteVersionId: version.id, version: versionNo, changeRequestId: row.id },
+        // revizuire m2: cererea e activitatea clientului (nu mai e "neresponsiv 48h")
+        clientActivity: true,
+      });
+      return {
+        result: row.id,
+        next: withChangeRequest(current, version.id, row),
+        event: { kind: 'CHANGE_REQUESTED', changeRequestId: row.id, ...(versionNo != null ? { version: versionNo } : {}) },
+      };
     }, pre);
     return out;
   }
@@ -342,7 +394,7 @@ export class QuotesService {
     const quote = await this.loadCompanyQuote(quoteId, ctx.companyId);
     assertQuoteRule('REVISE', { quoteStatus: quote.status, request: quote.request });
     this.assertDesignFee(dto, quote.request.includesPaidDesign);
-    await this.assertFieldPermissions(ctx.companyId, ctx.memberRole, dto);
+    await this.assertFieldPermissions(ctx.companyId, ctx.memberRole, dto, this.latestVersion(quote.versions));
 
     const change = await this.prisma.quoteChangeRequest.findUnique({
       where: { id: dto.changeRequestId },
@@ -360,23 +412,33 @@ export class QuotesService {
     const { result: versionId, dto: out } = await this.lockedQuoteMutation(quote, 'REVISE', async (tx, s, _req, current) => {
       if (s.non_extra_count >= MAX_QUOTE_VERSIONS) throw this.versionLimitReached();
       const respondedAt = new Date();
+      const currency = this.nextCurrency(dto, current);
+      // revizuire m6: variantele fara moneda isi pastreaza moneda veche a ofertei
+      current = await this.freezeLegacyCurrencies(tx, current, currency);
+      // a4: varianta intai, ca cererea sa retina ce varianta i-a raspuns (answered_by_version_id);
+      // updateMany conditionat ramane biletul (count 0 → rollback, varianta nu ramane)
+      const version = await tx.quoteVersion.create({
+        data: this.versionData(quote.id, (s.max_version ?? 0) + 1, false, dto, actingUserId, validUntil, currency, pre.vatRate),
+      });
       const fulfilled = await tx.quoteChangeRequest.updateMany({
         where: { id: change.id, status: 'PENDING', quoteVersion: { quoteId: quote.id } },
-        data: { status: 'FULFILLED', respondedAt },
+        data: { status: 'FULFILLED', respondedAt, answeredByVersionId: version.id },
       });
       if (fulfilled.count === 0) throw this.changeNotPending();
-      const version = await tx.quoteVersion.create({
-        data: this.versionData(quote.id, (s.max_version ?? 0) + 1, false, dto, actingUserId, validUntil),
-      });
       const roomPrices = await this.writeRoomPrices(tx, version.id, dto.roomPrices, roomTypes);
       const attachments = await this.relinkAttachments(tx, dto.attachmentIds, quote.claimSlotId, version.id);
-      const updatedAt = await this.reopenQuote(tx, quote.id);
+      const updatedAt = await this.reopenQuote(tx, quote.id, currency);
       const next = withStatus(
-        withNewVersion(withChangeStatus(current, change.id, 'FULFILLED', respondedAt), version, roomPrices),
+        withNewVersion(withChangeStatus(current, change.id, 'FULFILLED', respondedAt, version.id), version, roomPrices),
         'SENT',
-        { updatedAt },
+        { updatedAt, currency },
       );
-      return { result: version.id, next, attachments: new Map([[version.id, attachments]]) };
+      return {
+        result: version.id,
+        next,
+        attachments: new Map([[version.id, attachments]]),
+        event: { kind: 'NEW_VERSION', version: version.version },
+      };
     }, pre);
 
     await this.scheduleValidityJob(versionId, validUntil);
@@ -417,7 +479,7 @@ export class QuotesService {
     const quote = await this.loadCompanyQuote(quoteId, ctx.companyId);
     assertQuoteRule('EXTRA', { quoteStatus: quote.status, request: quote.request });
     this.assertDesignFee(dto, quote.request.includesPaidDesign);
-    await this.assertFieldPermissions(ctx.companyId, ctx.memberRole, dto);
+    await this.assertFieldPermissions(ctx.companyId, ctx.memberRole, dto, this.latestVersion(quote.versions));
     if (nonExtraCount(quote.versions) < MAX_QUOTE_VERSIONS) throw this.extraOnlyAfterLimit();
     const validityDays = await this.resolveValidityDays(dto.validityDays);
     const validUntil = new Date(Date.now() + validityDays * DAY_MS);
@@ -426,22 +488,32 @@ export class QuotesService {
 
     const { result: versionId, dto: out } = await this.lockedQuoteMutation(quote, 'EXTRA', async (tx, s, _req, current) => {
       if (s.non_extra_count < MAX_QUOTE_VERSIONS) throw this.extraOnlyAfterLimit();
+      const currency = this.nextCurrency(dto, current);
+      // revizuire m6: variantele fara moneda isi pastreaza moneda veche a ofertei
+      current = await this.freezeLegacyCurrencies(tx, current, currency);
       const version = await tx.quoteVersion.create({
-        data: this.versionData(quote.id, (s.max_version ?? 0) + 1, true, dto, actingUserId, validUntil),
+        data: this.versionData(quote.id, (s.max_version ?? 0) + 1, true, dto, actingUserId, validUntil, currency, pre.vatRate),
       });
       const roomPrices = await this.writeRoomPrices(tx, version.id, dto.roomPrices, roomTypes);
       const attachments = await this.relinkAttachments(tx, dto.attachmentIds, quote.claimSlotId, version.id);
-      // conditionat pe SENT/EXPIRED: o varianta extra nu mai redeschide o oferta retrasa/acceptata
+      // conditionat pe SENT/EXPIRED: o varianta extra nu mai redeschide o oferta retrasa/acceptata/refuzata
+      // a4: quotes.currency urmeaza moneda variantei curente (codul vechi citeste doar coloana ofertei)
       const reopened = await tx.quote.updateMany({
         where: { id: quote.id, status: { in: ['SENT', 'EXPIRED'] } },
-        data: { extraVersionsCount: { increment: 1 }, status: 'SENT' },
+        data: { extraVersionsCount: { increment: 1 }, status: 'SENT', currency },
       });
       if (reopened.count === 0) throw this.notModifiable();
       const next = withStatus(withNewVersion(current, version, roomPrices), 'SENT', {
         extraVersionsCountDelta: 1,
         updatedAt: new Date(),
+        currency,
       });
-      return { result: version.id, next, attachments: new Map([[version.id, attachments]]) };
+      return {
+        result: version.id,
+        next,
+        attachments: new Map([[version.id, attachments]]),
+        event: { kind: 'NEW_VERSION', version: version.version },
+      };
     }, pre);
 
     await this.scheduleValidityJob(versionId, validUntil);
@@ -460,7 +532,7 @@ export class QuotesService {
     const quote = await this.loadCompanyQuote(quoteId, ctx.companyId);
     assertQuoteRule('REOFFER', { quoteStatus: quote.status, request: quote.request });
     this.assertDesignFee(dto, quote.request.includesPaidDesign);
-    await this.assertFieldPermissions(ctx.companyId, ctx.memberRole, dto);
+    await this.assertFieldPermissions(ctx.companyId, ctx.memberRole, dto, this.latestVersion(quote.versions));
     if (nonExtraCount(quote.versions) >= MAX_QUOTE_VERSIONS) throw this.versionLimitReached();
     const validityDays = await this.resolveValidityDays(dto.validityDays);
     const validUntil = new Date(Date.now() + validityDays * DAY_MS);
@@ -469,14 +541,22 @@ export class QuotesService {
 
     const { result: versionId, dto: out } = await this.lockedQuoteMutation(quote, 'REOFFER', async (tx, s, _req, current) => {
       if (s.non_extra_count >= MAX_QUOTE_VERSIONS) throw this.versionLimitReached();
+      const currency = this.nextCurrency(dto, current);
+      // revizuire m6: variantele fara moneda isi pastreaza moneda veche a ofertei
+      current = await this.freezeLegacyCurrencies(tx, current, currency);
       const version = await tx.quoteVersion.create({
-        data: this.versionData(quote.id, (s.max_version ?? 0) + 1, false, dto, actingUserId, validUntil),
+        data: this.versionData(quote.id, (s.max_version ?? 0) + 1, false, dto, actingUserId, validUntil, currency, pre.vatRate),
       });
       const roomPrices = await this.writeRoomPrices(tx, version.id, dto.roomPrices, roomTypes);
       const attachments = await this.relinkAttachments(tx, dto.attachmentIds, quote.claimSlotId, version.id);
-      const updatedAt = await this.reopenQuote(tx, quote.id);
-      const next = withStatus(withNewVersion(current, version, roomPrices), 'SENT', { updatedAt });
-      return { result: version.id, next, attachments: new Map([[version.id, attachments]]) };
+      const updatedAt = await this.reopenQuote(tx, quote.id, currency);
+      const next = withStatus(withNewVersion(current, version, roomPrices), 'SENT', { updatedAt, currency });
+      return {
+        result: version.id,
+        next,
+        attachments: new Map([[version.id, attachments]]),
+        event: { kind: 'NEW_VERSION', version: version.version },
+      };
     }, pre);
 
     await this.scheduleValidityJob(versionId, validUntil);
@@ -833,6 +913,8 @@ export class QuotesService {
         withStatus(base, 'ACCEPTED', { acceptedAt, updatedAt: acceptedAt, acceptedVersionId: quoteVersionId }),
         attachments,
         pre.rate,
+        undefined,
+        pre.vatRate,
       );
       if (getIdempotentOperation()?.transactional) await saveIdempotentResult(tx, dto);
       return { losers: settledLosers.map((l) => l.slot), deliveryDate: toDateOnly(lockedLatest.deliveryDate), receipt: dto };
@@ -846,6 +928,161 @@ export class QuotesService {
     if (deliveryDate) await this.scheduleDeadlines(quote.requestId, deliveryDate);
 
     return receipt;
+  }
+
+  // ===== CLIENT: refuzul ofertei (a4, PO a4-1 / a4-2, 2026-11-13) =====
+  // Refuz definitiv al unei oferte SENT: oferta → DECLINED (motiv + nota optionale), slotul firmei
+  // OFFER_SENT → OFFER_DECLINED cu creditele rezervate CONSUMATE (ca "clientul a ales alta firma",
+  // pay-to-play), chat read-only, firma exclusa de la o noua preluare a cererii, statusul cererii
+  // recalculat (locul eliberat se poate prelua cat cererea e deschisa; 0 ocupanti → inapoi in piata
+  // cu ceas nou), mesaj de sistem in conversatie, eveniment outbox catre firma (clopotel + e-mail).
+  // Acelasi tipar ca acceptQuote (invarianta 3.1): chitanta idempotenta → FOR UPDATE pe cerere →
+  // starea blocata a ofertei → scrieri conditionate; decontarea DOAR prin ClaimSettlementService
+  // (biletul conditionat pe OFFER_SENT = o singura miscare de credite, oricine ar castiga cursa:
+  // accept, retragere, expirare, SLA, stergerea cererii, alt refuz).
+  async declineQuote(userId: string, quoteId: string, dto: DeclineQuoteInput = {}): Promise<QuoteDto> {
+    const quote = await this.loadQuoteFull(quoteId);
+    this.assertClientOwnsRequest(quote.request.clientUserId, userId);
+    // fast-fail in afara tranzactiei; re-verificat sub lock mai jos
+    if (quote.status !== 'SENT') throw this.notDeclinable();
+    if (this.latestVersion(quote.versions).validUntil.getTime() < Date.now()) throw this.quoteExpired();
+    const reason = dto.reason ?? null;
+    const note = dto.note?.trim() ? dto.note.trim() : null;
+    const pre = await this.preload(quote);
+    const republishExpiresAt = this.calendar.addWorkingDays(new Date(), REPUBLISH_EXPIRY_WORKING_DAYS);
+
+    const { receipt, slaDeadlineAt, claimSlotId, republishedExpiresAt } = await runTx(this.prisma, 'claim', async (tx) => {
+      await lockIdempotentOperation(tx);
+      const req = await lockRequestRow(tx, quote.requestId);
+      if (!req || req.deleted_at !== null) {
+        throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Request not found' });
+      }
+      // cererea acceptata / livrata / expirata → ofertele ei nu mai pot fi refuzate
+      if (!ACCEPTABLE_REQUEST_STATUSES.includes(req.status)) throw this.notDeclinable();
+      const s = await readLockedQuoteState(tx, quote.id);
+      if (!s) throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Quote not found' });
+      if (s.quote_status !== 'SENT' || s.slot_status !== 'OFFER_SENT') throw this.notDeclinable();
+      // revizuire M3: valabilitatea trecuta = oferta expirata, ca la acceptare (409 QUOTE_EXPIRED),
+      // indiferent daca jobul de expirare a rulat — fara decontare
+      if (s.latest_valid_until && s.latest_valid_until.getTime() < Date.now()) throw this.quoteExpired();
+      const declinedAt = new Date();
+      const declined = await tx.quote.updateMany({
+        where: { id: quote.id, status: 'SENT' },
+        data: { status: 'DECLINED', declinedAt, declineReason: reason, declineNote: note },
+      });
+      if (declined.count === 0) throw this.notDeclinable();
+      const settled = await this.settlement.settle(tx, {
+        claimSlotId: s.claim_slot_id,
+        from: ['OFFER_SENT'],
+        to: 'OFFER_DECLINED',
+        outcome: 'CONSUME',
+        reason: 'OFFER_DECLINED',
+        quotes: 'CHAT_READ_ONLY',
+      });
+      // slotul inchis intre timp pe alta cale → rollback (oferta ramane cum era)
+      if (!settled.settled) throw this.notDeclinable();
+      // revizuire m9 / interfata M3: invitatiile la consultanta inca deschise se inchid (EXPIRED,
+      // stare existenta; jobul lor de expirare iese no-op). Cererile de modificare PENDING raman:
+      // enum-ul lor nu are o stare de inchidere potrivita (REJECTED = "firma a refuzat modificarea").
+      await tx.physicalConsultationInvite.updateMany({
+        where: { quoteId: quote.id, status: 'PENDING_CLIENT' },
+        data: { status: 'EXPIRED' },
+      });
+      // refuz definitiv: firma nu mai preia aceeasi cerere (garda de excludere din claim)
+      await tx.requestCompanyExclusion.upsert({
+        where: { requestId_companyId: { requestId: quote.requestId, companyId: s.company_id } },
+        update: {},
+        create: { requestId: quote.requestId, companyId: s.company_id, reason: 'QUOTE_DECLINED' },
+      });
+      const recompute = await recomputeRequestStatusAfterClaimChange(tx, quote.requestId, { republishExpiresAt });
+      // firma nu mai are acces la contactele clientului → nota ajunge la ea mascata
+      const noteForCompany = note ? maskFreeText(note) : null;
+      await insertSystemMessage(tx, this.messageCrypto, {
+        claimSlotId: s.claim_slot_id,
+        senderUserId: userId,
+        kind: 'QUOTE_DECLINED',
+        body: noteForCompany,
+        payload: { quoteId: quote.id, reason },
+      });
+      const members = await tx.companyMember.findMany({ where: { companyId: s.company_id }, select: { userId: true } });
+      await this.outbox.record(tx, `quote.declined:${quote.id}`, 'quote.declined', {
+        quoteId: quote.id,
+        requestId: quote.requestId,
+        companyId: s.company_id,
+        claimSlotId: s.claim_slot_id,
+        reason,
+        note: noteForCompany,
+        consumed: settled.credit === 'CONSUMED',
+      }, members.map((m) => m.userId));
+      await this.outbox.record(tx, `quote.declined:${quote.id}:status`, 'request.status_changed', { requestId: quote.requestId }, []);
+      // chitanta in memorie; snapshot vechi → recitire rara (ca la accept)
+      let base: QuoteFull = quote;
+      let attachments = pre.attachments;
+      if (this.isStale(quote, s)) {
+        base = await this.loadQuoteDtoFull(quote.id, tx);
+        attachments = await this.uploads.listForEntities(QUOTE_ATTACHMENT_ENTITY, base.versions.map((v) => v.id), tx);
+      }
+      const dtoOut = toQuoteDto(
+        withStatus(
+          {
+            ...base,
+            consultationInvites: base.consultationInvites.map((i) =>
+              i.status === 'PENDING_CLIENT' ? { ...i, status: 'EXPIRED' as const } : i,
+            ),
+          },
+          'DECLINED',
+          { updatedAt: declinedAt, declined: { at: declinedAt, reason, note } },
+        ),
+        attachments,
+        pre.rate,
+        undefined,
+        pre.vatRate,
+      );
+      if (getIdempotentOperation()?.transactional) await saveIdempotentResult(tx, dtoOut);
+      return {
+        receipt: dtoOut,
+        slaDeadlineAt: s.sla_deadline_at,
+        claimSlotId: s.claim_slot_id,
+        republishedExpiresAt: recompute.republishedExpiresAt,
+      };
+    });
+
+    // joburile slotului inchis (best-effort; procesoarele ies oricum no-op pe slot inchis)
+    await this.dropClaimJobs([{ id: claimSlotId, status: 'OFFER_SENT', slaDeadlineAt }]);
+    if (republishedExpiresAt) await this.scheduleRepublishExpiry(quote.requestId, republishedExpiresAt);
+    return receipt;
+  }
+
+  // a4: cererea a revenit in piata dupa refuz → jobul de expirare + reminderul (best-effort;
+  // sweep-ul de reconciliere e plasa), ca la inchiderea automata a ofertelor expirate.
+  private async scheduleRepublishExpiry(requestId: string, expiresAt: Date): Promise<void> {
+    await this.expirationQueue
+      .add(
+        'expire',
+        { requestId } satisfies RequestExpirationJob,
+        {
+          delay: Math.max(0, expiresAt.getTime() - Date.now()),
+          jobId: `req-exp-${requestId}-${expiresAt.getTime()}`,
+          removeOnComplete: true,
+          removeOnFail: 1000,
+        },
+      )
+      .catch(() => this.logger.warn(`Expiry scheduling deferred for request ${requestId}`));
+    await scheduleRequestExpiryReminder(this.expirationQueue, this.calendar, requestId, expiresAt).catch(() =>
+      this.logger.warn(`Expiry reminder scheduling deferred for request ${requestId}`),
+    );
+  }
+
+  // acelasi raspuns ca assertQuoteAcceptable (acceptarea) pe valabilitatea trecuta
+  private quoteExpired(): HttpException {
+    return new HttpException({ code: ERROR_CODES.QUOTE_EXPIRED, message: 'Quote expired' }, 409);
+  }
+
+  private notDeclinable(): HttpException {
+    return new HttpException(
+      { code: ERROR_CODES.QUOTE_NOT_DECLINABLE, message: 'Offer cannot be declined in its current state' },
+      409,
+    );
   }
 
   private async scheduleDeadlines(requestId: string, deliveryDate: string): Promise<void> {
@@ -983,7 +1220,7 @@ export class QuotesService {
       open?.status === 'ACCEPTED'
         ? this.prisma.requestProjectCase.findFirst({ where: { claimSlotId }, orderBy: { createdAt: 'desc' } })
         : null,
-      open ? this.getQuoteDto(open.id) : null,
+      open ? this.getQuoteDto(open.id).then(maskDeclineNoteForCompany) : null,
       this.resolveValidityDays(undefined),
     ]);
     // adresa consultatiei poate fi chiar locuinta clientului → ascunsa odata cu contactele
@@ -1137,7 +1374,7 @@ export class QuotesService {
       orderBy: { createdAt: 'desc' },
     });
     const [rawQuoteDto, projectCase, validityExtensionDays] = await Promise.all([
-      latest ? this.getQuoteDto(latest.id) : null,
+      latest ? this.getQuoteDto(latest.id).then(maskDeclineNoteForCompany) : null,
       redacted && latest?.status === 'ACCEPTED'
         ? this.prisma.requestProjectCase.findFirst({ where: { claimSlotId: slot.id }, orderBy: { createdAt: 'desc' } })
         : null,
@@ -1196,7 +1433,7 @@ export class QuotesService {
 
   async getQuoteForCompany(ctx: CompanyContext, quoteId: string): Promise<QuoteDto> {
     await this.loadCompanyQuote(quoteId, ctx.companyId);
-    return this.getQuoteDto(quoteId);
+    return maskDeclineNoteForCompany(await this.getQuoteDto(quoteId));
   }
 
   async getQuoteForClient(userId: string, quoteId: string): Promise<QuoteDto> {
@@ -1226,21 +1463,22 @@ export class QuotesService {
       orderBy: { createdAt: 'desc' },
       include: QUOTE_DTO_INCLUDE,
     });
-    return this.toQuoteDtos(quotes);
+    return (await this.toQuoteDtos(quotes)).map(maskDeclineNoteForCompany);
   }
 
   // E-company-2: o lista = 1 query de oferte + 1 de atasamente (inainte N × (include + presign)).
   private async toQuoteDtos(quotes: QuoteFull[]): Promise<QuoteDto[]> {
     if (quotes.length === 0) return [];
-    const [rate, attachments] = await Promise.all([
+    const [rate, vatRate, attachments] = await Promise.all([
       this.eurRonRate(),
+      this.vatRate(),
       this.uploads.listForEntities(
         QUOTE_ATTACHMENT_ENTITY,
         quotes.flatMap((q) => q.versions.map((v) => v.id)),
       ),
     ]);
     const now = Date.now();
-    return quotes.map((q) => toQuoteDto(q, attachments, rate, now));
+    return quotes.map((q) => toQuoteDto(q, attachments, rate, now, vatRate));
   }
 
   // ===== helpers interne =====
@@ -1280,9 +1518,13 @@ export class QuotesService {
         requestId: s.request_id,
         companyId: s.company_id,
         clientUserId: req.client_user_id,
+        claimSlotId: s.claim_slot_id,
+        extra: outcome.event,
       });
       const merged = outcome.attachments ? new Map([...attachments, ...outcome.attachments]) : attachments;
-      const dto = toQuoteDto(outcome.next, merged, pre.rate);
+      const raw = toQuoteDto(outcome.next, merged, pre.rate, undefined, pre.vatRate);
+      // revizuire M2: chitanta actiunilor firmei (si replay-ul ei) poarta textele clientului mascate
+      const dto = CLIENT_ACTIONS.has(action) ? raw : maskDeclineNoteForCompany(raw);
       if (getIdempotentOperation()?.transactional) await saveIdempotentResult(tx, dto);
       return { result: outcome.result, dto, state: s };
     });
@@ -1335,23 +1577,46 @@ export class QuotesService {
   }
 
   private async preload(quote: QuoteFull): Promise<Preloaded> {
-    const [rate, attachments] = await Promise.all([
+    const [rate, vatRate, attachments] = await Promise.all([
       this.eurRonRate(),
+      this.vatRate(),
       this.uploads.listForEntities(QUOTE_ATTACHMENT_ENTITY, quote.versions.map((v) => v.id)),
     ]);
-    return { rate, attachments };
+    return { rate, vatRate, attachments };
   }
 
   // Redeschide oferta (EXPIRED → SENT) conditionat; bump-uieste si updated_at (santinela
   // de prospetime a snapshot-ului). count 0 = oferta a iesit din SENT/EXPIRED intre timp.
-  private async reopenQuote(tx: Tx, quoteId: string): Promise<Date> {
+  // a4: cu `currency`, quotes.currency urmeaza moneda variantei noi (codul vechi din fereastra
+  // blue/green si cititorii care iau moneda ofertei vad moneda variantei curente).
+  private async reopenQuote(tx: Tx, quoteId: string, currency?: QuoteCurrency): Promise<Date> {
     const updatedAt = new Date();
     const res = await tx.quote.updateMany({
       where: { id: quoteId, status: { in: ['SENT', 'EXPIRED'] } },
-      data: { status: 'SENT', updatedAt },
+      data: { status: 'SENT', updatedAt, ...(currency ? { currency } : {}) },
     });
     if (res.count === 0) throw this.notModifiable();
     return updatedAt;
+  }
+
+  // revizuire m6: o varianta noua care schimba moneda ofertei → variantele aceleiasi oferte fara
+  // moneda (scrise de imaginea veche in fereastra blue/green) primesc INTAI moneda veche a ofertei,
+  // ca sa nu-si schimbe moneda retroactiv cand quotes.currency trece pe moneda noua. Intoarce
+  // snapshot-ul adus la zi (chitanta in memorie).
+  private async freezeLegacyCurrencies(tx: Tx, current: QuoteFull, next: QuoteCurrency): Promise<QuoteFull> {
+    if (next === current.currency || !current.versions.some((v) => v.currency == null)) return current;
+    await tx.quoteVersion.updateMany({
+      where: { quoteId: current.id, currency: null },
+      data: { currency: current.currency },
+    });
+    return { ...current, versions: current.versions.map((v) => (v.currency == null ? { ...v, currency: current.currency } : v)) };
+  }
+
+  // a4: moneda variantei noi = cea aleasa, altfel moneda variantei precedente.
+  private nextCurrency(dto: { currency?: QuoteCurrency }, current: QuoteFull): QuoteCurrency {
+    if (dto.currency) return dto.currency;
+    if (current.versions.length === 0) return current.currency;
+    return versionCurrency(this.latestVersion(current.versions), current.currency);
   }
 
   // Tranzitie inainte a statusului cererii, din statusul citit sub lock (fara recitire);
@@ -1511,11 +1776,31 @@ export class QuotesService {
     }
   }
 
-  private assertDesignFee(dto: OfferFieldsDto | CreateQuoteInput, includesPaidDesign: boolean): void {
-    if (dto.designFee != null && !includesPaidDesign) {
+  // D-v6-11 + g0-11 (PO 2026-11-13): la cererile cu proiectare cu plata, pretul proiectarii SI
+  // "ce include" sunt obligatorii in oferta (pretul mobilierului ramane, ca estimare); la celelalte
+  // cereri ambele sunt interzise (ca pana acum pentru designFee).
+  private assertDesignFee(
+    dto: Pick<OfferFieldsDto, 'designFee' | 'designIncludes'> | CreateQuoteInput,
+    includesPaidDesign: boolean,
+  ): void {
+    const hasFee = dto.designFee != null;
+    const hasIncludes = typeof dto.designIncludes === 'string' && dto.designIncludes.trim().length > 0;
+    if (!includesPaidDesign) {
+      if (hasFee || hasIncludes) {
+        throw new BadRequestException({
+          code: ERROR_CODES.VALIDATION_ERROR,
+          message: 'Design fee not allowed for this request',
+          details: { fields: [...(hasFee ? ['designFee'] : []), ...(hasIncludes ? ['designIncludes'] : [])] },
+        });
+      }
+      return;
+    }
+    const missing = [...(hasFee ? [] : ['designFee']), ...(hasIncludes ? [] : ['designIncludes'])];
+    if (missing.length > 0) {
       throw new BadRequestException({
         code: ERROR_CODES.VALIDATION_ERROR,
-        message: 'Design fee not allowed for this request',
+        message: 'Design fee and what it includes are required for this request',
+        details: { fields: missing },
       });
     }
   }
@@ -1525,12 +1810,14 @@ export class QuotesService {
     companyId: string,
     role: CompanyMemberRole,
     dto: OfferFieldsDto,
+    // revizuire (interfata M1): varianta precedenta — o valoare retrimisa neschimbata nu e editare
+    previous?: PreviousOfferFields,
   ): Promise<void> {
     const perms = await this.prisma.companyOfferFieldPermission.findMany({
       where: { companyId, role },
     });
     const allowed = new Set(perms.filter((p) => p.canEdit).map((p) => p.fieldKey));
-    const touched = touchedFieldKeys(dto);
+    const touched = touchedFieldKeys(dto, previous);
     const denied = touched.filter((k) => !allowed.has(k));
     if (denied.length > 0) {
       throw new ForbiddenException({
@@ -1620,16 +1907,34 @@ export class QuotesService {
     dto: OfferFieldsDto,
     actingUserId: string,
     validUntil: Date,
+    currency: QuoteCurrency,
+    vatRatePercent: number,
   ): Prisma.QuoteVersionUncheckedCreateInput {
+    // a3: rubricile structurate sunt sursa; textul vechi (delivery_term / warranty) se scrie din
+    // ele, ca variantele noi sa ramana lizibile pentru codul vechi, PDF si e-mailuri. Fara rubrici
+    // (doar apeluri interne / teste vechi — DTO-ul HTTP le cere) ramane textul primit.
+    const hasTerm = dto.deliveryTermValue != null && dto.deliveryTermUnit != null;
+    const hasWarranty = dto.warrantyMonths != null;
     return {
       quoteId,
       version,
       isExtra,
+      currency,
       price: new Prisma.Decimal(dto.price),
       designFee: dto.designFee != null ? new Prisma.Decimal(dto.designFee) : null,
-      deliveryTerm: dto.deliveryTerm || null,
+      designIncludes: dto.designFee != null && dto.designIncludes?.trim() ? dto.designIncludes.trim() : null,
+      deliveryTerm: hasTerm ? deliveryTermText(dto.deliveryTermValue, dto.deliveryTermUnit) : dto.deliveryTerm || null,
+      deliveryTermValue: hasTerm ? dto.deliveryTermValue : null,
+      deliveryTermUnit: hasTerm ? dto.deliveryTermUnit : null,
       deliveryDate: dto.deliveryDate ? new Date(dto.deliveryDate) : null,
-      warranty: dto.warranty || null,
+      warranty: hasWarranty ? warrantyText(dto.warrantyMonths) : dto.warranty || null,
+      warrantyMonths: hasWarranty ? dto.warrantyMonths : null,
+      vatMode: dto.vatMode ?? null,
+      // revizuire M1: cota de TVA inghetata la trimitere (tabelul / cardul / PDF-ul nu se schimba
+      // daca adminul modifica vat_rate dupa aceea)
+      vatRatePercent: new Prisma.Decimal(vatRatePercent),
+      includesTransport: typeof dto.includesTransport === 'boolean' ? dto.includesTransport : null,
+      includesAssembly: typeof dto.includesAssembly === 'boolean' ? dto.includesAssembly : null,
       description: dto.description,
       validUntil,
       createdByUserId: actingUserId,
@@ -1692,6 +1997,11 @@ export class QuotesService {
 
   private async eurRonRate(): Promise<number> {
     return this.settings.getNumber(SETTING_EUR_RON_RATE, DEFAULT_EUR_RON_RATE);
+  }
+
+  // a3: cota de TVA = aceeasi sursa ca facturile si preturile planurilor (system_settings.vat_rate)
+  private async vatRate(): Promise<number> {
+    return this.settings.getNumber(VAT_RATE_SETTING, VAT_RATE_DEFAULT);
   }
 
   private async scheduleValidityJob(quoteVersionId: string, validUntil: Date): Promise<void> {
@@ -1778,7 +2088,15 @@ export class QuotesService {
   private async recordQuoteEvent(
     db: Tx,
     event: 'quote.created' | 'quote.updated',
-    p: { quoteId: string; requestId: string; companyId: string; clientUserId: string | null },
+    p: {
+      quoteId: string;
+      requestId: string;
+      companyId: string;
+      clientUserId: string | null;
+      // a4: slotul (link-ul firmei din clopotel / e-mail) + ce s-a intamplat (alege e-mailul)
+      claimSlotId?: string;
+      extra?: QuoteEventExtra;
+    },
   ): Promise<void> {
     const targets = await this.quoteTargets(db, p.companyId, p.clientUserId);
     await this.outbox.record(
@@ -1791,6 +2109,8 @@ export class QuotesService {
         companyId: p.companyId,
         // destinatarul emailului "oferta noua" (Q4, idee 5)
         clientUserId: p.clientUserId,
+        ...(p.claimSlotId ? { claimSlotId: p.claimSlotId } : {}),
+        ...(p.extra ?? {}),
       },
       targets,
     );
@@ -1801,10 +2121,11 @@ export class QuotesService {
   // pura (quote-dto.mapper.ts).
   async getQuoteDto(quoteId: string, eurRonRate?: number, db: Tx = this.prisma): Promise<QuoteDto> {
     const quote = await this.loadQuoteDtoFull(quoteId, db);
-    const [rate, attachments] = await Promise.all([
+    const [rate, vatRate, attachments] = await Promise.all([
       eurRonRate ?? this.eurRonRate(),
+      this.vatRate(),
       this.uploads.listForEntities(QUOTE_ATTACHMENT_ENTITY, quote.versions.map((v) => v.id), db),
     ]);
-    return toQuoteDto(quote, attachments, rate);
+    return toQuoteDto(quote, attachments, rate, undefined, vatRate);
   }
 }

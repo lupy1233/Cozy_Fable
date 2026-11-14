@@ -88,6 +88,8 @@ const TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   'quote.expired': Hourglass,
   'quote.expired_closed': Undo2,
   'quote.extension_requested': RefreshCw,
+  // a4 (etapa 4): clientul a refuzat oferta
+  'quote.declined': XCircle,
   // E-admin-platform-44: termene apropiate
   'request.expiry_reminder': Hourglass,
   'claim.assign_warning': UserPlus,
@@ -111,6 +113,8 @@ function titleVariant(type: string, payload: Payload): string | null {
   if (type === 'dispute.decided') return payload?.dismissed === true ? 'DISMISSED' : 'RESOLVED';
   // E-company-13: reminderul de la inceputul gratiei (phase=GRACE); fara phase → eticheta de baza
   if (type === 'sla.expiring_soon') return str(payload, 'phase');
+  // a4: varianta noua (NEW_VERSION) sau cererea de modificare a clientului (CHANGE_REQUESTED)
+  if (type === 'quote.updated') return str(payload, 'kind');
   return null;
 }
 

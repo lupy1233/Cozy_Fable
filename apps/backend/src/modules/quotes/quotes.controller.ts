@@ -29,6 +29,7 @@ import {
   AcceptQuoteDto,
   CreateConsultationInviteDto,
   CreateQuoteDto,
+  DeclineQuoteDto,
   ExtendValidityDto,
   ExtraQuoteVersionDto,
   PresignQuoteAttachmentDto,
@@ -243,6 +244,20 @@ export class ClientQuotesController {
   ) {
     // E-client-1: clientul confirma exact versiunea vazuta (409 QUOTE_VERSION_CHANGED altfel)
     return this.quotes.acceptQuote(user.sub, id, dto.quoteVersionId);
+  }
+
+  // a4 (2026-11-13): refuz definitiv al unei oferte SENT — muta credite si inchide un loc, deci
+  // POST critic cu Idempotency-Key (3.2), ca acceptarea. 409 QUOTE_NOT_DECLINABLE altfel.
+  @Post(':id/decline')
+  @Audit('QUOTE_DECLINED', 'quote')
+  @Idempotent({ transactional: true })
+  @UseInterceptors(IdempotencyInterceptor)
+  decline(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: DeclineQuoteDto,
+  ) {
+    return this.quotes.declineQuote(user.sub, id, dto);
   }
 
   // E-admin-platform-3: clientul cere firmei prelungirea unei oferte EXPIRED (idempotent).

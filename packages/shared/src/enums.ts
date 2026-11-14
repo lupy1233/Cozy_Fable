@@ -21,6 +21,8 @@ export const CLAIM_SLOT_STATUSES = [
   // fara decizie inchisa automat (setari).
   'CANCELLED_PROJECT',
   'CANCELLED_OFFER_EXPIRED',
+  // a4 (2026-11-13): clientul a refuzat oferta firmei — loc inchis, credite consumate.
+  'OFFER_DECLINED',
 ] as const;
 export type ClaimSlotStatus = (typeof CLAIM_SLOT_STATUSES)[number];
 
@@ -258,6 +260,8 @@ export const CREDIT_SETTLEMENT_REASONS = [
   'PROJECT_CANCELLED_CONSUME',
   'OFFER_EXPIRED_UNDECIDED_REFUND',
   'OFFER_EXPIRED_UNDECIDED_CONSUME',
+  // a4: clientul a refuzat oferta (CONSUME, ca "clientul a ales alta firma")
+  'OFFER_DECLINED',
 ] as const;
 export type CreditSettlementReason = (typeof CREDIT_SETTLEMENT_REASONS)[number];
 export const CREDIT_REASONS = [
@@ -268,11 +272,24 @@ export const CREDIT_REASONS = [
 export type CreditReason = (typeof CREDIT_REASONS)[number];
 
 // docs/04 §5.2 request_company_exclusions — motiv excludere de la re-claim (4.11).
-export const REQUEST_EXCLUSION_REASONS = ['SLA_BREACH'] as const;
+export const REQUEST_EXCLUSION_REASONS = ['SLA_BREACH', 'QUOTE_DECLINED'] as const;
 
 // Status oferta (Sprint 6; nedefinit verbatim in docs/04, confirmat in sesiune).
 // SUPERSEDED = inlocuita de o versiune mai noua sau de oferta acceptata a altei firme.
-export const QUOTE_STATUSES = ['DRAFT', 'SENT', 'WITHDRAWN', 'EXPIRED', 'ACCEPTED', 'SUPERSEDED'] as const;
+// a4 (2026-11-13): DECLINED = refuzata de client (definitiv; locul firmei se inchide).
+export const QUOTE_STATUSES = ['DRAFT', 'SENT', 'WITHDRAWN', 'EXPIRED', 'ACCEPTED', 'SUPERSEDED', 'DECLINED'] as const;
+
+// a3 (2026-11-13) — rubricile structurate ale unei variante de oferta (verbatim cu Prisma).
+export const QUOTE_VAT_MODES = ['VAT_INCLUDED', 'VAT_EXCLUDED', 'NOT_VAT_PAYER'] as const;
+export type QuoteVatMode = (typeof QUOTE_VAT_MODES)[number];
+export const QUOTE_DELIVERY_TERM_UNITS = ['WEEKS', 'WORKING_DAYS'] as const;
+export type QuoteDeliveryTermUnit = (typeof QUOTE_DELIVERY_TERM_UNITS)[number];
+// a4 (PO a4-2) — motivul optional al refuzului (pret, termen, alta firma, renunt).
+export const QUOTE_DECLINE_REASONS = ['PRICE', 'DELIVERY_TERM', 'OTHER_COMPANY', 'GAVE_UP'] as const;
+export type QuoteDeclineReason = (typeof QUOTE_DECLINE_REASONS)[number];
+// a4 — mesajele de sistem din conversatia client ↔ firma.
+export const MESSAGE_SYSTEM_KINDS = ['QUOTE_CHANGE_REQUESTED', 'QUOTE_DECLINED'] as const;
+export type MessageSystemKind = (typeof MESSAGE_SYSTEM_KINDS)[number];
 
 // Status cerere de modificare a clientului (4.13). FULFILLED = firma a raspuns cu versiune
 // noua; REJECTED = firma a refuzat (nu consuma slot; clientul nu poate cere aceeasi modificare).

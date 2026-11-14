@@ -1,7 +1,7 @@
 'use client';
 
-import { CheckCircle2, Download, Paperclip } from 'lucide-react';
-import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { CheckCircle2, Download, Paperclip, XCircle } from 'lucide-react';
+import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { MAX_VALIDITY_EXTENSIONS, type ClaimFirmActionsDto, type QuoteDto, type QuoteVersionDto } from '@marketplace/shared';
 import { Alert } from '@/components/ui/alert';
@@ -26,7 +26,17 @@ import { useNow } from '@/hooks/use-now';
 import { isFirmRules, useFirmRules } from '@/hooks/use-legal';
 import { ActionConfirmDialog } from './action-confirm-dialog';
 import { AcceptOfferDialog } from './accept-offer-dialog';
-import { displayedVersion, latestVersion } from '@/lib/quote-version';
+import { DeclineOfferDialog } from './decline-offer-dialog';
+import { useQuoteDate as useLongDate, useQuoteMoney, useVersionTerms } from './use-quote-terms';
+import {
+  answeredBy,
+  changeClosedByOffer,
+  displayedVersion,
+  isOpenQuote,
+  latestVersion,
+  versionChangeRequests,
+  versionChanges,
+} from '@/lib/quote-version';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
@@ -35,16 +45,6 @@ const PAD = 'px-5 sm:px-6';
 const DAY_MS = 86_400_000;
 // sub acest prag valabilitatea e semnalata cu chihlimbar (la fel ca in tabelul de comparatie)
 const EXPIRING_SOON_DAYS = 3;
-
-const fmt = (n: number) => new Intl.NumberFormat('ro-RO', { minimumFractionDigits: 2 }).format(n);
-// data calendaristica (YYYY-MM-DD) fara deplasare de fus orar; ISO complet ramane ca atare
-const toDate = (iso: string) => new Date(iso.length === 10 ? `${iso}T12:00:00` : iso);
-
-function useLongDate() {
-  const locale = useLocale();
-  return (iso: string) =>
-    toDate(iso).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
-}
 
 export function OfferCard({
   quote,
@@ -77,9 +77,15 @@ export function OfferCard({
   const current = displayedVersion(quote);
   const pdfUrl = mode === 'client' ? `${API}/client/quotes/${quote.id}/pdf` : `${API}/quotes/${quote.id}/pdf`;
   const pendingChange =
-    quote.versions.flatMap((v) => (v.changeRequest && v.changeRequest.status === 'PENDING' ? [v.changeRequest] : []))[0] ??
-    null;
+    quote.versions.flatMap((v) => versionChangeRequests(quote, v).filter((c) => c.status === 'PENDING'))[0] ?? null;
   const Heading = headingLevel;
+  const declined = quote.status === 'DECLINED';
+  // m1: o cerere in asteptare pe o oferta inchisa nu mai e "in asteptare"
+  const open = isOpenQuote(quote);
+  // m11: dialogul de refuz traieste la nivelul cardului — ramane deschis cu eroarea chiar daca
+  // oferta se reimprospateaza; dupa un refuz reusit, focusul ajunge pe anuntul de refuz
+  const [declineOpen, setDeclineOpen] = useState(false);
+  const [focusDeclined, setFocusDeclined] = useState(false);
 
   return (
     <Card padding="none" className="flex flex-col overflow-hidden">
@@ -115,7 +121,7 @@ export function OfferCard({
         />
       )}
 
-      {pendingChange && (
+      {pendingChange && open && (
         <div className={cn('pb-4', PAD)}>
           <Alert tone="amber">
             {t('changeRequested')}: “{pendingChange.requestedText}”
@@ -123,8 +129,29 @@ export function OfferCard({
         </div>
       )}
 
+      {/* a4: toate variantele (v1, v2…) cu diferentele si cererile de modificare */}
+      <VersionHistory quote={quote} includesPaidDesign={includesPaidDesign} shownId={current?.id ?? null} />
+
+      {/* a4: refuzul clientului — la client si la firma (inclusiv pe rezumatul unei preluari inchise) */}
+      {declined && <DeclinedNotice quote={quote} mode={mode} autoFocus={focusDeclined} />}
+
       {mode === 'client' && <ConsultationInvites quote={quote} mode="client" />}
-      {mode === 'client' && <ClientActions quote={quote} shown={current} pendingChange={!!pendingChange} />}
+      {mode === 'client' && (
+        <ClientActions
+          quote={quote}
+          shown={current}
+          pendingChange={!!pendingChange}
+          onDecline={() => setDeclineOpen(true)}
+        />
+      )}
+      {mode === 'client' && (
+        <DeclineOfferDialog
+          quote={quote}
+          open={declineOpen}
+          onOpenChange={setDeclineOpen}
+          onDeclined={() => setFocusDeclined(true)}
+        />
+      )}
       {mode === 'company' && !readOnly && (
         <CompanyActions
           quote={quote}
@@ -148,6 +175,8 @@ function ValidityLine({ quote, v }: { quote: QuoteDto; v: QuoteVersionDto }) {
   if (quote.status === 'ACCEPTED' && quote.acceptedAt) {
     return <span className="font-medium text-sage">{t('acceptedOn', { date: longDate(quote.acceptedAt) })}</span>;
   }
+  // m2: valabilitatea conteaza doar pe ofertele inca deschise (refuzata / retrasa / inlocuita: nimic)
+  if (!isOpenQuote(quote)) return null;
   if (v.isExpired) return <span className="font-medium text-amber">{t('expired')}</span>;
   const soon = Math.floor((Date.parse(v.validUntil) - now) / DAY_MS) <= EXPIRING_SOON_DAYS;
   return (
@@ -170,14 +199,19 @@ function VersionView({
 }) {
   const t = useTranslations('Quotes');
   const tc = useTranslations('Configurator');
-  const longDate = useLongDate();
-  const other = quote.currency === 'RON' ? 'EUR' : 'RON';
-  // conversia informativa in cealalta moneda (D-v6-12)
-  const approx = (ron: number | null, eur: number | null) =>
-    `≈ ${fmt((quote.currency === 'RON' ? eur : ron) ?? 0)} ${other}`;
-  const delivery = [v.deliveryTerm, v.deliveryDate ? t('deliveryBy', { date: longDate(v.deliveryDate) }) : null]
-    .filter(Boolean)
-    .join(' · ');
+  const money = useQuoteMoney();
+  const terms = useVersionTerms();
+  // a4: moneda e a variantei; conversia informativa in cealalta moneda (D-v6-12)
+  const cur = v.currency;
+  const other = cur === 'RON' ? 'EUR' : 'RON';
+  const approx = (ron: number | null, eur: number | null) => {
+    const value = cur === 'RON' ? eur : ron;
+    return value == null ? null : `≈ ${money(value, other)}`;
+  };
+  const delivery = terms.delivery(v);
+  const warranty = terms.warranty(v);
+  const vat = terms.vat(v);
+  const included = terms.included(v);
   const row = 'flex justify-between gap-4 border-b border-background py-2.5';
   const amount = 'text-right font-mono text-ui tabular-nums';
   const approxClass = 'ml-2 whitespace-nowrap font-sans text-xs text-muted-foreground';
@@ -189,52 +223,69 @@ function VersionView({
         {v.roomPrices.map((rp) => (
           <div key={rp.requestRoomId} className={row}>
             <dt className="text-muted-foreground">{tc(`rooms.type.${rp.roomType}`)}</dt>
-            <dd className={amount}>
-              {fmt(rp.price)} {quote.currency}
-            </dd>
+            <dd className={amount}>{money(rp.price, cur)}</dd>
           </div>
         ))}
         {v.designFee != null && (
           <>
+            {/* g0-11: la proiectarea cu plata, pretul mobilierului e o estimare */}
             <div className={row}>
-              <dt className="text-muted-foreground">{t('workSubtotal')}</dt>
+              <dt className="text-muted-foreground">
+                {includesPaidDesign ? t('furnitureEstimate') : t('workSubtotal')}
+              </dt>
               <dd className={amount}>
-                {fmt(v.price)} {quote.currency}
+                {money(v.price, cur)}
                 <span className={approxClass}>{approx(v.priceRon, v.priceEur)}</span>
               </dd>
             </div>
             <div className={row}>
               <dt className="text-muted-foreground">{t('builder.designFee')}</dt>
               <dd className={amount}>
-                {fmt(v.designFee)} {quote.currency}
+                {money(v.designFee, cur)}
                 <span className={approxClass}>{approx(v.designFeeRon, v.designFeeEur)}</span>
               </dd>
             </div>
+            {v.designIncludes && (
+              <div className="flex flex-col gap-1 border-b border-background py-2.5">
+                <dt className="text-muted-foreground">{t('builder.design.includes')}</dt>
+                <dd className="whitespace-pre-wrap">{v.designIncludes}</dd>
+              </div>
+            )}
           </>
         )}
         {/* E-client-1: totalul ofertei = lucrare + proiectare (docs/03) */}
         <div className="flex justify-between gap-4 border-b border-border py-3">
           <dt className="font-semibold">{t('offerTotal')}</dt>
           <dd className="text-right">
-            <div className="font-mono text-lg font-medium tabular-nums">
-              {fmt(v.total)} {quote.currency}
-            </div>
+            <div className="font-mono text-lg font-medium tabular-nums">{money(v.total, cur)}</div>
             <div className="text-xs text-muted-foreground">
               {approx(v.totalRon, v.totalEur)}
               {includesPaidDesign && v.designFee == null && ` · ${t('noDesignFee')}`}
             </div>
           </dd>
         </div>
+        {vat && (
+          <div className={row}>
+            <dt className="text-muted-foreground">{t('builder.vat.label')}</dt>
+            <dd className="text-right">{vat}</dd>
+          </div>
+        )}
+        {included && (
+          <div className={row}>
+            <dt className="text-muted-foreground">{t('builder.included.label')}</dt>
+            <dd className="text-right">{included}</dd>
+          </div>
+        )}
         {delivery && (
           <div className={row}>
             <dt className="text-muted-foreground">{t('builder.deliveryTerm')}</dt>
             <dd className="text-right">{delivery}</dd>
           </div>
         )}
-        {v.warranty && (
+        {warranty && (
           <div className={row}>
             <dt className="text-muted-foreground">{t('builder.warranty')}</dt>
-            <dd className="text-right">{v.warranty}</dd>
+            <dd className="text-right">{warranty}</dd>
           </div>
         )}
         {v.description && (
@@ -244,6 +295,9 @@ function VersionView({
           </div>
         )}
       </dl>
+      {includesPaidDesign && v.designFee != null && (
+        <p className="mt-1 text-xs text-muted-foreground">{t('designEstimateNote')}</p>
+      )}
       {v.attachments.length > 0 && (
         <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
           {v.attachments.map((a) => (
@@ -261,7 +315,7 @@ function VersionView({
           ))}
         </ul>
       )}
-      {showValidity && (
+      {showValidity && (isOpenQuote(quote) || quote.status === 'ACCEPTED') && (
         <p className="mt-3 text-ui">
           <ValidityLine quote={quote} v={v} />
         </p>
@@ -270,15 +324,235 @@ function VersionView({
   );
 }
 
+// a4: istoricul variantelor (v1, v2…) cu ce s-a schimbat de la una la alta si cererile de
+// modificare ale clientului, ramase vizibile si dupa raspuns. Vizibil la client si la firma.
+function VersionHistory({
+  quote,
+  includesPaidDesign,
+  shownId,
+}: {
+  quote: QuoteDto;
+  includesPaidDesign: boolean;
+  shownId: string | null;
+}) {
+  const t = useTranslations('Quotes');
+  const titleId = useId();
+  const versions = [...quote.versions].sort((a, b) => a.version - b.version);
+  const anyChange = versions.some((v) => versionChangeRequests(quote, v).length > 0);
+  if (versions.length < 2 && !anyChange) return null;
+  return (
+    <section aria-labelledby={titleId} className={cn('border-t border-border py-4', PAD)}>
+      <p id={titleId} className="text-sm font-semibold">
+        {t('history.title')}
+      </p>
+      <ol className="mt-2.5 flex flex-col gap-2.5">
+        {versions.map((v, i) => (
+          <VersionEntry
+            key={v.id}
+            v={v}
+            prev={i > 0 ? versions[i - 1] : undefined}
+            versions={versions}
+            quote={quote}
+            includesPaidDesign={includesPaidDesign}
+            shown={v.id === shownId}
+          />
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function VersionEntry({
+  v,
+  prev,
+  versions,
+  quote,
+  includesPaidDesign,
+  shown,
+}: {
+  v: QuoteVersionDto;
+  prev: QuoteVersionDto | undefined;
+  versions: QuoteVersionDto[];
+  quote: QuoteDto;
+  includesPaidDesign: boolean;
+  shown: boolean;
+}) {
+  const t = useTranslations('Quotes');
+  const date = useLongDate();
+  const money = useQuoteMoney();
+  // cererile la care raspunde aceasta varianta (cerute pe o varianta anterioara)
+  const answers = versions
+    .filter((o) => o.version < v.version)
+    .flatMap((o) => versionChangeRequests(quote, o).filter((c) => answeredBy(c, versions) === v.version));
+  const asked = versionChangeRequests(quote, v);
+  return (
+    <li className="flex flex-col gap-1.5 rounded-lg border border-border px-3.5 py-3 text-ui">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+        <span className="font-medium">
+          {t('versionLabel', { n: v.version })}
+          {v.isExtra ? ` · ${t('extraTag')}` : ''}
+          {shown ? <span className="font-normal text-muted-foreground"> · {t('history.shownAbove')}</span> : null}
+        </span>
+        <span className="font-mono tabular-nums">{money(v.total, v.currency)}</span>
+      </div>
+      <p className="text-xs text-muted-foreground">{t('history.sentOn', { date: date(v.sentAt) })}</p>
+      {answers.map((c) => (
+        <p key={c.id} className="text-muted-foreground">
+          {t('history.answersChange')} <span className="text-foreground">“{c.requestedText}”</span>
+        </p>
+      ))}
+      {prev && <VersionDiff prev={prev} v={v} />}
+      {asked.map((c) => {
+        const by = answeredBy(c, versions);
+        const closed = changeClosedByOffer(c, quote);
+        const status = closed
+          ? t('history.changeClosed')
+          : c.status === 'PENDING'
+            ? t('history.changePending')
+            : c.status === 'REJECTED'
+              ? t('history.changeRejected')
+              : by != null
+                ? t('history.changeAnswered', { n: by })
+                : t('history.changeFulfilled');
+        return (
+          <div key={c.id} className="rounded-md bg-surface-2 px-3 py-2">
+            <p>
+              <span className="font-medium">{t('history.changeAsked', { date: date(c.createdAt) })}</span>{' '}
+              “{c.requestedText}”
+            </p>
+            <p className={cn('text-xs', c.status === 'PENDING' && !closed ? 'text-amber' : 'text-muted-foreground')}>
+              {status}
+            </p>
+          </div>
+        );
+      })}
+      {!shown && (
+        <details>
+          <summary className="inline-flex min-h-8 cursor-pointer items-center text-ui text-walnut hover:text-walnut-deep hover:underline">
+            {t('history.showTerms', { n: v.version })}
+          </summary>
+          <div className="-mx-5 sm:-mx-6">
+            <VersionView v={v} quote={quote} includesPaidDesign={includesPaidDesign} showValidity={false} />
+          </div>
+        </details>
+      )}
+    </li>
+  );
+}
+
+// ce s-a schimbat fata de varianta precedenta: total (cu diferenta), termen, garantie, TVA,
+// ce e inclus in pret, proiectare, descriere
+function VersionDiff({ prev, v }: { prev: QuoteVersionDto; v: QuoteVersionDto }) {
+  const t = useTranslations('Quotes');
+  const money = useQuoteMoney();
+  const terms = useVersionTerms();
+  const a = prev;
+  const b = v;
+  const ch = versionChanges(prev, v, terms);
+  const dash = '—';
+  const items: string[] = [];
+  if (ch.total) {
+    if (ch.currency) {
+      items.push(t('history.diff.totalCurrency', { from: money(a.total, a.currency), to: money(b.total, b.currency) }));
+    } else {
+      const delta = Math.round((b.total - a.total) * 100) / 100;
+      items.push(
+        t('history.diff.total', {
+          from: money(a.total, a.currency),
+          to: money(b.total, b.currency),
+          delta: `${delta > 0 ? '+' : '−'}${money(Math.abs(delta), b.currency)}`,
+        }),
+      );
+    }
+  }
+  if (ch.delivery) {
+    items.push(t('history.diff.delivery', { from: terms.delivery(a) || dash, to: terms.delivery(b) || dash }));
+  }
+  if (ch.warranty) {
+    items.push(t('history.diff.warranty', { from: terms.warranty(a) ?? dash, to: terms.warranty(b) ?? dash }));
+  }
+  if (ch.vat) {
+    const label = (s: typeof a) => (s.vatMode ? t(`vatShown.${s.vatMode}`) : dash);
+    items.push(t('history.diff.vat', { from: label(a), to: label(b) }));
+  }
+  if (ch.includes) {
+    items.push(t('history.diff.included', { from: terms.included(a) ?? dash, to: terms.included(b) ?? dash }));
+  }
+  if (ch.design) items.push(t('history.diff.design'));
+  if (ch.description) items.push(t('history.diff.description'));
+  if (items.length === 0) {
+    return <p className="text-muted-foreground">{t('history.diff.none', { n: prev.version })}</p>;
+  }
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground">{t('history.diffTitle', { n: prev.version })}</p>
+      <ul className="mt-0.5 list-disc pl-5">
+        {items.map((text) => (
+          <li key={text}>{text}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// a4: oferta refuzata de client — fara actiuni; firma vede motivul si textul, daca exista
+function DeclinedNotice({
+  quote,
+  mode,
+  autoFocus = false,
+}: {
+  quote: QuoteDto;
+  mode: 'client' | 'company';
+  // m11: dupa un refuz reusit focusul ajunge aici (butonul care a deschis dialogul a disparut)
+  autoFocus?: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (autoFocus) ref.current?.focus();
+  }, [autoFocus]);
+  const t = useTranslations('Quotes');
+  const date = useLongDate();
+  const q = quote;
+  const on = q.declinedAt ? date(q.declinedAt) : null;
+  const who = mode === 'client' ? 'client' : 'company';
+  return (
+    <div
+      ref={ref}
+      tabIndex={-1}
+      role="status"
+      className={cn('flex flex-col gap-1.5 border-t border-border bg-surface-2 py-4 text-sm focus:outline-none', PAD)}
+    >
+      <p className="flex items-center gap-2 font-medium text-crimson">
+        <XCircle className="size-4 shrink-0" aria-hidden />
+        {on ? t(`declined.${who}On`, { date: on }) : t(`declined.${who}`)}
+      </p>
+      {q.declineReason && (
+        <p>
+          <span className="text-muted-foreground">{t('declined.reasonLabel')}</span>{' '}
+          {t(`declineReasons.${q.declineReason}`)}
+        </p>
+      )}
+      {q.declineNote && <p className="whitespace-pre-wrap">“{q.declineNote}”</p>}
+      {mode === 'company' && !q.declineReason && !q.declineNote && (
+        <p className="text-muted-foreground">{t('declined.noReason')}</p>
+      )}
+      <p className="text-muted-foreground">{t(`declined.${who}Next`)}</p>
+    </div>
+  );
+}
+
 function ClientActions({
   quote,
   shown,
   pendingChange,
+  onDecline,
 }: {
   quote: QuoteDto;
   // versiunea afisata pe card (cea acceptata, altfel ultima) — pentru randul de valabilitate
   shown: QuoteVersionDto | undefined;
   pendingChange: boolean;
+  // a4: deschide dialogul de refuz (tinut de card, ca sa supravietuiasca reimprospatarii)
+  onDecline: () => void;
 }) {
   const t = useTranslations('Quotes');
   const change = useRequestChange();
@@ -347,6 +621,9 @@ function ClientActions({
     );
   }
 
+  // a4: refuzata — anuntul (cu data si motivul) e deja pe card, fara actiuni
+  if (quote.status === 'DECLINED') return null;
+
   // retrasa / inlocuita: nimic de facut pe ea
   if (quote.status !== 'SENT') {
     return (
@@ -387,6 +664,15 @@ function ClientActions({
         </div>
       </div>
       {acceptable && <p className="text-ui text-muted-foreground">{t('acceptHint')}</p>}
+
+      {/* a4: refuzul ofertei — dialog cu consecintele si motivul optional */}
+      <button
+        type="button"
+        onClick={onDecline}
+        className="inline-flex min-h-10 items-center self-start rounded-md text-sm font-medium text-crimson hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-crimson/40"
+      >
+        {t('decline.open')}
+      </button>
 
       {/* E-client-1: dialogul reciteste oferta si trimite versiunea confirmata */}
       <AcceptOfferDialog quote={quote} open={confirmOpen} onOpenChange={setConfirmOpen} />
@@ -519,6 +805,8 @@ function CompanyActions({
       </p>
     );
   }
+  // a4: refuzata de client — anuntul cu motivul e deja pe card; nimic de facut
+  if (quote.status === 'DECLINED') return null;
   if (quote.status === 'WITHDRAWN' || quote.status === 'SUPERSEDED') {
     return (
       <p className={cn('border-t border-border py-4 text-sm text-muted-foreground', PAD)}>
@@ -548,7 +836,7 @@ function CompanyActions({
     <div className={cn('flex flex-col gap-3 border-t border-border py-4', PAD)}>
       {/* Raspuns la o cerere de modificare */}
       {pendingChangeId && !quote.versionLimitReached && (
-        <OfferBuilder kind="revise" quoteId={quote.id} changeRequestId={pendingChangeId} includesPaidDesign={includesPaidDesign} rooms={rooms} currency={quote.currency} />
+        <OfferBuilder key={current?.id} kind="revise" quoteId={quote.id} changeRequestId={pendingChangeId} includesPaidDesign={includesPaidDesign} rooms={rooms} currency={quote.currency} previous={current} />
       )}
       {pendingChangeId && (
         <Button
@@ -633,7 +921,7 @@ function CompanyActions({
             </p>
           </ActionConfirmDialog>
           {!quote.versionLimitReached && (
-            <OfferBuilder kind="reoffer" quoteId={quote.id} includesPaidDesign={includesPaidDesign} rooms={rooms} currency={quote.currency} />
+            <OfferBuilder key={current?.id} kind="reoffer" quoteId={quote.id} includesPaidDesign={includesPaidDesign} rooms={rooms} currency={quote.currency} previous={current} />
           )}
         </div>
       )}
@@ -679,7 +967,7 @@ function CompanyActions({
           >
             <p>{t('confirm.endNegBody')}</p>
           </ActionConfirmDialog>
-          {showBlock && <OfferBuilder kind="extra" quoteId={quote.id} includesPaidDesign={includesPaidDesign} rooms={rooms} currency={quote.currency} onDone={() => setShowBlock(false)} />}
+          {showBlock && <OfferBuilder key={current?.id} kind="extra" quoteId={quote.id} includesPaidDesign={includesPaidDesign} rooms={rooms} currency={quote.currency} previous={current} onDone={() => setShowBlock(false)} />}
           <div className="flex flex-col gap-2 rounded-lg border border-border bg-surface p-3.5">
             <p className="text-sm font-medium">{t('consultationTitle')}</p>
             <Input
@@ -783,6 +1071,17 @@ function ConsultationInvites({ quote, mode }: { quote: QuoteDto; mode: 'client' 
   const t = useTranslations('Quotes');
   const respond = useRespondConsultationInvite();
   if (quote.consultationInvites.length === 0) return null;
+  // M3 (revizuire etapa 4): raspunsul la invitatie doar pe oferta inca valabila (SENT, neexpirata);
+  // pe oferta refuzata / retrasa / inlocuita / expirata serverul ar raspunde 409
+  const canRespond = quote.status === 'SENT' && !latestVersion(quote)?.isExpired;
+  const respondError =
+    respond.error instanceof ApiError
+      ? t.has(`apiErrors.${respond.error.code}`)
+        ? t(`apiErrors.${respond.error.code}`)
+        : t('apiErrors.INTERNAL_ERROR')
+      : respond.error
+        ? t('apiErrors.INTERNAL_ERROR')
+        : null;
   return (
     <div className={cn('flex flex-col gap-2 border-t border-border py-4', PAD)}>
       <p className="text-sm font-medium">{t('consultationTitle')}</p>
@@ -793,20 +1092,32 @@ function ConsultationInvites({ quote, mode }: { quote: QuoteDto; mode: 'client' 
           <p className="text-xs text-muted-foreground">
             {new Date(inv.proposedDatetime).toLocaleString()} · {t(`consultationStatus.${inv.status}`)}
           </p>
-          {mode === 'client' && inv.status === 'PENDING_CLIENT' && (
+          {mode === 'client' && canRespond && inv.status === 'PENDING_CLIENT' && (
             <div className="mt-2.5 flex flex-wrap gap-2">
-              <Button type="button" size="lg" onClick={() => respond.mutate({ inviteId: inv.id, accept: true })}>
+              <Button
+                type="button"
+                size="lg"
+                disabled={respond.isPending}
+                onClick={() => respond.mutate({ inviteId: inv.id, accept: true })}
+              >
                 {t('inviteAccept')}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 size="lg"
+                disabled={respond.isPending}
                 onClick={() => respond.mutate({ inviteId: inv.id, accept: false })}
               >
                 {t('inviteDecline')}
               </Button>
             </div>
+          )}
+          {/* M3: eroarea raspunsului apare langa invitatia la care s-a raspuns */}
+          {mode === 'client' && respondError && respond.variables?.inviteId === inv.id && (
+            <p role="alert" className="mt-2 text-sm text-crimson">
+              {respondError}
+            </p>
           )}
         </div>
       ))}

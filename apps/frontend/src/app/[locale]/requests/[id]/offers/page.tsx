@@ -34,11 +34,13 @@ import { OffersComparison, RequestJourney } from '../../../_components/offers-co
 // conversatia cu ea. Mesajele noi se vad in capul coloanei din comparatie si
 // in contorul din tab; acceptarea ramane in cardul ofertei, cu dialog de confirmare.
 
-type ThreadStage = 'DISCUSSION' | 'OFFER_SENT' | 'ACCEPTED' | 'CLOSED';
+type ThreadStage = 'DISCUSSION' | 'OFFER_SENT' | 'ACCEPTED' | 'DECLINED' | 'CLOSED';
 
 function stageFor(thread: ChatThreadDto, quote: QuoteDto | undefined): ThreadStage {
   // E-admin-platform-3: oferta ramane ACCEPTED ca istoric si dupa anularea proiectului
   if (quote?.status === 'ACCEPTED') return thread.claimStatus === 'CANCELLED_PROJECT' ? 'CLOSED' : 'ACCEPTED';
+  // a4: oferta refuzata de client (nu depinde de numele starii locului)
+  if (quote?.status === 'DECLINED') return 'DECLINED';
   // claim retras/anulat/ratat → conversatia e istorie, indiferent de oferta
   if (!['ACTIVE', 'OFFER_SENT', 'COMPLETED'].includes(thread.claimStatus)) return 'CLOSED';
   if (thread.readOnly) return 'CLOSED';
@@ -52,6 +54,7 @@ const STAGE_TONE: Record<ThreadStage, 'info' | 'amber' | 'sage' | 'muted'> = {
   DISCUSSION: 'info',
   OFFER_SENT: 'amber',
   ACCEPTED: 'sage',
+  DECLINED: 'muted',
   CLOSED: 'muted',
 };
 

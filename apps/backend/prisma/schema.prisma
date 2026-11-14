@@ -223,6 +223,8 @@ enum ClaimSlotStatus {
   CANCELLED_PROJECT
   // E-admin-platform-3: oferta expirata fara decizie a clientului, inchisa automat (setari)
   CANCELLED_OFFER_EXPIRED
+  // a4 (2026-11-13, PO a4-1): clientul a refuzat oferta firmei — loc inchis, credite consumate
+  OFFER_DECLINED
 
   @@map("claim_slot_status")
 }
@@ -347,6 +349,8 @@ enum EInvoiceStatus {
 // docs/04 §5.2 request_company_exclusions — motiv excludere re-claim (4.11).
 enum RequestExclusionReason {
   SLA_BREACH
+  // a4: refuzul clientului e definitiv — firma refuzata nu mai preia aceeasi cerere
+  QUOTE_DECLINED
 
   @@map("request_exclusion_reason")
 }
@@ -368,8 +372,45 @@ enum QuoteStatus {
   EXPIRED
   ACCEPTED
   SUPERSEDED
+  // a4 (2026-11-13): refuzata de client (definitiv; motiv optional in quotes.decline_*)
+  DECLINED
 
   @@map("quote_status")
+}
+
+// a3 (2026-11-13, PO a3-1) — rubrica de TVA a unei versiuni de oferta.
+enum QuoteVatMode {
+  VAT_INCLUDED
+  VAT_EXCLUDED
+  NOT_VAT_PAYER
+
+  @@map("quote_vat_mode")
+}
+
+// a3 (PO a3-2) — unitatea termenului de livrare structurat.
+enum QuoteDeliveryTermUnit {
+  WEEKS
+  WORKING_DAYS
+
+  @@map("quote_delivery_term_unit")
+}
+
+// a4 (PO a4-2) — motivul optional al refuzului ofertei de catre client.
+enum QuoteDeclineReason {
+  PRICE
+  DELIVERY_TERM
+  OTHER_COMPANY
+  GAVE_UP
+
+  @@map("quote_decline_reason")
+}
+
+// a4 — mesaj de sistem in conversatia client ↔ firma (cerere de modificare, refuz).
+enum MessageSystemKind {
+  QUOTE_CHANGE_REQUESTED
+  QUOTE_DECLINED
+
+  @@map("message_system_kind")
 }
 
 // Status cerere de modificare client (4.13). FULFILLED = firma a raspuns cu versiune noua;
@@ -1167,6 +1208,10 @@ model Quote {
   // E-client-1: versiunea confirmata de client la accept (docs/04); NULL pe accepturile
   // dinainte de migrare → cititorii cad pe ultima versiune
   acceptedVersionId  String?       @unique @map("accepted_version_id")
+  // a4: refuzul clientului (status DECLINED); motivul si nota le vede firma
+  declinedAt         DateTime?           @map("declined_at") @db.Timestamptz()
+  declineReason      QuoteDeclineReason? @map("decline_reason")
+  declineNote        String?             @map("decline_note")
   createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
 
@@ -1203,11 +1248,28 @@ model QuoteVersion {
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   // E-admin-platform-3: clientul a cerut prelungirea unei oferte EXPIRED (o singura data per versiune)
   extensionRequestedAt DateTime? @map("extension_requested_at") @db.Timestamptz()
+  // a4: moneda VARIANTEI (backfill din quotes.currency; NULL doar pe variantele scrise de codul
+  // vechi in fereastra blue/green → cititorii cad pe quotes.currency)
+  currency          QuoteCurrency?
+  // a3: rubrici structurate, obligatorii la variantele noi (NULL pe cele vechi, imuabile)
+  vatMode           QuoteVatMode?          @map("vat_mode")
+  // a3 (revizuire M1): cota de TVA inghetata la trimiterea variantei; NULL pe variantele vechi
+  // (cititorii cad pe system_settings.vat_rate)
+  vatRatePercent    Decimal?               @map("vat_rate_percent") @db.Decimal(5, 2)
+  deliveryTermValue Int?                   @map("delivery_term_value")
+  deliveryTermUnit  QuoteDeliveryTermUnit? @map("delivery_term_unit")
+  warrantyMonths    Int?                   @map("warranty_months")
+  includesTransport Boolean?               @map("includes_transport")
+  includesAssembly  Boolean?               @map("includes_assembly")
+  // g0-11: "ce include proiectarea" (obligatoriu odata cu design_fee)
+  designIncludes    String?                @map("design_includes")
 
   quote              Quote                    @relation("QuoteVersions", fields: [quoteId], references: [id], onDelete: Cascade)
   // E-client-1: oferta care a acceptat aceasta versiune (docs/04)
   acceptedByQuote    Quote?                   @relation("QuoteAcceptedVersion")
-  changeRequests     QuoteChangeRequest[]
+  changeRequests     QuoteChangeRequest[]     @relation("ChangeRequestedOnVersion")
+  // a4: cererile de modificare la care aceasta versiune a raspuns
+  answeredChanges    QuoteChangeRequest[]     @relation("ChangeAnsweredByVersion")
   validityExtensions QuoteValidityExtension[]
   roomPrices         QuoteVersionRoomPrice[]
 
@@ -1243,8 +1305,11 @@ model QuoteChangeRequest {
   status         QuoteChangeRequestStatus @default(PENDING)
   respondedAt    DateTime?                @map("responded_at") @db.Timestamptz()
   createdAt      DateTime                 @default(now()) @map("created_at") @db.Timestamptz()
+  // a4: versiunea care a raspuns cererii (FULFILLED); NULL pe randurile vechi → dedusa la citire
+  answeredByVersionId String?           @map("answered_by_version_id")
 
-  quoteVersion QuoteVersion @relation(fields: [quoteVersionId], references: [id], onDelete: Cascade)
+  quoteVersion      QuoteVersion  @relation("ChangeRequestedOnVersion", fields: [quoteVersionId], references: [id], onDelete: Cascade)
+  answeredByVersion QuoteVersion? @relation("ChangeAnsweredByVersion", fields: [answeredByVersionId], references: [id], onDelete: SetNull)
 
   // index partial unic quote_change_requests_one_pending_per_version traieste DOAR in SQL (20260929213000)
   @@index([quoteVersionId])
@@ -1297,6 +1362,9 @@ model Message {
   senderUserId String   @map("sender_user_id")
   body         String?
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  // a4: mesaj de sistem (scris de server in numele actorului); payload doar cu id-uri/coduri
+  systemKind    MessageSystemKind? @map("system_kind")
+  systemPayload Json?              @map("system_payload")
 
   chatThread ChatThread @relation(fields: [chatThreadId], references: [id], onDelete: Cascade)
 

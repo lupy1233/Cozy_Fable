@@ -6,6 +6,7 @@ import type { QuoteDto, QuoteVersionDto } from '@marketplace/shared';
 import { ApiError } from '@/lib/api';
 import { useAcceptQuote, useClientQuote } from '@/hooks/use-quotes';
 import { latestVersion } from '@/lib/quote-version';
+import { useQuoteDate, useQuoteMoney, useVersionTerms } from './use-quote-terms';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,34 +23,30 @@ import {
 // pretul, proiectarea, totalul, livrarea si valabilitatea — citite PROASPAT la deschidere.
 // Serverul reverifica versiunea sub lock (409 QUOTE_VERSION_CHANGED).
 
-const fmt = (n: number) => new Intl.NumberFormat('ro-RO', { minimumFractionDigits: 2 }).format(n);
-
-export function AcceptSummary({ quote, version: v }: { quote: QuoteDto; version: QuoteVersionDto }) {
+export function AcceptSummary({ version: v }: { quote: QuoteDto; version: QuoteVersionDto }) {
   const t = useTranslations('Quotes');
-  const other = quote.currency === 'RON' ? 'EUR' : 'RON';
+  const money = useQuoteMoney();
+  const date = useQuoteDate();
+  const terms = useVersionTerms();
+  // a4: moneda e a variantei confirmate
+  const cur = v.currency;
+  const other = cur === 'RON' ? 'EUR' : 'RON';
   const alt = (ron: number | null, eur: number | null) => {
-    const value = quote.currency === 'RON' ? eur : ron;
+    const value = cur === 'RON' ? eur : ron;
     return value == null ? null : (
-      <span className="ml-2 font-sans text-xs font-normal text-muted-foreground">
-        ≈ {fmt(value)} {other}
-      </span>
+      <span className="ml-2 font-sans text-xs font-normal text-muted-foreground">≈ {money(value, other)}</span>
     );
   };
-  // data calendaristica (YYYY-MM-DD) afisata fara deplasare de fus orar
-  const delivery = [
-    v.deliveryTerm,
-    v.deliveryDate ? new Date(`${v.deliveryDate}T12:00:00`).toLocaleDateString() : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  const delivery = terms.delivery(v);
 
   const rows: { key: string; label: string; value: ReactNode; strong?: boolean }[] = [
     {
       key: 'price',
-      label: t('acceptConfirmPrice'),
+      // g0-11: proiectarea exista doar la cererile cu proiectare cu plata, unde mobilierul e o estimare
+      label: v.designFee != null ? t('furnitureEstimate') : t('acceptConfirmPrice'),
       value: (
         <>
-          {fmt(v.price)} {quote.currency}
+          {money(v.price, cur)}
           {alt(v.priceRon, v.priceEur)}
         </>
       ),
@@ -61,11 +58,14 @@ export function AcceptSummary({ quote, version: v }: { quote: QuoteDto; version:
       label: t('builder.designFee'),
       value: (
         <>
-          {fmt(v.designFee)} {quote.currency}
+          {money(v.designFee, cur)}
           {alt(v.designFeeRon, v.designFeeEur)}
         </>
       ),
     });
+    if (v.designIncludes) {
+      rows.push({ key: 'designIncludes', label: t('builder.design.includes'), value: v.designIncludes });
+    }
   }
   rows.push({
     key: 'total',
@@ -73,16 +73,23 @@ export function AcceptSummary({ quote, version: v }: { quote: QuoteDto; version:
     strong: true,
     value: (
       <>
-        {fmt(v.total)} {quote.currency}
+        {money(v.total, cur)}
         {alt(v.totalRon, v.totalEur)}
       </>
     ),
   });
+  // a3: aceleasi rubrici ca pe card (TVA, ce e inclus, garantie); variantele vechi nu le au
+  const vat = terms.vat(v);
+  if (vat) rows.push({ key: 'vat', label: t('builder.vat.label'), value: vat });
+  const included = terms.included(v);
+  if (included) rows.push({ key: 'included', label: t('builder.included.label'), value: included });
   rows.push({
     key: 'delivery',
     label: t('acceptConfirmDelivery'),
     value: delivery || <span className="text-muted-foreground">{t('acceptConfirmDeliveryUnset')}</span>,
   });
+  const warranty = terms.warranty(v);
+  if (warranty) rows.push({ key: 'warranty', label: t('builder.warranty'), value: warranty });
 
   return (
     <div className="rounded-lg border border-border bg-surface-2 px-4 py-3 text-sm">
@@ -91,13 +98,17 @@ export function AcceptSummary({ quote, version: v }: { quote: QuoteDto; version:
         {rows.map((r) => (
           <div key={r.key} className="contents">
             <dt className={r.strong ? 'font-semibold' : 'text-muted-foreground'}>{r.label}</dt>
-            <dd className={r.strong ? 'text-right font-mono text-lg font-medium' : 'text-right'}>{r.value}</dd>
+            <dd
+              className={
+                r.strong ? 'text-right font-mono text-lg font-medium' : 'whitespace-pre-wrap break-words text-right'
+              }
+            >
+              {r.value}
+            </dd>
           </div>
         ))}
       </dl>
-      <p className="mt-2.5 text-xs text-muted-foreground">
-        {t('validUntil', { date: new Date(v.validUntil).toLocaleDateString() })}
-      </p>
+      <p className="mt-2.5 text-xs text-muted-foreground">{t('validUntil', { date: date(v.validUntil) })}</p>
     </div>
   );
 }
@@ -182,7 +193,10 @@ export function AcceptOfferDialog({
           )}
 
           <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
-            <p>{t('acceptConfirmVatHint')}</p>
+            {/* a3: indemnul despre TVA ramane doar pe ofertele vechi, fara rubrica de TVA */}
+            <p>
+              {shown?.vatMode ? t('acceptConfirmPaymentHint') : t('acceptConfirmVatHint')}
+            </p>
             <p>{t('acceptConfirmKeepChat', { company: quote.companyName })}</p>
           </div>
           {acceptError && (

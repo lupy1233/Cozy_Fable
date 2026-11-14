@@ -5,7 +5,10 @@ import {
   CONSULTATION_INVITE_STATUSES,
   CURRENCIES,
   QUOTE_CHANGE_REQUEST_STATUSES,
+  QUOTE_DECLINE_REASONS,
+  QUOTE_DELIVERY_TERM_UNITS,
   QUOTE_STATUSES,
+  QUOTE_VAT_MODES,
   REQUEST_STATUSES,
 } from './enums';
 import type {
@@ -21,12 +24,41 @@ import type {
 export const MAX_QUOTE_VERSIONS = 3; // v1 + 2 versiuni declansate de change request
 export const MAX_VALIDITY_EXTENSIONS = 2; // Buton A: max 2 × N zile
 export const MAX_ATTACHMENTS_PER_QUOTE = 5; // invarianta 3.4
+// a3 (2026-11-13): plafoanele rubricilor structurate (validare comuna FE/BE)
+export const MAX_DELIVERY_TERM_VALUE = 520; // 10 ani in saptamani / zile lucratoare
+export const MAX_WARRANTY_MONTHS = 600;
+export const MAX_DESIGN_INCLUDES_LENGTH = 1000;
+export const MAX_QUOTE_DECLINE_NOTE_LENGTH = 500;
+// a3: termenul adus la zile lucratoare (1 saptamana = 5 zile lucratoare)
+export const WORKING_DAYS_PER_WEEK = 5;
 
 // Campurile editabile ale unei oferte = offer field_key (matrice permisiuni 4.13).
+// a3/g0-11 (2026-11-13): TVA, termen (numar + unitate), garantie (luni) si bifele transport /
+// montaj sunt OBLIGATORII la orice varianta noua; deliveryTerm / warranty (text) nu se mai trimit
+// — serverul le completeaza din rubrici. designFee + designIncludes: obligatorii impreuna DOAR la
+// cererile cu proiectare cu plata (verificat in service, care stie cererea), interzise altfel.
 const offerFieldsSchema = z.object({
   price: z.number().positive('priceInvalid').max(100_000_000),
   // design_fee apare doar daca cererea are includes_paid_design (D-v6-11); validat in service.
   designFee: z.number().positive('designFeeInvalid').max(100_000_000).optional(),
+  designIncludes: z.string().trim().min(1, 'designIncludesRequired').max(MAX_DESIGN_INCLUDES_LENGTH).optional(),
+  // a4: moneda VARIANTEI; lipsa = moneda variantei precedente (la v1 = RON)
+  currency: z.enum(CURRENCIES).optional(),
+  vatMode: z.enum(QUOTE_VAT_MODES, { errorMap: () => ({ message: 'vatModeRequired' }) }),
+  deliveryTermValue: z
+    .number({ invalid_type_error: 'deliveryTermRequired', required_error: 'deliveryTermRequired' })
+    .int('deliveryTermInvalid')
+    .min(1, 'deliveryTermInvalid')
+    .max(MAX_DELIVERY_TERM_VALUE, 'deliveryTermInvalid'),
+  deliveryTermUnit: z.enum(QUOTE_DELIVERY_TERM_UNITS, { errorMap: () => ({ message: 'deliveryTermRequired' }) }),
+  warrantyMonths: z
+    .number({ invalid_type_error: 'warrantyRequired', required_error: 'warrantyRequired' })
+    .int('warrantyInvalid')
+    .min(1, 'warrantyInvalid')
+    .max(MAX_WARRANTY_MONTHS, 'warrantyInvalid'),
+  includesTransport: z.boolean({ required_error: 'includesRequired', invalid_type_error: 'includesRequired' }),
+  includesAssembly: z.boolean({ required_error: 'includesRequired', invalid_type_error: 'includesRequired' }),
+  // text liber vechi: ignorat la variantele noi (serverul il scrie din rubrici)
   deliveryTerm: z.string().trim().max(200).optional().or(z.literal('')),
   deliveryDate: z
     .string()
@@ -51,7 +83,6 @@ const offerFieldsSchema = z.object({
 // Trimiterea ofertei initiale (v1) pentru un claim slot. POST /quotes (Idempotency-Key, 3.2).
 export const createQuoteSchema = offerFieldsSchema.extend({
   claimSlotId: z.string().uuid(),
-  currency: z.enum(CURRENCIES).optional(),
   // Firma poate seta explicit valabilitatea; altfel default quote_validity_default_days (14).
   validityDays: z.number().int().positive().max(365).optional(),
   attachmentIds: z.array(z.string().uuid()).max(MAX_ATTACHMENTS_PER_QUOTE).optional(),
@@ -124,6 +155,15 @@ export const acceptQuoteSchema = z.object({
 });
 export type AcceptQuoteInput = z.infer<typeof acceptQuoteSchema>;
 
+// a4 (2026-11-13, PO a4-1/a4-2): clientul refuza definitiv o oferta SENT. POST
+// /client/quotes/:id/decline cu Idempotency-Key; motiv optional din lista scurta + nota libera
+// (firma le vede). Raspuns: QuoteDto adus la zi (aceeasi forma ca la acceptare).
+export const declineQuoteSchema = z.object({
+  reason: z.enum(QUOTE_DECLINE_REASONS).optional(),
+  note: z.string().trim().max(MAX_QUOTE_DECLINE_NOTE_LENGTH, 'declineNoteTooLong').optional().or(z.literal('')),
+});
+export type DeclineQuoteInput = z.infer<typeof declineQuoteSchema>;
+
 // --- DTO-uri raspuns (server → client) ---
 
 export interface QuoteVersionDto {
@@ -142,10 +182,31 @@ export interface QuoteVersionDto {
   total: number;
   totalRon: number;
   totalEur: number;
+  // text: la variantele vechi = ce a scris firma; la cele noi = generat de server din rubrici
+  // ("6 săptămâni", "24 de luni"), ca sa ramana lizibil pentru cod vechi, PDF si e-mailuri
   deliveryTerm: string | null;
   deliveryDate: string | null;
   warranty: string | null;
   description: string | null;
+  // a3 (2026-11-13) — rubrici structurate; null pe variantele trimise inainte de etapa 4
+  vatMode: (typeof QUOTE_VAT_MODES)[number] | null;
+  deliveryTermValue: number | null;
+  deliveryTermUnit: (typeof QUOTE_DELIVERY_TERM_UNITS)[number] | null;
+  warrantyMonths: number | null;
+  includesTransport: boolean | null;
+  includesAssembly: boolean | null;
+  // g0-11: ce include proiectarea (null fara designFee / pe variantele vechi)
+  designIncludes: string | null;
+  // a3 — calculate de server (tabel, card si PDF arata aceleasi cifre):
+  // cota de TVA folosita (system_settings.vat_rate, implicit 21)
+  vatRatePercent: number;
+  // pretul (price) cu TVA, in moneda variantei: = price la VAT_INCLUDED / NOT_VAT_PAYER,
+  // price × (1 + cota) la VAT_EXCLUDED; null cand vatMode lipseste (varianta veche)
+  priceWithVat: number | null;
+  // aceeasi regula aplicata totalului (pret + proiectare); null cand vatMode lipseste
+  totalWithVat: number | null;
+  // termenul adus la zile lucratoare (WEEKS × 5); null pe variantele vechi
+  deliveryWorkingDays: number | null;
   validUntil: string;
   // E-admin-platform-3: doar ofertele SENT/EXPIRED pot fi "expirate" (ACCEPTED nu)
   isExpired: boolean;
@@ -182,6 +243,15 @@ export interface QuoteChangeRequestDto {
   status: (typeof QUOTE_CHANGE_REQUEST_STATUSES)[number];
   createdAt: string;
   respondedAt: string | null;
+}
+
+// a4 (2026-11-13): istoricul cererilor de modificare ramane vizibil dupa raspuns, langa
+// varianta la care s-a cerut si varianta care i-a raspuns.
+export interface QuoteChangeRequestHistoryDto extends QuoteChangeRequestDto {
+  // numarul variantei pe care clientul a cerut modificarea
+  requestedOnVersion: number;
+  // numarul variantei care a raspuns (FULFILLED); null la PENDING / REJECTED
+  answeredByVersion: number | null;
 }
 
 export interface ConsultationInviteDto {
@@ -306,6 +376,7 @@ export interface QuoteDto {
   requestId: string;
   companyId: string;
   companyName: string;
+  // a4: moneda VARIANTEI CURENTE (fiecare varianta isi are moneda ei in versions[].currency)
   currency: (typeof CURRENCIES)[number];
   status: (typeof QUOTE_STATUSES)[number];
   extraVersionsCount: number;
@@ -320,4 +391,10 @@ export interface QuoteDto {
   acceptedAt: string | null;
   // E-client-1: versiunea acceptata (null pana la accept si pe ofertele acceptate inainte de migrare)
   acceptedVersionId: string | null;
+  // a4 (2026-11-13): refuzul clientului (vizibil clientului si firmei); null daca nu e DECLINED
+  declinedAt: string | null;
+  declineReason: (typeof QUOTE_DECLINE_REASONS)[number] | null;
+  declineNote: string | null;
+  // a4: toate cererile de modificare ale ofertei, in ordinea crearii (inclusiv cele cu raspuns)
+  changeRequests: QuoteChangeRequestHistoryDto[];
 }

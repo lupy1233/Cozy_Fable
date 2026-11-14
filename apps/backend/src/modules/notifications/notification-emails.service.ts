@@ -50,7 +50,19 @@ const EMAILED_EVENTS = new Set([
   'payment.transfer_instructions',
   'payment.transfer_reminder',
   'payment.auto_cancelled',
+  // a4 (2026-11-13): varianta noua → clientul; cerere de modificare → firma (vezi recipientsFor);
+  // refuzul ofertei → firma, cu motivul
+  'quote.updated',
+  'quote.declined',
 ]);
+
+// a4: motivele refuzului (PO a4-2), in limba destinatarului
+const DECLINE_REASON_TEXT: Record<string, { ro: string; en: string }> = {
+  PRICE: { ro: 'prețul', en: 'the price' },
+  DELIVERY_TERM: { ro: 'termenul de livrare', en: 'the delivery time' },
+  OTHER_COMPANY: { ro: 'a ales altă firmă', en: 'chose another company' },
+  GAVE_UP: { ro: 'renunță la proiect', en: 'is dropping the project' },
+};
 
 // E-company-24: evenimentele de facturare ajung (clopotel + email) doar la OWNER/MANAGER —
 // filtrul de aici acopera si intentiile outbox scrise inainte de deploy (tinte = toata echipa).
@@ -317,6 +329,20 @@ export class NotificationEmailsService {
         const memberIds = new Set(members.map((m) => m.userId));
         return targets.filter((id) => memberIds.has(id));
       }
+      // a4: quote.updated trimite e-mail DOAR la varianta noua (clientului) si la cererea de
+      // modificare (firmei); restul actualizarilor raman pe clopotel
+      case 'quote.updated': {
+        if (payload.kind === 'NEW_VERSION') return clientUserId ? [clientUserId] : [];
+        if (payload.kind !== 'CHANGE_REQUESTED') return [];
+        const companyId = typeof payload.companyId === 'string' ? payload.companyId : null;
+        if (!companyId) return [];
+        const members = await this.prisma.companyMember.findMany({
+          where: { companyId },
+          select: { userId: true },
+        });
+        const memberIds = new Set(members.map((m) => m.userId));
+        return targets.filter((id) => memberIds.has(id));
+      }
       // inchidere de claim → email doar cand firma pierde bani/puncte
       case 'claim.withdrawn':
         return EMAILED_WITHDRAW_REASONS.has(String(payload.reason ?? '')) ? targets : [];
@@ -368,6 +394,59 @@ export class NotificationEmailsService {
           cta: ro ? 'Vezi oferta' : 'View the offer',
           path: `/${lang}/requests/${requestId}/offers`,
         };
+      // a4 (2026-11-13)
+      case 'quote.updated': {
+        if (payload.kind === 'NEW_VERSION') {
+          const n = Number(payload.version);
+          const label = Number.isFinite(n) && n > 0 ? (ro ? ` (varianta ${n})` : ` (version ${n})`) : '';
+          return {
+            subject: ro
+              ? `Variantă nouă a ofertei — ${requestTitle}`
+              : `New version of an offer — ${requestTitle}`,
+            intro: ro
+              ? `Firma <strong>${companyName}</strong> ți-a trimis o variantă nouă a ofertei${label} pentru „${requestTitle}”. Variantele anterioare rămân vizibile, ca să le poți compara.`
+              : `The company <strong>${companyName}</strong> sent you a new version of its offer${label} for “${requestTitle}”. The earlier versions stay visible so you can compare them.`,
+            cta: ro ? 'Vezi oferta' : 'View the offer',
+            path: `/${lang}/requests/${requestId}/offers`,
+          };
+        }
+        if (payload.kind === 'CHANGE_REQUESTED') {
+          return {
+            subject: ro
+              ? `Clientul cere o modificare a ofertei — ${requestTitle}`
+              : `The client asks for a change to your offer — ${requestTitle}`,
+            intro: ro
+              ? `Clientul a cerut o modificare a ofertei firmei <strong>${companyName}</strong> pentru „${requestTitle}”. Cererea apare și în conversație. Poți trimite o variantă nouă sau poți refuza modificarea din fișa preluării.`
+              : `The client asked for a change to <strong>${companyName}</strong>'s offer for “${requestTitle}”. The request also appears in the conversation. You can send a new version or decline the change from the claim page.`,
+            cta: ro ? 'Deschide preluarea' : 'Open the claim',
+            path: claimsPath,
+          };
+        }
+        return null;
+      }
+      case 'quote.declined': {
+        const reasonKey = String(payload.reason ?? '');
+        const reasonText = DECLINE_REASON_TEXT[reasonKey]?.[lang] ?? '';
+        const note = typeof payload.note === 'string' && payload.note.trim() ? esc(payload.note.trim()) : '';
+        const consumed = payload.consumed !== false;
+        const reasonLine = reasonText
+          ? ro ? ` Motivul indicat: ${esc(reasonText)}.` : ` Reason given: ${esc(reasonText)}.`
+          : '';
+        const noteLine = note ? (ro ? ` Mesajul clientului: „${note}”.` : ` The client's message: “${note}”.`) : '';
+        const creditsLine = consumed
+          ? ro ? ' Creditele rezervate pentru această preluare s-au consumat.' : ' The credits reserved for this claim were consumed.'
+          : '';
+        return {
+          subject: ro
+            ? `Clientul a refuzat oferta — ${requestTitle}`
+            : `The client declined your offer — ${requestTitle}`,
+          intro: ro
+            ? `Clientul a refuzat oferta firmei <strong>${companyName}</strong> pentru „${requestTitle}”, așa că preluarea s-a închis.${reasonLine}${noteLine}${creditsLine}`
+            : `The client declined <strong>${companyName}</strong>'s offer for “${requestTitle}”, so the claim was closed.${reasonLine}${noteLine}${creditsLine}`,
+          cta: ro ? 'Vezi preluarea' : 'View the claim',
+          path: claimsPath,
+        };
+      }
       case 'claim.created':
         return {
           subject: ro

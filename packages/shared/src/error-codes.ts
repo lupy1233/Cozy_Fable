@@ -182,6 +182,9 @@ export const ERROR_CODES = {
   CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION: 'CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION',
   // f2 (2026-11-13) - publicarea unei cereri dintr-un cont care nu e de client (firma / admin) (403)
   REQUEST_PUBLISH_CLIENT_ONLY: 'REQUEST_PUBLISH_CLIENT_ONLY',
+  // a4 (2026-11-13) - refuz pe o oferta care nu mai e SENT (acceptata / retrasa / expirata /
+  // inlocuita / deja refuzata) sau pe o cerere inchisa (409)
+  QUOTE_NOT_DECLINABLE: 'QUOTE_NOT_DECLINABLE',
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];

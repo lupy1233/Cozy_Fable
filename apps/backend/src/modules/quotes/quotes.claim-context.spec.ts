@@ -69,8 +69,14 @@ function quoteDto(status = 'SENT'): Any {
   return {
     id: 'q1',
     status,
-    versions: [{ id: 'v1', version: 1, sentAt: new Date(Date.now() - 2 * HOUR).toISOString() }],
+    versions: [{
+      id: 'v1', version: 1, sentAt: new Date(Date.now() - 2 * HOUR).toISOString(),
+      changeRequest: { id: 'cr1', requestedText: 'mai ieftin, sunati 0722 123 456' },
+    }],
     consultationInvites: [{ id: 'inv1', locationAddress: 'Str. Clientului 1', status: 'PENDING_CLIENT' }],
+    // a4 / revizuire M2: istoricul cererilor de modificare (text liber al clientului)
+    changeRequests: [{ id: 'cr1', requestedText: 'mai ieftin, sunati 0722 123 456', requestedOnVersion: 1, answeredByVersion: null }],
+    declineNote: null,
   };
 }
 
@@ -91,7 +97,7 @@ function build(slot: Any, opts: { settings?: Record<string, string>; quoteStatus
   const uploads: Any = { listForEntity: jest.fn().mockResolvedValue([{ id: 'att1', url: 'https://signed' }]) };
   const calendar: Any = { addWorkingDays: jest.fn((d: Date, n: number) => new Date(d.getTime() + n * 24 * HOUR)) };
   const queue: Any = { add: jest.fn() };
-  const service = new QuotesService(prisma, settings, {} as Any, calendar, uploads, {} as Any, queue, queue, queue, queue, queue);
+  const service = new QuotesService(prisma, settings, {} as Any, calendar, uploads, {} as Any, queue, queue, queue, queue, queue, queue, { encrypt: (s: string | null) => s } as Any);
   jest.spyOn(service, 'getQuoteDto').mockResolvedValue(quoteDto(opts.quoteStatus ?? 'SENT'));
   return { service, prisma, uploads };
 }
@@ -271,5 +277,21 @@ describe('QuotesService.getClaimContext free-text masking (E-admin-platform-45)'
     const { service } = build(makeSlot({ status: 'WITHDRAWN' }, { title: 'Hol 0722123456' }), { quoteStatus: 'WITHDRAWN' });
     const c = await service.getClaimContext(owner, 'u-owner', 'slot-1');
     expect(c.requestTitle).toBe(`Hol ${TOKEN}`);
+  });
+
+  // revizuire M2: firma refuzata (OFFER_DECLINED → REDACTED) nu primeste contactele din cererile
+  // de modificare ale clientului (istoricul si cererea de pe varianta)
+  it('vederea limitata (REDACTED, oferta refuzata) mascheaza textele cererilor de modificare', async () => {
+    const { service } = build(makeSlot({ status: 'OFFER_DECLINED' }), { quoteStatus: 'DECLINED' });
+    const c = await service.getClaimContext(owner, 'u-owner', 'slot-1');
+    expect(c.visibility).toBe('REDACTED');
+    expect(c.quote?.changeRequests[0].requestedText).toBe(`mai ieftin, sunati ${TOKEN}`);
+    expect(c.quote?.versions[0].changeRequest?.requestedText).toBe(`mai ieftin, sunati ${TOKEN}`);
+  });
+
+  it('vederea FULL fara acces la contacte (EMPLOYEE_MANAGED neatribuit) mascheaza si cererile de modificare', async () => {
+    const { service } = build(makeSlot());
+    const c = await service.getClaimContext(managed, 'u-managed', 'slot-1');
+    expect(JSON.stringify(c.quote)).not.toContain('0722 123 456');
   });
 });

@@ -169,10 +169,15 @@ export class CompaniesService {
           _sum: { points: true },
           where: { companyId, scope: 'COMPANY', expiresAt: { gt: now } },
         }),
-        // valoarea ofertelor = pretul ULTIMEI versiuni per quote (SENT/ACCEPTED)
+        // valoarea ofertelor = pretul ULTIMEI versiuni per quote (SENT/ACCEPTED), in lei: etapa 4
+        // (revizuire m8) — moneda e pe varianta, sumele in EUR se convertesc cu eur_ron_rate
+        // (aceeasi setare ca oferta; 5.2 implicit) inainte de adunare
         this.prisma.$queryRaw<{ quotes: number; total: number }[]>`
           SELECT COUNT(DISTINCT q.id)::int AS quotes,
-                 COALESCE(SUM(qv.price), 0)::float AS total
+                 COALESCE(SUM(CASE WHEN COALESCE(qv.currency, q.currency) = 'EUR'
+                   THEN qv.price * COALESCE((SELECT s.value::numeric FROM system_settings s
+                     WHERE s.key = 'eur_ron_rate' AND s.value ~ '^[0-9]+(\\.[0-9]+)?$'), 5.2)
+                   ELSE qv.price END), 0)::float AS total
           FROM quotes q
           JOIN quote_versions qv ON qv.quote_id = q.id
            AND qv.version = (SELECT MAX(v2.version) FROM quote_versions v2 WHERE v2.quote_id = q.id)

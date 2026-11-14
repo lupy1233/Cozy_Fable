@@ -312,7 +312,15 @@ export class ChatService {
   // --- mapping ---
 
   private async mapMessages(
-    messages: { id: string; chatThreadId: string; senderUserId: string; body: string | null; createdAt: Date }[],
+    messages: {
+      id: string;
+      chatThreadId: string;
+      senderUserId: string;
+      body: string | null;
+      createdAt: Date;
+      systemKind?: MessageDto['systemKind'];
+      systemPayload?: unknown;
+    }[],
     viewerUserId: string,
   ): Promise<MessageDto[]> {
     const senderIds = [...new Set(messages.map((m) => m.senderUserId))];
@@ -332,6 +340,9 @@ export class ChatService {
         body: this.crypto.decrypt(m.body),
         attachments: await this.uploads.listForEntity(ATTACHMENT_ENTITY, m.id),
         createdAt: m.createdAt.toISOString(),
+        // a4: mesaj de sistem (cerere de modificare / refuz); null = mesaj obisnuit
+        systemKind: m.systemKind ?? null,
+        systemPayload: (m.systemPayload as Record<string, unknown> | null | undefined) ?? null,
       })),
     );
   }

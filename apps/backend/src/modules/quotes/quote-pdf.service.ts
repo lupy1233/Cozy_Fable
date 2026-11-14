@@ -106,17 +106,36 @@ export class QuotePdfService implements OnModuleDestroy {
   ): string {
     const esc = (s: string | null | undefined) =>
       (s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
-    const altCurrency = dto.currency === 'RON' ? 'EUR' : 'RON';
-    const priceMain = this.money(v.price, dto.currency);
-    const priceAlt = this.money(dto.currency === 'RON' ? v.priceEur : v.priceRon, altCurrency);
-    const designMain = v.designFee != null ? this.money(v.designFee, dto.currency) : null;
+    // a4: moneda e a VARIANTEI din document (o varianta noua poate fi in alta moneda)
+    const currency = v.currency ?? dto.currency;
+    const altCurrency = currency === 'RON' ? 'EUR' : 'RON';
+    const priceMain = this.money(v.price, currency);
+    const priceAlt = this.money(currency === 'RON' ? v.priceEur : v.priceRon, altCurrency);
+    const designMain = v.designFee != null ? this.money(v.designFee, currency) : null;
     const designAlt =
       v.designFee != null
-        ? this.money(dto.currency === 'RON' ? v.designFeeEur : v.designFeeRon, altCurrency)
+        ? this.money(currency === 'RON' ? v.designFeeEur : v.designFeeRon, altCurrency)
         : null;
 
     const designRow = designMain
       ? `<tr><td>Proiectare (design)</td><td class="num">${designMain}<div class="alt">${designAlt}</div></td></tr>`
+      : '';
+    // a3 — aceleasi rubrici ca pe card si in tabelul de comparare; "—" pe variantele vechi
+    const vatLabel =
+      v.vatMode === 'VAT_INCLUDED'
+        ? `Prețul include TVA (${v.vatRatePercent}%)`
+        : v.vatMode === 'VAT_EXCLUDED'
+          ? `Prețul nu include TVA (${v.vatRatePercent}%)`
+          : v.vatMode === 'NOT_VAT_PAYER'
+            ? 'Firma nu este plătitoare de TVA'
+            : '—';
+    const totalWithVatRow =
+      v.totalWithVat != null
+        ? `<tr><td>Total cu TVA</td><td class="num">${this.money(v.totalWithVat, currency)}</td></tr>`
+        : '';
+    const yesNo = (b: boolean | null) => (b == null ? '—' : b ? 'Inclus în preț' : 'Nu este inclus');
+    const designIncludesBox = v.designIncludes
+      ? `<div class="box"><strong>Ce include proiectarea</strong><div style="margin-top:6px; white-space:pre-wrap">${esc(v.designIncludes)}</div></div>`
       : '';
 
     return `<!doctype html>
@@ -160,12 +179,18 @@ export class QuotePdfService implements OnModuleDestroy {
     <table>
       <tr><td>Preț lucrare</td><td class="num">${priceMain}<div class="alt">${priceAlt}</div></td></tr>
       ${designRow}
-      <tr class="total"><td>Total ofertă</td><td class="num">${this.money(v.total, dto.currency)}<div class="alt">${this.money(dto.currency === 'RON' ? v.totalEur : v.totalRon, altCurrency)}</div></td></tr>
+      <tr class="total"><td>Total ofertă</td><td class="num">${this.money(v.total, currency)}<div class="alt">${this.money(currency === 'RON' ? v.totalEur : v.totalRon, altCurrency)}</div></td></tr>
+      <tr><td>TVA</td><td class="num">${esc(vatLabel)}</td></tr>
+      ${totalWithVatRow}
       <tr><td>Termen livrare</td><td class="num">${esc(v.deliveryTerm) || '—'}</td></tr>
       <tr><td>Dată livrare estimată</td><td class="num">${formatDateOnly(v.deliveryDate) || '—'}</td></tr>
       <tr><td>Garanție</td><td class="num">${esc(v.warranty) || '—'}</td></tr>
+      <tr><td>Transport</td><td class="num">${yesNo(v.includesTransport)}</td></tr>
+      <tr><td>Montaj</td><td class="num">${yesNo(v.includesAssembly)}</td></tr>
     </table>
   </div>
+
+  ${designIncludesBox}
 
   <div class="box">
     <strong>Descriere</strong>
@@ -173,7 +198,7 @@ export class QuotePdfService implements OnModuleDestroy {
   </div>
 
   <p class="muted" style="margin-top:18px">
-    Sumă contractuală exprimată în ${dto.currency}. Valoarea în ${altCurrency} este informativă,
+    Sumă contractuală exprimată în ${currency}. Valoarea în ${altCurrency} este informativă,
     calculată la cursul fix configurat. Document generat automat de platforma Cozy Home.
   </p>
 </body></html>`;

@@ -182,3 +182,95 @@ describe('E-client-1 — total oferta + versiunea acceptata', () => {
     expect(toQuoteDto(accepted, NO_ATTACHMENTS, RATE)).toMatchObject({ status: 'ACCEPTED', acceptedVersionId: 'v1' });
   });
 });
+
+// a3 / a4 (2026-11-13) — variante vechi neschimbate, moneda pe varianta, istoricul cererilor
+describe('toQuoteDto — rubrici structurate, moneda variantei, cereri de modificare (a3/a4)', () => {
+  it('varianta veche (fara rubrici): textul liber ramane, rubricile si calculele sunt null', () => {
+    const full = makeQuoteFull();
+    full.versions[0].deliveryTerm = '6 saptamani';
+    full.versions[0].warranty = '2 ani';
+    const v = toQuoteDto(full, NO_ATTACHMENTS, RATE, Date.now(), 21).versions[0];
+    expect(v).toMatchObject({
+      deliveryTerm: '6 saptamani',
+      warranty: '2 ani',
+      vatMode: null,
+      deliveryTermValue: null,
+      deliveryTermUnit: null,
+      warrantyMonths: null,
+      includesTransport: null,
+      includesAssembly: null,
+      designIncludes: null,
+      vatRatePercent: 21,
+      priceWithVat: null,
+      totalWithVat: null,
+      deliveryWorkingDays: null,
+    });
+  });
+
+  it('v1 in RON, v2 in EUR fara TVA: fiecare varianta in moneda ei; oferta = moneda variantei curente', () => {
+    const full = makeQuoteFull({ versions: [{}, {}] });
+    full.versions[0].currency = 'RON';
+    Object.assign(full.versions[1], {
+      currency: 'EUR', price: new Prisma.Decimal(3900), vatMode: 'VAT_EXCLUDED',
+      deliveryTermValue: 6, deliveryTermUnit: 'WEEKS', warrantyMonths: 24, includesTransport: true, includesAssembly: true,
+    });
+    const dto = toQuoteDto(full, NO_ATTACHMENTS, RATE, Date.now(), 21);
+    expect(dto.currency).toBe('EUR');
+    expect(dto.versions[0]).toMatchObject({ currency: 'RON', priceRon: 1000 });
+    expect(dto.versions[1]).toMatchObject({
+      currency: 'EUR', priceEur: 3900, priceRon: 20280, priceWithVat: 4719, deliveryWorkingDays: 30,
+    });
+  });
+
+  it('varianta fara moneda (scrisa de codul vechi) → moneda ofertei', () => {
+    const full = makeQuoteFull();
+    full.currency = 'EUR';
+    full.versions[0].currency = null;
+    expect(toQuoteDto(full, NO_ATTACHMENTS, RATE).versions[0].currency).toBe('EUR');
+  });
+
+  it('changeRequests: toate, in ordine, cu varianta ceruta si varianta care a raspuns', () => {
+    const full = makeQuoteFull({
+      versions: [
+        { changeRequests: [change({ id: 'c1', status: 'FULFILLED', respondedAt: new Date('2026-09-02T00:00:00Z'), answeredByVersionId: 'v2' })] },
+        { changeRequests: [change({ id: 'c2', quoteVersionId: 'v2', status: 'REJECTED', createdAt: new Date('2026-09-03T00:00:00Z') })] },
+        { changeRequests: [] },
+      ],
+    });
+    const dto = toQuoteDto(full, NO_ATTACHMENTS, RATE);
+    expect(dto.changeRequests).toEqual([
+      expect.objectContaining({ id: 'c1', status: 'FULFILLED', requestedOnVersion: 1, answeredByVersion: 2 }),
+      expect.objectContaining({ id: 'c2', status: 'REJECTED', requestedOnVersion: 2, answeredByVersion: null }),
+    ]);
+  });
+
+  it('cerere FULFILLED veche (fara answered_by_version_id) → prima varianta in limita de dupa', () => {
+    const full = makeQuoteFull({
+      versions: [{ changeRequests: [change({ id: 'c1', status: 'FULFILLED', respondedAt: null })] }, {}],
+    });
+    expect(toQuoteDto(full, NO_ATTACHMENTS, RATE).changeRequests[0]).toMatchObject({ requestedOnVersion: 1, answeredByVersion: 2 });
+  });
+
+  it('refuzul: declinedAt / declineReason / declineNote; DECLINED nu e "expirata"', () => {
+    const full = makeQuoteFull({ status: 'DECLINED', versions: [{ validUntil: PAST }] });
+    Object.assign(full, { declinedAt: new Date('2026-09-05T10:00:00Z'), declineReason: 'PRICE', declineNote: 'scump' });
+    const dto = toQuoteDto(full, NO_ATTACHMENTS, RATE);
+    expect(dto).toMatchObject({ status: 'DECLINED', declinedAt: '2026-09-05T10:00:00.000Z', declineReason: 'PRICE', declineNote: 'scump' });
+    expect(dto.versions[0].isExpired).toBe(false);
+  });
+
+  it('oferta fara refuz → campurile de refuz null', () => {
+    expect(toQuoteDto(makeQuoteFull(), NO_ATTACHMENTS, RATE)).toMatchObject({ declinedAt: null, declineReason: null, declineNote: null });
+  });
+});
+
+describe('toQuoteDto — cota de TVA inghetata pe varianta (revizuire M1)', () => {
+  it('varianta cu vat_rate_percent 19 ramane la 19 chiar daca cota curenta e 21; NULL → cota curenta', () => {
+    const full = makeQuoteFull({ versions: [{}, {}] });
+    Object.assign(full.versions[0], { vatMode: 'VAT_EXCLUDED', vatRatePercent: new Prisma.Decimal(19) });
+    Object.assign(full.versions[1], { vatMode: 'VAT_EXCLUDED', vatRatePercent: null });
+    const dto = toQuoteDto(full, NO_ATTACHMENTS, RATE, Date.now(), 21);
+    expect(dto.versions[0]).toMatchObject({ vatRatePercent: 19, priceWithVat: 1190 });
+    expect(dto.versions[1]).toMatchObject({ vatRatePercent: 21, priceWithVat: 1210 });
+  });
+});

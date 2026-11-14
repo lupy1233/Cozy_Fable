@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { AttachmentDto } from './request.schemas';
+import type { MessageSystemKind } from './enums';
 
 // Sprint 6 — chat post-claim (4.14). Thread auto-creat la claim; mesajele vin acum.
 // Upload in chat conform flow-ului presigned din 3.4 (entity_type='MESSAGE', max 5 fisiere).
@@ -24,6 +25,12 @@ export interface MessageDto {
   body: string | null;
   attachments: AttachmentDto[];
   createdAt: string;
+  // a4 (2026-11-13): mesaj de sistem scris de server in numele actorului (lipsa/null = mesaj
+  // obisnuit). QUOTE_CHANGE_REQUESTED: body = textul cererii, payload { quoteId, quoteVersionId,
+  // version, changeRequestId }; QUOTE_DECLINED: body = nota clientului (sau null), payload
+  // { quoteId, reason }.
+  systemKind?: MessageSystemKind | null;
+  systemPayload?: Record<string, unknown> | null;
 }
 
 export interface ChatThreadDto {

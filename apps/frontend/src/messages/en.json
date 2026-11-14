@@ -16,15 +16,8 @@
       "firmA": "Company A",
       "firmB": "Company B",
       "firmC": "Company C",
-      "rowPrice": "Price",
-      "rowTerm": "Lead time",
-      "rowWarranty": "Warranty",
-      "lowest": "lowest",
-      "fastest": "fastest",
-      "weeks": "{n} wks",
-      "months": "{n} months",
       "caption": "Illustrative example. Real offers appear in your account, in the same table.",
-      "field": "Field"
+      "validFor": "{n, plural, =1 {valid for 1 day} other {valid for # days}}"
     },
     "journeyKicker": "How it works",
     "journeyTitle": "The road to your furniture",
@@ -1422,7 +1415,8 @@
       "SLA_EXPIRED": "SLA deadline missed",
       "CANCELLED_REQUEST_ACCEPTED": "Closed — the client chose another company",
       "CANCELLED_PROJECT": "Closed — project cancelled",
-      "CANCELLED_OFFER_EXPIRED": "Closed — offer expired without a decision"
+      "CANCELLED_OFFER_EXPIRED": "Closed — offer expired without a decision",
+      "OFFER_DECLINED": "Closed — the client declined the offer"
     },
     "wallet": {
       "title": "Credit wallet",
@@ -1644,7 +1638,12 @@
     "attach": "Attach a file",
     "readOnly": "This conversation is read-only — no new messages can be sent.",
     "you": "You",
-    "messageTo": "Message to {name}"
+    "messageTo": "Message to {name}",
+    "system": {
+      "changeRequested": "The client asked for a change to the offer",
+      "changeRequestedOn": "The client asked for a change to version {n}",
+      "quoteDeclined": "The client declined the offer"
+    }
   },
   "Messages": {
     "title": "Messages",
@@ -1728,7 +1727,8 @@
       "DISCUSSION": "In discussion",
       "OFFER_SENT": "Offer received",
       "ACCEPTED": "Offer accepted",
-      "CLOSED": "Conversation closed"
+      "CLOSED": "Conversation closed",
+      "DECLINED": "Offer declined"
     },
     "versionLabel": "Version {n}",
     "extraTag": "extra",
@@ -1783,7 +1783,8 @@
       "WITHDRAWN": "Withdrawn",
       "EXPIRED": "Expired",
       "ACCEPTED": "Accepted",
-      "SUPERSEDED": "Superseded"
+      "SUPERSEDED": "Superseded",
+      "DECLINED": "Declined"
     },
     "builder": {
       "createTitle": "Send the offer",
@@ -1806,7 +1807,7 @@
       "versionOf": "Version {n} of at most {max}",
       "submitCreate": "Send offer",
       "createNote": "Once sent, the SLA deadline no longer applies. You can withdraw the offer or reply with a new version if the client asks for a change.",
-      "descriptionHint": "Say what is included: materials, hardware, transport, installation, VAT. The client compares offers on the same lines.",
+      "descriptionHint": "Say what is included: materials, hardware, finishes. The client compares offers on the same lines.",
       "validity": "Offer validity",
       "unitMonths": "months",
       "unitDays": "days",
@@ -1819,13 +1820,52 @@
         "WEEKS": "weeks",
         "WORKING_DAYS": "working days"
       },
-      "termWeeks": "{n, plural, one {# week} other {# weeks}}"
+      "termWeeks": "{n, plural, one {# week} other {# weeks}}",
+      "priceFurnitureEstimate": "Furniture price (estimate)",
+      "prefilledFrom": "We filled in the form from version {n}. Change only what is new.",
+      "currencyOption": {
+        "RON": "lei (RON)",
+        "EUR": "euro (EUR)"
+      },
+      "vat": {
+        "label": "VAT",
+        "VAT_INCLUDED": "The price includes VAT",
+        "VAT_EXCLUDED": "The price excludes VAT",
+        "NOT_VAT_PAYER": "The company is not VAT-registered"
+      },
+      "included": {
+        "label": "Included in the price",
+        "transport": "Transport",
+        "assembly": "Installation",
+        "hint": "Tick only what the price above covers."
+      },
+      "design": {
+        "title": "Design",
+        "note": "The client asked for paid design and compares companies by it. Say what the design costs and what it includes. The furniture price above stays an estimate: you settle it after the design.",
+        "includes": "What the design includes",
+        "includesHint": "For example: on-site measurements, 2D drawings, 3D renders, how many rounds of changes."
+      },
+      "fieldKey": {
+        "PRICE": "Price (VAT, currency, what the price includes, design)"
+      },
+      "currencyChanged": "You changed the currency. Amounts are not converted: enter the price in {currency}.",
+      "currencyName": {
+        "RON": "lei",
+        "EUR": "euro"
+      },
+      "fieldsNotEditable": "You are not allowed to change: {fields}. Leave these fields as they were in the previous version, or ask a colleague who has the right to send this version."
     },
     "validation": {
       "priceInvalid": "The price you entered is not valid.",
       "descriptionRequired": "A description is required.",
       "wholeNumber": "Enter a whole number greater than zero.",
-      "amountInvalid": "The amount you entered is not valid."
+      "amountInvalid": "The amount you entered is not valid.",
+      "vatRequired": "Choose whether the price includes VAT.",
+      "designIncludesRequired": "Say what the design includes.",
+      "sameAmountOtherCurrency": "This is the same amount as in version {n}, but the currency changed. Enter the amount in {currency}.",
+      "priceRange": "Enter an amount greater than zero, at most {max}.",
+      "designFeeRange": "Enter the design price: an amount greater than zero, at most {max}.",
+      "wholeNumberMax": "Enter a whole number from 1 to {max}."
     },
     "apiErrors": {
       "QUOTE_VERSION_LIMIT_REACHED": "You've reached the limit of 3 offer versions.",
@@ -1855,7 +1895,8 @@
       "QUOTE_NOT_MODIFIABLE": "This offer can no longer be changed in its current state.",
       "ASSIGNED_USER_HAS_ACTIVE_CLAIM": "You can't withdraw this offer yet: the assigned member already has another claim without an offer. Send the offer on that claim or assign it to a colleague, then try again.",
       "QUOTE_VERSION_CHANGED": "The company has sent a new version of the offer. Check the new terms below and confirm again.",
-      "QUOTE_WITHDRAW_SLA_ACK_REQUIRED": "The response deadline has passed, so withdrawing the offer closes the claim immediately. Confirm explicitly to continue."
+      "QUOTE_WITHDRAW_SLA_ACK_REQUIRED": "The response deadline has passed, so withdrawing the offer closes the claim immediately. Confirm explicitly to continue.",
+      "QUOTE_NOT_DECLINABLE": "This offer can no longer be declined: it has since been accepted, withdrawn or has expired. Reload the page."
     },
     "acceptedOn": "Accepted on {date}",
     "expiredClientHint": "This offer has expired and can no longer be accepted. You can ask the company to extend it.",
@@ -1901,7 +1942,6 @@
       "title": "Offers, side by side",
       "hint": "The same fields for every company",
       "field": "Field",
-      "total": "Total",
       "term": "Lead time",
       "warranty": "Warranty",
       "status": "Validity",
@@ -1913,7 +1953,26 @@
       "openChat": "View conversation",
       "fastest": "fastest",
       "daysLeft": "{n, plural, =0 {less than a day left} =1 {1 day left} other {# days left}}",
-      "openedBelow": "Open below"
+      "openedBelow": "Open below",
+      "price": "Price",
+      "approx": "≈ {amount}",
+      "vat": "VAT",
+      "vatIncluded": "VAT included",
+      "vatExcluded": "VAT not included",
+      "vatAdded": "{rate}% is added",
+      "vatNotPayer": "company not VAT-registered",
+      "vatUnknown": "the offer doesn't say whether VAT is included",
+      "totalLeiVat": "Total in lei, incl. VAT",
+      "design": "Design",
+      "weeks": "{n, plural, =1 {1 week} other {# weeks}}",
+      "workingDays": "{n, plural, =1 {1 working day} other {# working days}}",
+      "termEquals": "i.e. {days}",
+      "months": "{n, plural, =1 {1 month} other {# months}}",
+      "transport": "Delivery",
+      "assembly": "Assembly",
+      "included": "included in the price",
+      "notIncluded": "not included",
+      "rateNote": "Rate used: 1 EUR = {rate} lei."
     },
     "offersSubtitleFor": "{request} · your request's journey with every company that claimed it.",
     "firmsTabsLabel": "Companies that claimed your request",
@@ -1925,7 +1984,75 @@
     "changeCancel": "Cancel",
     "noDesignFee": "no design fee",
     "deliveryBy": "by {date}",
-    "inactiveNote": "This offer is no longer active, so it can't be accepted."
+    "inactiveNote": "This offer is no longer active, so it can't be accepted.",
+    "vatShown": {
+      "VAT_INCLUDED": "The price includes VAT",
+      "VAT_EXCLUDED": "The price excludes VAT",
+      "NOT_VAT_PAYER": "The company is not VAT-registered",
+      "excludedWithTotal": "Excludes VAT · with VAT ({rate}%): {amount}"
+    },
+    "includedShown": {
+      "transportYes": "Transport included",
+      "transportNo": "Transport not included",
+      "assemblyYes": "Installation included",
+      "assemblyNo": "Installation not included"
+    },
+    "furnitureEstimate": "Furniture (estimate)",
+    "designEstimateNote": "The furniture price is an estimate. It is settled after the design.",
+    "acceptConfirmPaymentHint": "Before you confirm, ask the company in the conversation what the payment terms are.",
+    "history": {
+      "title": "Offer versions",
+      "shownAbove": "the one above",
+      "sentOn": "Sent on {date}",
+      "answersChange": "Reply to the change request:",
+      "changeAsked": "Change requested on {date}:",
+      "changePending": "No reply from the company yet.",
+      "changeAnswered": "The company replied with version {n}.",
+      "changeFulfilled": "The company replied with a new version.",
+      "changeRejected": "The company declined this change.",
+      "showTerms": "See all terms of version {n}",
+      "diffTitle": "Compared with version {n}:",
+      "diff": {
+        "total": "Total: {from} → {to} ({delta})",
+        "totalCurrency": "Total: {from} → {to} (different currency)",
+        "delivery": "Delivery: {from} → {to}",
+        "warranty": "Warranty: {from} → {to}",
+        "vat": "VAT: {from} → {to}",
+        "included": "Included in the price: {from} → {to}",
+        "design": "The design changed.",
+        "description": "The description changed.",
+        "none": "Same terms as version {n}."
+      },
+      "changeClosed": "No reply — the offer was closed."
+    },
+    "declineReasons": {
+      "PRICE": "The price",
+      "DELIVERY_TERM": "The delivery time",
+      "OTHER_COMPANY": "I chose another company",
+      "GAVE_UP": "I'm dropping the project"
+    },
+    "decline": {
+      "open": "Decline the offer",
+      "title": "Decline the offer from {company}?",
+      "body": "Declining is final: you can no longer accept this offer or ask for more changes. {company} will be told, and the conversation with them becomes read-only.",
+      "reasonLabel": "Why are you declining? (optional; the company sees your answer)",
+      "clearReason": "No reason",
+      "noteLabel": "Anything you want to tell the company? (optional)",
+      "noteHint": "{used} of {max} characters",
+      "cancel": "Back",
+      "confirm": "Yes, decline the offer",
+      "pending": "Sending…"
+    },
+    "declined": {
+      "client": "You declined this offer.",
+      "clientOn": "You declined this offer on {date}.",
+      "company": "The client declined the offer.",
+      "companyOn": "The client declined the offer on {date}.",
+      "reasonLabel": "Reason:",
+      "noReason": "The client didn't give a reason.",
+      "clientNext": "The company has been told. The conversation with them is now read-only.",
+      "companyNext": "The offer is closed and can no longer be changed."
+    }
   },
   "Lifecycle": {
     "slaTitle": "SLA & status",
@@ -1957,7 +2084,8 @@
       "COMPLETED": "Completed",
       "CANCELLED_REQUEST_ACCEPTED": "Closed — the client chose another company",
       "CANCELLED_PROJECT": "Closed — project cancelled",
-      "CANCELLED_OFFER_EXPIRED": "Closed — offer expired without a decision"
+      "CANCELLED_OFFER_EXPIRED": "Closed — offer expired without a decision",
+      "OFFER_DECLINED": "Closed — the client declined the offer"
     },
     "reason": {
       "CLIENT_UNRESPONSIVE_48H": "Client unresponsive for 48 hours",
@@ -3511,7 +3639,10 @@
         "accepted": "Offer accepted",
         "expired": "An offer has expired",
         "expired_closed": "An expired offer was closed",
-        "extension_requested": "The client asks to extend the offer"
+        "extension_requested": "The client asks to extend the offer",
+        "updated_NEW_VERSION": "New version of an offer",
+        "updated_CHANGE_REQUESTED": "The client asks for a change to the offer",
+        "declined": "The client declined the offer"
       },
       "message": {
         "created": "New message"
