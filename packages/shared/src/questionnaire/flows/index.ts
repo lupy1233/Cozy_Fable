@@ -91,7 +91,7 @@ import { piecesFlow } from './pieces';
 import { piecesFlowV2 } from './pieces.v2';
 import { catalogFlowRegistry, catalogFlowVersions } from './guided-pieces/catalog-v1';
 import { catalogFlowRegistryV2, catalogFlowVersionsV2 } from './guided-pieces/catalog-v2';
-import { catalogFlowRegistryV3, pieceSofaFlowV3 } from './guided-pieces/catalog-v3';
+import { catalogFlowRegistryV3, catalogFlowVersionsV3, pieceSofaFlowV3 } from './guided-pieces/catalog-v3';
 
 type CatalogRoomType = keyof typeof catalogFlowRegistry;
 // piesele de catalog: v1 (inghetata) + v2 (etapa 6) + v3 (etapa 10, doar canapeaua), pe acelasi tip de camera
@@ -211,30 +211,33 @@ export const FLOW_REGISTRY: Record<RoomType, Record<number, RoomFlow>> = {
 // "decide firma"). Versiunile vechi raman inregistrate: ciornele si cererile publicate isi pastreaza flowVersion.
 // Inainte: KITCHEN/DRESSING/LIVING v3, OFFICE/BEDROOM/BATHROOM/PANTRY/LAUNDRY/BALCONY v2, PIECES/HALLWAY v1,
 // piesele ghidate v3, piesele de catalog v1 (vezi FLOW_VERSIONS_BEFORE_ETAPA6).
+// Etapa 10 (valul 2): comutarea pe formularul v7 (= ETAPA10_FLOW_VERSION; inainte = ETAPA6_FLOW_VERSION).
 export const CURRENT_FLOW_VERSION: Record<RoomType, number> = {
   ...catalogFlowVersions,
   ...catalogFlowVersionsV2,
-  KITCHEN: kitchenFlowV4.version,
-  DRESSING: dressingFlowV4.version,
-  LIVING: livingFlowV4.version,
-  OFFICE: officeFlowV3.version,
-  BEDROOM: bedroomFlowV3.version,
-  BATHROOM: bathroomFlowV3.version,
+  // etapa 10 (valul 2): canapeaua v3
+  ...catalogFlowVersionsV3,
+  KITCHEN: kitchenFlowV5.version,
+  DRESSING: dressingFlowV5.version,
+  LIVING: livingFlowV5.version,
+  OFFICE: officeFlowV4.version,
+  BEDROOM: bedroomFlowV4.version,
+  BATHROOM: bathroomFlowV4.version,
   PIECES: piecesFlowV2.version,
-  HALLWAY: hallwayFlowV2.version,
-  PANTRY: pantryFlowV3.version,
-  LAUNDRY: laundryFlowV3.version,
-  BALCONY: balconyFlowV3.version,
+  HALLWAY: hallwayFlowV3.version,
+  PANTRY: pantryFlowV4.version,
+  LAUNDRY: laundryFlowV4.version,
+  BALCONY: balconyFlowV4.version,
   PIECE_WARDROBE: pieceWardrobeFlowV4.version,
   PIECE_TV_UNIT: pieceTvUnitFlowV4.version,
   PIECE_BOOKCASE: pieceBookcaseFlowV4.version,
   PIECE_DESK: pieceDeskFlowV4.version,
-  PIECE_BED: pieceBedFlowV4.version,
+  PIECE_BED: pieceBedFlowV5.version,
   PIECE_DRESSER: pieceDresserFlowV4.version,
-  PIECE_TABLE: pieceTableFlowV4.version,
+  PIECE_TABLE: pieceTableFlowV5.version,
   PIECE_SHOE_CABINET: pieceShoeCabinetFlowV4.version,
   PIECE_NIGHTSTAND: pieceNightstandFlowV4.version,
-  PIECE_BENCH: pieceBenchFlowV4.version,
+  PIECE_BENCH: pieceBenchFlowV5.version,
 };
 
 // Etapa 6: versiunile care existau INAINTE de etapa 6 (inghetate). Testele de invarianta
