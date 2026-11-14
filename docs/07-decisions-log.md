@@ -2462,6 +2462,414 @@ _Limitare lasata PO dupa revizuire (m1 server): daca adminul schimba `claim_cont
 
 **Impact: **`credit-history.service.ts`; 2 teste noi.
 
+### D-E10-1. Intra doar intrebarile care schimba pretul (2026-11-13, PO c9-1)
+
+**Decizie: **Din cele sase grupe de intrebari lipsa gasite de audit intra doar cele care schimba pretul: bucatarie (fara corpuri suspendate, chiuveta, frigider), dormitor (stofa patului tapitat, interiorul dulapului, marimile saltelei), baie (lavoarul), spalatorie (incarcarea masinii), canapea (extensibila, lada), pat 3D („Alta marime”), masa 3D (extensibila — lungimea deschisa). Agentii nu adauga nimic in plus (D-E10-27).
+
+**Rationale: **Formularul se lungeste cat mai putin; firma primeste exact ce ii schimba oferta.
+
+**Impact: **Versiunile noi din D-E10-7; docs/03 4.1.
+
+### D-E10-2. Intrebarile noi sunt optionale, cu „Nu stiu — vreau recomandarea firmei” (2026-11-13, PO c9-2)
+
+**Decizie: **Fiecare intrebare noua de tip alegere e `optional: true` si are ca ultima optiune valoarea comuna `FIRM_DECIDES` (eticheta comuna `common.finish.firmDecides.label`; exceptie de eticheta doar la hol, D-E10-22). La alegerea multipla (interiorul dulapului) „Nu stiu” e exclusiva. Lipsa raspunsului = nimic in descriere (firma nu primeste nimic inventat); `FIRM_DECIDES` = nota „…: clientul vrea recomandarea firmei” in descrierea piesei.
+
+**Rationale: **Clientul obisnuit nu stie tipul de chiuveta sau de lavoar; o intrebare obligatorie il face sa aleaga la intamplare.
+
+**Impact: **`optionalChoiceStep`, `noteFor`, `FIRM_DECIDES_NOTE_TEXT` (shared `flows/measure-sets.ts`).
+
+### D-E10-3. Costul se schimba doar la „fara corpuri suspendate” si la canapea (2026-11-13, PO c9-3)
+
+**Decizie: **„Fara corpuri suspendate” scade costul (piesa „Corpuri suspendate” nu se mai creeaza, deci dispar punctele ei de material, sistem si adesea de cantitate); canapeaua extensibila creste (`SOFA_SLEEPER:YES`, D-E10-23). Toate celelalte valori noi au randuri de scor cu 0 puncte, pe care adminul le poate regla. Ponderile sunt 0..100, deci nu exista puncte negative.
+
+**Rationale: **Costul se schimba doar unde munca se schimba clar.
+
+**Impact: **45 de randuri in `project_sizing_config` (migrarea `20261115100000_form_v7_scores` + `seed.ts`); docs/03 4.5; testul `score-v7.spec.ts`.
+
+### D-E10-4. Tavanul se cere doar cand exista o piesa inalta (2026-11-13, PO c5-1)
+
+**Decizie: **In camerele cu piese, pe versiunile noi, inaltimea tavanului apare (si e obligatorie) doar daca e bifata o piesa inalta (lista pe camera in D-E10-20). Bucataria si dressingul isi pastreaza tavanul, respectiv inaltimea dulapului, obligatorii.
+
+**Rationale: **Mai putine campuri pentru client; firma primeste tavanul exact unde conteaza.
+
+**Impact: **`ceilingIfTall(selected, tall)` in shared `flows/measure-sets.ts` (regula holului, generalizata). Tavanul nu intra in punctaj, deci costul nu se schimba din cauza lui.
+
+### D-E10-5. Latimea obligatorie, inaltimea optionala la piesele inalte (2026-11-13, PO c5-2)
+
+**Decizie: **Pe fiecare piesa aleasa latimea ramane obligatorie. Inaltimea se cere doar la piesele inalte si e optionala, cu o valoare tipica afisata ca indiciu (D-E10-8). Aceeasi regula peste tot (si la hol, D-E10-20).
+
+**Rationale: **Clientul care nu stie inaltimea o lasa goala si o stabileste cu firma.
+
+**Impact: **`pieceWidthSlot`, `optionalHeightSlot`; docs/03 4.1.
+
+### D-E10-6. La balcon, spalatorie si debara marimea vine din latimea pieselor (2026-11-13, PO c5-3)
+
+**Decizie: **Se cere latimea fiecarei piese (sau zone de rafturi / dulapuri la debara); suma lor da lungimea camerei pentru punctaj. Lungimea peretelui / balconului ramane de completat, doar pentru context (D-E10-21).
+
+**Rationale: **Un raft mic pe un balcon lung nu mai costa cat un balcon mobilat.
+
+**Impact: **`informativeSlot` (fara `countsTowardLinear`); `lengthM` = suma latimilor pieselor in `balcony.v4.ts`, `laundry.v4.ts`, `pantry.v4.ts`, plafonata la perete dupa revizuirea de cod (D-E10-46). Exemple in CHANGELOG (balcon 6 m cu un raft de 1 m: 8 → 4 credite). Cererile vechi nu se recalculeaza.
+
+### D-E10-7. Formularul v7: 14 versiuni noi, comutate printr-o singura constanta (2026-11-14, proiectul etapei; E10-N25, E10-N26)
+
+**Decizie: **Versiuni noi doar unde se schimba ceva: KITCHEN 5, DRESSING 5, LIVING 5, OFFICE 4, BEDROOM 4, BATHROOM 4, PANTRY 4, LAUNDRY 4, BALCONY 4, HALLWAY 3, PIECE_BED 5, PIECE_TABLE 5, PIECE_BENCH 5, PIECE_SOFA 3. Raman neatinse: PIECES v2, cele 7 piese ghidate cu corpuri v4, celelalte 6 piese de catalog v2. Toate versiunile vechi raman in `FLOW_REGISTRY`; cererile publicate si ciornele in curs raman pe versiunea lor (cerere mixta acceptata, ca la D-E6-15). Comutarea = `CURRENT_FLOW_VERSION` din `flows/index.ts`, intr-un commit separat. `ETAPA6_FLOW_VERSION` devine o lista de valori literale (nu mai e calculat ca „versiunea maxima”), iar `FLOW_VERSIONS_BEFORE_ETAPA10` si `ETAPA10_FLOW_VERSION` sunt noi. Instantaneele noi au sufixul `-v7` (`score-v7.json`, `firm-text-v7.json`), filtrul fixture-urilor se numeste `'etapa10'`.
+
+**Rationale: **O optiune noua inseamna alta validare, deci alta versiune; versiunile vechi trebuie sa o refuze. Calculat ca maxim, `ETAPA6_FLOW_VERSION` s-ar fi mutat singur pe versiunile noi si ar fi stricat testele etapei 6.
+
+**Impact: **Instantaneele vechi (`score-invariance.json`, `firm-text.json`, `score-v6.json`, `firm-text-v6.json`) raman byte-identice. docs/04, docs/02 3.6.
+
+### D-E10-8. Slot de dimensiune optional, cu valoare tipica (2026-11-14, c5 pasul 2; E10-N16)
+
+**Decizie: **`DimensionSlot` primeste doua campuri optionale: `optional` (slotul poate ramane gol la publicare) si `typicalM` (valoarea tipica in metri, doar indiciu: nu se salveaza, nu intra in calcul). Golul = cheia lipsa din raspuns (interfata nu scrie 0 sau NaN; `null` doar pentru un text nevalid, care trebuie refuzat — D-E10-48). O valoare data se valideaza pe interval ca azi; slotul obligatoriu gol da tot `validation.dimensionRequired`. Rezumatul pune sloturile optionale goale in `missing` (cu `typicalM`). Valorile tipice: tabelul 5.0 din proiect (de ex. dulap 2,4 m, biblioteca 2,0 m, dulap cu oglinda 0,7 m).
+
+**Rationale: **Formularul nu avea deloc campuri de dimensiune optionale; „inaltime optionala” cerea o mica schimbare in motorul comun.
+
+**Impact: **`types.ts`, `engine.ts`; niciun flux vechi nu pune `optional` / `typicalM`, deci schema si rezumatul lor raman identice (test pe toate versiunile × 4 variante).
+
+### D-E10-9. Campurile 3D noi sunt primite doar de pasii care le declara (2026-11-14, E10-N1)
+
+**Decizie: **Pasul 3D primeste `features` (lista de campuri optionale acceptate: `SOFA_SLEEPER`, `SOFA_STORAGE`, `BED_CUSTOM_SIZE`, `TABLE_OPEN_LENGTH`, `TABLE_CUSTOM_HEIGHT`, `BENCH_CUSTOM_HEIGHT`). Motorul refuza cu `validation.unknownAnswer` o configuratie care foloseste un camp nedeclarat (`piece3dFeaturesUsed`). Interfata arata comenzile noi doar cand pasul le declara. Pe versiunile vechi comportamentul e cel de azi; singura diferenta vizibila: refuzul vine acum cu `validation.unknownAnswer`, nu cu mesajul brut al schemei.
+
+**Rationale: **Fara ea, o ciorna veche deschisa cu interfata noua ar fi salvat „extensibila”, pe care derivarea veche o ignora (firma nu o vedea, costul nu o includea).
+
+**Impact: **shared `piece3d/features.ts`, `engine.ts`; `step-renderer.tsx` → `configurator3d-step.tsx` → `furniture-controls.tsx` / `catalog-controls.tsx` (prop-ul `features`).
+
+### D-E10-10. Ecran de detalii dupa ecranul piesei (2026-11-14, proiectul etapei §4.4)
+
+**Decizie: **`FinishPieceDef.detailSteps` (optional) pune intrebarile de detaliu imediat dupa ecranul piesei, pe ecranul propriu `piece:<VALUE>:details`, vizibile doar cu piesa bifata si independente de intrebarea comuna „Acelasi material…”. Folosit la dulapul din dormitor (interiorul) si la lavoar (tipul + cine il aduce).
+
+**Rationale: **Ecranul piesei are deja pana la 3 intrebari (D-E6-9); detaliile nu mai incap acolo.
+
+**Impact: **`piece-finish.ts` (`pieceDetailsGroup`); fara `detailSteps` pasii sunt identici (instantaneele v6 neschimbate). Contorul „Ecranul N din M” creste cu unu cand ecranul apare. Corectat dupa revizuirea de cod (m7 fluxuri): la baia v4, cu „Acelasi material…” = Da, ecranul comun (`piece:ALL`) vine inaintea ecranului lavoarului, ca clientul sa aleaga intai materialul (`finishStepsCommonFirst` in `bathroom.v4.ts`; aceiasi pasi, doar alta ordine; cu „Nu” ordinea ramane lavoar → detaliile lavoarului → dulap cu oglinda → coloana). `piece-finish.ts` neatins; ordinea generica a etapei 6 ramane.
+
+### D-E10-11. „Vrei corpuri suspendate?” (2026-11-14, E10-N2)
+
+**Decizie: **Intrebare optionala `wallCabinets` pe ecranul formei bucatariei: Cu corpuri suspendate / Fara corpuri suspendate / Nu stiu. Fara raspuns sau „Cu” = ca azi. „Fara” = piesa „Corpuri suspendate” nu se creeaza, dispar si intrebarile ei de material si deschidere (si zona ei de pe ecranul „Fronturi”), iar pe „Corpuri de baza” apare nota „Fără corpuri suspendate”. „Nu stiu” = piesa ramane, cu materialul si deschiderea date si nota „Corpuri suspendate: clientul vrea recomandarea firmei”.
+
+**Rationale: **Varianta mica: lipsa = comportamentul de azi; firma propune la „Nu stiu”.
+
+**Impact: **`kitchen.v5.ts`; un raspuns trimis pentru intrebarile ascunse e refuzat (`validation.unknownAnswer`). Categoria `KITCHEN_WALL_CABINETS`, 0 puncte.
+
+### D-E10-12. Chiuveta = montaj + material, pe ecranul blatului (2026-11-14, E10-N3)
+
+**Decizie: **Doua intrebari optionale: `sinkMounting` (Incastrata in blat / Montata sub blat) si `sinkMaterial` (Inox / Compozit (granit) / Ceramica), pe un ecran nou al blatului (`countertopScreen`), langa blat. Fara „cine o aduce” (nu e in c9-1). Firma vede „Chiuvetă: compozit (granit), montată sub blat”.
+
+**Rationale: **Montajul schimba decupajul blatului, deci sta langa blat.
+
+**Impact: **`kitchen.v5.ts`; categoriile `KITCHEN_SINK_MOUNTING`, `KITCHEN_SINK_MATERIAL`, 0 puncte. Nota la raspunsuri amestecate: D-E10-30.
+
+### D-E10-13. Frigiderul, doar cand e bifat (2026-11-14, E10-N4)
+
+**Decizie: **`fridgeType` (Incorporabil, in corp de mobilier / Independent) apare doar daca „Frigider” e bifat la electrocasnice, pe un ecran nou al electrocasnicelor (`appliancesScreen`). Nota „Frigider: încorporabil” se pune doar cu frigiderul bifat (garda in plus; validarea refuza oricum altfel).
+
+**Rationale: **Intrebarea n-are sens fara frigider.
+
+**Impact: **`kitchen.v5.ts`; categoria `KITCHEN_FRIDGE`, 0 puncte. Bucataria v5 are 7–8 ecrane in loc de 6.
+
+### D-E10-14. Electrocasnicele si aparatele ajung in descrierea pieselor (2026-11-14, E10-N5, pasul 4 al planului)
+
+**Decizie: **Bucatarie: pe „Corpuri de baza”, „Electrocasnice: cuptor, plită, hotă, …” (in ordinea bifelor), apoi frigiderul si chiuveta. Spalatorie: pe „Dulap încastrare electrocasnice”, altfel pe prima piesa, „Aparate: mașină de spălat și uscător suprapuse; Încărcare: frontală”.
+
+**Rationale: **Pana acum raspunsurile apareau doar in rezumat, nu si in piesele trimise firmei.
+
+**Impact: **Doar pe versiunile noi (`kitchen.v5.ts`, `laundry.v4.ts`); textele stau in fisierele fluxurilor, nu in `common.ts`. Versiunile vechi dau textele de azi.
+
+### D-E10-15. Salteaua 120 × 200 si lungimea 190 (2026-11-14, E10-N6)
+
+**Decizie: **`bedSize` primeste optiunea `D_120` („120 × 200 cm”). Intrebarea separata, optionala, `bedLength` (200 / 190 cm / Nu stiu) apare doar la o marime standard (nu la „Dimensiuni custom”). Descrieri: „saltea 120 × 200”, „saltea 140 × 190”, „saltea 140, lungimea o recomandă firma”. Fara puncte: `bedLength` nu emite niciun rand de scor; marimea intra ca azi, prin latimea saltelei. Corectat dupa revizuirea de cod: pe v4 salteaua „Dimensiuni custom” se scrie „saltea 70 × 160 cm (altă mărime)” (in locul englezismului „saltea custom …”, care ramane pe v2 / v3), iar textul de ajutor al ecranului saltelei are o cheie noua pe v4 (`flows.BEDROOM.v4.bedSize.info.body`) care pomeneste 120 × 200 si lungimea de 190 cm.
+
+**Rationale: **Marimile saltelei nu au puncte nici azi.
+
+**Impact: **`bedroom.v4.ts`; niciun rand de scor pentru `bedSize` / `bedLength`; `firm-text-v7.json`.
+
+### D-E10-16. Stofa patului tapitat (2026-11-14, E10-N7)
+
+**Decizie: **`bedFabric` (Tesatura / Bouclé / Catifea / Nu stiu), doar la patul tapitat, pe ecran propriu. Firma vede „Stofă: catifea”.
+
+**Rationale: **Aceleasi trei ca tapiteria din 3D; ecranul saltelei are deja 3 intrebari.
+
+**Impact: **`bedroom.v4.ts`; categoria `BED_FABRIC`, 0 puncte.
+
+### D-E10-17. Interiorul dulapului din dormitor (2026-11-14, E10-N8)
+
+**Decizie: **`wardrobeInterior`, alegere multipla optionala cu aceleasi 6 module ca dressingul (bare de agatat, rafturi, sertare, suport de pantofi, accesorii, iluminare LED) si „Nu stiu” exclusiv, pe ecranul `piece:WARDROBE:details`. Firma vede „Interior dulap: bare de agățat, rafturi, sertare”.
+
+**Rationale: **„Ca la dressing” (planul); aceleasi texte (`interiorModulesText` din `common.ts`, importat, nemodificat).
+
+**Impact: **`bedroom.v4.ts`; categoria `WARDROBE_INTERIOR` (se aduna pe fiecare modul bifat), 0 puncte.
+
+### D-E10-18. Lavoarul (2026-11-14, E10-N9)
+
+**Decizie: **`basinType` (Lavoar pe blat / Lavoar incastrat in blat / Blat cu lavoar integrat) si `basinSupply` (Il aduc eu / Sa-l aduca firma), optionale, pe ecranul `piece:VANITY_UNIT:details`. Firma vede „Lavoar: încastrat în blat, adus de client” (forma corectata dupa revizuire, D-E10-31).
+
+**Rationale: **Firma face blatul si corpul dupa lavoar si trebuie sa stie daca il include in oferta.
+
+**Impact: **`bathroom.v4.ts`; categoriile `BATHROOM_BASIN_TYPE`, `BATHROOM_BASIN_SUPPLY`, 0 puncte. Nota la raspunsuri amestecate: D-E10-31.
+
+### D-E10-19. „Incarcare de sus” lipseste la aparatele suprapuse (2026-11-14, E10-N10)
+
+**Decizie: **`washerLoading` (Incarcare frontala / Incarcare de sus / Nu stiu), pe ecranul nou al aparatelor (`applianceScreen`, langa amplasare); „de sus” e ascunsa la `STACKED` si un raspuns `TOP` acolo e refuzat si curatat.
+
+**Rationale: **Nu se poate pune un uscator peste o masina cu incarcare de sus.
+
+**Impact: **`laundry.v4.ts`; categoria `LAUNDRY_LOADING`, 0 puncte.
+
+### D-E10-20. Piesele inalte pe camera; living-ul si holul (2026-11-14, E10-N11, E10-N12, E10-N13; de confirmat de PO)
+
+**Decizie: **Piesele inalte (tavan + inaltime optionala): living — biblioteca, vitrina; birou — biblioteca, dulap; dormitor — dulap; baie — dulap cu oglinda, coloana; hol — dulap de hol, cuier cu panou; spalatorie — dulapul pentru electrocasnice, dulapurile de depozitare; balcon — dulapul inalt; debara — dulapurile. Living-ul nu mai cere inaltimea comodei TV, a masutei, a rafturilor si a piesei libere (raspunsul PO c5-2 e mai strict decat pasii planului). Holul primeste si el inaltimea optionala („aceeasi regula peste tot”). Candidati de intrebat: ansamblul TV cu dulapuri (living), rafturile de debara.
+
+**Rationale: **Exact lista planului (c5 pasul 3), aplicata pe camerele noi.
+
+**Impact: **Tabelul 5.0 din proiect; fisierele noi ale camerelor; docs/03 4.1.
+
+### D-E10-21. Peretele „pentru context” ramane obligatoriu (2026-11-14, E10-N14)
+
+**Decizie: **La balcon (lungimea si adancimea balconului), spalatorie (peretele) si debara (laturile) campul ramane obligatoriu, dar nu mai da marimea.
+
+**Rationale: **PO c5-3: „un ecran putin mai lung”; firma pastreaza contextul.
+
+**Impact: **`informativeSlot`. La balcon adancimea pastreaza pasul de 5 cm din v3 (D-E10-42).
+
+### D-E10-22. Latimea holului, cu „Nu stiu — o masoara firma” (2026-11-14, E10-N15)
+
+**Decizie: **`hallWidth` (Hol ingust (sub 1,2 m) / Hol generos / Nu stiu — o masoara firma), optionala, pe ecranul pieselor. Valoarea salvata e tot `FIRM_DECIDES`, cu eticheta proprie. Nu intra in descrierea pieselor: firma o vede din rezumatul camerei. Corectat dupa revizuirea de cod (m3 fluxuri): „Nu stiu” are si descriere proprie („Firma măsoară holul când vine la măsurători.”), subtitlul e neutru („Ajută firma să aleagă adâncimea pieselor.”), iar descrierile optiunilor nu mai promit o schimbare in piese (ingust: „Firma ține cont de lățimea holului când propune adâncimea pieselor.”; generos: „Loc suficient pentru piese de adâncime obișnuită.”).
+
+**Rationale: **E o informatie despre camera, nu despre o piesa.
+
+**Impact: **`hallway.v3.ts` (`firmDecidesLabelKey` pe `optionalChoiceStep`); categoria `HALLWAY_WIDTH`, 0 puncte.
+
+### D-E10-23. Punctele canapelei; fotoliul si taburetul fara puncte noi (2026-11-14, d3 partea a doua; E10-N17, E10-N18; de confirmat de PO)
+
+**Decizie: **Canapeaua v3 primeste puncte pe configuratie: locuri 2 / 3 / 4 = 0 / 1 / 2, sezlong (stanga sau dreapta) 1, dreapta 0, extensibila 2, lada 0 (`SOFA_SEATS`, `SOFA_LAYOUT`, `SOFA_SLEEPER`, `SOFA_STORAGE`). Fotoliul si taburetul raman pe v2, fara randuri noi (nu au locuri sau sezlong; marimea lor vine din `ROOM_SIZE`). Revizuirea de cod (M1 fluxuri) a aratat ca o canapea noua porneste cu 3 locuri, deci ORICE canapea noua costa +1 credit fata de azi, fara nicio alegere a clientului (cu sezlong +1, cu extensibila +2). Lasat asa (partea a doua a lui d3 din plan; randurile se pot regla din Admin → Marime proiect fara deploy); daca PO nu confirma, se pune 0 pe `SOFA_SEATS` / `SOFA_LAYOUT` si ramane doar `SOFA_SLEEPER:YES`.
+
+**Rationale: **Pretul preluarii urmeaza marimea piesei (d3-1); extensibila creste costul (c9-3). Ponderile sunt propunerea proiectului, neconfirmate de PO.
+
+**Impact: **`catalog-v3.ts` (`sofaScoreEntriesV3`); singurele randuri cu puncte din migrarea `20261115100000_form_v7_scores`. Exemple: 3 locuri 8 → 9; 4 locuri cu sezlong, extensibila, cu lada 8 → 13.
+
+### D-E10-24. Piesele 3D: „Alta marime”, lungimea deschisa, inaltimi (2026-11-14, E10-N19, E10-N20, E10-N23; de confirmat de PO)
+
+**Decizie: **Campuri noi optionale in configuratia 3D (D-E10-9): pat `bed.customSize { widthM 0,7–2,2; lengthM 1,6–2,4 }` (a cincea alegere „Alta marime”, porneste de la 120 × 200; o marime standard o sterge; gabaritul = saltea + 2 × sina + 4 cm pe latime, lungime + 20 cm pe adancime); masa `table.openLengthM` doar la masa extensibila (`table.shape = 'EXTENDABLE'`, ca in etapa 9 — nu exista un camp separat „extensibila”), intre latime + 0,3 m si min(latime + 1,2 m; 4 m), stearsa cand masa nu mai e extensibila; masa `table.customHeightM` pe tip (dining 0,70–0,80, cafea 0,30–0,55, consola 0,70–0,90 m; implicit inaltimea tipului); bancuta `bench.customHeightM` 0,35–0,55 m (implicit 0,45). Descrieri: „Saltea: 120 × 190 cm (altă mărime)”, „Lungime deschisă: 240 cm”, „Înălțime: 72 cm”. Enumul marimilor de saltea neschimbat. Toate cu 0 puncte; masa extensibila pastreaza `TABLE_EXTENDABLE:YES`.
+
+**Rationale: **Limitele dormitorului pentru saltea; intervale firesti pe tip pentru inaltimi.
+
+**Impact: **`furniture-config.ts` (normalizarea si `validFurnitureConfig`, aplicate si prin `editPieceConfig` din etapa 9), `furniture-model.ts`, `furniture-v5.ts`. La salteaua „Alta marime” textul standard al fluxului („saltea 160 × 200”) se inlocuieste cu cel ales. Dupa revizuirea de cod (m3 3D): `mattressSize` ramane salvat langa `customSize` (campul e obligatoriu in schema), dar toti consumatorii (gabaritul, geometria, descrierea, chips, costul, lista din interfata) citesc intai `customSize`; textul standard se scoate exact dupa marimea salvata, nu dupa o expresie regulata. Marimea camerei: D-E10-38.
+
+### D-E10-25. Ce se vede cand o inaltime optionala ramane goala (2026-11-14, E10-N21)
+
+**Decizie: **Clientul (Fisa cererii, Sumar, pagina cererii): „Nu ai dat-o — o stabilești cu firma”. Firma: „{slot}: nespecificată de client (de obicei 240 cm)”, mereu in cm; fara valoare tipica (de ex. dulapurile de depozitare de la spalatorie) doar „nespecificată de client”. Campul gol nu e rosu, nu are mesaj si nu intra in „N campuri necompletate”.
+
+**Rationale: **Firma afla ca valoarea lipseste, nu ca e zero.
+
+**Impact: **`dimension-check.ts` (starea `skipped`), `summary-rows.ts`, `room-spec-card.tsx`; pe cererile vechi `missing` lipseste, deci afisarea e identica.
+
+### D-E10-26. Fara insigna „Recomandarea firmei” pe intrebarile noi (2026-11-14, E10-N22)
+
+**Decizie: **„Nu stiu” la intrebarile noi = doar nota in descriere; insigna de pe fisa ramane pentru material si deschidere. Intrebarile noi nu intra in `firmRecommendations`.
+
+**Rationale: **Insigna inlocuieste eticheta „Altul” la material / deschidere; intrebarile noi nu au asa ceva.
+
+**Impact: **Niciuna in `room-spec-card.tsx`.
+
+### D-E10-27. Ce NU intra in etapa 10 (2026-11-14, E10-N24 si PO c9-1)
+
+**Decizie: **Nu intra: „Alta piesa” in baie si dormitor, husa detasabila la canapea, fotoliul rotativ / recliner, tablia patului, „tapitat da / nu” nou la banca / hol, intrebari noi la comoda TV, corpul suspendat, dulapul si biroul 3D, aparatele „standard / alta marime” la spalatorie, „cine aduce chiuveta”.
+
+**Rationale: **PO c9-1 a ales doar grupele care schimba pretul.
+
+**Impact: **Raman pentru o versiune viitoare, daca PO le cere.
+
+### D-E10-28. Subtitlurile „acum” ale ecranelor de dimensiuni, altfel decat in proiect (2026-11-14, alegere `e10-now`; de confirmat de PO)
+
+**Decizie: **Pe cheile existente (deci pe toate versiunile, si pe ciornele vechi) subtitlurile spun ce cer versiunile de azi, inclusiv v1: dormitor si birou „Lățimile cerute mai jos și înălțimea tavanului.”, living „Măsurile cerute mai jos (lățimi și, unde se cer, înălțimi) și înălțimea tavanului.”, spalatorie „Lungimea peretelui principal și înălțimea tavanului.”, balcon „… a balconului, plus înălțimea tavanului.”, debara „Lungimea fiecărei laturi mobilate și înălțimea tavanului.” (corectat dupa revizuirea de cod, m5 fluxuri: debaraua v1–v3 are si dulapuri inchise, deci nu „cu rafturi”), hol „…; înălțimea tavanului doar dacă ai ales dulapul de hol sau cuierul cu panou.”. La birou campul `shelvesTotal` se numeste „Lățimea zonei cu rafturi”. Baia si eticheta rafturilor din living raman neschimbate. Proiectul propunea „Lățimea fiecărei piese alese…”, fals pe v1 (dormitor si birou cer acolo „Lățime spațiu”) si pe v1 / v2 la living.
+
+**Rationale: **Versiunea v1 inca se poate deschide (ciorne vechi, cereri vechi editate). Textul „tavanul doar daca ai piese inalte” sta doar pe cheile noi ale versiunilor noi.
+
+**Impact: **8 chei RO + EN schimbate; nicio cheie noua sau stearsa.
+
+### D-E10-29. Textele intrebarilor noi le-au scris agentii (2026-11-14, alegeri `e10-kd`, `e10-rooms-a`, `e10-rooms-b`, `e10-3d`; de confirmat de PO)
+
+**Decizie: **Proiectul dadea doar etichetele optiunilor; titlurile, subtitlurile si descrierile sunt ale agentilor, de exemplu „Vrei corpuri suspendate?”, „Cum se montează chiuveta?”, „Ce fel de frigider ai?”, „Ce lungime are salteaua?”, „Ce stofă vrei pentru pat?”, „Ce vrei în interiorul dulapului?”, „Ce fel de lavoar vrei?”, „Cine aduce lavoarul?”, „Cum se încarcă mașina de spălat?”, „Cât de lat e holul?”, „Extensibilă (se face pat)”, „Știu lungimea mesei deschise”, „Vreau altă înălțime (de obicei …)”, plus subtitlurile noi ale ecranelor de dimensiuni pe versiunile noi. Pasii noi ai bucatariei au si etichete scurte pentru Sumar (`summaryLabel`).
+
+**Rationale: **Fara texte, pasii nu se puteau afisa.
+
+**Impact: **Fragmentele i18n ale agentilor; RO + EN.
+
+### D-E10-30. Nota chiuvetei la raspunsuri amestecate (2026-11-14, alegere `e10-kd`; de confirmat de PO)
+
+**Decizie: **Un raspuns + „Nu stiu” la celalalt: „Chiuvetă: compozit (granit), montajul îl recomandă firma” / „Chiuvetă: materialul îl recomandă firma, încastrată în blat”. „Nu stiu” la una si nimic la cealalta, sau „Nu stiu” la amandoua: „Chiuvetă: clientul vrea recomandarea firmei”.
+
+**Rationale: **Proiectul nu acoperea cazul.
+
+**Impact: **`kitchen.v5.ts`.
+
+### D-E10-31. Nota lavoarului la raspunsuri amestecate (2026-11-14, alegere `e10-rooms-b`; de confirmat de PO)
+
+**Decizie (corectata dupa revizuirea de cod, m2 fluxuri): **O singura nota, fara „; ” in interior (in descriere notele sunt despartite tocmai prin „; ”). Formele: tip + cine il aduce — „Lavoar: încastrat în blat, adus de client” / „Lavoar: pe blat, adus de firmă”; doar tipul — „Lavoar: pe blat”; doar cine il aduce — „Lavoar: adus de firmă”; tip + „Nu stiu” la cine il aduce — „Lavoar: încastrat în blat (cine îl aduce: recomandă firma)”; „Nu stiu” la tip + cine il aduce — „Lavoar: tipul îl recomandă firma, adus de client”; „Nu stiu” la amandoua (sau „Nu stiu” la una si nimic la cealalta) — „Lavoar: clientul vrea recomandarea firmei”. Forma de dinainte („Lavoar: încastrat în blat; îl aduce clientul”, „tipul: clientul vrea…”) nu mai exista.
+
+**Rationale: **Proiectul dadea doar trei exemple; „îl aduce clientul” dupa „; ” parea o nota separata, iar „tipul: …: …” avea doua puncte la rand.
+
+**Impact: **`basinNote` in `bathroom.v4.ts` (are si varianta EN, doar ca referinta; descrierea pleaca in romana); 20 de combinatii testate in `rooms-b.v7.test.ts`; `firm-text-v7.json`.
+
+### D-E10-32. Dormitorul doar cu pat nu are ecran de dimensiuni (2026-11-14, alegere `e10-rooms-a`; de confirmat de PO)
+
+**Decizie: **Pe dormitorul v4 pasul de dimensiuni apare doar cu dulap, comoda, comoda TV, masa de toaleta sau noptiere bifate (`visibleIf`). Patul nu are slot (latimea vine din saltea), deci doar cu pat nu ramane nimic de cerut; un raspuns de dimensiuni trimis oricum e refuzat. Lungimea camerei = latimea saltelei, ca inainte.
+
+**Rationale: **Alternativa era un ecran gol care cere totusi raspunsul `{}`.
+
+**Impact: **`bedroom.v4.ts`; ajutorul e2e trebuie sa stie ca ecranul poate lipsi.
+
+### D-E10-33. Campurile de dimensiuni in ordinea literelor de pe plansa (2026-11-14, c5 pasul 1 si alegere `e10-ui`; de confirmat de PO)
+
+**Decizie: **Cand exista plansa, campurile apar strict in ordinea literelor: A, B, C…, apoi H1, H2…, apoi H (tavanul); cele fara litera dupa ele, in ordinea fluxului. Se aplica pe toate versiunile (doar afisarea; raspunsul nu se schimba). La bucatarie ordinea devine A, B, C, D (adancimea insulei), L (lungimea ei), H. Inaltimile noi primesc pe planse literele H1, H2… (dormitor, birou, baie, hol).
+
+**Rationale: **Regula din proiect, aplicata intocmai; D inaintea lui L e consecinta ordinii alfabetice.
+
+**Impact: **`step-renderer.tsx`, `dimension-figures.tsx`.
+
+### D-E10-34. „(optional)” langa eticheta, indiciul sub camp (2026-11-14, alegere `e10-ui`; de confirmat de PO)
+
+**Decizie: **Un slot optional are „(opțional)” langa eticheta si, pe randul de sub camp, indiciul „de obicei 240 cm · 180–320 cm”, in unitatea aleasa de client (cu virgula in romana: „de obicei 2,4 m”). Indiciul nu sta in campul gol (placeholder). Eticheta se poate rupe pe doua randuri.
+
+**Rationale: **Ca sa nu rupa randul campului la 390 px.
+
+**Impact: **`step-renderer.tsx`; cheile `Configurator.dimensions.optionalTag`, `Configurator.dimensions.typicalHint`. Ajutorul e2e care cauta campul dupa eticheta trebuie sa accepte sufixul „(opțional)”.
+
+### D-E10-35. Cardul saltelei 120 × 200 e un desen (2026-11-14, alegere `e10-ui`; de confirmat de PO)
+
+**Decizie: **`D_120` foloseste un desen liniar (`IlluBed120`, aceeasi familie de desene ca 90 … 180); celelalte marimi au fotografii (`mattress-90` … `mattress-180`), deci cardul 120 arata altfel decat vecinii lui.
+
+**Rationale: **Nu exista fotografia `mattress-120.png`; uniformitatea cere o imagine noua.
+
+**Impact: **`illustrations/index.tsx`.
+
+### D-E10-36. Stofele patului sunt mostre desenate (2026-11-14, alegere `e10-ui`; de confirmat de PO)
+
+**Decizie: **Tesatura / bouclé / catifea au mostre SVG cu textura, nu mostrele de culoare din 3D (cum propunea proiectul).
+
+**Rationale: **Ilustratiile nu se leaga de fisierele 3D; se poate schimba usor.
+
+**Impact: **`illustrations/*`.
+
+### D-E10-37. Plansa dormitorului deseneaza patul si a doua noptiera, pe toate versiunile (2026-11-14, c5 pasul 1, alegere `e10-ui`)
+
+**Decizie: **Patul apare ca silueta fara litera (cand e bifat), noptierele ca pereche, cate una de fiecare parte; fara pat, a doua noptiera sta langa prima. Walk-in-ul dressingului v5 are plansa proprie cu trei pereti A / B / C si usa pe al patrulea; dressingul v3 / v4 ramane cu doua laturi.
+
+**Rationale: **Pasul „acum” al planului (fara versiune noua).
+
+**Impact: **`dimension-figures.tsx` (`WalkInPlanFigure`, `rowFigure` cu piese fara slot).
+
+### D-E10-38. Patul „Alta marime” nu costa in plus: marimea pentru cost plafonata la 1,8 m (2026-11-14, corectata dupa revizuirea de cod — M2 3D; de confirmat de PO)
+
+**Decizie: **Pe PIECE_BED v5, lungimea camerei = min(latimea saltelei alese, 1,8 m) (`BED_CUSTOM_SIZE_SCORE_WIDTH_MAX_M`). O saltea de 2,0–2,2 m ramane la `ROOM_SIZE:UNDER_2M`, ca cea mai lata saltea standard (180 × 200): acelasi cost ca pe v4. Raman reale: lungimea saltelei (`widthM`), gabaritul si geometria 3D, descrierea pentru firma („Saltea: 220 × 200 cm (altă mărime)”, „Configurat 3D: 233 × 100 × 220 cm”). Prima varianta (lungimea = latimea reala, deci +2 credite la 2,0–2,2 m) a fost schimbata.
+
+**Rationale: **PO c9-3: un raspuns nou nu schimba costul, in afara de „fara corpuri suspendate” si canapeaua extensibila. De confirmat de PO daca vrea ca un pat mai lat de 1,8 m sa coste mai mult (atunci se scoate plafonul).
+
+**Impact: **`furniture-v5.ts`. Efect secundar: `lengthM` e si lungimea camerei salvata in `request_rooms`, deci la o saltea de 2,2 m camera are 1,8 m (la pat lungimea camerei a fost mereu latimea saltelei, nu a cadrului). O lungime reala separata ar cere un camp nou in motor (de ex. `DerivedRoom.sizeLengthM`), nefacut. Test in `v5.test.ts` (220 × 200 = acelasi scor ca 180 × 200 pe v4).
+
+### D-E10-39. Campurile optionale din 3D se pornesc cu o bifa (2026-11-14, alegere `e10-3d`; de confirmat de PO)
+
+**Decizie: **„Știu lungimea mesei deschise” (doar la masa extensibila) si „Vreau altă înălțime (de obicei 75 cm)” (masa) / „(de obicei 45 cm)” (bancuta). Debifat = campul lipseste din configuratie. Bifat = camp cu valoarea de pornire: lungimea inchisa + 60 cm (adusa in interval), respectiv inaltimea obisnuita a tipului. Canapeaua: comutatoarele „Extensibilă (se face pat)” si „Ladă de depozitare” (debifat = cheia scoasa; se pastreaza la schimbarea locurilor sau a formei). Dupa revizuirea de cod (m2 3D): lungimea deschisa aleasa e tinuta minte la ocolul prin alt tip (Dining → Cafea → Dining), prin masa rotunda, la debifarea si rebifarea „Extensibilă” si la o masa scurtata si lungita (adusa in intervalul lungimii de acum), ca bifa „Extensibilă” din etapa 9; se salveaza doar cat masa e extensibila; dupa ce omul debifeaza „Știu lungimea mesei deschise”, nu mai revine.
+
+**Rationale: **Un glisor nu poate fi „gol”.
+
+**Impact: **`furniture-controls.tsx`, `catalog-controls.tsx`, `config-chips.ts`.
+
+### D-E10-40. Inaltimea mesei se sterge MEREU la schimbarea tipului (2026-11-14, alegere `e10-3d`, corectata dupa revizuirea de cod — m1 3D; de confirmat de PO)
+
+**Decizie: **La orice schimbare a tipului mesei inaltimea aleasa se sterge: revine inaltimea obisnuita a tipului nou, bifa „Vreau altă înălțime” se debifeaza, iar indiciul arata valoarea noului tip (dining 75 cm → consola: 80 cm, bifa debifata). Fara mesaj de motiv. Prima varianta o stergea doar cand nu mai incapea in intervalul noului tip; asa o masa dining de 75 cm trecuta pe consola ramanea la 75 cm, langa indiciul „de obicei 80 cm”.
+
+**Rationale: **Inaltimea aleasa tine de tipul mesei; la alt tip omul porneste de la valoarea fireasca.
+
+**Impact: **`furniture-controls.tsx` (interfata); normalizarea din `furniture-config.ts` sterge in continuare o inaltime din afara intervalului tipului. Test in `furniture-controls-features.test.tsx`.
+
+### D-E10-41. Textele pentru firma alese de agenti (2026-11-14, alegeri `e10-rooms-a`, `e10-rooms-b`, `e10-3d`; de confirmat de PO)
+
+**Decizie: **Stofele „țesătură”, „bouclé”, „catifea”; LED-ul din interiorul dulapului „iluminare LED” (textul dressingului); lavoarul in forma din D-E10-31; incarcarea „frontală” / „de sus”. „Extensibilă: nu” / „Ladă de depozitare: nu” apar doar daca configuratia are explicit `false` (interfata scoate cheia la debifare, deci in practica nu apar).
+
+**Rationale: **Proiectul nu dadea toate textele.
+
+**Impact: **Fisierele fluxurilor; `describeCatalogOptions`. Descrierile se salveaza in romana, cu diacritice (testul „fara coduri interne” trece pe toate versiunile).
+
+### D-E10-42. Ordinea sloturilor la baie; pasul adancimii balconului (2026-11-14, alegere `e10-rooms-b`)
+
+**Decizie: **La baia v4 sloturile urmeaza ordinea pieselor din lista (nu ordinea bifarii, ca in v3). Adancimea balconului (`balconyDepth`) pastreaza pasul de 5 cm din v3 (constructorul comun pune 10 cm); validarea nu verifica pasul.
+
+**Rationale: **Ordine stabila; acelasi pas ca azi.
+
+**Impact: **`bathroom.v4.ts`, `balcony.v4.ts`.
+
+### D-E10-43. Plaja schemei 3D largita doar cat incap campurile noi (2026-11-14, alegere `e10-3d`)
+
+**Decizie: **`PIECE3D_RULES`: pat latime 0,83–2,42 / adancime 1,8–2,6 m, masa inaltime 0,3–0,9 m, bancuta 0,35–0,55 m. Configuratiile fara campuri noi sunt fixate in continuare de `validFurnitureConfig` pe gabaritul standard, deci acceptarea pe versiunile vechi e neschimbata. `validFurnitureConfig` nu mai arunca exceptie la o optiune in afara plajei: intoarce `false`, iar eroarea ramane cea a schemei (`validation.answerInvalid`).
+
+**Rationale: **Gabaritul patului cu „Alta marime” si inaltimile noi nu incapeau in plaja veche.
+
+**Impact: **`piece3d/config.ts`, `furniture-config.ts`; test „configuratiile vechi identice”.
+
+### D-E10-44. Abaterile tehnice ale fundatiei (2026-11-14, alegeri `e10-found`)
+
+**Decizie: **Schemele verifica doar plaja fiecarui camp nou (`openLengthM` 1,5–4 m, `customHeightM` la masa 0,3–0,9 m); regulile care depind de alte campuri sunt in `validFurnitureConfig` / normalizare (D-E10-24). Constantele exportate: `BED_CUSTOM_SIZE_LIMITS`, `TABLE_OPEN_LENGTH_ACCEPTED`, `TABLE_CUSTOM_HEIGHT`, `TABLE_CUSTOM_HEIGHT_ACCEPTED`, `BENCH_CUSTOM_HEIGHT`. `optionalChoiceStep` are in plus `firmDecidesLabelKey` (eticheta proprie de la hol). Fixture-urile lasa sloturile optionale goale si in varianta `requiredOnly`, nu doar in `last`. Exporturi in plus: `FIRM_DECIDES_NOTE_TEXT`, `SlotRange`, `OptionalChoiceDef`, `pieceDetailsGroup`, `catalogFlowRegistryV3`, `catalogFlowVersionsV3`, `pieceSofaFlowV3`.
+
+**Rationale: **Plajele dependente de alte campuri nu se pot scrie in schema fiecarui camp.
+
+**Impact: **shared `questionnaire`; afecteaza doar instantaneele v7.
+
+### D-E10-45. Texte noi de interfata si de administrare (2026-11-14, alegeri `e10-ui`, `e10-seed`; de confirmat de PO)
+
+**Decizie: **In engleza golul se spune „Not given — you'll agree it with the company” (glosarul cere „company”, nu „firm”). Cheie in plus `Configurator.roomSpec.dimNotGivenPlain` („nespecificată de client”, fara valoare tipica). In Admin → Marime proiect cele 14 grupuri noi au nume omenesti („Bucătărie · Corpuri suspendate”, „Canapea · Locuri” …); la „Cine aduce lavoarul” optiunile sunt la persoana a III-a („Îl aduce clientul” / „Îl aduce firma”), pentru ca le citeste adminul; „Canapea · Extensibilă” si „Canapea · Ladă de depozitare” arata „Da”, ca „Masă · Extensibilă”.
+
+**Rationale: **Glosarul (docs/glosar.md) si cititorul fiecarui ecran.
+
+**Impact: **Fragmentele `e10-ui`, `e10-seed`.
+
+### D-E10-46. Balcon, spalatorie, debara: marimea = min(suma latimilor pieselor, peretele) (2026-11-14, dupa revizuirea de cod — M3 fluxuri)
+
+**Decizie: **Pe BALCONY / LAUNDRY / PANTRY v4 lungimea camerei pentru marime (`lengthM`) = min(suma latimilor pieselor, „peretele”). „Peretele” = exact ce dadea marimea pe v3: la balcon `balconyLength`, la spalatorie `runA`, la debara suma laturilor folosite (dupa `wallsUsed`). Fara nicio latime de piesa (ciorna partiala) marimea = peretele, deci tot cea de pe v3; fara nicio masura, 0 (cu „Am deja un proiect” intra lungimea aproximativa, ca inainte). Validarea nu blocheaza nimic: clientul poate scrie latimi mai mari decat peretele (piesele pot sta pe mai multi pereti), dar costul nu creste din ele. Pe aceste camere versiunea noua nu poate costa niciodata mai mult decat cea veche.
+
+**Rationale: **Suma latimilor nu era comparata cu nimic: o banca de 3 m si un blat de 4 m pe un balcon de 1,5 m dadeau 7 m (`OVER_4M`, +4 credite fata de azi), la spalatorie un perete de 0,8 m cu piese de 10,2 m. PO c5-3 a ales latimea pieselor ca sa SCADA costul la piesele mici.
+
+**Impact: **`balcony.v4.ts`, `laundry.v4.ts`, `pantry.v4.ts`. Exemplele B, C, F raman la fel. Efect secundar: `lengthM` intra si in `request_rooms` ca lungime a camerei, deci firma vede lungimea plafonata (peretele ramane oricum in rezumat si pe fisa). Teste in `rooms-b.v7.test.ts` (cazul revizorului 1,5 m cu 3 + 4 m → 1,5 m `UNDER_2M`; o grila lungimi × latimi: marimea pe v4 nu e niciodata peste cea de pe v3, la balcon si la spalatorie).
+
+### D-E10-47. Dressingul walk-in: latura C intra in marime (2026-11-14, dupa revizuirea de cod — M2 fluxuri; lasat asa, de confirmat de PO)
+
+**Decizie: **Pe DRESSING v5 walk-in-ul cere A, B si C, iar marimea = suma celor trei. Acelasi dressing (A 1,5 m + B 1,5 m = 3 m, `FROM_2_TO_4M`, 3 puncte pe v4) cu C 1,5 m are 4,5 m (`OVER_4M`, 5 puncte pe v5): +2 credite. Cu C pana la 1,0 m (total ≤ 4 m) costul ramane 3; de la C = 1,1 m urca la 5. Fara C walk-in-ul nu se mai poate publica pe v5 (`validation.dimensionRequired`).
+
+**Rationale: **Coordonatorul a lasat regula: a treia latura e mobilier real, ca la dressingul in U, deci intra in marime. Cealalta varianta (C doar pentru context) ramane la PO.
+
+**Impact: **`dressing.v5.ts` neschimbat; cifrele sunt testate in `kd.v7.test.ts`. Cazul nu e in exemplele de cost din `score-v7.spec.ts` (de completat de coordonator, daca e cazul).
+
+### D-E10-48. Textul nevalid intr-un camp de dimensiune optional = `null`, refuzat (2026-11-14, dupa revizuirea de cod — M1 3D / interfata)
+
+**Decizie: **Intr-un slot OPTIONAL, un text care nu se poate citi ca numar („abc”, „12,,5”, „2,4m”) se scrie in raspuns ca `null`, nu ca cheie stearsa. „Continua” nu trece (campul e rosu, cu „Scrie un număr, de ex. 2,5”, iar cota lui e rosie pe plansa), publicarea e refuzata (`validation.dimensionOutOfRange`, si pe server), iar Sumarul si Fisa nu mai arata „Nu ai dat-o”. Campul nu se numara la „N campuri necompletate” (numara doar obligatoriile). Golul adevarat ramane cheie lipsa. Slotul OBLIGATORIU are comportamentul din etapa 8 (text nevalid → cheia se sterge → „Completează câmpul …”).
+
+**Rationale: **Inainte textul nevalid trecea drept „gol”: omul vedea un mesaj de eroare, dar formularul mergea mai departe, iar firma primea „nespecificată de client” (lectia etapei 1).
+
+**Impact: **`use-decimal-field.ts` (`onValue(…, { invalid })`, ignorat de ceilalti apelanti), `step-renderer.tsx`, `room-screens.ts`; 8 teste in `step-renderer-v7.test.tsx`. Pe versiunile vechi (fara sloturi optionale) nimic schimbat.
+
+### D-E10-49. Textul nevalid se pierde la plecarea de pe ecran, dar campul ramane marcat (2026-11-14, dupa revizuirea de cod — limita lasata)
+
+**Decizie: **Daca omul pleaca de pe ecran cu text nevalid intr-un camp optional si se intoarce, textul scris nu mai e acolo: campul apare gol, dar raspunsul e tot `null`, deci la „Continua” e marcat „Scrie un număr”. Ca sa-l lase gol, omul scrie ceva si sterge.
+
+**Rationale: **Ciorna de text a campului nu se salveaza (ca la etapa 8). Pasul nu trece cu o valoare gresita, iar firma nu primeste nimic inventat.
+
+**Impact: **Niciunul in date.
+
+### D-E10-50. Studio 3D nu poate aduce campurile noi in cost sau la firma (2026-11-14, verificare dupa revizuirea de cod — m6 3D)
+
+**Decizie: **Schema scenelor din Studio (`studio.schemas.ts`, `pieceConfig3dSchema`) ramane neschimbata si accepta campurile noi. Nu e o gaura: in cerere ajunge doar camera („Trimite în cerere” → camera `PIECE_*` cu `answers.config3d`), care la publicare trece prin `validateRoomAnswers` pe versiunea ei, cu verificarea `features`; serverul (`studio-publication.ts`) cere ca piesa din scena sa fie identica cu `config3d`-ul camerei. Pe versiunile vechi campurile noi sunt refuzate, pe cele curente primite exact ca din configurator. Interfata Studio nu le poate produce (pasul 3D din Studio nu primeste `features`). O scena facuta de mana doar salveaza campuri pe care nu le citeste nimeni in afara camerei 3D read-only a firmei.
+
+**Rationale: **Simetria cu D-E10-9 nu e necesara: costul si descrierea vin doar din camera.
+
+**Impact: **Test nou in `piece3d/features.test.ts` („etapa 10 — Studio”).
+
+### D-E10-51. Dulapul de electrocasnice de la spalatorie cere tavanul (2026-11-14, dupa revizuirea de cod — m6 fluxuri; lasat asa, de confirmat de PO)
+
+**Decizie: **Pe LAUNDRY v4 dulapul pentru electrocasnice e mereu „piesa inalta”: cere tavanul si are inaltime optionala, si la „doar masina de spalat”, unde valoarea tipica e 0,9 m (corp sub blat). Varianta de intrebat: piesa inalta doar la aparatele suprapuse (`STACKED`).
+
+**Rationale: **Lista pieselor inalte e cea din proiect (E10-N11); contrazice insa litera lui c5-1 („doar cand exista o piesa inalta”) cand corpul e sub blat.
+
+**Impact: **`laundry.v4.ts` neschimbat.
+
 # 9. Checklist uman: ce faci acum
 
 - Citește integral acest document o dată. Verifică Decisions Log (Secțiunea 8, inclusiv 8.4). Dacă o decizie te deranjează, schimb-o ACUM în document, înainte ca agentul să scrie cod.

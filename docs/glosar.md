@@ -42,6 +42,13 @@ Reguli generale:
 | **Anulează plata** / Cancel payment | Firma își anulează plata în așteptare, înainte de „Am plătit” (etapa 9). | „Anulează comanda” la plățile firmei |
 | **Republică cu modificări** / Repost with changes | Clientul republică o cerere expirată, o singură dată, cu formularul schimbat; butonul de salvare: „Republică cu modificările” / „Repost with these changes” (etapa 9). | — |
 | **Reîncadrează** / Reframe | Butonul din scena 3D care aduce piesa întreagă în cadru (etapa 9). | — |
+| **(opțional)** / (optional) | Lângă eticheta unui câmp de dimensiune care poate rămâne gol (înălțimea pieselor înalte, etapa 10). Se scrie între paranteze, cu literă mică. | — |
+| **de obicei {valoare}** / usually {value} | Indiciul sub un câmp opțional, cu valoarea tipică în unitatea aleasă („de obicei 240 cm”); doar indiciu, nu se salvează (etapa 10). | — |
+| **Nu ai dat-o — o stabilești cu firma** / Not given — you'll agree it with the company | Ce vede clientul în Fișă și în Sumar la o înălțime opțională lăsată goală. Firma vede „nespecificată de client” / „not given by the client” (etapa 10). | — |
+| **corpuri suspendate** / wall cabinets | Corpurile de bucătărie prinse pe perete, deasupra blatului. Întrebarea: „Vrei corpuri suspendate?” (etapa 10). | — |
+| **Altă mărime** / Other size | A cincea alegere de saltea la patul din 3D, cu lățimea și lungimea saltelei (etapa 10). | — |
+| **Lungime deschisă** / Extended length | Lungimea mesei extensibile când e deschisă; bifa: „Știu lungimea mesei deschise” (etapa 10). | — |
+| **Extensibilă (se face pat)** / Sofa bed (pulls out into a bed) | Canapeaua care se desface în pat; pe fișă „Extensibilă” (etapa 10). Masa extensibilă rămâne „Extensibilă” / „Extendable”. | — |
 
 Etichetele scurte din Sumar și din Fișă numesc întrebarea, nu un răspuns: „Tip de balcon: Deschis”,
 nu „Balcon închis: Deschis”.
