@@ -52,15 +52,13 @@ test('all furniture keeps working controls and snapshots after visual refinement
   await expect.poll(async () => [(await config()).widthM, (await config()).depthM]).toEqual([.7, .7]);
   await diameter.fill('180'); await diameter.press('Tab');
   await expect.poll(async () => [(await config()).widthM, (await config()).depthM]).toEqual([1.8, 1.8]);
-  // regula PO: o valoare in afara intervalului e refuzata (nu se taie la max) — ramane valoarea veche + mesaj cu intervalul
-  await diameter.fill('200'); await diameter.press('Tab');
-  await expect(page.getByRole('alert').filter({ hasText: 'The value must be between 70–180 cm. We kept the previous value.' })).toBeVisible();
-  await expect(diameter).toHaveValue('180');
-  expect([(await config()).widthM, (await config()).depthM]).toEqual([1.8, 1.8]);
-  // o valoare corecta dupa refuz se aplica si mesajul dispare
+  // etapa 5 (e5-3d): o valoare in afara intervalului se corecteaza la limita, cu mesaj despre ce s-a pus
   await diameter.fill('120'); await diameter.press('Tab');
   await expect.poll(async () => [(await config()).widthM, (await config()).depthM]).toEqual([1.2, 1.2]);
-  await expect(page.getByRole('alert').filter({ hasText: 'We kept the previous value.' })).toHaveCount(0);
+  await diameter.fill('200'); await diameter.press('Tab');
+  await expect(page.getByRole('status').filter({ hasText: 'The maximum is 180 cm — we set 180.' })).toBeVisible();
+  await expect(diameter).toHaveValue('180');
+  await expect.poll(async () => [(await config()).widthM, (await config()).depthM]).toEqual([1.8, 1.8]);
   await tableChoices.nth(1).selectOption('EXTENDABLE');
   await expect.poll(async () => (await config()).table.shape).toBe('EXTENDABLE');
 
@@ -71,11 +69,11 @@ test('all furniture keeps working controls and snapshots after visual refinement
   await expect.poll(async () => (await config()).widthM).toBe(.6);
   await benchWidth.fill('200'); await benchWidth.press('Tab');
   await expect.poll(async () => (await config()).widthM).toBe(2);
-  // sub minim: refuzat, ramane 200 cm
+  // sub minim: corectat la 60 cm, cu mesaj (etapa 5, e5-3d)
   await benchWidth.fill('50'); await benchWidth.press('Tab');
-  await expect(page.getByRole('alert').filter({ hasText: 'The value must be between 60–200 cm. We kept the previous value.' })).toBeVisible();
-  await expect(benchWidth).toHaveValue('200');
-  expect((await config()).widthM).toBe(2);
+  await expect(page.getByRole('status').filter({ hasText: 'The minimum is 60 cm — we set 60.' })).toBeVisible();
+  await expect(benchWidth).toHaveValue('60');
+  await expect.poll(async () => (await config()).widthM).toBe(.6);
   await page.getByRole('checkbox').press('Space');
   await expect.poll(async () => (await config()).bench.upholsteredSeat).toBe(true);
   await expect(page.getByRole('img', { name: 'snapshot', exact: true })).toHaveAttribute('src', /^data:image\/png;base64,/);

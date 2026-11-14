@@ -6,11 +6,12 @@ import ro from '../src/messages/ro.json';
 async function mockGuestDraft(page: Page) {
   await page.route('**/api/v1/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
-    const auth = path.includes('/auth/');
+    // etapa 5 (f3): vizitatorul fara sesiune primeste { user: null } pe /auth/me (401 = sesiune pierduta)
+    const auth = path.includes('/auth/') && !path.endsWith('/auth/me');
     await route.fulfill({
       status: auth ? 401 : 200,
       contentType: 'application/json',
-      body: JSON.stringify(auth ? { error: { code: 'UNAUTHORIZED', message: 'Guest' } } : path.includes('/requests/drafts/') ? { id: 'test-draft', attachments: [], configuratorState: null } : []),
+      body: JSON.stringify(auth ? { error: { code: 'UNAUTHORIZED', message: 'Guest' } } : path.endsWith('/auth/me') ? { user: null } : path.includes('/requests/drafts/') ? { id: 'test-draft', attachments: [], configuratorState: null } : []),
     });
   });
 }

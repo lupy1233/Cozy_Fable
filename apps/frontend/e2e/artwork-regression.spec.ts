@@ -4,6 +4,8 @@ import { writeFile } from 'node:fs/promises';
 import { mockGuestDraft, textFor } from './helpers/guided-request';
 
 async function startRoom(page: Page, room: string, locale: 'en' | 'ro') {
+  // prima deschidere a /requests/new o compileaza `next dev` (poate trece de 30 s)
+  test.setTimeout(Math.max(test.info().timeout, 120_000));
   await mockGuestDraft(page);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto(`/${locale}/requests/new`);

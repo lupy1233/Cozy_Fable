@@ -23,7 +23,9 @@ export function SessionLostListener() {
         const hadSession = Boolean(qc.getQueryData(AUTH_QUERY_KEY)) || detail.path === '/auth/me';
         // ignorat → `false`: fereastra de 5 s nu porneste, un semnal urmator poate duce la login
         if (!hadSession) return false;
-        qc.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' });
+        // reset (nu remove): datele se golesc la fel, dar interogarile active se reiau. remove anula
+        // TACUT o cerere in zbor (ex. ciorna formularului public), iar pagina ramanea pe „Se pregateste…”
+        void qc.resetQueries({ predicate: (query) => query.queryKey[0] !== 'auth' });
         // semnalul venit chiar din /auth/me: interogarea aceea pica singura (fara reluare in bucla)
         if (detail.path !== '/auth/me') void qc.resetQueries({ queryKey: ['auth'] });
         const target = sessionLostTarget(pathnameRef.current, window.location.search);

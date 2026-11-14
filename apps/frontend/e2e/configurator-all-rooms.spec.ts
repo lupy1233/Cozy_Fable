@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
-import { configuratorContentSchema } from '../../../packages/shared/src';
-import { AUDIT_BUDGET_RON, AUDIT_ROOM_TYPES, completeAllRoomRequest, GREEN_AUDIT_ORIGIN, mockGuestDraft, reloadAndPublishGreenAudit, textFor, uploadSyntheticAuditPng } from './helpers/guided-request';
+import { configuratorContentSchema, CURRENT_FLOW_VERSION, FLOW_VERSIONS_BEFORE_ETAPA6, type RoomType } from '../../../packages/shared/src';
+import { AUDIT_BUDGET_RON, AUDIT_ROOM_TYPES, completeAllRoomRequest, GREEN_AUDIT_ORIGIN, mockGuestDraft, reloadAndPublishGreenAudit, SAME_FINISH_ANSWER, textFor, uploadSyntheticAuditPng } from './helpers/guided-request';
 
 const realGreen = process.env.GREEN_FORM_AUDIT === '1';
 if (realGreen && process.env.GREEN_BASE_URL !== GREEN_AUDIT_ORIGIN) throw new Error('GREEN_BASE_URL must exactly match the isolated app-green audit origin.');
@@ -36,6 +36,30 @@ for (const locale of ['en', 'ro'] as const) {
     const savedDetails = snapshot.details as { budgetRange?: string; budgetEstimateRon?: number | null; budgetChosen?: boolean };
     if (locale === 'en') expect(savedDetails).toMatchObject({ budgetEstimateRon: AUDIT_BUDGET_RON, budgetChosen: true });
     else expect(savedDetails.budgetRange).toBe('UNDISCLOSED');
+    // etapa 6: camerele noi pornesc pe versiunea noua (nu pe una dinainte de etapa 6)
+    for (const room of snapshot.roomInstances ?? []) {
+      const type = room.roomType as RoomType;
+      expect(room.flowVersion, `${type} flowVersion`).toBe(CURRENT_FLOW_VERSION[type]);
+      expect(FLOW_VERSIONS_BEFORE_ETAPA6[type], `${type} new version`).not.toContain(room.flowVersion);
+    }
+    // etapa 6: "Acelasi material si aceeasi deschidere?" — EN "Da" (ecranul comun), RO "Nu" (ecran pe fiecare piesa)
+    const visited = new Map(audit.rooms.map((room) => [room.type, room.questions]));
+    const savedAnswers = new Map((snapshot.roomInstances ?? []).map((room) => [room.roomType as RoomType, room.answers as Record<string, unknown>]));
+    const withSameFinish = audit.rooms.filter((room) => room.questions.includes('sameFinishAll')).map((room) => room.type);
+    expect(withSameFinish.length, 'rooms asking sameFinishAll').toBeGreaterThan(0);
+    for (const type of withSameFinish) expect(savedAnswers.get(type)?.sameFinishAll, `${type}.sameFinishAll`).toBe(SAME_FINISH_ANSWER[locale]);
+    const commonScreen = audit.rooms.filter((room) => room.questions.includes('materialAll')).map((room) => room.type);
+    if (locale === 'en') expect(commonScreen.sort()).toEqual([...withSameFinish].sort());
+    else expect(commonScreen).toEqual([]);
+    // usile batante: tipul usilor apare, iar deschiderea dulapului / dressingului se cere
+    for (const type of ['BEDROOM', 'HALLWAY'] as const) {
+      expect(savedAnswers.get(type)?.wardrobeDoorType, `${type}.wardrobeDoorType`).toBe('HINGED');
+      if (locale === 'ro') expect(visited.get(type), `${type} wardrobe opening`).toContain('systemsWardrobe');
+      // titlurile de material pe piesa (RO: un ecran pe fiecare piesa)
+      if (locale === 'ro') expect(visited.get(type), `${type} wardrobe material`).toContain('materialWardrobe');
+    }
+    expect(savedAnswers.get('DRESSING')?.doorType).toBe('HINGED');
+    expect(visited.get('DRESSING'), 'hinged dressing opening').toContain('openingSystems');
     const content = { rooms: snapshot.roomInstances?.map(({ roomType, answers, flowVersion }) => ({ roomType, answers, flowVersion })), ...snapshot.details as object };
     expect(configuratorContentSchema.safeParse(content).success).toBe(true);
     for (const [name, value] of Object.entries({ 'all-room-question-audit': audit, 'all-room-ui-content': content })) {

@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import { getFlow, ROOM_KIND, ROOM_TYPES, compareRoomTypes, visibleOptions, validateRoomAnswers, type AnswerMap, type ChoiceOption, type QuestionStep, type RoomType } from '../../../../packages/shared/src';
+import { getFlow, ROOM_KIND, ROOM_TYPES, compareRoomTypes, visibleOptions, validateRoomAnswers, type AnswerMap, type ChoiceOption, type QuestionStep, type RoomFlow, type RoomType } from '../../../../packages/shared/src';
 import en from '../../src/messages/en.json';
 import ro from '../../src/messages/ro.json';
 
@@ -27,12 +27,16 @@ export async function mockGuestDraft(page: Page) {
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
+    // etapa 5 (f3): vizitatorul fara sesiune primeste { user: null } pe /auth/me (401 = sesiune pierduta)
+    if (path.endsWith('/auth/me')) return route.fulfill({ json: { user: null } });
     if (path.includes('/auth/')) return route.fulfill({ status: 401, json: { error: { code: 'UNAUTHORIZED', message: 'Guest audit' } } });
     if (path.endsWith('/requests/drafts') && request.method() === 'POST') return route.fulfill({ status: 201, json: { draftToken: 'local-audit-only' } });
     if (path.endsWith('/requests/drafts/local-audit-only')) {
       if (request.method() === 'PATCH') snapshot = request.postDataJSON().configuratorState;
       return route.fulfill({ json: { id: 'audit-draft', attachments: [], configuratorState: snapshot } });
     }
+    // etapa 5 (a6): acoperirea zonei in Sumar; UNKNOWN = fara avertisment
+    if (path.endsWith('/coverage') && request.method() === 'POST') return route.fulfill({ json: { coverage: 'UNKNOWN' } });
     if (path.includes('/estimate')) return route.fulfill({ json: { minRon: 0, maxRon: 0 } });
     if (path.includes('/inspiration')) return route.fulfill({ json: { items: [], total: 0, nextCursor: null } });
     if (path.endsWith('/legal/operator')) return route.fulfill({ json: { published: false } });
@@ -66,10 +70,15 @@ async function auditImages(block: Locator, seen: Set<string>) {
   }
 }
 
+// etapa 6: usile batante (dulapul din dormitor / hol, dressingul) fac sa apara intrebarea despre deschidere
 const preferred: Record<string, string> = {
   layout: 'U_SHAPE', wallsUsed: 'U_SHAPE', storageStyle: 'MIXED', bedSize: 'CUSTOM',
   bedStorage: 'DRAWERS', tvStyle: 'COMPLEX_UNIT', deskShape: 'U_SHAPE', nightstandsCount: 'TWO', applianceSetup: 'SIDE_BY_SIDE',
+  wardrobeDoorType: 'HINGED', doorType: 'HINGED',
 };
+// etapa 6: "Acelasi material si aceeasi deschidere pentru toate piesele?" — "Da" in EN, "Nu" in RO
+// (ambele drumuri, ca la buget); celelalte intrebari da / nu obligatorii primesc "Da"
+export const SAME_FINISH_ANSWER: Record<Locale, boolean> = { en: true, ro: false };
 async function answerQuestion(block: Locator, step: QuestionStep, answers: AnswerMap, locale: Locale, images: Set<string>) {
   const t = (key: string) => textFor(locale, `Configurator.${key}`);
   // bifa compacta (kitchen v3): fara titlu propriu, doar eticheta bifei
@@ -90,12 +99,41 @@ async function answerQuestion(block: Locator, step: QuestionStep, answers: Answe
       await expect(button).toBeVisible();
       expect(await button.locator('svg, img, [data-showroom-concept]').count(), `${step.id}.${option.value} visual`).toBeGreaterThan(0);
     }
+    // etapa 6: optiunile `exclusive` ("Nu stiu — vreau recomandarea firmei", "Fara usi sau sertare")
+    // nu se bifeaza impreuna cu altele; se aleg doar optiunile obisnuite
+    const regular = options.filter((option) => !option.exclusive);
+    const exclusive = options.filter((option) => option.exclusive);
     const chosen = step.type === 'single-choice'
       ? [options.find((option) => option.value === preferred[step.id]) ?? options.find((option) => option.value === 'ALTUL') ?? options[0]]
-      : options.slice(0, step.maxSelected ?? options.length);
+      : regular.slice(0, step.maxSelected ?? regular.length);
+    if (step.type === 'multi-choice' && exclusive.length > 0 && chosen.length > 0) {
+      // o optiune exclusiva goleste restul; o optiune obisnuita o scoate pe cea exclusiva
+      await optionButton(chosen[0]).click();
+      await optionButton(exclusive[0]).click();
+      await expect(optionButton(exclusive[0])).toHaveAttribute('aria-pressed', 'true');
+      await expect(optionButton(chosen[0])).toHaveAttribute('aria-pressed', 'false');
+    }
     for (const option of chosen) await optionButton(option).click();
+    if (step.type === 'multi-choice') {
+      for (const option of chosen) await expect(optionButton(option)).toHaveAttribute('aria-pressed', 'true');
+      for (const option of exclusive) await expect(optionButton(option)).toHaveAttribute('aria-pressed', 'false');
+    }
     answers[step.id] = step.type === 'single-choice' ? chosen[0].value : chosen.map((option) => option.value);
   } else if (step.type === 'boolean') {
+    // etapa 6 (M1): da / nu obligatoriu pe un ecran cu alte intrebari = perechea "Da" / "Nu", nimic ales
+    const pair = block.getByRole('group', { name: t(step.titleKey), exact: true });
+    if (!step.optional && await block.locator('[data-boolean-pair]').count()) {
+      const yes = pair.getByRole('button', { name: t('common.boolean.yes'), exact: true });
+      const no = pair.getByRole('button', { name: t('common.boolean.no'), exact: true });
+      await expect(yes).toHaveAttribute('aria-pressed', 'false');
+      await expect(no).toHaveAttribute('aria-pressed', 'false');
+      const choice = step.id === 'sameFinishAll' ? SAME_FINISH_ANSWER[locale] : true;
+      await (choice ? yes : no).click();
+      await expect(yes).toHaveAttribute('aria-pressed', String(choice));
+      await expect(no).toHaveAttribute('aria-pressed', String(!choice));
+      answers[step.id] = choice;
+      return;
+    }
     await block.getByRole('button', { name: t(step.cardLabelKey ?? 'common.boolean.yes'), exact: true }).click();
     answers[step.id] = true;
   } else if (step.type === 'text') {
@@ -138,8 +176,23 @@ export async function completeAllRoomRequest(page: Page, locale: Locale, origin 
   await expect(designHelp.getByRole('checkbox', { checked: true })).toHaveCount(0);
   await expect(page.locator('[data-cart-mode]')).toContainText(t('start.STANDARD.title'));
   await page.getByRole('button', { name: t('nav.startQuestions'), exact: true }).click();
-  const answers = new Map<RoomType, AnswerMap>(AUDIT_ROOM_TYPES.map((type) => [type, {}]));
-  const questions = new Map<RoomType, Set<string>>(AUDIT_ROOM_TYPES.map((type) => [type, new Set()]));
+  const { answers, questions, images } = await walkRoomQuestions(page, locale, AUDIT_ROOM_TYPES, (type) => getFlow(type), capture);
+  if (uploadFixture) await uploadFixture();
+  await page.getByRole('button', { name: t('nav.continue'), exact: true }).click();
+  await fillDetailsAndReview(page, locale);
+  for (const type of AUDIT_ROOM_TYPES) await expect(page.getByRole('heading', { name: t(`rooms.type.${type}`), exact: true })).toBeVisible();
+  await expect(page.getByText(t('review.roomIncomplete'), { exact: true })).toHaveCount(0);
+  return { locale, rooms: AUDIT_ROOM_TYPES.map((type) => ({ type, version: getFlow(type).version, questions: [...questions.get(type)!], answers: answers.get(type) })), images: [...images] };
+}
+
+// Parcurge ecranele de intrebari ale camerelor pana la "Fisiere"; `flowOf` da versiunea fiecarei camere
+// (cea curenta pentru camerele noi, versiunea fixata pentru o ciorna veche).
+// `ownProject`: modul "Am deja un proiect" (pasii de dimensiuni se sar); `approxLength`: textul scris in
+// campul "Lungime aproximativa (m)" de pe ultimul ecran al camerei, cand apare (etapa 5, d3).
+export async function walkRoomQuestions(page: Page, locale: Locale, roomTypes: readonly RoomType[], flowOf: (type: RoomType) => RoomFlow, capture?: (name: string, block: Locator) => Promise<void>, opts: { ownProject?: boolean; approxLength?: string } = {}) {
+  const t = (key: string) => textFor(locale, `Configurator.${key}`);
+  const answers = new Map<RoomType, AnswerMap>(roomTypes.map((type) => [type, {}]));
+  const questions = new Map<RoomType, Set<string>>(roomTypes.map((type) => [type, new Set()]));
   const images = new Set<string>();
   for (let screen = 0; screen < 250; screen++) {
     if (await page.getByRole('heading', { name: t('uploads.title'), exact: true }).isVisible()) break;
@@ -151,12 +204,17 @@ export async function completeAllRoomRequest(page: Page, locale: Locale, origin 
       const next = metadata.find((entry) => !processed.has(`${entry.room}.${entry.id}`));
       if (!next) break;
       const type = next.room as RoomType;
-      const step = getFlow(type).steps.find((question) => question.id === next.id)!;
+      const step = flowOf(type).steps.find((question) => question.id === next.id);
+      if (!step) throw new Error(`Unknown question ${type}.${next.id} (flow v${flowOf(type).version})`);
       const block = page.locator(`[data-question-id="${next.id}"][data-room-type="${type}"]`);
       await answerQuestion(block, step, answers.get(type)!, locale, images);
       if (capture && ['LIVING.piecesNeeded', 'DRESSING.interiorModules', 'BEDROOM.bedStorage', 'BEDROOM.bedCustomSize', 'LAUNDRY.applianceSetup'].includes(`${type}.${next.id}`)) await capture(`${type}-${next.id}`, block);
       processed.add(`${type}.${next.id}`);
       questions.get(type)!.add(next.id);
+    }
+    const approx = page.locator('[data-approx-length-field]');
+    if (opts.approxLength !== undefined && await approx.isVisible()) {
+      await approx.getByRole('textbox', { name: t('approxLength.label'), exact: true }).fill(opts.approxLength);
     }
     const nextButton = page.getByRole('button', { name: new RegExp(`^(?:${escaped(t('nav.next'))}|${escaped(t('nav.toDetails'))})$`) });
     await nextButton.click();
@@ -166,12 +224,17 @@ export async function completeAllRoomRequest(page: Page, locale: Locale, origin 
     }, { message: `Continue from ${before}` }).not.toBe(before);
   }
   await expect(page.getByRole('heading', { name: t('uploads.title'), exact: true })).toBeVisible();
-  for (const type of AUDIT_ROOM_TYPES) {
+  for (const type of roomTypes) {
     expect(questions.get(type)!.size, type).toBeGreaterThan(0);
-    expect(validateRoomAnswers(type, answers.get(type)!, { partial: false }), `${type} validation`).toEqual({ ok: true });
+    expect(validateRoomAnswers(type, answers.get(type)!, { partial: false, version: flowOf(type).version, ownProject: opts.ownProject }), `${type} validation`).toEqual({ ok: true });
   }
-  if (uploadFixture) await uploadFixture();
-  await page.getByRole('button', { name: t('nav.continue'), exact: true }).click();
+  return { answers, questions, images };
+}
+
+// Date generale (EN = suma pe glisor, RO = "Prefer sa nu spun") → Sumar
+export async function fillDetailsAndReview(page: Page, locale: Locale) {
+  const t = (key: string) => textFor(locale, `Configurator.${key}`);
+  const tr = (key: string) => textFor(locale, `Requests.${key}`);
   // etapa 2 (b2): Date generale se salveaza singure in ciorna, inainte de "Continua la sumar"
   const autosaved = page.waitForRequest((request) => request.method() === 'PATCH'
     && /\/api\/v1\/requests\/drafts\/[^/]+$/.test(new URL(request.url()).pathname)
@@ -204,9 +267,6 @@ export async function completeAllRoomRequest(page: Page, locale: Locale, origin 
   await expect(page.getByRole('heading', { name: t('review.title'), exact: true })).toBeVisible();
   // Sumarul arata suma in lei (nu RON, nu treapta) sau "Buget nedeclarat"
   await expect(page.getByText(budgetText, { exact: true })).toBeVisible();
-  for (const type of AUDIT_ROOM_TYPES) await expect(page.getByRole('heading', { name: t(`rooms.type.${type}`), exact: true })).toBeVisible();
-  await expect(page.getByText(t('review.roomIncomplete'), { exact: true })).toHaveCount(0);
-  return { locale, rooms: AUDIT_ROOM_TYPES.map((type) => ({ type, version: getFlow(type).version, questions: [...questions.get(type)!], answers: answers.get(type) })), images: [...images] };
 }
 
 export async function uploadSyntheticAuditPng(page: Page, locale: Locale) {
