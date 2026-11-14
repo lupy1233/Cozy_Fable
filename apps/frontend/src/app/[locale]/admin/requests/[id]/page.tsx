@@ -9,11 +9,10 @@ import type {
 } from '@marketplace/shared';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
-import { useEffect, useId, useState, type ReactNode } from 'react';
-import { Link, useRouter } from '@/i18n/routing';
+import { useId, useState, type ReactNode } from 'react';
+import { Link } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
-import { useMe } from '@/hooks/use-auth';
-import { useLoginRedirect } from '@/lib/use-login-redirect';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
 import { useAdminRequest, useCloseProject, useDismissProjectCase } from '@/hooks/use-admin';
 import { Badge, StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -46,17 +45,12 @@ export default function AdminRequestDetailPage() {
   const format = useFormatter();
   const params = useParams<{ id: string }>();
   const id = params.id;
-  const router = useRouter();
-  const me = useMe();
-  const toLogin = useLoginRedirect();
+  // f4: fara sesiune → login cu intoarcere; alt rol → ecranul de acces
+  const auth = useRequireAuth('ADMIN');
   const detail = useAdminRequest(id);
 
-  useEffect(() => {
-    if (me.isError) toLogin();
-    else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
-  }, [me.isError, me.data, router, toLogin]);
-
-  if (detail.isPending) return <SkeletonPage variant="detail" />;
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="ADMIN" />;
+  if (auth.status === 'loading' || detail.isPending) return <SkeletonPage variant="detail" />;
   if (detail.isError || !detail.data) {
     return (
       <EmptyState

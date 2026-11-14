@@ -1,4 +1,5 @@
 import { QuotePdfService } from './quote-pdf.service';
+import { quotePdfFile } from './quotes.controller';
 import { toQuoteDto } from './quote-dto.mapper';
 import { makeQuoteFull } from './quotes.test-fixtures';
 import { Prisma } from '@prisma/client';
@@ -16,7 +17,7 @@ const extra = {
 };
 
 function html(full: Any): string {
-  const service = new QuotePdfService({} as Any, {} as Any);
+  const service = new QuotePdfService({} as Any, {} as Any, {} as Any);
   const dto = toQuoteDto(full, new Map(), 5, Date.now(), 21);
   return (service as Any).buildHtml(dto, dto.versions[dto.versions.length - 1], extra);
 }
@@ -51,5 +52,39 @@ describe('QuotePdfService.buildHtml — rubrici structurate', () => {
     expect(out).toMatch(/TVA<\/td><td class="num">—/);
     expect(out).not.toContain('Total cu TVA');
     expect(out).not.toContain('Ce include proiectarea');
+  });
+});
+
+// g4 (etapa 7): Chrome lipsa / cazut → 503 DOCUMENT_RENDER_FAILED (JSON), alerta adminilor;
+// ruta pune tipul PDF doar pe raspunsul reusit.
+describe('QuotePdfService — randarea pica (g4)', () => {
+  function failing() {
+    const tx = { user: { findMany: jest.fn().mockResolvedValue([{ id: 'admin-1' }]) } };
+    const prisma: Any = { $transaction: jest.fn((fn: Any) => fn(tx)) };
+    const outbox: Any = { record: jest.fn().mockResolvedValue(undefined) };
+    const service = new QuotePdfService(prisma, {} as Any, outbox);
+    jest.spyOn(service as Any, 'getBrowser').mockRejectedValue(new Error('Could not find Chrome (ver. 149.0.7827.22)'));
+    jest.spyOn((service as Any).logger, 'warn').mockImplementation(() => undefined);
+    return { service, outbox };
+  }
+
+  it('Chrome lipsa → 503 cu cod propriu + clopotelul adminilor (o cheie pe zi)', async () => {
+    const { service, outbox } = failing();
+    await expect((service as Any).printPdf('<p>x</p>')).rejects.toMatchObject({
+      status: 503,
+      response: { code: 'DOCUMENT_RENDER_FAILED' },
+    });
+    expect(outbox.record).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.stringMatching(/^documents\.pdf_failed:\d{4}-\d{2}-\d{2}$/),
+      'documents.pdf_failed',
+      expect.objectContaining({ kind: 'quote' }),
+      ['admin-1'],
+    );
+  });
+
+  it('raspunsul reusit poarta tipul PDF si numele fisierului', () => {
+    const file = quotePdfFile(Buffer.from('%PDF'));
+    expect(file.getHeaders()).toMatchObject({ type: 'application/pdf', disposition: 'attachment; filename="oferta.pdf"' });
   });
 });

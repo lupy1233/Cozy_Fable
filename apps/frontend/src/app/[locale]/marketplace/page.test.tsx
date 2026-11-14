@@ -85,3 +85,13 @@ describe('marketplace list budget (b11)', () => {
     expect(slider()).toHaveValue('0');
   });
 });
+
+// b12: orasul nu se repeta ca judet; adresa exacta nu exista in lista (inainte de preluare)
+describe('marketplace list place (b12)', () => {
+  it('Bucharest / Bucharest shows once', () => {
+    state.items = [item({ city: 'București', county: 'București' })];
+    renderPage();
+    expect(screen.getByText('București')).toBeInTheDocument();
+    expect(screen.queryByText('București, București')).not.toBeInTheDocument();
+  });
+});

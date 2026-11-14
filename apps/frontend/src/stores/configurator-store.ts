@@ -16,6 +16,8 @@ import { createJSONStorage, persist, type StateStorage } from 'zustand/middlewar
 import { roomIssue } from '@/components/configurator/room-screens';
 import { CONFIGURATOR_STORAGE_KEY, editSessionKey, isAbandonedEditSnapshot } from './configurator-keys';
 import { prepareStudioTransfer, type StudioTransferResult } from './studio-transfer';
+import { piece3dOf, SNAPSHOT3D_STEP_ID, snapshot3dIds } from './snapshot3d';
+import { cleanupEditSnapshotFiles, discardEditUploads } from './edit-snapshot-files';
 
 // Stare wizard configurator. Conform STATE_CONVENTIONS Exemplul 1:
 // Zustand tine pasul curent + draftul local pre-submit + tokenul; RHF tine campurile
@@ -47,6 +49,16 @@ export interface RoomInstance {
   // d3 (PO d3-2): "Lungime aproximativa (m)" — doar in modul OWN_PROJECT (altfel se scoate);
   // camp optional in afara raspunsurilor, deci ciornele vechi raman valide fara migrare
   approxLengthM?: number;
+  // d4: amprenta configuratiei 3D (config3dKey) pentru care s-a facut imaginea din
+  // answers.snapshot3d. Alta amprenta / lipsa = imagine veche, se reface. Camp optional in
+  // afara raspunsurilor (ca approxLengthM): ciornele vechi raman valide fara migrare.
+  snapshot3dKey?: string;
+}
+
+// d4: captura PNG a scenei (doar in memorie) + amprenta configuratiei pe care o arata
+export interface Snapshot3dCapture {
+  dataUrl: string;
+  key: string;
 }
 
 export interface ContactPreferenceValue {
@@ -70,6 +82,8 @@ export interface DetailsValues {
   // normalizarea. "Proiectare cu plata" nu mai sta aici: e derivata din camere (b8).
   hasOwnProject: boolean;
   addressText: string;
+  // b12: "Bloc, scara, apartament" (optional) — ciornele vechi raman valide fara migrare
+  addressDetails?: string;
   county: string;
   city: string;
   // ISO2, implicit RO (F5, item 19)
@@ -115,12 +129,19 @@ interface ConfiguratorStore extends ConfiguratorSnapshot {
   transferStudio: (data: StudioDraftData) => StudioTransferResult;
   token: string | null;
   dimensionUnit: DimensionUnit;
-  // PNG-urile scenei 3D per camera (localId → dataURL), capturate in timp ce
-  // canvas-ul e montat si urcate ca attachment la publish (docs/10 R4).
-  // DOAR in memorie: nu se persista in localStorage si nu intra in snapshotul
-  // trimis serverului — ar umfla ambele peste orice cap rezonabil.
-  snapshots3d: Record<string, string>;
+  // PNG-urile scenei 3D per camera (localId → captura), facute in timp ce canvas-ul e
+  // montat (ecranul 3D sau desenarea ascunsa din Sumar). DOAR in memorie: nu se persista
+  // in localStorage si nu intra in snapshotul trimis serverului — ar umfla ambele.
+  // d4: ce rezista la reincarcare e fisierul urcat (answers.snapshot3d + snapshot3dKey).
+  snapshots3d: Record<string, Snapshot3dCapture>;
+  // captura primeste amprenta configuratiei de ACUM a camerei; camera fara piesa 3D → ignorata
   setSnapshot3d: (localId: string, dataUrl: string | null) => void;
+  // d4: fisierul urcat devine imaginea camerei (pentru configuratia `key`); intoarce id-urile
+  // vechi inlocuite (de sters de pe ciorna). Camera disparuta → null (fisierul nou e de sters).
+  setSnapshot3dFile: (localId: string, attachmentId: string, key: string) => string[] | null;
+  // d4: fisiere care nu mai apartin niciunei camere si n-au putut fi sterse acum (ex. imaginea
+  // 3D inlocuita); pe ciorna se sterg inainte de publicare, ca la camerele scoase (b6)
+  discardFiles: (ids: string[]) => void;
   setDimensionUnit: (unit: DimensionUnit) => void;
   setToken: (token: string) => void;
   setPhase: (phase: ConfiguratorPhase) => void;
@@ -242,10 +263,30 @@ export function keepApproxIfApplies(room: RoomInstance): RoomInstance {
   return copy;
 }
 
+// d4: amprenta imaginii 3D e text sau lipseste
+function withValidSnapshotKey(room: RoomInstance): RoomInstance {
+  if (room.snapshot3dKey === undefined || typeof room.snapshot3dKey === 'string') return room;
+  const copy = { ...room };
+  delete copy.snapshot3dKey;
+  return copy;
+}
+
 function normalizeInstances(rooms: RoomInstance[] | undefined): RoomInstance[] {
   return sortByRoomOrder(
-    (rooms ?? []).map((r) => keepApproxIfApplies(lockStudioNightstand({ ...r, flowVersion: r.flowVersion ?? 1 }))),
+    (rooms ?? []).map((r) => withValidSnapshotKey(keepApproxIfApplies(lockStudioNightstand({ ...r, flowVersion: r.flowVersion ?? 1 })))),
   );
+}
+
+// d4: la intrarea in editarea unei cereri publicate, imaginea 3D venita de pe server a fost
+// facuta la publicare pentru configuratia salvata atunci → primeste amprenta ei (altfel orice
+// editare ar reface-o). Ciorna noua nu are voie la asta: o imagine fara amprenta acolo poate fi
+// ramasa de la o publicare esuata, pentru o configuratie schimbata intre timp.
+export function adoptPublishedSnapshotKeys(rooms: RoomInstance[]): RoomInstance[] {
+  return rooms.map((room) => {
+    if (room.snapshot3dKey !== undefined || snapshot3dIds(room).length === 0) return room;
+    const piece = piece3dOf(room);
+    return piece ? { ...room, snapshot3dKey: piece.key } : room;
+  });
 }
 
 // Modul urmeaza bifele camerelor (PO g0-8): toate bifate = "Am nevoie de ajutor";
@@ -461,6 +502,8 @@ function normalizeDetails(details: Partial<DetailsValues> | undefined): Partial<
 // 'finished' = editare salvata, in asteptarea plecarii de pe pagina: nicio scriere.
 type StorageScope = { kind: 'new' } | { kind: 'edit'; requestId: string } | { kind: 'detached' } | { kind: 'finished' };
 let storageScope: StorageScope = { kind: 'new' };
+// d4/M2: true cat enterEditSession reia editarea din tab (nu e o intrare noua din cerere)
+let resumingEdit = false;
 
 // M2: "generatia" ciornei din store; creste la fiecare golire (reset: "Incepe una noua",
 // deconectare, intrarea / iesirea din editare). Un pas care scrie amanat (Date generale)
@@ -533,9 +576,37 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
       setSnapshot3d: (localId, dataUrl) =>
         set((s) => {
           const next = { ...s.snapshots3d };
-          if (dataUrl) next[localId] = dataUrl;
-          else delete next[localId];
+          const room = s.roomInstances.find((r) => r.localId === localId);
+          const piece = room ? piece3dOf({ ...room, needsDesignHelp: false }) : null;
+          if (dataUrl && piece) next[localId] = { dataUrl, key: piece.key };
+          else if (!dataUrl) delete next[localId];
+          else return s;
           return { snapshots3d: next };
+        }),
+      setSnapshot3dFile: (localId, attachmentId, key) => {
+        const room = get().roomInstances.find((r) => r.localId === localId);
+        if (!room) return null;
+        const previous = snapshot3dIds(room).filter((id) => id !== attachmentId);
+        set((s) => ({
+          roomInstances: s.roomInstances.map((r) => {
+            if (r.localId !== localId) return r;
+            let answers: AnswerMap = { ...r.answers, [SNAPSHOT3D_STEP_ID]: [attachmentId] };
+            try {
+              answers = pruneAnswers(getFlow(r.roomType, r.flowVersion), answers);
+            } catch {
+              // flux necunoscut: raspunsul ramane cum e
+            }
+            return { ...r, answers, snapshot3dKey: key };
+          }),
+          updatedAt: Date.now(),
+        }));
+        return previous;
+      },
+      discardFiles: (ids) =>
+        set((s) => {
+          const discarded = s.discardedFiles ?? [];
+          const added = ids.filter((id) => !discarded.includes(id));
+          return added.length > 0 ? { discardedFiles: [...discarded, ...added], updatedAt: Date.now() } : s;
         }),
       setDimensionUnit: (unit) => set({ dimensionUnit: unit }),
       setInspirationPhotos: (ids) =>
@@ -831,7 +902,20 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
       setDetails: (patch) =>
         set((s) => ({ details: { ...s.details, ...patch }, updatedAt: Date.now() })),
 
-      loadSnapshot: (snapshot) => set({ ...snapshot, ...normalizeSnapshot(snapshot) }),
+      loadSnapshot: (snapshot) => {
+        const normalized = normalizeSnapshot(snapshot);
+        // d4: in editare imaginea venita de pe server e a configuratiei publicate
+        const scope = storageScope;
+        if (scope.kind === 'edit' && normalized.roomInstances) {
+          normalized.roomInstances = adoptPublishedSnapshotKeys(normalized.roomInstances);
+          // M2: editarea construita din cererea salvata (nu reluata din tab): fisierele 3D
+          // ramase de la o editare anterioara si nefolosite de cererea salvata se sterg
+          if (!resumingEdit) {
+            cleanupEditSnapshotFiles(scope.requestId,new Set(normalized.roomInstances.flatMap((r) => snapshot3dIds(r))));
+          }
+        }
+        set({ ...snapshot, ...normalized });
+      },
 
       snapshot: () => {
         const s = get();
@@ -938,7 +1022,12 @@ export function enterEditSession(requestId: string): boolean {
   try {
     const state = (JSON.parse(raw) as { state?: ConfiguratorSnapshot }).state;
     if (!state || !Array.isArray(state.roomInstances)) return false;
-    useConfiguratorStore.getState().loadSnapshot(state);
+    resumingEdit = true;
+    try {
+      useConfiguratorStore.getState().loadSnapshot(state);
+    } finally {
+      resumingEdit = false;
+    }
     return true;
   } catch {
     return false;
@@ -956,6 +1045,9 @@ export const EDIT_RESUME_WINDOW_MS = 2000;
 let pendingDiscard: { requestId: string; timer: ReturnType<typeof setTimeout> | null } | null = null;
 
 function removeEditKey(requestId: string): void {
+  // M2: editarea se arunca → imaginile 3D urcate in ea (nesalvate) nu raman pe cerere. Dupa o
+  // salvare reusita lista a fost deja golita (raman doar fisierele nefolosite, de sters).
+  discardEditUploads(requestId);
   try {
     window.sessionStorage.removeItem(editSessionKey(requestId));
   } catch {

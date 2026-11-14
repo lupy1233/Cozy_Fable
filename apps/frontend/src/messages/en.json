@@ -1105,7 +1105,8 @@
       "ACTIVE": "Active",
       "IN_PROGRESS": "In progress",
       "DONE": "Completed",
-      "EXPIRED": "Expired"
+      "EXPIRED": "Expired",
+      "DRAFTS": "Drafts"
     },
     "tabEmpty": "No requests in this stage.",
     "status": "Status",
@@ -1137,7 +1138,8 @@
       "contactValue": "Value",
       "accountEmail": "Account email",
       "message": "Message for the companies",
-      "country": "Country"
+      "country": "Country",
+      "addressDetails": "Building, entrance, apartment"
     },
     "accountEmailLockedHint": "Your account email is always included as a contact channel. You can add extra email addresses or phone numbers.",
     "autoTitleLabel": "Title (generated automatically)",
@@ -1235,7 +1237,9 @@
       "tooManyContacts": "You can add at most 4 contact entries.",
       "tooManyPerChannel": "You can add at most 2 entries per channel.",
       "descriptionTooLong": "Message is too long.",
-      "budgetRequired": "Choose an amount or tick “I prefer not to share”."
+      "budgetRequired": "Choose an amount or tick “I prefer not to share”.",
+      "cityRequired": "Enter the city.",
+      "addressDetailsTooLong": "Building, entrance and apartment can have at most 100 characters."
     },
     "apiErrors": {
       "GEOCODING_FAILED": "We couldn't locate that address. Check it and try again.",
@@ -1273,7 +1277,12 @@
         "title": "We don't have partner companies working in your area yet.",
         "body": "The Cozy Home team has been notified and is looking for a company in your area. Your request stays published, and we'll let you know when a company claims it.",
         "reviewBody": "You can still publish your request: the Cozy Home team will be notified and will look for a company in your area. Your request stays published, and we'll let you know when a company claims it."
-      }
+      },
+      "contactsNoneNow": "No company has these details right now — only a company that claims your request receives them.",
+      "holderSees": "{company} sees your name, the contacts you chose and your full address.",
+      "holderWillSee": "{company} will see your name, the contacts you chose and your full address from the time shown.",
+      "pastAccess": "A company had access to your details until {date}.",
+      "pastAccessLabel": "Companies that had access to your details"
     },
     "tabsLabel": "Filter requests by stage",
     "searchLabel": "Search requests",
@@ -1380,7 +1389,35 @@
       "estimateLabel": "Estimate from answers",
       "belowEstimate": "Below the estimate from answers"
     },
-    "acceptedOn": "Accepted on"
+    "acceptedOn": "Accepted on",
+    "addressDetailsHint": "Optional. For example: bl. A2, sc. 1, ap. 14. Only firms that receive your contact details can see it.",
+    "backToRequest": "Back to the request",
+    "drafts": {
+      "empty": "You have no saved drafts.",
+      "untitled": "Unfinished request",
+      "savedAgo": "saved {time}",
+      "continue": "Continue",
+      "delete": "Delete",
+      "deleteTitle": "Delete the draft?",
+      "deleteBody": "The draft is deleted permanently, together with the files uploaded to it. You can't get it back.",
+      "deleted": "The draft was deleted.",
+      "continueLabel": "Continue draft: {draft}",
+      "deleteLabel": "Delete draft: {draft}",
+      "continueConfirm": "Continue the chosen draft",
+      "continuePending": "Opening…",
+      "replaceLocalBody": "You already have a request in progress in this browser. If you open the chosen draft, anything you did here that isn't saved to your account yet is lost from this device. Drafts saved to your account stay in the list."
+    },
+    "deleteDialog": {
+      "title": "Delete the request permanently?",
+      "permanent": "Deleting is permanent: the request can't be recovered or reposted.",
+      "offers": "Offers you received are cancelled and can no longer be accepted.",
+      "chats": "Conversations with companies become read-only.",
+      "credits": "Companies that claimed the request get their credits back.",
+      "confirm": "Delete permanently",
+      "cancel": "Cancel",
+      "pending": "Deleting…",
+      "done": "The request was deleted."
+    }
   },
   "Marketplace": {
     "title": "Marketplace",
@@ -1542,7 +1579,8 @@
       "PLAN_FEATURE_REQUIRED": "Your firm's subscription is active, but its plan does not include marketplace requests and claims. Choose a plan that includes them.",
       "REQUEST_NO_LONGER_CLAIMABLE": "This request can no longer be claimed: the places are taken or the client has already chosen.",
       "MANAGER_UNASSIGNED_CAP_REACHED": "You already have too many claims without a responsible person for the colleagues who are free. Assign them on their worksheets first, or pick a colleague for this request now.",
-      "RATE_LIMITED": "Too many attempts in a short time. Wait a minute and try again."
+      "RATE_LIMITED": "Too many attempts in a short time. Wait a minute and try again.",
+      "CLAIM_ROLE_NOT_ALLOWED": "Your account can’t claim requests. Requests are claimed by the owner, a manager or an employee with full access."
     },
     "accessBlocked": {
       "title": {
@@ -1602,7 +1640,10 @@
       "ruleGrace": "You can withdraw for free within the first {minutes}.",
       "ruleSla": "If you do not send the offer within the response deadline, the credits are consumed and the firm receives penalty points.",
       "rulesLink": "Rules for firms",
-      "deadline": "Response deadline if you claim now"
+      "deadline": "Response deadline if you claim now",
+      "roleBlocked": "Requests are claimed by the owner, a manager or an employee with full access.",
+      "costSource": "The cost comes from the client’s minimum estimated budget ({amount}; 1 credit = {creditValue}).",
+      "costSourceNoRate": "The cost comes from the client’s minimum estimated budget ({amount})."
     },
     "closedRequest": {
       "title": "This request is closed",
@@ -1636,7 +1677,9 @@
     "minBudget": "Minimum budget",
     "minBudgetAny": "Any",
     "minBudgetFrom": "from {amount}",
-    "minBudgetHint": "Once you set a minimum, requests without a stated budget are hidden."
+    "minBudgetHint": "Once you set a minimum, requests without a stated budget are hidden.",
+    "detailMetaClaimed": "published {when}",
+    "claimSuccessToast": "You claimed the request. This is where you write the offer and talk to the client."
   },
   "Chat": {
     "empty": "No messages yet. Write the first one.",
@@ -1650,6 +1693,16 @@
       "changeRequested": "The client asked for a change to the offer",
       "changeRequestedOn": "The client asked for a change to version {n}",
       "quoteDeclined": "The client declined the offer"
+    },
+    "counter": "{count} / {max} characters",
+    "unsentLabel": "Your unsent message (you can copy it):",
+    "errors": {
+      "tooLong": "The message is too long: you can write up to {max} characters. Shorten it to send it.",
+      "readOnly": "The message wasn't sent: the conversation was closed and is now read-only.",
+      "tooManyFiles": "You can attach up to {max} files to one message.",
+      "file": "Couldn't attach \"{name}\". {reason}",
+      "filePending": "The file is still being checked. Try attaching it again in a minute.",
+      "sendFailed": "The message couldn't be sent. Your text is still in the box, please try again."
     }
   },
   "Messages": {
@@ -1903,7 +1956,8 @@
       "ASSIGNED_USER_HAS_ACTIVE_CLAIM": "You can't withdraw this offer yet: the assigned member already has another claim without an offer. Send the offer on that claim or assign it to a colleague, then try again.",
       "QUOTE_VERSION_CHANGED": "The company has sent a new version of the offer. Check the new terms below and confirm again.",
       "QUOTE_WITHDRAW_SLA_ACK_REQUIRED": "The response deadline has passed, so withdrawing the offer closes the claim immediately. Confirm explicitly to continue.",
-      "QUOTE_NOT_DECLINABLE": "This offer can no longer be declined: it has since been accepted, withdrawn or has expired. Reload the page."
+      "QUOTE_NOT_DECLINABLE": "This offer can no longer be declined: it has since been accepted, withdrawn or has expired. Reload the page.",
+      "DOCUMENT_RENDER_FAILED": "We couldn’t generate the PDF right now. Please try again in a few minutes."
     },
     "acceptedOn": "Accepted on {date}",
     "expiredClientHint": "This offer has expired and can no longer be accepted. You can ask the company to extend it.",
@@ -1916,7 +1970,7 @@
     "confirm": {
       "withdrawTitle": "Withdraw the offer?",
       "withdrawBody": "The client no longer sees the offer and cannot accept it. The claim stays active, so you can send a new offer.",
-      "withdrawSlaOk": "The response deadline runs again: send a new offer by {date}, otherwise the claim expires and you lose {credits}.",
+      "withdrawSlaOk": "The response deadline runs again: send a new offer by {date}.",
       "withdrawSlaBreached": "The response deadline and grace period have passed ({date}). If you withdraw now, the claim expires immediately and you lose {credits}.",
       "slaMissPoints": "The firm also receives {points} of penalty.",
       "withdrawSlaPaused": "The response deadline is paused while you wait for the client's clarification.",
@@ -1934,7 +1988,11 @@
       "endNegBody": "The conversation becomes read-only for you and the client and cannot be reopened. The client can still accept an existing version or ask for an invitation to your premises.",
       "endNegCta": "Yes, end the negotiation",
       "cancel": "Back",
-      "pending": "Sending…"
+      "pending": "Sending…",
+      "withdrawSlaGrace": "After the deadline you still have {grace} of grace, until {date}.",
+      "withdrawSlaInGrace": "The response deadline has passed ({deadline}), but you are still in the grace period: send a new offer by {date}.",
+      "withdrawSlaRisk": "If you don’t send a new offer by then, the claim expires and you lose {credits}.",
+      "withdrawSlaRiskPoints": "If you don’t send a new offer by then, the claim expires, you lose {credits} and the company receives {points} of penalty."
     },
     "unreadFrom": "{company} wrote to you: {n, plural, =1 {one new message} other {# new messages}}",
     "journey": {
@@ -2059,7 +2117,10 @@
       "noReason": "The client didn't give a reason.",
       "clientNext": "The company has been told. The conversation with them is now read-only.",
       "companyNext": "The offer is closed and can no longer be changed."
-    }
+    },
+    "pdfFailed": "We couldn’t generate the PDF right now. Please try again in a few minutes.",
+    "pdfPending": "Preparing the PDF…",
+    "requestDeletedByClient": "The client deleted the request"
   },
   "Lifecycle": {
     "slaTitle": "SLA & status",
@@ -2477,7 +2538,8 @@
       "copy": "Copy",
       "copyAria": "Copy {label}",
       "copied": "Copied to clipboard",
-      "copyFailed": "Couldn't copy. Select the text manually."
+      "copyFailed": "Couldn't copy. Select the text manually.",
+      "emailedNoProforma": "You can download the proforma invoice here at any time."
     },
     "paymentSuccessToast": "Payment received. Credits or the subscription will appear in a few seconds.",
     "paymentCancelledToast": "Payment was not completed. You can resume anytime from your order history.",
@@ -2495,7 +2557,8 @@
       "COMPANY_SUSPENDED": "Your company is currently suspended.",
       "COMPANY_NOT_APPROVED": "Your company hasn't been approved yet.",
       "PLAN_NOT_PURCHASABLE": "This plan cannot be bought online; the platform administrator activates it.",
-      "CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION": "Credits can be bought only with an active subscription. Reactivate your subscription, then choose a package."
+      "CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION": "Credits can be bought only with an active subscription. Reactivate your subscription, then choose a package.",
+      "DOCUMENT_RENDER_FAILED": "We couldn’t generate the PDF document right now. Please try again in a few minutes."
     },
     "rulesNotice": "How credits are reserved, consumed and refunded: <rules>Rules for firms</rules>.",
     "testMode": {
@@ -3705,7 +3768,8 @@
         "status_changed": "Request status changed",
         "expired": "Your request expired",
         "expiry_reminder": "Your request expires soon",
-        "no_coverage": "New request with no company in the area — find a company"
+        "no_coverage": "New request with no company in the area — find a company",
+        "company_withdrew": "A company stepped back — your request is available to other companies again"
       },
       "claim": {
         "created": "Request claimed by a company",
@@ -3777,6 +3841,9 @@
       },
       "execution": {
         "stage_updated": "The company ticked a project stage"
+      },
+      "documents": {
+        "pdf_failed": "PDF documents (offers, proformas, invoices) can’t be generated — check the server log"
       }
     },
     "stageUpdated": {
@@ -4081,7 +4148,13 @@
       "editSavedToast": "Your changes have been saved.",
       "cleanupFailed": "We could not remove the files of the deleted room. Please try again.",
       "cleanupRetry": "Try again",
-      "filesLeftWarning": "Your changes have been saved, but some files of the removed rooms are still on the request. You can remove them while editing, at the Files step."
+      "filesLeftWarning": "Your changes have been saved, but some files of the removed rooms are still on the request. You can remove them while editing, at the Files step.",
+      "snapshot3d": {
+        "alt": "3D picture of the piece: {room}",
+        "caption": "This is how companies see the configured piece.",
+        "working": "Preparing the 3D picture of the piece…",
+        "failed": "We couldn't make the 3D picture of the piece on this device. You can publish without it: companies see all your measurements and choices."
+      }
     },
     "inspirationPicker": {
       "title": "Gallery inspiration",
@@ -4339,7 +4412,8 @@
         "name": "Write a name for the piece, at least 2 characters.",
         "opening": "Choose how the piece opens: Handle, Push, “Not sure” or “No doors or drawers”.",
         "wholeCm": "Write a whole number of centimetres."
-      }
+      },
+      "firmDecidesShort": "Firm decides"
     },
     "apiErrors": {
       "CONFIGURATOR_ANSWERS_INVALID": "Some answers couldn't be validated. Check the highlighted steps.",
@@ -7355,7 +7429,9 @@
       "savedAt": "Draft saved at {time}",
       "saving": "Saving draft…",
       "localOnly": "Draft saved on this device only",
-      "retry": "Try again"
+      "retry": "Try again",
+      "continuedElsewhere": "This draft was continued on another device, so changes here are no longer saved. What you wrote stays on screen. Open it from “My requests” → “Drafts”.",
+      "openMyDrafts": "Go to “My requests”"
     },
     "edit": {
       "backToRequest": "Back to request",
@@ -7667,5 +7743,19 @@
     "reference": "Reference: {id}",
     "retry": "Try again",
     "home": "Back home"
+  },
+  "Access": {
+    "onlyFor": {
+      "CLIENT": "This page is for clients only",
+      "COMPANY_USER": "This page is for companies only",
+      "ADMIN": "This page is for administrators only"
+    },
+    "wrongAccountHint": "You're signed in with an account that can't open this page. If the link was meant for another account, sign in with that one and you'll come straight back here.",
+    "toDashboard": "Go to dashboard",
+    "switchAccount": "Sign in with another account",
+    "requestNotYours": "This request doesn't exist or isn't yours",
+    "requestNotYoursHint": "It may have been deleted, or the link is for another account.",
+    "claimNotYours": "This claim doesn't exist or doesn't belong to your company",
+    "claimNotYoursHint": "It may have been deleted, or the link is for another company account."
   }
 }

@@ -102,7 +102,8 @@ export class LegalService {
           Number.isFinite(retentionRaw) && retentionRaw >= 0
             ? retentionRaw
             : SETTING_DEFAULTS.completed_claim_contact_retention_days,
-        claimCost: { min: cost.min, max: cost.max },
+        // a7: + valoarea unui credit (randul "1 credit = Y lei" din panoul de preluare)
+        claimCost: { min: cost.min, max: cost.max, creditValueRon: cost.creditValueRon },
       },
       sla: {
         workingDays: { ...SLA_DAYS },

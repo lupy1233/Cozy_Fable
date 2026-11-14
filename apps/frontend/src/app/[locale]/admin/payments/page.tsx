@@ -2,9 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
-import { useRouter } from '@/i18n/routing';
-import { useMe } from '@/hooks/use-auth';
-import { useLoginRedirect } from '@/lib/use-login-redirect';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
 import { PageHeader } from '@/components/ui/page-header';
 import { SkeletonPage } from '@/components/ui/skeleton';
 import { Tabs } from '@/components/ui/tabs';
@@ -24,18 +22,12 @@ const isZone = (value: string): value is Zone => (ZONES as readonly string[]).in
 // confirmarea manuala e DOAR pentru transfer bancar (comenzi PENDING fara sesiune Stripe).
 export default function AdminPaymentsPage() {
   const t = useTranslations('AdminPayments');
-  const router = useRouter();
-  const me = useMe();
-  const toLogin = useLoginRedirect();
+  // f4: fara sesiune → login cu intoarcere; alt rol → ecranul de acces
+  const auth = useRequireAuth('ADMIN');
   const [zone, setZone] = useState<Zone>('orders');
   // filtrele zonei „Comenzi” stau aici ca rezumatul e-Factura sa poata deschide lista „de raportat”
   const [status, setStatus] = useState<OrderStatusFilter>('PENDING');
   const [eInvoiceOnly, setEInvoiceOnly] = useState(false);
-
-  useEffect(() => {
-    if (me.isError) toLogin();
-    else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
-  }, [me.isError, me.data, router, toLogin]);
 
   // zona curenta se tine si in #hash (link direct, ex. /admin/payments#subscriptions)
   useEffect(() => {
@@ -48,7 +40,8 @@ export default function AdminPaymentsPage() {
     return () => window.removeEventListener('hashchange', fromHash);
   }, []);
 
-  if (me.isPending) return <SkeletonPage variant="table" />;
+  if (auth.status === 'loading') return <SkeletonPage variant="table" />;
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="ADMIN" />;
 
   const changeZone = (next: Zone) => {
     setZone(next);

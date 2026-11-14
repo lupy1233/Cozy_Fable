@@ -648,6 +648,9 @@ model Request {
   includesPaidDesign Boolean       @default(false) @map("includes_paid_design")
   hasOwnProject      Boolean       @default(false) @map("has_own_project")
   addressText        String?       @map("address_text")
+  // b12: "Bloc, scara, apartament" — separat de strada, ca alegerea unei sugestii sa nu-l stearga;
+  // adresa exacta ca addressText (firmele il vad doar cu acces la contacte). NULL la cererile vechi.
+  addressDetails     String?       @map("address_details") @db.VarChar(100)
   county             String?
   city               String?
   // ISO2, implicit RO — livram si international (F5, item 19)
@@ -1605,6 +1608,9 @@ model MockBillingOrder {
   // momentul reminderului de plata (trimis o singura data)
   paymentClaimedAt       DateTime?  @map("payment_claimed_at") @db.Timestamptz()
   transferReminderSentAt DateTime?  @map("transfer_reminder_sent_at") @db.Timestamptz()
+  // g4 (etapa 7): primul e-mail cu proforma ATASATA chiar a plecat; null = nu (inca) sau comanda
+  // veche → pagina nu promite proforma pe e-mail, indeamna la descarcare
+  proformaEmailedAt      DateTime?  @map("proforma_emailed_at") @db.Timestamptz()
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 

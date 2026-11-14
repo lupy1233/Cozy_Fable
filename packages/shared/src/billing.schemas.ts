@@ -157,6 +157,9 @@ export interface BillingOrderDto {
   // Chitantele de idempotenta vechi nu au campurile — FE trateaza undefined ca null.
   paymentClaimedAt: string | null;
   transferExpiresAt: string | null;
+  // g4 (etapa 7): primul e-mail cu proforma ATASATA a plecat; null/undefined (comanda sau
+  // chitanta veche) = pagina nu promite proforma pe e-mail
+  proformaEmailedAt?: string | null;
 }
 
 // Raspunsul la purchase / checkout: comanda + URL-ul Stripe Checkout (null = Stripe dezactivat,

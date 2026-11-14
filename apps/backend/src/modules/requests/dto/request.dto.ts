@@ -20,6 +20,7 @@ import {
 } from 'class-validator';
 import { BudgetRange, ContactChannel, DesiredDeadlineBucket, RoomType } from '@prisma/client';
 import {
+  ADDRESS_DETAILS_MAX,
   APPROX_LENGTH_MAX_M,
   APPROX_LENGTH_MIN_M,
   BUDGET_SLIDER_STEP_RON,
@@ -140,14 +141,22 @@ export class CreateRequestContentDto {
   @MaxLength(300)
   addressText: string;
 
+  // b12: "Bloc, scara, apartament" (optional), separat de strada
+  @IsOptional()
+  @IsString()
+  @MaxLength(ADDRESS_DETAILS_MAX)
+  addressDetails?: string;
+
   @IsString()
   @MinLength(2)
   @MaxLength(100)
   county: string;
 
+  // b12 (din b9): un oras doar din spatii nu trece (MinLength numara si spatiile)
   @IsString()
   @MinLength(2)
   @MaxLength(100)
+  @Matches(/\S/)
   city: string;
 
   // ISO2 (F5, item 19) — optional, serverul pune implicit RO
@@ -231,6 +240,12 @@ export class PatchDraftDto {
   @IsString()
   @MaxLength(300)
   addressText?: string;
+
+  // b12: "Bloc, scara, apartament"
+  @IsOptional()
+  @IsString()
+  @MaxLength(ADDRESS_DETAILS_MAX)
+  addressDetails?: string;
 
   @IsOptional()
   @IsString()

@@ -1105,7 +1105,8 @@
       "ACTIVE": "Active",
       "IN_PROGRESS": "În lucru",
       "DONE": "Finalizate",
-      "EXPIRED": "Expirate"
+      "EXPIRED": "Expirate",
+      "DRAFTS": "Ciorne"
     },
     "tabEmpty": "Nicio cerere în acest stadiu.",
     "status": "Status",
@@ -1137,7 +1138,8 @@
       "contactValue": "Valoare",
       "accountEmail": "Emailul contului",
       "message": "Mesaj pentru firme",
-      "country": "Țară"
+      "country": "Țară",
+      "addressDetails": "Bloc, scară, apartament"
     },
     "accountEmailLockedHint": "Emailul contului este inclus automat drept canal de contact. Dacă vrei, adaugă și alte adrese de email sau numere de telefon.",
     "autoTitleLabel": "Titlu (generat automat)",
@@ -1235,7 +1237,9 @@
       "tooManyContacts": "Poți adăuga cel mult 4 intrări de contact.",
       "tooManyPerChannel": "Poți adăuga cel mult 2 intrări per canal.",
       "descriptionTooLong": "Mesajul este prea lung.",
-      "budgetRequired": "Alege o sumă sau bifează „Prefer să nu spun”."
+      "budgetRequired": "Alege o sumă sau bifează „Prefer să nu spun”.",
+      "cityRequired": "Completează orașul.",
+      "addressDetailsTooLong": "Blocul, scara și apartamentul pot avea cel mult 100 de caractere."
     },
     "apiErrors": {
       "GEOCODING_FAILED": "Nu am putut localiza adresa. Verific-o și încearcă din nou.",
@@ -1273,7 +1277,12 @@
         "title": "Momentan nu avem firme partenere care lucrează în zona ta.",
         "body": "Echipa Cozy Home a fost anunțată și caută o firmă pentru zona ta. Cererea rămâne publicată, iar când o firmă o preia, te anunțăm.",
         "reviewBody": "Poți publica cererea: echipa Cozy Home va fi anunțată și va căuta o firmă pentru zona ta. Cererea rămâne publicată, iar când o firmă o preia, te anunțăm."
-      }
+      },
+      "contactsNoneNow": "Acum nicio firmă nu are aceste date — le primește doar firma care preia cererea.",
+      "holderSees": "{company} îți vede numele, contactele alese și adresa completă.",
+      "holderWillSee": "{company} îți va vedea numele, contactele alese și adresa completă de la ora afișată.",
+      "pastAccess": "O firmă a avut acces la datele tale până pe {date}.",
+      "pastAccessLabel": "Firme care au avut acces la datele tale"
     },
     "tabsLabel": "Filtrează cererile după stadiu",
     "searchLabel": "Caută o cerere",
@@ -1380,7 +1389,35 @@
       "estimateLabel": "Estimare din răspunsuri",
       "belowEstimate": "Sub estimarea din răspunsuri"
     },
-    "acceptedOn": "Acceptată pe"
+    "acceptedOn": "Acceptată pe",
+    "addressDetailsHint": "Opțional. De exemplu: bl. A2, sc. 1, ap. 14. Îl văd doar firmele care primesc datele tale de contact.",
+    "backToRequest": "Înapoi la cerere",
+    "drafts": {
+      "empty": "Nu ai nicio ciornă salvată.",
+      "untitled": "Cerere neterminată",
+      "savedAgo": "salvată {time}",
+      "continue": "Continuă",
+      "delete": "Șterge",
+      "deleteTitle": "Ștergi ciorna?",
+      "deleteBody": "Ciorna se șterge definitiv, împreună cu fișierele încărcate în ea. Nu o mai poți recupera.",
+      "deleted": "Ciorna a fost ștearsă.",
+      "continueLabel": "Continuă ciorna: {draft}",
+      "deleteLabel": "Șterge ciorna: {draft}",
+      "continueConfirm": "Continuă ciorna aleasă",
+      "continuePending": "Se deschide…",
+      "replaceLocalBody": "În acest browser ai deja o cerere începută. Dacă deschizi ciorna aleasă, ce ai lucrat aici și nu s-a salvat încă în cont se pierde de pe acest dispozitiv. Ciornele salvate în cont rămân în listă."
+    },
+    "deleteDialog": {
+      "title": "Ștergi definitiv cererea?",
+      "permanent": "Ștergerea este definitivă: cererea nu mai poate fi recuperată sau republicată.",
+      "offers": "Ofertele primite se anulează și nu mai pot fi acceptate.",
+      "chats": "Conversațiile cu firmele rămân doar pentru citit.",
+      "credits": "Firmele care au preluat cererea își primesc creditele înapoi.",
+      "confirm": "Șterge definitiv",
+      "cancel": "Renunță",
+      "pending": "Se șterge…",
+      "done": "Cererea a fost ștearsă."
+    }
   },
   "Marketplace": {
     "title": "Marketplace",
@@ -1542,7 +1579,8 @@
       "PLAN_FEATURE_REQUIRED": "Abonamentul firmei tale este activ, dar planul nu include cererile din marketplace și preluările. Alege un plan care le include.",
       "REQUEST_NO_LONGER_CLAIMABLE": "Cererea nu mai poate fi preluată: locurile s-au ocupat sau clientul a ales deja.",
       "MANAGER_UNASSIGNED_CAP_REACHED": "Ai deja prea multe preluări fără responsabil față de colegii liberi. Atribuie-le întâi din fișele de lucru sau alege acum un coleg pentru această cerere.",
-      "RATE_LIMITED": "Prea multe încercări într-un timp scurt. Așteaptă un minut și încearcă din nou."
+      "RATE_LIMITED": "Prea multe încercări într-un timp scurt. Așteaptă un minut și încearcă din nou.",
+      "CLAIM_ROLE_NOT_ALLOWED": "Contul tău nu poate prelua cereri. Preluarea o face proprietarul, un manager sau un angajat cu acces complet."
     },
     "accessBlocked": {
       "title": {
@@ -1602,7 +1640,10 @@
       "ruleGrace": "Te poți retrage gratuit în primele {minutes}.",
       "ruleSla": "Dacă nu trimiți oferta în termenul de răspuns, creditele se consumă și firma primește puncte de penalizare.",
       "rulesLink": "Regulile pentru firme",
-      "deadline": "Termen de răspuns dacă preiei acum"
+      "deadline": "Termen de răspuns dacă preiei acum",
+      "roleBlocked": "Preluarea o face proprietarul, un manager sau un angajat cu acces complet.",
+      "costSource": "Costul vine din bugetul minim estimat de client ({amount}; 1 credit = {creditValue}).",
+      "costSourceNoRate": "Costul vine din bugetul minim estimat de client ({amount})."
     },
     "closedRequest": {
       "title": "Cererea s-a închis",
@@ -1636,7 +1677,9 @@
     "minBudget": "Buget minim",
     "minBudgetAny": "Oricare",
     "minBudgetFrom": "de la {amount}",
-    "minBudgetHint": "Cu un minim ales, cererile fără buget declarat nu mai apar."
+    "minBudgetHint": "Cu un minim ales, cererile fără buget declarat nu mai apar.",
+    "detailMetaClaimed": "publicată {when}",
+    "claimSuccessToast": "Ai preluat cererea. Aici scrii oferta și vorbești cu clientul."
   },
   "Chat": {
     "empty": "Niciun mesaj încă. Scrie primul.",
@@ -1650,6 +1693,16 @@
       "changeRequested": "Clientul a cerut o modificare a ofertei",
       "changeRequestedOn": "Clientul a cerut o modificare la versiunea {n}",
       "quoteDeclined": "Clientul a refuzat oferta"
+    },
+    "counter": "{count} / {max} caractere",
+    "unsentLabel": "Mesajul tău netrimis (îl poți copia):",
+    "errors": {
+      "tooLong": "Mesajul e prea lung: poți scrie cel mult {max} de caractere. Scurtează-l ca să-l poți trimite.",
+      "readOnly": "Mesajul nu a plecat: conversația a fost închisă și acum e doar pentru citit.",
+      "tooManyFiles": "Poți atașa cel mult {max} fișiere la un mesaj.",
+      "file": "Nu am putut atașa „{name}”. {reason}",
+      "filePending": "Fișierul încă se verifică. Încearcă să-l atașezi din nou peste un minut.",
+      "sendFailed": "Mesajul nu a putut fi trimis. Textul a rămas în câmp, încearcă din nou."
     }
   },
   "Messages": {
@@ -1903,7 +1956,8 @@
       "ASSIGNED_USER_HAS_ACTIVE_CLAIM": "Nu poți retrage oferta acum: membrul atribuit are deja o altă preluare fără ofertă. Trimite oferta pe acea preluare sau atribuie-o altui coleg, apoi încearcă din nou.",
       "QUOTE_VERSION_CHANGED": "Firma a trimis o versiune nouă a ofertei. Verifică noile condiții de mai jos și confirmă din nou.",
       "QUOTE_WITHDRAW_SLA_ACK_REQUIRED": "Termenul de răspuns a trecut, așa că retragerea ofertei închide imediat preluarea. Confirmă explicit ca să continui.",
-      "QUOTE_NOT_DECLINABLE": "Oferta nu mai poate fi refuzată: între timp a fost acceptată, retrasă sau a expirat. Reîncarcă pagina."
+      "QUOTE_NOT_DECLINABLE": "Oferta nu mai poate fi refuzată: între timp a fost acceptată, retrasă sau a expirat. Reîncarcă pagina.",
+      "DOCUMENT_RENDER_FAILED": "Nu am putut genera PDF-ul acum. Încearcă din nou peste câteva minute."
     },
     "acceptedOn": "Acceptată pe {date}",
     "expiredClientHint": "Oferta a expirat și nu mai poate fi acceptată. Poți cere firmei să o prelungească.",
@@ -1916,7 +1970,7 @@
     "confirm": {
       "withdrawTitle": "Retragi oferta?",
       "withdrawBody": "Clientul nu mai vede oferta și nu o mai poate accepta. Preluarea rămâne activă, deci poți trimite o ofertă nouă.",
-      "withdrawSlaOk": "Termenul de răspuns curge din nou: trimite o ofertă nouă până la {date}, altfel preluarea expiră și pierzi {credits}.",
+      "withdrawSlaOk": "Termenul de răspuns curge din nou: trimite o ofertă nouă până la {date}.",
       "withdrawSlaBreached": "Termenul de răspuns și perioada de grație au trecut ({date}). Dacă retragi acum, preluarea expiră imediat și pierzi {credits}.",
       "slaMissPoints": "Firma primește și {points} de penalizare.",
       "withdrawSlaPaused": "Termenul de răspuns e în pauză cât timp aștepți răspunsul clientului la clarificare.",
@@ -1934,7 +1988,11 @@
       "endNegBody": "Conversația devine doar pentru citire pentru tine și pentru client și nu o mai poți redeschide. Clientul poate totuși accepta o variantă existentă sau poate cere o invitație la sediu.",
       "endNegCta": "Da, închei negocierea",
       "cancel": "Înapoi",
-      "pending": "Se trimite…"
+      "pending": "Se trimite…",
+      "withdrawSlaGrace": "După termen mai ai {grace} de grație, până la {date}.",
+      "withdrawSlaInGrace": "Termenul de răspuns a trecut ({deadline}), dar ești încă în perioada de grație: trimite o ofertă nouă până la {date}.",
+      "withdrawSlaRisk": "Dacă nu trimiți o ofertă nouă până atunci, preluarea expiră și pierzi {credits}.",
+      "withdrawSlaRiskPoints": "Dacă nu trimiți o ofertă nouă până atunci, preluarea expiră, pierzi {credits} și firma primește {points} de penalizare."
     },
     "unreadFrom": "{company} ți-a scris: {n, plural, =1 {un mesaj nou} other {# mesaje noi}}",
     "journey": {
@@ -2059,7 +2117,10 @@
       "noReason": "Clientul nu a spus motivul.",
       "clientNext": "Firma a fost anunțată. Conversația cu ea rămâne doar de citit.",
       "companyNext": "Oferta s-a închis și nu mai poate fi schimbată."
-    }
+    },
+    "pdfFailed": "Nu am putut genera PDF-ul acum. Încearcă din nou peste câteva minute.",
+    "pdfPending": "Se pregătește PDF-ul…",
+    "requestDeletedByClient": "Cererea a fost ștearsă de client"
   },
   "Lifecycle": {
     "slaTitle": "SLA și stare",
@@ -2477,7 +2538,8 @@
       "copy": "Copiază",
       "copyAria": "Copiază {label}",
       "copied": "Copiat în clipboard",
-      "copyFailed": "Nu am putut copia. Selectează textul manual."
+      "copyFailed": "Nu am putut copia. Selectează textul manual.",
+      "emailedNoProforma": "Factura proformă o poți descărca oricând de aici."
     },
     "paymentSuccessToast": "Plata a fost înregistrată. Creditele sau abonamentul apar în câteva secunde.",
     "paymentCancelledToast": "Plata nu a fost finalizată. Poți relua oricând din istoricul comenzilor.",
@@ -2495,7 +2557,8 @@
       "COMPANY_SUSPENDED": "Firma ta este momentan suspendată.",
       "COMPANY_NOT_APPROVED": "Firma ta nu a fost încă aprobată.",
       "PLAN_NOT_PURCHASABLE": "Acest plan nu se cumpără online; îl activează administratorul platformei.",
-      "CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION": "Creditele se pot cumpăra doar cu abonament activ. Reactivează abonamentul, apoi alege pachetul."
+      "CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION": "Creditele se pot cumpăra doar cu abonament activ. Reactivează abonamentul, apoi alege pachetul.",
+      "DOCUMENT_RENDER_FAILED": "Nu am putut genera documentul PDF acum. Încearcă din nou peste câteva minute."
     },
     "rulesNotice": "Cum se rezervă, se consumă și se restituie creditele: <rules>Regulile pentru firme</rules>.",
     "testMode": {
@@ -3705,7 +3768,8 @@
         "status_changed": "Statusul cererii s-a schimbat",
         "expired": "Cererea ta a expirat",
         "expiry_reminder": "Cererea ta expiră curând",
-        "no_coverage": "Cerere nouă fără nicio firmă în zonă — caută o firmă"
+        "no_coverage": "Cerere nouă fără nicio firmă în zonă — caută o firmă",
+        "company_withdrew": "O firmă a renunțat — cererea e din nou disponibilă pentru alte firme"
       },
       "claim": {
         "created": "Cerere preluată de o firmă",
@@ -3777,6 +3841,9 @@
       },
       "execution": {
         "stage_updated": "Firma a bifat o etapă a proiectului"
+      },
+      "documents": {
+        "pdf_failed": "Documentele PDF (oferte, proforme, facturi) nu se pot genera — verifică jurnalul serverului"
       }
     },
     "stageUpdated": {
@@ -4081,7 +4148,13 @@
       "editSavedToast": "Modificările au fost salvate.",
       "cleanupFailed": "Nu am putut scoate fișierele camerei șterse. Încearcă din nou.",
       "cleanupRetry": "Încearcă din nou",
-      "filesLeftWarning": "Modificările au fost salvate, dar unele fișiere ale camerelor scoase au rămas pe cerere. Le poți scoate din editare, la pasul Fișiere."
+      "filesLeftWarning": "Modificările au fost salvate, dar unele fișiere ale camerelor scoase au rămas pe cerere. Le poți scoate din editare, la pasul Fișiere.",
+      "snapshot3d": {
+        "alt": "Imaginea 3D a piesei: {room}",
+        "caption": "Așa văd firmele piesa configurată.",
+        "working": "Pregătim imaginea 3D a piesei…",
+        "failed": "Nu am putut face imaginea 3D a piesei pe acest dispozitiv. Poți publica și fără ea: firmele văd toate măsurile și alegerile tale."
+      }
     },
     "inspirationPicker": {
       "title": "Inspirație din galerie",
@@ -4339,7 +4412,8 @@
         "name": "Scrie un nume pentru piesă, de cel puțin 2 caractere.",
         "opening": "Alege cum se deschide piesa: Mâner, Push, „Nu știu” sau „Fără uși sau sertare”.",
         "wholeCm": "Scrie un număr întreg de centimetri."
-      }
+      },
+      "firmDecidesShort": "Decide firma"
     },
     "apiErrors": {
       "CONFIGURATOR_ANSWERS_INVALID": "Unele răspunsuri nu au putut fi validate. Verifică pașii marcați.",
@@ -5904,7 +5978,7 @@
               "description": "Geci de sezon, aspirator, mărunțișuri"
             },
             "BENCH": {
-              "label": "Bancuță",
+              "label": "Băncuță",
               "description": "Te încalți așezat, nu într-un picior"
             },
             "MIRROR": {
@@ -5952,7 +6026,7 @@
             "shoeCabinetWidth": "Lățime pantofar",
             "coatUnitWidth": "Lățime cuier/panou",
             "wardrobeWidth": "Lățime dulap",
-            "benchWidth": "Lățime bancuță",
+            "benchWidth": "Lățime băncuță",
             "mirrorWidth": "Lățime oglindă"
           }
         },
@@ -5975,10 +6049,10 @@
           "title": "Deschidere — dulap"
         },
         "materialBench": {
-          "title": "Material — bancuță"
+          "title": "Material — băncuță"
         },
         "systemsBench": {
-          "title": "Deschidere — bancuță"
+          "title": "Deschidere — băncuță"
         },
         "materialMirror": {
           "title": "Material — oglindă"
@@ -7355,7 +7429,9 @@
       "savedAt": "Ciornă salvată la {time}",
       "saving": "Se salvează ciorna…",
       "localOnly": "Ciornă salvată doar pe acest dispozitiv",
-      "retry": "Reîncearcă"
+      "retry": "Reîncearcă",
+      "continuedElsewhere": "Ciorna a fost continuată pe alt dispozitiv, așa că modificările de aici nu se mai salvează. Ce ai scris rămâne pe ecran. Deschide-o din „Cererile mele” → „Ciorne”.",
+      "openMyDrafts": "Mergi la „Cererile mele”"
     },
     "edit": {
       "backToRequest": "Înapoi la cerere",
@@ -7667,5 +7743,19 @@
     "reference": "Referință: {id}",
     "retry": "Încearcă din nou",
     "home": "Înapoi acasă"
+  },
+  "Access": {
+    "onlyFor": {
+      "CLIENT": "Pagina e doar pentru clienți",
+      "COMPANY_USER": "Pagina e doar pentru firme",
+      "ADMIN": "Pagina e doar pentru administratori"
+    },
+    "wrongAccountHint": "Ești conectat cu un cont care nu are acces aici. Dacă linkul era pentru alt cont, intră cu acela și revii direct pe pagina asta.",
+    "toDashboard": "Mergi la Panou",
+    "switchAccount": "Intră cu alt cont",
+    "requestNotYours": "Cererea nu există sau nu e a ta",
+    "requestNotYoursHint": "Poate a fost ștearsă sau linkul e pentru alt cont.",
+    "claimNotYours": "Preluarea nu există sau nu e a firmei tale",
+    "claimNotYoursHint": "Poate a fost ștearsă sau linkul e pentru alt cont de firmă."
   }
 }

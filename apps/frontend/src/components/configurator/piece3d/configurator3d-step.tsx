@@ -61,6 +61,8 @@ import { PieceCanvas, zoneKey, type SnapshotFn, type ZoneRef } from './piece-can
 import { FurnitureControls } from './furniture-controls';
 import { CatalogControls } from './catalog-controls';
 import { useCabinetFronts } from './use-cabinet-fronts';
+import { Snapshot3dAutoUpload } from '../snapshot3d-sync';
+import { stableKey } from '@/stores/snapshot3d';
 
 // Step-ul configurator-3d (R2/R3): model 3D live + controale directe.
 // D-3D-2 (aprobat): 3D si "campurile clasice" COEXISTA ca doua moduri de UI
@@ -92,19 +94,8 @@ const cm = (v: number) => Math.round(v * 100);
 // cm cu o zecimala (precizie mm) pentru campurile editabile: 40,5 ramane 40,5 (b1)
 const cmExact = (v: number) => Math.round(v * 1000) / 10;
 
-// b7: cheie de comparatie independenta de ordinea cheilor (raspunsul salvat
-// poate trece prin validare / store, care pot reordona campurile)
-function stableKey(value: unknown): string {
-  return JSON.stringify(value, (_key, v: unknown) =>
-    v && typeof v === 'object' && !Array.isArray(v)
-      ? Object.fromEntries(
-          Object.entries(v as Record<string, unknown>)
-            .filter(([, x]) => x !== undefined)
-            .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
-        )
-      : v,
-  );
-}
+// b7: stableKey (din stores/snapshot3d) = cheie de comparatie independenta de ordinea
+// cheilor (raspunsul salvat poate trece prin validare / store, care pot reordona campurile)
 
 // optiunile de interior pentru zonele usa/deschis (undefined = gol)
 const FILL_OPTIONS: (Piece3dZoneFill | undefined)[] = [undefined, 'SHELVES', 'HANGING'];
@@ -389,7 +380,14 @@ function ZoneCountInput({
 }
 
 export default function Configurator3dStepUI(props: Configurator3dStepUIProps) {
-  return isFurnitureKind(props.piece) ? <FurnitureControls {...props} /> : <CabinetControls {...props} />;
+  return (
+    <>
+      {isFurnitureKind(props.piece) ? <FurnitureControls {...props} /> : <CabinetControls {...props} />}
+      {/* d4: in formular (onSnapshot dat) imaginea urca imediat ca fisier al ciornei; montat
+          dupa controale, ca la iesirea de pe ecran sa gaseasca si captura facuta atunci */}
+      {props.onSnapshot && <Snapshot3dAutoUpload />}
+    </>
+  );
 }
 
 function CabinetControls({
@@ -447,13 +445,29 @@ function CabinetControls({
   );
 
   // snapshot PNG debounced dupa fiecare schimbare (R4); doar in modul 3D
+  // d4: o captura inca neluata cand clientul paraseste ecranul se ia la iesire (altfel
+  // "Continua" apasat repede lasa piesa fara imagine)
+  const capturePending = useRef(false);
+  const onSnapshotRef = useRef(onSnapshot);
+  onSnapshotRef.current = onSnapshot;
   useEffect(() => {
-    if (!config || !onSnapshot || mode !== '3d') return;
+    if (!config || !onSnapshot || mode !== '3d') {
+      capturePending.current = false;
+      return;
+    }
+    capturePending.current = true;
     const timer = setTimeout(() => {
+      capturePending.current = false;
       onSnapshot(snapshotFn.current ? snapshotFn.current() : null);
     }, 800);
     return () => clearTimeout(timer);
   }, [config, mode, onSnapshot]);
+  useEffect(() => () => {
+    if (!capturePending.current || !snapshotFn.current) return;
+    capturePending.current = false;
+    const dataUrl = snapshotFn.current();
+    if (dataUrl) onSnapshotRef.current?.(dataUrl);
+  }, []);
 
   // zona activa ramane valida dupa orice modificare de structura
   const validActiveZone = useMemo(() => {

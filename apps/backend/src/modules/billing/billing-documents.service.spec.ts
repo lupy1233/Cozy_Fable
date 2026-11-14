@@ -3,6 +3,7 @@ import { BillingDocumentsService } from './billing-documents.service';
 import type { PrismaService } from '../../infra/prisma/prisma.service';
 import type { BillingReadinessService } from './billing-readiness.service';
 import type { InvoicePdfService } from './invoice-pdf.service';
+import { documentRenderFailed } from './pdf-browser';
 
 // E-company-24 — datele rehidratate pentru emailurile de facturare + PDF memorat (fara N randari).
 
@@ -22,7 +23,12 @@ function build(orderOver: Partial<any> = {}, ready = true) {
     totalRon: new Prisma.Decimal('121.00'),
     ...orderOver,
   };
-  const prisma: any = { mockBillingOrder: { findUnique: jest.fn().mockResolvedValue(order) } };
+  const prisma: any = {
+    mockBillingOrder: {
+      findUnique: jest.fn().mockResolvedValue(order),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+    },
+  };
   const readiness = { check: jest.fn().mockResolvedValue({ ready, problems: [], seller: SELLER }) };
   const invoicePdf = {
     proformaForOrder: jest.fn().mockResolvedValue({ pdf: Buffer.from('%PDF proforma'), fileName: 'proforma-ABCDEF12.pdf' }),
@@ -67,7 +73,8 @@ describe('BillingDocumentsService.prepare', () => {
 
   it('randarea PDF pica → emailul pleaca fara atasament; date fiscale lipsa → transfer null, fara proforma', async () => {
     const { service, invoicePdf } = build();
-    invoicePdf.proformaForOrder.mockRejectedValueOnce(new Error('chromium'));
+    // g4: randarea a raportat deja esecul (InvoicePdfService) si arunca 503 DOCUMENT_RENDER_FAILED
+    invoicePdf.proformaForOrder.mockRejectedValueOnce(documentRenderFailed());
     const res = await service.prepare('payment.transfer_instructions', { orderId: ORDER_ID, companyId: 'c1' });
     expect(res?.attachment).toBeNull();
     expect(res?.transfer?.iban).toBe(SELLER.iban);
@@ -77,6 +84,32 @@ describe('BillingDocumentsService.prepare', () => {
     expect(r2?.transfer).toBeNull();
     expect(r2?.attachment).toBeNull();
     expect(notReady.invoicePdf.proformaForOrder).not.toHaveBeenCalled();
+  });
+
+  it('g4 markProformaEmailed: doar transfer + proforma atasata, o singura data (proformaEmailedAt null)', async () => {
+    const { service, prisma } = build();
+    const payload = { orderId: ORDER_ID, companyId: 'c1' };
+    const withPdf = await service.prepare('payment.transfer_instructions', payload);
+    await service.markProformaEmailed('payment.transfer_instructions', payload, withPdf);
+    expect(prisma.mockBillingOrder.updateMany).toHaveBeenCalledWith({
+      where: { id: ORDER_ID, proformaEmailedAt: null },
+      data: { proformaEmailedAt: expect.any(Date) },
+    });
+    prisma.mockBillingOrder.updateMany.mockClear();
+    // fara atasament / factura / alt eveniment → nu marcheaza
+    await service.markProformaEmailed('payment.transfer_instructions', payload, { ...withPdf!, attachment: null });
+    await service.markProformaEmailed('payment.confirmed', payload, withPdf);
+    await service.markProformaEmailed('payment.transfer_reminder', payload, null);
+    expect(prisma.mockBillingOrder.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('g4 markProformaEmailed: eroarea la salvare nu urca (e-mailul nu se retrimite)', async () => {
+    const { service, prisma } = build();
+    prisma.mockBillingOrder.updateMany.mockRejectedValueOnce(new Error('db'));
+    const extras = await service.prepare('payment.transfer_instructions', { orderId: ORDER_ID, companyId: 'c1' });
+    await expect(
+      service.markProformaEmailed('payment.transfer_instructions', { orderId: ORDER_ID }, extras),
+    ).resolves.toBeUndefined();
   });
 
   it('tip nerelevant, comanda lipsa sau a altei firme → null', async () => {

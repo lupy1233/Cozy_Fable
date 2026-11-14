@@ -7,8 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from '@/i18n/routing';
-import { useMe } from '@/hooks/use-auth';
-import { useLoginRedirect } from '@/lib/use-login-redirect';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
 import { useMyCompany } from '@/hooks/use-company';
 import { useSubscription, useWallet } from '@/hooks/use-marketplace';
 import { companyCan } from '@/lib/company-permissions';
@@ -50,8 +49,9 @@ export default function WalletPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const searchParams = useSearchParams();
-  const me = useMe();
-  const toLogin = useLoginRedirect();
+  // f4: fara sesiune → login cu intoarcere; alt rol → ecranul de acces
+  const auth = useRequireAuth('COMPANY_USER');
+  const me = auth.me;
   const company = useMyCompany();
   // doar OWNER/MANAGER cumpara si vad comenzile (CompanyManagerGuard); cat timp rolul se incarca = doar citire
   const canBuy = companyCan(company.data, 'BILLING_MANAGE');
@@ -101,11 +101,6 @@ export default function WalletPage() {
   const handledReturn = useRef(false);
   const pollTimers = useRef<number[]>([]);
 
-  useEffect(() => {
-    if (me.isError) toLogin();
-    else if (me.data && me.data.role !== 'COMPANY_USER') router.replace('/dashboard');
-  }, [me.isError, me.data, router, toLogin]);
-
   // Intoarcerea din Stripe Checkout (?payment=success|cancelled&order=...): toast + poll scurt
   // (webhook-ul ajunge la cateva secunde dupa redirect) + curatam query-ul din URL.
   // Timerele stau intr-un ref: router.replace schimba searchParams si ar rula cleanup-ul
@@ -132,9 +127,10 @@ export default function WalletPage() {
     return () => timers.current.forEach((id) => window.clearTimeout(id));
   }, []);
 
-  if (me.isPending) {
+  if (auth.status === 'loading') {
     return <QueryState pending onRetry={() => void me.refetch()} skeleton={<SkeletonPage variant="list" />} />;
   }
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="COMPANY_USER" />;
 
   // E-admin-platform-58: TVA-ul si totalurile vin calculate din backend (Decimal half-up, ca pe comanda)
   const stripeEnabled = instructions.data?.stripeEnabled ?? true;

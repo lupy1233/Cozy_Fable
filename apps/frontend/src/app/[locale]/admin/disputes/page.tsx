@@ -2,12 +2,11 @@
 
 import type { AdminDisputeItemDto } from '@marketplace/shared';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
-import { Link, useRouter } from '@/i18n/routing';
+import { useState } from 'react';
+import { Link } from '@/i18n/routing';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
 import { ApiError } from '@/lib/api';
 import { useRelativeTime } from '@/lib/relative-time';
-import { useMe } from '@/hooks/use-auth';
-import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useAdminDisputes, useResolveDispute } from '@/hooks/use-fulfillment';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -35,10 +34,9 @@ const STARS = [1, 2, 3, 4, 5] as const;
 // DISMISSED = recenzia se sterge. Consecinta e scrisa pe fiecare decizie si in dialog.
 export default function AdminDisputesPage() {
   const t = useTranslations('AdminDisputes');
-  const router = useRouter();
   const relative = useRelativeTime();
-  const me = useMe();
-  const toLogin = useLoginRedirect();
+  // f4: fara sesiune → login cu intoarcere; alt rol → ecranul de acces
+  const auth = useRequireAuth('ADMIN');
   const list = useAdminDisputes();
   const resolve = useResolveDispute();
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -50,12 +48,8 @@ export default function AdminDisputesPage() {
       : t('apiErrors.INTERNAL_ERROR')
     : null;
 
-  useEffect(() => {
-    if (me.isError) toLogin();
-    else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
-  }, [me.isError, me.data, router, toLogin]);
-
-  if (me.isPending) return <SkeletonPage variant="list" />;
+  if (auth.status === 'loading') return <SkeletonPage variant="list" />;
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="ADMIN" />;
 
   // dialog nou → fara eroarea ramasa de la incercarea anterioara
   const openDecision = (next: Decision) => {

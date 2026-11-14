@@ -3,10 +3,8 @@
 import { REQUEST_STATUSES, type AdminKpiDto } from '@marketplace/shared';
 import { ArrowRight } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useEffect } from 'react';
-import { Link, useRouter } from '@/i18n/routing';
-import { useMe } from '@/hooks/use-auth';
-import { useLoginRedirect } from '@/lib/use-login-redirect';
+import { Link } from '@/i18n/routing';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
 import { useKpi } from '@/hooks/use-admin';
 import { STATUS_TONE } from '@/components/ui/badge';
 import { Card, CardSection } from '@/components/ui/card';
@@ -20,15 +18,12 @@ import { cn } from '@/lib/utils';
 // cifrele platformei. Fiecare cifra e link catre lista ei. Totul vine din /admin/kpi.
 export default function AdminDashboardPage() {
   const t = useTranslations('Admin');
-  const router = useRouter();
-  const me = useMe();
-  const toLogin = useLoginRedirect();
+  // f4: fara sesiune → login cu intoarcere; alt rol → ecranul de acces
+  const auth = useRequireAuth('ADMIN');
   const kpi = useKpi();
 
-  useEffect(() => {
-    if (me.isError) toLogin();
-    else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
-  }, [me.isError, me.data, router, toLogin]);
+  if (auth.status === 'loading') return <SkeletonStatGrid count={3} />;
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="ADMIN" />;
 
   return (
     <div className="flex w-full max-w-[1180px] flex-col gap-7">

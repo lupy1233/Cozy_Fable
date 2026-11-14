@@ -12,9 +12,19 @@ const hoisted = vi.hoisted(() => ({
 vi.mock('@/hooks/use-auth', () => ({ useMe: () => hoisted.me }));
 vi.mock('@/hooks/use-requests', () => ({ useBudgetEstimate: () => hoisted.estimate }));
 // Places nu exista in jsdom: un camp simplu cu aceleasi callback-uri
+// b12: "pick-suggestion" = alegerea unei sugestii Google (strada + oras + judet, plus blocul tastat)
 vi.mock('./address-autocomplete', () => ({
-  AddressAutocomplete: ({ defaultValue, onText }: { defaultValue: string; onText: (t: string) => void }) => (
-    <input aria-label="address" defaultValue={defaultValue} onChange={(e) => onText(e.target.value)} />
+  AddressAutocomplete: ({ defaultValue, onText, onResolved }: {
+    defaultValue: string;
+    onText: (t: string) => void;
+    onResolved: (p: { addressText: string; county: string; city: string; addressDetails?: string }) => void;
+  }) => (
+    <>
+      <input aria-label="address" defaultValue={defaultValue} onChange={(e) => onText(e.target.value)} />
+      <button type="button" onClick={() => onResolved({ addressText: 'Strada Fabricii 5', county: 'București', city: 'București', addressDetails: 'bl. A2, ap. 14' })}>
+        pick-suggestion
+      </button>
+    </>
   ),
 }));
 
@@ -250,5 +260,56 @@ describe('DetailsStep — the budget is chosen by the client (b11)', () => {
     mount();
     expect(screen.getByTestId('budget-value')).toHaveTextContent('12,000 lei');
     expect(slider()).not.toHaveAttribute('data-unset');
+  });
+});
+
+// b12: campul separat "Bloc, scara, apartament" si orasul gol
+describe('DetailsStep — address details (b12)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    store().reset();
+    store().setStartMode('STANDARD');
+    store().addRoom('KITCHEN');
+    hoisted.me = { data: undefined };
+    hoisted.estimate = { data: undefined };
+  });
+  afterEach(() => leaveEditSession());
+
+  const details = () => screen.getByRole('textbox', { name: en.Requests.field.addressDetails });
+  const pick = () => fireEvent.click(screen.getByRole('button', { name: 'pick-suggestion' }));
+
+  it('choosing a suggestion keeps what the client wrote in the apartment field', async () => {
+    mount();
+    fireEvent.change(details(), { target: { value: 'sc. 3, ap. 7' } });
+    pick();
+    expect(details()).toHaveValue('sc. 3, ap. 7');
+    await wait(DETAILS_AUTOSAVE_MS + 100);
+    expect(store().details).toMatchObject({ addressText: 'Strada Fabricii 5', city: 'București', addressDetails: 'sc. 3, ap. 7' });
+  });
+
+  it('an empty apartment field gets the block / apartment typed in the address', async () => {
+    mount();
+    pick();
+    expect(details()).toHaveValue('bl. A2, ap. 14');
+  });
+
+  it('the field survives "Back" and coming back', () => {
+    const { unmount } = mount();
+    fireEvent.change(details(), { target: { value: 'ap. 9' } });
+    fireEvent.click(screen.getByRole('button', { name: en.Configurator.nav.back }));
+    unmount();
+    mount();
+    expect(details()).toHaveValue('ap. 9');
+  });
+
+  it('a city made only of spaces asks to fill in the city', async () => {
+    const { onContinue } = mount();
+    fireEvent.change(screen.getByRole('textbox', { name: en.Requests.field.city }), { target: { value: '   ' } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: en.Configurator.nav.toReview }));
+    });
+    expect(onContinue).not.toHaveBeenCalled();
+    expect(screen.getByText(en.Requests.validation.cityRequired)).toBeInTheDocument();
   });
 });

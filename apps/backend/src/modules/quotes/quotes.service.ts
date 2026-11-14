@@ -1283,6 +1283,8 @@ export class QuotesService {
         hasOwnProject: req.hasOwnProject,
         // contactul si adresa completa doar cand acest membru are voie (E-company-3)
         addressText: access.clientVisible ? (req.addressText ?? '') : '',
+        // b12: blocul / apartamentul = adresa exacta, aceeasi regula ca addressText
+        addressDetails: access.clientVisible ? (req.addressDetails ?? '') : '',
         city: req.city ?? '',
         county: req.county ?? '',
         country: req.country,
@@ -1405,6 +1407,7 @@ export class QuotesService {
         deadlineBucket: null,
         hasOwnProject: false,
         addressText: '',
+        addressDetails: '',
         city: redacted ? (req.city ?? '') : '',
         county: redacted ? (req.county ?? '') : '',
         country: req.country,

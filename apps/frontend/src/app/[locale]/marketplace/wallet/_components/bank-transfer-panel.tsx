@@ -53,7 +53,10 @@ export function BankTransferPanel({
       titleSize="section"
     >
       <p className="text-sm">{tb('bankTransfer.intro', { ref: shortRef(order.id) })}</p>
-      <p className="text-sm text-muted-foreground">{tb('bankTransfer.emailed')}</p>
+      {/* g4: „ti-am trimis proforma” doar daca e-mailul cu proforma atasata chiar a plecat */}
+      <p className="text-sm text-muted-foreground">
+        {order.proformaEmailedAt ? tb('bankTransfer.emailed') : tb('bankTransfer.emailedNoProforma')}
+      </p>
       {bankTransfer?.iban ? (
         <dl className="mt-2 grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1.5 text-sm">
           <dt className="text-muted-foreground">{tb('bankTransfer.beneficiary')}</dt>

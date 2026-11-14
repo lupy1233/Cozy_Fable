@@ -13,6 +13,7 @@ import type {
   PresignUploadResultDto,
   RequestCoverageDto,
   RequestDraftCreatedDto,
+  RequestDraftListItemDto,
   RequestDraftPatchInput,
   RequestDto,
   RequestListItemDto,
@@ -33,6 +34,7 @@ import { waitForSafeUpload } from '@/lib/upload-scan';
 
 const draftKey = (token: string) => ['request', 'draft', token] as const;
 const MINE_KEY = ['requests', 'mine'] as const;
+const MY_DRAFTS_KEY = ['requests', 'my-drafts'] as const;
 
 // Tinta operatiilor pe atasamente: draft (secret = token) sau cererea proprie
 // (autentificat, dupa publish — editare de pe orice device).
@@ -314,7 +316,27 @@ export function useDeleteRequest() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api<{ ok: true }>(`/requests/${id}`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: MINE_KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: MINE_KEY });
+      // d5: aceeasi stergere serveste si fila "Ciorne"
+      qc.invalidateQueries({ queryKey: MY_DRAFTS_KEY });
+    },
+  });
+}
+
+// d5 (PO d5-1): fila "Ciorne" din "Cererile mele" — ciornele legate de cont.
+export function useMyDrafts() {
+  return useQuery({
+    queryKey: MY_DRAFTS_KEY,
+    queryFn: async () => (await api<RequestDraftListItemDto[]>('/requests/my-drafts')) ?? [],
+    retry: false,
+  });
+}
+
+// d5: "Continua" o ciorna din cont — serverul emite un token nou (doar proprietarul, doar ciorna).
+export function useContinueDraft() {
+  return useMutation({
+    mutationFn: (id: string) => api<RequestDraftCreatedDto>(`/requests/${id}/draft-token`, { method: 'POST' }),
   });
 }
 

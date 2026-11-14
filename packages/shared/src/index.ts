@@ -4,6 +4,7 @@ export * from './room-meta';
 export * from './auth.schemas';
 export * from './company.schemas';
 export * from './request.schemas';
+export * from './address-format';
 export * from './marketplace.schemas';
 export * from './quote.schemas';
 export * from './chat.schemas';

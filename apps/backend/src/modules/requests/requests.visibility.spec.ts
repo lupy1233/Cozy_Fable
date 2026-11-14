@@ -89,8 +89,46 @@ describe('RequestsService.getVisibilityForClient (E-client-9)', () => {
     });
     await expect(service.getVisibilityForClient('client-1', 'r1')).resolves.toEqual({
       requestId: 'r1', projectVisibleInMarketplace: true, contactHolders: [], marketplaceClosedReason: null,
-      coverage: 'COVERED',
+      coverage: 'COVERED', pastContactAccess: [],
     });
+  });
+
+  // e4: dupa ce o firma renunta, caseta nu mai spune "Nicio firma inca" — istoricul fara nume
+  it('istoric: firma care a avut contactele si a renuntat → pana pe <data inchiderii>, fara nume', async () => {
+    const claimed = new Date(Date.now() - 600 * MIN);
+    const closed = new Date(Date.now() - 60 * MIN);
+    const { service, prisma } = setup({
+      request: { id: 'r1', clientUserId: 'client-1', status: 'IN_MARKETPLACE', deletedAt: null, publishedAt: claimed, lat: 1, lng: 1, deliveredAt: null },
+      slots: [{ ...slot('s1', 'WITHDRAWN_VOLUNTARY', claimed), updatedAt: closed }],
+    });
+    const res = await service.getVisibilityForClient('client-1', 'r1');
+    expect(res.contactHolders).toEqual([]);
+    expect(res.pastContactAccess).toEqual([{ until: closed.toISOString() }]);
+    expect(JSON.stringify(res.pastContactAccess)).not.toContain('Firma');
+    // a doua interogare = doar preluarile inchise
+    const closedQuery = prisma.claimSlot.findMany.mock.calls[1][0];
+    expect(closedQuery.where.status.in).not.toContain('ACTIVE');
+    expect(closedQuery.where.status.in).toContain('WITHDRAWN');
+  });
+
+  // revizie m2: data vine din withdrawnAt (scris la decontare), nu din updatedAt
+  it('istoric: data = withdrawnAt, chiar daca randul a fost atins mai tarziu', async () => {
+    const claimed = new Date(Date.now() - 600 * MIN);
+    const withdrawn = new Date(Date.now() - 120 * MIN);
+    const touched = new Date(Date.now() - 5 * MIN);
+    const { service } = setup({
+      slots: [{ ...slot('s1', 'WITHDRAWN', claimed), withdrawnAt: withdrawn, updatedAt: touched }],
+    });
+    expect((await service.getVisibilityForClient('client-1', 'r1')).pastContactAccess).toEqual([{ until: withdrawn.toISOString() }]);
+  });
+
+  it('istoric: firma care a renuntat in gratie (AFTER_GRACE, contacte inca ascunse) → nu apare', async () => {
+    const claimed = new Date(Date.now() - 60 * MIN);
+    const { service } = setup({
+      slots: [{ ...slot('s1', 'WITHDRAWN_VOLUNTARY', claimed), updatedAt: new Date(claimed.getTime() + 5 * MIN) }],
+      settings: { claim_contact_reveal_policy: 'AFTER_GRACE' },
+    });
+    expect((await service.getVisibilityForClient('client-1', 'r1')).pastContactAccess).toEqual([]);
   });
 
   // a6 (PO a6-1): doar da / nu, fara numar de firme

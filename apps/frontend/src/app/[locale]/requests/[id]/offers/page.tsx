@@ -5,16 +5,17 @@ import { Hourglass } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from '@/i18n/routing';
+import { Link } from '@/i18n/routing';
+import { ApiError, isUnauthorizedError } from '@/lib/api';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
 import { LoadError, QueryState } from '@/components/ui/query-state';
 import { SkeletonPage } from '@/components/ui/skeleton';
 import { Tabs } from '@/components/ui/tabs';
-import { useMe } from '@/hooks/use-auth';
-import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useRequest } from '@/hooks/use-requests';
 import { useRequestQuotes } from '@/hooks/use-quotes';
 import { useThreads } from '@/hooks/use-chat';
@@ -64,21 +65,17 @@ const PANEL_ID = 'firm-panel';
 
 export default function RequestOffersPage() {
   const t = useTranslations('Quotes');
+  const tr = useTranslations('Requests');
   const params = useParams<{ id: string }>();
   const id = params.id;
-  const router = useRouter();
-  const me = useMe();
-  const toLogin = useLoginRedirect();
+  const ta = useTranslations('Access');
+  // f4: „Vezi oferta” din e-mail fara sesiune → login cu intoarcere aici; alt rol → ecranul de acces
+  const auth = useRequireAuth('CLIENT');
   const request = useRequest(id);
   const quotes = useRequestQuotes(id);
   const threads = useThreads('client');
   const relTime = useRelativeTime();
   useRealtimeSync();
-
-  useEffect(() => {
-    if (me.isError) toLogin();
-    else if (me.data && me.data.role !== 'CLIENT') router.replace('/dashboard');
-  }, [me.isError, me.data, router, toLogin]);
 
   // conversatiile acestei cereri, cele mai vechi primele (ordinea prelurii)
   const requestThreads = useMemo(
@@ -124,8 +121,33 @@ export default function RequestOffersPage() {
     void threads.refetch();
   };
 
-  if (quotes.isPending || request.isPending || threads.isPending) {
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="CLIENT" />;
+  // f4: fara sesiune (sau inca nestiut) / 401 → incarcare pana pleaca redirectul, nu „Nu am putut
+  // incarca datele”
+  if (
+    auth.status === 'loading' ||
+    quotes.isPending ||
+    request.isPending ||
+    threads.isPending ||
+    [request.error, quotes.error, threads.error].some(isUnauthorizedError)
+  ) {
     return <QueryState pending onRetry={refetchAll} skeleton={<SkeletonPage variant="list" />} />;
+  }
+  // f4: cererea nu exista sau e a altcuiva (403/404) → spunem asta, nu „eroare”
+  if (request.error instanceof ApiError && [403, 404].includes(request.error.status)) {
+    return (
+      <EmptyState
+        variant="card"
+        tone="warning"
+        title={ta('requestNotYours')}
+        hint={ta('requestNotYoursHint')}
+        action={
+          <Button asChild variant="outline">
+            <Link href="/requests">← {tr('myRequests')}</Link>
+          </Button>
+        }
+      />
+    );
   }
 
   const includesPaidDesign = request.data?.includesPaidDesign ?? false;

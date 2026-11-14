@@ -155,6 +155,12 @@ describe('start mode of a published request (contract b8 §5)', () => {
     const standard = buildSnapshotFromRequest(requestDto({ rooms: [{ ...room('a', false, { layout: 'X' }), approxLengthM: 6.5 }] }));
     expect(standard.roomInstances[0].approxLengthM).toBeUndefined();
   });
+
+  // b12: blocul / apartamentul revin la editare; o cerere veche (fara camp) da camp gol
+  it('brings back the building / apartment field when editing', () => {
+    expect(buildSnapshotFromRequest(requestDto({ addressDetails: 'bl. A2, ap. 14' })).details.addressDetails).toBe('bl. A2, ap. 14');
+    expect(buildSnapshotFromRequest(requestDto()).details.addressDetails).toBe('');
+  });
 });
 
 // b11: la editare, suma aleasa de client ramane aleasa; cea dintr-o cerere veche se cere din nou
@@ -420,4 +426,57 @@ describe('non-client account (f2)', () => {
     await screen.findByText('Ready to choose a start mode');
     expect(screen.queryByText(en.Configurator.clientOnly.note)).not.toBeInTheDocument();
   });
+});
+
+// d5 (revizie m3 / m4): "Continua" din fila Ciorne — o singura intrebare; pe dispozitivul
+// cu tokenul vechi salvarea se opreste cu un mesaj clar, iar ce s-a scris ramane
+describe('draft continued from "My requests" → "Drafts" (d5)', () => {
+  const serverState = { phase: 'cart', startMode: 'STANDARD', activeRoomIndex: 0, activeStepIndex: 0, details: { city: 'Iasi' }, inspirationPhotoIds: [], updatedAt: 1, roomInstances: [] };
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    useConfiguratorStore.getState().reset();
+    vi.stubGlobal('scrollTo', vi.fn());
+  });
+  afterEach(() => { clients.splice(0).forEach((client) => client.clear()); vi.unstubAllGlobals(); });
+
+  it('coming from "Continue": the draft opens without asking "continue or start again?" a second time', async () => {
+    localStorage.setItem('mm_draft_token', 'fresh');
+    sessionStorage.setItem('mm_draft_continue', '1');
+    vi.stubGlobal('fetch', vi.fn(async () => response({ ...draft, configuratorState: serverState })));
+    mount();
+    await waitFor(() => expect(useConfiguratorStore.getState().details.city).toBe('Iasi'));
+    expect(screen.queryByText(en.Configurator.resume.title)).not.toBeInTheDocument();
+    expect(sessionStorage.getItem('mm_draft_continue')).toBeNull();
+  });
+
+  it('without the flag the usual question stays', async () => {
+    localStorage.setItem('mm_draft_token', 'fresh');
+    vi.stubGlobal('fetch', vi.fn(async () => response({ ...draft, configuratorState: serverState })));
+    mount();
+    expect(await screen.findByText(en.Configurator.resume.title)).toBeInTheDocument();
+  });
+
+  it('old token (404 on save): a clear message, no endless retries, the answers stay', async () => {
+    localStorage.setItem('mm_draft_token', 'old');
+    let patches = 0;
+    vi.stubGlobal('fetch', vi.fn(async (_url, init) => {
+      if (init?.method === 'PATCH') {
+        patches++;
+        return response({ error: { code: 'DRAFT_TOKEN_INVALID', message: 'gone' } }, 404);
+      }
+      return response(draft);
+    }));
+    mount();
+    await screen.findByText('Ready to choose a start mode');
+    act(() => useConfiguratorStore.getState().setDetails({ city: 'Cluj' }));
+    expect(await screen.findByText(new RegExp(en.Configurator.draft.continuedElsewhere.slice(0, 30)), {}, { timeout: 4000 })).toBeInTheDocument();
+    expect(patches).toBe(1);
+    act(() => useConfiguratorStore.getState().setDetails({ city: 'Brasov' }));
+    await new Promise((r) => setTimeout(r, 1800));
+    expect(patches).toBe(1);
+    expect(useConfiguratorStore.getState().details.city).toBe('Brasov');
+    expect(localStorage.getItem('mm_draft_token')).toBe('old');
+    expect(screen.queryByText(en.Configurator.draft.localOnly)).not.toBeInTheDocument();
+  }, 10_000);
 });

@@ -38,6 +38,7 @@ function makeSlot(over: Partial<Any> = {}, reqOver: Partial<Any> = {}): Any {
       deadlineBucket: 'ONE_TO_THREE_MONTHS',
       hasOwnProject: false,
       addressText: 'Str. Clientului 1',
+      addressDetails: 'bl. A2, ap. 14',
       city: 'Cluj-Napoca',
       county: 'Cluj',
       country: 'RO',
@@ -129,6 +130,8 @@ describe('QuotesService.getClaimContext (E-company-3)', () => {
     expect(c.clientHiddenReason).toBe('NOT_ASSIGNED_TO_YOU');
     expect(c.client).toBeNull();
     expect(c.detail.addressText).toBe('');
+    // b12: blocul / apartamentul ascuns la fel ca strada
+    expect(c.detail.addressDetails).toBe('');
     expect(c.quote?.consultationInvites[0].locationAddress).toBe('');
     expect(c.detail.rooms).toHaveLength(1);
     expect(c.detail.attachments).toHaveLength(1);
@@ -150,6 +153,7 @@ describe('QuotesService.getClaimContext (E-company-3)', () => {
     expect(c.clientHiddenReason).toBeNull();
     expect(c.client).toEqual({ name: 'Ana Client', contacts: [{ id: 'cp1', channel: 'PHONE', value: '0700000000' }] });
     expect(c.detail.addressText).toBe('Str. Clientului 1');
+    expect(c.detail.addressDetails).toBe('bl. A2, ap. 14');
     expect(c.quote?.consultationInvites[0].locationAddress).toBe('Str. Clientului 1');
   });
 
@@ -168,6 +172,7 @@ describe('QuotesService.getClaimContext (E-company-3)', () => {
     expect(c.detail.inspirationPhotos).toEqual([]);
     expect(c.detail.description).toBe('');
     expect(c.detail.addressText).toBe('');
+    expect(c.detail.addressDetails).toBe('');
     expect(c.detail.city).toBe('Cluj-Napoca');
     expect(c.detail.county).toBe('Cluj');
     expect(c.client).toBeNull();

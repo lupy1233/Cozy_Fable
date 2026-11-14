@@ -1,7 +1,7 @@
 'use client';
 
-import { CheckCircle2, Download, Paperclip, XCircle } from 'lucide-react';
-import { useFormatter, useTranslations } from 'next-intl';
+import { CheckCircle2, Paperclip, XCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { MAX_VALIDITY_EXTENSIONS, type ClaimFirmActionsDto, type QuoteDto, type QuoteVersionDto } from '@marketplace/shared';
 import { Alert } from '@/components/ui/alert';
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { useSlaDateFormat } from '@/lib/sla-deadline';
 import {
   useCreateConsultationInvite,
   useEndNegotiation,
@@ -27,6 +28,7 @@ import { isFirmRules, useFirmRules } from '@/hooks/use-legal';
 import { ActionConfirmDialog } from './action-confirm-dialog';
 import { AcceptOfferDialog } from './accept-offer-dialog';
 import { DeclineOfferDialog } from './decline-offer-dialog';
+import { OfferPdfButton, offerPdfFileName } from './offer-pdf-button';
 import { useQuoteDate as useLongDate, useQuoteMoney, useVersionTerms } from './use-quote-terms';
 import {
   answeredBy,
@@ -38,13 +40,20 @@ import {
   versionChanges,
 } from '@/lib/quote-version';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
-
 // spatiul lateral al sectiunilor cardului (cardul insusi e fara padding)
 const PAD = 'px-5 sm:px-6';
 const DAY_MS = 86_400_000;
 // sub acest prag valabilitatea e semnalata cu chihlimbar (la fel ca in tabelul de comparatie)
 const EXPIRING_SOON_DAYS = 3;
+const HOUR_MS = 3_600_000;
+
+// a7 (revizie m6): orele de gratie dintre termenul de pe fisa si momentul ratarii, ambele date de
+// server (ore calendaristice, invarianta 3.3); 0 cand lipseste vreunul.
+export function withdrawGraceHours(slaDeadlineIso: string | null, slaBreachAtIso: string | null): number {
+  if (!slaDeadlineIso || !slaBreachAtIso) return 0;
+  const hours = Math.round((Date.parse(slaBreachAtIso) - Date.parse(slaDeadlineIso)) / HOUR_MS);
+  return hours > 0 ? hours : 0;
+}
 
 export function OfferCard({
   quote,
@@ -56,6 +65,8 @@ export function OfferCard({
   readOnly = false,
   headingLevel = 'h3',
   meta,
+  statusLabel,
+  slaDeadlineAt,
 }: {
   quote: QuoteDto;
   mode: 'client' | 'company';
@@ -71,11 +82,14 @@ export function OfferCard({
   headingLevel?: 'h2' | 'h3';
   // text scurt adaugat in randul de sub titlu (ex. "a preluat cererea acum 2 zile")
   meta?: ReactNode;
+  // e4 (etapa 7): eticheta starii, in locul celei standard (ex. „Cererea a fost ștearsă de client”)
+  statusLabel?: string;
+  // a7: termenul de raspuns al preluarii, exact cum il arata fisa (din contextul preluarii)
+  slaDeadlineAt?: string | null;
 }) {
   const t = useTranslations('Quotes');
   // E-client-1: pe oferta acceptata se afiseaza versiunea confirmata de client
   const current = displayedVersion(quote);
-  const pdfUrl = mode === 'client' ? `${API}/client/quotes/${quote.id}/pdf` : `${API}/quotes/${quote.id}/pdf`;
   const pendingChange =
     quote.versions.flatMap((v) => versionChangeRequests(quote, v).filter((c) => c.status === 'PENDING'))[0] ?? null;
   const Heading = headingLevel;
@@ -96,19 +110,16 @@ export function OfferCard({
           </Heading>
           <p className="text-ui text-muted-foreground">
             {t('versionLabel', { n: current?.version ?? 0 })}
-            {current?.isExtra ? ` · ${t('extraTag')}` : ''} · {t(`status.${quote.status}`)}
+            {current?.isExtra ? ` · ${t('extraTag')}` : ''} · {statusLabel ?? t(`status.${quote.status}`)}
             {meta ? <> · {meta}</> : null}
           </p>
         </div>
-        <a
-          href={pdfUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-walnut hover:text-walnut-deep hover:underline"
-        >
-          <Download className="size-4 shrink-0" aria-hidden />
-          {t('downloadPdf')}
-        </a>
+        {/* g4: descarcare prin aplicatie, cu mesaj la eroare */}
+        <OfferPdfButton
+          quoteId={quote.id}
+          mode={mode}
+          fileName={offerPdfFileName(quote.companyName, current?.version)}
+        />
       </div>
 
       {current && (
@@ -160,6 +171,8 @@ export function OfferCard({
           rooms={rooms}
           firmActions={firmActions}
           slaPaused={slaPaused}
+          statusLabel={statusLabel}
+          slaDeadlineAt={slaDeadlineAt}
         />
       )}
       {mode === 'company' && <ConsultationInvites quote={quote} mode="company" />}
@@ -739,6 +752,8 @@ function CompanyActions({
   rooms,
   firmActions,
   slaPaused = false,
+  statusLabel,
+  slaDeadlineAt,
 }: {
   quote: QuoteDto;
   includesPaidDesign: boolean;
@@ -746,10 +761,11 @@ function CompanyActions({
   rooms?: { id: string; roomType: string }[];
   firmActions?: ClaimFirmActionsDto;
   slaPaused?: boolean;
+  statusLabel?: string;
+  slaDeadlineAt?: string | null;
 }) {
   const t = useTranslations('Quotes');
   const tu = useTranslations('Legal.firmRules.units');
-  const format = useFormatter();
   // E-company-6: "acum" live — fereastra de retragere si pragul SLA comuta fara reload
   const now = useNow();
   const firmRules = useFirmRules();
@@ -770,7 +786,8 @@ function CompanyActions({
   // nu mai sunt silentioase — acelasi tipar ca in sectiunea clientului.
   const err = (m: { error: unknown }) =>
     m.error instanceof ApiError ? (t.has(`apiErrors.${m.error.code}`) ? t(`apiErrors.${m.error.code}`) : t('apiErrors.INTERNAL_ERROR')) : null;
-  const fmtDate = (iso: string) => format.dateTime(new Date(iso), { dateStyle: 'medium', timeStyle: 'short' });
+  // a7: ca pe fisa de lucru — limba aplicatiei si ora Romaniei
+  const fmtDate = useSlaDateFormat();
   const open = (d: NonNullable<typeof dialog>, m: { reset: () => void }) => {
     m.reset();
     setDialog(d);
@@ -795,6 +812,11 @@ function CompanyActions({
     slaBreachAt ??
     ((withdrawError?.details as { slaBreachAt?: string } | undefined)?.slaBreachAt ?? null);
   const needsSlaAck = slaBreached || forceSlaAck;
+  // a7: termenul afisat pe fisa (fara gratie)
+  // (revizie m6) termenul vine de pe server, din aceeasi sursa ca fisa (ClaimQuoteContextDto.slaDeadlineAt),
+  // nu se recalculeaza aici; orele de gratie = diferenta dintre cele doua momente date de server
+  const slaDeadline = slaBreachAt ? slaDeadlineAt ?? null : null;
+  const graceHours = withdrawGraceHours(slaDeadline, slaBreachAt);
   const claimCredits = tu('credit', { n: firmActions?.claimCostCredits ?? 0 });
 
   if (quote.status === 'ACCEPTED') {
@@ -810,7 +832,7 @@ function CompanyActions({
   if (quote.status === 'WITHDRAWN' || quote.status === 'SUPERSEDED') {
     return (
       <p className={cn('border-t border-border py-4 text-sm text-muted-foreground', PAD)}>
-        {t(`status.${quote.status}`)}
+        {quote.status === 'WITHDRAWN' ? statusLabel ?? t(`status.${quote.status}`) : t(`status.${quote.status}`)}
       </p>
     );
   }
@@ -1044,17 +1066,42 @@ function CompanyActions({
           >
             <p>{t('confirm.withdrawBody')}</p>
             {needsSlaAck && ackBreachAt ? (
-              <p className="font-medium text-crimson">
-                {t('confirm.withdrawSlaBreached', { date: fmtDate(ackBreachAt), credits: claimCredits })}
-              </p>
+              <>
+                <p className="font-medium text-crimson">
+                  {t('confirm.withdrawSlaBreached', { date: fmtDate(ackBreachAt), credits: claimCredits })}
+                </p>
+                {rules && (
+                  <p>{t('confirm.slaMissPoints', { points: tu('point', { n: rules.penalties.points.SLA_MISS }) })}</p>
+                )}
+              </>
             ) : slaBreachAt ? (
-              <p>{t('confirm.withdrawSlaOk', { date: fmtDate(slaBreachAt), credits: claimCredits })}</p>
+              // a7: aceeasi data ca fisa (termenul, fara gratie); gratia spusa separat; pierderea
+              // si penalizarea la conditional — se intampla doar fara o oferta noua
+              <>
+                {slaDeadline && now >= Date.parse(slaDeadline) ? (
+                  <p>{t('confirm.withdrawSlaInGrace', { deadline: fmtDate(slaDeadline), date: fmtDate(slaBreachAt) })}</p>
+                ) : (
+                  <>
+                    <p>{t('confirm.withdrawSlaOk', { date: fmtDate(slaDeadline ?? slaBreachAt) })}</p>
+                    {graceHours > 0 && (
+                      <p className="text-muted-foreground">
+                        {t('confirm.withdrawSlaGrace', { grace: tu('hour', { n: graceHours }), date: fmtDate(slaBreachAt) })}
+                      </p>
+                    )}
+                  </>
+                )}
+                <p>
+                  {rules
+                    ? t('confirm.withdrawSlaRiskPoints', {
+                        credits: claimCredits,
+                        points: tu('point', { n: rules.penalties.points.SLA_MISS }),
+                      })
+                    : t('confirm.withdrawSlaRisk', { credits: claimCredits })}
+                </p>
+              </>
             ) : slaPaused ? (
               <p className="text-muted-foreground">{t('confirm.withdrawSlaPaused')}</p>
             ) : null}
-            {rules && (needsSlaAck || slaBreachAt) && (
-              <p>{t('confirm.slaMissPoints', { points: tu('point', { n: rules.penalties.points.SLA_MISS }) })}</p>
-            )}
           </ActionConfirmDialog>
         </div>
       )}

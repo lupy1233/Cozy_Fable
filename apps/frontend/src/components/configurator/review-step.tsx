@@ -19,7 +19,6 @@ import {
   useEditRequestById,
   usePublishDraft,
   useRemoveAttachmentFor,
-  useUploadAttachmentFor,
   type AttachmentTarget,
 } from '@/hooks/use-requests';
 import { useRouter } from '@/i18n/routing';
@@ -36,6 +35,9 @@ import { toast } from '@/components/ui/toaster';
 import { roomIssue } from './room-screens';
 import { AttachmentThumb } from './attachment-item';
 import { ClientOnlyNote, isNonClientRole } from './client-only-note';
+import { useReviewSnapshots } from './snapshot3d-sync';
+import { SNAPSHOT3D_STEP_ID, snapshot3dIds } from '@/stores/snapshot3d';
+import { editSnapshotIdsToRemove, resetEditSnapshotFiles } from '@/stores/edit-snapshot-files';
 
 // O problema de camera intoarsa de server: details[] de la CONFIGURATOR_ANSWERS_INVALID /
 // FILE_SCAN_BLOCKED sau obiectul {roomIndex} de la CONFIGURATOR_FLOW_VERSION_UNSUPPORTED.
@@ -147,8 +149,6 @@ export function ReviewStep({
   const inspirationPhotoIds = useConfiguratorStore((s) => s.inspirationPhotoIds);
   const inspirationMeta = useConfiguratorStore((s) => s.inspirationMeta);
   const setInspirationRoom = useConfiguratorStore((s) => s.setInspirationRoom);
-  const snapshots3d = useConfiguratorStore((s) => s.snapshots3d);
-  const setAnswer = useConfiguratorStore((s) => s.setAnswer);
   const setDetails = useConfiguratorStore((s) => s.setDetails);
   const setInspirationPhotos = useConfiguratorStore((s) => s.setInspirationPhotos);
   const syncCompletion = useConfiguratorStore((s) => s.syncCompletion);
@@ -157,7 +157,8 @@ export function ReviewStep({
   const roomLabel = (localId: string) => labels.get(localId) ?? '';
   const attachmentState = useAttachmentsStateFor(uploadTarget);
   const attachments = attachmentState.attachments;
-  const uploadAttachment = useUploadAttachmentFor(uploadTarget);
+  // d4: imaginile 3D ale pieselor (miniatura in card, desenare ascunsa, urcare)
+  const snapshots = useReviewSnapshots({ rooms, attachments, target: uploadTarget, isEdit });
   const publishDraft = usePublishDraft(token ?? '');
   const editRequest = useEditRequestById(editId ?? '');
   const publish = isEdit ? editRequest : publishDraft;
@@ -232,34 +233,25 @@ export function ReviewStep({
     setCleanupFailed(false);
     onPublishingChange?.(true);
 
-    // D-3D-4 (aprobat): snapshotul PNG al pieselor configurate 3D urca AUTOMAT
-    // prin fluxul presigned existent (3.4) si intra in answers.snapshot3d.
-    // Best-effort: un esec de upload nu blocheaza publicarea (step optional).
-    const snapshotByRoom: Record<string, string[]> = {};
+    // D-3D-4 + d4: imaginea PNG a pieselor configurate 3D (answers.snapshot3d). Imaginile
+    // asteptate urca acum (ciorna: de obicei deja urcate; editare: abia la salvare). O piesa
+    // fara imaginea configuratiei de acum pleaca fara imagine — niciodata cu una veche.
+    // Best-effort: un esec de urcare nu blocheaza publicarea (pas optional).
+    let stripSnapshotRooms = new Set<string>();
+    let staleSnapshotIds = new Set<string>();
     setPreparing(true);
     try {
-      for (const room of rooms) {
-        const dataUrl = snapshots3d[room.localId];
-        // camera bifata "am nevoie de ajutor" nu-si trimite configuratia → nici poza ei
-        if (room.needsDesignHelp || room.answers.config3d === undefined || !dataUrl) continue;
-        try {
-          const blob = await (await fetch(dataUrl)).blob();
-          const file = new File([blob], `configurare-3d-${room.roomType.toLowerCase()}.png`, {
-            type: 'image/png',
-          });
-          const att = await uploadAttachment.mutateAsync(file);
-          snapshotByRoom[room.localId] = [att.id];
-          // pastreaza id-ul si in store — o re-publicare nu mai urca inca o data
-          setAnswer(room.localId, 'snapshot3d', [att.id]);
-        } catch {
-          // fara snapshot; cererea ramane valida
-        }
-      }
+      const plan = await snapshots.prepareForPublish();
+      stripSnapshotRooms = plan.stripRooms;
+      staleSnapshotIds = new Set(plan.removeIds);
       // b6 + M1: schitele camerelor scoase (nesterse la scoatere) si poza 3D a camerelor
       // bifate se sterg acum de pe ciorna, altfel ar pleca la firme drept fisiere ale
-      // proiectului. m7: lista neincarcata sau o stergere esuata opresc publicarea.
-      if (!isEdit && discarded.size > 0) {
-        const ok = attachmentState.isSuccess && await removeFiles(attachments.filter((a) => discarded.has(a.id)).map((a) => a.id));
+      // proiectului. d4: la fel imaginile 3D vechi. m7: lista neincarcata sau o stergere
+      // esuata opresc publicarea.
+      const latest = useConfiguratorStore.getState();
+      const removeBefore = new Set([...excludedFileIds(latest.roomInstances, latest.discardedFiles), ...staleSnapshotIds]);
+      if (!isEdit && removeBefore.size > 0) {
+        const ok = attachmentState.isSuccess && await removeFiles(attachments.filter((a) => removeBefore.has(a.id)).map((a) => a.id));
         if (!ok) {
           setCleanupFailed(true);
           onPublishingChange?.(false);
@@ -284,17 +276,19 @@ export function ReviewStep({
       includesPaidDesign: anyRoomNeedsDesignHelp(rooms),
       hasOwnProject: startMode === 'OWN_PROJECT',
       addressText: details.addressText!,
+      // b12: gol = nimic (la editare serverul il goleste)
+      addressDetails: details.addressDetails?.trim() || undefined,
       county: details.county!,
       city: details.city!,
       country: details.country ?? 'RO',
       // camerele bifate pleaca doar cu tipul, fisierele lor si bifa (PO b8-3)
-      rooms: rooms.map((r) => {
+      // d4: camerele citite acum din store (imaginile urcate mai sus sunt deja in raspunsuri)
+      rooms: useConfiguratorStore.getState().roomInstances.map((r) => {
         const room = toServerRoom(r);
-        return {
-          sourceLocalId: r.localId,
-          ...room,
-          answers: snapshotByRoom[r.localId] ? { ...room.answers, snapshot3d: snapshotByRoom[r.localId] } : room.answers,
-        };
+        if (!stripSnapshotRooms.has(r.localId)) return { sourceLocalId: r.localId, ...room };
+        const answers = { ...room.answers };
+        delete answers[SNAPSHOT3D_STEP_ID];
+        return { sourceLocalId: r.localId, ...room, answers };
       }),
       contactPreferences: (details.contactPreferences ?? []) as ContactPreferenceInput[],
       // E-client-34: notita + camera per poza (camera doar daca inca exista in cos)
@@ -319,9 +313,28 @@ export function ReviewStep({
     }
     // b6 + M1: la editare fisierele de mai sus sunt ale cererii; se sterg abia acum, dupa ce
     // salvarea a reusit. m7: o stergere care nu raspunde nu tine ecranul la nesfarsit.
-    if (isEdit) {
-      const stale = (req.attachments ?? []).filter((a) => discarded.has(a.id)).map((a) => a.id);
-      if (!(await removeFiles(stale))) toast.warning(t('review.filesLeftWarning'));
+    if (isEdit && editId) {
+      // d4 + M2: plus toate imaginile 3D atinse de editare (si la incercarile esuate dinainte)
+      // pe care cererea salvata nu le foloseste — pe piesa ramane doar imaginea salvata
+      // camerele cu "am nevoie de ajutor" pleaca fara raspunsuri → fara imagine 3D
+      const saved = new Set(
+        payload.rooms.flatMap((r) =>
+          snapshot3dIds({
+            answers: (('answers' in r && r.answers) || {}) as Parameters<typeof snapshot3dIds>[0]['answers'],
+          }),
+        ),
+      );
+      const unusedSnapshots = editSnapshotIdsToRemove(editId, saved);
+      resetEditSnapshotFiles(editId);
+      const stale = [...new Set([
+        ...(req.attachments ?? []).filter((a) => discarded.has(a.id) || staleSnapshotIds.has(a.id)).map((a) => a.id),
+        ...unusedSnapshots,
+      ])];
+      if (!(await removeFiles(stale))) {
+        // ce n-a putut fi sters se sterge la iesirea din editare (finishEditSession)
+        resetEditSnapshotFiles(editId, unusedSnapshots);
+        toast.warning(t('review.filesLeftWarning'));
+      }
     }
     onPublished(req.id);
   };
@@ -406,7 +419,8 @@ export function ReviewStep({
             <p className="font-serif text-lg">
               {isEdit ? t('review.publishingEdit') : t('review.publishing')}
             </p>
-            <p className="max-w-xs text-sm text-muted-foreground">{t('review.publishingHint')}</p>
+            {/* m2: publicarea asteapta imaginea 3D care inca se pregateste */}
+            <p className="max-w-xs text-sm text-muted-foreground">{snapshots.waiting ? t('review.snapshot3d.working') : t('review.publishingHint')}</p>
           </div>
         </div>
       )}
@@ -437,6 +451,7 @@ export function ReviewStep({
               onEdit={() => onEditRoom(i)}
               issue={roomIssues[i]?.issue ?? null}
               onFix={() => onEditRoom(i, roomIssues[i]?.stepId ?? undefined)}
+              snapshot3d={snapshots.byRoom.get(room.localId) ?? null}
             />;
             // d3: lungimea aproximativa data cu "Am deja un proiect", sub camera ei
             if (startMode !== 'OWN_PROJECT' || typeof room.approxLengthM !== 'number' || !needsApproxLength(room, true)) return card;
@@ -449,6 +464,9 @@ export function ReviewStep({
           </section>}
 
           <InspirationPicker blockedNoteIds={blockedNoteIds} />
+
+          {/* d4: scena piesei fara imagine, desenata ascuns (in afara ecranului) */}
+          {snapshots.renderer}
 
           {droppedContacts.length > 0 && (
             <Alert tone="info">

@@ -56,6 +56,8 @@ const EMAILED_EVENTS = new Set([
   'quote.declined',
   // a6 (2026-11-14): cerere publicata fara nicio firma in zona → adminii (tintele)
   'request.no_coverage',
+  // e4 (2026-11-14): o firma a renuntat la preluare → clientul (tinta unica)
+  'request.company_withdrew',
 ]);
 
 // a4: motivele refuzului (PO a4-2), in limba destinatarului
@@ -234,6 +236,7 @@ export class NotificationEmailsService {
     const extras = await this.billingDocs.prepare(type, payload);
     const attachments = extras?.attachment ? [extras.attachment] : undefined;
     const origin = this.config.getOrThrow<string>('FRONTEND_ORIGIN');
+    let delivered = false;
     for (const user of users) {
       const lang = user.languagePreference === Language.EN ? 'en' : 'ro';
       const content = this.buildContent(type, payload, lang, user.id, extras);
@@ -244,12 +247,18 @@ export class NotificationEmailsService {
           replyToSupport: SUPPORT_REPLY_EVENTS.has(type),
           ...(attachments ? { attachments } : {}),
         });
+        delivered = true;
       } catch (e) {
-        if (retryOnFailure) throw e;
+        if (retryOnFailure) {
+          if (delivered) await this.billingDocs.markProformaEmailed(type, payload, extras);
+          throw e;
+        }
         // best-effort: notificarea in-app exista deja; nu esuam jobul
         this.logger.warn(`email ${type} catre ${user.id} a esuat: ${safeErrorSummary(e)}`);
       }
     }
+    // g4: proforma atasata a plecat macar la un destinatar → comanda tine minte
+    if (delivered) await this.billingDocs.markProformaEmailed(type, payload, extras);
   }
 
   // E-company-24 — copia pentru adresa de facturare a firmei (ex. contabilul): doar documentele,
@@ -285,6 +294,8 @@ export class NotificationEmailsService {
       replyToSupport: true,
       ...(extras?.attachment ? { attachments: [extras.attachment] } : {}),
     });
+    // g4 (revizie m5): copia pentru contabil NU marcheaza proforma ca trimisa — portofelul ii
+    // spune firmei „ti-am trimis proforma”, adevarat doar daca a ajuns la OWNER/MANAGER
     await this.prisma.domainEventOutbox.updateMany({
       where: { id: eventId, billingContactEmailedAt: null },
       data: { billingContactEmailedAt: new Date() },
@@ -876,6 +887,18 @@ export class NotificationEmailsService {
           path: isClientRecipient ? `/${lang}/requests/${requestId}/offers` : claimsPath,
         };
       }
+      // e4: o firma a renuntat la preluare — fara numele firmei; cererea e din nou in piata
+      case 'request.company_withdrew':
+        return {
+          subject: ro
+            ? `O firmă a renunțat la cererea ta — ${requestTitle}`
+            : `A company stepped back from your request — ${requestTitle}`,
+          intro: ro
+            ? `O firmă a renunțat la cererea „${requestTitle}”. Cererea e din nou disponibilă pentru alte firme; nu trebuie să faci nimic.`
+            : `A company stepped back from your request “${requestTitle}”. The request is available to other companies again; you don't need to do anything.`,
+          cta: ro ? 'Vezi cererea' : 'View the request',
+          path: `/${lang}/requests/${requestId}`,
+        };
       case 'request.expired':
         return {
           subject: ro

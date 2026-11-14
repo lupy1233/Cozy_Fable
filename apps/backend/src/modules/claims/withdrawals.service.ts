@@ -417,7 +417,7 @@ export class WithdrawalsService {
       companyId: string;
       requestId: string;
       claimCostCreditsSnapshot: number;
-      request: { title: string | null };
+      request: { title: string | null; clientUserId?: string | null };
     },
     actingUserId: string,
     reasonType: WithdrawalReasonType,
@@ -456,7 +456,7 @@ export class WithdrawalsService {
       requestId: string;
       claimCostCreditsSnapshot: number;
       createdAt: Date;
-      request: { title: string | null };
+      request: { title: string | null; clientUserId?: string | null };
     },
     actingUserId: string,
     // E-company-6: calculat o singura data in request() (acelasi rezultat ca cel verificat)
@@ -606,7 +606,7 @@ export class WithdrawalsService {
       include: {
         claimSlot: {
           include: {
-            request: { select: { title: true, status: true } },
+            request: { select: { title: true, status: true, clientUserId: true } },
             quotes: { where: { status: 'ACCEPTED' }, select: { id: true } },
           },
         },
@@ -702,6 +702,8 @@ export class WithdrawalsService {
       );
       if (dto.approve) {
         await this.outbox.record(tx, `request.withdrawal-decided:${withdrawalId}`, 'request.status_changed', { requestId: wd.claimSlot.requestId }, []);
+        // e4: retragerea aprobata = firma a renuntat → clientul afla (o singura data pe preluare)
+        await this.notifyClientCompanyWithdrew(tx, wd.claimSlotId, wd.claimSlot.requestId, wd.claimSlot.request);
       }
       return tx.claimWithdrawal.findUniqueOrThrow({ where: { id: withdrawalId } });
     });
@@ -785,7 +787,7 @@ export class WithdrawalsService {
   // procesorul de notificari il arunca); + broadcast request.status_changed pt. marketplace.
   private async notifyWithdrawn(
     tx: Tx,
-    slot: { id: string; companyId: string; requestId: string; request: { title: string | null } },
+    slot: { id: string; companyId: string; requestId: string; request: { title: string | null; clientUserId?: string | null } },
     reason: string,
     refunded: boolean,
   ): Promise<void> {
@@ -801,6 +803,25 @@ export class WithdrawalsService {
       await this.companyMemberIds(slot.companyId, tx),
     );
     await this.outbox.record(tx, `request.withdrawn:${slot.id}:${reason}`, 'request.status_changed', { requestId: slot.requestId }, []);
+    await this.notifyClientCompanyWithdrew(tx, slot.id, slot.requestId, slot.request);
+  }
+
+  // e4: cand o FIRMA renunta (voluntar, motiv validat automat sau aprobat de admin), clientul
+  // afla ca cererea e din nou disponibila — clopotel + e-mail. O singura data pe preluare (cheia
+  // outbox e pe slot). Inchiderile automate (termen depasit, neatribuire) NU trec pe aici:
+  // clientul nu primeste mesaje in rafala. Fara numele firmei.
+  private async notifyClientCompanyWithdrew(
+    tx: Tx,
+    claimSlotId: string,
+    requestId: string,
+    request: { title: string | null; clientUserId?: string | null },
+  ): Promise<void> {
+    if (!request.clientUserId) return;
+    await this.outbox.record(tx, `request.company_withdrew:${claimSlotId}`,
+      'request.company_withdrew',
+      { requestId, requestTitle: request.title ?? '' },
+      [request.clientUserId],
+    );
   }
 
   private toDto(w: {

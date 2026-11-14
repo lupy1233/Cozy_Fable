@@ -148,6 +148,8 @@ export function useRealtimeSync(): void {
     s.on('execution.stage_updated', onDelivery);
     s.on('request.expired', onRequestChange);
     s.on('request.expiry_reminder', onRequestChange);
+    // e4: o firma a renuntat — caseta "Cine vede cererea" si clopotelul clientului se refac
+    s.on('request.company_withdrew', onDelivery);
     s.on('claim.assign_warning', onClaimDeadline);
     s.on('sla.expiring_soon', onClaimDeadline);
     s.on('company.approved', onCompany);
@@ -169,6 +171,8 @@ export function useRealtimeSync(): void {
     s.on('credits.ledger_mismatch', onBell);
     // a6: cerere publicata fara nicio firma in zona (admini)
     s.on('request.no_coverage', onBell);
+    // g4: PDF-urile nu se pot genera (admini, o data pe zi)
+    s.on('documents.pdf_failed', onBell);
     s.on('quote.expired', onQuote);
     s.on('quote.extension_requested', onQuote);
     s.on('quote.expired_closed', onClaimClosed);
@@ -201,6 +205,7 @@ export function useRealtimeSync(): void {
       s.off('execution.stage_updated', onDelivery);
       s.off('request.expired', onRequestChange);
       s.off('request.expiry_reminder', onRequestChange);
+      s.off('request.company_withdrew', onDelivery);
       s.off('claim.assign_warning', onClaimDeadline);
       s.off('sla.expiring_soon', onClaimDeadline);
       s.off('company.approved', onCompany);
@@ -219,6 +224,7 @@ export function useRealtimeSync(): void {
       s.off('dispute.opened', onBell);
       s.off('credits.ledger_mismatch', onBell);
       s.off('request.no_coverage', onBell);
+      s.off('documents.pdf_failed', onBell);
       s.off('quote.expired', onQuote);
       s.off('quote.extension_requested', onQuote);
       s.off('quote.expired_closed', onClaimClosed);

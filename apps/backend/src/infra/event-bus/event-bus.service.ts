@@ -64,7 +64,12 @@ export type DomainEvent =
   // e1-2 (etapa 5): firma a bifat o etapa de executie (doar clientul; clopotel, fara e-mail)
   | 'execution.stage_updated'
   // a6 (etapa 5): cerere publicata fara nicio firma pe raza (doar adminii; clopotel + e-mail)
-  | 'request.no_coverage';
+  | 'request.no_coverage'
+  // g4 (etapa 7): un PDF (oferta / proforma / factura) nu s-a putut genera (doar adminii;
+  // clopotel o data pe zi, fara e-mail)
+  | 'documents.pdf_failed'
+  // e4 (etapa 7): o firma a renuntat la preluare — doar clientul (clopotel + e-mail)
+  | 'request.company_withdrew';
 
 // Invarianta 3.5: TOATE evenimentele trec prin publish() —
 // emite pe Socket.IO si pune in coada de notificari. Controllerele nu emit direct.

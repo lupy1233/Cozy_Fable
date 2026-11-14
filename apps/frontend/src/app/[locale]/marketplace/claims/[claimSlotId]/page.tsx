@@ -4,14 +4,14 @@ import type { ClaimQuoteContextDto } from '@marketplace/shared';
 import { Mail, MapPin, Paperclip, Phone, Timer, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { Link, useRouter } from '@/i18n/routing';
+import { useId, useRef, useState, type ReactNode } from 'react';
+import { Link } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
 import { companyCan } from '@/lib/company-permissions';
 import { latestVersion } from '@/lib/quote-version';
 import { cn } from '@/lib/utils';
-import { useMe } from '@/hooks/use-auth';
-import { useLoginRedirect } from '@/lib/use-login-redirect';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
+import { LoadError } from '@/components/ui/query-state';
 import { useMessages, useThreads } from '@/hooks/use-chat';
 import { useMyCompany } from '@/hooks/use-company';
 import { useAssignClaim } from '@/hooks/use-marketplace';
@@ -23,6 +23,7 @@ import { slaPhase, useDurationLeft, useSlaDateFormat } from '@/lib/sla-deadline'
 import { RequestGeneralFiles } from '@/components/configurator/request-general-files';
 import { RequestInspirationByRoom } from '@/components/configurator/request-inspiration-by-room';
 import { RoomSpecCard, RoomSpecNav } from '@/components/configurator/room-spec-card';
+import { useDisplayAddress } from '@/components/configurator/use-display-address';
 import { StudioScenesButton } from '@/components/studio/scene-button';
 import { Alert } from '@/components/ui/alert';
 import { Avatar } from '@/components/ui/avatar';
@@ -85,28 +86,33 @@ export default function CompanyClaimPage() {
   const t = useTranslations('Quotes');
   const params = useParams<{ claimSlotId: string }>();
   const claimSlotId = params.claimSlotId;
-  const router = useRouter();
-  const me = useMe();
-  const toLogin = useLoginRedirect();
+  const ta = useTranslations('Access');
+  // f4: fara sesiune → login cu intoarcere („Deschide lucrarea” din e-mail); alt rol → ecranul de acces
+  const auth = useRequireAuth('COMPANY_USER');
   const ctx = useClaimContext(claimSlotId);
   const company = useMyCompany();
   useRealtimeSync();
 
-  useEffect(() => {
-    if (me.isError) toLogin();
-    else if (me.data && me.data.role !== 'COMPANY_USER') router.replace('/dashboard');
-  }, [me.isError, me.data, router, toLogin]);
-
-  // e1 / f3: sesiunea a expirat (401) → ramanem pe incarcare; ascultatorul global duce omul la login
-  if (ctx.isPending || (ctx.error instanceof ApiError && ctx.error.status === 401)) {
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="COMPANY_USER" />;
+  // e1 / f3: sesiunea a expirat (401) → ramanem pe incarcare; garda / ascultatorul duc la login.
+  // f4: o eroare inainte sa stim cine e omul tot incarcare (vizitatorul nu vede „nu exista”)
+  if (
+    ctx.isPending ||
+    (ctx.error instanceof ApiError && ctx.error.status === 401) ||
+    (ctx.isError && auth.status === 'loading')
+  ) {
     return <SkeletonPage variant="detail" />;
   }
   if (ctx.isError || !ctx.data) {
+    // f4: 403/404 = preluarea nu exista sau e a altei firme; orice alta eroare se poate reincerca
+    const missing = !ctx.isError || (ctx.error instanceof ApiError && [403, 404].includes(ctx.error.status));
+    if (!missing) return <LoadError onRetry={() => void ctx.refetch()} />;
     return (
       <EmptyState
         variant="card"
-        tone="error"
-        title={t('notFound')}
+        tone="warning"
+        title={ta('claimNotYours')}
+        hint={ta('claimNotYoursHint')}
         action={
           <Link href="/marketplace/claims" className="text-sm text-walnut hover:underline">
             ← {t('backToClaims')}
@@ -237,6 +243,8 @@ function ClaimWorkspace({
                 rooms={c.rooms}
                 firmActions={c.firmActions}
                 slaPaused={c.slaPaused}
+                // a7: dialogul de retragere arata termenul de pe aceeasi sursa ca fisa
+                slaDeadlineAt={c.slaDeadlineAt}
                 headingLevel="h2"
               />
             ) : (
@@ -348,7 +356,8 @@ function ClaimHeader({ ctx, subtitle }: { ctx: ClaimQuoteContextDto; subtitle?: 
 function ClosedClaimSummary({ ctx: c }: { ctx: ClaimQuoteContextDto }) {
   const t = useTranslations('Quotes');
   const isWinner = c.quote?.status === 'ACCEPTED';
-  const place = [c.detail.city, c.detail.county].filter(Boolean).join(', ');
+  // b12: fara "Bucuresti, Bucuresti"
+  const place = useDisplayAddress()({ city: c.detail.city, county: c.detail.county });
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <ClaimHeader
@@ -377,6 +386,10 @@ function ClosedClaimSummary({ ctx: c }: { ctx: ClaimQuoteContextDto }) {
             includesPaidDesign={c.includesPaidDesign}
             rooms={c.rooms}
             readOnly
+            // e4: oferta retrasa pentru ca clientul a sters cererea — spunem motivul, nu doar „Retrasă”
+            statusLabel={
+              c.visibility === 'TOMBSTONE' && c.quote.status === 'WITHDRAWN' ? t('requestDeletedByClient') : undefined
+            }
           />
         ) : (
           <p className="text-sm text-muted-foreground">{t('workspace.noOwnOffer')}</p>
@@ -606,6 +619,8 @@ function BudgetLine({ ctx }: { ctx: ClaimQuoteContextDto }) {
 // vizibile DOAR cat timp claim-ul e activ pe cerere si doar membrilor care au voie (E-company-3).
 function ClientCard({ ctx }: { ctx: ClaimQuoteContextDto }) {
   const t = useTranslations('Quotes');
+  // b12: oras / judet / tara fara dubluri
+  const displayAddress = useDisplayAddress();
   const relTime = useRelativeTime();
   const titleId = useId();
   if (!ctx.client) {
@@ -672,9 +687,10 @@ function ClientCard({ ctx }: { ctx: ClaimQuoteContextDto }) {
           <li className="flex items-start gap-2 pt-2 text-ink-2">
             <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
             <span>
-              {ctx.detail.addressText}
+              {/* b12: blocul / apartamentul vin goale fara acces, ca strada */}
+              {[ctx.detail.addressText, ctx.detail.addressDetails].filter(Boolean).join(', ')}
               <span className="block text-xs text-muted-foreground">
-                {ctx.detail.city}, {ctx.detail.county}
+                {displayAddress({ city: ctx.detail.city, county: ctx.detail.county, country: ctx.detail.country })}
               </span>
             </span>
           </li>

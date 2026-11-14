@@ -7,6 +7,8 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
 import { ApiError, isUnauthorizedError } from '@/lib/api';
+import { RoleOnlyScreen } from '@/lib/require-auth';
+import { LoadError } from '@/components/ui/query-state';
 import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useClaim, useMarketplaceDetail, useWallet } from '@/hooks/use-marketplace';
 import { useBudgetFormat } from '@/hooks/use-budget-format';
@@ -17,6 +19,8 @@ import { companyCan } from '@/lib/company-permissions';
 import { useSlaDateFormat } from '@/lib/sla-deadline';
 import { RequestGeneralFiles } from '@/components/configurator/request-general-files';
 import { ClosedRequestNotice, closedDetails } from './closed-request-notice';
+import { ClaimCostSource, claimBlockedByRole } from './claim-panel-notes';
+import { toast } from '@/components/ui/toaster';
 import {
   ClaimDialogDetails,
   assigneeToPayload,
@@ -33,6 +37,7 @@ import { ContactSafeText } from '@/components/ui/contact-safe-text';
 import { FirmRulesLink, firmRulesChunk } from '../../_components/firm-rules-link';
 import { ActionConfirmDialog } from '../../_components/action-confirm-dialog';
 import { RoomSpecCard, RoomSpecNav } from '@/components/configurator/room-spec-card';
+import { useDisplayAddress } from '@/components/configurator/use-display-address';
 import { RequestInspirationByRoom } from '@/components/configurator/request-inspiration-by-room';
 import { StudioScenesButton } from '@/components/studio/scene-button';
 import { useRelativeTime } from '@/lib/relative-time';
@@ -56,6 +61,8 @@ export default function MarketplaceDetailPage() {
   const detail = useMarketplaceDetail(id);
   const relTime = useRelativeTime();
   const budgetFormat = useBudgetFormat();
+  // b12: oras + judet fara dubluri ("Bucuresti, Bucuresti")
+  const displayAddress = useDisplayAddress();
   // f3 (review M1): plasa de siguranta — 401 pe cerere SI „cine sunt eu” a esuat → login cu
   // intoarcere, chiar daca semnalul global n-a dus acolo (pagina nu ramane pe schelet)
   const me = useMe();
@@ -64,6 +71,8 @@ export default function MarketplaceDetailPage() {
   useEffect(() => {
     if (unauthorized && me.isError) toLogin();
   }, [unauthorized, me.isError, toLogin]);
+  // f4: alt rol (ex. clientul pe un link de firma) → ecranul de acces, nu „Nicio cerere”
+  if (me.data && me.data.role !== 'COMPANY_USER') return <RoleOnlyScreen role="COMPANY_USER" />;
 
   // f3: 401 = sesiune pierduta, nu „nicio cerere”: incarcare, ascultatorul global duce la login
   if (detail.isPending || unauthorized) {
@@ -89,6 +98,10 @@ export default function MarketplaceDetailPage() {
     if (detail.error instanceof ApiError && detail.error.code === 'REQUEST_NO_LONGER_CLAIMABLE') {
       return <ClosedRequestNotice details={closedDetails(detail.error.details)} />;
     }
+    // f4: doar 403/404 inseamna „cererea nu mai e disponibila”; orice alta eroare se poate reincerca
+    if (detail.isError && !(detail.error instanceof ApiError && [403, 404].includes(detail.error.status))) {
+      return <LoadError onRetry={() => void detail.refetch()} />;
+    }
     return (
       <EmptyState
         tone="error"
@@ -111,7 +124,12 @@ export default function MarketplaceDetailPage() {
       <PageHeader
         back={{ href: '/marketplace', label: t('back') }}
         title={<ContactSafeText text={r.title} />}
-        subtitle={<span className="data-mono">{t('detailMeta', { when: relTime(r.publishedAt) })}</span>}
+        subtitle={
+          <span className="data-mono">
+            {/* a7: dupa preluare datele clientului sunt deja in fisa — fara „apar dupa preluare” */}
+            {t(r.alreadyClaimedByMyCompany ? 'detailMetaClaimed' : 'detailMeta', { when: relTime(r.publishedAt) })}
+          </span>
+        }
       />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
@@ -146,7 +164,7 @@ export default function MarketplaceDetailPage() {
                 {r.deadlineBucket ? tr(`deadline.${r.deadlineBucket}`) : tr('deadline.none')}
               </Fact>
               <Fact label={t('location')} title={t('distanceHint')}>
-                {r.city}, {r.county} · {distanceLabel(r, t)}
+                {displayAddress({ city: r.city, county: r.county })} · {distanceLabel(r, t)}
               </Fact>
             </dl>
           </Card>
@@ -231,6 +249,10 @@ function ClaimPanel({ request }: { request: MarketplaceDetailDto }) {
   const chosen = assignee ?? defaultAssignee({ canAssign, meId, selfBusy });
   // angajatul cu acces complet preia doar pentru el: ocupat → nu poate confirma
   const selfBlocked = !canAssign && selfBusy;
+  // a7: angajatul fara acces complet nu preia — buton dezactivat, cu explicatia
+  const roleBlocked = claimBlockedByRole(company.data);
+  // a7: valoarea unui credit (optionala: un slot vechi nu o trimite)
+  const creditValueRon = rules?.claims.claimCost.creditValueRon;
 
   const full = request.activeClaims >= request.maxClaims;
   const insufficient =
@@ -292,6 +314,7 @@ function ClaimPanel({ request }: { request: MarketplaceDetailDto }) {
             </div>
           )}
         </dl>
+        <ClaimCostSource estimateMinRon={request.budgetEstimateMinRon} creditValueRon={creditValueRon} />
         <div className="flex items-center justify-between gap-3 text-ui">
           <span className="text-muted-foreground">
             {t('slots', { active: request.activeClaims, max: request.maxClaims })}
@@ -315,10 +338,16 @@ function ClaimPanel({ request }: { request: MarketplaceDetailDto }) {
           claim.reset();
           setConfirmOpen(true);
         }}
-        disabled={claim.isPending || full || insufficient}
+        disabled={claim.isPending || full || insufficient || roleBlocked}
+        aria-describedby={roleBlocked ? 'claim-role-blocked' : undefined}
       >
         {claim.isPending ? t('claiming') : full ? t('full') : t('claimPanel.cta')}
       </Button>
+      {roleBlocked && (
+        <p id="claim-role-blocked" className="text-sm text-muted-foreground">
+          {t('claimPanel.roleBlocked')}
+        </p>
+      )}
 
       <ActionConfirmDialog
         open={confirmOpen}
@@ -329,7 +358,7 @@ function ClaimPanel({ request }: { request: MarketplaceDetailDto }) {
         pendingLabel={t('claiming')}
         pending={claim.isPending}
         error={apiErrText}
-        confirmDisabled={full || insufficient || selfBlocked}
+        confirmDisabled={full || insufficient || selfBlocked || roleBlocked}
         onConfirm={() =>
           claim.mutate(
             { requestId: request.id, assignToUserId: assigneeToPayload(chosen) },
@@ -338,6 +367,8 @@ function ClaimPanel({ request }: { request: MarketplaceDetailDto }) {
             {
               onSuccess: (slot) => {
                 setConfirmOpen(false);
+                // a7: confirmarea o data, vizibila pe fisa (toaster-ul global supravietuieste navigarii)
+                toast.success(t('claimSuccessToast'));
                 router.push(`/marketplace/claims/${slot.id}`);
               },
             },

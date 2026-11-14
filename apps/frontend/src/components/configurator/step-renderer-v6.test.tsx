@@ -271,6 +271,21 @@ describe('etapa 6 — randul "Alta piesa" v2 (rowVersion 2)', () => {
     expect(screen.getByRole('button', { name: new RegExp(T.pieces.remove) }).className).toContain('min-h-11');
   });
 
+  // verificarea in browser: textul lung se taia in lista → eticheta scurta, textul lung sub lista
+  it('the material list uses the short "Decide firma" label; the long text shows as a description once chosen', async () => {
+    const user = userEvent.setup();
+    renderStep(v2Step, { pieces: [row] }, 'PIECES');
+    const select = screen.getByLabelText(T.pieces.material);
+    const option = within(select).getByRole('option', { name: T.pieces.firmDecidesShort });
+    expect(T.pieces.firmDecidesShort).toBe('Decide firma');
+    expect(option).toHaveValue(FIRM_DECIDES);
+    expect(option).toHaveAttribute('title', T.pieces.firmDecides);
+    expect(within(select).queryByRole('option', { name: T.pieces.firmDecides })).toBeNull();
+    expect(document.querySelector('[data-firm-decides-hint]')).toBeNull();
+    await user.selectOptions(select, FIRM_DECIDES);
+    expect(document.querySelector('[data-firm-decides-hint]')).toHaveTextContent(T.pieces.firmDecides);
+  });
+
   it('"firm decides" on material saves ALTUL + materialChoice; a real material removes the marker', async () => {
     const user = userEvent.setup();
     const { last } = renderStep(v2Step, { pieces: [row] }, 'PIECES');

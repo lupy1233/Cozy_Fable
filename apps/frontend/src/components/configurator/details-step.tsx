@@ -43,7 +43,8 @@ import { PhoneInput } from './phone-input';
 import { anyRoomNeedsDesignHelp, toServerRoom } from './room-payload';
 
 // Tarile oferite la livrare (F5, item 19) — RO implicit; etichetele vin din
-// Intl.DisplayNames in limba interfetei.
+// Intl.DisplayNames in limba interfetei. b12 (PO b12-1): lista ramane — exista firme care
+// lucreaza si cu clienti din alte tari (cum ajung la firme: g0-12, etapa ulterioara).
 const COUNTRIES = [
   'RO', 'MD', 'HU', 'BG', 'DE', 'AT', 'FR', 'IT', 'ES', 'BE', 'NL', 'CH',
   'GB', 'IE', 'PL', 'CZ', 'SK', 'GR', 'PT', 'SE', 'DK', 'NO', 'FI',
@@ -111,6 +112,7 @@ export function DetailsStep({
     control,
     handleSubmit,
     setValue,
+    getValues,
     watch,
     formState: { errors },
   } = useForm<DetailsFormValues>({
@@ -125,6 +127,7 @@ export function DetailsStep({
       includesPaidDesign: withDesign,
       hasOwnProject: stored.hasOwnProject ?? false,
       addressText: stored.addressText ?? '',
+      addressDetails: stored.addressDetails ?? '',
       county: stored.county ?? '',
       city: stored.city ?? '',
       country: stored.country ?? 'RO',
@@ -341,8 +344,21 @@ export function DetailsStep({
               setValue('addressText', parts.addressText, { shouldValidate: true });
               if (parts.county) setValue('county', parts.county, { shouldValidate: true });
               if (parts.city) setValue('city', parts.city, { shouldValidate: true });
+              // b12: blocul / apartamentul tastate in adresa trec in campul lor, fara sa
+              // suprascrie ce a scris clientul deja acolo
+              if (parts.addressDetails && !getValues('addressDetails')?.trim()) {
+                setValue('addressDetails', parts.addressDetails, { shouldValidate: true });
+              }
             }}
           />
+          {/* b12: separat de strada — alegerea unei sugestii nu il sterge */}
+          <Field
+            label={t('field.addressDetails')}
+            hint={t('addressDetailsHint')}
+            error={vmsg(errors.addressDetails?.message)}
+          >
+            <Input {...register('addressDetails')} autoComplete="address-line2" />
+          </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t('field.county')} error={vmsg(errors.county?.message)}>
               <Input {...register('county')} />

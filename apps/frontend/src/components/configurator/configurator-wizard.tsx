@@ -26,6 +26,7 @@ import {
 } from '@/hooks/use-requests';
 import { track } from '@/lib/analytics';
 import { ApiError } from '@/lib/api';
+import { takeDraftContinue } from './draft-continue';
 import { DRAFT_TOKEN_KEY } from '@/lib/session-cleanup';
 import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { cn } from '@/lib/utils';
@@ -95,6 +96,7 @@ export function buildSnapshotFromRequest(dto: RequestDto): ConfiguratorSnapshot 
     deadlineBucket: dto.deadlineBucket ?? '',
     hasOwnProject: startMode === 'OWN_PROJECT',
     addressText: dto.addressText ?? '',
+    addressDetails: dto.addressDetails ?? '',
     county: dto.county ?? '',
     city: dto.city ?? '',
     country: dto.country ?? 'RO',
@@ -388,7 +390,9 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     // daca vrea sa continue de unde a ramas sau sa inceapa o cerere noua (cerinta PO)
     if (!resumeChecked.current) {
       resumeChecked.current = true;
-      if (snapshotHasProgress(store.getState().snapshot())) setResumePrompt(true);
+      // d5: venit din "Continua" (fila Ciorne) — omul a ales deja ciorna, fara a doua intrebare
+      const continued = takeDraftContinue();
+      if (!continued && snapshotHasProgress(store.getState().snapshot())) setResumePrompt(true);
     }
   }, [draft.data, isEdit, store]);
 
@@ -515,8 +519,13 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
   patchRef.current = patchDraft;
   const patchInFlight = useRef(false);
   const patchQueued = useRef(false);
+  // d5 (revizie m3): tokenul ciornei nu mai e valid (404) — ciorna a fost continuata pe alt
+  // dispozitiv (token nou) sau stearsa. Salvarea se opreste (fara reincercari la nesfarsit),
+  // ce e pe ecran ramane, iar omul afla unde o gaseste.
+  const draftGoneRef = useRef(false);
+  const [draftGone, setDraftGone] = useState(false);
   const sendDraft = useCallback(function send() {
-    if (publishingRef.current) return;
+    if (publishingRef.current || draftGoneRef.current) return;
     if (patchInFlight.current) {
       patchQueued.current = true;
       return;
@@ -524,8 +533,12 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     patchInFlight.current = true;
     patchRef.current
       .mutateAsync({ configuratorState: store.getState().snapshot() as unknown as Record<string, unknown> })
-      .catch(() => {
-        // starea de eroare o arata DraftStatus (cu "Reincearca")
+      .catch((e: unknown) => {
+        // starea de eroare o arata DraftStatus (cu "Reincearca"); 404 = ciorna nu mai e aici
+        if (e instanceof ApiError && e.status === 404) {
+          draftGoneRef.current = true;
+          setDraftGone(true);
+        }
       })
       .finally(() => {
         patchInFlight.current = false;
@@ -538,10 +551,10 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
 
   // Sync server debounced (doar creare): backup pentru resume de pe alt device.
   useEffect(() => {
-    if (isEdit || !token || !draftLoaded || publishing) return;
+    if (isEdit || !token || !draftLoaded || publishing || draftGone) return;
     const handle = setTimeout(sendDraft, 1500);
     return () => clearTimeout(handle);
-  }, [updatedAt, token, isEdit, draftLoaded, publishing, sendDraft]);
+  }, [updatedAt, token, isEdit, draftLoaded, publishing, draftGone, sendDraft]);
 
   // b3: memoria ciornei publicate se goleste abia dupa plecarea de pe pagina, ca
   // formularul sa nu mai arate primul pas intre reusita si pagina cererii
@@ -680,7 +693,7 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
           {headSubtitle && <p className="max-w-3xl text-lead text-muted-foreground">{headSubtitle}</p>}
         </div>
         {/* la editare nu exista ciorna: modificarile se salveaza abia din Sumar */}
-        {!isEdit && (
+        {!isEdit && !draftGone && (
           <DraftStatus
             saving={patchDraft.isPending}
             failed={patchDraft.isError && !publishing}
@@ -689,6 +702,16 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
           />
         )}
       </header>
+
+      {/* d5: ciorna a fost continuata pe alt dispozitiv — fara salvari, continutul ramane */}
+      {!isEdit && draftGone && (
+        <p role="alert" className="rounded-lg border border-amber/40 bg-amber-soft px-4 py-3 text-sm text-amber">
+          {t('draft.continuedElsewhere')}{' '}
+          <Link href="/requests" className="font-medium underline underline-offset-2">
+            {t('draft.openMyDrafts')}
+          </Link>
+        </p>
+      )}
 
       {/* f2: doar un cont de client publica cereri */}
       {!isEdit && nonClient && <ClientOnlyNote />}

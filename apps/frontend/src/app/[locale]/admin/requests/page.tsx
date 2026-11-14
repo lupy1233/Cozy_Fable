@@ -2,10 +2,9 @@
 
 import { ADMIN_REQUEST_FILTERS, type AdminRequestFilter } from '@marketplace/shared';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useRouter } from '@/i18n/routing';
-import { useMe } from '@/hooks/use-auth';
-import { useLoginRedirect } from '@/lib/use-login-redirect';
+import { useMemo, useState } from 'react';
+import { Link } from '@/i18n/routing';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
 import { useAdminRequests } from '@/hooks/use-admin';
 import { StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,19 +32,14 @@ export default function AdminRequestsPage() {
   const t = useTranslations('Admin.requests');
   const tr = useTranslations('Requests');
   const format = useFormatter();
-  const router = useRouter();
-  const me = useMe();
-  const toLogin = useLoginRedirect();
+  // f4: fara sesiune → login cu intoarcere; alt rol → ecranul de acces
+  const auth = useRequireAuth('ADMIN');
+  const me = auth.me;
   const [filter, setFilter] = useState<AdminRequestFilter>('accepted');
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState('');
   const list = useAdminRequests(filter, page);
   const isAdmin = me.data?.role === 'ADMIN';
-
-  useEffect(() => {
-    if (me.isError) toLogin();
-    else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
-  }, [me.isError, me.data, router, toLogin]);
 
   const pages = list.data ? Math.max(1, Math.ceil(list.data.total / list.data.pageSize)) : 1;
   const fmtDate = (iso: string | null) => (iso ? format.dateTime(new Date(iso), { dateStyle: 'medium' }) : '—');
@@ -61,6 +55,9 @@ export default function AdminRequestsPage() {
       [r.title, r.clientName, r.winnerCompanyName].some((v) => !!v && v.toLowerCase().includes(q)),
     );
   }, [list.data, q]);
+
+  if (auth.status === 'loading') return <SkeletonTable rows={6} cols={5} />;
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="ADMIN" />;
 
   return (
     <div className="flex w-full max-w-[1180px] flex-col gap-6">

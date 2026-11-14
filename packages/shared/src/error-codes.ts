@@ -64,6 +64,10 @@ export const ERROR_CODES = {
   CLAIM_ALREADY_EXISTS: 'CLAIM_ALREADY_EXISTS',
   // a1: cererea nu mai poate fi preluata (details: RequestNoLongerClaimableDetails)
   REQUEST_NO_LONGER_CLAIMABLE: 'REQUEST_NO_LONGER_CLAIMABLE',
+  // a7: rolul din firma nu poate prelua (angajatul fara acces complet, EMPLOYEE_MANAGED)
+  CLAIM_ROLE_NOT_ALLOWED: 'CLAIM_ROLE_NOT_ALLOWED',
+  // g4: documentul PDF (oferta, proforma, factura) nu s-a putut genera acum (503)
+  DOCUMENT_RENDER_FAILED: 'DOCUMENT_RENDER_FAILED',
 
   // Retrageri
   WITHDRAWAL_REASON_NOT_VALIDATED: 'WITHDRAWAL_REASON_NOT_VALIDATED',

@@ -1,12 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { InspirationPhotoDto } from '@marketplace/shared';
-import { useRouter } from '@/i18n/routing';
-import { useMe } from '@/hooks/use-auth';
-import { useLoginRedirect } from '@/lib/use-login-redirect';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
 import {
   useAdminInspiration,
   useDeleteInspiration,
@@ -48,9 +46,8 @@ const norm = (s: string) =>
 
 export default function AdminInspirationPage() {
   const t = useTranslations('AdminInspiration');
-  const router = useRouter();
-  const me = useMe();
-  const toLogin = useLoginRedirect();
+  // f4: fara sesiune → login cu intoarcere; alt rol → ecranul de acces
+  const auth = useRequireAuth('ADMIN');
   const list = useAdminInspiration();
   const update = useUpdateInspiration();
   const remove = useDeleteInspiration();
@@ -60,12 +57,8 @@ export default function AdminInspirationPage() {
   const [query, setQuery] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (me.isError) toLogin();
-    else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
-  }, [me.isError, me.data, router, toLogin]);
-
-  if (me.isPending || me.data?.role !== 'ADMIN') return <SkeletonPage variant="list" />;
+  if (auth.status === 'loading') return <SkeletonPage variant="list" />;
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="ADMIN" />;
 
   const photos = list.data ?? [];
   const count = (f: ListFilter) => photos.filter(MATCH[f]).length;

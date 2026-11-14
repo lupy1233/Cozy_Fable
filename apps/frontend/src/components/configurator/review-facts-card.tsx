@@ -8,6 +8,22 @@ import { Button } from '@/components/ui/button';
 import { useBudgetFormat } from '@/hooks/use-budget-format';
 import type { DetailsValues, StartMode } from '@/stores/configurator-store';
 import { isBudgetChosen } from './budget-choice';
+import { useDisplayAddress } from './use-display-address';
+
+// d5: modul unei cereri publicate, pentru randul "Cum ai pornit cererea" de pe pagina cererii.
+// Aceeasi regula ca startModeFromRequest din configurator-wizard (contract b8, punctul 5), aici
+// ca pagina cererii sa nu incarce tot formularul: hasOwnProject → "Am deja un proiect"; toate
+// camerele cu needsDesignHelp → "Am nevoie de ajutor"; altfel "Stiu ce vreau". Camerele vechi
+// (fara raspunsuri si fara bifa) nu conteaza, ca la editare.
+export function requestStartMode(r: {
+  hasOwnProject: boolean;
+  rooms: { answers: Record<string, unknown> | null; needsDesignHelp: boolean }[];
+}): StartMode {
+  if (r.hasOwnProject) return 'OWN_PROJECT';
+  const rooms = r.rooms.filter((room) => room.answers || room.needsDesignHelp);
+  if (rooms.length > 0 && rooms.every((room) => room.needsDesignHelp === true)) return 'DESIGN_HELP';
+  return 'STANDARD';
+}
 
 // Compozitie adaptata din Cozy-Mobilaunicat; contractul si publicarea raman ale marketplace-ului.
 // Rand de fapt: eticheta in stanga, valoarea in dreapta ei (pe telefon, dedesubt).
@@ -30,6 +46,8 @@ export function ReviewFactsCard({ details, complete, mode, helpRooms = [], onEdi
   const t = useTranslations('Configurator');
   const tr = useTranslations('Requests');
   const budgetFormat = useBudgetFormat();
+  // b12: adresa fara dubluri (oras = judet), tara doar cand nu e Romania
+  const displayAddress = useDisplayAddress();
   const missing = t('review.facts.notProvided');
   // b11: suma aleasa in lei (acelasi format ca la firma) sau 'Buget nedeclarat'; fara trepte.
   // Neales inca = Necompletat (ciorna veche cu bugetul pus din oficiu cere alegerea din nou).
@@ -49,7 +67,7 @@ export function ReviewFactsCard({ details, complete, mode, helpRooms = [], onEdi
           {budgetText}
         </Fact>
         <Fact label={t('review.facts.deadline')}>{details.deadlineBucket && tr.has(`deadline.${details.deadlineBucket}`) ? tr(`deadline.${details.deadlineBucket}`) : missing}</Fact>
-        <Fact label={t('review.facts.location')}>{[details.addressText, details.city, details.county, details.country ?? 'RO'].filter(Boolean).join(', ')}</Fact>
+        <Fact label={t('review.facts.location')}>{displayAddress(details) || missing}</Fact>
         <Fact label={t('review.facts.contact')}>
           {details.contactPreferences?.length ? details.contactPreferences.map((contact, i) => (
             <span key={`${contact.channel}-${i}`} className="block break-all">{tr(`contactChannel.${contact.channel}`)}: {contact.value || missing}</span>

@@ -19,6 +19,9 @@ const state = vi.hoisted(() => ({
   // f3: plasa de siguranta (401 + „cine sunt eu” esuat → login)
   meError: false,
   toLogin: vi.fn(),
+  // e4: stergerea cu dialogul aplicatiei
+  del: { mutate: vi.fn(), reset: vi.fn(), isPending: false, error: null as unknown },
+  replace: vi.fn(),
 }));
 vi.mock('@/hooks/use-auth', () => ({ useMe: () => ({ isError: state.meError, data: undefined }) }));
 vi.mock('@/lib/use-login-redirect', () => ({ useLoginRedirect: () => state.toLogin }));
@@ -31,14 +34,14 @@ vi.mock('@/components/ui/toaster', () => ({ toast: { success: state.toastSuccess
 vi.mock('next/navigation', () => ({ useParams: () => ({ id: 'req-1' }) }));
 vi.mock('@/i18n/routing', () => ({
   Link: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a>,
-  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+  useRouter: () => ({ replace: state.replace, push: vi.fn() }),
 }));
 vi.mock('@/hooks/use-requests', () => ({
   useRequest: () =>
     state.requestError
       ? { isPending: false, isError: true, error: state.requestError, data: undefined, refetch: vi.fn() }
       : { isPending: false, isError: false, data: state.request },
-  useDeleteRequest: () => ({ mutate: vi.fn(), isPending: false }),
+  useDeleteRequest: () => state.del,
   // E-client-9: cardul "Cine vede cererea" (fara date → nu se randeaza)
   useRequestVisibility: () => ({ data: undefined }),
   useRepostRequest: (id: string) => {
@@ -71,6 +74,9 @@ function request(over: Record<string, unknown>) {
     inspirationPhotoIds: [],
     inspirationPhotos: [],
     studioScenes: [],
+    hasOwnProject: false,
+    includesPaidDesign: false,
+    contactPreferences: [],
     ...over,
   };
 }
@@ -90,6 +96,8 @@ beforeEach(() => {
   state.requestError = null;
   state.meError = false;
   state.toLogin = vi.fn();
+  state.del = { mutate: vi.fn(), reset: vi.fn(), isPending: false, error: null };
+  state.replace = vi.fn();
 });
 
 // e1: "Expires" doar cat cererea asteapta in piata; dupa acceptare "Accepted on <data>"
@@ -276,5 +284,88 @@ describe('request detail budget (b11)', () => {
     renderPage();
     expect(screen.getByText(en.Requests.budgetView.undisclosed)).toBeTruthy();
     expect(screen.queryByText(en.Requests.budget.UNDER_5K)).toBeNull();
+  });
+});
+
+// d5: fisa cererii reia randurile din Sumar — inclusiv contactele transmise firmelor si un
+// singur rand "Cum ai pornit cererea"
+describe('request detail sheet repeats the summary rows (d5)', () => {
+  it('shows budget, deadline, address, the contacts sent to companies and the start mode', () => {
+    state.request = request({
+      status: 'IN_MARKETPLACE',
+      budgetRange: 'FROM_5K_TO_15K', budgetEstimateRon: 12000, budgetDeclared: true,
+      deadlineBucket: 'ONE_TO_THREE_MONTHS',
+      contactPreferences: [
+        { id: 'c1', channel: 'EMAIL', value: 'ana@example.test' },
+        { id: 'c2', channel: 'PHONE', value: '+40 722 000 000' },
+      ],
+      rooms: [
+        { id: 'r1', roomType: 'KITCHEN', needsDesignHelp: false, answers: { a: 1 }, items: [] },
+        { id: 'r2', roomType: 'BATHROOM', needsDesignHelp: true, answers: null, items: [] },
+      ],
+    });
+    renderPage();
+    expect(screen.getByText(en.Requests.field.budgetRange)).toBeTruthy();
+    expect(screen.getByText(en.Requests.field.addressText)).toBeTruthy();
+    expect(screen.getByText(en.Configurator.review.facts.contact)).toBeTruthy();
+    expect(screen.getByText(/ana@example\.test/)).toBeTruthy();
+    expect(screen.getByText(/\+40 722 000 000/)).toBeTruthy();
+    // un singur rand despre mod, cu camerele care au nevoie de ajutor
+    expect(screen.getAllByText(en.Configurator.review.facts.mode)).toHaveLength(1);
+    expect(screen.getByText(en.Configurator.start.STANDARD.title)).toBeTruthy();
+    expect(screen.getByText(new RegExp(en.Configurator.rooms.type.BATHROOM))).toBeTruthy();
+    expect(screen.queryByText(en.Requests.field.hasOwnProject)).toBeNull();
+  });
+
+  it('own project → "I already have a project"', () => {
+    state.request = request({ status: 'IN_MARKETPLACE', hasOwnProject: true });
+    renderPage();
+    expect(screen.getByText(en.Configurator.start.OWN_PROJECT.title)).toBeTruthy();
+  });
+});
+
+// e4: stergerea cu dialogul aplicatiei (nu fereastra browserului), consecintele spuse, apoi
+// mesajul de reusita pe lista de cereri
+describe('request detail delete dialog (e4)', () => {
+  it('explains the consequences and deletes only after "Delete permanently"', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm');
+    state.request = request({ status: 'OFFERS_RECEIVED' });
+    state.toastSuccess.mockClear();
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: `${en.Requests.deleteRequest}…` }));
+    expect(confirmSpy).not.toHaveBeenCalled();
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText(en.Requests.deleteDialog.title)).toBeTruthy();
+    expect(within(dialog).getByText(en.Requests.deleteDialog.permanent)).toBeTruthy();
+    expect(within(dialog).getByText(en.Requests.deleteDialog.offers)).toBeTruthy();
+    expect(within(dialog).getByText(en.Requests.deleteDialog.chats)).toBeTruthy();
+    expect(within(dialog).getByText(en.Requests.deleteDialog.credits)).toBeTruthy();
+    expect(state.del.mutate).not.toHaveBeenCalled();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: en.Requests.deleteDialog.confirm }));
+    expect(state.del.mutate).toHaveBeenCalledTimes(1);
+    const [id, opts] = (state.del.mutate as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(id).toBe('req-1');
+    opts.onSuccess();
+    expect(state.toastSuccess).toHaveBeenCalledWith(en.Requests.deleteDialog.done);
+    expect(state.replace).toHaveBeenCalledWith('/requests');
+    confirmSpy.mockRestore();
+  });
+
+  it('cancel closes the dialog without deleting', () => {
+    state.request = request({ status: 'IN_MARKETPLACE' });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: `${en.Requests.deleteRequest}…` }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: en.Requests.deleteDialog.cancel }));
+    expect(state.del.mutate).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('a server error stays in the dialog', () => {
+    state.request = request({ status: 'IN_MARKETPLACE' });
+    state.del = { ...state.del, error: new ApiError('REQUEST_NOT_DELETABLE', 400, 'nope') };
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: `${en.Requests.deleteRequest}…` }));
+    expect(within(screen.getByRole('dialog')).getByRole('alert')).toBeTruthy();
   });
 });

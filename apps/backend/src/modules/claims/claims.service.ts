@@ -106,8 +106,9 @@ export class ClaimsService {
     dto: CreateClaimInput,
   ): Promise<ClaimSlotDto> {
     if (!can(ctx.memberRole, 'CLAIMS_CREATE')) {
+      // a7: cod propriu — FORBIDDEN generic ajungea la om ca mesaj despre atribuire
       throw new ForbiddenException({
-        code: ERROR_CODES.FORBIDDEN,
+        code: ERROR_CODES.CLAIM_ROLE_NOT_ALLOWED,
         message: 'Managed employees cannot claim',
       });
     }

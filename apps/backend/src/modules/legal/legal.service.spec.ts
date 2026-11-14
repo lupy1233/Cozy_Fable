@@ -87,7 +87,7 @@ describe('LegalService.getFirmRules', () => {
         openAfterFirstOffer: true,
         contactRevealPolicy: 'ON_CLAIM',
         completedContactRetentionDays: 0,
-        claimCost: { min: 1, max: null },
+        claimCost: { min: 1, max: null, creditValueRon: 1000 },
       },
       sla: { workingDays: { SMALL: 3, MEDIUM: 3, LARGE: 5 }, graceHours: 12, clarificationExtensionWorkingDays: 1 },
       withdrawals: { voluntaryGraceMinutes: 30, clientUnresponsiveHours: 48 },
@@ -136,11 +136,18 @@ describe('LegalService.getFirmRules', () => {
   });
 
   it('E-company-21: claimCost implicit {min:1, max:null}; plafonul setat apare pe pagina publica', async () => {
-    expect((await makeService({}, RULES).service.getFirmRules()).claims.claimCost).toEqual({ min: 1, max: null });
+    expect((await makeService({}, RULES).service.getFirmRules()).claims.claimCost).toEqual({ min: 1, max: null, creditValueRon: 1000 });
     const capped = await makeService({ ...SETTINGS, claim_cost_max: '25' }, RULES).service.getFirmRules();
-    expect(capped.claims.claimCost).toEqual({ min: 1, max: 25 });
+    expect(capped.claims.claimCost).toEqual({ min: 1, max: 25, creditValueRon: 1000 });
     const noCap = await makeService({ ...SETTINGS, claim_cost_min: '3', claim_cost_max: '0' }, RULES).service.getFirmRules();
-    expect(noCap.claims.claimCost).toEqual({ min: 3, max: null });
+    expect(noCap.claims.claimCost).toEqual({ min: 3, max: null, creditValueRon: 1000 });
+  });
+
+  it('a7: valoarea unui credit din credit_value_ron (invalida → 1000)', async () => {
+    const set = await makeService({ ...SETTINGS, credit_value_ron: '2000' }, RULES).service.getFirmRules();
+    expect(set.claims.claimCost.creditValueRon).toBe(2000);
+    const bad = await makeService({ ...SETTINGS, credit_value_ron: '0' }, RULES).service.getFirmRules();
+    expect(bad.claims.claimCost.creditValueRon).toBe(1000);
   });
 
   it('regula inactiva → 0 puncte', async () => {

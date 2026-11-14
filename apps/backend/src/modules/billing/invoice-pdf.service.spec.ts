@@ -18,6 +18,7 @@ import type { PrismaService } from '../../infra/prisma/prisma.service';
 import type { PaymentsService } from './payments.service';
 import type { BillingReadinessService } from './billing-readiness.service';
 import type { SettingsService } from '../../common/settings/settings.service';
+import type { OutboxService } from '../outbox/outbox.service';
 
 // E-company-19 — continutul facturii (functii pure, fara Puppeteer): data emiterii in
 // Europe/Bucharest, cod TVA client, U.M./Cant./pret unitar, "Achitat", nume fisier.
@@ -145,17 +146,37 @@ describe('InvoicePdfService — rezolvarea cumparatorului', () => {
     const prisma: any = {
       company: { findUnique: jest.fn().mockResolvedValue({ name: 'Live SRL', cui: 'RO7850265', regComNumber: 'J1', addressText: 'A', isVatPayer: true }) },
       subscriptionPlan: { findUnique: jest.fn().mockResolvedValue({ tier: 'GOLD', code: 'GOLD' }) },
+      $transaction: jest.fn((fn: any) => fn({ user: { findMany: jest.fn().mockResolvedValue([{ id: 'admin-1' }]) } })),
     };
     const readiness = { assertReady: jest.fn().mockResolvedValue(SELLER) };
     const settings = { getInt: jest.fn().mockResolvedValue(0) };
+    const outbox = { record: jest.fn().mockResolvedValue(undefined) };
     const service = new InvoicePdfService(
       prisma as PrismaService,
       {} as PaymentsService,
       readiness as unknown as BillingReadinessService,
       settings as unknown as SettingsService,
+      outbox as unknown as OutboxService,
     );
-    return { prisma, service, readiness, settings };
+    return { prisma, service, readiness, settings, outbox };
   }
+
+  it('g4: Chrome lipsa la proforma → 503 DOCUMENT_RENDER_FAILED + clopotelul adminilor (o cheie pe zi)', async () => {
+    const { service, outbox } = build();
+    jest.spyOn(service as any, 'getBrowser').mockRejectedValue(new Error('Could not find Chrome'));
+    jest.spyOn((service as any).logger, 'warn').mockImplementation(() => undefined);
+    await expect((service as any).renderHtml('<p>x</p>', 'proforma')).rejects.toMatchObject({
+      status: 503,
+      response: { code: 'DOCUMENT_RENDER_FAILED' },
+    });
+    expect(outbox.record).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.stringMatching(/^documents\.pdf_failed:\d{4}-\d{2}-\d{2}$/),
+      'documents.pdf_failed',
+      expect.objectContaining({ kind: 'proforma' }),
+      ['admin-1'],
+    );
+  });
 
   it('buyer_snapshot setat → firma live NU se citeste (redenumirea ulterioara nu schimba factura)', async () => {
     const { prisma, service } = build();

@@ -3,6 +3,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { safeErrorSummary } from '../../common/logging/safe-error';
 import { BillingReadinessService } from './billing-readiness.service';
 import { InvoicePdfService, orderRef } from './invoice-pdf.service';
+import { isDocumentRenderFailed } from './pdf-browser';
 
 export interface BillingEmailExtras {
   orderRef: string;
@@ -20,6 +21,8 @@ const DOCUMENT_EVENTS = new Set([
   'payment.auto_cancelled',
   'payment.confirmed',
 ]);
+// evenimentele la care atasamentul e proforma (g4)
+const PROFORMA_EVENTS = new Set(['payment.transfer_instructions', 'payment.transfer_reminder']);
 const CACHE_TTL_MS = 10 * 60_000;
 const CACHE_MAX = 20;
 
@@ -38,6 +41,23 @@ export class BillingDocumentsService {
     private readonly invoicePdf: InvoicePdfService,
   ) {}
 
+  // g4 (etapa 7): dupa ce un e-mail de transfer cu proforma ATASATA chiar a plecat, comanda tine
+  // minte momentul (o singura data) — portofelul spune „ti-am trimis proforma” doar atunci.
+  // Best-effort: un esec aici nu trebuie sa retrimita e-mailul.
+  async markProformaEmailed(type: string, payload: Record<string, unknown>, extras: BillingEmailExtras | null): Promise<void> {
+    if (!PROFORMA_EVENTS.has(type) || !extras?.attachment) return;
+    const orderId = typeof payload.orderId === 'string' ? payload.orderId : null;
+    if (!orderId) return;
+    try {
+      await this.prisma.mockBillingOrder.updateMany({
+        where: { id: orderId, proformaEmailedAt: null },
+        data: { proformaEmailedAt: new Date() },
+      });
+    } catch (e) {
+      this.logger.warn(`proforma ${orderId}: marcajul de trimitere nu s-a salvat: ${safeErrorSummary(e)}`);
+    }
+  }
+
   async prepare(type: string, payload: Record<string, unknown>): Promise<BillingEmailExtras | null> {
     if (!DOCUMENT_EVENTS.has(type)) return null;
     const orderId = typeof payload.orderId === 'string' ? payload.orderId : null;
@@ -52,7 +72,7 @@ export class BillingDocumentsService {
 
     let attachment: BillingEmailExtras['attachment'] = null;
     const wantsProforma =
-      (type === 'payment.transfer_instructions' || type === 'payment.transfer_reminder') &&
+      PROFORMA_EVENTS.has(type) &&
       order.status === 'PENDING' &&
       !order.testMode &&
       readiness.ready;
@@ -65,8 +85,12 @@ export class BillingDocumentsService {
         );
         attachment = { filename: pdf.filename, content: pdf.content, contentType: 'application/pdf' };
       } catch (e) {
-        // emailul pleaca oricum, cu linkul spre portofel
-        this.logger.warn(`${kind} ${order.id} nu s-a putut randa pentru email: ${safeErrorSummary(e)}`);
+        // emailul pleaca oricum, fara atasament (textul indeamna la descarcare din portofel).
+        // g4: esecul de randare l-a raportat deja InvoicePdfService (jurnal + clopotel admini);
+        // aici doar celelalte motive (ex. comanda nu mai e in asteptare).
+        if (!isDocumentRenderFailed(e)) {
+          this.logger.warn(`${kind} ${order.id} nu s-a putut atasa la email: ${safeErrorSummary(e)}`);
+        }
       }
     }
 

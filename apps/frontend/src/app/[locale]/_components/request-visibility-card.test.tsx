@@ -100,4 +100,43 @@ describe('RequestVisibilityCard', () => {
     expect(container.textContent).toContain('Who can see this request');
     expect(container.textContent).toMatch(/from 11:30/);
   });
+
+  // d5: dupa preluare, cardul spune ce date vede firma
+  it('firma cu contacte: "Firma X iti vede numele, contactele alese si adresa completa"', () => {
+    renderCard({ requestId: 'r1', projectVisibleInMarketplace: false, contactHolders: [holder()] });
+    expect(screen.getByText('A Mobila Premium îți vede numele, contactele alese și adresa completă.')).toBeTruthy();
+  });
+
+  it('contacte in asteptare: "iti va vedea … de la ora afisata"', () => {
+    renderCard({ requestId: 'r1', projectVisibleInMarketplace: true, contactHolders: [holder({ contactsVisibleFrom: '2026-09-30T08:30:00.000Z' })] });
+    expect(screen.getByText(/A Mobila Premium îți va vedea numele/)).toBeTruthy();
+  });
+
+  // e4: o firma a avut datele si a renuntat — istoricul in locul lui "Nicio firma inca"
+  it('istoric: "O firma a avut acces la datele tale pana pe …", fara "Nicio firma inca", RO si EN', () => {
+    const v = {
+      requestId: 'r1',
+      projectVisibleInMarketplace: true,
+      contactHolders: [],
+      pastContactAccess: [{ until: '2026-11-10T13:05:00.000Z' }],
+    };
+    renderCard(v);
+    expect(screen.queryByText(ro.Requests.visibility.contactsNone)).toBeNull();
+    expect(screen.getByText(ro.Requests.visibility.contactsNoneNow)).toBeTruthy();
+    expect(screen.getByText(/^O firmă a avut acces la datele tale până pe 10 noiembrie.*15:05\.$/)).toBeTruthy();
+    const { container } = renderCard(v, 'en');
+    expect(container.textContent).toMatch(/A company had access to your details until November 10.*3:05/);
+  });
+
+  it('istoric langa o firma care are acum datele: ambele apar', () => {
+    renderCard({
+      requestId: 'r1',
+      projectVisibleInMarketplace: true,
+      contactHolders: [holder()],
+      pastContactAccess: [{ until: '2026-11-10T13:05:00.000Z' }],
+    });
+    expect(screen.getByText('A Mobila Premium')).toBeTruthy();
+    expect(screen.getByText(/O firmă a avut acces/)).toBeTruthy();
+    expect(screen.queryByText(ro.Requests.visibility.contactsNoneNow)).toBeNull();
+  });
 });

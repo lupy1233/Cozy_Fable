@@ -3,13 +3,14 @@
 import type { RequestStatus } from '@marketplace/shared';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { discardPendingEditSession } from '@/stores/configurator-store';
 import { takePublishNotice } from '@/components/configurator/publish-notice';
 import { toast } from '@/components/ui/toaster';
 import { Link, useRouter } from '@/i18n/routing';
 import { ApiError, isUnauthorizedError } from '@/lib/api';
 import { useLoginRedirect } from '@/lib/use-login-redirect';
+import { RoleOnlyScreen } from '@/lib/require-auth';
 import { useMe } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { useDeleteRequest, useRepostRequest, useRequest, useRequestVisibility } from '@/hooks/use-requests';
@@ -25,6 +26,7 @@ import { LoadError, QueryState } from '@/components/ui/query-state';
 import { SkeletonPage } from '@/components/ui/skeleton';
 import { AttachmentThumb } from '@/components/configurator/attachment-item';
 import { RoomSpecCard, RoomSpecNav } from '@/components/configurator/room-spec-card';
+import { useDisplayAddress } from '@/components/configurator/use-display-address';
 import { RequestInspirationByRoom } from '@/components/configurator/request-inspiration-by-room';
 import { StudioScenesButton } from '@/components/studio/scene-button';
 import {
@@ -38,9 +40,10 @@ import {
 } from '../../_components/request-progress';
 import { RequestVisibilitySection } from '../../_components/request-visibility-card';
 
-// Limitele de editare (docs/03 §4.3): 3 inainte de prima preluare, 1 dupa.
-const MAX_PRE_CLAIM_EDITS = 3;
-const MAX_POST_CLAIM_EDITS = 1;
+// Limitele de editare (docs/03 §4.3) + regula comuna cu garda paginii de editare
+import { MAX_POST_CLAIM_EDITS, MAX_PRE_CLAIM_EDITS, requestEditability } from './request-editability';
+import { ActionConfirmDialog } from '../../_components/action-confirm-dialog';
+import { requestStartMode } from '@/components/configurator/review-facts-card';
 
 // Starile in care cererea are (sau a avut) firme, oferte si conversatii de deschis.
 const STATUSES_WITH_OFFERS: RequestStatus[] = [
@@ -90,6 +93,8 @@ export default function RequestDetailPage() {
   const t = useTranslations('Requests');
   const format = useFormatter();
   const budgetFormat = useBudgetFormat();
+  // b12: adresa fara dubluri (oras = judet), tara doar cand nu e Romania
+  const displayAddress = useDisplayAddress();
   const params = useParams<{ id: string }>();
   const id = params.id;
   const detail = useRequest(id);
@@ -121,6 +126,9 @@ export default function RequestDetailPage() {
   useEffect(() => {
     if (unauthorized && me.isError) toLogin();
   }, [unauthorized, me.isError, toLogin]);
+  // f4: mesajele „nu exista sau nu e a ta” si ecranul de acces pentru alt rol
+  const tAccess = useTranslations('Access');
+  if (me.data && me.data.role !== 'CLIENT') return <RoleOnlyScreen role="CLIENT" />;
 
   // e1 / f3: sesiunea a expirat (401) → ramanem pe incarcare; ascultatorul global duce omul la login
   if (detail.isPending || (detail.error instanceof ApiError && detail.error.status === 401)) {
@@ -136,7 +144,9 @@ export default function RequestDetailPage() {
     return (
       <EmptyState
         variant="card"
-        title={t('empty')}
+        tone="warning"
+        title={tAccess('requestNotYours')}
+        hint={tAccess('requestNotYoursHint')}
         action={
           <Button asChild variant="outline">
             <Link href="/requests">← {t('myRequests')}</Link>
@@ -150,6 +160,11 @@ export default function RequestDetailPage() {
   const hasOffers = STATUSES_WITH_OFFERS.includes(r.status);
   const yourTurn = isClientTurn(r.status);
   const tone = NEXT_STEP_TONE[r.status] ?? 'muted';
+  // d5: un singur rand "Cum ai pornit cererea", cu aceeasi regula ca editarea (b8)
+  const startMode = requestStartMode(r);
+  const helpRooms = r.rooms
+    .filter((room) => room.needsDesignHelp)
+    .map((room) => tConfigurator(`rooms.type.${room.roomType}`));
 
   const holders = visibility.data?.contactHolders ?? null;
   const facts: RequestProgressFacts = {
@@ -227,7 +242,25 @@ export default function RequestDetailPage() {
                 <SheetCell label={t('field.desiredDeadline')}>{t(`deadline.${r.deadlineBucket}`)}</SheetCell>
               )}
               <SheetCell label={t('field.addressText')}>
-                {r.addressText}, {r.city}, {r.county}
+                {displayAddress(r)}
+              </SheetCell>
+              {/* d5: aceleasi randuri ca in Sumar — contactele transmise firmelor si modul de pornire */}
+              <SheetCell label={tConfigurator('review.facts.contact')}>
+                {r.contactPreferences.length > 0
+                  ? r.contactPreferences.map((c) => (
+                      <span key={c.id} className="block break-all">
+                        {t(`contactChannel.${c.channel}`)}: {c.value}
+                      </span>
+                    ))
+                  : tConfigurator('review.facts.notProvided')}
+              </SheetCell>
+              <SheetCell label={tConfigurator('review.facts.mode')}>
+                {tConfigurator(`start.${startMode}.title`)}
+                {startMode === 'STANDARD' && helpRooms.length > 0 && (
+                  <span className="mt-0.5 block text-ui font-normal text-muted-foreground">
+                    {tConfigurator('review.facts.helpRooms', { rooms: helpRooms.join(', ') })}
+                  </span>
+                )}
               </SheetCell>
               {/* e1: termenul de expirare conteaza doar cat cererea asteapta in piata */}
               {r.expiresAt && r.status === 'IN_MARKETPLACE' && (
@@ -292,7 +325,7 @@ export default function RequestDetailPage() {
             />
           )}
 
-          {DELETABLE_STATUSES.includes(r.status) && <DeleteRequestCard id={id} />}
+          {DELETABLE_STATUSES.includes(r.status) && <DeleteRequestCard id={id} status={r.status} />}
         </aside>
       </div>
     </div>
@@ -326,18 +359,13 @@ function EditsCard({
   const t = useTranslations('Requests');
   const router = useRouter();
 
-  const preClaim = status === 'IN_MARKETPLACE';
-  const postClaim = status === 'CLAIMED_PARTIAL' || status === 'CLAIMED_FULL';
-  const remaining = preClaim ? MAX_PRE_CLAIM_EDITS - preUsed : postClaim ? MAX_POST_CLAIM_EDITS - postUsed : 0;
-  const canEdit = (preClaim || postClaim) && remaining > 0;
-
-  const note = canEdit
-    ? preClaim
-      ? t('edits.preClaim', { remaining })
-      : t('edits.postClaim')
-    : preClaim || postClaim
-      ? t('edits.noneLeft')
-      : t('edits.locked');
+  // aceeasi regula ca garda paginii de editare (request-editability.ts)
+  const { postClaim, remaining, canEdit, noteKey } = requestEditability({
+    status,
+    preClaimEditsUsed: preUsed,
+    postClaimEditsUsed: postUsed,
+  });
+  const note = t(`edits.${noteKey}`, { remaining });
 
   const go = () => {
     if (postClaim && !confirm(t('editPostClaimWarning'))) return;
@@ -373,10 +401,17 @@ function EditsCard({
 }
 
 // Î17 — stergerea cererii, cu confirmare; preluarile active ale firmelor se anuleaza.
-function DeleteRequestCard({ id }: { id: string }) {
+// e4: confirmarea e un dialog al aplicatiei care spune consecintele (definitiv, ofertele se
+// anuleaza, conversatiile raman doar de citit, firmele isi primesc creditele inapoi); dupa
+// stergere, mesajul de reusita apare pe lista de cereri (toast global, supravietuieste navigarii).
+function DeleteRequestCard({ id, status }: { id: string; status: RequestStatus }) {
   const t = useTranslations('Requests');
   const router = useRouter();
   const del = useDeleteRequest();
+  const [open, setOpen] = useState(false);
+  const apiErr = del.error instanceof ApiError ? del.error.code : del.error ? 'INTERNAL_ERROR' : null;
+  // ciorna n-a ajuns la firme: fara oferte / conversatii / credite de explicat
+  const draft = status === 'DRAFT';
   return (
     <Card
       as="section"
@@ -392,15 +427,43 @@ function DeleteRequestCard({ id }: { id: string }) {
       <button
         type="button"
         onClick={() => {
-          if (confirm(t('deleteConfirm'))) {
-            del.mutate(id, { onSuccess: () => router.replace('/requests') });
-          }
+          del.reset();
+          setOpen(true);
         }}
         disabled={del.isPending}
         className="inline-flex min-h-11 items-center self-start text-sm font-medium text-crimson hover:underline disabled:opacity-50"
       >
         {t('deleteRequest')}…
       </button>
+      <ActionConfirmDialog
+        open={open}
+        onOpenChange={setOpen}
+        title={t('deleteDialog.title')}
+        tone="danger"
+        confirmLabel={t('deleteDialog.confirm')}
+        cancelLabel={t('deleteDialog.cancel')}
+        pendingLabel={t('deleteDialog.pending')}
+        pending={del.isPending}
+        error={apiErr ? (t.has(`apiErrors.${apiErr}`) ? t(`apiErrors.${apiErr}`) : t('apiErrors.INTERNAL_ERROR')) : null}
+        onConfirm={() =>
+          del.mutate(id, {
+            onSuccess: () => {
+              setOpen(false);
+              toast.success(t('deleteDialog.done'));
+              router.replace('/requests');
+            },
+          })
+        }
+      >
+        <p>{t('deleteDialog.permanent')}</p>
+        {!draft && (
+          <ul className="list-disc space-y-1 pl-5">
+            <li>{t('deleteDialog.offers')}</li>
+            <li>{t('deleteDialog.chats')}</li>
+            <li>{t('deleteDialog.credits')}</li>
+          </ul>
+        )}
+      </ActionConfirmDialog>
     </Card>
   );
 }

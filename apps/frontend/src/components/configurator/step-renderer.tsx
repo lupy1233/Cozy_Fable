@@ -973,8 +973,16 @@ function PieceRowsV2({
                       {t(`common.materials.${m}.label`)}
                     </option>
                   ))}
-                  <option value={FIRM_DECIDES}>{t('pieces.firmDecides')}</option>
+                  {/* eticheta scurta incape in lista (cea lunga se taia); textul lung = descrierea de sub lista */}
+                  <option value={FIRM_DECIDES} title={t('pieces.firmDecides')}>
+                    {t('pieces.firmDecidesShort')}
+                  </option>
                 </Select>
+                {firmMaterial && (
+                  <p data-firm-decides-hint className="text-xs text-muted-foreground">
+                    {t('pieces.firmDecides')}
+                  </p>
+                )}
                 {fieldError('material')}
               </Field>
               <Field label={t('pieces.quantity')}>

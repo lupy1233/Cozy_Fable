@@ -17,6 +17,7 @@ import {
   type PresignUploadResultDto,
   type RequestCoverageDto,
   type RequestDraftCreatedDto,
+  type RequestDraftListItemDto,
   type RequestDto,
   type RequestListItemDto,
   type RequestStudioSceneData,
@@ -45,7 +46,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { ClaimSlotStatus, Prisma } from '@prisma/client';
 import type { Request as RequestModel, RequestStatus, RoomType } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { createHash, randomBytes, randomUUID } from 'crypto';
@@ -86,6 +87,8 @@ import {
 import type { RequestExpirationJob } from './request-expiration.processor';
 import type { AccessTokenPayload } from '../auth/auth.constants';
 import { requestExpiryReminderAt, scheduleRequestExpiryReminder } from './request-expiry-reminder';
+import { addressDetailsValue } from './address-details';
+import { draftCityText, knownRoomTypes, MAX_LISTED_DRAFTS, MAX_LISTED_ROOMS } from './draft-list';
 
 // Statusuri in care editarea e blocata pentru ca exista deja oferte/negociere.
 const OFFER_LOCKED_STATUSES: RequestStatus[] = [
@@ -96,6 +99,10 @@ const OFFER_LOCKED_STATUSES: RequestStatus[] = [
   'DELIVERED_BY_COMPANY',
 ];
 const POST_CLAIM_STATUSES: RequestStatus[] = ['CLAIMED_PARTIAL', 'CLAIMED_FULL'];
+// e4: preluarile care nu mai ocupa locul (firma nu mai vede contactele)
+const CLOSED_CLAIM_STATUSES: ClaimSlotStatus[] = Object.values(ClaimSlotStatus).filter(
+  (s) => !OCCUPYING_CLAIM_STATUSES.includes(s),
+);
 
 // E-admin-platform-44 — lista "De facut acum" a clientului
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -194,6 +201,7 @@ export class RequestsService {
         includesPaidDesign: patch?.includesPaidDesign ?? false,
         hasOwnProject: patch?.hasOwnProject ?? false,
         addressText: patch?.addressText,
+        addressDetails: addressDetailsValue(patch?.addressDetails),
         county: patch?.county,
         city: patch?.city,
         configuratorState: this.serializeConfiguratorState(patch?.configuratorState),
@@ -256,6 +264,7 @@ export class RequestsService {
           includesPaidDesign: dto.includesPaidDesign,
           hasOwnProject: dto.hasOwnProject,
           addressText: dto.addressText,
+          addressDetails: addressDetailsValue(dto.addressDetails),
           county: dto.county,
           city: dto.city,
           configuratorState,
@@ -560,9 +569,8 @@ export class RequestsService {
 
   // ---- liste client autenticat ----
 
-  // Ciornele NU apar in "Cererile mele" (PO r5): sunt goale, fara actiuni, si se
-  // acumuleaza la fiecare "Incepe o cerere noua". Reluarea unei ciorne se face
-  // din configurator (dialogul de resume, token in localStorage), nu din lista.
+  // Ciornele NU apar in lista cererilor (PO r5); d5: au fila lor ("Ciorne"),
+  // listDraftsForClient, doar cu ciornele legate de cont si cu macar o camera.
   async listForClient(userId: string): Promise<RequestListItemDto[]> {
     const rows = await this.prisma.request.findMany({
       where: { clientUserId: userId, deletedAt: null, status: { not: 'DRAFT' } },
@@ -588,10 +596,81 @@ export class RequestsService {
       expiresAt: r.expiresAt?.toISOString() ?? null,
       createdAt: r.createdAt.toISOString(),
       roomTypes: r.rooms.map((room) => room.roomType),
-      activeClaims: r.claims.filter((c) => c.status === 'ACTIVE' || c.status === 'OFFER_SENT')
-        .length,
+      // d5: firmele cu loc ocupat — si castigatoarea dupa finalizare (slot COMPLETED), altfel
+      // o cerere finalizata arata "Nicio firma"
+      activeClaims: r.claims.filter((c) => OCCUPYING_CLAIM_STATUSES.includes(c.status)).length,
       quotesCount: r.quotes.filter((q) => q.status !== 'DRAFT').length,
     }));
+  }
+
+  // d5 (PO d5-1): fila "Ciorne" — DOAR ciornele legate de contul clientului (ciorna anonima se
+  // leaga la prima salvare dupa autentificare, vezi patchDraft). Ciornele fara nicio camera
+  // (create din oficiu la deschiderea formularului) nu se arata: n-au nimic de continuat.
+  // revizie m4: cele mai recente MAX_LISTED_DRAFTS, iar din starea formularului se citesc in SQL
+  // doar tipurile de camera si orasul (nu tot JSON-ul). CASE pastreaza ordinea verificarilor:
+  // jsonb_array_length doar pe un array.
+  async listDraftsForClient(userId: string): Promise<RequestDraftListItemDto[]> {
+    const rows = await this.prisma.$queryRaw<{
+      id: string;
+      title: string | null;
+      city: string | null;
+      draft_city: string | null;
+      room_types: (string | null)[] | null;
+      created_at: Date;
+      updated_at: Date;
+    }[]>`
+      SELECT id, title, city, created_at, updated_at,
+        configurator_state -> 'details' ->> 'city' AS draft_city,
+        ARRAY(
+          SELECT e ->> 'roomType'
+          FROM jsonb_array_elements(configurator_state -> 'roomInstances') AS e
+          LIMIT ${MAX_LISTED_ROOMS}
+        ) AS room_types
+      FROM requests
+      WHERE client_user_id = ${userId}
+        AND deleted_at IS NULL
+        AND status = 'DRAFT'
+        AND CASE WHEN jsonb_typeof(configurator_state -> 'roomInstances') = 'array'
+              THEN jsonb_array_length(configurator_state -> 'roomInstances') > 0
+              ELSE false END
+      ORDER BY updated_at DESC
+      LIMIT ${MAX_LISTED_DRAFTS}`;
+    const items: RequestDraftListItemDto[] = [];
+    for (const r of rows) {
+      const roomTypes = knownRoomTypes(r.room_types);
+      if (roomTypes.length === 0) continue;
+      items.push({
+        id: r.id,
+        title: r.title ?? '',
+        city: r.city ?? draftCityText(r.draft_city),
+        roomTypes,
+        createdAt: r.created_at.toISOString(),
+        updatedAt: r.updated_at.toISOString(),
+      });
+    }
+    return items;
+  }
+
+  // d5: "Continua" din fila de ciorne, de pe orice dispozitiv. Tokenul ciornei e pastrat doar ca
+  // hash, deci emitem unul nou (cel vechi, din alt browser, nu mai deschide ciorna — acolo
+  // formularul porneste o ciorna noua, iar ciorna asta ramane in lista). Doar proprietarul,
+  // doar pe o ciorna; scrierea e conditionata (stearsa / publicata intre timp → 400).
+  async reissueDraftTokenForClient(userId: string, id: string): Promise<RequestDraftCreatedDto> {
+    const request = await this.findOwnedRequest(userId, id);
+    const token = randomBytes(32).toString('hex');
+    const res = request.status === 'DRAFT'
+      ? await this.prisma.request.updateMany({
+          where: { id, clientUserId: userId, status: 'DRAFT', deletedAt: null },
+          data: { draftTokenHash: this.hashToken(token) },
+        })
+      : { count: 0 };
+    if (res.count !== 1) {
+      throw new BadRequestException({
+        code: ERROR_CODES.REQUEST_NOT_EDITABLE,
+        message: 'Only drafts can be continued',
+      });
+    }
+    return { id, draftToken: token };
   }
 
   async getForClient(userId: string, id: string): Promise<RequestDto> {
@@ -609,13 +688,20 @@ export class RequestsService {
     id: string,
   ): Promise<RequestVisibilityDto & RequestVisibilityClosedReasonDto> {
     const request = await this.findOwnedRequest(userId, id);
-    const [openAfterFirstOffer, maxClaims, [revealPolicy], slots, coverage] = await Promise.all([
+    const [openAfterFirstOffer, maxClaims, [revealPolicy], slots, closedSlots, coverage] = await Promise.all([
       this.settings.getBool(SETTING_CLAIMS_OPEN_AFTER_FIRST_OFFER, SETTING_DEFAULTS.claims_open_after_first_offer),
       this.settings.getInt('max_claims_per_request', SETTING_DEFAULTS.max_claims_per_request),
       readClaimContactAccessSettings(this.settings),
       this.prisma.claimSlot.findMany({
         where: { requestId: id, status: { in: OCCUPYING_CLAIM_STATUSES } },
         include: { company: { select: { name: true } } },
+        orderBy: { createdAt: 'asc' },
+      }),
+      // e4: preluarile inchise (firma a renuntat, termen depasit, alta oferta aleasa…) — pentru
+      // istoricul "O firma a avut acces la datele tale pana pe …"; fara numele firmei
+      this.prisma.claimSlot.findMany({
+        where: { requestId: id, status: { in: CLOSED_CLAIM_STATUSES } },
+        select: { status: true, createdAt: true, updatedAt: true, withdrawnAt: true, claimedByUserId: true, assignedToUserId: true },
         orderBy: { createdAt: 'asc' },
       }),
       // a6: doar da / nu (fara numar de firme); UNKNOWN = cererea nu are coordonate.
@@ -660,7 +746,28 @@ export class RequestsService {
     const marketplaceClosedReason = projectVisibleInMarketplace
       ? null
       : (closedReasonFor({ status: request.status, occupied: slots.length, maxClaims, openAfterFirstOffer }) ?? 'CLOSED');
-    return { requestId: id, projectVisibleInMarketplace, contactHolders, marketplaceClosedReason, coverage };
+    // e4: firma a avut contactele daca, in clipa inchiderii (withdrawnAt, scris de decontare;
+    // updatedAt doar pentru randurile vechi), fisa de lucru i le-ar fi aratat — aceeasi functie,
+    // evaluata pe slotul inca deschis. Limitare (pentru PO): politica de dezvaluire e cea de azi.
+    const pastContactAccess = closedSlots
+      .map((slot) => ({ slot, closedAt: slot.withdrawnAt ?? slot.updatedAt }))
+      .filter(({ slot, closedAt }) => resolveClaimContextAccess({
+        slotStatus: 'ACTIVE',
+        requestDeletedAt: null,
+        slotCreatedAt: slot.createdAt,
+        slotUpdatedAt: closedAt,
+        requestDeliveredAt: null,
+        claimedByUserId: slot.claimedByUserId,
+        assignedToUserId: slot.assignedToUserId,
+        memberRole: 'OWNER',
+        actingUserId: slot.claimedByUserId,
+        revealPolicy,
+        retentionDays: 0,
+        now: closedAt.getTime(),
+      }).clientVisible)
+      .sort((a, b) => a.closedAt.getTime() - b.closedAt.getTime())
+      .map(({ closedAt }) => ({ until: closedAt.toISOString() }));
+    return { requestId: id, projectVisibleInMarketplace, contactHolders, marketplaceClosedReason, coverage, pastContactAccess };
   }
 
   // a6 — Sumar: exista vreo firma care acopera adresa ciornei? Aceleasi verificari de acces ca
@@ -1058,6 +1165,8 @@ export class RequestsService {
       includesPaidDesign: dto.includesPaidDesign,
       hasOwnProject: dto.hasOwnProject,
       addressText: dto.addressText,
+      // b12: publicare / editare scriu mereu campul (gol → NULL), ca stergerea lui sa ramana
+      addressDetails: addressDetailsValue(dto.addressDetails) ?? null,
       county: dto.county,
       city: dto.city,
       country: dto.country ?? 'RO',
@@ -1456,6 +1565,7 @@ export class RequestsService {
       includesPaidDesign: request.includesPaidDesign,
       hasOwnProject: request.hasOwnProject,
       addressText: request.addressText ?? '',
+      addressDetails: request.addressDetails ?? '',
       county: request.county ?? '',
       city: request.city ?? '',
       country: request.country,

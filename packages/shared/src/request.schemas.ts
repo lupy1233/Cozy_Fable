@@ -253,6 +253,9 @@ export function mergeAccountEmail(
   return { contacts: kept, dropped };
 }
 
+// b12: lungimea maxima pentru "Bloc, scara, apartament" (requests.address_details VARCHAR(100))
+export const ADDRESS_DETAILS_MAX = 100;
+
 // Continutul complet al unei cereri — validat strict la publicare.
 // description = mesaj liber optional (fara minim); termenul dorit = interval, nu data.
 export const requestContentSchema = z.object({
@@ -263,8 +266,11 @@ export const requestContentSchema = z.object({
   includesPaidDesign: z.boolean(),
   hasOwnProject: z.boolean(),
   addressText: z.string().trim().min(3, 'addressTooShort').max(300),
+  // b12: "Bloc, scara, apartament" (optional), separat de strada; gol = nimic completat
+  addressDetails: z.string().trim().max(ADDRESS_DETAILS_MAX, 'addressDetailsTooLong').optional(),
   county: z.string().trim().min(2, 'countyTooShort').max(100),
-  city: z.string().trim().min(2, 'cityTooShort').max(100),
+  // b12 (din b9): un oras gol sau doar din spatii primeste "Completeaza orasul"
+  city: z.string().trim().min(1, 'cityRequired').min(2, 'cityTooShort').max(100),
   rooms: z.array(requestRoomSchema).min(1, 'needsRoom').max(MAX_REQUEST_ROOMS),
   contactPreferences: contactPreferencesSchema,
 });
@@ -343,6 +349,7 @@ export const requestDraftPatchSchema = z.object({
   includesPaidDesign: z.boolean().optional(),
   hasOwnProject: z.boolean().optional(),
   addressText: z.string().trim().max(300).optional(),
+  addressDetails: z.string().trim().max(ADDRESS_DETAILS_MAX).optional(),
   county: z.string().trim().max(100).optional(),
   city: z.string().trim().max(100).optional(),
   rooms: z.array(requestRoomSchema).max(MAX_REQUEST_ROOMS).optional(),
@@ -518,6 +525,9 @@ export interface RequestDto {
   includesPaidDesign: boolean;
   hasOwnProject: boolean;
   addressText: string;
+  // b12: "Bloc, scara, apartament"; '' cand lipseste (cereri vechi). Optional doar pentru
+  // un slot vechi / fixture-uri — serverul il trimite mereu
+  addressDetails?: string;
   county: string;
   city: string;
   // ISO2, implicit RO (F5)
@@ -566,6 +576,17 @@ export interface RequestListItemDto {
   quotesCount: number;
 }
 
+// d5 (PO d5-1): fila "Ciorne" din "Cererile mele" — doar ciornele legate de cont
+// (GET /requests/my-drafts). Camerele vin din starea formularului salvata pe ciorna.
+export interface RequestDraftListItemDto {
+  id: string;
+  title: string;
+  city: string;
+  roomTypes: (typeof ROOM_TYPES)[number][];
+  createdAt: string;
+  updatedAt: string;
+}
+
 // E-client-9 — cardul "Cine vede cererea" (GET /requests/:id/visibility, doar clientul).
 // contactHolders = firmele cu slot ocupant (ACTIVE, OFFER_SENT, COMPLETED);
 // contactsVisibleFrom null = datele de contact sunt deja vizibile firmei.
@@ -584,6 +605,10 @@ export interface RequestVisibilityDto {
   // a6: exista vreo firma care acopera punctul aproximat al cererii (doar da / nu, niciodata
   // un numar). UNKNOWN = cererea nu are coordonate.
   coverage: RequestCoverage;
+  // e4: firmele care AU AVUT contactele si nu le mai au (preluare inchisa) — fara numele
+  // firmei, doar pana cand ("O firma a avut acces la datele tale pana pe …"). Optional pentru
+  // un slot vechi.
+  pastContactAccess?: { until: string }[];
 }
 
 // a6 — acoperirea zonei (cardul "Cine vede cererea" + Sumar: POST /requests/drafts/:token/coverage)

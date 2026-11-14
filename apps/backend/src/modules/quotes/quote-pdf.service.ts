@@ -5,13 +5,9 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { withDeletedRecords } from '../../infra/prisma/soft-delete';
 import { formatBucharestDate, formatDateOnly } from '../../infra/calendar/bucharest-format';
 import type { CompanyContext } from '../../common/company-context/company-context';
+import { OutboxService } from '../outbox/outbox.service';
+import { PdfBrowserHolder, documentRenderFailed, launchPdfBrowser, reportPdfRenderFailure } from '../billing/pdf-browser';
 import { QuotesService } from './quotes.service';
-
-// puppeteer 25 e ESM-only. TS (module=commonjs) transforma `import()` in `require()`, ceea ce
-// arunca ERR_REQUIRE_ESM. `new Function` pastreaza import-ul dinamic real (nedownlevelat).
-const loadPuppeteer = new Function('return import("puppeteer")') as () => Promise<
-  typeof import('puppeteer')
->;
 
 // Sprint 6 — PDF oferta (decizie Sprint-0 §9: puppeteer). Dubla afisare RON/EUR (D-v6-12),
 // linie design_fee (D-v6-11) + total oferta (E-client-1). Documentul reflecta versiunea
@@ -19,15 +15,17 @@ const loadPuppeteer = new Function('return import("puppeteer")') as () => Promis
 @Injectable()
 export class QuotePdfService implements OnModuleDestroy {
   private readonly logger = new Logger(QuotePdfService.name);
-  private browser: Browser | null = null;
+  // g4: pornire comuna (fara doua procese la cereri simultane), inchis dupa o randare ratata
+  private readonly browsers = new PdfBrowserHolder(() => launchPdfBrowser(this.logger));
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly quotes: QuotesService,
+    private readonly outbox: OutboxService,
   ) {}
 
   async onModuleDestroy(): Promise<void> {
-    await this.browser?.close().catch(() => undefined);
+    await this.browsers.close();
   }
 
   async generateForCompany(ctx: CompanyContext, quoteId: string): Promise<Buffer> {
@@ -41,14 +39,32 @@ export class QuotePdfService implements OnModuleDestroy {
   }
 
   private async getBrowser(): Promise<Browser> {
-    if (this.browser && this.browser.connected) return this.browser;
-    // import lazy: Chromium porneste doar la prima generare.
-    const puppeteer = (await loadPuppeteer()).default;
-    this.browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-    return this.browser;
+    // import lazy: Chromium porneste doar la prima generare (g4: cu browser local in dev).
+    return this.browsers.get();
+  }
+
+  // g4: randarea propriu-zisa (Chrome). Esecul → avertisment in jurnal + clopotelul adminilor
+  // (o data pe zi) + 503 DOCUMENT_RENDER_FAILED, nu 500 generic / fisier PDF stricat.
+  private async printPdf(html: string): Promise<Buffer> {
+    try {
+      const browser = await this.getBrowser();
+      const page = await browser.newPage();
+      try {
+        await page.setContent(html, { waitUntil: 'load' });
+        const pdf = await page.pdf({
+          format: 'A4',
+          printBackground: true,
+          margin: { top: '18mm', bottom: '18mm', left: '16mm', right: '16mm' },
+        });
+        return Buffer.from(pdf);
+      } finally {
+        await page.close().catch(() => undefined);
+      }
+    } catch (err) {
+      await this.browsers.reset();
+      await reportPdfRenderFailure({ prisma: this.prisma, outbox: this.outbox, logger: this.logger }, 'quote', err);
+      throw documentRenderFailed();
+    }
   }
 
   private async render(dto: QuoteDto): Promise<Buffer> {
@@ -72,19 +88,7 @@ export class QuotePdfService implements OnModuleDestroy {
       companyAddress: company?.addressText ?? '',
     });
 
-    const browser = await this.getBrowser();
-    const page = await browser.newPage();
-    try {
-      await page.setContent(html, { waitUntil: 'load' });
-      const pdf = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: { top: '18mm', bottom: '18mm', left: '16mm', right: '16mm' },
-      });
-      return Buffer.from(pdf);
-    } finally {
-      await page.close().catch(() => undefined);
-    }
+    return this.printPdf(html);
   }
 
   private money(amount: number | null, currency: string): string {

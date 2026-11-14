@@ -325,4 +325,20 @@ describe('ReviewStep — the budget must be chosen (b11)', () => {
     expect(payload).toMatchObject({ budgetRange: 'UNDISCLOSED', budgetDeclared: false });
     expect(payload.budgetEstimateRon).toBeUndefined();
   });
+
+  // b12: blocul / apartamentul pleaca la publicare; gol = nu se trimite
+  it('sends the building / apartment field, trimmed; an empty one is left out', async () => {
+    load({ budgetRange: 'UNDISCLOSED', budgetChosen: true, addressDetails: '  bl. A2, ap. 14 ' });
+    const onPublished = vi.fn();
+    const first = mount(onPublished);
+    fireEvent.click(screen.getByRole('button', { name: en.Requests.publish }));
+    await waitFor(() => expect(onPublished).toHaveBeenCalled());
+    expect(vi.mocked(hoisted.publish.mutateAsync).mock.calls[0][0]).toMatchObject({ addressDetails: 'bl. A2, ap. 14' });
+    first.unmount();
+    load({ budgetRange: 'UNDISCLOSED', budgetChosen: true, addressDetails: '   ' });
+    mount(onPublished);
+    fireEvent.click(screen.getByRole('button', { name: en.Requests.publish }));
+    await waitFor(() => expect(hoisted.publish.mutateAsync).toHaveBeenCalledTimes(2));
+    expect((vi.mocked(hoisted.publish.mutateAsync).mock.calls[1][0] as Record<string, unknown>).addressDetails).toBeUndefined();
+  });
 });

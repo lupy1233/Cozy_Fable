@@ -176,6 +176,13 @@ export class RequestsController {
     return this.requests.dashboardStatsForClient(user.sub);
   }
 
+  // d5 (PO d5-1): fila "Ciorne" — ciornele legate de cont (ruta statica, inainte de :id).
+  @Roles(UserRole.CLIENT)
+  @Get('my-drafts')
+  myDrafts(@CurrentUser() user: AccessTokenPayload) {
+    return this.requests.listDraftsForClient(user.sub);
+  }
+
   @Roles(UserRole.CLIENT)
   @Get(':id')
   getOne(@CurrentUser() user: AccessTokenPayload, @Param('id') id: string) {
@@ -187,6 +194,15 @@ export class RequestsController {
   @Get(':id/visibility')
   visibility(@CurrentUser() user: AccessTokenPayload, @Param('id', ParseUUIDPipe) id: string) {
     return this.requests.getVisibilityForClient(user.sub, id);
+  }
+
+  // d5: "Continua" o ciorna din cont, de pe orice dispozitiv — token nou (doar proprietarul,
+  // doar pe DRAFT). Fara audit: raspunsul contine tokenul ciornei.
+  @Roles(UserRole.CLIENT)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Post(':id/draft-token')
+  reissueDraftToken(@CurrentUser() user: AccessTokenPayload, @Param('id', ParseUUIDPipe) id: string) {
+    return this.requests.reissueDraftTokenForClient(user.sub, id);
   }
 
   // Editare autentificata (proprietar, orice device — tokenul draftului e doar hash).

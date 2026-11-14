@@ -40,6 +40,19 @@ export interface AddressParts {
   addressText: string;
   county: string;
   city: string;
+  // b12: blocul / scara / apartamentul tastate in campul de adresa (sugestia Google le pierde);
+  // formularul le muta in campul separat "Bloc, scara, apartament"
+  addressDetails?: string;
+}
+
+// b12: aceleasi fragmente pe care geocodarea de pe server le scoate din adresa
+// (geo.service stripAddressNoise). Dupa prefix: punct, spatiu, o cifra ("bl12", "ap3") sau
+// litera + cifra ("blA2"); cuvintele obisnuite ("Aprodul", "Blaj", "Etajului") nu se prind.
+const DETAIL_FRAGMENT =
+  /(?<![\p{L}\d])(?:bl|bloc|sc|scara|ap|apt|apartament|et|etaj|interfon)(?:\.\s*|\s+|(?=\d)|(?=\p{L}\d))[\p{L}\d/-]+/giu;
+
+export function extractAddressDetails(typed: string): string {
+  return (typed.match(DETAIL_FRAGMENT) ?? []).map((m) => m.replace(/\s+/g, ' ').trim()).join(', ');
 }
 
 type AddressComponent = { long_name: string; types: string[] };
@@ -84,6 +97,9 @@ export function AddressAutocomplete({
   const autocompleteRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
   // tara curenta, citita din listener (closure-ul e atasat o singura data)
   const countryRef = useRef(country);
+  // b12: ultimul text tastat de client — Google inlocuieste valoarea inputului cu sugestia
+  // inainte de place_changed, deci blocul / apartamentul tastate se citesc de aici
+  const lastTypedRef = useRef(defaultValue);
 
   useEffect(() => {
     countryRef.current = country;
@@ -108,8 +124,9 @@ export function AddressAutocomplete({
           const place = autocomplete.getPlace();
           const typed = inputRef.current?.value ?? '';
           const comps: AddressComponent[] = place?.address_components ?? [];
+          const details = extractAddressDetails(lastTypedRef.current) || undefined;
           if (comps.length > 0) {
-            onResolved(parseComponents(comps, place?.formatted_address || typed));
+            onResolved({ ...parseComponents(comps, place?.formatted_address || typed), addressDetails: details });
             return;
           }
           // Enter apasat fara o sugestie evidentiata: place-ul vine doar cu
@@ -125,7 +142,10 @@ export function AddressAutocomplete({
             (results: { address_components?: AddressComponent[]; formatted_address?: string }[] | null, status: string) => {
               const first = results?.[0];
               if (status === 'OK' && first?.address_components?.length) {
-                onResolved(parseComponents(first.address_components, first.formatted_address || typed));
+                onResolved({
+                  ...parseComponents(first.address_components, first.formatted_address || typed),
+                  addressDetails: details,
+                });
               } else {
                 onResolved({ addressText: typed, county: '', city: '' });
               }
@@ -150,7 +170,10 @@ export function AddressAutocomplete({
           id={inputId}
           ref={inputRef}
           defaultValue={defaultValue}
-          onChange={(e) => onText(e.target.value)}
+          onChange={(e) => {
+            lastTypedRef.current = e.target.value;
+            onText(e.target.value);
+          }}
           className="pl-9"
           placeholder={PLACES_KEY ? t('addressSearchPlaceholder') : undefined}
           autoComplete="off"

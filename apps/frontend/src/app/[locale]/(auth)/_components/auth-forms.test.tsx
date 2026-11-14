@@ -119,6 +119,13 @@ describe('intoarcerea dupa login (f1)', () => {
     await submitLogin();
     expect(push).toHaveBeenCalledWith('/requests/new');
   });
+
+  // f4: „Vezi oferta” / „Deschide lucrarea” din e-mail, deschise fara sesiune → exact pagina din link
+  it.each(['/requests/r1/offers', '/marketplace/claims/c1?tab=chat'])('?redirect=%s → exact pagina din link', async (back) => {
+    search = new URLSearchParams({ redirect: back, reason: 'expired' });
+    await submitLogin();
+    expect(push).toHaveBeenCalledWith(back);
+  });
 });
 
 describe('inregistrare cu intoarcere (b4)', () => {

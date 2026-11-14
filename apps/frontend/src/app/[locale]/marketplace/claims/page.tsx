@@ -3,10 +3,9 @@
 import type { ClaimSlotDto, ClaimSlotStatus } from '@marketplace/shared';
 import { Inbox } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useRouter } from '@/i18n/routing';
-import { useMe } from '@/hooks/use-auth';
-import { useLoginRedirect } from '@/lib/use-login-redirect';
+import { useMemo, useState } from 'react';
+import { Link } from '@/i18n/routing';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
 import { useMyCompany } from '@/hooks/use-company';
 import { useMyClaims } from '@/hooks/use-marketplace';
 import { useThreads } from '@/hooks/use-chat';
@@ -61,9 +60,9 @@ const TD_CLASS = 'px-4 align-middle';
 export default function CompanyClaimsPage() {
   const t = useTranslations('Marketplace');
   const tr = useTranslations('Requests');
-  const router = useRouter();
-  const me = useMe();
-  const toLogin = useLoginRedirect();
+  // f4: fara sesiune → login cu intoarcere; alt rol → ecranul „Pagina e doar pentru firme”
+  const auth = useRequireAuth('COMPANY_USER');
+  const me = auth.me;
   const claims = useMyClaims();
   const threads = useThreads('company');
   // cine poate atribui (OWNER/MANAGER) primeste pasul "Alege responsabilul"
@@ -117,16 +116,14 @@ export default function CompanyClaimsPage() {
     [scoped, stage],
   );
 
-  useEffect(() => {
-    if (me.isError) toLogin();
-    else if (me.data && me.data.role !== 'COMPANY_USER') router.replace('/dashboard');
-  }, [me.isError, me.data, router, toLogin]);
-
   const unauthorized = isUnauthorizedError(claims.error);
 
-  if (me.isPending) {
+  // me in eroare → garda duce la login; pana atunci scheletul (ca pe Panou), fara sa montam
+  // componentele care cer cont (D1: ele reporneau cererile la fiecare randare)
+  if (auth.status === 'loading') {
     return <QueryState pending onRetry={() => void me.refetch()} skeleton={<SkeletonPage variant="table" />} />;
   }
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="COMPANY_USER" />;
 
   return (
     <div className="flex flex-col gap-6">

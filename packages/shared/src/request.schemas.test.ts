@@ -23,6 +23,7 @@ import {
   mergeAccountEmail,
   resolveBudgetFields,
   resolveClaimCostRules,
+  requestDraftPatchSchema,
   type ContactPreferenceInput,
 } from './request.schemas';
 
@@ -220,6 +221,29 @@ describe('configuratorContentSchema budget (m1)', () => {
     expect(configuratorContentSchema.safeParse({ ...base, budgetEstimateRon: 0 }).success).toBe(false);
     expect(configuratorContentSchema.safeParse({ ...base, budgetEstimateRon: 499 }).success).toBe(false);
     expect(configuratorContentSchema.safeParse({ ...base, budgetEstimateRon: 500 }).success).toBe(true);
+  });
+});
+
+describe('configuratorContentSchema address (b12)', () => {
+  const base = { budgetRange: 'UNDER_5K', hasOwnProject: false, addressText: 'Str. 1', county: 'Cluj', city: 'Cluj', rooms: [{ roomType: 'KITCHEN', flowVersion: 1, answers: {} }], contactPreferences: [{ channel: 'EMAIL', value: 'a@b.ro' }] };
+  const messages = (input: unknown) => {
+    const r = configuratorContentSchema.safeParse(input);
+    return r.success ? [] : r.error.issues.map((i) => `${i.path.join('.')}:${i.message}`);
+  };
+  it('bloc / scara / apartament e optional (ciorne si cereri vechi raman valide)', () => {
+    expect(configuratorContentSchema.safeParse(base).success).toBe(true);
+    const parsed = configuratorContentSchema.parse({ ...base, addressDetails: '  bl. A2, ap. 14 ' });
+    expect(parsed.addressDetails).toBe('bl. A2, ap. 14');
+    expect(messages({ ...base, addressDetails: 'x'.repeat(101) })).toContain('addressDetails:addressDetailsTooLong');
+  });
+  it('orasul doar din spatii primeste "Completeaza orasul"', () => {
+    // formularul (zodResolver) arata primul mesaj al campului
+    expect(messages({ ...base, city: '   ' })[0]).toBe('city:cityRequired');
+    expect(messages({ ...base, city: '' })[0]).toBe('city:cityRequired');
+    expect(messages({ ...base, city: 'X' })).toEqual(['city:cityTooShort']);
+  });
+  it('ciorna accepta campul nou', () => {
+    expect(requestDraftPatchSchema.safeParse({ addressDetails: 'ap. 3' }).success).toBe(true);
   });
 });
 

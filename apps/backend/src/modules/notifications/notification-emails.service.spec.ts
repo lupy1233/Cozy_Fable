@@ -47,7 +47,10 @@ function makeService(
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
-  const billingDocs = { prepare: jest.fn().mockResolvedValue(extras) };
+  const billingDocs = {
+    prepare: jest.fn().mockResolvedValue(extras),
+    markProformaEmailed: jest.fn().mockResolvedValue(undefined),
+  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mail = { send: jest.fn().mockResolvedValue(undefined) } as any;
   const config = {
@@ -546,6 +549,15 @@ describe('evenimente de facturare E-company-24', () => {
     expect(html).toContain('/ro/marketplace/wallet');
     expect(html).not.toMatch(/atelier/i);
     expect(opts).toEqual({ replyToSupport: true, attachments: [pdf] });
+    // g4: e-mailul a plecat → comanda tine minte (BillingDocumentsService decide daca era proforma)
+    expect(billingDocs.markProformaEmailed).toHaveBeenCalledWith('payment.transfer_instructions', payload, extras());
+  });
+
+  it('g4: niciun e-mail plecat (SMTP picat, best-effort) → proforma NU e marcata trimisa', async () => {
+    const { service, mail, billingDocs } = makeService([owner], members, extras());
+    mail.send.mockRejectedValueOnce(new Error('smtp down'));
+    await service.sendForEvent('payment.transfer_instructions', ['own'], { orderId: 'o1', companyId: 'c1' });
+    expect(billingDocs.markProformaEmailed).not.toHaveBeenCalled();
   });
 
   it('payment.transfer_instructions fara date fiscale gata → trimite spre portofel, fara atasament', async () => {
@@ -584,7 +596,7 @@ describe('evenimente de facturare E-company-24', () => {
   });
 
   it('sendBillingContactCopy: trimite o data (fara dezabonare, fara buton) si marcheaza evenimentul', async () => {
-    const { service, mail, prisma } = makeService([], members, extras());
+    const { service, mail, prisma, billingDocs } = makeService([], members, extras());
     await service.sendBillingContactCopy('ev1', 'payment.transfer_instructions', { orderId: 'o1', companyId: 'c1' });
     expect(mail.send).toHaveBeenCalledTimes(1);
     const [to, subject, html, opts] = mail.send.mock.calls[0];
@@ -599,6 +611,8 @@ describe('evenimente de facturare E-company-24', () => {
       where: { id: 'ev1', billingContactEmailedAt: null },
       data: { billingContactEmailedAt: expect.any(Date) },
     });
+    // g4 (revizie m5): doar la contabil → proforma NU e marcata „trimisa firmei”
+    expect(billingDocs.markProformaEmailed).not.toHaveBeenCalled();
 
     // deja trimisa → nimic
     prisma.domainEventOutbox.findUnique.mockResolvedValueOnce({ billingContactEmailedAt: new Date() });
@@ -680,5 +694,28 @@ describe('evenimente a4 (oferte: varianta noua, cerere de modificare, refuz)', (
     const [, subject, html] = mail.send.mock.calls[0];
     expect(subject).toContain('The client declined your offer');
     expect(html).not.toContain('Reason given');
+  });
+});
+
+// e4 (etapa 7): o firma a renuntat la preluare → e-mail clientului, fara numele firmei
+describe('request.company_withdrew', () => {
+  it('trimite clientului (tinta) un e-mail cu linkul cererii, fara numele firmei', async () => {
+    const { service, mail } = makeService([radu]);
+    await service.sendForEvent('request.company_withdrew', ['u-client'], { requestId: 'r1', requestTitle: 'Bucătărie <i>nouă</i>', companyName: 'A Mobila Premium' });
+    expect(mail.send).toHaveBeenCalledTimes(1);
+    const [to, subject, html] = mail.send.mock.calls[0];
+    expect(to).toBe('radu@demo.ro');
+    expect(subject).toContain('O firmă a renunțat la cererea ta');
+    expect(html).toContain('din nou disponibilă pentru alte firme');
+    expect(html).toContain('/ro/requests/r1');
+    expect(html).toContain('&lt;i&gt;');
+    expect(html).not.toContain('A Mobila Premium');
+  });
+
+  it('in engleza', async () => {
+    const { service, mail } = makeService([{ ...radu, languagePreference: 'EN' }]);
+    await service.sendForEvent('request.company_withdrew', ['u-client'], { requestId: 'r1', requestTitle: 'Kitchen' });
+    const [, subject] = mail.send.mock.calls[0];
+    expect(subject).toContain('A company stepped back from your request');
   });
 });

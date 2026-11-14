@@ -1,13 +1,14 @@
 'use client';
 
 import { getFlow, summarizeAnswers, type AttachmentDto } from '@marketplace/shared';
-import { Check, ChevronDown, Pencil, Wrench } from 'lucide-react';
+import { Check, ChevronDown, Loader2, Pencil, Wrench } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import type { RoomInstance } from '@/stores/configurator-store';
 import { AttachmentThumb } from './attachment-item';
 import { RoomAnswerSummary } from './room-answer-summary';
+import type { ReviewSnapshot } from './snapshot3d-sync';
 
 // Problema care blocheaza publicarea camerei (validarea locala sau raspunsul
 // serverului): eticheta pasului, daca exista, + textul problemei.
@@ -17,7 +18,32 @@ export interface ReviewRoomIssue {
 }
 
 // Textul pentru client vine din raspunsurile localizate, nu din denumirile de firma derivate.
-export function ReviewRoomCard({ room, index, attachments, designHelp, onEdit, issue, onFix }: {
+// d4 (PO d4-1): miniatura imaginii 3D a piesei — clientul vede exact ce primesc firmele.
+// Daca imaginea nu se poate face, cardul o spune; publicarea merge mai departe fara ea.
+function PieceSnapshot({ snapshot, roomLabel }: { snapshot: ReviewSnapshot; roomLabel: string }) {
+  const t = useTranslations('Configurator');
+  const [broken, setBroken] = useState<string>();
+  if (snapshot.status === 'ready' && broken !== snapshot.src) {
+    return <figure className="mt-3 flex flex-col gap-1.5" data-review-room-snapshot="ready">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={snapshot.src}
+        alt={t('review.snapshot3d.alt', { room: roomLabel })}
+        onError={() => setBroken(snapshot.src)}
+        className="h-40 w-full max-w-xs rounded-md border border-border bg-surface-2 object-contain"
+      />
+      <figcaption className="text-meta text-muted-foreground">{t('review.snapshot3d.caption')}</figcaption>
+    </figure>;
+  }
+  if (snapshot.status === 'working') {
+    return <p role="status" className="mt-3 flex items-center gap-2 text-meta text-muted-foreground" data-review-room-snapshot="working">
+      <Loader2 aria-hidden className="h-4 w-4 animate-spin" />{t('review.snapshot3d.working')}
+    </p>;
+  }
+  return <p className="mt-3 text-meta text-muted-foreground" data-review-room-snapshot="failed">{t('review.snapshot3d.failed')}</p>;
+}
+
+export function ReviewRoomCard({ room, index, attachments, designHelp, onEdit, issue, onFix, snapshot3d }: {
   room: RoomInstance;
   // pozitia camerei in cerere (1-based) — numarul de registru din antet
   index?: number;
@@ -27,6 +53,8 @@ export function ReviewRoomCard({ room, index, attachments, designHelp, onEdit, i
   issue?: ReviewRoomIssue | null;
   // "Completeaza": redeschide camera la pasul problema (implicit = onEdit)
   onFix?: () => void;
+  // d4: imaginea 3D a piesei (doar piesele configurate 3D)
+  snapshot3d?: ReviewSnapshot | null;
 }) {
   const t = useTranslations('Configurator');
   const { entries, previewStepIds } = useMemo(() => {
@@ -80,6 +108,7 @@ export function ReviewRoomCard({ room, index, attachments, designHelp, onEdit, i
       <div className="mt-3" data-review-room-preview={room.roomType}>
         {entries.length > 0 && <RoomAnswerSummary roomType={room.roomType} answers={room.answers} flowVersion={room.flowVersion} stepIds={previewStepIds} hideFilePreviews />}
       </div>
+      {snapshot3d && <PieceSnapshot snapshot={snapshot3d} roomLabel={roomLabel} />}
       {files.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{files.map((attachment) => <AttachmentThumb key={attachment.id} attachment={attachment} />)}</div>}
       {entries.length > 0 && <details className="group mt-4 border-t border-border pt-2">
         <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 rounded text-sm font-medium text-walnut focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-walnut [&::-webkit-details-marker]:hidden">

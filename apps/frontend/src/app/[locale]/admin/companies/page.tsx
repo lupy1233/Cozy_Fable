@@ -2,10 +2,9 @@
 
 import type { AdminCompanyListItemDto } from '@marketplace/shared';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useRouter } from '@/i18n/routing';
-import { useMe } from '@/hooks/use-auth';
-import { useLoginRedirect } from '@/lib/use-login-redirect';
+import { useMemo, useState } from 'react';
+import { Link } from '@/i18n/routing';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
 import { useAdminCompanies } from '@/hooks/use-company';
 import { useRelativeTime } from '@/lib/relative-time';
 import { Button } from '@/components/ui/button';
@@ -46,9 +45,9 @@ export default function AdminCompaniesPage() {
   const tList = useTranslations('Admin.list');
   const format = useFormatter();
   const relative = useRelativeTime();
-  const router = useRouter();
-  const me = useMe();
-  const toLogin = useLoginRedirect();
+  // f4: fara sesiune → login cu intoarcere; alt rol → ecranul de acces
+  const auth = useRequireAuth('ADMIN');
+  const me = auth.me;
   const [status, setStatus] = useState('');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -57,11 +56,6 @@ export default function AdminCompaniesPage() {
   const list = useAdminCompanies(status || undefined);
   // contoarele pastilelor: lista nefiltrata (aceeasi cerere ca „Toate”, deci din cache cand e activa)
   const all = useAdminCompanies(undefined);
-
-  useEffect(() => {
-    if (me.isError) toLogin();
-    else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
-  }, [me.isError, me.data, router, toLogin]);
 
   const counts = useMemo(() => {
     if (!all.data) return null;
@@ -77,11 +71,12 @@ export default function AdminCompaniesPage() {
     return sorted.filter((c) => c.name.toLowerCase().includes(q) || compact(c.cui).includes(compact(q)));
   }, [list.data, query]);
 
-  if (me.isPending || me.data?.role !== 'ADMIN') {
+  if (auth.status === 'loading') {
     return (
       <QueryState pending onRetry={() => void me.refetch()} skeleton={<SkeletonPage variant="table" />} />
     );
   }
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="ADMIN" />;
 
   const paged = pageSlice(rows, page, PAGE_SIZE);
   const fmtCreated = (iso: string) => {

@@ -744,6 +744,8 @@ export class PaymentsService {
       testMode: o.testMode,
       paymentClaimedAt: o.paymentClaimedAt?.toISOString() ?? null,
       transferExpiresAt: transferExpiresAt(o, expiryDays)?.toISOString() ?? null,
+      // g4: proforma a plecat atasata pe e-mail (null = nu / comanda veche)
+      proformaEmailedAt: o.proformaEmailedAt?.toISOString() ?? null,
     };
   }
 }

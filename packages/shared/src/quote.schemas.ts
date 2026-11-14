@@ -280,6 +280,9 @@ export interface ClaimRequestDetailDto {
   deadlineBucket: string | null;
   hasOwnProject: boolean;
   addressText: string;
+  // b12: "Bloc, scara, apartament" — adresa exacta, goala ca addressText fara acces la contacte;
+  // optional pentru un slot vechi
+  addressDetails?: string;
   city: string;
   county: string;
   country: string;

@@ -261,6 +261,13 @@ describe('PaymentsService — purchase', () => {
     expect(service.toDto(baseOrder({ status: 'CONFIRMED' }) as any, null, 3).transferExpiresAt).toBeNull();
   });
 
+  it('g4: proformaEmailedAt in DTO doar cand e-mailul cu proforma a plecat; comanda veche → null', async () => {
+    const { service } = build(makePrisma(null), makeStripe(false));
+    const at = new Date('2026-11-14T10:00:00.000Z');
+    expect(service.toDto(baseOrder({ proformaEmailedAt: at }) as any).proformaEmailedAt).toBe('2026-11-14T10:00:00.000Z');
+    expect(service.toDto(baseOrder() as any).proformaEmailedAt).toBeNull();
+  });
+
   it('cu Stripe: creeaza sesiunea Checkout cu totalul CU TVA in bani si salveaza stripe_session_id', async () => {
     const prisma = makePrisma(null);
     const stripe = makeStripe(true);

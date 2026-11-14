@@ -23,6 +23,17 @@ export function useMe() {
     queryKey: AUTH_KEY,
     queryFn: fetchMe,
     retry: false,
+    // D1 (bucla pe /marketplace): fara asta, fiecare componenta noua cu useMe (de ex. mesajul
+    // de abonament, randat doar cand me NU e pending) relua /auth/me dupa eroare → me redevenea
+    // pending → pagina ascundea componenta → eroare → o randa iar → … sute de cereri pe secunda,
+    // iar garda (me.isError → login) se reapela si repornea navigarea la nesfarsit.
+    // Dupa eroare, „cine sunt eu” se reface doar explicit: login (setQueryData), logout
+    // (qc.clear), ascultatorul de sesiune / socketul (reset / invalidate), refetch.
+    retryOnMount: false,
+    // review M1: tabul ramas „vizitator” afla de login-ul facut in alt tab (ex. confirmarea
+    // e-mailului): DOAR cat e in eroare, la revenirea in tab, o singura cerere (retry: false).
+    // Cu sesiune buna nu se reia nimic (providers.tsx: refetchOnWindowFocus false in rest).
+    refetchOnWindowFocus: (query) => query.state.status === 'error',
     staleTime: 60_000,
   });
 }

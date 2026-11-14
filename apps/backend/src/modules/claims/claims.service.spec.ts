@@ -335,8 +335,11 @@ describe('ClaimsService.create — responsabilul implicit (a5)', () => {
     expect(tx.claimSlot.create).not.toHaveBeenCalled();
   });
 
-  it('angajat cu rol limitat → 403 FORBIDDEN', async () => {
+  it('a7: angajat fara acces complet → 403 CLAIM_ROLE_NOT_ALLOWED (nu FORBIDDEN despre atribuire)', async () => {
     const { service, ctx } = ready('EMPLOYEE_MANAGED');
-    await expect(service.create(ctx, 'u1', dto)).rejects.toMatchObject({ status: 403, response: { code: 'FORBIDDEN' } });
+    await expect(service.create(ctx, 'u1', dto)).rejects.toMatchObject({
+      status: 403,
+      response: { code: 'CLAIM_ROLE_NOT_ALLOWED' },
+    });
   });
 });

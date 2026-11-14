@@ -4,9 +4,8 @@ import type { ChatThreadDto } from '@marketplace/shared';
 import { ArrowLeft, Paperclip, Search, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useRouter } from '@/i18n/routing';
-import { useMe } from '@/hooks/use-auth';
-import { useLoginRedirect } from '@/lib/use-login-redirect';
+import { Link } from '@/i18n/routing';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
 import { useTeamThread, useThreads } from '@/hooks/use-chat';
 import { useMyClaims } from '@/hooks/use-marketplace';
 import { useRealtimeSync } from '@/hooks/use-socket';
@@ -39,9 +38,9 @@ const fold = (s: string) =>
 export default function CompanyMessagesPage() {
   const t = useTranslations('Messages');
   const tm = useTranslations('Marketplace');
-  const router = useRouter();
-  const me = useMe();
-  const toLogin = useLoginRedirect();
+  // f4: fara sesiune → login cu intoarcere; alt rol → ecranul de acces
+  const auth = useRequireAuth('COMPANY_USER');
+  const me = auth.me;
   const threads = useThreads('company');
   // preluarile firmei: termenul ofertei din antetul conversatiei (legat prin claimSlotId)
   const claims = useMyClaims();
@@ -51,11 +50,6 @@ export default function CompanyMessagesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   useRealtimeSync();
-
-  useEffect(() => {
-    if (me.isError) toLogin();
-    else if (me.data && me.data.role !== 'COMPANY_USER') router.replace('/dashboard');
-  }, [me.isError, me.data, router, toLogin]);
 
   // La prima incarcare se deschide singura prima conversatie cu necitite, altfel prima din
   // lista — doar pe desktop; pe mobil utilizatorul alege explicit, ca sa nu sara direct intr-un
@@ -77,7 +71,8 @@ export default function CompanyMessagesPage() {
   const unreadClients = list.reduce((n, th) => n + th.unreadCount, 0);
   const unreadTeam = team.data?.unreadCount ?? 0;
 
-  if (me.isPending || threads.isPending) {
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="COMPANY_USER" />;
+  if (auth.status === 'loading' || threads.isPending) {
     return (
       <QueryState
         pending

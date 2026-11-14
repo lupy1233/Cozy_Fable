@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   MARKETPLACE_DISTANCE_BANDS,
   PROJECT_SIZES,
@@ -10,11 +10,11 @@ import {
   type ProjectSize,
 } from '@marketplace/shared';
 import { ArrowRight, Inbox } from 'lucide-react';
-import { Link, useRouter } from '@/i18n/routing';
-import { useMe } from '@/hooks/use-auth';
-import { useLoginRedirect } from '@/lib/use-login-redirect';
+import { Link } from '@/i18n/routing';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
 import { useMarketplace, useWallet } from '@/hooks/use-marketplace';
 import { useBudgetFormat } from '@/hooks/use-budget-format';
+import { useDisplayAddress } from '@/components/configurator/use-display-address';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -63,15 +63,17 @@ function cardState(r: MarketplaceItemDto, available: number | null): CardState {
 export default function MarketplacePage() {
   const t = useTranslations('Marketplace');
   const tr = useTranslations('Requests');
-  const router = useRouter();
-  const me = useMe();
-  const toLogin = useLoginRedirect();
+  // f4: fara sesiune → login cu intoarcere; alt rol → ecranul „Pagina e doar pentru firme”
+  const auth = useRequireAuth('COMPANY_USER');
+  const me = auth.me;
   // b11-3: glisorul de buget minim (0 = oricare) se trimite serverului
   const [minBudget, setMinBudget] = useState(0);
   // m7: "Reseteaza filtrele" monteaza din nou glisorul → mutarea in asteptare se anuleaza
   const [filterResets, setFilterResets] = useState(0);
   const list = useMarketplace(minBudget);
   const budgetFormat = useBudgetFormat();
+  // b12: oras + judet fara dubluri ("Bucuresti, Bucuresti")
+  const displayAddress = useDisplayAddress();
   const wallet = useWallet();
   const lapsed = useSubscriptionLapsed(me.data?.role === 'COMPANY_USER');
   const relTime = useRelativeTime();
@@ -119,15 +121,12 @@ export default function MarketplacePage() {
   // cu bugetul minim pus, o lista goala de la server inseamna 'niciun rezultat pentru filtre'
   const filtering = minBudget > 0;
 
-  // Acces doar COMPANY_USER; restul → dashboard / login
-  useEffect(() => {
-    if (me.isError) toLogin();
-    else if (me.data && me.data.role !== 'COMPANY_USER') router.replace('/dashboard');
-  }, [me.isError, me.data, router, toLogin]);
-
-  if (me.isPending) {
+  // me in eroare → garda duce la login; pana atunci scheletul (ca pe Panou), fara sa montam
+  // componentele care cer cont (D1: ele reporneau cererile la fiecare randare)
+  if (auth.status === 'loading') {
     return <QueryState pending onRetry={() => void me.refetch()} skeleton={<SkeletonPage variant="list" />} />;
   }
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="COMPANY_USER" />;
 
   return (
     <div className="flex flex-col gap-6">
@@ -260,7 +259,7 @@ export default function MarketplacePage() {
                 </p>
                 <div className="flex flex-wrap gap-x-2 gap-y-1.5">
                   <RequestTag>
-                    {r.city}, {r.county}
+                    {displayAddress({ city: r.city, county: r.county })}
                   </RequestTag>
                   <RequestTag title={t('distanceHint')}>{distanceLabel(r, t)}</RequestTag>
                   {r.size && <RequestTag tone="walnut">{tr(`sizeValue.${r.size}`)}</RequestTag>}

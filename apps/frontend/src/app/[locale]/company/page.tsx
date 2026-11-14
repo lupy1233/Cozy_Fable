@@ -8,13 +8,10 @@ import {
 } from '@marketplace/shared';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useRouter } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
 import { apiErrorKey } from '@/lib/error-messages';
-import { useMe } from '@/hooks/use-auth';
-import { useLoginRedirect } from '@/lib/use-login-redirect';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
 import { useMyCompany, useOnboardCompany } from '@/hooks/use-company';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -28,18 +25,14 @@ import { firmRulesChunk } from '../_components/firm-rules-link';
 import { CompanyDashboard } from './_components/company-dashboard';
 
 export default function CompanyPage() {
-  const router = useRouter();
-  const me = useMe();
-  const toLogin = useLoginRedirect();
+  // f4: fara sesiune → login cu intoarcere; alt rol → ecranul de acces
+  const auth = useRequireAuth('COMPANY_USER');
+  const me = auth.me;
   const company = useMyCompany();
 
-  // Doar COMPANY_USER acceseaza zona; restul → dashboard
-  useEffect(() => {
-    if (me.isError) toLogin();
-    else if (me.data && me.data.role !== 'COMPANY_USER') router.replace('/dashboard');
-  }, [me.isError, me.data, router, toLogin]);
-
-  const loading = me.isPending || company.isPending;
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="COMPANY_USER" />;
+  // 'loading' acopera si „cine sunt eu” in eroare (pana pleaca redirectul spre login)
+  const loading = auth.status === 'loading' || company.isPending;
   if (!loading) {
     // 404 (NOT_FOUND) = userul nu are inca firma → formular onboarding
     const noCompany = company.isError && company.error instanceof ApiError && company.error.status === 404;
@@ -47,11 +40,10 @@ export default function CompanyPage() {
     if (company.data) return <CompanyDashboard company={company.data as CompanyDto} />;
   }
 
-  // cat timp ruleaza redirectul (sesiune expirata / alt rol) ramane scheletul, nu o eroare
-  const redirecting = me.isError || (!!me.data && me.data.role !== 'COMPANY_USER');
+  // cat timp ruleaza redirectul (sesiune expirata) ramane scheletul, nu o eroare
   return (
     <QueryState
-      pending={loading || redirecting}
+      pending={loading}
       error={company.error}
       onRetry={() => {
         void me.refetch();

@@ -7,16 +7,23 @@ import type { QuoteDto } from '@marketplace/shared';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { displayedVersion } from '@/lib/quote-version';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { cn } from '@/lib/utils';
+import { useQuoteDate, useQuoteMoney } from './use-quote-terms';
 
 // E-admin-platform-3 — "Acordul vostru": ce s-a convenit la acceptare (firma, pret, termen,
 // garantie, data acordului), vizibil clientului si firmei castigatoare. Data de livrare
 // depasita pe un proiect inca in lucru primeste semnalul "Termen depasit".
 const ACTIVE_STATUSES = ['ACCEPTED', 'IN_EXECUTION'];
 
-function localToday(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+// ziua de azi (YYYY-MM-DD) in ora Romaniei, nu a browserului
+function bucharestToday(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: APP_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
 }
 
 export function AgreementCard({
@@ -30,17 +37,19 @@ export function AgreementCard({
 }) {
   const t = useTranslations('Fulfillment.agreement');
   const titleId = useId();
+  // e7: sume si date ca pe cardul ofertei — limba aplicatiei, "lei", ora Romaniei
+  const money = useQuoteMoney();
+  const date = useQuoteDate();
   // E-client-1: versiunea confirmata la accept (fallback: ultima, pe accepturile vechi)
   const current = displayedVersion(quote);
   if (!current) return null;
-  const fmt = (n: number) => new Intl.NumberFormat('ro-RO', { minimumFractionDigits: 2 }).format(n);
-  const other = quote.currency === 'RON' ? 'EUR' : 'RON';
+  // a4: moneda e a variantei confirmate (o varianta noua poate fi in alta moneda)
+  const currency = current.currency;
+  const other = currency === 'RON' ? 'EUR' : 'RON';
   const overdue =
-    !!current.deliveryDate && ACTIVE_STATUSES.includes(requestStatus) && current.deliveryDate < localToday();
-  // data calendaristica (YYYY-MM-DD) afisata fara deplasare de fus orar
-  const deliveryLabel = current.deliveryDate
-    ? new Date(`${current.deliveryDate}T12:00:00`).toLocaleDateString()
-    : null;
+    !!current.deliveryDate && ACTIVE_STATUSES.includes(requestStatus) && current.deliveryDate < bucharestToday();
+  // data calendaristica (YYYY-MM-DD) — useQuoteDate o ia la pranz UTC, fara zi sarita
+  const deliveryLabel = current.deliveryDate ? date(current.deliveryDate) : null;
 
   const rows: { label: string; value: ReactNode }[] = [];
   if (mode === 'client') rows.push({ label: t('company'), value: quote.companyName });
@@ -48,11 +57,9 @@ export function AgreementCard({
     label: t('price'),
     value: (
       <>
-        <span className="font-mono font-medium">
-          {fmt(current.price)} {quote.currency}
-        </span>
+        <span className="font-mono font-medium">{money(current.price, currency)}</span>
         <span className="ml-2 text-xs text-muted-foreground">
-          ≈ {fmt(quote.currency === 'RON' ? current.priceEur : current.priceRon)} {other}
+          ≈ {money(currency === 'RON' ? current.priceEur : current.priceRon, other)}
         </span>
       </>
     ),
@@ -62,11 +69,9 @@ export function AgreementCard({
       label: t('designFee'),
       value: (
         <>
-          <span className="font-mono">
-            {fmt(current.designFee)} {quote.currency}
-          </span>
+          <span className="font-mono">{money(current.designFee, currency)}</span>
           <span className="ml-2 text-xs text-muted-foreground">
-            ≈ {fmt((quote.currency === 'RON' ? current.designFeeEur : current.designFeeRon) ?? 0)} {other}
+            ≈ {money((currency === 'RON' ? current.designFeeEur : current.designFeeRon) ?? 0, other)}
           </span>
         </>
       ),
@@ -76,11 +81,9 @@ export function AgreementCard({
       label: t('total'),
       value: (
         <>
-          <span className="font-mono text-base font-medium">
-            {fmt(current.total)} {quote.currency}
-          </span>
+          <span className="font-mono text-base font-medium">{money(current.total, currency)}</span>
           <span className="ml-2 text-xs text-muted-foreground">
-            ≈ {fmt(quote.currency === 'RON' ? current.totalEur : current.totalRon)} {other}
+            ≈ {money(currency === 'RON' ? current.totalEur : current.totalRon, other)}
           </span>
         </>
       ),
@@ -94,7 +97,7 @@ export function AgreementCard({
   if (quote.acceptedAt) {
     rows.push({
       label: t('acceptedAt'),
-      value: <span className="font-mono">{new Date(quote.acceptedAt).toLocaleDateString()}</span>,
+      value: <span className="font-mono">{date(quote.acceptedAt)}</span>,
     });
   }
 

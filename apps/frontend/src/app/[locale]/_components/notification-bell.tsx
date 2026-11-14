@@ -102,6 +102,10 @@ const TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   'credits.ledger_mismatch': AlertTriangle,
   // a6 (etapa 5): cerere publicata fara nicio firma in zona (doar admini)
   'request.no_coverage': MapPinOff,
+  // e4 (etapa 7): o firma a renuntat la preluare (doar clientul)
+  'request.company_withdrew': Undo2,
+  // g4 (etapa 7): PDF-urile nu se pot genera (doar admini, o data pe zi)
+  'documents.pdf_failed': AlertTriangle,
 };
 
 type Payload = Record<string, unknown> | null;
@@ -146,6 +150,8 @@ function hrefFor(type: string, payload: Payload, role: string | undefined): stri
     if (type === 'request.status_changed' || type === 'request.expired' || type === 'request.expiry_reminder') {
       return `/requests/${requestId}`;
     }
+    // e4: o firma a renuntat → pagina cererii (caseta "Cine vede cererea")
+    if (type === 'request.company_withdrew') return `/requests/${requestId}`;
     return `/requests/${requestId}/offers`;
   }
   if (role === 'COMPANY_USER') {
@@ -174,6 +180,8 @@ function hrefFor(type: string, payload: Payload, role: string | undefined): stri
     if (type === 'dispute.opened') return '/admin/disputes';
     // E-admin-platform-15: raportul zilnic de credite → pagina de joburi (operare)
     if (type === 'credits.ledger_mismatch') return '/admin/jobs';
+    // g4: PDF-urile pica → pagina de joburi / operare (jurnalul serverului)
+    if (type === 'documents.pdf_failed') return '/admin/jobs';
     // a6: cererea fara nicio firma in zona → detaliul cererii din Admin
     if (type === 'request.no_coverage' && requestId) return `/admin/requests/${requestId}`;
     // E-admin-platform-3: rapoartele pe proiecte acceptate → detaliul proiectului

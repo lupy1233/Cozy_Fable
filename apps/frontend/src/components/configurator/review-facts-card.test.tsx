@@ -41,3 +41,16 @@ describe('review project facts', () => {
     expect(screen.queryByText(/paid design/i)).not.toBeInTheDocument();
   });
 });
+
+// b12: adresa fara dubluri; tara doar cand nu e Romania
+describe('review address (b12)', () => {
+  const showAddress = (details: Record<string, string>) => render(<NextIntlClientProvider locale="en" messages={messages}><ReviewFactsCard details={{ budgetRange: 'UNDISCLOSED', budgetChosen: true, contactPreferences: [], ...details }} complete mode={null} onEdit={() => {}} /></NextIntlClientProvider>);
+  it('Bucharest / Bucharest: the city is not repeated and Romania is not shown', () => {
+    showAddress({ addressText: 'Strada Fabricii 5', addressDetails: 'bl. A2, ap. 14', city: 'București', county: 'București', country: 'RO' });
+    expect(screen.getByText('Strada Fabricii 5, bl. A2, ap. 14, București')).toBeVisible();
+  });
+  it('a foreign country is shown by name, in the app language', () => {
+    showAddress({ addressText: 'Hauptstraße 1', city: 'München', county: 'Bayern', country: 'DE' });
+    expect(screen.getByText('Hauptstraße 1, München, Bayern, Germany')).toBeVisible();
+  });
+});
