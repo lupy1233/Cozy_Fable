@@ -57,15 +57,15 @@
     "ideasCta": "See all ideas",
     "bandTitle": "Find out what your furniture costs, from three companies.",
     "bandCta": "Get 3 offers for free",
-    "bandCompany": "Run a furniture workshop? Sign up",
+    "bandCompany": "Run a furniture company? Sign up",
     "guarantees": {
       "verified": "Verified companies only",
       "free": "You pay nothing for the offers",
       "upTo3": "Up to 3 companies per request"
     },
     "materialsPick": "Choose a material",
-    "materialsScaleMax": "{max} RON/lm",
-    "materialsScaleAria": "{material}: {price}, on a scale from {min} to {max} RON per linear metre",
+    "materialsScaleMax": "{max} lei/linear m",
+    "materialsScaleAria": "{material}: {price}, on a scale from {min} to {max} lei per linear metre",
     "firms": {
       "kicker": "For companies",
       "title": "Run a furniture company?",
@@ -75,7 +75,7 @@
     }
   },
   "Landing": {
-    "footerTagline": "The marketplace for custom furniture",
+    "footerTagline": "The platform for custom furniture",
     "partnersKicker": "Partners",
     "partnersTitle": "The companies we work with",
     "partnersSub": "Every company is vetted before it can send offers.",
@@ -102,7 +102,7 @@
     },
     "logoutDiscardsLocalDraft": "You have an unpublished request in progress in this browser. Logging out removes it from this device. Log out anyway?",
     "serverBusyRetrying": "The server is busy, retrying…",
-    "money": "{amount} RON",
+    "money": "{amount} lei",
     "loadState": {
       "loading": "Loading…",
       "slowTitle": "This is taking longer than usual",
@@ -121,7 +121,7 @@
     "myRequests": "My requests",
     "newRequest": "New request",
     "createRequest": "Get offers",
-    "marketplace": "Marketplace",
+    "marketplace": "Available requests",
     "claims": "Claims",
     "messages": "Messages",
     "wallet": "Wallet",
@@ -598,10 +598,10 @@
       "perMember": "Active claims per member",
       "unassigned": "Unassigned",
       "claimsByStatus": "Claims by stage",
-      "noClaims": "No claims yet. Requests you claim from the marketplace appear here.",
+      "noClaims": "No claims yet. Requests you claim from “Available requests” appear here.",
       "penalties": "Penalties",
       "penaltyPoints": "active points",
-      "toMarketplace": "Go to marketplace",
+      "toMarketplace": "See available requests",
       "toClaims": "My claims",
       "statusPill": {
         "PENDING_VERIFICATION": "Company being verified",
@@ -852,7 +852,7 @@
       "INTERNAL_ERROR": "Something unexpected went wrong. Please try again in a moment.",
       "DATABASE_BUSY": "The server is responding slowly right now, so the action was not saved. Please try again in a few seconds."
     },
-    "marketplaceLink": "Marketplace",
+    "marketplaceLink": "Available requests",
     "subscriptionBanner": {
       "expiring": "Your {tier} subscription expires in {n, plural, =0 {less than a day} one {# day} other {# days}}. After that you can't claim requests.",
       "extend": "Renew subscription"
@@ -881,7 +881,7 @@
     "deleteLocationAria": "Delete location {address}",
     "deleteLocationConfirm": {
       "title": "Delete this location?",
-      "body": "{address}. Marketplace requests will only be shown based on your remaining locations.",
+      "body": "{address}. Available requests will only be shown based on your remaining locations.",
       "confirm": "Delete location"
     },
     "deleting": "Deleting…",
@@ -1082,11 +1082,11 @@
     "loading": "Loading…",
     "newTitle": "New request",
     "sectionGeneral": "General details",
-    "sectionAddress": "Address",
+    "sectionAddress": "Installation address",
     "sectionRooms": "Rooms",
     "sectionContact": "Contact preferences",
-    "designHelpIncluded": "Paid design included",
-    "designHelpIncludedHint": "The company that claims your request builds the technical project with you; the design fee is agreed directly with them.",
+    "designHelpIncluded": "Paid design",
+    "designHelpIncludedHint": "Companies first send you the design price and what it includes; then you choose the company you design the pieces with.",
     "sectionAttachments": "Attachments",
     "addContact": "Add contact",
     "room": "Room",
@@ -1127,26 +1127,27 @@
     "specFiles": "Room files",
     "field": {
       "title": "Title",
-      "description": "Description",
+      "description": "Message for companies",
       "budgetRange": "Budget",
       "desiredDeadline": "Desired deadline",
-      "hasOwnProject": "I have my own project",
-      "addressText": "Address",
+      "hasOwnProject": "I already have a project",
+      "addressText": "Installation address",
       "county": "County",
       "city": "City",
       "contactChannel": "Channel",
       "contactValue": "Value",
       "accountEmail": "Account email",
-      "message": "Message for the companies",
+      "message": "Message for companies",
       "country": "Country",
-      "addressDetails": "Building, entrance, apartment"
+      "addressDetails": "Building, entrance, apartment",
+      "street": "Street and number"
     },
     "accountEmailLockedHint": "Your account email is always included as a contact channel. You can add extra email addresses or phone numbers.",
     "autoTitleLabel": "Title (generated automatically)",
     "messageHint": "Optional, up to 5,000 characters — any detail that helps companies understand your project. Don't put your phone number or email here.",
     "addressSearchPlaceholder": "Start typing and pick your address…",
     "editRequest": "Edit request ({remaining} left)",
-    "editPostClaimWarning": "Companies have already claimed this request. You have one edit left, as long as you haven't received an offer: the project will be re-scored, companies keep the credits they've spent, and they may withdraw their claim after your changes. Continue?",
+    "editPostClaimWarning": "Companies have already claimed this request. You have one edit left, as long as you haven't received an offer: the request will be re-scored, companies keep the credits they've spent, and they may withdraw their claim after your changes. Continue?",
     "budget": {
       "UNDER_5K": "Under 5,000 lei",
       "FROM_5K_TO_15K": "5,000 – 15,000 lei",
@@ -1198,7 +1199,7 @@
     },
     "statusValue": {
       "DRAFT": "Draft",
-      "IN_MARKETPLACE": "In marketplace",
+      "IN_MARKETPLACE": "Open to companies",
       "CLAIMED_PARTIAL": "Partially claimed",
       "CLAIMED_FULL": "Fully claimed",
       "OFFERS_RECEIVED": "Offers received",
@@ -1209,7 +1210,7 @@
       "COMPLETED": "Completed",
       "DISPUTED": "Disputed",
       "EXPIRED": "Expired",
-      "CANCELLED": "Project cancelled"
+      "CANCELLED": "Order cancelled"
     },
     "sizeValue": {
       "SMALL": "Small",
@@ -1298,7 +1299,7 @@
       "NEWEST": "Newest first"
     },
     "sheet": {
-      "label": "Project sheet"
+      "label": "Request sheet"
     },
     "journey": {
       "label": "Request journey",
@@ -1327,16 +1328,16 @@
         "IN_MARKETPLACE": "we're waiting for companies to claim your request.",
         "IN_MARKETPLACE_DATED": "we're waiting for companies. The request expires on {date} if nobody claims it.",
         "CLAIMED_PARTIAL": "{c, plural, =0 {the companies that claimed your request are preparing their offers} =1 {one company is preparing its offer} other {# companies are preparing their offers}}. Other companies can still claim it.",
-        "CLAIMED_FULL": "{c, plural, =1 {the company that claimed your request is preparing its offer} other {the companies that claimed your request are preparing their offers}}. There are no free slots left for other companies.",
+        "CLAIMED_FULL": "{c, plural, =1 {the company that claimed your request is preparing its offer} other {the companies that claimed your request are preparing their offers}}. There are no free places left for other companies.",
         "OFFERS_RECEIVED": "{n, plural, =0 {your turn — compare the offers you received and pick one.} =1 {your turn — you have one offer to review.} other {your turn — you have # offers to compare.}}",
         "NEGOTIATION": "you're discussing changes with the company. You can accept an offer whenever it suits you.",
-        "ACCEPTED": "you've chosen the offer. The company is preparing the work and keeps you posted in the conversation.",
+        "ACCEPTED": "you've chosen the offer. The company is preparing your order and keeps you posted in the conversation.",
         "IN_EXECUTION": "the company is working on your furniture. We'll ask you to confirm once it marks the delivery.",
         "DELIVERED_BY_COMPANY": "your turn — confirm you received the furniture. With no answer, the delivery is confirmed automatically.",
-        "COMPLETED": "nothing — the work is finished.",
+        "COMPLETED": "nothing — the order is completed.",
         "DISPUTED": "the Cozy Home team is reviewing the dispute and will let you know when it's resolved.",
         "EXPIRED": "the request expired without being claimed. From its page you can repost it once or start a new request.",
-        "CANCELLED": "nothing — the project was cancelled. Offers and conversations stay as history."
+        "CANCELLED": "nothing — the order was cancelled. Offers and conversations stay as history."
       },
       "title": {
         "DRAFT": "The request is still a draft",
@@ -1348,22 +1349,22 @@
         "ACCEPTED": "You've chosen the offer",
         "IN_EXECUTION": "The company is working on your furniture",
         "DELIVERED_BY_COMPANY": "Your turn: confirm you received the furniture",
-        "COMPLETED": "The work is finished",
+        "COMPLETED": "The order is completed",
         "DISPUTED": "The dispute is under review",
         "EXPIRED": "The request has expired",
-        "CANCELLED": "The project was cancelled"
+        "CANCELLED": "The order was cancelled"
       },
       "body": {
         "DRAFT": "Companies only see it once you publish it.",
         "IN_MARKETPLACE": "Verified companies in your area can see the request. We'll let you know when a company claims it.",
         "IN_MARKETPLACE_DATED": "Verified companies in your area can see the request. It expires on {date} if nobody claims it.",
         "CLAIMED_PARTIAL": "Other companies can still claim it. Meanwhile you can talk to the companies in the conversations.",
-        "CLAIMED_FULL": "There are no free slots left for other companies. We'll let you know when the first offer arrives.",
+        "CLAIMED_FULL": "There are no free places left for other companies. We'll let you know when the first offer arrives.",
         "OFFERS_RECEIVED": "{w, plural, =0 {Pick the offer that suits you or ask the company for changes.} =1 {One company is still working on its offer. You can choose now or wait a little longer.} other {# companies are still working on their offers. You can choose now or wait a little longer.}}",
         "NEGOTIATION": "Follow the conversation. You can accept an offer whenever it suits you.",
-        "ACCEPTED": "The company is preparing the work and keeps you posted in the conversation.",
+        "ACCEPTED": "The company is preparing your order and keeps you posted in the conversation.",
         "IN_EXECUTION": "We'll ask you to confirm once the company marks the delivery.",
-        "DELIVERED_BY_COMPANY": "The company marked the work as delivered. With no answer from you, the delivery is confirmed automatically.",
+        "DELIVERED_BY_COMPANY": "The company marked the order as delivered. With no answer from you, the delivery is confirmed automatically.",
         "COMPLETED": "If you haven't already, you can leave the company a review.",
         "DISPUTED": "The Cozy Home team is looking into it and will let you know when it's resolved.",
         "EXPIRED": "It expired without being claimed by a company.",
@@ -1373,7 +1374,7 @@
     "edits": {
       "title": "Changes",
       "preClaim": "{remaining, plural, =1 {You can edit the request one more time} other {You can edit the request # more times}} before a company claims it.",
-      "postClaim": "Companies have already claimed this request. You have one edit left: the project will be re-scored, and companies may withdraw their claim after your changes.",
+      "postClaim": "Companies have already claimed this request. You have one edit left, as long as you haven't received an offer: the request will be re-scored, and companies may withdraw their claim after your changes.",
       "noneLeft": "You have used all the edits available at this stage.",
       "locked": "The request can no longer be edited at this stage.",
       "used": "Edits used: {pre}/{preMax} before a claim · {post}/{postMax} after"
@@ -1424,7 +1425,7 @@
     "messageCounter": "{count, number} / {max, number} characters"
   },
   "Marketplace": {
-    "title": "Marketplace",
+    "title": "Available requests",
     "subtitle": "Requests eligible for your company. The exact address and the client’s details appear after you claim a request.",
     "availableCredits": "{n} credits",
     "empty": "No requests available right now.",
@@ -1438,31 +1439,31 @@
     "distanceHint": "Approximate distance — the exact address appears after you claim the request.",
     "credits": "credits",
     "size": "Size",
-    "slots": "Slots {active}/{max}",
+    "slots": "{active} of {max} places taken",
     "claim": "Claim",
     "claiming": "Claiming…",
     "claimCost": "Cost: {n} credits",
     "claimSuccess": "Request claimed.",
-    "full": "Slots full",
+    "full": "All places taken",
     "alreadyClaimed": "Already claimed by your company",
     "view": "Details",
     "manageOffer": "Offer & chat",
-    "back": "Marketplace",
-    "includesPaidDesign": "Paid design included",
-    "hasOwnProject": "Has own project",
+    "back": "Available requests",
+    "includesPaidDesign": "Paid design",
+    "hasOwnProject": "Already has a project",
     "desiredDeadline": "Desired deadline",
     "sectionRooms": "Rooms",
     "claimStatus": {
       "ACTIVE": "Active",
       "OFFER_SENT": "Offer sent",
-      "CANCELLED_UNASSIGNED": "Cancelled (unassigned)",
+      "CANCELLED_UNASSIGNED": "Cancelled: not assigned in time",
       "CANCELLED_BY_CLIENT": "Cancelled by client",
       "WITHDRAWN_VOLUNTARY": "Withdrawn",
       "COMPLETED": "Completed",
       "WITHDRAWN": "Withdrawn",
-      "SLA_EXPIRED": "SLA deadline missed",
+      "SLA_EXPIRED": "Response deadline missed",
       "CANCELLED_REQUEST_ACCEPTED": "Closed — the client chose another company",
-      "CANCELLED_PROJECT": "Closed — project cancelled",
+      "CANCELLED_PROJECT": "Closed — order cancelled",
       "CANCELLED_OFFER_EXPIRED": "Closed — offer expired without a decision",
       "OFFER_DECLINED": "Closed — the client declined the offer"
     },
@@ -1473,9 +1474,9 @@
       "totalHeld": "Total held",
       "none": "No wallet yet.",
       "reservedHint": "Reserved credits are held by your active claims and can't be used for another claim until they are settled.",
-      "readOnlyNote": "Only the owner or a manager can buy credits and subscriptions and see the company's orders.",
+      "readOnlyNote": "Only the owner or a manager can buy credits and subscriptions and see the company's payments.",
       "pageTitle": "Wallet and subscription",
-      "pageSubtitle": "Your company's credits, subscription, orders and penalties.",
+      "pageSubtitle": "Your company's credits, subscription, payments and penalties.",
       "sectionsNav": "Page sections",
       "navCredits": "Credits"
     },
@@ -1501,16 +1502,16 @@
       "gatingNow": "Immediate access to new requests",
       "extendHint": "If you already have an active subscription, the new plan applies right away and the 30 days are added to your remaining days — nothing is lost.",
       "marketplaceAccess": {
-        "included": "Marketplace access: included in your plan",
-        "notIncluded": "Marketplace access: not included in your plan"
+        "included": "Access to available requests: included in your plan",
+        "notIncluded": "Access to available requests: not included in your plan"
       },
       "planMarketplaceAccess": {
-        "included": "Includes marketplace requests and claims",
-        "notIncluded": "No marketplace access"
+        "included": "Includes available requests and claims",
+        "notIncluded": "No access to available requests"
       },
       "activeLine": "The {plan} plan is active.",
-      "priceSuffix": "RON + VAT / 30 days",
-      "priceSuffixFree": "RON / 30 days"
+      "priceSuffix": "lei + VAT / 30 days",
+      "priceSuffixFree": "lei / 30 days"
     },
     "myClaims": {
       "title": "My claims",
@@ -1523,10 +1524,10 @@
       "assignedTo": "Assigned to",
       "when": "When",
       "stage": "Stage",
-      "sla": "Offer deadline (SLA)",
+      "sla": "Response deadline",
       "slaPaused": "paused",
       "newMessages": "{n, plural, =1 {one new message} other {# new messages}}",
-      "emptyCta": "Browse marketplace requests",
+      "emptyCta": "Browse available requests",
       "emptyFiltered": "No claims match these filters.",
       "filterLabel": "Filter claims by stage",
       "filter": {
@@ -1558,7 +1559,7 @@
     },
     "apiErrors": {
       "CLAIM_NOT_ALLOWED": "This request can no longer be claimed.",
-      "CLAIM_SLOTS_FULL": "All claim slots for this request are taken.",
+      "CLAIM_SLOTS_FULL": "All places for this request are taken.",
       "CLAIM_ALREADY_EXISTS": "Your company has already claimed this request.",
       "INSUFFICIENT_CREDITS": "Not enough credits available.",
       "SUBSCRIPTION_INACTIVE": "Claiming requests needs an active subscription.",
@@ -1576,11 +1577,11 @@
       "GATING_NOT_OPEN": "This request is not yet available for your subscription plan. Please check back shortly.",
       "CONCURRENT_MODIFICATION": "Someone else changed this request at the same time. Please retry.",
       "NOT_FOUND": "This request is no longer available.",
-      "PROJECT_NOT_CLOSABLE": "The project can no longer be closed in its current state.",
-      "PROJECT_CASE_ALREADY_OPEN": "There is already an open case for this project.",
+      "PROJECT_NOT_CLOSABLE": "The order can no longer be closed in its current state.",
+      "PROJECT_CASE_ALREADY_OPEN": "There is already an open case for this order.",
       "PROJECT_CASE_NOT_OPEN": "The case is no longer open or has already been answered.",
       "DATABASE_BUSY": "The server is responding slowly right now, so the action was not saved. Please try again in a few seconds.",
-      "PLAN_FEATURE_REQUIRED": "Your firm's subscription is active, but its plan does not include marketplace requests and claims. Choose a plan that includes them.",
+      "PLAN_FEATURE_REQUIRED": "Your firm's subscription is active, but its plan does not include available requests and claims. Choose a plan that includes them.",
       "REQUEST_NO_LONGER_CLAIMABLE": "This request can no longer be claimed: the places are taken or the client has already chosen.",
       "MANAGER_UNASSIGNED_CAP_REACHED": "You already have too many claims without a responsible person for the colleagues who are free. Assign them on their worksheets first, or pick a colleague for this request now.",
       "RATE_LIMITED": "Too many attempts in a short time. Wait a minute and try again.",
@@ -1592,7 +1593,7 @@
         "COMPANY_NOT_APPROVED": "Your company is being verified",
         "COMPANY_SUSPENDED": "Your company is suspended",
         "generic": "We couldn't load the data",
-        "PLAN_FEATURE_REQUIRED": "Your plan does not include marketplace access"
+        "PLAN_FEATURE_REQUIRED": "Your plan does not include access to available requests"
       },
       "cta": {
         "subscription": "See subscription plans",
@@ -1613,7 +1614,7 @@
     "filterLabel": "Filter requests",
     "filter": {
       "all": "All",
-      "open": "With free slots",
+      "open": "With free places",
       "mine": "Claimed by your company"
     },
     "sortLabel": "Sort by",
@@ -1627,7 +1628,7 @@
     "filterAny": "Any",
     "distanceFilter": "Distance",
     "resetFilters": "Clear filters",
-    "slotsMine": "Slots {active}/{max} · already claimed by your company",
+    "slotsMine": "{active} of {max} places taken · already claimed by your company",
     "creditsShort": "{cost} credits · {missing} short",
     "openWorksheet": "Open the claim worksheet",
     "detailMeta": "published {when} · the client’s details and the exact address appear after you claim it",
@@ -1715,7 +1716,7 @@
     "tabClients": "Clients",
     "tabTeam": "Company team",
     "teamHint": "Internal conversation — only your company's members can see it. Clients have no access here.",
-    "empty": "No conversations yet. Your first one appears after you claim a request from the marketplace.",
+    "empty": "No conversations yet. Your first one appears after you claim a request from “Available requests”.",
     "pickThread": "Pick a conversation from the list.",
     "backToList": "Back to the list",
     "openClaim": "Open the claim worksheet",
@@ -1746,19 +1747,19 @@
       "autoCancel": "No one assigned — the claim cancels automatically {time}",
       "autoCancelDue": "No one assigned — the claim is being cancelled",
       "claimedBy": "Claimed by {name}",
-      "slaLabel": "Offer deadline (SLA)",
-      "slaPaused": "SLA paused",
+      "slaLabel": "Response deadline",
+      "slaPaused": "Response deadline paused",
       "slaGrace": "Deadline passed — {left} of grace left before the penalty",
       "slaBreached": "The deadline and grace period have passed — the claim closes shortly",
-      "slaOfferSent": "Offer sent — the SLA deadline no longer applies",
+      "slaOfferSent": "Offer sent — the response deadline no longer applies",
       "deadlineLine": "Desired deadline: {deadline}",
       "clientSection": "Your client",
       "clientHidden": "The client's contact details are no longer visible — this claim is no longer active.",
       "clientHiddenNotAssigned": "Contact details and the full address are visible only to the colleague who claimed or works on this request and to the firm's owner, managers and employees with full access.",
       "clientHiddenRevealPending": "The client's contact details become visible {time}.",
-      "clientHiddenRetention": "This project was completed a while ago: the client's contact details are visible only to the firm's owner and managers.",
+      "clientHiddenRetention": "This order was completed a while ago: the client's contact details are visible only to the firm's owner and managers.",
       "redactedNotice": "This claim is no longer active: you only see the title, town, status and your firm's offers.",
-      "tombstoneNotice": "The client deleted this request. Project details are no longer available.",
+      "tombstoneNotice": "The client deleted this request. Request details are no longer available.",
       "noOwnOffer": "Your firm did not send an offer on this claim.",
       "descriptionLabel": "Client's message",
       "noDescription": "The client left no message.",
@@ -1870,13 +1871,13 @@
       "submit": "Send",
       "versionOf": "Version {n} of at most {max}",
       "submitCreate": "Send offer",
-      "createNote": "Once sent, the SLA deadline no longer applies. You can withdraw the offer or reply with a new version if the client asks for a change.",
+      "createNote": "Once sent, the response deadline no longer applies. You can withdraw the offer or reply with a new version if the client asks for a change.",
       "descriptionHint": "Say what is included: materials, hardware, finishes. The client compares offers on the same lines.",
       "validity": "Offer validity",
       "unitMonths": "months",
       "unitDays": "days",
       "unit": {
-        "RON": "RON",
+        "RON": "lei",
         "EUR": "EUR"
       },
       "termUnitLabel": "Term unit",
@@ -1888,7 +1889,7 @@
       "priceFurnitureEstimate": "Furniture price (estimate)",
       "prefilledFrom": "We filled in the form from version {n}. Change only what is new.",
       "currencyOption": {
-        "RON": "lei (RON)",
+        "RON": "lei",
         "EUR": "euro (EUR)"
       },
       "vat": {
@@ -1952,8 +1953,8 @@
       "REQUEST_NOT_OPEN_FOR_OFFERS": "This request no longer accepts offers (it was awarded, delivered or deleted).",
       "CONCURRENT_MODIFICATION": "The offer was changed at the same time. Reload the page and retry.",
       "QUOTE_EXTENSION_NOT_REQUESTABLE": "You can only ask for an extension on an expired offer while the request is still open.",
-      "PROJECT_NOT_CLOSABLE": "The project can no longer be closed in its current state.",
-      "PROJECT_CASE_ALREADY_OPEN": "There is already an open case for this project.",
+      "PROJECT_NOT_CLOSABLE": "The order can no longer be closed in its current state.",
+      "PROJECT_CASE_ALREADY_OPEN": "There is already an open case for this order.",
       "PROJECT_CASE_NOT_OPEN": "The case is no longer open or has already been answered.",
       "DATABASE_BUSY": "The server is responding slowly right now, so the action was not saved. Please try again in a few seconds.",
       "QUOTE_NOT_MODIFIABLE": "This offer can no longer be changed in its current state.",
@@ -2099,7 +2100,7 @@
       "PRICE": "The price",
       "DELIVERY_TERM": "The delivery time",
       "OTHER_COMPANY": "I chose another company",
-      "GAVE_UP": "I'm dropping the project"
+      "GAVE_UP": "I'm dropping the request"
     },
     "decline": {
       "open": "Decline the offer",
@@ -2128,8 +2129,8 @@
     "requestDeletedByClient": "The client deleted the request"
   },
   "Lifecycle": {
-    "slaTitle": "SLA & status",
-    "slaDeadline": "SLA deadline: {date}",
+    "slaTitle": "Response deadline & status",
+    "slaDeadline": "Response deadline: {date}",
     "slaPaused": "paused (clarification in progress)",
     "clarifications": "Clarifications",
     "answered": "Answer",
@@ -2149,14 +2150,14 @@
     "claimStatus": {
       "ACTIVE": "Active",
       "OFFER_SENT": "Offer sent",
-      "CANCELLED_UNASSIGNED": "Cancelled (unassigned)",
+      "CANCELLED_UNASSIGNED": "Cancelled: not assigned in time",
       "CANCELLED_BY_CLIENT": "Cancelled by client",
       "WITHDRAWN_VOLUNTARY": "Withdrawn (voluntary)",
       "WITHDRAWN": "Withdrawn",
-      "SLA_EXPIRED": "SLA deadline missed",
+      "SLA_EXPIRED": "Response deadline missed",
       "COMPLETED": "Completed",
       "CANCELLED_REQUEST_ACCEPTED": "Closed — the client chose another company",
-      "CANCELLED_PROJECT": "Closed — project cancelled",
+      "CANCELLED_PROJECT": "Closed — order cancelled",
       "CANCELLED_OFFER_EXPIRED": "Closed — offer expired without a decision",
       "OFFER_DECLINED": "Closed — the client declined the offer"
     },
@@ -2195,14 +2196,14 @@
       "voluntaryLate": "More than {minutes} have passed since the claim: the credits are consumed and the firm receives {points} of penalty.",
       "clientUnresponsive": "Approved automatically if you messaged the client in the app and they have not replied for {hours}; your credits are refunded.",
       "requestModified": "Approved automatically if the request was changed after you claimed it and you have not sent an offer since the change; your credits are refunded.",
-      "adminReview": "The withdrawal is reviewed by the administrator; until the decision the slot stays occupied. If approved, the credits are refunded."
+      "adminReview": "The withdrawal is reviewed by the administrator; until the decision the place stays taken. If approved, the credits are refunded."
     },
     "reasonPlaceholder": "Choose the reason for withdrawing",
     "reasonNotEligibleUntil": "{reason} (available from {date})",
     "reasonNotEligible": "{reason} (not applicable right now)",
     "reasonNeedsFirmMessage": "{reason} (message the client in the chat first)",
     "reasonOfferAfterEdit": "{reason} (you sent an offer after the change)",
-    "pendingWithdrawal": "You asked to withdraw on {date} ({reason}). The administrator decides; until then the slot stays occupied.",
+    "pendingWithdrawal": "You asked to withdraw on {date} ({reason}). The administrator decides; until then the place stays taken.",
     "previewLoading": "Working out the consequences…",
     "previewError": "We could not work out the consequences. Please try again.",
     "confirm": {
@@ -2214,9 +2215,9 @@
       "lateBody": "More than {minutes} have passed since the claim: the reserved credits are consumed for good and the firm receives penalty points.",
       "pointsStatus": "The firm now has {current} of {threshold} active points; at {threshold} points it is suspended for {months}.",
       "suspendWarning": "Warning: after this withdrawal the firm reaches {after} points and will be suspended for {months}.",
-      "adminReview": "The withdrawal goes to the administrator. Until the decision the slot stays occupied; if approved you get {credits} back, if rejected the claim continues.",
+      "adminReview": "The withdrawal goes to the administrator. Until the decision the place stays taken; if approved you get {credits} back, if rejected the claim continues.",
       "offerWithdrawn": "The offer sent to the client is withdrawn too, and the conversation becomes read-only.",
-      "slotReleased": "The slot is released for other firms.",
+      "slotReleased": "The place is released for other firms.",
       "cta": "Yes, withdraw the claim",
       "pending": "Withdrawing…",
       "cancel": "Back"
@@ -2320,7 +2321,7 @@
     "markDelivered": "Mark as delivered",
     "markedDelivered": "Marked as delivered",
     "deliveredTitle": "Order delivered",
-    "deliveredBody": "The company has marked the work as delivered. Confirm receipt to complete the order.",
+    "deliveredBody": "The company has marked the order as delivered. Confirm receipt to complete it.",
     "confirmDelivery": "Confirm delivery",
     "reviewTitle": "Review",
     "reviewPlaceholder": "How was working with this company?",
@@ -2340,19 +2341,19 @@
     "lowRatingCancel": "Cancel",
     "apiErrors": {
       "COMPLETION_NOT_ALLOWED": "The delivery cannot be confirmed yet.",
-      "DELIVERY_NOT_ALLOWED": "The work can't be marked as delivered in its current state.",
+      "DELIVERY_NOT_ALLOWED": "The order can't be marked as delivered in its current state.",
       "REVIEW_NOT_ALLOWED_YET": "A review can be left only after the order is completed.",
       "REVIEW_ALREADY_SUBMITTED": "You already left a review for this request.",
       "NOT_FOUND": "Not found.",
       "FORBIDDEN": "You do not have permission for this action.",
       "INTERNAL_ERROR": "Something went wrong. Please try again.",
-      "PROJECT_NOT_CLOSABLE": "The project can no longer be closed in its current state.",
-      "PROJECT_CASE_ALREADY_OPEN": "There is already an open case for this project.",
+      "PROJECT_NOT_CLOSABLE": "The order can no longer be closed in its current state.",
+      "PROJECT_CASE_ALREADY_OPEN": "There is already an open case for this order.",
       "PROJECT_CASE_NOT_OPEN": "The case is no longer open or has already been answered.",
       "DATABASE_BUSY": "The server is responding slowly right now, so the action was not saved. Please try again in a few seconds.",
       "WARRANTY_REPORT_WINDOW_CLOSED": "The period for reporting a problem has ended.",
-      "DELIVERY_TOO_EARLY": "It's too early to mark the work as delivered. You can do it only after the minimum number of days since acceptance.",
-      "EXECUTION_STAGE_NOT_EDITABLE": "Stages can be ticked only after your offer is accepted and until the project is completed."
+      "DELIVERY_TOO_EARLY": "It's too early to mark the order as delivered. You can do it only after the minimum number of days since acceptance.",
+      "EXECUTION_STAGE_NOT_EDITABLE": "Stages can be ticked only after your offer is accepted and until the order is completed."
     },
     "agreement": {
       "title": "Your agreement",
@@ -2368,13 +2369,13 @@
       "total": "Agreed total"
     },
     "projectCase": {
-      "reportTitle": "Is the project stuck?",
-      "reportIntro": "If the other party stopped responding or you both want to cancel, let us know. The Cozy Home team reviews the case and closes the project.",
+      "reportTitle": "Is the order stuck?",
+      "reportIntro": "If the other party stopped responding or you both want to cancel, let us know. The Cozy Home team reviews the case and closes the order.",
       "reasonLabel": "Reason",
       "reason": {
         "FIRM_UNRESPONSIVE": "The company stopped responding",
         "CLIENT_UNRESPONSIVE": "The client stopped responding",
-        "MUTUAL_CANCEL_REQUEST": "We want to cancel the project by mutual agreement",
+        "MUTUAL_CANCEL_REQUEST": "We want to cancel the order by mutual agreement",
         "OTHER": "Other reason",
         "WARRANTY_CLAIM": "Problem after completion (under warranty)"
       },
@@ -2384,26 +2385,26 @@
       "cancel": "Cancel",
       "confirmTitle": "Send the report?",
       "openBody": "We received the report on {date}. The Cozy Home team is reviewing it; you will be notified of the decision.",
-      "respondTitle": "A problem was reported with this project",
+      "respondTitle": "A problem was reported with this order",
       "confirmCancel": "Confirm mutual cancellation",
-      "contest": "Dispute — the project continues",
+      "contest": "Dispute — the order continues",
       "responseConfirmed": "The other party confirmed the cancellation.",
       "responseContested": "The other party disputed the report.",
-      "youConfirmed": "You confirmed the mutual cancellation. The Cozy Home team will close the project.",
+      "youConfirmed": "You confirmed the mutual cancellation. The Cozy Home team will close the order.",
       "youContested": "You disputed the report. The Cozy Home team is reviewing the case.",
       "managersOnly": "Only the company owner or a manager can report or respond.",
-      "dismissedBody": "The case was closed without cancelling the project.",
-      "cancelledTitle": "Project cancelled",
-      "cancelledBody": "The project was closed by the Cozy Home team on {date}."
+      "dismissedBody": "The case was closed without cancelling the order.",
+      "cancelledTitle": "Order cancelled",
+      "cancelledBody": "The order was closed by the Cozy Home team on {date}."
     },
-    "deliverConfirmTitle": "Mark the work as delivered?",
+    "deliverConfirmTitle": "Mark the order as delivered?",
     "deliverConfirmBodyNoDays": "The client is notified and must confirm receipt; otherwise the order completes automatically after the period in the rules.",
     "deliverConfirmIrreversible": "This cannot be undone in the app.",
     "deliverConfirmCta": "Yes, it is delivered",
     "deliverConfirmCancel": "Back",
     "deliverConfirmPending": "Sending…",
     "deliveredConfirmTitle": "Confirm the delivery?",
-    "deliveredConfirmBody": "Only confirm if you have checked the furniture. After you confirm, the project is closed and you can leave a review.",
+    "deliveredConfirmBody": "Only confirm if you have checked the furniture. After you confirm, the order is closed and you can leave a review.",
     "deliveredConfirmCta": "I checked it, confirm delivery",
     "deliveredProblem": "I have a problem",
     "deliveredBack": "Back",
@@ -2447,7 +2448,7 @@
         "delivered": "Delivered — awaiting client",
         "completed": "Completed"
       },
-      "cellLabel": "Project",
+      "cellLabel": "Order",
       "headline": {
         "accepted": "Offer accepted",
         "delivered": "Delivered — waiting for the client to confirm",
@@ -2455,10 +2456,10 @@
       },
       "acceptedOn": "Accepted on {date}",
       "deliverFrom": "You can mark the delivery starting {date}.",
-      "autoCompleteOn": "If the client does not confirm, the project completes automatically on {date}.",
+      "autoCompleteOn": "If the client does not confirm, the order completes automatically on {date}.",
       "autoCompletePaused": "The client reported a problem. Automatic completion is paused until the Cozy Home team closes the report.",
       "completedOn": "Completed on {date}",
-      "deliverConfirmNext": "The client is notified and must confirm receipt. If they neither confirm nor report a problem within {days}, the project completes automatically on {date}."
+      "deliverConfirmNext": "The client is notified and must confirm receipt. If they neither confirm nor report a problem within {days}, the order completes automatically on {date}."
     },
     "stages": {
       "title": "What's next",
@@ -2476,9 +2477,9 @@
     },
     "clientProject": {
       "contactTitle": "Who you talk to",
-      "contactRole": "The person at the firm handling your project",
+      "contactRole": "The person at the firm handling your order",
       "cui": "Tax ID (CUI) {cui}",
-      "stagesTitle": "How the project is going",
+      "stagesTitle": "How your order is going",
       "stagesIntro": "The firm ticks the stages as it goes through them.",
       "stageNotDone": "Not ticked yet",
       "autoCompleteOn": "If you neither confirm nor report a problem, the order completes automatically on {date}."
@@ -2486,7 +2487,7 @@
   },
   "Billing": {
     "buyCredits": "Buy credits",
-    "orders": "Orders & invoices",
+    "orders": "Payments & invoices",
     "invoice": "Invoice",
     "orderStatus": {
       "PENDING": "Awaiting payment",
@@ -2495,11 +2496,11 @@
     },
     "buyCreditsHint": "Credits are used to claim requests. Secure card payment (Stripe); prices include VAT.",
     "buyCreditsHintBank": "Credits are used to claim requests. Payment is by bank transfer; prices include VAT.",
-    "vatLine": "{base} RON + VAT {rate}% = {total} RON",
-    "payButton": "Pay {total} RON (incl. VAT)",
+    "vatLine": "{base} lei + VAT {rate}% = {total} lei",
+    "payButton": "Pay {total} lei (incl. VAT)",
     "noPackages": "No credit packages available right now.",
     "noPlans": "No plans available right now.",
-    "noOrders": "No orders yet.",
+    "noOrders": "No payments yet.",
     "planLabel": "{tier} subscription",
     "packageLabel": "{n} credits package",
     "continuePayment": "Continue payment",
@@ -2513,18 +2514,18 @@
       "vat": "VAT {rate}%",
       "total": "Total to pay"
     },
-    "confirmTitle": "Confirm your order",
+    "confirmTitle": "Confirm your payment",
     "confirmCreditsDesc": "{n} credits package for your company.",
     "confirmPlanDesc": "{tier} subscription — 30 days, {n} credits included.",
     "confirmStripeHint": "You'll be redirected to Stripe's secure payment page. Credits or the subscription are activated automatically a few seconds after payment.",
-    "confirmBankHint": "Online payment is not available right now — after placing the order you'll get bank transfer details, and activation happens once the payment reaches us.",
+    "confirmBankHint": "Online payment is not available right now — after you confirm you'll get bank transfer details, and activation happens once the payment reaches us.",
     "confirmButton": "Continue to payment",
-    "confirmButtonBank": "Place order",
+    "confirmButtonBank": "Confirm and get transfer details",
     "cancel": "Cancel",
     "bankTransfer": {
       "title": "Pay by bank transfer",
       "show": "Payment details",
-      "intro": "Order #{ref} has been recorded. Make the transfer using the details below — credits or the subscription are activated once we confirm the payment (usually 1–2 business days).",
+      "intro": "Payment #{ref} is waiting for your transfer: use the details below — credits or the subscription are activated once we confirm the payment (usually 1–2 business days).",
       "emailed": "We've emailed you the payment details and a proforma invoice.",
       "beneficiary": "Beneficiary",
       "cui": "Tax ID (CUI)",
@@ -2532,14 +2533,14 @@
       "amount": "Amount",
       "reference": "Payment reference",
       "referenceValue": "Order {ref}",
-      "missing": "Bank details can't be shown right now — you'll find them, with the proforma, in the email we sent when you placed the order.",
+      "missing": "Bank details can't be shown right now — you'll find them, with the proforma, in the email we sent when you confirmed the payment.",
       "downloadProforma": "Download proforma",
       "proformaFailed": "We couldn't download the proforma. Please try again.",
       "markPaid": "I've paid",
       "markPaidHint": "Press this after making the transfer — we'll ask the team to check for the payment.",
       "markPaidToast": "Thanks! We've notified the team.",
-      "markedPaid": "You reported the payment on {date}. We'll activate the order once the money arrives.",
-      "autoCancelNote": "The order is cancelled automatically if the payment doesn't arrive by {date}.",
+      "markedPaid": "You reported the payment on {date}. We'll activate the credits or subscription once the money arrives.",
+      "autoCancelNote": "The pending payment is cancelled automatically if the money doesn't arrive by {date}.",
       "copy": "Copy",
       "copyAria": "Copy {label}",
       "copied": "Copied to clipboard",
@@ -2547,12 +2548,12 @@
       "emailedNoProforma": "You can download the proforma invoice here at any time."
     },
     "paymentSuccessToast": "Payment received. Credits or the subscription will appear in a few seconds.",
-    "paymentCancelledToast": "Payment was not completed. You can resume anytime from your order history.",
+    "paymentCancelledToast": "Payment was not completed. You can resume anytime from your payment history.",
     "apiErrors": {
       "CREDIT_PACKAGE_INACTIVE": "This package is no longer available.",
       "PAYMENT_PROVIDER_UNAVAILABLE": "Online payment is unavailable right now. Please try again in a few minutes.",
-      "PAYMENT_NOT_PENDING": "This order is no longer awaiting payment.",
-      "NOT_FOUND": "Order or plan not found.",
+      "PAYMENT_NOT_PENDING": "This payment is no longer pending.",
+      "NOT_FOUND": "Payment or plan not found.",
       "IDEMPOTENCY_CONFLICT": "Conflicting request. Please retry.",
       "VALIDATION_ERROR": "Invalid data.",
       "INTERNAL_ERROR": "Something went wrong. Please try again.",
@@ -2571,7 +2572,7 @@
       "body": "Payments run through Stripe in test mode: no real money is charged and no invoice is issued."
     },
     "notReady": "Payments are temporarily paused while the platform finalises its billing details. Please check back soon.",
-    "testOrder": "Test order — no invoice",
+    "testOrder": "Test payment — no invoice",
     "testBadge": "Test",
     "paymentReported": "Payment reported",
     "excludingVat": "+ VAT",
@@ -3779,12 +3780,12 @@
       "claim": {
         "created": "Request claimed by a company",
         "withdrawn": "Claim closed",
-        "withdrawn_SLA_EXPIRED": "SLA deadline missed — claim closed",
+        "withdrawn_SLA_EXPIRED": "Response deadline missed — claim closed",
         "withdrawn_UNASSIGNED_1H": "Claim cancelled — unassigned for an hour",
         "withdrawn_CANCELLED_BY_CLIENT": "The client deleted the request",
         "withdrawn_REQUEST_ACCEPTED_OTHER_OFFER": "The client chose another offer",
         "withdrawn_VOLUNTARY_NO_REASON": "Claim withdrawn voluntarily",
-        "withdrawn_PROJECT_CANCELLED": "The project was cancelled by the Cozy Home team",
+        "withdrawn_PROJECT_CANCELLED": "The order was cancelled by the Cozy Home team",
         "withdrawn_OFFER_EXPIRED_UNDECIDED": "Claim closed — the offer expired without a decision",
         "assign_warning": "Unassigned claim — cancels soon"
       },
@@ -3822,18 +3823,18 @@
         "confirmed": "Payment confirmed — invoice issued",
         "pending": "Bank-transfer payment awaiting confirmation",
         "transfer_instructions": "Bank transfer payment details",
-        "transfer_reminder": "Your order is awaiting payment",
-        "auto_cancelled": "Order cancelled — payment not received",
+        "transfer_reminder": "Payment not received yet",
+        "auto_cancelled": "Pending payment cancelled — money not received",
         "marked_paid": "A company reported a bank transfer payment"
       },
       "subscription": {
         "expiring": "Subscription expiring soon"
       },
       "project": {
-        "case_opened": "A problem was reported with the project",
-        "case_responded": "Reply to the project report",
-        "case_dismissed": "The project case was closed without cancelling",
-        "cancelled": "The project was cancelled",
+        "case_opened": "A problem was reported with the order",
+        "case_responded": "Reply to the order report",
+        "case_dismissed": "The order case was closed without cancelling",
+        "cancelled": "The order was cancelled",
         "delivery_reminder": "The delivery date is coming up",
         "overdue": "The delivery date has passed"
       },
@@ -3845,7 +3846,7 @@
         "ledger_mismatch": "Credit wallets do not match the ledger — check the daily report"
       },
       "execution": {
-        "stage_updated": "The company ticked a project stage"
+        "stage_updated": "The company ticked an order stage"
       },
       "documents": {
         "pdf_failed": "PDF documents (offers, proformas, invoices) can’t be generated — check the server log"
@@ -3867,9 +3868,9 @@
       "countryCode": "Phone country code",
       "nationalNumber": "Phone number without country code"
     },
-    "title": "Configure your project",
+    "title": "New request",
     "subtitle": "Add your rooms and answer a few questions — partner companies receive a clear, ready-to-quote request.",
-    "kicker": "New request",
+    "kicker": "Custom furniture",
     "editKicker": "Edit request",
     "loading": "Getting things ready...",
     "bootstrap": {
@@ -3884,7 +3885,7 @@
       "optional": "optional",
       "required": "required",
       "roomDone": "done",
-      "withDesigner": "with the designer",
+      "withDesigner": "with the company",
       "missing": "to fill in",
       "hint": "Click any row to go back to that section. Nothing you filled in is lost.",
       "toFix": "to fix",
@@ -3895,17 +3896,17 @@
       "start": "Start",
       "cart": "Rooms",
       "rooms": "Room details",
-      "details": "General info",
+      "details": "General details",
       "uploads": "Files",
-      "review": "Summary"
+      "review": "Review and publish"
     },
     "nav": {
       "back": "Back",
       "next": "Continue",
       "continue": "Continue",
       "startQuestions": "Start",
-      "toDetails": "To general info",
-      "toReview": "To summary",
+      "toDetails": "To general details",
+      "toReview": "To review",
       "roomsLabel": "Rooms in this request",
       "nextUp": "Next: {label}",
       "screenOf": "Screen {current} of {total}",
@@ -3933,14 +3934,14 @@
       "DESIGN_HELP": {
         "title": "I'm not sure what I want — I need help",
         "badge": "Paid design",
-        "desc": "You only pick the rooms and publish the request with Paid design: the company that claims it builds the design together with you, for a fee."
+        "desc": "You only pick the rooms and publish the request with Paid design. Companies first send you the design price and what it includes; then you choose the company you design the pieces with."
       },
       "recommended": "Recommended"
     },
     "cart": {
       "title": "What do you want to furnish?",
       "subtitle": "Add the rooms and pieces you need — several of the same type is fine.",
-      "designHelpSubtitle": "Pick the rooms or pieces you want furniture for — the design is worked out together with the company that claims your request.",
+      "designHelpSubtitle": "Pick the rooms or pieces you want furniture for. Companies first send you the design price and what it includes; then you choose the company you design the pieces with.",
       "basketTitle": "Your request cart",
       "basketEmpty": "Nothing here yet. Pick rooms or pieces.",
       "totalRooms": "{count, plural, =0 {No rooms} =1 {One room} other {# rooms}}",
@@ -3962,16 +3963,16 @@
         "answers": "{count, plural, one {One answer is} other {# answers are}} lost.",
         "files": "{count, plural, one {One sketch or file} other {# sketches and files}} of this room will be permanently deleted.",
         "filesEdit": "{count, plural, one {The room's sketch or file is} other {The room's # sketches and files are}} removed from the request when you save your changes.",
-        "help": "You asked for design help for this room; the answers kept in your draft are lost too.",
+        "help": "You asked for paid design for this room; the answers kept in your draft are lost too.",
         "keep": "Keep",
         "remove": "Remove"
       },
       "designHelpStudio": "This piece comes from Studio 3D, so it is already configured.",
-      "legacyPaidDesign": "Paid design is now requested per room: tick the rooms you want help with.",
+      "legacyPaidDesign": "Paid design is now requested per room: tick the rooms you want it for.",
       "legacyPaidDesignClose": "Close the note",
-      "designHelpLegend": "Design help",
-      "designHelpHint": "Tick the rooms where you don't know yet what you want. They skip the questions and go to companies with just the room type, the files and your message; the company that takes the request designs it with you, for a fee.",
-      "designHelpRoom": "I need help with this room",
+      "designHelpLegend": "Paid design",
+      "designHelpHint": "Tick the rooms where you don't know yet what you want. They skip the questions and go to companies with just the room type, the files and your message. Companies first send you the design price and what it includes; then you choose the company you design the pieces with.",
+      "designHelpRoom": "Paid design for this room",
       "modeLabel": "Mode:",
       "modeChange": "Change"
     },
@@ -4089,7 +4090,7 @@
       "roomSketchesTitle": "Room sketches",
       "roomSketchesHint": "You can change them from that room.",
       "sizeUnderKb": "under 1 KB",
-      "slotsLeft": "{count, plural, =0 {No file slots left. Remove one to add another.} =1 {You can add 1 more file.} other {You can add # more files.}}",
+      "slotsLeft": "{count, plural, =0 {You can't add more files. Remove one to add another.} =1 {You can add 1 more file.} other {You can add # more files.}}",
       "uploadingFile": "Uploading {name}…",
       "rejectedTitle": "Couldn't add",
       "retry": "Try again",
@@ -4116,28 +4117,28 @@
       "facts": {
         "notProvided": "Not provided",
         "deadline": "Desired timeframe",
-        "location": "Installation location",
+        "location": "Installation address",
         "contact": "Contact channels",
-        "description": "Project details",
+        "description": "Message for companies",
         "projectVisibility": "The description, rooms, files and 3D scene are visible to verified companies in your area before they claim your request, together with your city, county and an approximate distance.",
         "contactVisibility": "Your address and contact details are shared with companies working on your request after they claim it.",
         "mode": "How you started the request",
-        "helpRooms": "Design help for: {rooms}"
+        "helpRooms": "Paid design for: {rooms}"
       },
       "rooms": {
         "edit": "Edit {room}",
         "allAnswers": "View all answers"
       },
       "title": "Review and publish",
-      "subtitle": "Give the details one last look before sending your request to the marketplace.",
+      "subtitle": "Give the details one last look before you publish — once published, your request goes to companies in your area.",
       "saveEdit": "Save changes",
       "edit": "Edit",
-      "detailsIncomplete": "Complete the general info before publishing.",
+      "detailsIncomplete": "Complete the general details before publishing.",
       "roomIncomplete": "incomplete",
-      "designHelpBanner": "Paid design request: you publish the rooms and general details, and the company that claims it designs the project together with you.",
-      "designHelpRoomNote": "You'll define this room's details together with the designer after publishing.",
+      "designHelpBanner": "Paid design request: you publish the rooms and general details. Companies first send you the design price and what it includes; then you choose the company you design the pieces with.",
+      "designHelpRoomNote": "You'll define this room's details together with the company after publishing.",
       "loginToPublish": "Log in to publish",
-      "loginToPublishHint": "Your request is complete. Log in or create an account to send it to the marketplace — your answers stay saved.",
+      "loginToPublishHint": "Your request is complete. Log in or create an account to publish it so it reaches companies in your area — your answers stay saved.",
       "publishing": "Publishing your request...",
       "publishingEdit": "Saving your changes...",
       "publishingHint": "This takes a few seconds — we're getting your request ready for the partner companies.",
@@ -4305,7 +4306,7 @@
         "open": "{count, plural, one {1 open zone} other {# open zones}}",
         "sliding": "Sliding doors",
         "finish": "{finish} finish",
-        "openingPush": "Opening: push",
+        "openingPush": "Opening: Push",
         "openingHandle": "Opening: with handles",
         "basePlinth": "Base: plinth",
         "baseLegs": "Base: legs",
@@ -4433,7 +4434,7 @@
       },
       "firmDecidesShort": "Firm decides",
       "maxReached": "At most {max} pieces.",
-      "quantityMax": "At most {max} units."
+      "quantityMax": "{max, plural, one {At most # unit.} other {At most # units.}}"
     },
     "apiErrors": {
       "CONFIGURATOR_ANSWERS_INVALID": "Some answers couldn't be validated. Check the highlighted steps.",
@@ -4471,15 +4472,15 @@
       "outOfRangeKept": "The value must be between {range}. We kept the previous value.",
       "positiveNumber": "Enter a number greater than 0. We kept the previous value.",
       "wholeNumber": "Enter a whole number, e.g. 3. We kept the previous value.",
-      "designHelpWithOwnProject": "You chose “I already have a project”, so you can't ask for help with a room. Change the mode or untick the help box.",
-      "designHelpWithStudioPiece": "This piece is placed in Studio, so it is already configured: you can't ask for help with it. Untick the help box or remove the piece from Studio.",
+      "designHelpWithOwnProject": "You chose “I already have a project”, so you can't ask for paid design. Change the mode or untick “Paid design”.",
+      "designHelpWithStudioPiece": "This piece is placed in Studio, so it is already configured: you can't ask for paid design for it. Untick “Paid design” or remove the piece from Studio.",
       "approxLengthOutOfRange": "The approximate length must be between 0.1 and 50 m.",
       "approxLengthTooManyDecimals": "Use at most two decimals, for example 6.25.",
       "approxLengthWithoutOwnProject": "The approximate length can only be given with “I already have a project”. Choose that mode or clear the length.",
       "exclusiveOption": "This option can only be chosen on its own. Untick the others or drop it.",
       "chooseOne": "Pick an option.",
       "fillThisField": "Fill in this field.",
-      "fillField": "Fill in {field}.",
+      "fillField": "Fill in “{field}”.",
       "dimensionsMissing": "{count, plural, one {One field is empty.} other {# fields are empty.}}",
       "dimensionRequired": "Fill in all the dimensions.",
       "pieceRow": {
@@ -4508,7 +4509,7 @@
             "pros3": "The melamine surface shrugs off everyday scratches",
             "cons1": "Edges need ABS banding, or they show and wear",
             "cons2": "Swells if water reaches an unsealed cut",
-            "price": "250–450 RON per linear metre"
+            "price": "250–450 lei per linear metre"
           }
         },
         "MDF": {
@@ -4522,7 +4523,7 @@
             "pros3": "Edges finish cleanly, no applied banding needed",
             "cons1": "Costs more than chipboard for the same piece",
             "cons2": "The boards are heavy — large units need matching hardware",
-            "price": "450–800 RON per linear metre"
+            "price": "450–800 lei per linear metre"
           }
         },
         "MDF_INFOLIAT": {
@@ -4536,7 +4537,7 @@
             "pros3": "Allows routed fronts, with frames or classic patterns",
             "cons1": "Next to an oven or hob, the foil can peel over time",
             "cons2": "A narrower colour palette than painted MDF",
-            "price": "350–600 RON per linear metre"
+            "price": "350–600 lei per linear metre"
           }
         },
         "MDF_VOPSIT": {
@@ -4550,7 +4551,7 @@
             "pros3": "A scratch can be repainted locally, no front replacement",
             "cons1": "Among the most expensive front options",
             "cons2": "Paint can chip on a direct knock",
-            "price": "500–900 RON per linear metre"
+            "price": "500–900 lei per linear metre"
           }
         },
         "MDF_FURNIR": {
@@ -4564,7 +4565,7 @@
             "pros3": "Can be stained to the shade you want, just like wood",
             "cons1": "Rare veneers cost close to solid wood",
             "cons2": "Deep scratches cut through the thin veneer layer",
-            "price": "600–1100 RON per linear metre"
+            "price": "600–1100 lei per linear metre"
           }
         },
         "LEMN_MASIV": {
@@ -4578,7 +4579,7 @@
             "pros3": "Can be sanded and refinished to look new again",
             "cons1": "The most expensive material option",
             "cons2": "Moves with humidity — it can crack or warp",
-            "price": "900–1800 RON per linear metre"
+            "price": "900–1800 lei per linear metre"
           }
         },
         "ALTUL": {
@@ -4606,7 +4607,7 @@
             "pros2": "Opens with an elbow when your hands are full",
             "cons1": "Fingerprints show quickly on smooth fronts",
             "cons2": "The mechanism needs adjusting more often than a classic hinge",
-            "price": "+30–60 RON/front"
+            "price": "+30–60 lei/front"
           }
         },
         "GLISANTE": {
@@ -4619,7 +4620,7 @@
             "pros2": "Carries wide, heavy fronts, all the way to the ceiling",
             "cons1": "Good rails cost more — cheap ones you feel on every open",
             "cons2": "Needs precise fitting — a skewed rail is heard and felt",
-            "price": "+RON 800–2,000"
+            "price": "+800–2,000 lei"
           }
         },
         "BUTON_PRESIUNE": {
@@ -4632,7 +4633,7 @@
             "pros2": "A simple mechanism — easy to fit and to replace",
             "cons1": "Wears out faster than quality push systems",
             "cons2": "The door shuts hard, with no soft-close",
-            "price": "+10–30 RON/front"
+            "price": "+10–30 lei/front"
           }
         },
         "MANER": {
@@ -4645,7 +4646,7 @@
             "pros2": "Thousands of models — handles alone can change the look",
             "cons1": "Always visible — they become part of the design",
             "cons2": "Can catch clothes as you pass in narrow spaces",
-            "price": "10–80 RON/pc"
+            "price": "10–80 lei/pc"
           }
         },
         "GOLA": {
@@ -4658,7 +4659,7 @@
             "pros2": "Nothing sticks out — nothing to catch as you pass by",
             "cons1": "Routing and the profile add to the price",
             "cons2": "Demanding to fit — a job for an experienced team",
-            "price": "+150–300 RON per linear metre"
+            "price": "+150–300 lei per linear metre"
           }
         },
         "AVENTOS": {
@@ -4671,7 +4672,7 @@
             "pros2": "The front stays open at any position until you pull it down",
             "cons1": "The most expensive opening system",
             "cons2": "The arms need periodic adjustment to stay balanced",
-            "price": "+250–500 RON/unit"
+            "price": "+250–500 lei/unit"
           }
         }
       },
@@ -4825,7 +4826,7 @@
               "info": {
                 "title": "Straight kitchen",
                 "body": "All cabinets along one wall — compact, a natural fit for small spaces.",
-                "price": "RON 4,000–9,000",
+                "price": "4,000–9,000 lei",
                 "pros1": "Lowest cost per metre of any layout",
                 "pros2": "Fits narrow kitchens and open-plan living areas",
                 "pros3": "Quick to install: one wall, no corners to solve",
@@ -4839,7 +4840,7 @@
               "info": {
                 "title": "L-shaped kitchen",
                 "body": "Cabinets on two walls — a good balance of worktop and circulation.",
-                "price": "RON 7,000–15,000",
+                "price": "7,000–15,000 lei",
                 "pros1": "Sink, hob and fridge sit close — short paths while cooking",
                 "pros2": "Fits most apartments without blocking the walkway",
                 "pros3": "Leaves room for a table or a breakfast corner",
@@ -4853,7 +4854,7 @@
               "info": {
                 "title": "U-shaped kitchen",
                 "body": "Cabinets on three sides — maximum storage and worktop.",
-                "price": "RON 12,000–25,000",
+                "price": "12,000–25,000 lei",
                 "pros1": "Storage on three sides — you'll rarely need another cupboard",
                 "pros2": "Generous worktop: cook and prep in parallel",
                 "pros3": "Separate zones for cooking, washing and prep",
@@ -4867,7 +4868,7 @@
               "info": {
                 "title": "Galley kitchen",
                 "body": "Two facing runs — efficient in pass-through kitchens.",
-                "price": "RON 9,000–18,000",
+                "price": "9,000–18,000 lei",
                 "pros1": "Everything one step away — the layout cooks prefer",
                 "pros2": "Two people can cook without getting in each other's way",
                 "cons1": "The aisle between runs needs at least 1.2 m clear",
@@ -4884,7 +4885,7 @@
           "info": {
             "title": "Kitchen island",
             "body": "A freestanding unit in the middle — leave at least 1.2 m of clearance on every side.",
-            "price": "+RON 3,000–8,000",
+            "price": "+3,000–8,000 lei",
             "pros1": "Extra worktop and storage, right at the centre of the action",
             "pros2": "Doubles as a breakfast bar or a spot for guests",
             "cons1": "Only works in large kitchens — otherwise it blocks circulation",
@@ -4980,7 +4981,7 @@
               "info": {
                 "title": "Laminated chipboard worktop",
                 "body": "Chipboard core with a laminated surface — the affordable standard, hundreds of designs.",
-                "price": "150–300 RON per linear metre",
+                "price": "150–300 lei per linear metre",
                 "pros1": "Lowest price — easy to replace years later without regrets",
                 "pros2": "Hundreds of designs: wood, stone, plain colours",
                 "cons1": "Edges swell if water gets past the sealing",
@@ -4993,7 +4994,7 @@
               "info": {
                 "title": "HPL worktop",
                 "body": "High-pressure laminate — far denser and tougher than standard chipboard.",
-                "price": "400–800 RON per linear metre",
+                "price": "400–800 lei per linear metre",
                 "pros1": "Handles water, scratches and daily wear far better than chipboard",
                 "pros2": "Can be slim, for a clean, modern line",
                 "cons1": "Roughly double the price of a standard laminate top",
@@ -5006,7 +5007,7 @@
               "info": {
                 "title": "Laminate countertop",
                 "body": "Laminated chipboard — the budget option with the widest choice of designs.",
-                "price": "150–350 RON per linear metre",
+                "price": "150–350 lei per linear metre",
                 "pros1": "The lowest-priced worktop of all",
                 "pros2": "Designs for any style, from wood to concrete",
                 "cons1": "Deep scratches cannot be repaired",
@@ -5019,7 +5020,7 @@
               "info": {
                 "title": "Quartz countertop",
                 "body": "Engineered stone — among the most durable and hygienic worktops.",
-                "price": "600–1,200 RON per linear metre",
+                "price": "600–1,200 lei per linear metre",
                 "pros1": "Nearly impossible to scratch in everyday use",
                 "pros2": "Non-porous surface: doesn't stain, easy to keep hygienic",
                 "cons1": "Among the priciest worktop options",
@@ -5032,7 +5033,7 @@
               "info": {
                 "title": "Granite countertop",
                 "body": "Natural stone — durable, with a unique pattern in every slab.",
-                "price": "700–1,400 RON per linear metre",
+                "price": "700–1,400 lei per linear metre",
                 "pros1": "Natural stone that takes decades of daily use",
                 "pros2": "Every slab has a one-of-a-kind pattern",
                 "cons1": "Needs periodic sealing, or it can stain",
@@ -5045,7 +5046,7 @@
               "info": {
                 "title": "Wood countertop",
                 "body": "Solid wood — a warm look, cared for with periodic oiling.",
-                "price": "400–900 RON per linear metre",
+                "price": "400–900 lei per linear metre",
                 "pros1": "Warms up any kitchen — works in modern styles too",
                 "pros2": "Scratches sand out; the top can be refinished any time",
                 "cons1": "Needs regular oiling, especially around the sink",
@@ -5136,7 +5137,7 @@
               "info": {
                 "title": "Linear closet",
                 "body": "Modules along a single wall — the compact option for a bedroom or hallway.",
-                "price": "RON 3,000–7,000",
+                "price": "3,000–7,000 lei",
                 "pros1": "Takes up one wall — the rest of the room stays free",
                 "pros2": "The lowest-cost configuration",
                 "cons1": "Limited capacity — choose carefully what lives here"
@@ -5148,7 +5149,7 @@
               "info": {
                 "title": "L-shaped closet",
                 "body": "Modules on two walls — puts the corner to work.",
-                "price": "RON 5,000–11,000",
+                "price": "5,000–11,000 lei",
                 "pros1": "Serious capacity without taking over the room",
                 "pros2": "An otherwise wasted corner becomes storage",
                 "cons1": "The corner stays awkward without dedicated modules"
@@ -5160,7 +5161,7 @@
               "info": {
                 "title": "U-shaped closet",
                 "body": "Modules on three sides — maximum storage capacity.",
-                "price": "RON 8,000–16,000",
+                "price": "8,000–16,000 lei",
                 "pros1": "The most storage per square metre",
                 "pros2": "Separate zones: hanging, drawers, shelves",
                 "cons1": "Needs a generous room, or you'll be bumping into doors"
@@ -5172,7 +5173,7 @@
               "info": {
                 "title": "Walk-in closet",
                 "body": "A dedicated room, with modules on several walls.",
-                "price": "RON 9,000–20,000",
+                "price": "9,000–20,000 lei",
                 "pros1": "Your whole wardrobe visible, in one place",
                 "pros2": "Get dressed on the spot, no doors to open",
                 "cons1": "You give up a room, or part of one"
@@ -5191,7 +5192,7 @@
               "info": {
                 "title": "Sliding doors",
                 "body": "Doors that glide on rails — they need no swing space at all.",
-                "price": "+RON 800–2,000",
+                "price": "+800–2,000 lei",
                 "pros1": "Sit flush against a bed or wall — zero swing space",
                 "pros2": "One large, continuous surface — great for mirrors too",
                 "cons1": "Good rails cost more — cheap ones wear out fast"
@@ -5203,7 +5204,7 @@
               "info": {
                 "title": "Hinged doors",
                 "body": "Classic hinged doors — full access to the interior.",
-                "price": "+RON 300–900",
+                "price": "+300–900 lei",
                 "pros1": "Open a door and see the whole interior at a glance",
                 "pros2": "Hinges cost less than any sliding system",
                 "cons1": "Open doors need clear space in front of the wardrobe"
@@ -6495,7 +6496,7 @@
               }
             }
           },
-          "summaryLabel": "Enclosed balcony"
+          "summaryLabel": "Balcony type"
         },
         "piecesNeeded": {
           "title": "What pieces do you need?",
@@ -6649,7 +6650,7 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "Choose the main material. Describe any different materials for the carcass and fronts in your project notes.",
+          "subtitle": "Choose the main material. Describe any different materials for the carcass and fronts in the “Message for companies”.",
           "summaryLabel": "Material"
         },
         "sketch": {
@@ -7178,7 +7179,7 @@
               "label": "8+"
             }
           },
-          "summaryLabel": "Seats"
+          "summaryLabel": "People"
         },
         "dimensions": {
           "title": "Dimensions",
@@ -7455,7 +7456,7 @@
         },
         "material": {
           "title": "What material for the structure?",
-          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the project details.",
+          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the “Message for companies”.",
           "summaryLabel": "Structure material"
         },
         "sketch": {
@@ -7476,7 +7477,7 @@
         },
         "material": {
           "title": "What material for the structure?",
-          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the project details.",
+          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the “Message for companies”.",
           "summaryLabel": "Structure material"
         },
         "sketch": {
@@ -7498,7 +7499,7 @@
         },
         "material": {
           "title": "What material for the structure?",
-          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the project details.",
+          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the “Message for companies”.",
           "summaryLabel": "Structure material"
         },
         "sketch": {
@@ -7520,7 +7521,7 @@
         },
         "material": {
           "title": "What material for the structure?",
-          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the project details.",
+          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the “Message for companies”.",
           "summaryLabel": "Structure material"
         },
         "sketch": {
@@ -7587,8 +7588,8 @@
     "studioNightstandNote": "One nightstand per placed piece. For a pair, place a second nightstand in the Studio.",
     "roomSpec": {
       "dimsUnknown": "Dimensions not specified",
-      "designHelpCompany": "The client asks for design help with this room",
-      "designHelpClient": "You asked for design help with this room",
+      "designHelpCompany": "The client asks for paid design for this room",
+      "designHelpClient": "You asked for paid design for this room",
       "furnitureLinear": "Furniture: ~{m} linear m",
       "designHelpDetails": "The details are agreed with the company.",
       "approxLength": "Approximate length: {m} m",
@@ -7614,9 +7615,10 @@
       "backToRequest": "Back to request",
       "counter": "This is edit {current} of {max}",
       "noneLeft": "You have already used every available edit, so another save is no longer possible.",
-      "preClaimNote": "You have {max} edits before a company claims the request and a single one after. Saving now uses one.",
+      "preClaimNote": "You have {max} changes before a company claims the request, and one after the claim, as long as you haven't received an offer. Saving now uses one.",
       "postClaimNote": "The request has already been claimed, so this is the only edit left. After you save, companies may withdraw their claim.",
-      "saveHint": "Nothing changes until you press “Save changes” in Summary."
+      "saveHint": "Nothing changes until you press “Save changes” at the last step.",
+      "phaseReview": "Review and save"
     },
     "clientOnly": {
       "note": "Requests are published from a client account.",
@@ -7624,12 +7626,12 @@
     },
     "phaseGoTo": "Back to the {phase} phase",
     "designHelpSwitch": {
-      "titleAll": "Switch to “I need help”?",
-      "titleRoom": "Ask for help with this room?",
-      "body": "You have already answered questions for: {rooms}. These answers are not sent to companies: the company only gets the room type, its files and your message, and you design it together.",
-      "kept": "Nothing is lost: the answers stay in your draft and come back if you untick the help.",
+      "titleAll": "Switch to paid design?",
+      "titleRoom": "Ask for paid design for this room?",
+      "body": "You have already answered questions for: {rooms}. These answers are not sent to companies: the company only gets the room type, its files and your message. Companies first send you the design price and what it includes; then you choose the company you design the pieces with.",
+      "kept": "Nothing is lost: the answers stay in your draft and come back if you untick “Paid design”.",
       "cancel": "Cancel",
-      "confirm": "Yes, ask for help"
+      "confirm": "Yes, ask for paid design"
     },
     "approxLength": {
       "label": "Approximate length (m) — optional",

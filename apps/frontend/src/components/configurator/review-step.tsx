@@ -5,6 +5,7 @@ import {
   mergeAccountEmail,
   type ConfiguratorContentInput,
   type ContactPreferenceInput,
+  type QuestionStep,
 } from '@marketplace/shared';
 import { ArrowLeft, Check, Loader2, LogIn, Send, Wrench } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -42,6 +43,7 @@ import { editSnapshotIdsToRemove, resetEditSnapshotFiles } from '@/stores/edit-s
 import { BELOW_LG, useMediaQuery } from '@/components/ui/use-media-query';
 import { loginTarget } from '@/lib/session-lost';
 import { StickyActionBar } from './sticky-action-bar';
+import { summaryLabel } from './summary-rows';
 
 // O problema de camera intoarsa de server: details[] de la CONFIGURATOR_ANSWERS_INVALID /
 // FILE_SCAN_BLOCKED sau obiectul {roomIndex} de la CONFIGURATOR_FLOW_VERSION_UNSUPPORTED.
@@ -383,13 +385,14 @@ export function ReviewStep({
   const describeIssue = (room: RoomInstance, stepId: string | null, messageKey: string): ReviewRoomIssue => {
     const roomLabel = t(`rooms.type.${room.roomType}`);
     const problem = t.has(messageKey) ? t(messageKey) : t('validation.answerInvalid');
-    let step: { titleKey: string } | undefined;
+    let step: QuestionStep | undefined;
     try {
       step = stepId ? getFlow(room.roomType, room.flowVersion).steps.find((s) => s.id === stepId) : undefined;
     } catch {
       step = undefined;
     }
-    if (step && t.has(step.titleKey)) return { stepLabel: t(step.titleKey), problem };
+    // b10: eticheta scurta de rezumat (rezerva = titlul intrebarii)
+    if (step && t.has(step.titleKey)) return { stepLabel: summaryLabel(t, step), problem };
     // fara pas cunoscut: versiunea de flow are mesajul ei, restul — mesajul generic de camera
     return { problem: stepId === null && t.has(messageKey) ? problem : t('review.issueRoom', { room: roomLabel }) };
   };

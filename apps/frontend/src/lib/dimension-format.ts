@@ -12,8 +12,11 @@ export const DIMENSION_UNITS: readonly DimensionUnit[] = ['m', 'cm', 'mm'];
 // cate unitati intr-un metru
 export const DIMENSION_UNIT_FACTOR: Record<DimensionUnit, number> = { m: 1, cm: 100, mm: 1000 };
 
-// zecimalele afisate pe unitate (1 mm de precizie in toate trei)
-export const DIMENSION_DECIMALS: Record<DimensionUnit, number> = { m: 3, cm: 1, mm: 0 };
+// zecimalele afisate pe unitate = precizia campului din formular (useDecimalField: pana la
+// 4 zecimale in unitatea aleasa), ca aceeasi valoare sa arate la fel in camp, in Fisa, in
+// Sumar si la firma (m1, revizuirea etapei 8). Zerourile de la coada se taie ("45,5 cm",
+// "45,55 cm", "120 cm"); o valoare in afara intervalului se vede exacta ("600,04 cm").
+export const DIMENSION_DECIMALS: Record<DimensionUnit, number> = { m: 4, cm: 4, mm: 4 };
 
 export interface DimensionFormatOptions {
   unit: DimensionUnit;

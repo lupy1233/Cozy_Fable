@@ -50,7 +50,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -66,6 +66,8 @@ import { CatalogControls } from './catalog-controls';
 import { useCabinetFronts } from './use-cabinet-fronts';
 import { Snapshot3dAutoUpload } from '../snapshot3d-sync';
 import { stableKey } from '@/stores/snapshot3d';
+import { isInEditSession } from '@/stores/configurator-store';
+import { useStickyHeaderHeight, zonePanelScrollDelta } from './sticky-scene';
 
 // Step-ul configurator-3d (R2/R3): model 3D live + controale directe.
 // D-3D-2 (aprobat): 3D si "campurile clasice" COEXISTA ca doua moduri de UI
@@ -319,15 +321,20 @@ function CabinetControls({
 
   // raspunsul exista mereu dupa montare — configul de pornire al piesei (etapa 8, PO d2-2:
   // dulap cu usi, comoda TV cu sertare, "Push" scris cand are fronturi). O configuratie salvata
-  // care incalca regula deschiderii (ciornele vechi) se corecteaza o data (D5).
+  // care incalca regula deschiderii (ciornele vechi) se corecteaza o data (D5) — DOAR pe ciorne.
+  // Revizuire M1: la editarea unei cereri publicate configuratia ramane exact cum a fost
+  // publicata (costul in credite si imaginea nu se schimba) pana cand omul schimba ceva la
+  // piesa; atunci regula se aplica prin `apply`.
+  const [fixSavedConfig] = useState(() => !isInEditSession());
   useEffect(() => {
     if (!config) {
       onChange(initialPieceConfig(piece));
       return;
     }
+    if (!fixSavedConfig) return;
     const fixed = withFrontStyleRule(piece, config);
     if (fixed !== config) onChange(fixed);
-  }, [config, onChange, piece]);
+  }, [config, onChange, piece, fixSavedConfig]);
 
   // b7: "intentia" clientului = configuratia DINAINTE de curatare. Fiecare
   // schimbare se aplica peste ea; curatarea (normalizePieceConfig) se face doar
@@ -396,18 +403,27 @@ function CabinetControls({
   }, [config, activeZone]);
 
   // 40.5 (telefon): dupa atingerea unei zone, panoul ei vine pe ecran sub scena lipita sus;
-  // pe desktop panoul sta deja langa scena
+  // pe desktop panoul sta deja langa scena. Revizuire M2: derulare calculata, ca panoul sa
+  // stea INTREG sub scena lipita (opaca, ~40% din ecran), nu sub ea / sub antet.
   const zonePanelRef = useRef<HTMLDivElement | null>(null);
+  const sceneRef = useRef<HTMLDivElement | null>(null);
   const [zoneTapped, setZoneTapped] = useState(0);
   useEffect(() => {
     if (zoneTapped === 0 || typeof window === 'undefined') return;
     const small =
       typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 1023.98px)').matches;
     const panel = zonePanelRef.current;
-    if (small && panel && typeof panel.scrollIntoView === 'function') {
-      panel.scrollIntoView({ block: 'nearest' });
-    }
+    const scene = sceneRef.current;
+    if (!small || !panel || !scene) return;
+    const delta = zonePanelScrollDelta(
+      panel.getBoundingClientRect(),
+      scene.getBoundingClientRect().bottom,
+      window.innerHeight,
+    );
+    if (delta !== 0) window.scrollBy({ top: delta });
   }, [zoneTapped]);
+  // m6: inaltimea reala a antetului lipit (scena sta imediat sub el pe telefon)
+  const headerH = useStickyHeaderHeight();
 
   // geometria rezolvata (latimi/inaltimi reale, cu blocaje) — pentru afisarea
   // dimensiunilor si regulile bara de haine / sertare (R5.3)
@@ -660,7 +676,7 @@ function CabinetControls({
   const zoneToolbar = validActiveZone && activeZoneData && activeResolved && (
     <div
       ref={zonePanelRef}
-      className="flex scroll-mb-4 flex-col gap-2 rounded-xl border border-walnut/40 bg-walnut-soft/60 p-3"
+      className="flex flex-col gap-2 rounded-xl border border-walnut/40 bg-walnut-soft/60 p-3"
     >
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-[0.08em] text-walnut">
@@ -1240,7 +1256,12 @@ function CabinetControls({
         // LANGA model, nu sub el, ca totul sa incapa pe un singur ecran.
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_330px] lg:gap-5">
           {/* 40.5: pe telefon scena sta lipita sus (~40% din ecran), comenzile curg dedesubt */}
-          <div className="sticky top-[var(--header-h,4rem)] z-10 overflow-hidden rounded-xl border border-border-2 bg-surface lg:top-20 lg:z-auto">
+          <div
+            ref={sceneRef}
+            data-testid="scene-3d"
+            style={headerH === null ? undefined : ({ '--header-h': `${headerH}px` } as CSSProperties)}
+            className="sticky top-[var(--header-h,4rem)] z-10 overflow-hidden rounded-xl border border-border-2 bg-surface lg:top-20 lg:z-auto"
+          >
             <PieceCanvas
               kind={piece}
               config={config}

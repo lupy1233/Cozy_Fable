@@ -12,15 +12,17 @@ const ro = { unit: 'cm' as const, locale: 'ro' };
 const en = { unit: 'cm' as const, locale: 'en' };
 
 describe('toUnit', () => {
-  it('converteste din metri si rotunjeste la zecimalele unitatii', () => {
-    expect(DIMENSION_DECIMALS).toEqual({ m: 3, cm: 1, mm: 0 });
+  it('converteste din metri si rotunjeste la precizia campului din formular (4 zecimale)', () => {
+    expect(DIMENSION_DECIMALS).toEqual({ m: 4, cm: 4, mm: 4 });
     expect(toUnit(0.455, 'cm')).toBe(45.5);
+    expect(toUnit(0.4555, 'cm')).toBe(45.55);
     expect(toUnit(2.4, 'cm')).toBe(240);
     expect(toUnit(1.6, 'mm')).toBe(1600);
-    expect(toUnit(1.23456, 'm')).toBe(1.235);
+    expect(toUnit(1.2345, 'mm')).toBe(1234.5);
+    expect(toUnit(1.23456, 'm')).toBe(1.2346);
     expect(toUnit(0.30000000000000004, 'm')).toBe(0.3);
     expect(toUnit(0.30000000000000004, 'cm')).toBe(30);
-    expect(Object.is(toUnit(-0.00001, 'cm'), 0)).toBe(true);
+    expect(Object.is(toUnit(-0.0000001, 'cm'), 0)).toBe(true);
     expect(toUnit(Number.NaN, 'cm')).toBeNaN();
   });
 });
@@ -33,6 +35,16 @@ describe('formatDimension', () => {
     expect(formatDimension(1.6, { unit: 'm', locale: 'ro' })).toBe('1,6 m');
     expect(formatDimension(1.6, { unit: 'mm', locale: 'ro' })).toBe('1600 mm');
     expect(formatDimension(0.30000000000000004, { unit: 'm', locale: 'en' })).toBe('0.3 m');
+  });
+
+  // m1 (revizuirea etapei 8): aceeasi valoare ca in camp, nu rotunjita mai grosier
+  it('nu rotunjeste mai grosier decat campul din formular', () => {
+    expect(formatDimension(0.4555, ro)).toBe('45,55 cm');
+    expect(formatDimension(1.2345, { unit: 'mm', locale: 'ro' })).toBe('1234,5 mm');
+    expect(formatDimension(2.4555, { unit: 'm', locale: 'ro' })).toBe('2,4555 m');
+    // o valoare putin peste limita se vede exacta, nu egala cu limita
+    expect(formatDimension(6.0004, ro)).toBe('600,04 cm');
+    expect(formatDimensionRange(0.8, 6, ro)).toBe('80–600 cm');
   });
 
   it('fara grupare de mii', () => {

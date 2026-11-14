@@ -61,7 +61,7 @@ describe('etapa 8 — dimensiuni: mesaj per camp (39) si formatatorul unic (41)'
     renderStep(laundryDims, { answers, error: validateStepIssue(laundryDims, answers) });
     const input = screen.getByLabelText(slotLabel, { exact: false });
     expect(input).toHaveAttribute('aria-invalid', 'true');
-    const msg = screen.getByText(`Completează ${slotLabel}.`);
+    const msg = screen.getByText(`Completează câmpul „${slotLabel}”.`);
     expect(input.getAttribute('aria-describedby')).toBe(msg.id);
     expect(screen.getByText('Un câmp necompletat.')).toBeInTheDocument();
     // campul completat ramane neatins
@@ -72,7 +72,7 @@ describe('etapa 8 — dimensiuni: mesaj per camp (39) si formatatorul unic (41)'
   it('valoarea in afara intervalului arata intervalul formatat (virgula, cm), nu "completeaza"', () => {
     renderStep(laundryDims, { answers: { dimensions: { runA: 0.455, ceilingHeight: 2.6 } } });
     expect(screen.getByText('Valoarea trebuie să fie între 80–600 cm.')).toBeInTheDocument();
-    expect(screen.queryByText(`Completează ${slotLabel}.`)).toBeNull();
+    expect(screen.queryByText(`Completează câmpul „${slotLabel}”.`)).toBeNull();
     // legenda schitei, cu formatatorul unic
     expect(screen.getByText(/A = 45,5 cm/)).toBeInTheDocument();
   });
@@ -151,7 +151,7 @@ describe('etapa 8 — "Alta piesa": plafoane (39.4)', () => {
     fireEvent.change(qty, { target: { value: '1500' } });
     expect((last() as { quantity: number }[])[0]!.quantity).toBe(1500);
     expect(qty).toHaveAttribute('aria-invalid', 'true');
-    expect(screen.getByText('Cel mult 999 bucăți.')).toBeInTheDocument();
+    expect(screen.getByText('Cel mult 999 de bucăți.')).toBeInTheDocument();
     // "Continua" e oprit: aceeasi validare ca pe server
     expect(validateStepIssue(step, { pieces: last() })).toBeDefined();
   });

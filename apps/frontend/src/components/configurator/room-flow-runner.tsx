@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import type { AttachmentTarget } from '@/hooks/use-requests';
+import { readDimensionUnit, rememberDimensionUnit } from '@/lib/dimension-unit';
 import { cn } from '@/lib/utils';
 import { useConfiguratorStore } from '@/stores/configurator-store';
 import { ApproxLengthField, needsApproxLength } from './approx-length-field';
@@ -39,6 +40,13 @@ export function RoomFlowRunner({
   const setStepIndex = useConfiguratorStore((s) => s.setStepIndex);
   const setActiveRoom = useConfiguratorStore((s) => s.setActiveRoom);
   const markRoomCompleted = useConfiguratorStore((s) => s.markRoomCompleted);
+  const dimensionUnit = useConfiguratorStore((s) => s.dimensionUnit);
+
+  // m2 (revizuire): unitatea in care lucreaza omul in formular (si cea tinuta in ciorna)
+  // e si preferinta lui → pagina cererii arata la fel ca Fisa si Sumarul. Scrie doar cand difera.
+  useEffect(() => {
+    if (readDimensionUnit() !== dimensionUnit) rememberDimensionUnit(dimensionUnit);
+  }, [dimensionUnit]);
 
   // erori per step (un ecran poate avea mai multe step-uri)
   const [errors, setErrors] = useState<Record<string, StepIssue>>({});

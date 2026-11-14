@@ -74,7 +74,7 @@ describe('AddressAutocomplete — choosing a suggestion (b12)', () => {
         <AddressAutocomplete defaultValue="" onText={() => {}} onResolved={onResolved} />
       </NextIntlClientProvider>,
     );
-    const input = screen.getByRole('textbox', { name: en.Requests.field.addressText });
+    const input = screen.getByRole('textbox', { name: en.Requests.field.street });
     fireEvent.change(input, { target: { value: 'Strada Fabricii 5 bl. A2 ap. 14' } });
     await vi.waitFor(() => expect(places.listener).not.toBeNull());
     // Google pune textul sugestiei in camp inainte de place_changed

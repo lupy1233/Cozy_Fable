@@ -188,7 +188,9 @@ describe('selectia destinatarilor (sendForEvent)', () => {
       claimSlotId: 'slot1',
     });
     expect(mail.send).toHaveBeenCalledTimes(1);
-    expect(mail.send.mock.calls[0][1]).toContain('Termenul de ofertare');
+    expect(mail.send.mock.calls[0][1]).toContain('Termenul de răspuns');
+    // glosar etapa 8: „termen de răspuns”, nu „SLA”
+    expect(mail.send.mock.calls[0][2]).not.toMatch(/\bSLA\b/);
 
     mail.send.mockClear();
     await service.sendForEvent('claim.withdrawn', ['m1'], {
@@ -196,6 +198,26 @@ describe('selectia destinatarilor (sendForEvent)', () => {
       requestId: 'r1',
     });
     expect(mail.send).not.toHaveBeenCalled();
+  });
+
+  // glosar etapa 8 (42): ecranul firmei se numeste „Cereri disponibile”; in text nu mai apare „marketplace”
+  // (ramane doar in adresa linkului), iar dupa acceptare se spune „comandă”, nu „lucrare”
+  it('glosar: „Cereri disponibile” si „comandă” in e-mailurile firmei, RO si EN', async () => {
+    const ro = { id: 'm1', email: 'firma@demo.ro', name: 'Ana', languagePreference: 'RO' };
+    const en = { id: 'm2', email: 'firm@demo.ro', name: 'Ann', languagePreference: 'EN' };
+    const { service, mail } = makeService([ro, en], ['m1', 'm2']);
+    await service.sendForEvent('company.approved', ['m1', 'm2'], { companyName: 'A Mobila', companyId: 'c1' });
+    await service.sendForEvent('quote.accepted', ['m1', 'm2'], { companyName: 'A Mobila', companyId: 'c1', requestTitle: 'Bucatarie', requestId: 'r1', claimSlotId: 'slot1' });
+    const texts = mail.send.mock.calls.map((c: unknown[]) => `${String(c[1])} ${String(c[2]).replace(/https?:\/\/[^\s"<]+/g, '')}`);
+    expect(texts.length).toBe(4);
+    const all = texts.join('\n');
+    expect(all).toContain('Cereri disponibile');
+    expect(all).toContain('Available requests');
+    expect(all).toContain('Deschide comanda');
+    expect(all).toContain('Open the order');
+    for (const t of texts) {
+      expect(t).not.toMatch(/marketplace|lucrarea|the job|\bSLA\b|atelier/i);
+    }
   });
 
   it('valorile interpolate sunt escapate (anti HTML-injection) si terminologia e "firma"', async () => {
@@ -318,7 +340,7 @@ describe('evenimente E-admin-platform-3', () => {
       claimSlotId: 'slot1',
     });
     expect(mail.send).toHaveBeenCalledTimes(2);
-    expect(mail.send.mock.calls[0][1]).toContain('Proiectul a fost anulat');
+    expect(mail.send.mock.calls[0][1]).toContain('Comanda a fost anulată');
     expect(mail.send.mock.calls[0][2]).toContain('returnate');
     expect(mail.send.mock.calls[0][2]).toContain('/ro/marketplace/claims/slot1');
     expect(mail.send.mock.calls[1][2]).toContain('s-au consumat');
@@ -539,12 +561,14 @@ describe('evenimente de facturare E-company-24', () => {
     expect(mail.send).toHaveBeenCalledTimes(1);
     const [to, subject, html, opts] = mail.send.mock.calls[0];
     expect(to).toBe('owner@demo.ro');
-    expect(subject).toBe('Datele pentru plata prin transfer — comanda ABCD1234');
+    expect(subject).toBe('Datele pentru plata prin transfer — plata ABCD1234');
     expect(html).toContain('RO08TEST0000000000000001');
     expect(html).toContain('Platforma &lt;SRL&gt;');
     expect(html).not.toContain('Platforma <SRL>');
     expect(html).toContain('„Comanda ABCD1234”');
-    expect(html).toContain(new Intl.NumberFormat('ro-RO', { minimumFractionDigits: 2 }).format(1210));
+    expect(html).toContain(`${new Intl.NumberFormat('ro-RO', { minimumFractionDigits: 2 }).format(1210)} lei`);
+    // glosar etapa 8: „lei”, nu „RON”; referinta de plata ramane „Comanda …” (D6)
+    expect(html).not.toMatch(/\bRON\b/);
     expect(html).toContain('Factura proformă este atașată.');
     expect(html).toContain('/ro/marketplace/wallet');
     expect(html).not.toMatch(/atelier/i);
@@ -574,16 +598,16 @@ describe('evenimente de facturare E-company-24', () => {
     const { service, mail } = makeService([ownerEn], members, extras({ cancelAt: '2026-10-08T21:00:00.000Z' }));
     await service.sendForEvent('payment.transfer_reminder', ['own'], { orderId: 'o1', companyId: 'c1', cancelAt: '2026-10-08T21:00:00.000Z' });
     const [, subject, html] = mail.send.mock.calls[0];
-    expect(subject).toBe('Order ABCD1234 is awaiting payment');
-    expect(html).toContain('the order is cancelled automatically');
+    expect(subject).toBe('Payment ABCD1234 is awaiting your transfer');
+    expect(html).toContain('the pending payment is cancelled automatically');
     expect(html).toContain('in your wallet');
 
     const ro = makeService([owner], members, extras({ attachment: null }));
     await ro.service.sendForEvent('payment.auto_cancelled', ['own'], { orderId: 'o1', companyId: 'c1', expiryDays: 7 });
     const [, subjectRo, htmlRo] = ro.mail.send.mock.calls[0];
-    expect(subjectRo).toBe('Comanda ABCD1234 a fost anulată — plata nu a ajuns');
-    expect(htmlRo).toContain('Nu am primit plata în 7 zile');
-    expect(htmlRo).toContain('Poți plasa oricând o comandă nouă din portofel.');
+    expect(subjectRo).toBe('Plata ABCD1234 a fost anulată — banii nu au ajuns');
+    expect(htmlRo).toContain('Nu am primit banii în 7 zile');
+    expect(htmlRo).toContain('Poți porni oricând o plată nouă din portofel.');
   });
 
   it('payment.confirmed cu factura atasata → textul spune "atașată"', async () => {
@@ -694,6 +718,16 @@ describe('evenimente a4 (oferte: varianta noua, cerere de modificare, refuz)', (
     const [, subject, html] = mail.send.mock.calls[0];
     expect(subject).toContain('The client declined your offer');
     expect(html).not.toContain('Reason given');
+  });
+
+  // glosar etapa 8 (m1 din revizuire): refuzul vine inainte de acceptare → „cerere”, ca in interfata
+  it('quote.declined GAVE_UP → „renunță la cerere” / „is dropping the request”', async () => {
+    const { service, mail } = makeService([member, { ...member, id: 'm2', email: 'firm@demo.ro', languagePreference: 'EN' }], ['m1', 'm2']);
+    await service.sendForEvent('quote.declined', ['m1', 'm2'], { ...base, reason: 'GAVE_UP', note: null, consumed: true });
+    const htmls = mail.send.mock.calls.map((c: unknown[]) => String(c[2]));
+    expect(htmls.join('\n')).toContain('Motivul indicat: renunță la cerere');
+    expect(htmls.join('\n')).toContain('Reason given: is dropping the request');
+    for (const h of htmls) expect(h).not.toMatch(/proiect|project/i);
   });
 });
 

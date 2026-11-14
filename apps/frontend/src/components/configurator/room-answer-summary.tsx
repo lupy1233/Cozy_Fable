@@ -90,6 +90,14 @@ export function RoomAnswerSummary({
               })()}
             {row.kind !== 'text' && row.kind !== 'pieces' && row.kind !== 'files' && (
               <span className={row.invalid ? 'text-crimson' : undefined}>
+                {row.swatch && (
+                  <span
+                    aria-hidden
+                    data-swatch={row.swatch}
+                    className="mr-1.5 inline-block h-3 w-3 rounded-full border border-border-2 align-[-1px]"
+                    style={{ backgroundColor: row.swatch }}
+                  />
+                )}
                 {row.value}
                 {row.invalid && <span className="ml-1.5 text-xs">({t('sheet.toFix')})</span>}
               </span>

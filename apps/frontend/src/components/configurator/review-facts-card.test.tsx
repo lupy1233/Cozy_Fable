@@ -38,7 +38,9 @@ describe('review project facts', () => {
     expect(screen.getByText(en.Configurator.start.STANDARD.title)).toBeVisible();
     expect(screen.getByText(/Bathroom/)).toBeVisible();
     expect(screen.queryByText(en.Requests.field.hasOwnProject)).not.toBeInTheDocument();
-    expect(screen.queryByText(/paid design/i)).not.toBeInTheDocument();
+    // glosar etapa 8: randul camerelor spune „Paid design for: …”; nu exista un rand separat „Paid design”
+    expect(screen.queryByText(en.Requests.designHelpIncluded)).not.toBeInTheDocument();
+    expect(screen.getAllByText(/paid design/i)).toHaveLength(1);
   });
 });
 

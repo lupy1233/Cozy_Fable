@@ -163,7 +163,7 @@ export function AddressAutocomplete({
   }, []);
 
   return (
-    <Field label={t('field.addressText')} htmlFor={inputId} error={error}>
+    <Field label={t('field.street')} htmlFor={inputId} error={error}>
       <div className="relative">
         <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input

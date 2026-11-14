@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
+import { renderToString } from 'react-dom/server';
 import { getFlow, type AnswerMap, type DimensionGroupStep, type RoomType } from '@marketplace/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ro from '@/messages/ro.json';
@@ -134,6 +135,16 @@ describe('RequestSheet — pliata pe telefon (j1)', () => {
     mockMedia(true);
     const { container } = show({ collapsible: true });
     expect((container.querySelector('[data-sheet-collapsible]') as HTMLDetailsElement).open).toBe(true);
+  });
+
+  // m5: pe server / la hidratare starea e cea de desktop (deschisa) — fara cadru inchis pe desktop
+  it('is open in the server render (desktop state before hydration)', () => {
+    const html = renderToString(
+      <NextIntlClientProvider locale="ro" messages={ro}>
+        <RequestSheet phase="rooms" phaseOrder={PHASES} designHelp={false} collapsible />
+      </NextIntlClientProvider>,
+    );
+    expect(html).toMatch(/<details[^>]*open=""/);
   });
 
   it('without the prop, stays as before (no details)', () => {

@@ -332,7 +332,7 @@ test('ro: block and flat survive picking an address suggestion and the summary s
   });
   await page.goto('/ro/requests/new', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: ro.Configurator.resume.continue, exact: true }).click({ timeout: 60_000 });
-  const address = page.getByRole('textbox', { name: R.field.addressText, exact: true });
+  const address = page.getByRole('textbox', { name: R.field.street, exact: true });
   await expect(address).toBeVisible();
   // asteptam widgetul (placeholderul de cautare apare doar cu cheia Places; widgetul se ataseaza dupa scriptul simulat)
   await expect.poll(() => page.evaluate(() => Boolean((window as { google?: unknown }).google))).toBe(true);

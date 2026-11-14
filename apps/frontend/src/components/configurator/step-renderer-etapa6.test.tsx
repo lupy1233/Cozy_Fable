@@ -35,7 +35,8 @@ describe('texte formular (c2, c1)', () => {
     expect(strings(ro.Configurator).filter((s) => s.includes('lei/ml'))).toEqual([]);
     expect(strings(en.Configurator).filter((s) => /RON\/lm|\/lm\b/.test(s))).toEqual([]);
     expect(ro.Configurator.common.materials.PAL.info.price).toBe('250–450 lei pe metru liniar');
-    expect(en.Configurator.common.materials.PAL.info.price).toBe('250–450 RON per linear metre');
+    // etapa 8 (glosar, D10): „lei” si in engleza
+    expect(en.Configurator.common.materials.PAL.info.price).toBe('250–450 lei per linear metre');
   });
 
   it('c1: subtitlurile de material nu se mai contrazic', () => {

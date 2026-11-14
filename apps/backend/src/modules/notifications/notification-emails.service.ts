@@ -65,7 +65,7 @@ const DECLINE_REASON_TEXT: Record<string, { ro: string; en: string }> = {
   PRICE: { ro: 'prețul', en: 'the price' },
   DELIVERY_TERM: { ro: 'termenul de livrare', en: 'the delivery time' },
   OTHER_COMPANY: { ro: 'a ales altă firmă', en: 'chose another company' },
-  GAVE_UP: { ro: 'renunță la proiect', en: 'is dropping the project' },
+  GAVE_UP: { ro: 'renunță la cerere', en: 'is dropping the request' },
 };
 
 // E-company-24: evenimentele de facturare ajung (clopotel + email) doar la OWNER/MANAGER —
@@ -136,11 +136,11 @@ function formatDateTime(value: unknown, ro: boolean): string {
   });
 }
 
-// suma in RON cu 2 zecimale, in limba destinatarului
+// suma in lei cu 2 zecimale, in limba destinatarului (glosar etapa 8: „lei” si in engleza)
 function formatRon(value: unknown, ro: boolean): string {
   const n = Number(value);
   if (!Number.isFinite(n)) return '';
-  return `${new Intl.NumberFormat(ro ? 'ro-RO' : 'en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)} RON`;
+  return `${new Intl.NumberFormat(ro ? 'ro-RO' : 'en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)} lei`;
 }
 
 // Anti HTML-injection in emailuri: numele firmelor/titlurile cererilor vin de la utilizatori.
@@ -500,7 +500,7 @@ export class NotificationEmailsService {
           intro: ro
             ? `Clientul a acceptat oferta firmei <strong>${companyName}</strong> pentru „${requestTitle}”. Stabiliți detaliile execuției în conversație.`
             : `The client accepted <strong>${companyName}</strong>'s offer for “${requestTitle}”. Agree on the execution details in the conversation.`,
-          cta: ro ? 'Deschide lucrarea' : 'Open the job',
+          cta: ro ? 'Deschide comanda' : 'Open the order',
           path: claimsPath,
         };
       case 'claim.withdrawn': {
@@ -509,15 +509,15 @@ export class NotificationEmailsService {
         if (reason === 'PROJECT_CANCELLED') {
           return {
             subject: ro
-              ? `Proiectul a fost anulat — ${requestTitle}`
-              : `The project was cancelled — ${requestTitle}`,
+              ? `Comanda a fost anulată — ${requestTitle}`
+              : `The order was cancelled — ${requestTitle}`,
             intro: ro
-              ? `Echipa Cozy Home a închis proiectul „${requestTitle}”. ${
+              ? `Echipa Cozy Home a închis comanda „${requestTitle}”. ${
                   settledRefund
                     ? 'Creditele rezervate pentru această preluare ți-au fost returnate.'
                     : 'Creditele rezervate pentru această preluare s-au consumat.'
                 }`
-              : `The Cozy Home team closed the project “${requestTitle}”. ${
+              : `The Cozy Home team closed the order “${requestTitle}”. ${
                   settledRefund
                     ? 'The credits reserved for this claim were refunded.'
                     : 'The credits reserved for this claim were consumed.'
@@ -545,11 +545,11 @@ export class NotificationEmailsService {
         if (reason === 'SLA_EXPIRED') {
           return {
             subject: ro
-              ? `Termenul de ofertare a fost depășit — ${requestTitle}`
-              : `The quoting deadline was missed — ${requestTitle}`,
+              ? `Termenul de răspuns a fost depășit — ${requestTitle}`
+              : `The response deadline was missed — ${requestTitle}`,
             intro: ro
-              ? `Preluarea cererii „${requestTitle}” s-a închis pentru că termenul SLA a fost depășit. Creditele rezervate s-au consumat, iar firma a primit puncte de penalizare.`
-              : `Your claim on “${requestTitle}” closed because the SLA deadline was missed. The reserved credits were consumed and the company received penalty points.`,
+              ? `Preluarea cererii „${requestTitle}” s-a închis pentru că termenul de răspuns a fost depășit. Creditele rezervate s-au consumat, iar firma a primit puncte de penalizare.`
+              : `Your claim on “${requestTitle}” closed because the response deadline was missed. The reserved credits were consumed and the company received penalty points.`,
             cta: ro ? 'Vezi preluările' : 'View your claims',
             path: claimsPath,
           };
@@ -578,7 +578,7 @@ export class NotificationEmailsService {
       case 'delivery.marked':
         return {
           subject: ro
-            ? `Lucrarea a fost livrată — confirmă primirea — ${requestTitle}`
+            ? `Comanda a fost livrată — confirmă primirea — ${requestTitle}`
             : `Your order was delivered — confirm receipt — ${requestTitle}`,
           intro: ro
             ? `Firma <strong>${companyName}</strong> a marcat livrarea la „${requestTitle}”. Confirmă primirea ca să finalizezi comanda și să poți lăsa o recenzie.`
@@ -592,9 +592,9 @@ export class NotificationEmailsService {
             ? `Firma ta a fost aprobată pe Cozy Home`
             : `Your company was approved on Cozy Home`,
           intro: ro
-            ? `Firma <strong>${companyName}</strong> a fost verificată și aprobată. Poți prelua cereri din marketplace.`
-            : `The company <strong>${companyName}</strong> was verified and approved. You can now claim requests from the marketplace.`,
-          cta: ro ? 'Deschide marketplace-ul' : 'Open the marketplace',
+            ? `Firma <strong>${companyName}</strong> a fost verificată și aprobată. Poți prelua cereri din „Cereri disponibile”.`
+            : `The company <strong>${companyName}</strong> was verified and approved. You can now claim requests from “Available requests”.`,
+          cta: ro ? 'Vezi cererile disponibile' : 'See available requests',
           path: `/${lang}/marketplace`,
         };
       case 'company.rejected': {
@@ -704,11 +704,11 @@ export class NotificationEmailsService {
         if (type === 'payment.transfer_instructions') {
           return {
             subject: ro
-              ? `Datele pentru plata prin transfer — comanda ${ref}`
-              : `Bank transfer details — order ${ref}`,
+              ? `Datele pentru plata prin transfer — plata ${ref}`
+              : `Bank transfer details — payment ${ref}`,
             intro: ro
-              ? `Comanda <strong>${ref}</strong> (${what}) așteaptă plata prin transfer bancar:${details}${attached}${attached ? '' : '<br/><br/>'}${activate}`
-              : `Order <strong>${ref}</strong> (${what}) is awaiting payment by bank transfer:${details}${attached}${attached ? '' : '<br/><br/>'}${activate}`,
+              ? `Plata <strong>${ref}</strong> (${what}) așteaptă transferul bancar:${details}${attached}${attached ? '' : '<br/><br/>'}${activate}`
+              : `Payment <strong>${ref}</strong> (${what}) is awaiting your bank transfer:${details}${attached}${attached ? '' : '<br/><br/>'}${activate}`,
             cta: ro ? 'Deschide portofelul' : 'Open your wallet',
             path: `/${lang}/marketplace/wallet`,
           };
@@ -716,14 +716,14 @@ export class NotificationEmailsService {
         const cancelAt = formatDateTime(extras?.cancelAt ?? payload.cancelAt, ro);
         const cancelLine = cancelAt
           ? ro
-            ? `<br/><br/>Dacă plata nu ajunge până la ${esc(cancelAt)}, comanda se anulează automat.`
-            : `<br/><br/>If the payment doesn't arrive by ${esc(cancelAt)}, the order is cancelled automatically.`
+            ? `<br/><br/>Dacă banii nu ajung până la ${esc(cancelAt)}, plata în așteptare se anulează automat.`
+            : `<br/><br/>If the money doesn't arrive by ${esc(cancelAt)}, the pending payment is cancelled automatically.`
           : '';
         return {
-          subject: ro ? `Comanda ${ref} așteaptă plata` : `Order ${ref} is awaiting payment`,
+          subject: ro ? `Plata ${ref} așteaptă transferul` : `Payment ${ref} is awaiting your transfer`,
           intro: ro
-            ? `Comanda <strong>${ref}</strong> (${what}) așteaptă încă plata prin transfer bancar:${details}${attached}${cancelLine}<br/><br/>Dacă ai plătit deja, apasă „Am plătit” în portofel.`
-            : `Order <strong>${ref}</strong> (${what}) is still awaiting payment by bank transfer:${details}${attached}${cancelLine}<br/><br/>If you've already paid, press “I've paid” in your wallet.`,
+            ? `Plata <strong>${ref}</strong> (${what}) așteaptă încă transferul bancar:${details}${attached}${cancelLine}<br/><br/>Dacă ai plătit deja, apasă „Am plătit” în portofel.`
+            : `Payment <strong>${ref}</strong> (${what}) is still awaiting your bank transfer:${details}${attached}${cancelLine}<br/><br/>If you've already paid, press “I've paid” in your wallet.`,
           cta: ro ? 'Deschide portofelul' : 'Open your wallet',
           path: `/${lang}/marketplace/wallet`,
         };
@@ -733,11 +733,11 @@ export class NotificationEmailsService {
         const n = Number(payload.expiryDays ?? 0);
         return {
           subject: ro
-            ? `Comanda ${ref} a fost anulată — plata nu a ajuns`
-            : `Order ${ref} was cancelled — payment not received`,
+            ? `Plata ${ref} a fost anulată — banii nu au ajuns`
+            : `Payment ${ref} was cancelled — money not received`,
           intro: ro
-            ? `Nu am primit plata în ${n} ${n === 1 ? 'zi' : 'zile'}, așa că am anulat comanda <strong>${ref}</strong>. Dacă ai plătit deja, răspunde la acest email și verificăm.<br/><br/>Poți plasa oricând o comandă nouă din portofel.`
-            : `We didn't receive the payment within ${n} ${n === 1 ? 'day' : 'days'}, so we cancelled order <strong>${ref}</strong>. If you've already paid, reply to this email and we'll check.<br/><br/>You can place a new order from your wallet at any time.`,
+            ? `Nu am primit banii în ${n} ${n === 1 ? 'zi' : 'zile'}, așa că am anulat plata în așteptare <strong>${ref}</strong>. Dacă ai plătit deja, răspunde la acest email și verificăm.<br/><br/>Poți porni oricând o plată nouă din portofel.`
+            : `We didn't receive the money within ${n} ${n === 1 ? 'day' : 'days'}, so we cancelled the pending payment <strong>${ref}</strong>. If you've already paid, reply to this email and we'll check.<br/><br/>You can start a new payment from your wallet at any time.`,
           cta: ro ? 'Deschide portofelul' : 'Open your wallet',
           path: `/${lang}/marketplace/wallet`,
         };
@@ -751,10 +751,10 @@ export class NotificationEmailsService {
           intro: ro
             ? `Abonamentul firmei <strong>${companyName}</strong> expiră în ${days} ${
                 days === 1 ? 'zi' : 'zile'
-              }. Prelungește-l din portofel ca să păstrezi accesul la marketplace.`
+              }. Prelungește-l din portofel ca să păstrezi accesul la cererile disponibile.`
             : `The subscription of <strong>${companyName}</strong> expires in ${days} ${
                 days === 1 ? 'day' : 'days'
-              }. Renew it from your wallet to keep marketplace access.`,
+              }. Renew it from your wallet to keep access to available requests.`,
           cta: ro ? 'Prelungește abonamentul' : 'Renew the subscription',
           path: `/${lang}/marketplace/wallet`,
         };
@@ -776,9 +776,9 @@ export class NotificationEmailsService {
             ? `Suspendarea firmei a fost ridicată`
             : `Your company's suspension was lifted`,
           intro: ro
-            ? `Suspendarea firmei <strong>${companyName}</strong> a fost ridicată. Poți prelua din nou cereri din marketplace.`
-            : `The suspension of <strong>${companyName}</strong> was lifted. You can claim requests from the marketplace again.`,
-          cta: ro ? 'Deschide marketplace-ul' : 'Open the marketplace',
+            ? `Suspendarea firmei <strong>${companyName}</strong> a fost ridicată. Poți prelua din nou cereri din „Cereri disponibile”.`
+            : `The suspension of <strong>${companyName}</strong> was lifted. You can claim requests from “Available requests” again.`,
+          cta: ro ? 'Vezi cererile disponibile' : 'See available requests',
           path: `/${lang}/marketplace`,
         };
       // --- E-admin-platform-3 ---
@@ -836,15 +836,15 @@ export class NotificationEmailsService {
         const toClient = payload.openedBy === 'COMPANY';
         return {
           subject: ro
-            ? `S-a raportat o problemă cu proiectul — ${requestTitle}`
-            : `A problem was reported with the project — ${requestTitle}`,
+            ? `S-a raportat o problemă cu comanda — ${requestTitle}`
+            : `A problem was reported with the order — ${requestTitle}`,
           intro: ro
             ? `${
                 toClient ? `Firma <strong>${companyName}</strong>` : 'Clientul'
-              } a raportat o problemă cu proiectul „${requestTitle}”. Spune-ne dacă ești de acord cu anularea de comun acord sau dacă proiectul continuă.`
+              } a raportat o problemă cu comanda „${requestTitle}”. Spune-ne dacă ești de acord cu anularea de comun acord sau dacă comanda continuă.`
             : `${
                 toClient ? `The company <strong>${companyName}</strong>` : 'The client'
-              } reported a problem with the project “${requestTitle}”. Let us know whether you agree to cancel by mutual agreement or the project continues.`,
+              } reported a problem with the order “${requestTitle}”. Let us know whether you agree to cancel by mutual agreement or the order continues.`,
           cta: ro ? 'Răspunde' : 'Respond',
           path: toClient ? `/${lang}/requests/${requestId}/offers` : claimsPath,
         };
@@ -852,11 +852,11 @@ export class NotificationEmailsService {
       case 'project.cancelled':
         return {
           subject: ro
-            ? `Proiectul a fost anulat — ${requestTitle}`
-            : `The project was cancelled — ${requestTitle}`,
+            ? `Comanda a fost anulată — ${requestTitle}`
+            : `The order was cancelled — ${requestTitle}`,
           intro: ro
-            ? `Echipa Cozy Home a închis proiectul „${requestTitle}” cu firma <strong>${companyName}</strong>.`
-            : `The Cozy Home team closed the project “${requestTitle}” with <strong>${companyName}</strong>.`,
+            ? `Echipa Cozy Home a închis comanda „${requestTitle}” cu firma <strong>${companyName}</strong>.`
+            : `The Cozy Home team closed the order “${requestTitle}” with <strong>${companyName}</strong>.`,
           cta: ro ? 'Vezi cererea' : 'View the request',
           path: `/${lang}/requests/${requestId}/offers`,
         };
@@ -869,7 +869,7 @@ export class NotificationEmailsService {
           intro: ro
             ? `Data de livrare stabilită în oferta acceptată pentru „${requestTitle}” este ${date}. Dacă termenul se schimbă, anunță clientul în conversație.`
             : `The delivery date agreed in the accepted offer for “${requestTitle}” is ${date}. If the date changes, let the client know in the conversation.`,
-          cta: ro ? 'Deschide lucrarea' : 'Open the job',
+          cta: ro ? 'Deschide comanda' : 'Open the order',
           path: claimsPath,
         };
       }
@@ -905,8 +905,8 @@ export class NotificationEmailsService {
             ? `Cererea ta a expirat — ${requestTitle}`
             : `Your request expired — ${requestTitle}`,
           intro: ro
-            ? `Cererea „${requestTitle}” a stat 5 zile lucrătoare în marketplace fără să fie preluată și a expirat. O poți republica din pagina cererii.`
-            : `Your request “${requestTitle}” spent 5 working days in the marketplace without being claimed and has expired. You can repost it from the request page.`,
+            ? `Cererea „${requestTitle}” a stat 5 zile lucrătoare la dispoziția firmelor din zonă fără să fie preluată și a expirat. O poți republica din pagina cererii.`
+            : `Your request “${requestTitle}” was open to companies in your area for 5 working days without being claimed and has expired. You can repost it from the request page.`,
           cta: ro ? 'Vezi cererea' : 'View the request',
           path: `/${lang}/requests/${requestId}`,
         };

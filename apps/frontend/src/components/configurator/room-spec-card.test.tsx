@@ -110,6 +110,38 @@ describe('RoomSpecCard 3D image', () => {
   });
 });
 
+// d2 (PO d2-1) + val 2: insigna "Dimensiuni orientative" doar la firma; mostra culorii in pilule
+describe('RoomSpecCard 3D defaults', () => {
+  const card = (config: ReturnType<typeof defaultPieceConfig>, audience?: 'company' | 'client') =>
+    render(
+      <NextIntlClientProvider locale="ro" messages={ro}>
+        <RoomSpecCard
+          room={{ id: 'r1', roomType: 'PIECE_WARDROBE', lengthM: 1, widthM: 0.6, heightM: 2.2, items: [], flowVersion: 4, needsDesignHelp: false, answers: { config3d: config } }}
+          index={1}
+          audience={audience}
+        />
+      </NextIntlClientProvider>,
+    );
+
+  it('marks the untouched starting dimensions for the company', () => {
+    const { container } = card(defaultPieceConfig('WARDROBE'));
+    expect(container.querySelector('[data-config3d-dims-orientative]')?.textContent).toBe(ro.Configurator.config3d.dimsOrientative);
+  });
+
+  it('no badge once the client changed a dimension, and never on the client page', () => {
+    const changed = { ...defaultPieceConfig('WARDROBE') };
+    changed.widthM = changed.widthM + 0.1;
+    expect(card(changed).container.querySelector('[data-config3d-dims-orientative]')).toBeNull();
+    expect(card(defaultPieceConfig('WARDROBE'), 'client').container.querySelector('[data-config3d-dims-orientative]')).toBeNull();
+  });
+
+  it('shows the colour swatch next to the finish chip', () => {
+    const { container } = card(defaultPieceConfig('WARDROBE'));
+    expect(container.querySelector('[data-swatch]')).not.toBeNull();
+    expect(container.textContent).not.toMatch(/#[0-9a-f]{6}/i);
+  });
+});
+
 // b8 (PO g0-8): firma vede clar la ce camera i se cere ajutor
 describe('RoomSpecCard design help', () => {
   const items = [{ id: 'i1', name: 'Dulap', material: 'PAL' as const, systems: [], description: null, quantity: 1 }];

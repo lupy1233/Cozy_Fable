@@ -1,4 +1,4 @@
-import { FLOW_REGISTRY, getFlow, type AnswerMap, type DimensionGroupStep, type RoomType } from '@marketplace/shared';
+import { defaultPieceConfig, FLOW_REGISTRY, getFlow, type AnswerMap, type DimensionGroupStep, type RoomType } from '@marketplace/shared';
 import { createTranslator } from 'next-intl';
 import { describe, expect, it } from 'vitest';
 import en from '@/messages/en.json';
@@ -126,6 +126,25 @@ describe('dimensions', () => {
     expect(row?.invalid).toBe(true);
     const ok = buildSummaryRows({ roomType: 'DRESSING', answers: { ...base, dimensions: { [first.id]: first.min } }, flowVersion: 4 }, tRo, RO);
     expect(ok.find((r) => r.kind === 'dimensions')?.invalid).toBeUndefined();
+  });
+});
+
+describe('3D piece row (val 2)', () => {
+  it('is called "Configurația piesei", carries the colour swatch and no hex code', () => {
+    const rows = buildSummaryRows({ roomType: 'PIECE_WARDROBE', answers: { config3d: defaultPieceConfig('WARDROBE') }, flowVersion: 4 }, tRo, RO);
+    const row = rows.find((r) => r.kind === 'config3d');
+    expect(row?.label).toBe(ro.Configurator.config3d.summaryLabel);
+    expect(row?.swatch).toMatch(/^#/);
+    expect(row?.value).not.toMatch(/#[0-9a-f]{6}/i);
+  });
+
+  it('the mattress size says "cm" once (3D bed and bedroom)', () => {
+    const bed = buildSummaryRows({ roomType: 'PIECE_BED', answers: { config3d: defaultPieceConfig('BED') }, flowVersion: 4 }, tRo, RO);
+    const value = bed.find((r) => r.kind === 'config3d')?.value ?? '';
+    expect(value).toMatch(/× 200 cm/);
+    expect(value).not.toMatch(/cm cm|cm\s*\)?\s*cm/);
+    const bedroom = buildSummaryRows({ roomType: 'BEDROOM', answers: { piecesNeeded: ['BED_FRAME'], bedSize: 'Q_160' }, flowVersion: 3 }, tRo, RO);
+    expect(bedroom.find((r) => r.stepId === 'bedSize')?.value).toBe('160 × 200 cm');
   });
 });
 

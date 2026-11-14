@@ -3,9 +3,10 @@
 import type { QuestionStep } from '@marketplace/shared';
 import { Check, ChevronDown } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useMediaQuery } from '@/components/ui/use-media-query';
 import { cn } from '@/lib/utils';
-import { useConfiguratorStore, type ConfiguratorPhase } from '@/stores/configurator-store';
+import { isInEditSession, useConfiguratorStore, type ConfiguratorPhase } from '@/stores/configurator-store';
 import { roomScreens, validateStep } from './room-screens';
 import { buildSummaryRows, summaryLabel, type SummaryRow } from './summary-rows';
 
@@ -46,6 +47,8 @@ interface SheetRow {
   missing?: boolean;
   // b10: valoare in afara intervalului — rosu + "de corectat", nu ca valoare acceptata
   invalid?: boolean;
+  // d2: mostra culorii piesei 3D
+  swatch?: string;
 }
 
 interface SheetSection {
@@ -64,18 +67,9 @@ const TAIL_PHASES: ConfiguratorPhase[] = ['uploads', 'details', 'review'];
 // j1: pe ecrane mici Fisa e pliata implicit; de la lg (1024 px) e mereu deschisa
 const LG_QUERY = '(min-width: 1024px)';
 
-function useIsLg(enabled: boolean): boolean {
-  const [isLg, setIsLg] = useState(false);
-  useEffect(() => {
-    if (!enabled || typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-    const mq = window.matchMedia(LG_QUERY);
-    setIsLg(mq.matches);
-    const onChange = (event: MediaQueryListEvent) => setIsLg(event.matches);
-    mq.addEventListener?.('change', onChange);
-    return () => mq.removeEventListener?.('change', onChange);
-  }, [enabled]);
-  return isLg;
-}
+// m5 (revizuirea etapei 8): latimea se citeste din prima randare pe client
+// (useSyncExternalStore), iar pe server / la hidratare starea e cea de desktop (deschisa),
+// deci pe desktop Fisa nu mai porneste inchisa pentru un cadru.
 
 function hasAnswer(value: unknown): boolean {
   if (value === undefined || value === null) return false;
@@ -111,7 +105,7 @@ export function RequestSheet({
   const unit = useConfiguratorStore((s) => s.dimensionUnit);
   const setActiveRoom = useConfiguratorStore((s) => s.setActiveRoom);
   const setStepIndex = useConfiguratorStore((s) => s.setStepIndex);
-  const isLg = useIsLg(collapsible);
+  const isLg = useMediaQuery(LG_QUERY, true);
   const [openSmall, setOpenSmall] = useState(false);
 
   // ecranele + randurile de rezumat ale fiecarei camere; flow necunoscut → camera fara sectiuni
@@ -160,6 +154,7 @@ export function RequestSheet({
       value: row.value,
       mono: row.mono,
       invalid: row.invalid,
+      swatch: row.swatch,
     }));
   };
 
@@ -304,6 +299,14 @@ export function RequestSheet({
                                   row.muted && 'text-muted-foreground',
                                 )}
                               >
+                                {row.swatch && (
+                                  <span
+                                    aria-hidden
+                                    data-swatch={row.swatch}
+                                    className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full border border-border-2 align-[-1px]"
+                                    style={{ backgroundColor: row.swatch }}
+                                  />
+                                )}
                                 {row.value}
                               </span>
                             )}
@@ -364,7 +367,10 @@ export function RequestSheet({
             >
               <span className="flex min-w-0 items-center gap-2">
                 <RailNode state={state} />
-                <span className={cn('label', state === 'now' && 'text-foreground')}>{t(`phases.${p}`)}</span>
+                <span className={cn('label', state === 'now' && 'text-foreground')}>
+                  {/* m5 (revizuire etapa 8): la editare ultimul pas salveaza, nu publica */}
+                  {p === 'review' && isInEditSession() ? t('edit.phaseReview') : t(`phases.${p}`)}
+                </span>
               </span>
               {p === 'uploads' && (
                 <span className="shrink-0 text-ui text-muted-foreground" data-sheet-files>

@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { CURRENT_FLOW_VERSION, type AnswerMap, type RoomType } from '@marketplace/shared';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import ro from '@/messages/ro.json';
+import { DIMENSION_UNIT_STORAGE_KEY } from '@/lib/dimension-unit';
 import { useConfiguratorStore, type RoomInstance } from '@/stores/configurator-store';
 import { RoomFlowRunner } from './room-flow-runner';
 import { roomScreens } from './room-screens';
@@ -44,6 +45,32 @@ function renderRunner() {
 
 const counter = () => document.querySelector('[data-screen-counter]')!.textContent;
 
+describe('RoomFlowRunner — unitatea din ciorna devine preferinta (m2, D1)', () => {
+  it('formularul pornit cu "m" din ciorna scrie preferinta; o singura scriere, fara bucla', () => {
+    window.localStorage.removeItem(DIMENSION_UNIT_STORAGE_KEY);
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    useConfiguratorStore.setState({ dimensionUnit: 'm' });
+    setRoom('LAUNDRY');
+    const { rerender } = renderRunner();
+    expect(window.localStorage.getItem(DIMENSION_UNIT_STORAGE_KEY)).toBe('m');
+    rerender(
+      <NextIntlClientProvider locale="ro" messages={ro}>
+        <RoomFlowRunner uploadTarget={{ kind: 'draft' } as never} onExitToCart={() => {}} onAllDone={() => {}} />
+      </NextIntlClientProvider>,
+    );
+    expect(setItem.mock.calls.filter(([k]) => k === DIMENSION_UNIT_STORAGE_KEY)).toHaveLength(1);
+  });
+
+  it('aceeasi unitate ca preferinta: nu scrie nimic', () => {
+    window.localStorage.setItem(DIMENSION_UNIT_STORAGE_KEY, 'cm');
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    useConfiguratorStore.setState({ dimensionUnit: 'cm' });
+    setRoom('LAUNDRY');
+    renderRunner();
+    expect(setItem.mock.calls.filter(([k]) => k === DIMENSION_UNIT_STORAGE_KEY)).toHaveLength(0);
+  });
+});
+
 describe('RoomFlowRunner — contorul de ecrane (38.5)', () => {
   beforeEach(() => useConfiguratorStore.setState({ dimensionUnit: 'cm' }));
 
@@ -75,7 +102,7 @@ describe('RoomFlowRunner — "Continua" pe dimensiuni goale (39.1) si bara de jo
     const invalid = document.querySelectorAll('[aria-invalid="true"]');
     expect(invalid.length).toBeGreaterThanOrEqual(2);
     expect(document.activeElement).toBe(invalid[0]);
-    expect(screen.getAllByText(/^Completează .+\.$/).length).toBe(invalid.length);
+    expect(screen.getAllByText(/^Completează câmpul „.+”\.$/).length).toBe(invalid.length);
     expect(screen.getByText(`${invalid.length} câmpuri necompletate.`)).toBeInTheDocument();
     // a ramas pe acelasi ecran
     expect(useConfiguratorStore.getState().activeStepIndex).toBe(dimsScreen(useConfiguratorStore.getState().roomInstances[0]!));

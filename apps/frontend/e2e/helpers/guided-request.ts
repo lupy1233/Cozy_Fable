@@ -242,7 +242,7 @@ export async function fillDetailsAndReview(page: Page, locale: Locale) {
   await page.getByRole('textbox', { name: tr('field.message'), exact: true }).fill(AUDIT_DETAILS.description);
   await autosaved;
   await page.getByRole('button', { name: tr('deadline.FLEXIBLE'), exact: true }).click();
-  await page.getByRole('textbox', { name: tr('field.addressText'), exact: true }).fill(AUDIT_DETAILS.addressText);
+  await page.getByRole('textbox', { name: tr('field.street'), exact: true }).fill(AUDIT_DETAILS.addressText);
   await page.getByRole('textbox', { name: tr('field.county'), exact: true }).fill(AUDIT_DETAILS.county);
   await page.getByRole('textbox', { name: tr('field.city'), exact: true }).fill(AUDIT_DETAILS.city);
   await page.getByRole('textbox', { name: tr('field.contactValue'), exact: true }).fill(AUDIT_DETAILS.email);

@@ -10,7 +10,7 @@ import {
 } from '@marketplace/shared';
 import { formatDimension, type DimensionUnit } from '@/lib/dimension-format';
 import { dimensionSlotStatus } from './dimension-check';
-import { config3dChips } from './piece3d/config-chips';
+import { config3dChipItems } from './piece3d/config-chips';
 
 // Randurile de rezumat (etapa 8, problema 38) — aceeasi sursa pentru Fisa cererii
 // (RequestSheet), Sumar (ReviewRoomCard / RoomAnswerSummary) si etichetele fisei firmei
@@ -223,10 +223,13 @@ export function buildSummaryRows(room: SummaryRoom, t: Translate, o: { unit: Dim
       case 'files':
         rows.push({ ...base, value: t('summaryFiles.count', { n: e.count }), count: e.count });
         break;
-      case 'config3d':
-        // val 2: config3dChipItems (cu mostra de culoare) cand il livreaza pachetul 3D
-        rows.push({ ...base, value: config3dChips(t, e.config).join(' · ') });
+      case 'config3d': {
+        // "Configuratia piesei": chips-urile 3D + mostra culorii (finisaj / tapiterie)
+        const items = config3dChipItems(t, e.config, e.piece, o.locale);
+        const swatch = items.find((item) => item.swatch)?.swatch;
+        rows.push({ ...base, value: items.map((item) => item.text).join(' · '), ...(swatch ? { swatch } : {}) });
         break;
+      }
     }
   }
   return rows;

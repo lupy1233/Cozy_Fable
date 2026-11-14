@@ -618,7 +618,10 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
 
   const phaseOrder = designHelp ? DESIGN_HELP_PHASE_ORDER : PHASE_ORDER;
   const phaseIndex = Math.max(0, phaseOrder.indexOf(phase));
-  const phaseLabels = phaseOrder.map((p) => t(`phases.${p}`));
+  // m5 (revizuire etapa 8): la editare ultimul pas salveaza, nu publica
+  const phaseLabels = phaseOrder.map((p) =>
+    isEdit && p === 'review' ? t('edit.phaseReview') : t(`phases.${p}`),
+  );
   // clic pe o faza trecuta din bara de sus (b8, pasul 6); la "Detalii camere" se
   // deschide prima camera care are intrebari (nu una bifata "am nevoie de ajutor")
   const goToPhase = (index: number) => {

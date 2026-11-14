@@ -21,7 +21,7 @@ import { formatDimension, formatDimensions, type DimensionUnit } from '@/lib/dim
 import { useDimensionUnitPreference } from '@/lib/dimension-unit';
 import { ROOM_ICONS } from '@/lib/room-icons';
 import { AttachmentThumb } from './attachment-item';
-import { config3dChips } from './piece3d/config-chips';
+import { config3dChipItems, config3dDimsUntouched } from './piece3d/config-chips';
 import { PieceViewer3dDialog } from './piece3d/dynamic';
 import { roomSnapshotAttachment } from './room-snapshot';
 import { flowStepsById, summaryLabelFor } from './summary-rows';
@@ -225,14 +225,28 @@ export function RoomSpecCard({
                 />
               )}
               <div className="flex flex-wrap content-start gap-1.5">
-                {config3dChips(t, config3d.config).map((chip, i) => (
+                {config3dChipItems(t, config3d.config, config3d.piece, locale).map((chip, i) => (
                   <span
                     key={i}
-                    className="inline-flex items-baseline rounded-full border border-border-2 bg-surface-2 px-2.5 py-1 text-xs font-medium"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border-2 bg-surface-2 px-2.5 py-1 text-xs font-medium"
                   >
-                    {chip}
+                    {chip.swatch && (
+                      <span
+                        aria-hidden
+                        data-swatch={chip.swatch}
+                        className="inline-block h-2.5 w-2.5 shrink-0 rounded-full border border-border-2"
+                        style={{ backgroundColor: chip.swatch }}
+                      />
+                    )}
+                    {chip.text}
                   </span>
                 ))}
+                {/* d2 (PO d2-1): firma afla ca dimensiunile sunt cele de pornire, nealese de client */}
+                {audience === 'company' && config3dDimsUntouched(config3d.piece, config3d.config) && (
+                  <Badge tone="amber" data-config3d-dims-orientative>
+                    {t('config3d.dimsOrientative')}
+                  </Badge>
+                )}
               </div>
             </div>
             <button
