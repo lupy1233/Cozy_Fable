@@ -10,19 +10,51 @@ export const TABLE_SHAPES = ['RECTANGULAR', 'ROUND', 'EXTENDABLE'] as const;
 export const TABLE_SEATS = ['FOUR', 'SIX', 'EIGHT_PLUS'] as const;
 export const BENCH_STYLES = ['WITH_STORAGE', 'WITH_SHOE_SPACE', 'SIMPLE'] as const;
 
+// Etapa 10 (c9 / c5, DESIGN §4.3 / §6): limitele campurilor noi optionale. Schema verifica doar
+// plaja fiecarui camp; regulile care depind de alte campuri (lungimea deschisa fata de latime si
+// doar la masa extensibila, inaltimea pe tipul mesei) stau in normalizare / validFurnitureConfig.
+export const BED_CUSTOM_SIZE_LIMITS = { widthM: { min: 0.7, max: 2.2 }, lengthM: { min: 1.6, max: 2.4 } } as const;
+// lungimea deschisa: latimea + 0,3 … min(latimea + 1,2; 4) — masa extensibila e doar dining (1,2–3 m)
+export const TABLE_OPEN_LENGTH_ACCEPTED = { min: 1.5, max: 4 } as const;
+export const TABLE_CUSTOM_HEIGHT = {
+  DINING: { min: 0.7, max: 0.8 },
+  COFFEE: { min: 0.3, max: 0.55 },
+  CONSOLE: { min: 0.7, max: 0.9 },
+} as const;
+// plaja acceptata de schema = reuniunea intervalelor pe tip
+export const TABLE_CUSTOM_HEIGHT_ACCEPTED = { min: 0.3, max: 0.9 } as const;
+export const BENCH_CUSTOM_HEIGHT = { min: 0.35, max: 0.55 } as const;
+
+const rangeM = (r: { min: number; max: number }) =>
+  z
+    .number({ errorMap: () => ({ message: 'validation.dimensionOutOfRange' }) })
+    .min(r.min, 'validation.dimensionOutOfRange')
+    .max(r.max, 'validation.dimensionOutOfRange');
+
 export const bedOptionsSchema = z.object({
   mattressSize: z.enum(BED_MATTRESS_SIZES),
   storage: z.enum(BED_STORAGES),
   upholstered: z.boolean(),
+  // etapa 10 (BED_CUSTOM_SIZE): "Alta marime" de saltea; lipsa = marimea standard din mattressSize
+  customSize: z
+    .object({ widthM: rangeM(BED_CUSTOM_SIZE_LIMITS.widthM), lengthM: rangeM(BED_CUSTOM_SIZE_LIMITS.lengthM) })
+    .strict()
+    .optional(),
 }).strict();
 export const tableOptionsSchema = z.object({
   type: z.enum(TABLE_TYPES),
   shape: z.enum(TABLE_SHAPES),
   seats: z.enum(TABLE_SEATS).optional(),
+  // etapa 10 (TABLE_OPEN_LENGTH): lungimea mesei extensibile deschise; lipsa = nespecificata
+  openLengthM: rangeM(TABLE_OPEN_LENGTH_ACCEPTED).optional(),
+  // etapa 10 (TABLE_CUSTOM_HEIGHT): inaltimea dorita; lipsa = TABLE_HEIGHT[type]
+  customHeightM: rangeM(TABLE_CUSTOM_HEIGHT_ACCEPTED).optional(),
 }).strict();
 export const benchOptionsSchema = z.object({
   style: z.enum(BENCH_STYLES),
   upholsteredSeat: z.boolean(),
+  // etapa 10 (BENCH_CUSTOM_HEIGHT): inaltimea dorita; lipsa = 0,45 m
+  customHeightM: rangeM(BENCH_CUSTOM_HEIGHT).optional(),
 }).strict();
 export type BedOptions3d = z.infer<typeof bedOptionsSchema>;
 export type TableOptions3d = z.infer<typeof tableOptionsSchema>;

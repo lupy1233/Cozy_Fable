@@ -4,6 +4,7 @@ import type { AnswerMap, MultiChoiceStep, QuestionStep, RoomFlow, SingleChoiceSt
 import { BODY_NOTE, FIRM_MATERIAL_NOTE, FIRM_OPENING_NOTE, NO_FRONTS_NOTE, PISTONS_NOTE } from './finish-sets';
 import {
   buildFinishItems,
+  pieceDetailsGroup,
   pieceFinishSteps,
   renameItem,
   sameFinishStep,
@@ -207,5 +208,56 @@ describe('etapa 6 — constructorul piece-finish (flux-jucarie)', () => {
     expect(steps[0].visibleIf).toEqual({ questionId: 'storageStyle', in: ['CABINETS', 'MIXED'] });
     const derived = buildFinishItems({ storageStyle: 'CABINETS', materialCabinet: 'PAL', systemsCabinet: ['PUSH'] }, defs, 'Debara');
     expect(derived.items).toEqual([{ name: 'Corp', material: 'PAL', systems: ['PUSH'], quantity: 1, description: BODY_NOTE }]);
+  });
+});
+
+describe('etapa 10 — detailSteps (ecranul de detalii al piesei)', () => {
+  const interior: QuestionStep = {
+    id: 'wardrobeInterior', type: 'multi-choice', titleKey: `${F}.v4.wardrobeInterior.title`, optional: true,
+    options: [{ value: 'SHELVES', labelKey: 's' }, { value: 'DRAWERS', labelKey: 'd' }],
+  };
+  const extra: QuestionStep = {
+    id: 'wardrobeExtra', type: 'single-choice', titleKey: `${F}.v4.wardrobeExtra.title`, optional: true,
+    visibleIf: { questionId: 'wardrobeDoorType', equals: 'HINGED' },
+    options: [{ value: 'A', labelKey: 'a' }],
+  };
+  const defs: FinishPieceDef[] = DEFS.map((d) => (d.value === 'WARDROBE' ? { ...d, detailSteps: [interior, extra] } : d));
+  const steps = pieceFinishSteps(OPTS, defs);
+  const flow: RoomFlow = { ...toyFlow, steps: [toyFlow.steps[0], sameFinishStep(OPTS, defs), ...steps] };
+  const ids = (answers: AnswerMap) => visibleSteps(flow, answers).map((s) => s.id);
+
+  it('fara detailSteps (sau cu lista goala) → exact aceiasi pasi ca inainte', () => {
+    expect(pieceFinishSteps(OPTS, DEFS.map((d) => ({ ...d, detailSteps: [] })))).toEqual(pieceFinishSteps(OPTS, DEFS));
+  });
+
+  it('pasii de detaliu stau imediat dupa ecranul piesei, pe `piece:<VALUE>:details`', () => {
+    const order = steps.map((s) => s.id);
+    const at = order.indexOf('wardrobeInterior');
+    expect(order.slice(at - 1, at + 3)).toEqual(['systemsWardrobe', 'wardrobeInterior', 'wardrobeExtra', 'materialCabinet']);
+    const detail = steps.filter((s) => s.screenGroup === 'piece:WARDROBE:details').map((s) => s.id);
+    expect(detail).toEqual(['wardrobeInterior', 'wardrobeExtra']);
+    expect(pieceDetailsGroup('WARDROBE')).toBe('piece:WARDROBE:details');
+    // visibleIf = piesa aleasa (+ conditia proprie a pasului)
+    expect(steps[at].visibleIf).toEqual({ questionId: 'piecesNeeded', in: ['WARDROBE'] });
+    expect(steps[at + 1].visibleIf).toEqual({
+      all: [{ questionId: 'piecesNeeded', in: ['WARDROBE'] }, { questionId: 'wardrobeDoorType', equals: 'HINGED' }],
+    });
+  });
+
+  it('vizibile doar cu piesa bifata, si la intrebarea comuna "Da"', () => {
+    expect(ids({ piecesNeeded: ['CABINET'] })).not.toContain('wardrobeInterior');
+    expect(ids({ piecesNeeded: ['WARDROBE'], wardrobeDoorType: 'SLIDING' })).toContain('wardrobeInterior');
+    expect(ids({ piecesNeeded: ['WARDROBE'], wardrobeDoorType: 'SLIDING' })).not.toContain('wardrobeExtra');
+    expect(ids({ piecesNeeded: ['WARDROBE'], wardrobeDoorType: 'HINGED' })).toContain('wardrobeExtra');
+    const same = { piecesNeeded: ['WARDROBE', 'CABINET'], wardrobeDoorType: 'HINGED', sameFinishAll: true };
+    expect(ids(same)).toEqual(expect.arrayContaining(['wardrobeInterior', 'wardrobeExtra', 'materialAll']));
+    expect(ids(same)).not.toContain('materialWardrobe');
+    // debifarea piesei curata raspunsul de detaliu
+    expect(pruneAnswers(flow, { piecesNeeded: ['CABINET'], wardrobeInterior: ['SHELVES'] })).toEqual({ piecesNeeded: ['CABINET'] });
+  });
+
+  it('derivarea nu se schimba (detaliile le adauga fluxul in descriere)', () => {
+    const answers = { piecesNeeded: ['WARDROBE'], wardrobeDoorType: 'SLIDING', materialWardrobe: 'PAL', wardrobeInterior: ['SHELVES'] };
+    expect(buildFinishItems(answers, defs, 'Mobilier')).toEqual(buildFinishItems(answers, DEFS, 'Mobilier'));
   });
 });

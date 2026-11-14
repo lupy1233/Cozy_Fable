@@ -44,3 +44,6 @@ export {
   pieceNightstandFlowV4,
 } from './v4';
 export { pieceBedFlowV4, pieceTableFlowV4, pieceBenchFlowV4 } from './furniture-v4';
+// etapa 10 (formularul v7; schelete puse de fundatie, continut in valul 1)
+export { pieceBedFlowV5, pieceTableFlowV5, pieceBenchFlowV5 } from './furniture-v5';
+export { pieceSofaFlowV3 } from './catalog-v3';

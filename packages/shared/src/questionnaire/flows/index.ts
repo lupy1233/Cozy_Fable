@@ -3,25 +3,31 @@ import type { RoomFlow } from '../types';
 import { balconyFlow } from './balcony';
 import { balconyFlowV2 } from './balcony.v2';
 import { balconyFlowV3 } from './balcony.v3';
+import { balconyFlowV4 } from './balcony.v4';
 import { bathroomFlow } from './bathroom';
 import { bathroomFlowV2 } from './bathroom.v2';
 import { bathroomFlowV3 } from './bathroom.v3';
+import { bathroomFlowV4 } from './bathroom.v4';
 import { bedroomFlow } from './bedroom';
 import { bedroomFlowV2 } from './bedroom.v2';
 import { bedroomFlowV3 } from './bedroom.v3';
+import { bedroomFlowV4 } from './bedroom.v4';
 import { dressingFlow } from './dressing';
 import { dressingFlowV2 } from './dressing.v2';
 import { dressingFlowV3 } from './dressing.v3';
 import { dressingFlowV4 } from './dressing.v4';
+import { dressingFlowV5 } from './dressing.v5';
 import {
   pieceBedFlow,
   pieceBedFlowV2,
   pieceBedFlowV3,
   pieceBedFlowV4,
+  pieceBedFlowV5,
   pieceBenchFlow,
   pieceBenchFlowV2,
   pieceBenchFlowV3,
   pieceBenchFlowV4,
+  pieceBenchFlowV5,
   pieceBookcaseFlow,
   pieceBookcaseFlowV2,
   pieceBookcaseFlowV3,
@@ -46,6 +52,7 @@ import {
   pieceTableFlowV2,
   pieceTableFlowV3,
   pieceTableFlowV4,
+  pieceTableFlowV5,
   pieceTvUnitFlow,
   pieceTvUnitFlowV2,
   pieceTvUnitFlowV3,
@@ -57,34 +64,41 @@ import {
 } from './guided-pieces';
 import { hallwayFlow } from './hallway';
 import { hallwayFlowV2 } from './hallway.v2';
+import { hallwayFlowV3 } from './hallway.v3';
 import { kitchenFlow } from './kitchen';
 import { kitchenFlowV2 } from './kitchen.v2';
 import { kitchenFlowV3 } from './kitchen.v3';
 import { kitchenFlowV4 } from './kitchen.v4';
+import { kitchenFlowV5 } from './kitchen.v5';
 import { laundryFlow } from './laundry';
 import { laundryFlowV2 } from './laundry.v2';
 import { laundryFlowV3 } from './laundry.v3';
+import { laundryFlowV4 } from './laundry.v4';
 import { livingFlow } from './living';
 import { livingFlowV2 } from './living.v2';
 import { livingFlowV3 } from './living.v3';
 import { livingFlowV4 } from './living.v4';
+import { livingFlowV5 } from './living.v5';
 import { officeFlow } from './office';
 import { officeFlowV2 } from './office.v2';
 import { officeFlowV3 } from './office.v3';
+import { officeFlowV4 } from './office.v4';
 import { pantryFlow } from './pantry';
 import { pantryFlowV2 } from './pantry.v2';
 import { pantryFlowV3 } from './pantry.v3';
+import { pantryFlowV4 } from './pantry.v4';
 import { piecesFlow } from './pieces';
 import { piecesFlowV2 } from './pieces.v2';
 import { catalogFlowRegistry, catalogFlowVersions } from './guided-pieces/catalog-v1';
 import { catalogFlowRegistryV2, catalogFlowVersionsV2 } from './guided-pieces/catalog-v2';
+import { catalogFlowRegistryV3, pieceSofaFlowV3 } from './guided-pieces/catalog-v3';
 
 type CatalogRoomType = keyof typeof catalogFlowRegistry;
-// piesele de catalog: v1 (inghetata) + v2 (etapa 6), pe acelasi tip de camera
+// piesele de catalog: v1 (inghetata) + v2 (etapa 6) + v3 (etapa 10, doar canapeaua), pe acelasi tip de camera
 const catalogRegistryAll = Object.fromEntries(
   (Object.keys(catalogFlowRegistry) as CatalogRoomType[]).map((rt) => [
     rt,
-    { ...catalogFlowRegistry[rt], ...catalogFlowRegistryV2[rt] },
+    { ...catalogFlowRegistry[rt], ...catalogFlowRegistryV2[rt], ...(catalogFlowRegistryV3[rt] ?? {}) },
   ]),
 ) as Record<CatalogRoomType, Record<number, RoomFlow>>;
 
@@ -103,27 +117,30 @@ export const FLOW_REGISTRY: Record<RoomType, Record<number, RoomFlow>> = {
     [kitchenFlowV2.version]: kitchenFlowV2,
     [kitchenFlowV3.version]: kitchenFlowV3,
     [kitchenFlowV4.version]: kitchenFlowV4,
+    [kitchenFlowV5.version]: kitchenFlowV5,
   },
   DRESSING: {
     [dressingFlow.version]: dressingFlow,
     [dressingFlowV2.version]: dressingFlowV2,
     [dressingFlowV3.version]: dressingFlowV3,
     [dressingFlowV4.version]: dressingFlowV4,
+    [dressingFlowV5.version]: dressingFlowV5,
   },
   LIVING: {
     [livingFlow.version]: livingFlow,
     [livingFlowV2.version]: livingFlowV2,
     [livingFlowV3.version]: livingFlowV3,
     [livingFlowV4.version]: livingFlowV4,
+    [livingFlowV5.version]: livingFlowV5,
   },
-  OFFICE: { [officeFlow.version]: officeFlow, [officeFlowV2.version]: officeFlowV2, [officeFlowV3.version]: officeFlowV3 },
-  BEDROOM: { [bedroomFlow.version]: bedroomFlow, [bedroomFlowV2.version]: bedroomFlowV2, [bedroomFlowV3.version]: bedroomFlowV3 },
-  BATHROOM: { [bathroomFlow.version]: bathroomFlow, [bathroomFlowV2.version]: bathroomFlowV2, [bathroomFlowV3.version]: bathroomFlowV3 },
+  OFFICE: { [officeFlow.version]: officeFlow, [officeFlowV2.version]: officeFlowV2, [officeFlowV3.version]: officeFlowV3, [officeFlowV4.version]: officeFlowV4 },
+  BEDROOM: { [bedroomFlow.version]: bedroomFlow, [bedroomFlowV2.version]: bedroomFlowV2, [bedroomFlowV3.version]: bedroomFlowV3, [bedroomFlowV4.version]: bedroomFlowV4 },
+  BATHROOM: { [bathroomFlow.version]: bathroomFlow, [bathroomFlowV2.version]: bathroomFlowV2, [bathroomFlowV3.version]: bathroomFlowV3, [bathroomFlowV4.version]: bathroomFlowV4 },
   PIECES: { [piecesFlow.version]: piecesFlow, [piecesFlowV2.version]: piecesFlowV2 },
-  HALLWAY: { [hallwayFlow.version]: hallwayFlow, [hallwayFlowV2.version]: hallwayFlowV2 },
-  PANTRY: { [pantryFlow.version]: pantryFlow, [pantryFlowV2.version]: pantryFlowV2, [pantryFlowV3.version]: pantryFlowV3 },
-  LAUNDRY: { [laundryFlow.version]: laundryFlow, [laundryFlowV2.version]: laundryFlowV2, [laundryFlowV3.version]: laundryFlowV3 },
-  BALCONY: { [balconyFlow.version]: balconyFlow, [balconyFlowV2.version]: balconyFlowV2, [balconyFlowV3.version]: balconyFlowV3 },
+  HALLWAY: { [hallwayFlow.version]: hallwayFlow, [hallwayFlowV2.version]: hallwayFlowV2, [hallwayFlowV3.version]: hallwayFlowV3 },
+  PANTRY: { [pantryFlow.version]: pantryFlow, [pantryFlowV2.version]: pantryFlowV2, [pantryFlowV3.version]: pantryFlowV3, [pantryFlowV4.version]: pantryFlowV4 },
+  LAUNDRY: { [laundryFlow.version]: laundryFlow, [laundryFlowV2.version]: laundryFlowV2, [laundryFlowV3.version]: laundryFlowV3, [laundryFlowV4.version]: laundryFlowV4 },
+  BALCONY: { [balconyFlow.version]: balconyFlow, [balconyFlowV2.version]: balconyFlowV2, [balconyFlowV3.version]: balconyFlowV3, [balconyFlowV4.version]: balconyFlowV4 },
   PIECE_WARDROBE: {
     [pieceWardrobeFlow.version]: pieceWardrobeFlow,
     [pieceWardrobeFlowV2.version]: pieceWardrobeFlowV2,
@@ -153,6 +170,7 @@ export const FLOW_REGISTRY: Record<RoomType, Record<number, RoomFlow>> = {
     [pieceBedFlowV2.version]: pieceBedFlowV2,
     [pieceBedFlowV3.version]: pieceBedFlowV3,
     [pieceBedFlowV4.version]: pieceBedFlowV4,
+    [pieceBedFlowV5.version]: pieceBedFlowV5,
   },
   PIECE_DRESSER: {
     [pieceDresserFlow.version]: pieceDresserFlow,
@@ -165,6 +183,7 @@ export const FLOW_REGISTRY: Record<RoomType, Record<number, RoomFlow>> = {
     [pieceTableFlowV2.version]: pieceTableFlowV2,
     [pieceTableFlowV3.version]: pieceTableFlowV3,
     [pieceTableFlowV4.version]: pieceTableFlowV4,
+    [pieceTableFlowV5.version]: pieceTableFlowV5,
   },
   PIECE_SHOE_CABINET: {
     [pieceShoeCabinetFlow.version]: pieceShoeCabinetFlow,
@@ -183,6 +202,7 @@ export const FLOW_REGISTRY: Record<RoomType, Record<number, RoomFlow>> = {
     [pieceBenchFlowV2.version]: pieceBenchFlowV2,
     [pieceBenchFlowV3.version]: pieceBenchFlowV3,
     [pieceBenchFlowV4.version]: pieceBenchFlowV4,
+    [pieceBenchFlowV5.version]: pieceBenchFlowV5,
   },
 };
 
@@ -247,9 +267,63 @@ export const FLOW_VERSIONS_BEFORE_ETAPA6: Record<RoomType, number[]> = {
 };
 
 // Etapa 6: versiunea noua a fiecarui tip de camera (tinta lui CURRENT_FLOW_VERSION in valul 3).
-export const ETAPA6_FLOW_VERSION: Record<RoomType, number> = Object.fromEntries(
-  (Object.keys(FLOW_REGISTRY) as RoomType[]).map((rt) => [rt, Math.max(...Object.keys(FLOW_REGISTRY[rt]).map(Number))]),
-) as Record<RoomType, number>;
+// Etapa 10 (E10-N26): INGHETATA ca valori literale — calculata ca "versiunea maxima" s-ar fi mutat
+// singura pe versiunile etapei 10 (si ar fi stricat testele etapei 6).
+export const ETAPA6_FLOW_VERSION: Record<RoomType, number> = {
+  ...(Object.fromEntries(
+    (Object.keys(catalogFlowVersions) as CatalogRoomType[]).map((rt) => [rt, 2]),
+  ) as Record<CatalogRoomType, number>),
+  KITCHEN: 4,
+  DRESSING: 4,
+  LIVING: 4,
+  OFFICE: 3,
+  BEDROOM: 3,
+  BATHROOM: 3,
+  PIECES: 2,
+  HALLWAY: 2,
+  PANTRY: 3,
+  LAUNDRY: 3,
+  BALCONY: 3,
+  PIECE_WARDROBE: 4,
+  PIECE_TV_UNIT: 4,
+  PIECE_BOOKCASE: 4,
+  PIECE_DESK: 4,
+  PIECE_BED: 4,
+  PIECE_DRESSER: 4,
+  PIECE_TABLE: 4,
+  PIECE_SHOE_CABINET: 4,
+  PIECE_NIGHTSTAND: 4,
+  PIECE_BENCH: 4,
+};
+
+// Etapa 10: toate versiunile inregistrate INAINTE de etapa 10 (vechi + etapa 6). Filtrul fixture-urilor
+// 'etapa6' = aici si NU in FLOW_VERSIONS_BEFORE_ETAPA6 → instantaneele score-v6 / firm-text-v6 raman identice.
+export const FLOW_VERSIONS_BEFORE_ETAPA10: Record<RoomType, number[]> = Object.fromEntries(
+  (Object.keys(FLOW_VERSIONS_BEFORE_ETAPA6) as RoomType[]).map((rt) => [
+    rt,
+    [...FLOW_VERSIONS_BEFORE_ETAPA6[rt], ETAPA6_FLOW_VERSION[rt]],
+  ]),
+) as Record<RoomType, number[]>;
+
+// Etapa 10 (formularul v7): versiunea noua pe cele 14 tipuri din DESIGN §3; pe celelalte = versiunea etapei 6.
+// Tinta lui CURRENT_FLOW_VERSION in valul 2 (coordonatorul).
+export const ETAPA10_FLOW_VERSION: Record<RoomType, number> = {
+  ...ETAPA6_FLOW_VERSION,
+  KITCHEN: kitchenFlowV5.version,
+  DRESSING: dressingFlowV5.version,
+  LIVING: livingFlowV5.version,
+  OFFICE: officeFlowV4.version,
+  BEDROOM: bedroomFlowV4.version,
+  BATHROOM: bathroomFlowV4.version,
+  PANTRY: pantryFlowV4.version,
+  LAUNDRY: laundryFlowV4.version,
+  BALCONY: balconyFlowV4.version,
+  HALLWAY: hallwayFlowV3.version,
+  PIECE_BED: pieceBedFlowV5.version,
+  PIECE_TABLE: pieceTableFlowV5.version,
+  PIECE_BENCH: pieceBenchFlowV5.version,
+  PIECE_SOFA: pieceSofaFlowV3.version,
+};
 
 export {
   kitchenFlow,
@@ -323,4 +397,19 @@ export {
   pieceShoeCabinetFlowV4,
   pieceNightstandFlowV4,
   pieceBenchFlowV4,
+  // etapa 10 (formularul v7)
+  kitchenFlowV5,
+  dressingFlowV5,
+  livingFlowV5,
+  officeFlowV4,
+  bedroomFlowV4,
+  bathroomFlowV4,
+  pantryFlowV4,
+  laundryFlowV4,
+  balconyFlowV4,
+  hallwayFlowV3,
+  pieceBedFlowV5,
+  pieceTableFlowV5,
+  pieceBenchFlowV5,
+  pieceSofaFlowV3,
 };

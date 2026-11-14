@@ -5501,7 +5501,7 @@
         },
         "dimensions": {
           "title": "Dimensiuni",
-          "subtitle": "Spațiul disponibil și înălțimea camerei.",
+          "subtitle": "Lățimile cerute mai jos și înălțimea tavanului.",
           "slots": {
             "spaceWidth": "Lățime spațiu",
             "wardrobeWidth": "Lățime dulap",
@@ -5757,7 +5757,7 @@
         },
         "dimensions": {
           "title": "Dimensiuni",
-          "subtitle": "Lățimea și înălțimea fiecărei piese.",
+          "subtitle": "Măsurile cerute mai jos (lățimi și, unde se cer, înălțimi) și înălțimea tavanului.",
           "slots": {
             "wallWidth": "Lățime perete",
             "tvUnitWidth": "Lățime zonă TV",
@@ -5991,7 +5991,7 @@
         },
         "dimensions": {
           "title": "Dimensiuni",
-          "subtitle": "Spațiul disponibil și blatul de lucru.",
+          "subtitle": "Lățimile cerute mai jos și înălțimea tavanului.",
           "slots": {
             "spaceWidth": "Lățime spațiu",
             "deskWidth": "Lățime birou",
@@ -6000,7 +6000,7 @@
             "deskWidthC": "Lățime birou C",
             "bookshelfWidth": "Lățime bibliotecă",
             "storageWidth": "Lățime dulap depozitare",
-            "shelvesTotal": "Lungime totală rafturi"
+            "shelvesTotal": "Lățimea zonei cu rafturi"
           }
         },
         "notes": {
@@ -6229,7 +6229,7 @@
         },
         "dimensions": {
           "title": "Dimensiuni",
-          "subtitle": "Lățimea fiecărei piese alese.",
+          "subtitle": "Lățimea fiecărei piese alese; înălțimea tavanului doar dacă ai ales dulapul de hol sau cuierul cu panou.",
           "slots": {
             "shoeCabinetWidth": "Lățime pantofar",
             "coatUnitWidth": "Lățime cuier/panou",
@@ -6415,7 +6415,7 @@
         },
         "dimensions": {
           "title": "Dimensiuni",
-          "subtitle": "Peretele principal și înălțimea tavanului.",
+          "subtitle": "Lungimea peretelui principal și înălțimea tavanului.",
           "slots": {
             "runA": "Lungime perete principal"
           }
@@ -6539,7 +6539,7 @@
         },
         "dimensions": {
           "title": "Dimensiuni",
-          "subtitle": "Lungimea fiecărei laturi cu rafturi.",
+          "subtitle": "Lungimea fiecărei laturi cu rafturi și înălțimea tavanului.",
           "slots": {
             "runA": "Lungime latura A",
             "runB": "Lungime latura B",
@@ -6634,7 +6634,7 @@
         },
         "dimensions": {
           "title": "Dimensiuni",
-          "subtitle": "Lungimea utilă și adâncimea liberă a balconului.",
+          "subtitle": "Lungimea utilă și adâncimea liberă a balconului, plus înălțimea tavanului.",
           "slots": {
             "balconyLength": "Lungime utilă",
             "balconyDepth": "Adâncime liberă"
@@ -7755,6 +7755,10 @@
       "body": "Cererea ta a fost deja preluată. Când salvezi, firmele care lucrează la ea sunt anunțate și văd ce s-a schimbat. După preluare, cererea se poate modifica doar o dată.",
       "cancel": "Nu acum",
       "confirm": "Da, salvează"
+    },
+    "dimensions": {
+      "optionalTag": "opțional",
+      "typicalHint": "de obicei {value}"
     }
   },
   "Legal": {

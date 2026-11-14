@@ -5501,7 +5501,7 @@
         },
         "dimensions": {
           "title": "Dimensions",
-          "subtitle": "Available space and room height.",
+          "subtitle": "The widths asked for below and the ceiling height.",
           "slots": {
             "spaceWidth": "Space width",
             "wardrobeWidth": "Wardrobe width",
@@ -5757,7 +5757,7 @@
         },
         "dimensions": {
           "title": "Dimensions",
-          "subtitle": "Width and height of each piece.",
+          "subtitle": "The measurements asked for below (widths and, where asked, heights) and the ceiling height.",
           "slots": {
             "wallWidth": "Wall width",
             "tvUnitWidth": "TV area width",
@@ -5991,7 +5991,7 @@
         },
         "dimensions": {
           "title": "Dimensions",
-          "subtitle": "Available space and the worktop.",
+          "subtitle": "The widths asked for below and the ceiling height.",
           "slots": {
             "spaceWidth": "Space width",
             "deskWidth": "Desk width",
@@ -6000,7 +6000,7 @@
             "deskWidthC": "Desk width C",
             "bookshelfWidth": "Bookcase width",
             "storageWidth": "Storage cabinet width",
-            "shelvesTotal": "Total shelf length"
+            "shelvesTotal": "Width of the shelving area"
           }
         },
         "notes": {
@@ -6229,7 +6229,7 @@
         },
         "dimensions": {
           "title": "Dimensions",
-          "subtitle": "The width of each piece you chose.",
+          "subtitle": "The width of each piece you chose; the ceiling height only if you chose the hallway wardrobe or the coat rack panel.",
           "slots": {
             "shoeCabinetWidth": "Shoe cabinet width",
             "coatUnitWidth": "Coat panel width",
@@ -6415,7 +6415,7 @@
         },
         "dimensions": {
           "title": "Dimensions",
-          "subtitle": "The main wall and ceiling height.",
+          "subtitle": "The length of the main wall and the ceiling height.",
           "slots": {
             "runA": "Main wall length"
           }
@@ -6539,7 +6539,7 @@
         },
         "dimensions": {
           "title": "Dimensions",
-          "subtitle": "The length of each shelved side.",
+          "subtitle": "The length of each shelved side and the ceiling height.",
           "slots": {
             "runA": "Side A length",
             "runB": "Side B length",
@@ -6634,7 +6634,7 @@
         },
         "dimensions": {
           "title": "Dimensions",
-          "subtitle": "Usable length and free depth of the balcony.",
+          "subtitle": "The usable length and free depth of the balcony, plus the ceiling height.",
           "slots": {
             "balconyLength": "Usable length",
             "balconyDepth": "Free depth"
@@ -7755,6 +7755,10 @@
       "body": "Your request has already been taken by companies. When you save, the companies working on it are notified and see what changed. After it is taken, the request can only be changed once.",
       "cancel": "Not now",
       "confirm": "Yes, save"
+    },
+    "dimensions": {
+      "optionalTag": "optional",
+      "typicalHint": "usually {value}"
     }
   },
   "Legal": {

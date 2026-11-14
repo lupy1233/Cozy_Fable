@@ -7,3 +7,5 @@ export * from './drawer-model';
 export * from './showroom-details';
 export * from './cleanup-notes';
 export * from './edit-rules';
+// etapa 10: campurile 3D optionale acceptate doar de pasii care le declara
+export * from './features';

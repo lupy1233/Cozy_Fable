@@ -56,6 +56,10 @@ export interface FinishPieceDef extends PieceDef {
   // pasii piesei pusi PRIMII pe ecranul ei (wardrobeDoorType, bedStorage, nightstandsCount);
   // screenGroup suprascris cu `piece:<VALUE>`, visibleIf pastrat (lipsa → selectedIf)
   leadSteps?: QuestionStep[];
+  // etapa 10 (DESIGN §4.4): intrebarile de detaliu ale piesei, pe un ecran propriu pus IMEDIAT DUPA
+  // ecranul piesei (screenGroup suprascris cu `piece:<VALUE>:details`); visibleIf = selectedIf + al pasului.
+  // Nu depind de intrebarea comuna (raman vizibile si la "Da", ca leadSteps). Lipsa = aceiasi pasi ca inainte.
+  detailSteps?: QuestionStep[];
   // `flows.<ROOM>.v<N>.<materialStepId>.title`
   materialTitleKey: string;
   // implicit `${flowKey}.${systemsStepId}.title` (cheia existenta "Deschidere — dulap")
@@ -80,6 +84,10 @@ export const SAME_FINISH_STEP_ID = 'sameFinishAll';
 export const MATERIAL_ALL_STEP_ID = 'materialAll';
 export const SYSTEMS_ALL_STEP_ID = 'systemsAll';
 export const PIECE_ALL_GROUP = 'piece:ALL';
+// etapa 10: ecranul de detalii al unei piese = `piece:<VALUE>:details`
+export function pieceDetailsGroup(value: string): string {
+  return `piece:${value}:details`;
+}
 
 const K = 'common.finish';
 const sameIsYes: Condition = { questionId: SAME_FINISH_STEP_ID, equals: true };
@@ -192,6 +200,11 @@ export function pieceFinishSteps(opts: FinishOpts, defs: FinishPieceDef[]): Ques
         options: openingOptions('GENERAL', { pistons: def.pistons, noFronts: def.fronts === 'MAYBE' }),
       };
       steps.push(systems);
+    }
+
+    // etapa 10: ecranul de detalii al piesei (lipsa → nimic nou)
+    for (const detail of def.detailSteps ?? []) {
+      steps.push({ ...detail, screenGroup: pieceDetailsGroup(def.value), visibleIf: allOf([selected, detail.visibleIf]) });
     }
   }
 

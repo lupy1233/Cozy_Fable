@@ -12,6 +12,8 @@ export const upholsterySchema = z.object({
 }).strict();
 export const sofaSchema = z.object({ seats: z.number().int().min(2).max(4), layout: z.enum(SOFA_LAYOUTS), bodyDepthM: z.number().min(0.8).max(1.15),
   arms: z.enum(['SLIM', 'WIDE']), cushions: z.enum(['SPLIT', 'BENCH']), chaiseDepthM: z.number().min(1.35).max(2),
+  // etapa 10 (SOFA_SLEEPER / SOFA_STORAGE): extensibila, lada de depozitare; lipsa = nu
+  sleeper: z.boolean().optional(), storage: z.boolean().optional(),
 }).strict();
 export const armchairSchema = z.object({ arms: z.enum(['SLIM', 'WIDE']) }).strict();
 export const ottomanSchema = z.object({ shape: z.enum(['RECTANGULAR', 'ROUND']), storage: z.boolean() }).strict();

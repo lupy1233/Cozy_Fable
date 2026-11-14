@@ -6,6 +6,7 @@ import { CURRENT_FLOW_VERSION, FLOW_REGISTRY } from './flows';
 import { itemQuantityBucket, roomSizeBucket, roomSizeLengthM } from './mapping';
 import { pieceRowV2Schema } from './pieces-row';
 import { isPieceConfig3d, pieceConfig3dSchema } from './piece3d/config';
+import { piece3dFeaturesUsed } from './piece3d/features';
 import type {
   AnswerMap,
   AnswerSummaryEntry,
@@ -96,13 +97,15 @@ export function stepAnswerSchema(step: QuestionStep, answers: AnswerMap): z.ZodT
       const shape: Record<string, z.ZodTypeAny> = {};
       for (const slot of slots) {
         // slot lipsa → "completeaza toate dimensiunile"; alt tip / NaN → in afara intervalului (ca inainte)
-        shape[slot.id] = z
+        const num = z
           .number({
             required_error: 'validation.dimensionRequired',
             invalid_type_error: 'validation.dimensionOutOfRange',
           })
           .min(slot.min, 'validation.dimensionOutOfRange')
           .max(slot.max, 'validation.dimensionOutOfRange');
+        // etapa 10 (c5): slotul optional poate lipsi (cheia absenta); o valoare data se valideaza la fel
+        shape[slot.id] = slot.optional === true ? num.optional() : num;
       }
       // strict: sloturi care nu exista in configuratia curenta sunt respinse
       return z.object(shape).strict('validation.unknownAnswer');
@@ -129,9 +132,16 @@ export function stepAnswerSchema(step: QuestionStep, answers: AnswerMap): z.ZodT
         .array(z.string().uuid('validation.answerInvalid'))
         .max(step.maxFiles, 'validation.tooManyFiles')
         .refine((arr) => new Set(arr).size === arr.length, 'validation.answerInvalid');
-    case 'configurator-3d':
+    case 'configurator-3d': {
       // config serializabil validat contra regulilor piesei (docs/10 R2)
-      return pieceConfig3dSchema(step.piece);
+      // etapa 10 (E10-N1): campurile 3D noi trec doar pe pasii care le declara (`features`);
+      // fluxurile vechi nu declara nimic → le resping, ca inainte
+      const allowed = new Set(step.features ?? []);
+      return pieceConfig3dSchema(step.piece).refine(
+        (c) => piece3dFeaturesUsed(c).every((f) => allowed.has(f)),
+        'validation.unknownAnswer',
+      );
+    }
   }
 }
 
@@ -286,12 +296,22 @@ export function summarizeAnswers(
         break;
       case 'dimension-group': {
         const values = answer as Record<string, number>;
-        const slots = step
-          .slots(answers)
+        const all = step.slots(answers);
+        const slots = all
           .filter((s) => typeof values[s.id] === 'number')
           .map((s) => ({ labelKey: s.labelKey, value: values[s.id] }));
-        if (slots.length > 0) {
-          entries.push({ kind: 'dimensions', stepId: step.id, labelKey: step.titleKey, slots });
+        // etapa 10: sloturile optionale lasate goale (doar ele; cele obligatorii lipsa nu apar)
+        const missing = all
+          .filter((s) => s.optional === true && typeof values[s.id] !== 'number')
+          .map((s) => (s.typicalM !== undefined ? { labelKey: s.labelKey, typicalM: s.typicalM } : { labelKey: s.labelKey }));
+        if (slots.length > 0 || missing.length > 0) {
+          entries.push({
+            kind: 'dimensions',
+            stepId: step.id,
+            labelKey: step.titleKey,
+            slots,
+            ...(missing.length > 0 ? { missing } : {}),
+          });
         }
         break;
       }

@@ -4,7 +4,7 @@
 // (pasii optionali sar — prinde valorile puse din oficiu).
 import { ROOM_TYPES, type RoomType } from '../enums';
 import { evalCondition, pruneAnswers, visibleOptions } from './engine';
-import { FLOW_REGISTRY, FLOW_VERSIONS_BEFORE_ETAPA6 } from './flows';
+import { FLOW_REGISTRY, FLOW_VERSIONS_BEFORE_ETAPA10, FLOW_VERSIONS_BEFORE_ETAPA6 } from './flows';
 import { defaultPieceConfig } from './piece3d';
 import type { AnswerMap, QuestionStep, RoomFlow } from './types';
 
@@ -43,7 +43,12 @@ function answerFor(step: QuestionStep, answers: AnswerMap, variant: FixtureVaria
       return variant !== 'last';
     case 'dimension-group': {
       const out: Record<string, number> = {};
-      for (const slot of step.slots(answers)) out[slot.id] = dimValue(slot.min, slot.max, variant);
+      for (const slot of step.slots(answers)) {
+        // etapa 10: sloturile optionale raman GOALE in `last` si `requiredOnly` (instantaneul acopera
+        // ambele drumuri); fluxurile vechi nu au sloturi optionale → raspunsuri identice
+        if (slot.optional === true && (variant === 'last' || variant === 'requiredOnly')) continue;
+        out[slot.id] = dimValue(slot.min, slot.max, variant);
+      }
       return out;
     }
     case 'number':
@@ -75,14 +80,18 @@ export function fixtureAnswers(flow: RoomFlow, variant: FixtureVariant): AnswerM
 }
 
 // only: 'legacy' = versiunile de dinainte de etapa 6 (instantaneele vechi, byte-identice);
-// 'etapa6' = versiunile noi (instantaneele score-v6 / firm-text-v6, generate in valul 3).
+// 'etapa6' = versiunile etapei 6 (instantaneele score-v6 / firm-text-v6, byte-identice);
+// 'etapa10' = versiunile etapei 10 (instantaneele score-v7 / firm-text-v7, generate in valul 2).
 export function allFixtureFlows(
-  opts: { only?: 'legacy' | 'etapa6' } = {},
+  opts: { only?: 'legacy' | 'etapa6' | 'etapa10' } = {},
 ): { roomType: RoomType; version: number; flow: RoomFlow }[] {
   const keep = (roomType: RoomType, version: number) => {
     if (!opts.only) return true;
     const legacy = (FLOW_VERSIONS_BEFORE_ETAPA6[roomType] ?? []).includes(version);
-    return opts.only === 'legacy' ? legacy : !legacy;
+    const beforeEtapa10 = (FLOW_VERSIONS_BEFORE_ETAPA10[roomType] ?? []).includes(version);
+    if (opts.only === 'legacy') return legacy;
+    if (opts.only === 'etapa6') return beforeEtapa10 && !legacy;
+    return !beforeEtapa10;
   };
   return ROOM_TYPES.flatMap((roomType) =>
     Object.values(FLOW_REGISTRY[roomType] ?? {})

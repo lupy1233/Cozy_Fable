@@ -1,6 +1,7 @@
 import type { RoomType } from '../enums';
 import type { RequestItemInput } from '../request.schemas';
 import type { Piece3dKind, PieceConfig3d } from './piece3d/config';
+import type { Piece3dFeature } from './piece3d/features';
 
 // Motorul de chestionar al configuratorului de cereri.
 // Definitiile flow-urilor sunt typed TS config (decizie user, 2026-07-04) — NU DB.
@@ -85,6 +86,12 @@ export interface DimensionSlot {
   step?: number;
   // intra in suma de metri liniari (front de mobilier) → lengthM + bucket ROOM_SIZE
   countsTowardLinear?: boolean;
+  // etapa 10 (c5): slotul poate ramane gol la publicare; lipsa = "clientul nu stie" (nu se inventeaza nimic).
+  // Fluxurile vechi nu il pun → slotul ramane obligatoriu, ca inainte.
+  optional?: boolean;
+  // etapa 10 (c5): valoarea tipica, in metri, aratata doar ca indiciu ("de obicei 240 cm");
+  // NU se salveaza, NU intra in calcul
+  typicalM?: number;
 }
 
 interface BaseStep {
@@ -155,6 +162,9 @@ export type Configurator3dStep = BaseStep & {
   type: 'configurator-3d';
   piece: Piece3dKind;
   scoreEntries?: (config: PieceConfig3d) => ScoreEntry[];
+  // etapa 10: campurile 3D optionale pe care pasul le accepta (piece3d/features.ts);
+  // lipsa = niciunul (fluxurile vechi) → configuratia cu campurile noi e respinsa (validation.unknownAnswer)
+  features?: readonly Piece3dFeature[];
 };
 
 export type QuestionStep =
@@ -206,6 +216,8 @@ export type AnswerSummaryEntry =
       stepId: string;
       labelKey: string;
       slots: { labelKey: string; value: number }[];
+      // etapa 10: sloturile optionale lasate goale (lipsa pe fluxurile vechi si cand nu exista)
+      missing?: { labelKey: string; typicalM?: number }[];
     }
   | { kind: 'number'; stepId: string; labelKey: string; value: number }
   | { kind: 'text'; stepId: string; labelKey: string; value: string }
