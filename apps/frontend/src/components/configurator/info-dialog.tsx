@@ -81,6 +81,12 @@ export function InfoDialog({
               <span className="font-medium">{t(info.priceHintKey)}</span>
             </div>
           )}
+          {/* c12-1 (etapa 12): pretul pe metru liniar e explicat o data, unde apare */}
+          {info.priceHintKey && has(info.priceHintKey) && /m liniar|linear metre/.test(t(info.priceHintKey)) && (
+            <p className="mt-2 text-xs text-muted-foreground" data-linear-metre-note>
+              {t('info.linearMetreNote')}
+            </p>
+          )}
         </motion.div>
       </DialogContent>
     </Dialog>

@@ -165,6 +165,8 @@ export const FLOW_REGISTRY: Record<RoomType, Record<number, RoomFlow>> = {
     [pieceDeskFlowV3.version]: pieceDeskFlowV3,
     [pieceDeskFlowV4.version]: pieceDeskFlowV4,
   },
+  // pat / masa / bancuta: v1–v2 inghetate, v3 = furniture-v3, v4 = furniture-v4 (etapa 6),
+  // v5 = furniture-v5 (etapa 10) — v5 e versiunea curenta (vezi CURRENT_FLOW_VERSION)
   PIECE_BED: {
     [pieceBedFlow.version]: pieceBedFlow,
     [pieceBedFlowV2.version]: pieceBedFlowV2,

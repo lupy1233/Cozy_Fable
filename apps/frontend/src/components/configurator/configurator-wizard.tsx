@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils';
 import { Link, useRouter } from '@/i18n/routing';
 import { CONFIGURATOR_STORAGE_KEY, isAbandonedEditSnapshot } from '@/stores/configurator-keys';
 import { snapshot3dIds } from '@/stores/snapshot3d';
+import { forgetConfiguratorHistory, positionOf, startConfiguratorHistory } from '@/stores/configurator-history';
 import {
   discardPendingEditSession,
   EDIT_RESUME_WINDOW_MS,
@@ -52,7 +53,7 @@ import {
 } from '@/stores/configurator-store';
 import { ClientOnlyNote, isNonClientRole } from './client-only-note';
 import { DesignHelpConfirmDialog } from './design-help-dialog';
-import { DetailsStep } from './details-step';
+import { detailsPassValidation, DetailsStep } from './details-step';
 import { leavePublishNotice } from './publish-notice';
 import { roomInstanceLabels } from './room-payload';
 import { RequestSheet } from './review-rail';
@@ -60,7 +61,8 @@ import { ReviewStep } from './review-step';
 import { CartBasket } from './cart-basket';
 import { RoomCartStep } from './room-cart-step';
 import { RoomFlowRunner } from './room-flow-runner';
-import { screenIndexForStep } from './room-screens';
+import { roomScreens, screenIndexForStep, validateStepIssue } from './room-screens';
+import { anyRoomNeedsDesignHelp } from './room-payload';
 import { StartModeStep } from './start-mode-step';
 import { UploadsStep } from './uploads-step';
 
@@ -150,6 +152,30 @@ export function buildSnapshotFromRequest(dto: RequestDto): ConfiguratorSnapshot 
     studioScenes: dto.studioScenes?.map((entry) => entry.data),
     updatedAt: Date.now(),
   };
+}
+
+// m11 (revizuire etapa 12): Forward din browser pleaca de pe ecranul curent doar daca „Continua”
+// ar trece: cosul cu macar o camera, ecranul de intrebari valid, Date generale valide. Fisierele
+// („Am deja un proiect” fara fisier verificat) le opreste Sumarul si serverul la publicare.
+type WizardState = ReturnType<typeof useConfiguratorStore.getState>;
+export function canLeaveScreenForward(s: WizardState): boolean {
+  if (s.phase === 'cart') return s.roomInstances.length > 0;
+  if (s.phase === 'rooms') {
+    const room = s.roomInstances[s.activeRoomIndex];
+    if (!room || room.needsDesignHelp) return true;
+    const screens = roomScreens(room, s.details.hasOwnProject === true);
+    const screen = screens[Math.min(s.activeStepIndex, screens.length - 1)] ?? [];
+    return screen.every((step) => !validateStepIssue(step, room.answers));
+  }
+  if (s.phase === 'details') return detailsPassValidation(s.details, anyRoomNeedsDesignHelp(s.roomInstances));
+  return true;
+}
+
+// m16: Back / Forward din browser inchide dialogul deschis (detalii, „Ai o cerere inceputa”…),
+// ca la Escape — nu ramane peste ecranul nou
+function closeOpenDialogs(): void {
+  if (!document.querySelector('[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]')) return;
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 }
 
 // exista progres de reluat? (camere adaugate, detalii completate sau pas inceput)
@@ -597,6 +623,43 @@ export function ConfiguratorWizard({ editId, repost = false }: { editId?: string
   // la editare: abia dupa trecerea pe memoria editarii (altfel pasii ar randa, si
   // ar putea scrie, peste ciorna cererii noi)
   const ready = isEdit ? Boolean(editRequest.data) && editReady : Boolean(token && draft.data);
+  // m1 (etapa 12): fazele si ecranele intra in istoricul browserului (Back / Forward), fara
+  // sa schimbe adresa; abia cu ciorna / editarea incarcata, ca locul din store sa fie cel real
+  useEffect(() => {
+    if (!ready) return;
+    return startConfiguratorHistory({
+      canLeaveForward: canLeaveScreenForward,
+      onForwardBlocked: () => store.getState().requestContinue(),
+      screenCount: (roomIndex, s) => {
+        const room = s.roomInstances[roomIndex];
+        return room ? roomScreens(room, s.details.hasOwnProject === true).length : 0;
+      },
+      onTraverse: closeOpenDialogs,
+    });
+  }, [ready, store]);
+  // m15 (revizuire etapa 12): la schimbarea ecranului — „Inapoi” / „Continua” din pagina sau
+  // Back / Forward din browser — focusul trece pe titlul ecranului nou (cititorul de ecran il
+  // anunta), fara derulare; la incarcarea paginii focusul nu se muta
+  const navKey = useConfiguratorStore((s) => JSON.stringify(positionOf(s)));
+  const screenRef = useRef<HTMLElement | null>(null);
+  const navKeySeen = useRef<string | null>(null);
+  useEffect(() => {
+    if (!ready) return;
+    if (navKeySeen.current === null || navKeySeen.current === navKey) {
+      navKeySeen.current = navKey;
+      return;
+    }
+    navKeySeen.current = navKey;
+    const root = screenRef.current;
+    const title =
+      root?.querySelector<HTMLElement>('[data-question-id] h2, [data-question-id] h3') ??
+      root?.querySelector<HTMLElement>('h2, h3') ??
+      document.querySelector<HTMLElement>('h1.page-title');
+    if (!title) return;
+    if (!title.hasAttribute('tabindex')) title.setAttribute('tabindex', '-1');
+    title.classList.add('focus:outline-none');
+    title.focus({ preventScroll: true });
+  }, [ready, navKey]);
   if (!ready) {
     const failed = isEdit ? editRequest.isError : bootstrapFailed || (draft.isError && !(draft.error instanceof ApiError && draft.error.status === 404));
     const retrying = isEdit ? editRequest.isFetching : creatingDraft || draft.isFetching;
@@ -763,6 +826,9 @@ export function ConfiguratorWizard({ editId, repost = false }: { editId?: string
       {inReview ? (
         <motion.div
           key="review"
+          ref={(el: HTMLElement | null) => {
+            screenRef.current = el;
+          }}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
@@ -803,6 +869,8 @@ export function ConfiguratorWizard({ editId, repost = false }: { editId?: string
               }
               // la editare: editarea salvata se sterge acum si nu mai poate fi reluata;
               // store-ul revine pe ciorna cererii noi (neatinsa, b8) la demontare
+              // m1: intrarile formularului ramase in istoric nu mai duc in cererea publicata
+              forgetConfiguratorHistory();
               if (isEdit) finishEditSession();
               // mesajul de reusita il arata pagina cererii, la montare (semn de o singura folosinta)
               leavePublishNotice(id, isEdit && repost ? 'reposted' : isEdit ? 'editSaved' : 'published');
@@ -814,6 +882,9 @@ export function ConfiguratorWizard({ editId, repost = false }: { editId?: string
         <div className={cn('grid items-start gap-6', showSide && 'lg:grid-cols-[minmax(0,1fr)_320px]')}>
           <motion.section
             key={phase}
+            ref={(el: HTMLElement | null) => {
+              screenRef.current = el;
+            }}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}

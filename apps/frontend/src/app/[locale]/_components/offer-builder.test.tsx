@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import en from '../../../messages/en.json';
@@ -154,6 +154,57 @@ describe('OfferBuilder (create)', () => {
     expect(input).not.toHaveProperty('warranty');
   });
 
+  // g2 (etapa 12): data livrarii = zi / luna / an in limba aplicatiei; pleaca tot AAAA-LL-ZZ
+  it('g2: data livrarii aleasa pe zi / luna / an pleaca drept AAAA-LL-ZZ', async () => {
+    const year = String(new Date().getUTCFullYear() + 1);
+    renderBuilder();
+    fireEvent.change(priceInput(), { target: { value: '5000' } });
+    fillRequired();
+    const group = screen.getByRole('group', { name: B.deliveryDate });
+    fireEvent.change(within(group).getByRole('combobox', { name: en.DateField.day }), { target: { value: '26' } });
+    fireEvent.change(within(group).getByRole('combobox', { name: en.DateField.month }), { target: { value: '11' } });
+    fireEvent.change(within(group).getByRole('combobox', { name: en.DateField.year }), { target: { value: year } });
+    fireEvent.click(submitButton());
+    await waitFor(() => expect(state.createMutate).toHaveBeenCalledTimes(1));
+    expect(state.createMutate.mock.calls[0][0].deliveryDate).toBe(`${year}-11-26`);
+  });
+
+  it('g2: data incompleta sau inexistenta (31.02) nu pleaca si spune de ce', async () => {
+    const year = String(new Date().getUTCFullYear() + 1);
+    renderBuilder();
+    fireEvent.change(priceInput(), { target: { value: '5000' } });
+    fillRequired();
+    const group = screen.getByRole('group', { name: B.deliveryDate });
+    fireEvent.change(within(group).getByRole('combobox', { name: en.DateField.day }), { target: { value: '31' } });
+    fireEvent.click(submitButton());
+    expect(await screen.findByText(en.DateField.incomplete)).toBeInTheDocument();
+    fireEvent.change(within(group).getByRole('combobox', { name: en.DateField.month }), { target: { value: '02' } });
+    fireEvent.change(within(group).getByRole('combobox', { name: en.DateField.year }), { target: { value: year } });
+    expect(await screen.findByText(en.DateField.invalid)).toBeInTheDocument();
+    fireEvent.click(submitButton());
+    await waitFor(() => expect(screen.getByText(en.DateField.invalid)).toBeInTheDocument());
+    expect(state.createMutate).not.toHaveBeenCalled();
+  });
+
+  // m5 (revizuire): la trimiterea respinsa pe data, focusul ajunge in camp, pe partea de ales
+  it('g2: data respinsa → focus pe prima parte goala, iar la 31.02 pe zi', async () => {
+    const year = String(new Date().getUTCFullYear() + 1);
+    renderBuilder();
+    fireEvent.change(priceInput(), { target: { value: '5000' } });
+    fillRequired();
+    const group = screen.getByRole('group', { name: B.deliveryDate });
+    const day = within(group).getByRole('combobox', { name: en.DateField.day });
+    const month = within(group).getByRole('combobox', { name: en.DateField.month });
+    fireEvent.change(day, { target: { value: '31' } });
+    fireEvent.click(submitButton());
+    await waitFor(() => expect(month).toHaveFocus());
+    fireEvent.change(month, { target: { value: '02' } });
+    fireEvent.change(within(group).getByRole('combobox', { name: en.DateField.year }), { target: { value: year } });
+    fireEvent.click(submitButton());
+    await waitFor(() => expect(day).toHaveFocus());
+    expect(state.createMutate).not.toHaveBeenCalled();
+  });
+
   it('termenul in zile lucratoare se trimite cu unitatea aleasa', async () => {
     renderBuilder();
     fireEvent.change(priceInput(), { target: { value: '5000' } });
@@ -292,6 +343,25 @@ describe('OfferBuilder — varianta noua (a4)', () => {
   const renderRevise = (prev: any = previous, rooms?: { id: string; roomType: string }[]) => render(ui(prev, rooms));
   const currencySelect = () => screen.getByRole('combobox', { name: B.currency });
   const sendButton = () => screen.getByRole('button', { name: B.submit });
+
+  // g2 (revizuire): varianta noua porneste cu data livrarii precedente, chiar daca vine cu ora ISO
+  it('g2: data din varianta precedenta (cu ora ISO) apare in zi / luna / an si pleaca neschimbata', async () => {
+    const year = String(new Date().getUTCFullYear() + 1);
+    renderRevise({ ...previous, deliveryDate: `${year}-03-05T00:00:00.000Z` });
+    const group = screen.getByRole('group', { name: B.deliveryDate });
+    expect((within(group).getByRole('combobox', { name: en.DateField.day }) as HTMLSelectElement).value).toBe('05');
+    expect((within(group).getByRole('combobox', { name: en.DateField.month }) as HTMLSelectElement).value).toBe('03');
+    expect((within(group).getByRole('combobox', { name: en.DateField.year }) as HTMLSelectElement).value).toBe(year);
+    fireEvent.click(sendButton());
+    await waitFor(() => expect(state.reviseMutate).toHaveBeenCalledTimes(1));
+    expect(state.reviseMutate.mock.calls[0][0].deliveryDate).toBe(`${year}-03-05`);
+  });
+
+  it('g2: data din trecut a variantei precedente nu se precompleteaza', () => {
+    renderRevise({ ...previous, deliveryDate: '2020-01-10' });
+    const group = screen.getByRole('group', { name: B.deliveryDate });
+    expect((within(group).getByRole('combobox', { name: en.DateField.year }) as HTMLSelectElement).value).toBe('');
+  });
 
   it('M2: schimbarea DOAR a monedei nu trimite aceeasi suma in alta moneda', async () => {
     renderRevise();

@@ -102,6 +102,17 @@ describe('OfferCard — dialogul de retragere (a7)', () => {
     expect(d.queryByText(/The firm also receives/)).not.toBeInTheDocument();
   });
 
+  it('i3 (etapa 12): 0 puncte la SLA_MISS → fraza fara puncte', () => {
+    RULES.penalties.points.SLA_MISS = 0;
+    try {
+      const d = openDialog(Date.now() + 3 * 24 * HOUR);
+      expect(d.getByText('If you don’t send a new offer by then, the claim expires and you lose 4 credits.')).toBeInTheDocument();
+      expect(d.queryByText(/points? of penalty/)).not.toBeInTheDocument();
+    } finally {
+      RULES.penalties.points.SLA_MISS = 3;
+    }
+  });
+
   it('termenul a trecut, gratia inca merge → spune asta, cu ambele momente', () => {
     const deadline = Date.now() - HOUR;
     const d = openDialog(deadline);

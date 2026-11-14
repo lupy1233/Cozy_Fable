@@ -58,6 +58,12 @@ describe('AgreementCard — formatul datelor si al sumelor (e7)', () => {
     expect(screen.getByText('8,840.00 lei')).toBeInTheDocument();
   });
 
+  it('g2: data livrarii „doar zi” (26.11.2026) apare „26 noiembrie 2026”, fara zi sarita', () => {
+    show('ro', quote({ versions: [version({ deliveryDate: '2026-11-26' })] }));
+    expect(screen.getByText('26 noiembrie 2026')).toBeInTheDocument();
+    expect(screen.queryByText(/\d{1,2}\/\d{1,2}\/\d{4}/)).not.toBeInTheDocument();
+  });
+
   it('oferta in euro: suma principala in EUR, echivalentul in lei', () => {
     show('ro', quote({ currency: 'EUR', versions: [version({ currency: 'EUR', price: 2000, priceEur: 2000, priceRon: 9950 })] }));
     expect(screen.getByText('2.000,00 EUR')).toBeInTheDocument();

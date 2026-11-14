@@ -8,6 +8,7 @@ import type {
   SettlementOutcome,
 } from '@marketplace/shared';
 import { useFormatter, useTranslations } from 'next-intl';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { useParams } from 'next/navigation';
 import { useId, useState, type ReactNode } from 'react';
 import { Link } from '@/i18n/routing';
@@ -32,6 +33,7 @@ import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { CodeUnder, Pill, daysSinceDateOnly } from '../../_components/core-list-parts';
+import { useQuoteDate } from '../../../_components/use-quote-terms';
 
 const NOTE_MIN = 10;
 const NOTE_MAX = 1000;
@@ -43,6 +45,8 @@ export default function AdminRequestDetailPage() {
   const t = useTranslations('Admin.requests');
   const tr = useTranslations('Requests');
   const format = useFormatter();
+  // data livrarii e „doar zi” (AAAA-LL-ZZ): la pranz UTC, afisata in ora Romaniei (etapa 12)
+  const quoteDate = useQuoteDate();
   const params = useParams<{ id: string }>();
   const id = params.id;
   // f4: fara sesiune → login cu intoarcere; alt rol → ecranul de acces
@@ -72,7 +76,7 @@ export default function AdminRequestDetailPage() {
     : undefined;
   const openCase = d.cases.find((c) => c.status === 'OPEN') ?? null;
   const lateDays = d.overdue && d.deliveryDate ? daysSinceDateOnly(d.deliveryDate) : 0;
-  const dateTime = (iso: string) => format.dateTime(new Date(iso), { dateStyle: 'medium', timeStyle: 'short' });
+  const dateTime = (iso: string) => format.dateTime(new Date(iso), { dateStyle: 'medium', timeStyle: 'short', timeZone: APP_TIME_ZONE });
 
   return (
     <div className="flex w-full max-w-[1180px] flex-col gap-6">
@@ -146,7 +150,7 @@ export default function AdminRequestDetailPage() {
         <Party label={t('detail.deliveryDate')}>
           <span className={cn('font-semibold', d.overdue && 'text-crimson')}>
             {d.deliveryDate
-              ? format.dateTime(new Date(`${d.deliveryDate}T12:00:00`), { dateStyle: 'long' })
+              ? quoteDate(d.deliveryDate)
               : '—'}
           </span>
           {winnerSlot && (
@@ -266,7 +270,7 @@ function TimelineSection({ entries }: { entries: AdminTimelineEntryDto[] }) {
                   <TimelineLabel entry={e} />
                 </div>
                 <time dateTime={e.at} className="data-mono block text-muted-foreground">
-                  {format.dateTime(new Date(e.at), { dateStyle: 'medium', timeStyle: 'short' })}
+                  {format.dateTime(new Date(e.at), { dateStyle: 'medium', timeStyle: 'short', timeZone: APP_TIME_ZONE })}
                 </time>
               </div>
             </li>
@@ -304,7 +308,7 @@ function SlotsTable({ detail }: { detail: AdminRequestDetailDto }) {
                   <div className={cn(winner && 'font-semibold')}>{s.companyName}</div>
                   <div className="data-mono text-muted-foreground">
                     {t('detail.claimedOn', {
-                      date: format.dateTime(new Date(s.createdAt), { dateStyle: 'medium' }),
+                      date: format.dateTime(new Date(s.createdAt), { dateStyle: 'medium', timeZone: APP_TIME_ZONE }),
                     })}
                   </div>
                 </TD>
@@ -444,7 +448,7 @@ function CaseCard({
         <p className="data-mono">
           {t(`openedBy.${c.openedBy}`)} ·{' '}
           <time dateTime={c.createdAt}>
-            {format.dateTime(new Date(c.createdAt), { dateStyle: 'medium', timeStyle: 'short' })}
+            {format.dateTime(new Date(c.createdAt), { dateStyle: 'medium', timeStyle: 'short', timeZone: APP_TIME_ZONE })}
           </time>
         </p>
         {c.note && (

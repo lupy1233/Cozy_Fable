@@ -83,14 +83,15 @@ const DEFS: FinishPieceDef[] = [
     value: 'BED_FRAME', icon: 'bed-double', itemName: 'Cadru pat',
     materialStepId: 'materialBed', systemsStepId: 'systemsBed', materialTitleKey: `${V3}.materialBed.title`,
     materialSet: 'WOOD', fronts: 'YES',
-    leadSteps: [fromV2('bedStorage')],
+    // c13 (etapa 12): subtitlu (doar afisare)
+    leadSteps: [{ ...fromV2('bedStorage'), subtitleKey: 'flows.BEDROOM.bedStorage.subtitle' }],
     frontsIf: { questionId: 'bedStorage', equals: 'DRAWERS' },
   },
   {
     value: 'NIGHTSTANDS', icon: 'lamp', itemName: 'Noptiere', quantity: 2,
     materialStepId: 'materialNightstands', systemsStepId: 'systemsNightstands', materialTitleKey: `${V3}.materialNightstands.title`,
     materialSet: 'BODY', fronts: 'YES',
-    leadSteps: [fromV2('nightstandsCount')],
+    leadSteps: [{ ...fromV2('nightstandsCount'), subtitleKey: 'flows.BEDROOM.nightstandsCount.subtitle' }],
   },
   {
     value: 'DRESSER', icon: 'archive', itemName: 'Comodă',
@@ -238,7 +239,7 @@ export const bedroomFlowV4: RoomFlow = {
     bedSizeStep,
     bedLengthStep,
     fromV3('bedCustomSize'),
-    fromV3('bedUpholstered'),
+    { ...fromV3('bedUpholstered'), subtitleKey: 'flows.BEDROOM.bedUpholstered.subtitle' },
     bedFabricStep,
     dimensionsStep,
     ...pieceFinishSteps(OPTS, DEFS),

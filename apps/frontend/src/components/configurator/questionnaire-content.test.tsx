@@ -2,6 +2,7 @@ import { CURRENT_FLOW_VERSION, getFlow, evalCondition, type AnswerMap, type Cond
 import { describe, expect, it } from 'vitest';
 import en from '@/messages/en.json';
 import ro from '@/messages/ro.json';
+import { PRICE_HINTS_REMOVED } from '@/messages/flow-text-keys';
 import { ROOM_ICONS } from '@/lib/room-icons';
 import { resolveConfiguratorIcon } from '@/lib/configurator-icons';
 import { getDimensionFigure } from './dimension-figures';
@@ -24,8 +25,9 @@ describe('current questionnaire content', () => {
   it('resolves every title, description, dimension label and info text in RO and EN', () => {
     const failures: string[] = [];
     const iconNames = new Set<string>(Object.values(ROOM_ICONS));
+    // c13 (etapa 12): preturi scoase intentionat — lista unica in messages/flow-text-keys.ts
     const check = (key: string | undefined) => {
-      if (!key) return;
+      if (!key || PRICE_HINTS_REMOVED.has(key)) return;
       for (const [locale, messages] of Object.entries({ en, ro })) {
         const value = key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown>)?.[part], messages.Configurator);
         if (typeof value !== 'string' || !value.trim()) failures.push(`${locale}:${key}`);

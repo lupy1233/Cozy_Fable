@@ -1,6 +1,7 @@
 'use client';
 
 import { useFormatter, useTranslations } from 'next-intl';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { useMemo, useState } from 'react';
 import { Link } from '@/i18n/routing';
 import { useAuditLogs } from '@/hooks/use-admin';
@@ -284,7 +285,7 @@ export default function AdminAuditPage() {
                 return (
                   <TR key={a.id}>
                     <TD className="whitespace-nowrap font-mono text-xs">
-                      {format.dateTime(new Date(a.createdAt), { dateStyle: 'medium', timeStyle: 'short' })}
+                      {format.dateTime(new Date(a.createdAt), { dateStyle: 'medium', timeStyle: 'short', timeZone: APP_TIME_ZONE })}
                     </TD>
                     <TD>
                       <span className="block font-medium">{roleLabel(a.role)}</span>

@@ -9,7 +9,7 @@ import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { cn } from '@/lib/utils';
 
 // Piese comune pentru listele si detaliile din consola (firme, proiecte, utilizatori):
-// cautare, paginare, pastile de semnal si starea cu codul tehnic dedesubt.
+// cautare, paginare, pastile de semnal si starea cu codul tehnic in tooltip.
 
 // Cautare cu lupa. Eticheta e pentru cititoarele de ecran (placeholder-ul nu tine loc de eticheta).
 export function SearchBox({
@@ -127,13 +127,12 @@ export function Pill({
   );
 }
 
-// Eticheta tradusa + codul tehnic mic dedesubt: omul citeste eticheta, codul ramane la
-// indemana pentru cautat in audit sau in loguri.
+// Eticheta tradusa; codul tehnic sta in tooltip (title) si in data-code, nu in randul vizibil
+// (etapa 12, k2) — ramane la indemana pentru cautat in audit sau in loguri.
 export function CodeUnder({ code, className, children }: { code: string; className?: string; children: ReactNode }) {
   return (
-    <span className={cn('inline-flex flex-col items-start gap-1', className)}>
+    <span title={code} data-code={code} className={cn('inline-flex items-start', className)}>
       {children}
-      <span className="font-mono text-micro text-muted-foreground">{code}</span>
     </span>
   );
 }

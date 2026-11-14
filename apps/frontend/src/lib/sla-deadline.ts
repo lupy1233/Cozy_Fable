@@ -5,7 +5,9 @@ import { useFormatter, useTranslations } from 'next-intl';
 
 // E-company-13: termenele SLA se afiseaza mereu in ora Romaniei (Europe/Bucharest), indiferent
 // de fusul browserului — aceeasi ora ca in emailuri si in regulile de business (4.11).
-export const APP_TIME_ZONE = 'Europe/Bucharest';
+// g2 (revizuire m6): constanta sta in app-time-zone.ts (citita si de configuratia next-intl)
+import { APP_TIME_ZONE } from './app-time-zone';
+export { APP_TIME_ZONE };
 
 const HOUR_MS = 60 * 60 * 1000;
 

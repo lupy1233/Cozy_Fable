@@ -274,6 +274,8 @@ export const pieceNightstandFlowV4: RoomFlow = (() => {
     id: 'count',
     type: 'single-choice',
     titleKey: `${F}.count.title`,
+    // c13 (etapa 12): subtitlu (doar afisare; nu schimba ce se salveaza)
+    subtitleKey: `${F}.count.subtitle`,
     info: { titleKey: `${F}.count.info.title`, bodyKey: `${F}.count.info.body` },
     options: ['ONE', 'TWO'].map((value) => ({
       value,

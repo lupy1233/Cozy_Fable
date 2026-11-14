@@ -102,4 +102,28 @@ describe('Audit snapshot for subscription plans', () => {
   it.each([['TEST_FREE', 'TEST_FREE'], ['GOLD', 'GOLD'], ['not a code', undefined]])('trial_plan %s is kept only as a plan code', (value, kept) => {
     expect(auditSnapshot({ key: 'trial_plan', value })).toEqual(kept === undefined ? { key: 'trial_plan' } : { key: 'trial_plan', value: kept });
   });
+
+  // k2 (etapa 12): motivul ridicarii suspendarii — singurul text liber pastrat, fara date de contact
+  it('keeps the unsuspend reason as sanitized free text only', () => {
+    expect(auditSnapshot({ unsuspendReason: 'Firma a platit restanta' })).toEqual({ unsuspendReason: 'Firma a platit restanta' });
+    expect(auditSnapshot({ unsuspendReason: 'Sunat la 0722 123 456, scris la ana@example.com\nok' })).toEqual({
+      unsuspendReason: 'Sunat la [nr], scris la [email] ok',
+    });
+    expect(auditSnapshot({ unsuspendReason: 'x'.repeat(1500) })).toEqual({ unsuspendReason: 'x'.repeat(1000) });
+    // un motiv care pare sa contina un secret nu se pastreaza, dar ramane urma ca a existat
+    expect(auditSnapshot({ unsuspendReason: 'password: hunter2' })).toEqual({ unsuspendReason: '[ascuns]' });
+    expect(auditSnapshot({ unsuspendReason: 'a trimis token abc123' })).toEqual({ unsuspendReason: '[ascuns]' });
+    // datele si sumele obisnuite raman citibile; IBAN-ul si telefonul nu
+    expect(auditSnapshot({ unsuspendReason: 'Platit pe 14.11.2026, 1.250 lei, dosar 4521' })).toEqual({
+      unsuspendReason: 'Platit pe 14.11.2026, 1.250 lei, dosar 4521',
+    });
+    expect(auditSnapshot({ unsuspendReason: 'Cont RO49 AAAA 1B31 0075 9384 0000, tel +40 722 123 456' })).toEqual({
+      unsuspendReason: 'Cont [iban], tel [nr]',
+    });
+    expect(auditSnapshot({ unsuspendReason: '   ' })).toBeUndefined();
+    expect(auditSnapshot({ unsuspendReason: '\u0000\u0001\u0002' })).toBeUndefined();
+    expect(auditSnapshot({ unsuspendReason: 42 })).toBeUndefined();
+    // alt text liber ramane afara
+    expect(auditSnapshot({ rejectionReason: 'text liber', note: 'text liber' })).toBeUndefined();
+  });
 });

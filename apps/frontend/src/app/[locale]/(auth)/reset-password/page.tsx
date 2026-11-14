@@ -62,7 +62,10 @@ function ResetPasswordInner() {
         <h1 className={authTitleCls}>{t('resetDoneTitle')}</h1>
         <p className="text-sm text-muted-foreground">{t('resetDoneBody')}</p>
         <Button asChild variant="walnut" size="xl" className="w-full text-lead">
-          <Link href="/login">{t('goToLogin')}</Link>
+          {/* f5: fara autentificare automata (parola noua se foloseste o data constient). E-mailul NU
+              se precompleteaza: pagina are doar tokenul, iar un endpoint care il dezvaluie din token
+              nu se adauga (DECIZIE NECESARA in raportul etapei 12); fara date personale in URL. */}
+          <Link href="/login">{t('resetDoneCta')}</Link>
         </Button>
       </div>
     );

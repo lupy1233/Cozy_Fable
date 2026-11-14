@@ -5,7 +5,7 @@ import { registerSchema, type RegisterInput } from '@marketplace/shared';
 import { Mail } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from '@/i18n/routing';
 import { apiErrorKey } from '@/lib/error-messages';
@@ -27,6 +27,7 @@ import {
 import { PasswordInput } from '../_components/password-input';
 import { ResendVerification } from '../_components/resend-verification';
 import { useMounted } from '../_components/use-mounted';
+import { draftContactEmail } from './draft-email';
 
 const ROLE_CARDS = [
   { value: 'CLIENT', title: 'roleClientTitle', hint: 'roleClientHint' },
@@ -52,11 +53,20 @@ function RegisterInner() {
     register,
     handleSubmit,
     watch,
+    getValues,
+    setValue,
     formState: { errors },
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     defaultValues: { role: initialRole, languagePreference: locale === 'en' ? 'EN' : 'RO' },
   });
+
+  // m1 (etapa 12): venit din Sumar (intoarcere la ciorna) — e-mailul scris la contact se
+  // completeaza din memoria formularului (nu din adresa), doar daca e gol; se poate schimba
+  useEffect(() => {
+    const email = draftContactEmail(redirect);
+    if (email && !getValues('email')) setValue('email', email);
+  }, [redirect, getValues, setValue]);
 
   // E-company-9: firmele accepta si "Regulile pentru firme" (link in tab nou, sa nu piarda formularul)
   const role = watch('role');

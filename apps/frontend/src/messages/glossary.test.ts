@@ -132,6 +132,124 @@ describe('glosar (problema 42) — termeni interzisi', () => {
   });
 });
 
+// Etapa 12, problema 55 (i2): anglicismele scoase din romana nu revin; engleza e una singura (britanica).
+// Argumentele ICU ({draft}, {color}) nu sunt text vazut de om, deci se scot inainte de verificare.
+const ICU_ARGS = /\{[A-Za-z0-9_]+\}/g;
+const RO_ENGLISH_WORDS: Rule[] = [
+  { name: 'draft (= ciornă)', re: /\bdraft/i, strip: ICU_ARGS },
+  { name: 'custom', re: /\bcustom/i },
+  { name: 'atelier', re: /atelier/i },
+  { name: 'showroom', re: /showroom/i },
+  { name: 'live', re: /\blive\b/i },
+  { name: 'King', re: /\bking\b/i },
+  { name: 'click (= clic)', re: /\bclick/i },
+  { name: 'slim (= îngust)', re: /\bslim\b/i },
+  { name: 'Configurează: X (= Creează X)', re: /Configurează:/ },
+  { name: 'Bancuță fără diacritice', re: /bancuț/i },
+  // „amortizarea merită” se putea citi ca amortizarea investitiei (plan i2)
+  { name: 'Amortizarea merită', re: /amortizarea merită/i },
+];
+// „pantry” ramane doar la coloanele de bucatarie (camara din bucatarie), nu ca nume al debaralei
+const PANTRY_KITCHEN = new Set(['Configurator.flows.KITCHEN.cabinetZones.options.TALL_PANTRY.label']);
+const CLIENT_FACING = /^(Configurator|Requests|Studio|Inspiration|Notifications\.stageUpdated|Fulfillment\.client[A-Za-z]*)\./;
+const FIRM_OTHER_MEANING = new Set(['Configurator.config3d.catalog.options.FIRM']); // fermitatea pernei
+const EN_BRITISH: Rule[] = [
+  { name: 'maker (= company)', re: /\bmakers?\b/i },
+  { name: 'closet (= dressing room)', re: /\bclosets?\b/i },
+  { name: 'color (= colour)', re: /\bcolor/i, strip: ICU_ARGS },
+  { name: 'center (= centre)', re: /\bcenters?\b/i },
+  { name: 'meter (= metre)', re: /\b(centi|milli)?meters?\b/i },
+  { name: 'gray (= grey)', re: /\bgray\b/i },
+  { name: '-ize (= -ise)', re: /\b(minimiz|maximiz|organiz|customiz|favorit)/i },
+  { name: 'Pantry (= Storage room)', re: /\bpantry\b/i, allowed: (k) => PANTRY_KITCHEN.has(k) },
+  // m13: in tot en.json (in afara Admin* / Legal.*), nu doar in Studio; si „hookup” (= connection)
+  { name: 'outlet (= socket)', re: /\boutlets?\b/i },
+  { name: 'hookup (= connection)', re: /\bhook-?ups?\b/i },
+  // revizuire M2: in textele pentru client se spune „company”. „Firm” = fermitatea pernei ramane.
+  // Textele pentru firme (Marketplace, Quotes, Lifecycle, Nav, Penalties...) folosesc inca „firm” —
+  // trecere separata, de hotarat de PO; regula le lasa deocamdata in afara.
+  {
+    name: 'firm (= company) in textele pentru client',
+    re: /\bfirms?\b|\bfirm['’]s\b/i,
+    allowed: (k) => !CLIENT_FACING.test(k) || FIRM_OTHER_MEANING.has(k),
+  },
+];
+
+describe('glosar (problema 55) — anglicisme in romana, o singura engleza', () => {
+  it('RO: fara draft, custom, atelier, showroom, live, King, click, slim', () => {
+    expect(violations(RO, RO_ENGLISH_WORDS)).toEqual([]);
+  });
+
+  it('EN: engleza britanica, „company” in loc de „maker”, „Storage room” pentru debara', () => {
+    expect(violations(EN, EN_BRITISH)).toEqual([]);
+    expect(en.Configurator.rooms.type.PANTRY).toBe('Storage room');
+    expect(en.Requests.roomType.PANTRY).toBe('Storage room');
+    expect(ro.Configurator.rooms.type.PANTRY).toBe('Debara');
+  });
+
+  it('Studio spune „ciornă”, ca restul aplicatiei', () => {
+    const studio = Object.entries(RO).filter(([k]) => k.startsWith('Studio.'));
+    expect(studio.filter(([, v]) => /ciorn/i.test(v)).length).toBeGreaterThan(5);
+    expect(ro.Studio.myDrafts).toBe('Ciornele mele');
+  });
+
+  it('regula ICU nu ascunde un cuvant interzis scris in text', () => {
+    expect(violations({ 'X.a': 'Continuă ciorna: {draft}' }, RO_ENGLISH_WORDS)).toEqual([]);
+    expect(violations({ 'X.a': 'Draft salvat {draft}' }, RO_ENGLISH_WORDS)).toHaveLength(1);
+  });
+
+  it('regula „firm”: prinde „the firm”, nu „confirm” / „firmly”; „Firm” la perna e permis', () => {
+    expect(violations({ 'Configurator.a': 'Not sure — the firm will measure it' }, EN_BRITISH)).toHaveLength(1);
+    expect(violations({ 'Configurator.a': 'Please confirm; it holds firmly' }, EN_BRITISH)).toEqual([]);
+    expect(violations({ 'Configurator.config3d.catalog.options.FIRM': 'Firm' }, EN_BRITISH)).toEqual([]);
+    expect(en.Configurator.pieces.firmDecidesShort).toBe('Company decides');
+  });
+});
+
+// Etapa 12, problema 62 (c11): glosarul de piese si sablonul unic de titlu
+describe('glosar de piese (problema 62)', () => {
+  const C = ro.Configurator;
+  it('o eticheta pe fiecare piesa (RO + EN), aceeasi in optiune si in titluri', () => {
+    expect(C.rooms.type.PIECES).toBe('Altă piesă');
+    expect(en.Configurator.rooms.type.PIECES).toBe('Other piece');
+    expect(ro.Requests.roomType.PIECES).toBe('Altă piesă');
+    // PO c11-1: camera „Birou”, piesa „Birou de lucru”
+    expect(C.rooms.type.OFFICE).toBe('Birou');
+    expect(C.rooms.type.PIECE_DESK).toBe('Birou de lucru');
+    expect(C.flows.OFFICE.piecesNeeded.options.DESK.label).toBe('Birou de lucru');
+    expect(C.rooms.type.PIECE_NIGHTSTAND).toBe('Noptieră');
+    expect(C.flows.LIVING.piecesNeeded.options.TV_UNIT.label).toBe('Comodă TV');
+    expect(C.flows.LIVING.materialTvUnit.title).toBe('Material — comodă TV');
+    expect(en.Configurator.flows.LIVING.piecesNeeded.options.BOOKSHELF.label).toBe('Bookcase');
+    expect(C.flows.LIVING.piecesNeeded.options.WALL_SHELVES.label).toBe('Rafturi de perete');
+    expect(C.flows.OFFICE.piecesNeeded.options.WALL_SHELVES.label).toBe('Rafturi de perete');
+    expect(C.flows.OFFICE.piecesNeeded.options.STORAGE.label).toBe('Dulap de depozitare');
+    expect(C.flows.HALLWAY.piecesNeeded.options.BENCH.label).toBe('Băncuță');
+    expect(C.flows.LIVING.piecesNeeded.options.OTHER.label).toBe('Altă piesă');
+    for (const v of [C.flows.KITCHEN.layout.options.STRAIGHT.label, C.flows.DRESSING.layout.options.LINEAR.label, C.flows.PANTRY.wallsUsed.options.ONE_WALL.label]) {
+      expect(v).toBe('Pe un perete');
+    }
+  });
+
+  it('titlurile de material si deschidere au o singura forma: „Material — X”, „Material pentru fronturi — X”, „Deschidere — X”', () => {
+    const titles = Object.entries(RO).filter(([k]) => /^Configurator\.flows\.[A-Z_]+\.(v\d+\.)?(material|systems|frontMaterial|openingSystems)[A-Za-z]*\.title$/.test(k));
+    expect(titles.length).toBeGreaterThan(100);
+    // formele vechi nu mai apar
+    const old = titles.filter(([, v]) => /^(Ce material|Din ce material|Ce sistem|Ce sisteme|Sisteme de deschidere)|^Material pentru (?!fronturi|cadru|ramă)|^Deschidere pentru|Material pentru fronturile /.test(v));
+    expect(old).toEqual([]);
+  });
+
+  it('o singura intrebare pentru piese si pentru schita camerei; titlurile 3D „Creează …”', () => {
+    for (const room of ['BEDROOM', 'LIVING', 'OFFICE', 'BATHROOM', 'HALLWAY', 'LAUNDRY', 'BALCONY'] as const) {
+      expect(C.flows[room].piecesNeeded.title, room).toBe('Ce piese îți trebuie?');
+    }
+    expect(C.flows.HALLWAY.sketch.title).toBe('Ai o schiță a holului?');
+    const titles3d = Object.entries(RO).filter(([k]) => /^Configurator\.flows\.PIECE_[A-Z_]+\.config3d\.title$/.test(k));
+    expect(titles3d.length).toBe(17);
+    expect(titles3d.filter(([, v]) => !v.startsWith('Creează '))).toEqual([]);
+  });
+});
+
 describe('glosar (problema 42) — termenii alesi', () => {
   it('formularul: titlul, modul, mesajul, adresa, datele generale, marimea, ultimul pas', () => {
     expect(ro.Configurator.title).toBe('Cerere nouă');

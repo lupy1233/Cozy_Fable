@@ -2,6 +2,7 @@
 
 import type { AdminWithdrawalItemDto } from '@marketplace/shared';
 import { useFormatter, useTranslations } from 'next-intl';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { useState } from 'react';
 import { ApiError } from '@/lib/api';
 import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
@@ -98,7 +99,7 @@ export default function AdminWithdrawalsPage() {
               {w.requestTitle && <p className="text-sm text-muted-foreground">{w.requestTitle}</p>}
             </div>
             <span className="whitespace-nowrap font-mono text-xs text-muted-foreground">
-              {format.dateTime(new Date(w.createdAt), { dateStyle: 'medium', timeStyle: 'short' })}
+              {format.dateTime(new Date(w.createdAt), { dateStyle: 'medium', timeStyle: 'short', timeZone: APP_TIME_ZONE })}
             </span>
           </div>
 

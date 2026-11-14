@@ -464,10 +464,10 @@
    2
   ],
   "items": [
-   "1× Bancă cu ladă | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei",
-   "1× Dulap balcon | ALTUL | MANER,PUSH | Material: clientul vrea recomandarea firmei",
-   "1× Blat de lucru | ALTUL |  | Blat: clientul vrea recomandarea firmei",
-   "1× Rafturi balcon | ALTUL |  | Material: clientul vrea recomandarea firmei"
+   "1× Bancă cu ladă | ALTUL | MANER,PUSH | Balcon deschis — exterior; Material: clientul vrea recomandarea firmei",
+   "1× Dulap balcon | ALTUL | MANER,PUSH | Balcon deschis — exterior; Material: clientul vrea recomandarea firmei",
+   "1× Blat de lucru | ALTUL |  | Balcon deschis — exterior; Blat: clientul vrea recomandarea firmei",
+   "1× Rafturi balcon | ALTUL |  | Balcon deschis — exterior; Material: clientul vrea recomandarea firmei"
   ],
   "firm": [
    "Bancă cu ladă: material=true opening=false",
@@ -483,8 +483,8 @@
    2.6
   ],
   "items": [
-   "1× Blat de lucru | ALTUL |  | Blat: cuarț",
-   "1× Rafturi balcon | MDF_FURNIR | "
+   "1× Blat de lucru | ALTUL |  | Balcon deschis — exterior; Blat: cuarț",
+   "1× Rafturi balcon | MDF_FURNIR |  | Balcon deschis — exterior"
   ]
  },
  "BALCONY@v4/requiredOnly": {

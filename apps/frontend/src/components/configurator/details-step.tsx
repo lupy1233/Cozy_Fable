@@ -77,6 +77,19 @@ const EMPTY_FIELD_MESSAGE: Record<string, string> = {
   contactPhoneInvalid: 'contactRequired',
 };
 
+// m1 (etapa 12): un numar de telefon scris pe canalul email → mesajul spune sa schimbe
+// canalul pe „Telefon” (regula din shared ramane: emailul tot se refuza)
+export function looksLikePhone(value: string | undefined): boolean {
+  if (!value || value.includes('@')) return false;
+  const v = value.trim();
+  return /^\+?[\d\s().\-/]+$/.test(v) && v.replace(/\D/g, '').length >= 6;
+}
+
+function contactErrorKey(message: string | undefined, channel: string, value: string | undefined): string | undefined {
+  if (message === 'contactEmailInvalid' && channel === 'EMAIL' && looksLikePhone(value)) return 'contactEmailIsPhone';
+  return message;
+}
+
 // mesajul pentru firme: aceeasi limita ca schema (descriptionTooLong), afisata pe camp
 export const MESSAGE_MAX_LENGTH = 5000;
 
@@ -100,6 +113,34 @@ const DEADLINE_ICONS: Record<DeadlineBucket, React.ComponentType<{ className?: s
   SIX_PLUS_MONTHS: CalendarClock,
   FLEXIBLE: InfinityIcon,
 };
+
+// Valorile de pornire ale formularului, din ciorna (aceleasi pentru verificarea de la Forward)
+function detailsFormDefaults(stored: Partial<DetailsValues>, withDesign: boolean): DetailsFormValues {
+  return {
+    description: stored.description ?? '',
+    // b11: fara valoare din oficiu — gol pana alege clientul
+    budgetRange: (stored.budgetRange as DetailsFormValues['budgetRange']) || undefined,
+    budgetEstimateRon: stored.budgetEstimateRon ?? undefined,
+    deadlineBucket: (stored.deadlineBucket as DetailsFormValues['deadlineBucket']) || undefined,
+    // derivate (modul + camerele): doar ca schema sa treaca; nu se salveaza de aici
+    includesPaidDesign: withDesign,
+    hasOwnProject: stored.hasOwnProject ?? false,
+    addressText: stored.addressText ?? '',
+    addressDetails: stored.addressDetails ?? '',
+    county: stored.county ?? '',
+    city: stored.city ?? '',
+    country: stored.country ?? 'RO',
+    contactPreferences: stored.contactPreferences?.length
+      ? stored.contactPreferences
+      : [{ channel: 'EMAIL', value: '' }],
+  } as DetailsFormValues;
+}
+
+// m11 (etapa 12): Date generale din ciorna trec validarea de la „Continua la sumar”?
+// (Forward din browser nu trece de pas altfel)
+export function detailsPassValidation(stored: Partial<DetailsValues>, withDesign: boolean): boolean {
+  return detailsSchema.safeParse(detailsFormDefaults(stored, withDesign)).success;
+}
 
 export function DetailsStep({
   onBack,
@@ -132,25 +173,12 @@ export function DetailsStep({
     formState: { errors },
   } = useForm<DetailsFormValues>({
     resolver: zodResolver(detailsSchema),
-    defaultValues: {
-      description: stored.description ?? '',
-      // b11: fara valoare din oficiu — gol pana alege clientul
-      budgetRange: (stored.budgetRange as DetailsFormValues['budgetRange']) || undefined,
-      budgetEstimateRon: stored.budgetEstimateRon ?? undefined,
-      deadlineBucket: (stored.deadlineBucket as DetailsFormValues['deadlineBucket']) || undefined,
-      // derivate (modul + camerele): doar ca schema sa treaca; nu se salveaza de aici
-      includesPaidDesign: withDesign,
-      hasOwnProject: stored.hasOwnProject ?? false,
-      addressText: stored.addressText ?? '',
-      addressDetails: stored.addressDetails ?? '',
-      county: stored.county ?? '',
-      city: stored.city ?? '',
-      country: stored.country ?? 'RO',
-      contactPreferences: stored.contactPreferences?.length
-        ? stored.contactPreferences
-        : [{ channel: 'EMAIL', value: '' }],
-    },
+    defaultValues: detailsFormDefaults(stored, withDesign),
   });
+
+  // m11 (etapa 12): Forward din browser oprit aici → aceeasi validare ca „Continua la sumar”
+  const continueRequest = useConfiguratorStore((s) => s.continueRequest);
+  const seenContinueRequest = useRef(continueRequest);
 
   const contacts = useFieldArray({ control, name: 'contactPreferences' });
 
@@ -267,6 +295,12 @@ export function DetailsStep({
     setDetails(toDraftDetails(values));
     onContinue();
   });
+  useEffect(() => {
+    if (continueRequest === seenContinueRequest.current) return;
+    seenContinueRequest.current = continueRequest;
+    void submit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [continueRequest]);
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-7" noValidate>
@@ -451,7 +485,10 @@ export function DetailsStep({
                     locked ? t('field.accountEmail') : <span aria-hidden>&#8203;</span>
                   }
                   hint={locked ? t('accountEmailLockedHint') : undefined}
-                  error={vmsg(errors.contactPreferences?.[ci]?.value?.message, contactValues?.[ci]?.value)}
+                  error={vmsg(
+                    contactErrorKey(errors.contactPreferences?.[ci]?.value?.message, channel, contactValues?.[ci]?.value),
+                    contactValues?.[ci]?.value,
+                  )}
                 >
                   {/* key per varianta: inputul controlat (blocat) si cel
                       inregistrat RHF nu impart acelasi nod DOM — altfel React

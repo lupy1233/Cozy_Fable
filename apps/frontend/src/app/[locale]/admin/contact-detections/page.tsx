@@ -7,6 +7,7 @@ import {
   type ContactMatchKind,
 } from '@marketplace/shared';
 import { useFormatter, useTranslations } from 'next-intl';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { useMemo, useState } from 'react';
 import { Link } from '@/i18n/routing';
 import { useContactDetections } from '@/hooks/use-admin';
@@ -128,7 +129,7 @@ export default function AdminContactDetectionsPage() {
                   <TR key={d.id}>
                     <TD className="whitespace-nowrap">
                       <span className="block font-mono text-xs">
-                        {format.dateTime(new Date(d.createdAt), { dateStyle: 'medium', timeStyle: 'short' })}
+                        {format.dateTime(new Date(d.createdAt), { dateStyle: 'medium', timeStyle: 'short', timeZone: APP_TIME_ZONE })}
                       </span>
                       <span className="block text-xs text-muted-foreground">{t(`moment.${d.trigger}`)}</span>
                     </TD>

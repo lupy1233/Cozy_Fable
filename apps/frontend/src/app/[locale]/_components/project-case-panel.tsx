@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { useLongDate } from './use-long-date';
 
 // E-admin-platform-3 — "Proiectul s-a blocat?": oricare parte a unui proiect acceptat
 // raporteaza (firma nu/clientul nu mai raspunde, anulare de comun acord, alt motiv);
@@ -62,7 +63,8 @@ export function ProjectCasePanel({
         ? tf('apiErrors.INTERNAL_ERROR')
         : null;
   const mySide = mode === 'client' ? 'CLIENT' : 'COMPANY';
-  const fmtDate = (iso: string) => new Date(iso).toLocaleDateString();
+  // g2: limba aplicatiei si ora Romaniei, nu dupa browser
+  const fmtDate = useLongDate();
 
   // caz deschis: chihlimbar cat timp partea aceasta mai are de raspuns, altfel informativ
   // (raportul e la cealalta parte / la echipa Cozy Home)

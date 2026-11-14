@@ -34,7 +34,7 @@ describe('texte formular (c2, c1)', () => {
   it('c1: niciun text din formular nu mai contine "lei/ml" (RO) sau "RON/lm" (EN)', () => {
     expect(strings(ro.Configurator).filter((s) => s.includes('lei/ml'))).toEqual([]);
     expect(strings(en.Configurator).filter((s) => /RON\/lm|\/lm\b/.test(s))).toEqual([]);
-    expect(ro.Configurator.common.materials.PAL.info.price).toBe('250–450 lei pe metru liniar');
+    expect(ro.Configurator.common.materials.PAL.info.price).toBe('250–450 lei / m liniar'); // c12 (etapa 12): formatul unic
     // etapa 8 (glosar, D10): „lei” si in engleza
     expect(en.Configurator.common.materials.PAL.info.price).toBe('250–450 lei per linear metre');
   });

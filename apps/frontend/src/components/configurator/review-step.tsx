@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ROOM_KIND,
   getFlow,
   mergeAccountEmail,
   type ConfiguratorContentInput,
@@ -46,6 +47,19 @@ import { StickyActionBar } from './sticky-action-bar';
 import { summaryLabel } from './summary-rows';
 import { PostClaimEditConfirm } from './post-claim-edit-confirm';
 import { useRepostWithChangesById } from './use-repost-with-changes';
+
+// c11: numaratoarea din Sumar, ca in cos — „2 camere · 3 piese” (o piesa nu e o camera)
+export function cartCountLabel(rooms: Pick<RoomInstance, 'roomType'>[], t: (key: string, values?: { count: number }) => string): string {
+  const roomCount = rooms.filter((r) => ROOM_KIND[r.roomType] === 'room').length;
+  const pieceCount = rooms.length - roomCount;
+  const parts = [
+    roomCount > 0 ? t('cart.countRooms', { count: roomCount }) : null,
+    pieceCount > 0 ? t('cart.countPieces', { count: pieceCount }) : null,
+  ].filter((p): p is string => p !== null);
+  if (parts.length === 0) return t('cart.totalRooms', { count: 0 });
+  const label = parts.join(' · ');
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
 
 // O problema de camera intoarsa de server: details[] de la CONFIGURATOR_ANSWERS_INVALID /
 // FILE_SCAN_BLOCKED sau obiectul {roomIndex} de la CONFIGURATOR_FLOW_VERSION_UNSUPPORTED.
@@ -630,7 +644,7 @@ export function ReviewStep({
               <li className="flex items-start gap-2.5">
                 <ReadyMark ok={allRoomsComplete} />
                 <span className="min-w-0 break-words">
-                  {t('cart.totalRooms', { count: rooms.length })}
+                  {cartCountLabel(rooms, t)}
                   {rooms.length > 0 && ` — ${rooms.map((r) => t(`rooms.type.${r.roomType}`)).join(', ')}`}
                 </span>
               </li>

@@ -2,6 +2,7 @@
 
 import type { AdminCompanyListItemDto } from '@marketplace/shared';
 import { useFormatter, useTranslations } from 'next-intl';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { useMemo, useState } from 'react';
 import { Link } from '@/i18n/routing';
 import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
@@ -82,7 +83,7 @@ export default function AdminCompaniesPage() {
   const fmtCreated = (iso: string) => {
     const d = new Date(iso);
     // inscrierile recente se citesc mai usor relativ („acum 2 zile”); cele vechi, ca data
-    return Date.now() - d.getTime() < WEEK_MS ? relative(d) : format.dateTime(d, { dateStyle: 'medium' });
+    return Date.now() - d.getTime() < WEEK_MS ? relative(d) : format.dateTime(d, { dateStyle: 'medium', timeZone: APP_TIME_ZONE });
   };
 
   return (
@@ -172,7 +173,7 @@ export default function AdminCompaniesPage() {
                         <RiskFlagPills flags={c.riskFlags} />
                       </TD>
                       <TD className="data-mono whitespace-nowrap align-middle text-muted-foreground">
-                        <time dateTime={c.createdAt} title={format.dateTime(new Date(c.createdAt), { dateStyle: 'medium', timeStyle: 'short' })}>
+                        <time dateTime={c.createdAt} title={format.dateTime(new Date(c.createdAt), { dateStyle: 'medium', timeStyle: 'short', timeZone: APP_TIME_ZONE })}>
                           {fmtCreated(c.createdAt)}
                         </time>
                       </TD>

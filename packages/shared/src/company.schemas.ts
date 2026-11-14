@@ -78,7 +78,7 @@ export type CompanyMemberRoleInput = z.infer<typeof companyMemberRoleSchema>;
 export const portfolioItemSchema = z.object({
   title: z.string().trim().min(2, 'titleTooShort').max(150),
   description: z.string().trim().max(2000).optional().or(z.literal('')),
-  imageUrl: z.string().url('invalidUrl').max(2000).optional().or(z.literal('')),
+  // poza lucrarii NU mai vine ca link: se urca separat (presign → confirm) si se ataseaza dupa (etapa 11)
 });
 export type PortfolioItemInput = z.infer<typeof portfolioItemSchema>;
 

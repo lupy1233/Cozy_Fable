@@ -4,10 +4,11 @@ import { isValidRoCui, type CompanyRiskFlag } from '@marketplace/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, Check, ImageOff } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { useParams } from 'next/navigation';
 import { useId, useState, type ReactNode } from 'react';
 import { Link } from '@/i18n/routing';
-import { useAdminCompany, useApproveCompany, useRejectCompany, useUnsuspendCompany } from '@/hooks/use-company';
+import { useAdminCompany, useApproveCompany, useRejectCompany } from '@/hooks/use-company';
 import { useRelativeTime } from '@/lib/relative-time';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { CompanyStatusBadge, RiskFlagPills } from '../../_components/company-status';
 import { Pill, type PillTone } from '../../_components/core-list-parts';
+import { UNSUSPEND_REASON_MIN, useUnsuspendCompanyWithReason } from './use-unsuspend-company';
 
 const REJECT_REASON_MIN = 3;
 
@@ -49,8 +51,12 @@ export default function AdminCompanyDetailPage() {
   const detail = useAdminCompany(id);
   const approve = useApproveCompany();
   const reject = useRejectCompany();
-  const unsuspend = useUnsuspendCompany();
+  const unsuspend = useUnsuspendCompanyWithReason();
   const [reason, setReason] = useState('');
+  // etapa 12 (k2): motivul ridicarii suspendarii, scris in dialogul de confirmare
+  const [unsuspendReason, setUnsuspendReason] = useState('');
+  const unsuspendReasonId = useId();
+  const unsuspendHintId = useId();
   // `decision` ramane setat si dupa inchidere, ca textul dialogului sa nu dispara in animatia de iesire
   const [decision, setDecision] = useState<Decision>('approve');
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -83,6 +89,7 @@ export default function AdminCompanyDetailPage() {
   // dupa o decizie reusita starea se reincarca; pana atunci butoanele raman oprite (fara dubla trimitere)
   const decided = approve.isSuccess || reject.isSuccess;
   const reasonOk = reason.trim().length >= REJECT_REASON_MIN;
+  const unsuspendReasonOk = unsuspendReason.trim().length >= UNSUSPEND_REASON_MIN;
 
   const filled = (v: string | null | undefined) => !!v && v.trim().length > 0;
   const identityComplete = [c.name, c.cui, c.regComNumber, c.addressText, c.city, c.county].every(filled);
@@ -91,7 +98,7 @@ export default function AdminCompanyDetailPage() {
   const teamOk = c.members.length > 0 && c.locations.length > 0;
   const portfolioOk = c.portfolio.length > 0;
 
-  const dateTime = (iso: string) => format.dateTime(new Date(iso), { dateStyle: 'medium', timeStyle: 'short' });
+  const dateTime = (iso: string) => format.dateTime(new Date(iso), { dateStyle: 'medium', timeStyle: 'short', timeZone: APP_TIME_ZONE });
 
   const openDecision = (kind: Decision) => {
     approve.reset();
@@ -108,8 +115,9 @@ export default function AdminCompanyDetailPage() {
   const runDecision = () => {
     if (decision === 'approve') approve.mutate(id, { onSuccess: onDecided });
     else if (decision === 'reject') reject.mutate({ id, reason }, { onSuccess: onDecided });
-    else unsuspend.mutate(id, { onSuccess: onDecided });
+    else if (unsuspendReasonOk) unsuspend.mutate({ id, reason: unsuspendReason }, { onSuccess: onDecided });
   };
+  const confirmDisabled = busy || (decision === 'unsuspend' && !unsuspendReasonOk);
   const dialogError =
     decision === 'approve' ? approve.isError : decision === 'reject' ? reject.isError : unsuspend.isError;
 
@@ -192,7 +200,7 @@ export default function AdminCompanyDetailPage() {
             emptyTitle={t('portfolioEmptyTitle')}
             emptyHint={t('portfolioEmptyHint')}
             items={c.portfolio}
-            formatDate={(iso) => format.dateTime(new Date(iso), { dateStyle: 'medium' })}
+            formatDate={(iso) => format.dateTime(new Date(iso), { dateStyle: 'medium', timeZone: APP_TIME_ZONE })}
           />
         </div>
 
@@ -235,7 +243,7 @@ export default function AdminCompanyDetailPage() {
           )}
           {unsuspend.isSuccess && (
             <Alert tone="sage" role="status">
-              {t('unsuspended')}
+              {t('unsuspended')} {t('unsuspendPointsCancelled', { points: unsuspend.data.penaltyPoints })}
             </Alert>
           )}
 
@@ -309,7 +317,7 @@ export default function AdminCompanyDetailPage() {
               {c.suspendedUntil && (
                 <p className="text-sm">
                   {tc('suspendedNotice', {
-                    until: format.dateTime(new Date(c.suspendedUntil), { dateStyle: 'medium' }),
+                    until: format.dateTime(new Date(c.suspendedUntil), { dateStyle: 'medium', timeZone: APP_TIME_ZONE }),
                   })}
                 </p>
               )}
@@ -346,6 +354,25 @@ export default function AdminCompanyDetailPage() {
               </p>
             </div>
           )}
+          {decision === 'unsuspend' && (
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor={unsuspendReasonId} className="text-ui font-medium">
+                {t('unsuspendReason')}
+              </label>
+              <Textarea
+                id={unsuspendReasonId}
+                rows={3}
+                maxLength={1000}
+                value={unsuspendReason}
+                onChange={(e) => setUnsuspendReason(e.target.value)}
+                aria-describedby={unsuspendHintId}
+                disabled={busy}
+              />
+              <p id={unsuspendHintId} className="text-xs text-muted-foreground">
+                {t('unsuspendHint', { min: UNSUSPEND_REASON_MIN })}
+              </p>
+            </div>
+          )}
           {dialogError && (
             <p role="alert" className="mt-3 text-sm text-crimson">
               {decision === 'unsuspend' ? t('unsuspendError') : t('actionError')}
@@ -358,7 +385,7 @@ export default function AdminCompanyDetailPage() {
             <Button
               variant={decision === 'reject' ? 'destructive' : 'default'}
               size="lg"
-              disabled={busy}
+              disabled={confirmDisabled}
               onClick={runDecision}
             >
               {t(`confirm.${decision}.cta`)}

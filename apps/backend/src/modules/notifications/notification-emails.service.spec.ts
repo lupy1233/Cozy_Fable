@@ -1005,3 +1005,80 @@ describe('review.created sub 3 stele', () => {
     expect(all).not.toMatch(/public/i);
   });
 });
+
+// Etapa 12 (adaos): subiectul e text simplu → valorile NU se escapeaza HTML (altfel „Lemn & Stil”
+// ajunge „Lemn &amp;amp; Stil”), doar se curata randurile noi / caracterele de control si se taie.
+// Corpul ramane escapat exact ca inainte.
+describe('etapa 12: subiectele e-mailurilor sunt text curat, corpul ramane escapat', () => {
+  const dirtyTitle = 'Dulap "hol" & <script>alert(1)</script>\r\nBcc: x@y.ro';
+  const cleanTitle = 'Dulap "hol" & <script>alert(1)</script> Bcc: x@y.ro';
+  const dirtyCompany = 'Lemn & Stil\n<b>SRL</b>';
+  const cleanCompany = 'Lemn & Stil <b>SRL</b>';
+  const payload = {
+    clientUserId: 'u-client',
+    requestId: 'r1',
+    requestTitle: dirtyTitle,
+    companyName: dirtyCompany,
+    companyId: 'c1',
+  };
+  const expectBodyEscaped = (html: string) => {
+    expect(html).not.toContain('<script>');
+    expect(html).not.toContain('&amp;amp;');
+    expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(html).toContain('&quot;hol&quot; &amp;');
+  };
+
+  it('quote.created: subiectul are titlul curat, corpul e escapat', async () => {
+    const { service, mail } = makeService([radu]);
+    await service.sendForEvent('quote.created', ['u-client'], payload);
+    const [, subject, html] = mail.send.mock.calls[0];
+    expect(subject).toBe(`Ofertă nouă la cererea ta — ${cleanTitle}`);
+    expect(subject).not.toMatch(/&amp;|&lt;|&quot;|[\r\n]/);
+    expectBodyEscaped(html);
+    expect(html).toContain('Lemn &amp; Stil');
+  });
+
+  it('message.created de la firma: subiectul are numele firmei curat (EN)', async () => {
+    const { service, mail } = makeService([{ ...radu, languagePreference: 'EN' }]);
+    await service.sendForEvent('message.created', ['u-client'], { ...payload, senderRole: 'COMPANY', senderUserId: 'm1' });
+    const [, subject, html] = mail.send.mock.calls[0];
+    expect(subject).toBe(`New message — ${cleanCompany}`);
+    expect(html).toContain('Lemn &amp; Stil');
+    expect(html).toContain('&lt;b&gt;SRL&lt;/b&gt;');
+  });
+
+  it('clarification.asked: firma si titlul in subiect, ambele curate', async () => {
+    const { service, mail } = makeService([radu]);
+    await service.sendForEvent('clarification.asked', ['u-client'], { ...payload, actorUserId: 'm1' });
+    const [, subject, html] = mail.send.mock.calls[0];
+    expect(subject).toBe(`Firma ${cleanCompany} are o întrebare la cererea ta — ${cleanTitle}`);
+    expect(html).not.toContain('<b>SRL</b>');
+  });
+
+  it('request.expired: subiectul fara entitati HTML, corpul escapat', async () => {
+    const { service, mail } = makeService([radu]);
+    await service.sendForEvent('request.expired', ['u-client'], payload);
+    const [, subject, html] = mail.send.mock.calls[0];
+    expect(subject).toBe(`Cererea ta a expirat — ${cleanTitle}`);
+    expect(html).not.toContain('<script>');
+  });
+
+  it('request.no_coverage: localitatea curata in subiect, escapata in corp', async () => {
+    const admin = { id: 'a1', email: 'admin@demo.ro', name: 'Admin', languagePreference: 'RO' };
+    const { service, mail } = makeService([admin]);
+    await service.sendForEvent('request.no_coverage', ['a1'], { ...payload, city: 'Iași & <i>Copou</i>', county: 'Iași\n' });
+    const [, subject, html] = mail.send.mock.calls[0];
+    expect(subject).toBe('Cerere nouă fără nicio firmă în zonă — Iași & <i>Copou</i>, Iași');
+    expect(html).toContain('Iași &amp; &lt;i&gt;Copou&lt;/i&gt;');
+  });
+
+  it('un titlu foarte lung se taie in subiect (fara sa atinga corpul)', async () => {
+    const { service, mail } = makeService([radu]);
+    const long = 'A'.repeat(300);
+    await service.sendForEvent('quote.created', ['u-client'], { ...payload, requestTitle: long });
+    const [, subject, html] = mail.send.mock.calls[0];
+    expect(subject.length).toBeLessThan(200);
+    expect(subject.endsWith('…')).toBe(true);
+    expect(html).toContain(long);
+  });
+});

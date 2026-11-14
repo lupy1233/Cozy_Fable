@@ -112,7 +112,8 @@ export function PlayingCard({
                 ref={infoButton}
                 type="button"
                 onClick={() => setFlipped(true)}
-                aria-label={t('info.showInfo')}
+                // m1 (etapa 12): numele spune a cui optiune e (ca la cartonasele mici)
+                aria-label={typeof title === 'string' ? t('info.showInfoFor', { option: title }) : t('info.showInfo')}
                 className="absolute right-2.5 top-2.5 grid h-7 w-7 place-items-center rounded-full bg-surface/80 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:bg-walnut-soft hover:text-walnut"
               >
                 <Info className="h-4 w-4" />

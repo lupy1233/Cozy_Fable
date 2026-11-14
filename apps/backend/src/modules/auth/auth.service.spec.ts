@@ -605,3 +605,110 @@ describe('blocare login per email (E-admin-platform-5)', () => {
     expect(lockout.clear).toHaveBeenCalledWith('ana@demo.ro', { includeLock: true });
   });
 });
+
+// f5 (etapa 12): anuntul „Parola ta a fost schimbata” dupa resetare si dupa schimbarea din cont.
+describe('e-mailul „Parola ta a fost schimbată” (f5)', () => {
+  const changedMail = (mail: { send: jest.Mock }) =>
+    mail.send.mock.calls.find((c) => /Parola ta a fost schimbată|Your password was changed/.test(String(c[1])));
+
+  afterEach(() => jest.useRealTimers());
+
+  it('reset valid → al doilea e-mail = confirmarea, cu data si ora Romaniei, reply-to suport, fara token', async () => {
+    jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] });
+    // 14.11.2026 13:05 UTC = 15:05 in Romania (EET, UTC+2)
+    jest.setSystemTime(new Date('2026-11-14T13:05:00Z'));
+    const { service, mail, tokens } = makeService();
+    mail.supportEmail = 'suport@cozyhome.ro';
+    await service.forgotPassword('ana@demo.ro');
+    const raw = tokenFromMail(mail, '/ro/reset-password');
+    await service.resetPassword(raw, 'NouaParola1');
+    expect(mail.send).toHaveBeenCalledTimes(2);
+    const [to, subject, html, opts] = mail.send.mock.calls[1];
+    expect(to).toBe('ana@demo.ro');
+    expect(subject).toBe('Parola ta a fost schimbată — Cozy Home');
+    expect(opts).toEqual({ replyToSupport: true });
+    expect(html).toContain('pe 14 noiembrie 2026, la ora 15:05 (ora României)');
+    // m19: cu adresa de suport configurata, „scrie-ne” vine cu adresa
+    expect(html).toContain('Dacă nu ai fost tu, resetează parola și scrie-ne la suport@cozyhome.ro (sau răspunde direct la acest email).');
+    expect(html).toContain('http://localhost:3000/ro/forgot-password');
+    expect(html).toContain('Ana &lt;b&gt;Popescu&lt;/b&gt;');
+    expect(html).not.toContain(raw);
+    expect(html).not.toContain('NouaParola1');
+    // sesiunile se revoca la fel ca inainte
+    expect(tokens.revokeAllForUser).toHaveBeenCalledWith('u1');
+  });
+
+  it('SMTP cazut la confirmare → resetarea reuseste totusi (parola schimbata, sesiuni revocate)', async () => {
+    const { service, mail, prisma, tokens, eventBus } = makeService();
+    await service.forgotPassword('ana@demo.ro');
+    const raw = tokenFromMail(mail, '/ro/reset-password');
+    mail.send.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+    await expect(service.resetPassword(raw, 'NouaParola1')).resolves.toBeUndefined();
+    expect(prisma.user.update).toHaveBeenCalledTimes(1);
+    expect(tokens.revokeAllForUser).toHaveBeenCalledWith('u1');
+    expect(eventBus.emitAuthExpired).toHaveBeenCalledWith('u1');
+  });
+
+  it('schimbarea din cont → trimite confirmarea; contul EN primeste textul in engleza', async () => {
+    jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] });
+    jest.setSystemTime(new Date('2026-07-01T21:30:00Z')); // 02.07 00:30 in Romania (EEST, UTC+3)
+    const { service, mail } = makeService(makeUser({ languagePreference: 'EN' }));
+    await service.changePassword('u1', 'Parola123', 'NouaParola1');
+    const call = changedMail(mail);
+    expect(call).toBeDefined();
+    const [to, subject, html, opts] = call ?? [];
+    expect(to).toBe('ana@demo.ro');
+    expect(subject).toBe('Your password was changed — Cozy Home');
+    expect(html).toContain('on 2 July 2026 at 00:30 (Romania time)');
+    // m19: fara SUPPORT_EMAIL nu promitem „write to us” fara adresa
+    expect(html).toContain("If this wasn't you, reset your password.");
+    expect(html).not.toContain('write to us');
+    expect(html).toContain('/en/forgot-password');
+    expect(opts).toEqual({ replyToSupport: true });
+    expect(html).not.toContain('NouaParola1');
+  });
+
+  it('schimbarea din cont cu SMTP cazut → raspunsul ramane cel de azi (sesiunea curenta noua)', async () => {
+    const { service, mail, tokens } = makeService();
+    mail.send.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+    await expect(service.changePassword('u1', 'Parola123', 'NouaParola1')).resolves.toEqual({
+      accessToken: 'access-jwt',
+      refreshToken: 'raw-refresh',
+    });
+    expect(tokens.issueNewFamily).toHaveBeenCalledWith('u1', expect.any(String), { revokeAll: true });
+  });
+
+  it('parola curenta gresita → niciun e-mail', async () => {
+    const { service, mail } = makeService();
+    await expect(service.changePassword('u1', 'Gresita123', 'NouaParola1')).rejects.toBeInstanceOf(BadRequestException);
+    expect(mail.send).not.toHaveBeenCalled();
+  });
+
+  it('token invalid sau expirat → niciun e-mail de confirmare (revizie)', async () => {
+    const { service, mail, redis } = makeService();
+    await expect(service.resetPassword('f'.repeat(64), 'NouaParola1')).rejects.toBeInstanceOf(BadRequestException);
+    expect(mail.send).not.toHaveBeenCalled();
+    await service.forgotPassword('ana@demo.ro');
+    const raw = tokenFromMail(mail, '/ro/reset-password');
+    redis.store.clear(); // TTL expirat
+    await expect(service.resetPassword(raw, 'NouaParola1')).rejects.toBeInstanceOf(BadRequestException);
+    // doar e-mailul cu linkul, fara confirmare
+    expect(mail.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('m19: fara adresa de suport (RO) → „Dacă nu ai fost tu, resetează parola.” fara „scrie-ne”', async () => {
+    const { service, mail } = makeService();
+    await service.changePassword('u1', 'Parola123', 'NouaParola1');
+    const [, , html] = changedMail(mail) ?? [];
+    expect(html).toContain('Dacă nu ai fost tu, resetează parola.');
+    expect(html).not.toContain('scrie-ne');
+  });
+
+  it('m19: cu adresa de suport (EN) → adresa apare in text, escapata', async () => {
+    const { service, mail } = makeService(makeUser({ languagePreference: 'EN' }));
+    mail.supportEmail = 'help+a&b@cozyhome.ro';
+    await service.changePassword('u1', 'Parola123', 'NouaParola1');
+    const [, , html] = changedMail(mail) ?? [];
+    expect(html).toContain("If this wasn't you, reset your password and write to us at help+a&amp;b@cozyhome.ro (or simply reply to this email).");
+  });
+});

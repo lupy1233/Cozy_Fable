@@ -223,11 +223,10 @@ function Breakdown({ title, rows }: { title: string; rows: BreakdownRow[] }) {
               <span className="flex items-baseline justify-between gap-2.5 text-ui">
                 <span className="min-w-0">
                   {r.label ? (
-                    <>
+                    // codul tehnic doar in tooltip (etapa 12, k2)
+                    <span title={r.code} data-code={r.code}>
                       {r.label}
-                      {/* codul tehnic, mic, langa eticheta tradusa */}
-                      <span className="ml-1.5 font-mono text-micro text-muted-foreground">{r.code}</span>
-                    </>
+                    </span>
                   ) : (
                     <span className="font-mono text-xs">{r.code}</span>
                   )}

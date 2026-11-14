@@ -193,10 +193,17 @@ function esc(v: unknown): string {
 }
 
 // m9 (revizuire h1): subiectul NU e HTML (nodemailer il trimite ca text) → fara esc(), dar fara
-// caractere de control / randuri noi. Folosit deocamdata doar la company.member_added.
-function subjectText(v: unknown): string {
-  // eslint-disable-next-line no-control-regex
-  return String(v ?? '').replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim();
+// caractere de control / randuri noi (anti injectie de antete). Etapa 12: folosit pentru TOATE
+// valorile din subiecte (titlul cererii, numele firmei, referinta platii, localitatea); corpul
+// ramane escapat cu esc(). Valoarea se taie la SUBJECT_VALUE_MAX caractere.
+export const SUBJECT_VALUE_MAX = 120;
+export function subjectText(v: unknown): string {
+  const clean = String(v ?? '')
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return clean.length > SUBJECT_VALUE_MAX ? `${clean.slice(0, SUBJECT_VALUE_MAX - 1).trimEnd()}…` : clean;
 }
 
 interface EmailContent {
@@ -518,6 +525,10 @@ export class NotificationEmailsService {
   ): EmailContent | null {
     const requestTitle = esc(payload.requestTitle);
     const companyName = esc(payload.companyName);
+    // etapa 12: subiectul e text simplu → valorile NEescapate, doar curatate (subjectText)
+    const subjTitle = subjectText(payload.requestTitle);
+    const subjCompany = subjectText(payload.companyName);
+    const subjRef = subjectText(extras?.orderRef);
     const requestId = String(payload.requestId ?? '');
     const claimSlotId = String(payload.claimSlotId ?? '');
     const ro = lang === 'ro';
@@ -529,8 +540,8 @@ export class NotificationEmailsService {
       case 'quote.created':
         return {
           subject: ro
-            ? `Ofertă nouă la cererea ta — ${requestTitle}`
-            : `New offer on your request — ${requestTitle}`,
+            ? `Ofertă nouă la cererea ta — ${subjTitle}`
+            : `New offer on your request — ${subjTitle}`,
           intro: ro
             ? `Firma <strong>${companyName}</strong> ți-a trimis o ofertă pentru „${requestTitle}”.`
             : `The company <strong>${companyName}</strong> sent you an offer for “${requestTitle}”.`,
@@ -544,8 +555,8 @@ export class NotificationEmailsService {
           const label = Number.isFinite(n) && n > 0 ? (ro ? ` (varianta ${n})` : ` (version ${n})`) : '';
           return {
             subject: ro
-              ? `Variantă nouă a ofertei — ${requestTitle}`
-              : `New version of an offer — ${requestTitle}`,
+              ? `Variantă nouă a ofertei — ${subjTitle}`
+              : `New version of an offer — ${subjTitle}`,
             intro: ro
               ? `Firma <strong>${companyName}</strong> ți-a trimis o variantă nouă a ofertei${label} pentru „${requestTitle}”. Variantele anterioare rămân vizibile, ca să le poți compara.`
               : `The company <strong>${companyName}</strong> sent you a new version of its offer${label} for “${requestTitle}”. The earlier versions stay visible so you can compare them.`,
@@ -556,8 +567,8 @@ export class NotificationEmailsService {
         if (payload.kind === 'CHANGE_REQUESTED') {
           return {
             subject: ro
-              ? `Clientul cere o modificare a ofertei — ${requestTitle}`
-              : `The client asks for a change to your offer — ${requestTitle}`,
+              ? `Clientul cere o modificare a ofertei — ${subjTitle}`
+              : `The client asks for a change to your offer — ${subjTitle}`,
             intro: ro
               ? `Clientul a cerut o modificare a ofertei firmei <strong>${companyName}</strong> pentru „${requestTitle}”. Cererea apare și în conversație. Poți trimite o variantă nouă sau poți refuza modificarea din fișa preluării.`
               : `The client asked for a change to <strong>${companyName}</strong>'s offer for “${requestTitle}”. The request also appears in the conversation. You can send a new version or decline the change from the claim page.`,
@@ -581,8 +592,8 @@ export class NotificationEmailsService {
           : '';
         return {
           subject: ro
-            ? `Clientul a refuzat oferta — ${requestTitle}`
-            : `The client declined your offer — ${requestTitle}`,
+            ? `Clientul a refuzat oferta — ${subjTitle}`
+            : `The client declined your offer — ${subjTitle}`,
           intro: ro
             ? `Clientul a refuzat oferta firmei <strong>${companyName}</strong> pentru „${requestTitle}”, așa că preluarea s-a închis.${reasonLine}${noteLine}${creditsLine}`
             : `The client declined <strong>${companyName}</strong>'s offer for “${requestTitle}”, so the claim was closed.${reasonLine}${noteLine}${creditsLine}`,
@@ -593,8 +604,8 @@ export class NotificationEmailsService {
       case 'claim.created':
         return {
           subject: ro
-            ? `Cererea ta a fost preluată — ${requestTitle}`
-            : `Your request was claimed — ${requestTitle}`,
+            ? `Cererea ta a fost preluată — ${subjTitle}`
+            : `Your request was claimed — ${subjTitle}`,
           intro: ro
             ? `Firma <strong>${companyName}</strong> a preluat cererea ta „${requestTitle}” și o poate oferta.`
             : `The company <strong>${companyName}</strong> claimed your request “${requestTitle}” and can now quote it.`,
@@ -607,8 +618,8 @@ export class NotificationEmailsService {
         const isClientRecipient = fromCompany || payload.clientUserId === recipientId;
         return {
           subject: ro
-            ? `Mesaj nou — ${fromCompany ? companyName : requestTitle}`
-            : `New message — ${fromCompany ? companyName : requestTitle}`,
+            ? `Mesaj nou — ${fromCompany ? subjCompany : subjTitle}`
+            : `New message — ${fromCompany ? subjCompany : subjTitle}`,
           intro: ro
             ? fromCompany
               ? `Ai un mesaj nou de la <strong>${companyName}</strong> la cererea „${requestTitle}”.`
@@ -628,8 +639,8 @@ export class NotificationEmailsService {
       case 'quote.accepted':
         return {
           subject: ro
-            ? `Oferta ta a fost acceptată — ${requestTitle}`
-            : `Your offer was accepted — ${requestTitle}`,
+            ? `Oferta ta a fost acceptată — ${subjTitle}`
+            : `Your offer was accepted — ${subjTitle}`,
           intro: ro
             ? `Clientul a acceptat oferta firmei <strong>${companyName}</strong> pentru „${requestTitle}”. Stabiliți detaliile execuției în conversație.`
             : `The client accepted <strong>${companyName}</strong>'s offer for “${requestTitle}”. Agree on the execution details in the conversation.`,
@@ -642,8 +653,8 @@ export class NotificationEmailsService {
         if (reason === 'PROJECT_CANCELLED') {
           return {
             subject: ro
-              ? `Comanda a fost anulată — ${requestTitle}`
-              : `The order was cancelled — ${requestTitle}`,
+              ? `Comanda a fost anulată — ${subjTitle}`
+              : `The order was cancelled — ${subjTitle}`,
             intro: ro
               ? `Echipa Cozy Home a închis comanda „${requestTitle}”. ${
                   settledRefund
@@ -662,8 +673,8 @@ export class NotificationEmailsService {
         if (reason === 'OFFER_EXPIRED_UNDECIDED') {
           return {
             subject: ro
-              ? `Preluare închisă — oferta a expirat — ${requestTitle}`
-              : `Claim closed — the offer expired — ${requestTitle}`,
+              ? `Preluare închisă — oferta a expirat — ${subjTitle}`
+              : `Claim closed — the offer expired — ${subjTitle}`,
             intro: ro
               ? `Oferta ta pentru „${requestTitle}” a expirat fără o decizie a clientului, așa că preluarea s-a închis automat. ${
                   settledRefund ? 'Creditele rezervate ți-au fost returnate.' : 'Creditele rezervate s-au consumat.'
@@ -678,8 +689,8 @@ export class NotificationEmailsService {
         if (reason === 'SLA_EXPIRED') {
           return {
             subject: ro
-              ? `Termenul de răspuns a fost depășit — ${requestTitle}`
-              : `The response deadline was missed — ${requestTitle}`,
+              ? `Termenul de răspuns a fost depășit — ${subjTitle}`
+              : `The response deadline was missed — ${subjTitle}`,
             intro: ro
               ? `Preluarea cererii „${requestTitle}” s-a închis pentru că termenul de răspuns a fost depășit. Creditele rezervate s-au consumat, iar firma a primit puncte de penalizare.`
               : `Your claim on “${requestTitle}” closed because the response deadline was missed. The reserved credits were consumed and the company received penalty points.`,
@@ -691,8 +702,8 @@ export class NotificationEmailsService {
         const refunded = payload.refunded === true;
         return {
           subject: ro
-            ? `Clientul a ales altă ofertă — ${requestTitle}`
-            : `The client chose another offer — ${requestTitle}`,
+            ? `Clientul a ales altă ofertă — ${subjTitle}`
+            : `The client chose another offer — ${subjTitle}`,
           intro: ro
             ? `Cererea „${requestTitle}” a fost atribuită altei firme. ${
                 refunded
@@ -711,8 +722,8 @@ export class NotificationEmailsService {
       case 'delivery.marked':
         return {
           subject: ro
-            ? `Comanda a fost livrată — confirmă primirea — ${requestTitle}`
-            : `Your order was delivered — confirm receipt — ${requestTitle}`,
+            ? `Comanda a fost livrată — confirmă primirea — ${subjTitle}`
+            : `Your order was delivered — confirm receipt — ${subjTitle}`,
           intro: ro
             ? `Firma <strong>${companyName}</strong> a marcat livrarea la „${requestTitle}”. Confirmă primirea ca să finalizezi comanda și să poți lăsa o recenzie.`
             : `The company <strong>${companyName}</strong> marked “${requestTitle}” as delivered. Confirm receipt to complete the order and leave a review.`,
@@ -768,8 +779,8 @@ export class NotificationEmailsService {
         const approved = payload.approved === true;
         return {
           subject: ro
-            ? `Retragerea preluării a fost ${approved ? 'aprobată' : 'respinsă'} — ${requestTitle}`
-            : `Your claim withdrawal was ${approved ? 'approved' : 'rejected'} — ${requestTitle}`,
+            ? `Retragerea preluării a fost ${approved ? 'aprobată' : 'respinsă'} — ${subjTitle}`
+            : `Your claim withdrawal was ${approved ? 'approved' : 'rejected'} — ${subjTitle}`,
           intro: ro
             ? approved
               ? `Retragerea preluării la „${requestTitle}” a fost aprobată — creditele rezervate ți-au fost returnate.`
@@ -837,8 +848,8 @@ export class NotificationEmailsService {
         if (type === 'payment.transfer_instructions') {
           return {
             subject: ro
-              ? `Datele pentru plata prin transfer — plata ${ref}`
-              : `Bank transfer details — payment ${ref}`,
+              ? `Datele pentru plata prin transfer — plata ${subjRef}`
+              : `Bank transfer details — payment ${subjRef}`,
             intro: ro
               ? `Plata <strong>${ref}</strong> (${what}) așteaptă transferul bancar:${details}${attached}${attached ? '' : '<br/><br/>'}${activate}`
               : `Payment <strong>${ref}</strong> (${what}) is awaiting your bank transfer:${details}${attached}${attached ? '' : '<br/><br/>'}${activate}`,
@@ -853,7 +864,7 @@ export class NotificationEmailsService {
             : `<br/><br/>If the money doesn't arrive by ${esc(cancelAt)}, the pending payment is cancelled automatically.`
           : '';
         return {
-          subject: ro ? `Plata ${ref} așteaptă transferul` : `Payment ${ref} is awaiting your transfer`,
+          subject: ro ? `Plata ${subjRef} așteaptă transferul` : `Payment ${subjRef} is awaiting your transfer`,
           intro: ro
             ? `Plata <strong>${ref}</strong> (${what}) așteaptă încă transferul bancar:${details}${attached}${cancelLine}<br/><br/>Dacă ai plătit deja, apasă „Am plătit” în portofel.`
             : `Payment <strong>${ref}</strong> (${what}) is still awaiting your bank transfer:${details}${attached}${cancelLine}<br/><br/>If you've already paid, press “I've paid” in your wallet.`,
@@ -866,8 +877,8 @@ export class NotificationEmailsService {
         const n = Number(payload.expiryDays ?? 0);
         return {
           subject: ro
-            ? `Plata ${ref} a fost anulată — banii nu au ajuns`
-            : `Payment ${ref} was cancelled — money not received`,
+            ? `Plata ${subjRef} a fost anulată — banii nu au ajuns`
+            : `Payment ${subjRef} was cancelled — money not received`,
           intro: ro
             ? `Nu am primit banii în ${n} ${n === 1 ? 'zi' : 'zile'}, așa că am anulat plata în așteptare <strong>${ref}</strong>. Dacă ai plătit deja, răspunde la acest email și verificăm.<br/><br/>Poți porni oricând o plată nouă din portofel.`
             : `We didn't receive the money within ${n} ${n === 1 ? 'day' : 'days'}, so we cancelled the pending payment <strong>${ref}</strong>. If you've already paid, reply to this email and we'll check.<br/><br/>You can start a new payment from your wallet at any time.`,
@@ -895,8 +906,8 @@ export class NotificationEmailsService {
       case 'delivery.autocompleted':
         return {
           subject: ro
-            ? `Comanda a fost finalizată automat — ${requestTitle}`
-            : `Your order was completed automatically — ${requestTitle}`,
+            ? `Comanda a fost finalizată automat — ${subjTitle}`
+            : `Your order was completed automatically — ${subjTitle}`,
           intro: ro
             ? `Au trecut 14 zile de la livrarea „${requestTitle}” fără o confirmare, așa că am finalizat comanda automat. Poți lăsa o recenzie despre colaborare.`
             : `14 days passed since “${requestTitle}” was delivered without a confirmation, so we completed the order automatically. You can leave a review about the collaboration.`,
@@ -935,7 +946,7 @@ export class NotificationEmailsService {
       case 'quote.expired': {
         const autoClose = formatInstant(payload.autoCloseAt, ro);
         return {
-          subject: ro ? `O ofertă a expirat — ${requestTitle}` : `An offer has expired — ${requestTitle}`,
+          subject: ro ? `O ofertă a expirat — ${subjTitle}` : `An offer has expired — ${subjTitle}`,
           intro: ro
             ? `Oferta firmei <strong>${companyName}</strong> pentru „${requestTitle}” a expirat și nu mai poate fi acceptată. Poți cere firmei să o prelungească din pagina ofertelor.${
                 autoClose ? ` Dacă nu se întâmplă nimic până pe ${esc(autoClose)}, preluarea firmei se închide automat.` : ''
@@ -950,8 +961,8 @@ export class NotificationEmailsService {
       case 'quote.expired_closed':
         return {
           subject: ro
-            ? `O ofertă expirată a fost închisă — ${requestTitle}`
-            : `An expired offer was closed — ${requestTitle}`,
+            ? `O ofertă expirată a fost închisă — ${subjTitle}`
+            : `An expired offer was closed — ${subjTitle}`,
           intro: ro
             ? `Oferta firmei <strong>${companyName}</strong> pentru „${requestTitle}” a expirat fără o decizie și a fost închisă. Cererea ta rămâne activă.`
             : `The offer from <strong>${companyName}</strong> for “${requestTitle}” expired without a decision and was closed. Your request stays active.`,
@@ -961,8 +972,8 @@ export class NotificationEmailsService {
       case 'quote.extension_requested':
         return {
           subject: ro
-            ? `Clientul cere prelungirea ofertei — ${requestTitle}`
-            : `The client asks to extend the offer — ${requestTitle}`,
+            ? `Clientul cere prelungirea ofertei — ${subjTitle}`
+            : `The client asks to extend the offer — ${subjTitle}`,
           intro: ro
             ? `Clientul a cerut prelungirea ofertei expirate a firmei <strong>${companyName}</strong> pentru „${requestTitle}”. Poți prelungi valabilitatea sau trimite o ofertă nouă din fișa preluării.`
             : `The client asked <strong>${companyName}</strong> to extend its expired offer for “${requestTitle}”. You can extend the validity or send a new offer from the claim page.`,
@@ -974,8 +985,8 @@ export class NotificationEmailsService {
         if (payload.reason === 'WARRANTY_CLAIM') {
           return {
             subject: ro
-              ? `Clientul a raportat o problemă după finalizare — ${requestTitle}`
-              : `The client reported a problem after completion — ${requestTitle}`,
+              ? `Clientul a raportat o problemă după finalizare — ${subjTitle}`
+              : `The client reported a problem after completion — ${subjTitle}`,
             intro: ro
               ? `Clientul a raportat o problemă cu mobilierul livrat pentru „${requestTitle}”. Echipa Cozy Home analizează raportul și te contactează.`
               : `The client reported a problem with the furniture delivered for “${requestTitle}”. The Cozy Home team is reviewing the report and will contact you.`,
@@ -986,8 +997,8 @@ export class NotificationEmailsService {
         const toClient = payload.openedBy === 'COMPANY';
         return {
           subject: ro
-            ? `S-a raportat o problemă cu comanda — ${requestTitle}`
-            : `A problem was reported with the order — ${requestTitle}`,
+            ? `S-a raportat o problemă cu comanda — ${subjTitle}`
+            : `A problem was reported with the order — ${subjTitle}`,
           intro: ro
             ? `${
                 toClient ? `Firma <strong>${companyName}</strong>` : 'Clientul'
@@ -1002,8 +1013,8 @@ export class NotificationEmailsService {
       case 'project.cancelled':
         return {
           subject: ro
-            ? `Comanda a fost anulată — ${requestTitle}`
-            : `The order was cancelled — ${requestTitle}`,
+            ? `Comanda a fost anulată — ${subjTitle}`
+            : `The order was cancelled — ${subjTitle}`,
           intro: ro
             ? `Echipa Cozy Home a închis comanda „${requestTitle}” cu firma <strong>${companyName}</strong>.`
             : `The Cozy Home team closed the order “${requestTitle}” with <strong>${companyName}</strong>.`,
@@ -1014,8 +1025,8 @@ export class NotificationEmailsService {
         const date = esc(formatDateOnly(payload.deliveryDate, ro));
         return {
           subject: ro
-            ? `Se apropie data livrării — ${requestTitle}`
-            : `The delivery date is coming up — ${requestTitle}`,
+            ? `Se apropie data livrării — ${subjTitle}`
+            : `The delivery date is coming up — ${subjTitle}`,
           intro: ro
             ? `Data de livrare stabilită în oferta acceptată pentru „${requestTitle}” este ${date}. Dacă termenul se schimbă, anunță clientul în conversație.`
             : `The delivery date agreed in the accepted offer for “${requestTitle}” is ${date}. If the date changes, let the client know in the conversation.`,
@@ -1028,8 +1039,8 @@ export class NotificationEmailsService {
         const isClientRecipient = payload.clientUserId === recipientId;
         return {
           subject: ro
-            ? `Data de livrare a trecut — ${requestTitle}`
-            : `The delivery date has passed — ${requestTitle}`,
+            ? `Data de livrare a trecut — ${subjTitle}`
+            : `The delivery date has passed — ${subjTitle}`,
           intro: ro
             ? `Data de livrare din oferta acceptată pentru „${requestTitle}” (${date}) a trecut. Stabiliți în conversație noul termen.`
             : `The delivery date in the accepted offer for “${requestTitle}” (${date}) has passed. Agree on a new date in the conversation.`,
@@ -1041,8 +1052,8 @@ export class NotificationEmailsService {
       case 'request.company_withdrew':
         return {
           subject: ro
-            ? `O firmă a renunțat la cererea ta — ${requestTitle}`
-            : `A company stepped back from your request — ${requestTitle}`,
+            ? `O firmă a renunțat la cererea ta — ${subjTitle}`
+            : `A company stepped back from your request — ${subjTitle}`,
           intro: ro
             ? `O firmă a renunțat la cererea „${requestTitle}”. Cererea e din nou disponibilă pentru alte firme; nu trebuie să faci nimic.`
             : `A company stepped back from your request “${requestTitle}”. The request is available to other companies again; you don't need to do anything.`,
@@ -1052,8 +1063,8 @@ export class NotificationEmailsService {
       case 'request.expired':
         return {
           subject: ro
-            ? `Cererea ta a expirat — ${requestTitle}`
-            : `Your request expired — ${requestTitle}`,
+            ? `Cererea ta a expirat — ${subjTitle}`
+            : `Your request expired — ${subjTitle}`,
           intro: ro
             ? `Cererea „${requestTitle}” a stat 5 zile lucrătoare la dispoziția firmelor din zonă fără să fie preluată și a expirat. O poți republica din pagina cererii.`
             : `Your request “${requestTitle}” was open to companies in your area for 5 working days without being claimed and has expired. You can repost it from the request page.`,
@@ -1065,8 +1076,8 @@ export class NotificationEmailsService {
         const date = esc(formatDateTime(payload.expiresAt, ro));
         return {
           subject: ro
-            ? `Cererea ta expiră curând — ${requestTitle}`
-            : `Your request expires soon — ${requestTitle}`,
+            ? `Cererea ta expiră curând — ${subjTitle}`
+            : `Your request expires soon — ${subjTitle}`,
           intro: ro
             ? `Nicio firmă nu a preluat încă cererea „${requestTitle}”. Dacă rămâne nepreluată, expiră pe ${date}. Verifică dacă descrierea, dimensiunile și pozele sunt complete.`
             : `No company has claimed your request “${requestTitle}” yet. If it stays unclaimed, it expires on ${date}. Check that the description, measurements and photos are complete.`,
@@ -1079,8 +1090,8 @@ export class NotificationEmailsService {
         const date = esc(formatDateTime(payload.assignDeadlineAt, ro));
         return {
           subject: ro
-            ? `Atribuie preluarea — ${requestTitle}`
-            : `Assign the claim — ${requestTitle}`,
+            ? `Atribuie preluarea — ${subjTitle}`
+            : `Assign the claim — ${subjTitle}`,
           intro: ro
             ? `Preluarea cererii „${requestTitle}” nu este atribuită nimănui din echipă. Dacă nu o atribui până la ${date}, se anulează automat, iar creditele rezervate revin în portofel.`
             : `The claim on “${requestTitle}” isn't assigned to anyone on your team. If you don't assign it by ${date}, it is cancelled automatically and the reserved credits go back to your wallet.`,
@@ -1096,8 +1107,8 @@ export class NotificationEmailsService {
           const breachDate = esc(formatDateTime(payload.slaBreachAt, ro));
           return {
             subject: ro
-              ? `Termenul ofertei a trecut — ${requestTitle}`
-              : `Your offer deadline has passed — ${requestTitle}`,
+              ? `Termenul ofertei a trecut — ${subjTitle}`
+              : `Your offer deadline has passed — ${subjTitle}`,
             intro: ro
               ? `Termenul pentru oferta la „${requestTitle}” a trecut (${date}). Mai poți trimite oferta până la ${breachDate}, cât durează perioada de grație. După aceea, preluarea se închide, creditele rezervate se consumă și firma primește puncte de penalizare.`
               : `The deadline for your offer on “${requestTitle}” has passed (${date}). You can still send it until ${breachDate}, during the grace period. After that the claim closes, the reserved credits are consumed and your company gets penalty points.`,
@@ -1107,8 +1118,8 @@ export class NotificationEmailsService {
         }
         return {
           subject: ro
-            ? `Termenul ofertei se apropie — ${requestTitle}`
-            : `Your offer deadline is close — ${requestTitle}`,
+            ? `Termenul ofertei se apropie — ${subjTitle}`
+            : `Your offer deadline is close — ${subjTitle}`,
           intro: ro
             ? `Termenul pentru oferta la „${requestTitle}” este ${date}. Trimite oferta până atunci: după perioada de grație, preluarea se închide, creditele rezervate se consumă și firma primește puncte de penalizare.`
             : `The deadline for your offer on “${requestTitle}” is ${date}. Send it by then: after the grace period the claim closes, the reserved credits are consumed and your company gets penalty points.`,
@@ -1123,10 +1134,13 @@ export class NotificationEmailsService {
           .filter((v) => v.length > 0)
           .map((v) => esc(v))
           .join(', ');
+        const subjPlace = subjectText(
+          [payload.city, payload.county].filter((v) => typeof v === 'string' && v.trim().length > 0).join(', '),
+        );
         return {
           subject: ro
-            ? `Cerere nouă fără nicio firmă în zonă${place ? ` — ${place}` : ''}`
-            : `New request with no company in the area${place ? ` — ${place}` : ''}`,
+            ? `Cerere nouă fără nicio firmă în zonă${place ? ` — ${subjPlace}` : ''}`
+            : `New request with no company in the area${place ? ` — ${subjPlace}` : ''}`,
           intro: ro
             ? `Cererea „${requestTitle}”${place ? ` din <strong>${place}</strong>` : ''} a fost publicată, dar nicio firmă cu abonament activ nu lucrează pe raza ei. Clientul a fost anunțat că echipa caută o firmă în zonă.`
             : `The request “${requestTitle}”${place ? ` in <strong>${place}</strong>` : ''} was published, but no company with an active subscription works within its area. The client was told that the team is looking for a company there.`,
@@ -1139,8 +1153,8 @@ export class NotificationEmailsService {
         const until = esc(formatDateTime(payload.expiresAt, ro));
         return {
           subject: ro
-            ? `Cererea ta e publicată — ${requestTitle}`
-            : `Your request is published — ${requestTitle}`,
+            ? `Cererea ta e publicată — ${subjTitle}`
+            : `Your request is published — ${subjTitle}`,
           intro: ro
             ? `Cererea „${requestTitle}” e publicată, iar firmele din zona ta o pot vedea.${
                 until ? ` Rămâne disponibilă până pe ${until}.` : ''
@@ -1157,8 +1171,8 @@ export class NotificationEmailsService {
         const auto = payload.autoCompleted === true;
         return {
           subject: ro
-            ? `Comanda a fost finalizată — ${requestTitle}`
-            : `The order is completed — ${requestTitle}`,
+            ? `Comanda a fost finalizată — ${subjTitle}`
+            : `The order is completed — ${subjTitle}`,
           intro: ro
             ? auto
               ? `Au trecut 14 zile de la livrarea comenzii „${requestTitle}” fără o confirmare din partea clientului, așa că am finalizat-o automat.`
@@ -1187,8 +1201,8 @@ export class NotificationEmailsService {
           : '';
         return {
           subject: ro
-            ? `Ai primit o recenzie — ${requestTitle}`
-            : `You received a review — ${requestTitle}`,
+            ? `Ai primit o recenzie — ${subjTitle}`
+            : `You received a review — ${subjTitle}`,
           intro: ro
             ? `Clientul a lăsat o recenzie${starsText} firmei <strong>${companyName}</strong> pentru comanda „${requestTitle}”.${disputeLine}`
             : `The client left a review${starsText} for <strong>${companyName}</strong> on the order “${requestTitle}”.${disputeLine}`,
@@ -1200,8 +1214,8 @@ export class NotificationEmailsService {
       case 'clarification.asked':
         return {
           subject: ro
-            ? `Firma ${companyName} are o întrebare la cererea ta — ${requestTitle}`
-            : `${companyName} has a question about your request — ${requestTitle}`,
+            ? `Firma ${subjCompany} are o întrebare la cererea ta — ${subjTitle}`
+            : `${subjCompany} has a question about your request — ${subjTitle}`,
           intro: ro
             ? `Firma <strong>${companyName}</strong> are o întrebare la cererea „${requestTitle}”. Răspunde din pagina cererii, ca firma să poată pregăti oferta.`
             : `The company <strong>${companyName}</strong> has a question about your request “${requestTitle}”. Answer it from the request page so the company can prepare its offer.`,
@@ -1212,8 +1226,8 @@ export class NotificationEmailsService {
       case 'clarification.answered':
         return {
           subject: ro
-            ? `Clientul a răspuns la întrebare — ${requestTitle}`
-            : `The client answered your question — ${requestTitle}`,
+            ? `Clientul a răspuns la întrebare — ${subjTitle}`
+            : `The client answered your question — ${subjTitle}`,
           intro: ro
             ? `Clientul a răspuns la întrebarea firmei <strong>${companyName}</strong> despre „${requestTitle}”. Răspunsul e în fișa preluării.`
             : `The client answered <strong>${companyName}</strong>'s question about “${requestTitle}”. The answer is on the claim page.`,
@@ -1224,8 +1238,8 @@ export class NotificationEmailsService {
       case 'request.edited_after_claim':
         return {
           subject: ro
-            ? `Clientul a modificat cererea — ${requestTitle}`
-            : `The client changed the request — ${requestTitle}`,
+            ? `Clientul a modificat cererea — ${subjTitle}`
+            : `The client changed the request — ${subjTitle}`,
           intro: ro
             ? `Clientul a modificat cererea „${requestTitle}” preluată de firma <strong>${companyName}</strong>. Verifică detaliile noi în fișa preluării înainte să trimiți oferta.`
             : `The client changed the request “${requestTitle}” claimed by <strong>${companyName}</strong>. Check the new details on the claim page before you send your offer.`,

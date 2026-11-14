@@ -1091,7 +1091,8 @@ function CompanyActions({
                   </>
                 )}
                 <p>
-                  {rules
+                  {/* i3 (etapa 12): cu 0 puncte la SLA_MISS → textul fara puncte (acelasi ca la incarcare) */}
+                  {rules && rules.penalties.points.SLA_MISS > 0
                     ? t('confirm.withdrawSlaRiskPoints', {
                         credits: claimCredits,
                         points: tu('point', { n: rules.penalties.points.SLA_MISS }),
@@ -1117,6 +1118,8 @@ function CompanyActions({
 function ConsultationInvites({ quote, mode }: { quote: QuoteDto; mode: 'client' | 'company' }) {
   const t = useTranslations('Quotes');
   const respond = useRespondConsultationInvite();
+  // g2: data si ora invitatiei in limba aplicatiei si ora Romaniei, nu dupa browser
+  const fmtDateTime = useSlaDateFormat();
   if (quote.consultationInvites.length === 0) return null;
   // M3 (revizuire etapa 4): raspunsul la invitatie doar pe oferta inca valabila (SENT, neexpirata);
   // pe oferta refuzata / retrasa / inlocuita / expirata serverul ar raspunde 409
@@ -1137,7 +1140,7 @@ function ConsultationInvites({ quote, mode }: { quote: QuoteDto; mode: 'client' 
           {/* E-company-3: adresa lipseste cand contactele clientului nu sunt vizibile */}
           {inv.locationAddress && <p>{inv.locationAddress}</p>}
           <p className="text-xs text-muted-foreground">
-            {new Date(inv.proposedDatetime).toLocaleString()} · {t(`consultationStatus.${inv.status}`)}
+            {fmtDateTime(inv.proposedDatetime)} · {t(`consultationStatus.${inv.status}`)}
           </p>
           {mode === 'client' && canRespond && inv.status === 'PENDING_CLIENT' && (
             <div className="mt-2.5 flex flex-wrap gap-2">

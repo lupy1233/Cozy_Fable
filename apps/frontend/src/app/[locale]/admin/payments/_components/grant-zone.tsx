@@ -1,6 +1,7 @@
 'use client';
 
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { useId, useMemo, useState } from 'react';
 import { useAdminPlans } from '@/hooks/use-admin';
 import { useGrantSubscription } from '@/hooks/use-billing';
@@ -60,7 +61,7 @@ export function GrantZone() {
           toast.success(
             t('grant.success', {
               company: res.companyName,
-              date: format.dateTime(new Date(res.expiresAt), { dateStyle: 'medium' }),
+              date: format.dateTime(new Date(res.expiresAt), { dateStyle: 'medium', timeZone: APP_TIME_ZONE }),
             }),
           );
           setNote('');

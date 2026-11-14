@@ -22,7 +22,7 @@ import { REDIS_CLIENT } from '../../infra/redis/redis.module';
 import { SETTING_DEFAULTS } from '../../common/settings/setting-defaults';
 import { SettingsService } from '../../common/settings/settings.service';
 import { SETTING_LEGAL_REACCEPT_EXISTING_USERS } from '../legal/legal.constants';
-import { authEmailHtml } from './auth-email';
+import { authEmailHtml, bucharestDateTime, esc } from './auth-email';
 import { EMAIL_VERIFY_TTL_SEC, PASSWORD_RESET_TTL_SEC, VERIFY_EMAIL_RETURN_PATHS } from './auth.constants';
 import type { LoginDto } from './dto/login.dto';
 import type { RegisterDto } from './dto/register.dto';
@@ -195,6 +195,51 @@ export class AuthService {
     );
   }
 
+  // f5 (etapa 12): anuntul „Parola ta a fost schimbata” dupa resetare si dupa schimbarea din cont.
+  // Fara parola, token sau IP in email; butonul duce la „Am uitat parola” (resetare noua).
+  private async sendPasswordChangedEmail(user: Pick<User, 'email' | 'name' | 'languagePreference'>, at: Date): Promise<void> {
+    const origin = this.config.getOrThrow<string>('FRONTEND_ORIGIN');
+    const lang = user.languagePreference === 'EN' ? 'en' : 'ro';
+    const ro = lang === 'ro';
+    const { date, time } = bucharestDateTime(at, lang);
+    // m19 (revizie): „scrie-ne” doar cand exista o adresa de suport, si atunci cu adresa
+    const support = this.mail.supportEmail ? esc(this.mail.supportEmail) : null;
+    const ifNotYou = ro
+      ? support
+        ? `Dacă nu ai fost tu, resetează parola și scrie-ne la ${support} (sau răspunde direct la acest email).`
+        : 'Dacă nu ai fost tu, resetează parola.'
+      : support
+        ? `If this wasn't you, reset your password and write to us at ${support} (or simply reply to this email).`
+        : "If this wasn't you, reset your password.";
+    await this.mail.send(
+      user.email,
+      ro ? 'Parola ta a fost schimbată — Cozy Home' : 'Your password was changed — Cozy Home',
+      authEmailHtml({
+        user,
+        body: ro
+          ? `Parola contului tău Cozy Home a fost schimbată pe ${date}, la ora ${time} (ora României). ${ifNotYou}`
+          : `The password for your Cozy Home account was changed on ${date} at ${time} (Romania time). ${ifNotYou}`,
+        link: `${origin}/${lang}/forgot-password`,
+        ctaLabel: ro ? 'Resetează parola' : 'Reset password',
+        supportEmail: this.mail.supportEmail ?? null,
+        footer: {
+          ro: 'Dacă tu ai schimbat parola, nu trebuie să faci nimic.',
+          en: 'If you changed your password, you do not need to do anything.',
+        },
+      }),
+      { replyToSupport: true },
+    );
+  }
+
+  // best-effort: o eroare SMTP doar se logheaza, schimbarea parolei ramane valabila
+  private async notifyPasswordChanged(user: Pick<User, 'id' | 'email' | 'name' | 'languagePreference'>): Promise<void> {
+    try {
+      await this.sendPasswordChangedEmail(user, new Date());
+    } catch (e) {
+      this.logger.warn(`emailul „parola schimbata” catre ${user.id} a esuat: ${safeErrorSummary(e)}`);
+    }
+  }
+
   // --- inregistrare / verificare ---
 
   async register(dto: RegisterDto): Promise<PublicUser> {
@@ -298,6 +343,8 @@ export class AuthService {
     await this.eventBus.emitAuthExpired(user.id);
     // E-admin-platform-5: linkul dovedeste controlul adresei → ridica si pauza de login
     await this.lockout.clear(user.email, { includeLock: true });
+    // f5: anuntul pleaca dupa ce sesiunile au cazut
+    await this.notifyPasswordChanged(user);
   }
 
   // Schimbare parola autentificata: verifica parola curenta, revoca toate familiile
@@ -327,6 +374,7 @@ export class AuthService {
     const { refreshToken, familyId } = await this.tokens.issueNewFamily(user.id, updated.passwordHash, { revokeAll: true });
     const accessToken = await this.tokens.signAccessToken(updated, familyId);
     await this.eventBus.emitAuthExpired(user.id);
+    await this.notifyPasswordChanged(updated);
     return { accessToken, refreshToken };
   }
 

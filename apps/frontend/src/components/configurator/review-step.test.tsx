@@ -441,6 +441,43 @@ describe('ReviewStep — expired session and the phone bar (etapa 8)', () => {
   });
 });
 
+// c11 (etapa 12): Sumarul numara ca in cos — camerele si piesele separat
+describe('ReviewStep — rooms and pieces are counted apart (c11)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useConfiguratorStore.getState().reset();
+    useConfiguratorStore.getState().setStartMode('STANDARD');
+    hoisted.publish.error = null;
+    hoisted.me = { data: { email: 'ana@demo.ro', role: 'CLIENT' }, isPending: false };
+  });
+
+  it('one room and two pieces: "1 room · 2 pieces", not "3 rooms"', () => {
+    const s = useConfiguratorStore.getState();
+    s.addRoom('KITCHEN');
+    s.addRoom('PIECE_SOFA');
+    s.addRoom('PIECE_NIGHTSTAND');
+    mount();
+    expect(screen.getByText(/^1 room · 2 pieces/)).toBeInTheDocument();
+    expect(screen.queryByText(/3 rooms/)).not.toBeInTheDocument();
+  });
+
+  it('only pieces: no room is counted; Romanian uses the cart wording', async () => {
+    const { cartCountLabel } = await import('./review-step');
+    const ro = (await import('@/messages/ro.json')).default;
+    const fake = (key: string, values?: { count: number }) => {
+      const tpl = key === 'cart.countPieces' ? ro.Configurator.cart.countPieces : key === 'cart.countRooms' ? ro.Configurator.cart.countRooms : 'EMPTY';
+      // forma minima de plural, doar pentru test: =1 / few
+      const n = values?.count ?? 0;
+      const m = tpl.match(n === 1 ? /=1 \{([^}]*)\}/ : /few \{([^}]*)\}/);
+      return (m ? m[1] : tpl).replace('#', String(n));
+    };
+    expect(cartCountLabel([{ roomType: 'PIECE_SOFA' }, { roomType: 'PIECE_BED' }, { roomType: 'PIECE_DESK' }], fake)).toBe('3 piese');
+    expect(cartCountLabel([{ roomType: 'BEDROOM' }, { roomType: 'OFFICE' }, { roomType: 'PIECE_DESK' }], fake)).toBe('2 camere · o piesă');
+    expect(cartCountLabel([{ roomType: 'KITCHEN' }, { roomType: 'PIECES' }], fake)).toBe('O cameră · o piesă');
+    expect(cartCountLabel([], fake)).toBe('EMPTY');
+  });
+});
+
 // f6-2: „Republica cu modificari” — aceeasi pagina de sumar, butonul spune ce se intampla
 describe('ReviewStep — repost with changes (f6-2)', () => {
   beforeEach(() => {

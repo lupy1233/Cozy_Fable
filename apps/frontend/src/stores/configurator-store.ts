@@ -144,6 +144,10 @@ interface ConfiguratorStore extends ConfiguratorSnapshot {
   discardFiles: (ids: string[]) => void;
   setDimensionUnit: (unit: DimensionUnit) => void;
   setToken: (token: string) => void;
+  // m11 (etapa 12): Forward din browser oprit pe un ecran care nu trece validarea — ecranul
+  // face „Continua” (isi arata mesajele). Doar in memorie: nu se persista, nu intra in ciorna.
+  continueRequest: number;
+  requestContinue: () => void;
   setPhase: (phase: ConfiguratorPhase) => void;
   // Modul e singura sursa (b8): seteaza si hasOwnProject si bifele de ajutor ale
   // camerelor (DESIGN_HELP → toate bifate; OWN_PROJECT → niciuna; STANDARD venit
@@ -572,6 +576,8 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
       dimensionUnit: 'cm' as DimensionUnit,
       snapshots3d: {},
       ...initialSnapshot,
+      continueRequest: 0,
+      requestContinue: () => set((s) => ({ continueRequest: s.continueRequest + 1 })),
 
       setSnapshot3d: (localId, dataUrl) =>
         set((s) => {
@@ -1116,7 +1122,18 @@ export function clearConfiguratorMemory(): void {
   discardPendingEditSession();
   resetDetached();
   storageScope = { kind: 'new' };
+  // m14 (etapa 12): generatia istoricului formularului (configurator-history) nu trece la
+  // urmatorul cont din aceeasi fila
+  try {
+    const keys = Object.keys(window.sessionStorage).filter((k) => k.startsWith(NAV_GEN_KEY_PREFIX));
+    for (const k of keys) window.sessionStorage.removeItem(k);
+  } catch {
+    // storage indisponibil
+  }
 }
+
+// Cheia generatiei istoricului formularului in sessionStorage (+ 'new' / 'edit:<id>').
+export const NAV_GEN_KEY_PREFIX = 'mm_configurator_nav_v1:';
 
 export function isInEditSession(): boolean {
   return storageScope.kind === 'edit';

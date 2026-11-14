@@ -14,7 +14,7 @@ import {
 } from '@marketplace/shared';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { forwardRef, useId, useMemo, useState, type InputHTMLAttributes } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useController, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { ApiError } from '@/lib/api';
 import { formatDecimal, parseDecimal } from '@/lib/decimal';
@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { DatePartsField, dateIssue, type DatePartsIssue } from './date-parts-field';
 
 // m8 (revizuire etapa 4): aceleasi plafoane ca serverul, citite din schema comuna (shared),
 // ca formularul sa spuna campul inainte de "Datele trimise nu sunt valide".
@@ -70,7 +71,14 @@ function buildSchema(paidDesign: boolean) {
     vatMode: z.enum(VAT_MODES),
     deliveryTermValue: requiredWhole(MAX_DELIVERY_TERM_VALUE),
     deliveryTermUnit: z.enum(DELIVERY_TERM_UNITS),
-    deliveryDate: z.string().optional(),
+    // g2: zi / luna / an alese separat; "incomplet" si "nu exista" (31.02) au mesajul lor
+    deliveryDate: z
+      .string()
+      .optional()
+      .superRefine((v, ctx) => {
+        const issue = dateIssue(v);
+        if (issue) ctx.addIssue({ code: z.ZodIssueCode.custom, message: issue });
+      }),
     warrantyMonths: requiredWhole(MAX_WARRANTY_MONTHS),
     includesTransport: z.boolean(),
     includesAssembly: z.boolean(),
@@ -169,6 +177,7 @@ export function OfferBuilder(props: Props) {
     resolver: zodResolver(schema),
     defaultValues: defaultsFrom(previous, props.currency, locale),
   });
+  const deliveryDateField = useController({ control, name: 'deliveryDate' }).field;
   const pickedCurrency = useWatch({ control, name: 'currency' });
   const validityRaw = useWatch({ control, name: 'validityDays' });
 
@@ -541,9 +550,15 @@ export function OfferBuilder(props: Props) {
             </div>
           </div>
         </Field>
-        <Field label={t('builder.deliveryDate')} htmlFor={ids.date}>
-          <Input id={ids.date} type="date" {...register('deliveryDate')} className="h-11" />
-        </Field>
+        {/* g2: zi / luna / an in limba aplicatiei (nu campul nativ al browserului, mm/dd/yyyy) */}
+        <DatePartsField
+          label={t('builder.deliveryDate')}
+          value={deliveryDateField.value}
+          onChange={deliveryDateField.onChange}
+          onBlur={deliveryDateField.onBlur}
+          inputRef={deliveryDateField.ref}
+          issue={(errors.deliveryDate?.message as DatePartsIssue | undefined) ?? null}
+        />
         <Field
           label={t('builder.warranty')}
           htmlFor={ids.warranty}

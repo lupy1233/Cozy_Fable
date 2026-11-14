@@ -50,6 +50,8 @@ import {
   REAPPLY_BLOCK_MONTHS,
 } from './companies.constants';
 import { demoCompanyWhere } from './demo-companies';
+import { auditSafeReason, type UnsuspendCompanyDto } from './dto/unsuspend-company.dto';
+import { cancelActiveCompanyPenalties, lockCompanyRow, type CancelledPenalty } from '../penalties/penalties.service';
 import { GeoService } from '../geo/geo.service';
 import { MAX_PORTFOLIO_ITEMS, PortfolioImagesService } from '../uploads/portfolio-images.service';
 import type { PresignInput } from '../uploads/uploads.service';
@@ -1096,22 +1098,47 @@ export class CompaniesService {
 
   // Pasul 5 (audit 2026-08-23, F2): ridicarea suspendarii de catre admin — inainte nu exista
   // NICIO cale (nici automata, nici manuala); singura "portita" era adminApprove nedocumentat.
-  async adminUnsuspend(companyId: string): Promise<{ id: string; status: Company['status'] }> {
+  // Etapa 12 (k2): cere motiv (DTO) si anuleaza punctele active (raspuns PO k2-1: firma o ia de
+  // la zero) in ACEEASI tranzactie cu schimbarea starii. Raspunsul e si instantaneul de audit:
+  // penaltyPoints / count / items (id, ruleKey, points) = ce s-a anulat; unsuspendReason = motivul
+  // curatat de date de contact. Cine si cand le pune interceptorul de audit.
+  async adminUnsuspend(
+    companyId: string,
+    dto: UnsuspendCompanyDto,
+  ): Promise<{
+    id: string;
+    status: Company['status'];
+    penaltyPoints: number;
+    count: number;
+    items: CancelledPenalty[];
+    unsuspendReason: string;
+  }> {
+    const unsuspendReason = auditSafeReason(dto.reason);
     return runTx(this.prisma, 'write', async (tx) => {
-    const res = await tx.company.updateMany({
-      where: { id: companyId, status: 'SUSPENDED', deletedAt: null },
-      data: { status: 'APPROVED', suspendedAt: null, suspendedUntil: null },
-    });
-    if (res.count === 0) {
-      throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Company not suspended' });
-    }
-    const company = await tx.company.findUniqueOrThrow({ where: { id: companyId } });
-    const members = await tx.companyMember.findMany({
-      where: { companyId },
-      select: { userId: true },
-    });
-    await this.outbox.record(tx, `company.unsuspended:${companyId}:${randomUUID()}`, 'company.unsuspended', { companyId }, members.map((m) => m.userId));
-    return { id: company.id, status: company.status };
+      // aceeasi blocare ca applyPenalty (revizuire m3); UPDATE-ul de mai jos scrie pe randul blocat
+      await lockCompanyRow(tx, companyId);
+      const res = await tx.company.updateMany({
+        where: { id: companyId, status: 'SUSPENDED', deletedAt: null },
+        data: { status: 'APPROVED', suspendedAt: null, suspendedUntil: null },
+      });
+      if (res.count === 0) {
+        throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Company not suspended' });
+      }
+      const cancelled = await cancelActiveCompanyPenalties(tx, companyId);
+      const company = await tx.company.findUniqueOrThrow({ where: { id: companyId } });
+      const members = await tx.companyMember.findMany({
+        where: { companyId },
+        select: { userId: true },
+      });
+      await this.outbox.record(tx, `company.unsuspended:${companyId}:${randomUUID()}`, 'company.unsuspended', { companyId }, members.map((m) => m.userId));
+      return {
+        id: company.id,
+        status: company.status,
+        penaltyPoints: cancelled.reduce((sum, e) => sum + e.points, 0),
+        count: cancelled.length,
+        items: cancelled,
+        unsuspendReason,
+      };
     });
   }
 }

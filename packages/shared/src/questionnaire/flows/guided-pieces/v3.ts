@@ -22,7 +22,9 @@ import { answerString, pieceMaterialStep, pieceSketchStep, pieceSystemsStep } fr
 // storage); raman intrebarile ortogonale (material cu "Altul", doorType la
 // dulap, tvSetup, cableManagement, count la noptiere) si schita. v1/v2 raman
 // FROZEN — cererile publicate pe ele se valideaza contra definitiei originale.
-// Piesele care nu sunt corpuri (pat, masa, bancuta) raman pe v2.
+// Piesele care nu sunt corpuri (pat, masa, bancuta) NU sunt aici: v3-ul lor e in
+// furniture-v3.ts, v4 in furniture-v4.ts (etapa 6), iar v5 (furniture-v5.ts, etapa 10)
+// e versiunea curenta.
 
 // Snapshotul PNG al scenei (R4): step upload ASCUNS, scris programatic la
 // publish; trece prin acelasi flux presigned + verificare de ownership ca

@@ -46,6 +46,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { toast } from '@/components/ui/toaster';
 import { ApiError } from '@/lib/api';
+import { useSlaDateFormat } from '@/lib/sla-deadline';
 import { useMe } from '@/hooks/use-auth';
 import {
   useDeleteStudioDraft,
@@ -820,6 +821,8 @@ function StudioDraftsDialog({
   onClose: () => void;
 }) {
   const t = useTranslations('Studio');
+  // g2: data ciornei in limba aplicatiei si ora Romaniei, nu dupa browser
+  const fmtDateTime = useSlaDateFormat();
   const dialogRef = useDialogFocus(onClose);
   const me = useMe();
   const drafts = useStudioDrafts();
@@ -973,7 +976,7 @@ function StudioDraftsDialog({
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium leading-tight">{draft.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(draft.updatedAt).toLocaleString()}
+                        {fmtDateTime(draft.updatedAt)}
                       </p>
                     </div>
                     <Button

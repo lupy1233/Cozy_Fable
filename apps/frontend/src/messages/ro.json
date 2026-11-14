@@ -197,7 +197,7 @@
     "clearRoom": "Golește camera",
     "fullscreen": "Ecran complet",
     "exitFullscreen": "Ieși din ecran complet",
-    "movePanel": "Trage ca să muți panoul • dublu-click = înapoi sus",
+    "movePanel": "Trage ca să muți panoul • dublu clic = înapoi sus",
     "tutorial": {
       "replay": "Tur de învățare",
       "welcomeTitle": "Bine ai venit în Studio 3D!",
@@ -223,7 +223,7 @@
         },
         "rotatePiece": {
           "title": "Întoarce-o cu fața",
-          "body": "Selectează piesa cu un click, apoi apasă R — sau butonul de rotire din panoul plutitor."
+          "body": "Selectează piesa cu un clic, apoi apasă R — sau butonul de rotire din panoul plutitor."
         },
         "addOpening": {
           "title": "Taie o ușă sau o fereastră",
@@ -249,7 +249,7 @@
       },
       "finaleTitle": "Gata — ești ca acasă!",
       "finaleBody": "Ai trecut prin tot ce e important. Câteva lucruri bune de știut la final:",
-      "finaleTip1": "„Drafturile mele” îți salvează proiectul în cont — îl reiei oricând.",
+      "finaleTip1": "„Ciornele mele” îți salvează studioul în cont — îl reiei oricând.",
       "finaleTip2": "F = ecran complet, iar panoul plutitor se mută de mânerul lui, unde îți place.",
       "finaleTip3": "„Adaugă în cerere” trimite camera întreagă în formular — firmele văd exact ce ai construit.",
       "finaleReplay": "Reiei turul oricând din butonul „?” de deasupra camerei.",
@@ -284,7 +284,7 @@
       "title": "Camera 3D a clientului",
       "readOnly": "Doar vizualizare — aranjamentul exact trimis de client",
       "open": "Vezi camera 3D",
-      "hint": "Rotește camera liber. Dă click pe o piesă ca să îi deschizi configurația și dimensiunile.",
+      "hint": "Rotește camera liber. Dă clic pe o piesă ca să îi deschizi configurația și dimensiunile.",
       "webglMissing": "Dispozitivul nu poate afișa scena 3D."
     },
     "duplicateScene": "Duplică camera",
@@ -295,22 +295,22 @@
     "gapRight": "Dreapta",
     "gapBack": "Spate",
     "gapFront": "Față",
-    "myDrafts": "Drafturile mele",
-    "draftNameLabel": "Numele draftului",
+    "myDrafts": "Ciornele mele",
+    "draftNameLabel": "Numele ciornei",
     "draftNamePlaceholder": "ex. Apartamentul nostru",
-    "saveAsNew": "Salvează ca draft nou",
+    "saveAsNew": "Salvează ca ciornă nouă",
     "updateDraft": "Actualizează „{name}”",
     "loadDraft": "Încarcă",
-    "deleteDraft": "Șterge draftul",
-    "draftSaved": "Draft salvat în cont.",
-    "draftLoaded": "Draft încărcat — continuă de unde ai rămas.",
-    "draftDeleted": "Draft șters.",
+    "deleteDraft": "Șterge ciorna",
+    "draftSaved": "Ciornă salvată în cont.",
+    "draftLoaded": "Ciornă încărcată — continuă de unde ai rămas.",
+    "draftDeleted": "Ciornă ștearsă.",
     "draftError": "Nu am putut vorbi cu serverul — mai încearcă o dată.",
-    "nameTaken": "Ai deja un draft cu acest nume.",
-    "draftLimit": "Ai atins limita de drafturi — șterge unul vechi mai întâi.",
-    "confirmDeleteDraft": "Ștergi draftul „{name}” din cont?",
-    "emptyDrafts": "Niciun draft salvat încă — dă un nume și salvează studioul curent.",
-    "loadWarning": "Încărcarea unui draft înlocuiește piesele și camerele din studio.",
+    "nameTaken": "Ai deja o ciornă cu acest nume.",
+    "draftLimit": "Ai atins limita de ciorne — șterge una veche mai întâi.",
+    "confirmDeleteDraft": "Ștergi ciorna „{name}” din cont?",
+    "emptyDrafts": "Nicio ciornă salvată încă — dă-i un nume și salvează studioul curent.",
+    "loadWarning": "Încărcarea unei ciorne înlocuiește piesele și camerele din studio.",
     "loginToSave": "Intră în cont ca să salvezi studioul și să îl reiei de pe orice dispozitiv.",
     "goToLogin": "Autentifică-te",
     "toastSent": "{count, plural, =1 {O piesă a fost adăugată} few {# piese au fost adăugate} other {# de piese au fost adăugate}} în cerere — continuă formularul.",
@@ -537,7 +537,7 @@
     "steps": {
       "measure": {
         "title": "Măsoară pereții",
-        "body": "Ia lungimea fiecărui perete și înălțimea tavanului. Măsoară la nivelul podelei, din colț în colț.",
+        "body": "Măsoară lungimea fiecărui perete și înălțimea tavanului. Pereții îi măsori la nivelul podelei, din colț în colț.",
         "tip": "O ruletă simplă e de ajuns — rotunjește la centimetru."
       },
       "draw": {
@@ -793,7 +793,8 @@
     "changePasswordDoneBody": "Celelalte dispozitive pe care erai autentificat au fost deconectate.",
     "totpLabel": "Cod de autentificare în doi pași",
     "totpHint": "Cele 6 cifre din aplicația ta de autentificare.",
-    "sessionExpired": "Te-ai autentificat pe alt dispozitiv sau sesiunea a expirat. Intră din nou."
+    "sessionExpired": "Te-ai autentificat pe alt dispozitiv sau sesiunea a expirat. Intră din nou.",
+    "resetDoneCta": "Intră în cont"
   },
   "Company": {
     "onboardingTitle": "Înregistrează firma",
@@ -1059,7 +1060,7 @@
     "rejectConfirm": "Confirmă respingerea",
     "approved": "Firma a fost aprobată.",
     "rejected": "Firma a fost respinsă.",
-    "suspendedNote": "Firma este suspendată pentru puncte de penalizare. Ridicarea suspendării o readuce în marketplace imediat.",
+    "suspendedNote": "Firma este suspendată pentru puncte de penalizare. Ridicarea suspendării îi permite imediat să preia din nou cereri și îi anulează punctele active: pornește de la 0.",
     "unsuspend": "Ridică suspendarea",
     "unsuspended": "Suspendarea a fost ridicată.",
     "unsuspendError": "Nu am putut ridica suspendarea. Reîncarcă pagina și încearcă din nou.",
@@ -1133,10 +1134,13 @@
       },
       "unsuspend": {
         "title": "Ridici suspendarea firmei {name}?",
-        "body": "Firma revine imediat în marketplace, iar membrii ei sunt anunțați.",
+        "body": "Firma poate prelua din nou cereri imediat, iar membrii ei sunt anunțați. Punctele de penalizare active se anulează, așa că o penalizare nouă nu o mai suspendă pe loc. Penalizările rămân în istoric, iar anularea și motivul tău se păstrează în jurnalul de audit.",
         "cta": "Da, ridică suspendarea"
       }
-    }
+    },
+    "unsuspendReason": "Motivul ridicării suspendării",
+    "unsuspendHint": "Cel puțin {min} caractere. Motivul rămâne în jurnalul de audit; firma nu îl vede. Nu scrie date de contact.",
+    "unsuspendPointsCancelled": "{points, plural, =0 {Firma nu avea puncte de penalizare active.} one {# punct de penalizare a fost anulat.} few {# puncte de penalizare au fost anulate.} other {# de puncte de penalizare au fost anulate.}}"
   },
   "Requests": {
     "loading": "Se încarcă…",
@@ -1234,7 +1238,7 @@
       "OFFICE": "Birou",
       "BEDROOM": "Dormitor",
       "BATHROOM": "Baie",
-      "PIECES": "Piese individuale",
+      "PIECES": "Altă piesă",
       "HALLWAY": "Hol / Intrare",
       "PANTRY": "Debara",
       "LAUNDRY": "Spălătorie",
@@ -1242,12 +1246,12 @@
       "PIECE_WARDROBE": "Dulap",
       "PIECE_TV_UNIT": "Comodă TV",
       "PIECE_BOOKCASE": "Bibliotecă",
-      "PIECE_DESK": "Birou (piesă)",
+      "PIECE_DESK": "Birou de lucru",
       "PIECE_BED": "Pat",
       "PIECE_DRESSER": "Comodă",
       "PIECE_TABLE": "Masă",
       "PIECE_SHOE_CABINET": "Pantofar",
-      "PIECE_NIGHTSTAND": "Noptiere",
+      "PIECE_NIGHTSTAND": "Noptieră",
       "PIECE_BENCH": "Băncuță",
       "PIECE_SIDEBOARD": "Bufet",
       "PIECE_WALL_CABINET": "Corp suspendat",
@@ -1303,7 +1307,8 @@
       "addressDetailsTooLong": "Blocul, scara și apartamentul pot avea cel mult 100 de caractere.",
       "addressRequired": "Completează adresa.",
       "countyRequired": "Completează județul.",
-      "contactRequired": "Completează emailul sau telefonul."
+      "contactRequired": "Completează emailul sau telefonul.",
+      "contactEmailIsPhone": "Pare un număr de telefon. Schimbă canalul pe „Telefon”."
     },
     "apiErrors": {
       "GEOCODING_FAILED": "Nu am putut localiza adresa. Verific-o și încearcă din nou.",
@@ -1710,7 +1715,9 @@
       "deadline": "Termen de răspuns dacă preiei acum",
       "roleBlocked": "Preluarea o face proprietarul, un manager sau un angajat cu acces complet.",
       "costSource": "Costul vine din bugetul minim estimat de client ({amount}; 1 credit = {creditValue}).",
-      "costSourceNoRate": "Costul vine din bugetul minim estimat de client ({amount})."
+      "costSourceNoRate": "Costul vine din bugetul minim estimat de client ({amount}).",
+      "ruleSlaPoints": "Dacă nu trimiți oferta în termenul de răspuns, creditele se consumă și firma primește {points, plural, one {# punct de penalizare} few {# puncte de penalizare} other {# de puncte de penalizare}}.",
+      "ruleSlaNoPoints": "Dacă nu trimiți oferta în termenul de răspuns, creditele se consumă."
     },
     "closedRequest": {
       "title": "Cererea s-a închis",
@@ -1746,7 +1753,10 @@
     "minBudgetFrom": "de la {amount}",
     "minBudgetHint": "Cu un minim ales, cererile fără buget declarat nu mai apar.",
     "detailMetaClaimed": "publicată {when}",
-    "claimSuccessToast": "Ai preluat cererea. Aici scrii oferta și vorbești cu clientul."
+    "claimSuccessToast": "Ai preluat cererea. Aici scrii oferta și vorbești cu clientul.",
+    "claimRulesNotePoints": "La preluare creditele se rezervă. Dacă nu trimiți oferta în termenul de răspuns, se consumă și firma primește {points, plural, one {# punct de penalizare} few {# puncte de penalizare} other {# de puncte de penalizare}}. <rules>Regulile pentru firme</rules>",
+    "claimRulesNoteNoPoints": "La preluare creditele se rezervă. Dacă nu trimiți oferta în termenul de răspuns, se consumă. <rules>Regulile pentru firme</rules>",
+    "claimConfirmGraceNoPoints": "Te poți retrage gratuit în primele {minutes}; după aceea creditele se consumă."
   },
   "Chat": {
     "empty": "Niciun mesaj încă. Scrie primul.",
@@ -1918,7 +1928,7 @@
       "reviseTitle": "Răspunde cu o variantă nouă",
       "extraTitle": "Variantă suplimentară",
       "reofferTitle": "Modifică oferta (variantă nouă)",
-      "roomPrices": "Preț pe fiecare cameră (totalul se calculează automat)",
+      "roomPrices": "Preț pe fiecare cameră sau piesă (totalul se calculează automat)",
       "roomPricesTotal": "Total",
       "roomPricesPartial": "Completează prețul pentru toate camerele sau lasă-le pe toate goale și trece un preț unic.",
       "priceLocked": "Totalul se calculează din prețurile pe camere și nu se editează direct.",
@@ -2281,7 +2291,8 @@
       "voluntaryLate": "Au trecut peste {minutes} de la preluare: creditele se consumă și firma primește {points} de penalizare.",
       "clientUnresponsive": "Se aprobă automat dacă i-ai scris clientului în aplicație și nu ți-a răspuns de {hours}; creditele se restituie.",
       "requestModified": "Se aprobă automat dacă cererea a fost modificată după preluare și nu ai trimis încă o ofertă după modificare; creditele se restituie.",
-      "adminReview": "Retragerea este analizată de administrator; până la decizie locul rămâne ocupat. La aprobare creditele se restituie."
+      "adminReview": "Retragerea este analizată de administrator; până la decizie locul rămâne ocupat. La aprobare creditele se restituie.",
+      "voluntaryLateNoPoints": "Au trecut peste {minutes} de la preluare: creditele se consumă."
     },
     "reasonPlaceholder": "Alege motivul retragerii",
     "reasonNotEligibleUntil": "{reason} (disponibil din {date})",
@@ -2305,7 +2316,9 @@
       "slotReleased": "Locul se eliberează pentru alte firme.",
       "cta": "Da, retrag preluarea",
       "pending": "Se retrage…",
-      "cancel": "Înapoi"
+      "cancel": "Înapoi",
+      "lateBodyNoPoints": "Au trecut peste {minutes} de la preluare: creditele rezervate se consumă definitiv.",
+      "costLineNoPoints": "-{credits}"
     },
     "history": {
       "customReason": "Motivul tău: {text}",
@@ -2918,7 +2931,7 @@
       "contactDetections": "Contacte detectate",
       "settings": "Setări",
       "jobs": "Joburi",
-      "requests": "Proiecte",
+      "requests": "Cereri",
       "calendar": "Calendar lucru",
       "sizing": "Mărime proiect"
     },
@@ -3511,12 +3524,12 @@
       }
     },
     "requests": {
-      "title": "Proiecte",
-      "subtitle": "Proiectele cu ofertă acceptată: cazuri raportate, termene depășite și închiderea auditată.",
+      "title": "Cereri",
+      "subtitle": "Cererile cu ofertă acceptată: cazuri raportate, termene depășite și închiderea auditată.",
       "loadError": "Lista nu a putut fi încărcată.",
       "notFound": "Proiectul nu a fost găsit.",
       "empty": "Niciun proiect în această listă.",
-      "back": "Înapoi la proiecte",
+      "back": "Înapoi la cereri",
       "prev": "Înapoi",
       "next": "Înainte",
       "pageOf": "Pagina {page} din {pages}",
@@ -4249,7 +4262,7 @@
     },
     "sketchUpload": {
       "skipNotice": "Ai marcat că ai un proiect pentru toată locuința — poți sări peste acest pas. Încarcă proiectul la pasul Fișiere, ca să nu-l atașezi la fiecare cameră.",
-      "hint": "Încă maximum {local} pentru această cameră ({global} rămase în total)",
+      "hint": "Încă maximum {local} aici ({global} rămase în total)",
       "limitReached": "Cererea are deja {max} fișiere, cât se poate. Elimină unul ca să adaugi altul.",
       "limitReachedRoom": "Ai adăugat {max} fișiere la această cameră, cât se poate. Elimină unul ca să adaugi altul."
     },
@@ -4292,12 +4305,12 @@
         "PIECE_WARDROBE": "Dulap",
         "PIECE_TV_UNIT": "Comodă TV",
         "PIECE_BOOKCASE": "Bibliotecă",
-        "PIECE_DESK": "Birou",
+        "PIECE_DESK": "Birou de lucru",
         "PIECE_BED": "Pat",
         "PIECE_DRESSER": "Comodă",
         "PIECE_TABLE": "Masă",
         "PIECE_SHOE_CABINET": "Pantofar",
-        "PIECE_NIGHTSTAND": "Noptiere",
+        "PIECE_NIGHTSTAND": "Noptieră",
         "PIECE_BENCH": "Băncuță",
         "PIECE_SIDEBOARD": "Bufet",
         "PIECE_WALL_CABINET": "Corp suspendat",
@@ -4311,7 +4324,7 @@
         "KITCHEN": "Corpuri, blat, insulă",
         "DRESSING": "Dulapuri și module interioare",
         "LIVING": "Biblioteci, comode TV, vitrine",
-        "OFFICE": "Birou, biblioteci, depozitare",
+        "OFFICE": "Birou de lucru, biblioteci, depozitare",
         "BEDROOM": "Dulap, pat, noptiere",
         "BATHROOM": "Corp lavoar, oglindă, coloane",
         "PIECES": "Orice altă piesă — o descrii liber",
@@ -4322,7 +4335,7 @@
         "PIECE_WARDROBE": "Cu uși glisante sau batante",
         "PIECE_TV_UNIT": "Comodă joasă, cu nișe deschise, sertare sau uși",
         "PIECE_BOOKCASE": "Rafturi deschise, sertare și uși",
-        "PIECE_DESK": "Blat pe laterale pline, cu sau fără casetiere",
+        "PIECE_DESK": "Blat pe laterale pline, cu sau fără casetiere (corpuri mici cu sertare, sub blat)",
         "PIECE_BED": "Tapițat, cu ladă sau sertare",
         "PIECE_DRESSER": "Cu sertare și uși",
         "PIECE_TABLE": "Dining, cafea sau consolă",
@@ -4475,8 +4488,10 @@
       "avgPrice": "Preț mediu",
       "recommended": "Recomandat",
       "showInfo": "Vezi detalii",
-      "showInfoFor": "Vezi detalii despre {option}",
-      "hideInfo": "Înapoi la opțiune"
+      "showInfoFor": "Detalii: {option}",
+      "hideInfo": "Înapoi la opțiune",
+      "linearMetreNote": "„m liniar” înseamnă metru liniar: lungimea măsurată de-a lungul peretelui. De exemplu, 3 m de mobilier pe un perete = 3 metri liniari. Prețul e orientativ.",
+      "notRecommendedHere": "Nerecomandat aici"
     },
     "diagram": {
       "islandLength": "L",
@@ -4499,7 +4514,7 @@
       "pedestals": "Casetiere",
       "finish": "Finisaj (vizual)",
       "reset": "De la capăt",
-      "hint": "Rotește modelul trăgând de el. Dă click pe o zonă ca să o selectezi — ușile și sertarele se deschid ca să vezi interiorul; tipul, interiorul (polițe sau bară de haine), rândurile și dimensiunile le schimbi din panoul de comenzi. Lacătul ține un rând sau o coloană la dimensiune fixă.",
+      "hint": "Rotește modelul trăgând de el. Dă clic pe o zonă ca să o selectezi — ușile și sertarele se deschid ca să vezi interiorul; tipul, interiorul (polițe sau bară de haine), rândurile și dimensiunile le schimbi din panoul de comenzi. Lacătul ține un rând sau o coloană la dimensiune fixă.",
       "rowsInColumn": "Rânduri în coloană",
       "fillLabel": "Interior",
       "fills": {
@@ -4526,7 +4541,7 @@
         "open": "Vezi corpul în 3D",
         "title": "Corpul configurat de client",
         "readOnly": "Doar vizualizare — poți deschide ușile și sertarele, dar nu poți modifica corpul.",
-        "hint": "Rotește modelul trăgând de el. Dă click pe o zonă ca să o deschizi și să îi citești dimensiunile.",
+        "hint": "Rotește modelul trăgând de el. Dă clic pe o zonă ca să o deschizi și să îi citești dimensiunile.",
         "close": "Închide",
         "webglMissing": "Dispozitivul tău nu suportă vizualizarea 3D — dimensiunile corpului rămân în rezumatul cererii."
       },
@@ -4794,7 +4809,7 @@
       "materials": {
         "PAL": {
           "label": "PAL",
-          "description": "Prețul cel mai mic, decoruri variate, rezistent",
+          "description": "Prețul cel mai mic, decoruri variate",
           "info": {
             "title": "PAL melaminat",
             "body": "Plăci aglomerate melaminate — standardul pentru corpuri de mobilier, cu cel mai bun raport preț–rezistență.",
@@ -4803,7 +4818,7 @@
             "pros3": "Suprafața melaminată rezistă bine la zgârieturile de zi cu zi",
             "cons1": "Muchiile au nevoie de cant ABS, altfel se văd și se uzează",
             "cons2": "Se umflă dacă apa ajunge pe o tăietură neprotejată",
-            "price": "250–450 lei pe metru liniar"
+            "price": "250–450 lei / m liniar"
           }
         },
         "MDF": {
@@ -4817,7 +4832,7 @@
             "pros3": "Muchiile se finisează curat, fără cant aplicat",
             "cons1": "Mai scump decât PAL-ul, la aceeași piesă",
             "cons2": "Plăcile sunt grele — corpurile mari cer feronerie pe măsură",
-            "price": "450–800 lei pe metru liniar"
+            "price": "450–800 lei / m liniar"
           }
         },
         "MDF_INFOLIAT": {
@@ -4831,7 +4846,7 @@
             "pros3": "Permite fronturi frezate, cu rame sau model clasic",
             "cons1": "Lângă cuptor sau plită, folia se poate dezlipi în timp",
             "cons2": "Paleta de culori e mai restrânsă decât la vopsit",
-            "price": "350–600 lei pe metru liniar"
+            "price": "350–600 lei / m liniar"
           }
         },
         "MDF_VOPSIT": {
@@ -4845,7 +4860,7 @@
             "pros3": "O zgârietură se poate revopsi local, fără să schimbi frontul",
             "cons1": "Printre cele mai scumpe variante de fronturi",
             "cons2": "La o lovitură directă, vopseaua se poate ciobi",
-            "price": "500–900 lei pe metru liniar"
+            "price": "500–900 lei / m liniar"
           }
         },
         "MDF_FURNIR": {
@@ -4859,7 +4874,7 @@
             "pros3": "Se băițuiește în nuanța dorită, întocmai ca lemnul",
             "cons1": "La furnire rare, prețul se apropie de lemn masiv",
             "cons2": "Zgârieturile adânci trec prin stratul subțire de furnir",
-            "price": "600–1100 lei pe metru liniar"
+            "price": "600–1.100 lei / m liniar"
           }
         },
         "LEMN_MASIV": {
@@ -4873,7 +4888,7 @@
             "pros3": "Se șlefuiește și se refinisează — arată din nou ca nouă",
             "cons1": "Cea mai scumpă opțiune de material",
             "cons2": "Lucrează cu umiditatea — poate crăpa sau se poate deforma",
-            "price": "900–1800 lei pe metru liniar"
+            "price": "900–1.800 lei / m liniar"
           }
         },
         "ALTUL": {
@@ -4901,7 +4916,7 @@
             "pros2": "Se deschide și cu cotul, când ai mâinile ocupate",
             "cons1": "Amprentele se văd repede pe fronturile netede",
             "cons2": "Mecanismul cere reglaj mai des decât o balama clasică",
-            "price": "+30–60 lei/front"
+            "price": "+30–60 lei / front"
           }
         },
         "GLISANTE": {
@@ -4927,7 +4942,7 @@
             "pros2": "Mecanism simplu — se montează și se înlocuiește ușor",
             "cons1": "Se uzează mai repede decât sistemele push de calitate",
             "cons2": "Ușa se închide sec, fără amortizare",
-            "price": "+10–30 lei/front"
+            "price": "+10–30 lei / front"
           }
         },
         "MANER": {
@@ -4940,7 +4955,7 @@
             "pros2": "Mii de modele — doar din mânere schimbi aspectul piesei",
             "cons1": "Rămân la vedere — devin parte din designul piesei",
             "cons2": "În spații înguste se pot agăța de haine în trecere",
-            "price": "10–80 lei/buc"
+            "price": "10–80 lei / bucată"
           }
         },
         "GOLA": {
@@ -4953,7 +4968,7 @@
             "pros2": "Nimic nu iese în relief — nu agăți nimic în trecere",
             "cons1": "Frezarea și profilul se adaugă la preț",
             "cons2": "Montaj pretențios — cere o echipă cu experiență",
-            "price": "+150–300 lei pe metru liniar"
+            "price": "+150–300 lei / m liniar"
           }
         },
         "AVENTOS": {
@@ -4966,7 +4981,7 @@
             "pros2": "Frontul stă deschis în orice poziție, până îl cobori tu",
             "cons1": "Cel mai scump sistem de deschidere",
             "cons2": "Brațele cer reglaj periodic ca să rămână echilibrate",
-            "price": "+250–500 lei/corp"
+            "price": "+250–500 lei / corp"
           }
         }
       },
@@ -5115,10 +5130,10 @@
           "subtitle": "Alege configurația care se potrivește spațiului tău.",
           "options": {
             "STRAIGHT": {
-              "label": "Liniară",
+              "label": "Pe un perete",
               "description": "Corpuri pe un singur perete",
               "info": {
-                "title": "Bucătărie liniară",
+                "title": "Bucătărie pe un perete",
                 "body": "Toate corpurile pe un singur perete — compactă, firească în spațiile mici.",
                 "price": "4.000–9.000 lei",
                 "pros1": "Cel mai mic cost pe metru dintre toate configurațiile",
@@ -5222,47 +5237,47 @@
           "summaryLabel": "Zone de corpuri"
         },
         "frontMaterial": {
-          "title": "Ce material pentru fronturi?",
+          "title": "Material pentru fronturi",
           "subtitle": "Materialul fronturilor decide aspectul și o bună parte din preț.",
           "summaryLabel": "Material fronturi"
         },
         "frontMaterialBase": {
-          "title": "Ce material pentru fronturile corpurilor de bază?",
+          "title": "Material pentru fronturi — corpuri de bază",
           "subtitle": "Corpurile de jos — materialul le decide aspectul și prețul.",
           "summaryLabel": "Material fronturi — bază"
         },
         "frontMaterialWall": {
-          "title": "Ce material pentru fronturile corpurilor suspendate?",
+          "title": "Material pentru fronturi — corpuri suspendate",
           "subtitle": "Corpurile de sus pot avea alt material decât cele de jos.",
           "summaryLabel": "Material fronturi — suspendate"
         },
         "frontMaterialIsland": {
-          "title": "Ce material pentru fronturile insulei?",
+          "title": "Material pentru fronturi — insulă",
           "subtitle": "Insula poate ieși în evidență cu propriul material.",
           "summaryLabel": "Material fronturi — insulă"
         },
         "openingSystems": {
-          "title": "Ce sisteme de deschidere?",
+          "title": "Deschidere — bucătărie",
           "subtitle": "Poți alege mai multe.",
           "summaryLabel": "Deschidere"
         },
         "openingSystemsBase": {
-          "title": "Ce sistem de deschidere pentru corpurile de bază?",
+          "title": "Deschidere — corpuri de bază",
           "subtitle": "Poți alege mai multe.",
           "summaryLabel": "Deschidere — bază"
         },
         "openingSystemsWall": {
-          "title": "Ce sistem de deschidere pentru corpurile suspendate?",
+          "title": "Deschidere — corpuri suspendate",
           "subtitle": "Poți alege mai multe.",
           "summaryLabel": "Deschidere — suspendate"
         },
         "openingSystemsIsland": {
-          "title": "Ce sistem de deschidere pentru insulă?",
+          "title": "Deschidere — insulă",
           "subtitle": "Poți alege mai multe.",
           "summaryLabel": "Deschidere — insulă"
         },
         "sketch": {
-          "title": "Încarcă proiectul sau schița ta",
+          "title": "Ai o schiță a bucătăriei?",
           "subtitle": "Opțional — o schiță sau un plan al bucătăriei ajută firmele să dea un preț exact."
         },
         "countertop": {
@@ -5275,7 +5290,7 @@
               "info": {
                 "title": "Blat PAL laminat",
                 "body": "Miez de PAL cu suprafață laminată — standardul accesibil, cu sute de decoruri.",
-                "price": "150–300 lei pe metru liniar",
+                "price": "150–300 lei / m liniar",
                 "pros1": "Cel mai mic preț — îl poți înlocui peste ani fără regrete",
                 "pros2": "Sute de decoruri: lemn, piatră, culori uni",
                 "cons1": "Muchiile se umflă la apă dacă îmbinările nu sunt etanșate corect",
@@ -5288,7 +5303,7 @@
               "info": {
                 "title": "Blat HPL",
                 "body": "Laminat presat la presiune înaltă — mult mai dens și mai rezistent decât PAL-ul clasic.",
-                "price": "400–800 lei pe metru liniar",
+                "price": "400–800 lei / m liniar",
                 "pros1": "Ține la apă, zgârieturi și uz zilnic mult mai bine decât PAL-ul",
                 "pros2": "Poate fi subțire, pentru o linie modernă, minimalistă",
                 "cons1": "Cam dublu față de un blat laminat clasic",
@@ -5301,7 +5316,7 @@
               "info": {
                 "title": "Blat laminat",
                 "body": "Blat din PAL laminat — varianta economică, cu cele mai multe decoruri.",
-                "price": "150–350 lei pe metru liniar",
+                "price": "150–350 lei / m liniar",
                 "pros1": "Cel mai mic preț dintre toate blaturile",
                 "pros2": "Decoruri pentru orice stil, de la lemn la beton",
                 "cons1": "Zgârieturile adânci nu se mai pot repara",
@@ -5314,7 +5329,7 @@
               "info": {
                 "title": "Blat de cuarț",
                 "body": "Piatră compozită — printre cele mai rezistente și igienice blaturi.",
-                "price": "600–1200 lei pe metru liniar",
+                "price": "600–1.200 lei / m liniar",
                 "pros1": "Aproape imposibil de zgâriat în folosirea de zi cu zi",
                 "pros2": "Suprafață neporoasă: nu se pătează și se igienizează ușor",
                 "cons1": "Printre cele mai scumpe opțiuni de blat",
@@ -5327,7 +5342,7 @@
               "info": {
                 "title": "Blat de granit",
                 "body": "Piatră naturală — durabilă, cu desen unic în fiecare placă.",
-                "price": "700–1400 lei pe metru liniar",
+                "price": "700–1.400 lei / m liniar",
                 "pros1": "Piatră naturală care rezistă decenii la uz zilnic",
                 "pros2": "Fiecare placă are un desen unic, imposibil de copiat",
                 "cons1": "Cere impermeabilizare periodică, altfel poate păta",
@@ -5340,7 +5355,7 @@
               "info": {
                 "title": "Blat de lemn",
                 "body": "Lemn masiv — aspect cald, cu îngrijire periodică prin uleiere.",
-                "price": "400–900 lei pe metru liniar",
+                "price": "400–900 lei / m liniar",
                 "pros1": "Încălzește orice bucătărie — merge și în stil modern",
                 "pros2": "Zgârieturile se șlefuiesc; blatul se recondiționează oricând",
                 "cons1": "Cere uleiere periodică, mai ales lângă chiuvetă",
@@ -5386,14 +5401,14 @@
         },
         "separateFrontMaterials": {
           "title": "Materiale diferite pe zone",
-          "subtitle": "Bifează dacă vrei alt material la corpurile de sus sau la insulă.",
-          "cardLabel": "Vreau materiale diferite pentru corpurile de jos, de sus și insulă",
+          "subtitle": "Bifează dacă vrei alt material pe unele zone ale bucătăriei.",
+          "cardLabel": "Vreau materiale diferite pe zone",
           "summaryLabel": "Materiale diferite pe zone"
         },
         "v3": {
           "frontMaterial": {
-            "title": "Ce material vrei pentru fronturi?",
-            "subtitle": "Îl folosim la toată bucătăria. Mai jos poți alege materiale diferite pe zone.",
+            "title": "Material pentru fronturi",
+            "subtitle": "Pentru toate fronturile, dacă nu bifezi mai jos materiale pe zone.",
             "summaryLabel": "Material fronturi"
           },
           "zones": {
@@ -5404,7 +5419,7 @@
         },
         "v4": {
           "frontMaterial": {
-            "title": "Material pentru fronturi (uși și sertare)",
+            "title": "Material pentru fronturi — uși și sertare",
             "summaryLabel": "Material fronturi"
           }
         },
@@ -5482,7 +5497,7 @@
           "summaryLabel": "Piese"
         },
         "sketch": {
-          "title": "Încarcă proiectul sau schița ta",
+          "title": "Ai o schiță a pieselor?",
           "subtitle": "Opțional — o schiță sau un plan ajută firmele să dea un preț exact."
         }
       },
@@ -5492,10 +5507,10 @@
           "subtitle": "Alege configurația spațiului.",
           "options": {
             "LINEAR": {
-              "label": "Liniar",
-              "description": "Pe un singur perete",
+              "label": "Pe un perete",
+              "description": "Dulapuri pe un singur perete",
               "info": {
-                "title": "Dressing liniar",
+                "title": "Dressing pe un perete",
                 "body": "Module pe un singur perete — soluția compactă pentru dormitor sau hol.",
                 "price": "3.000–7.000 lei",
                 "pros1": "Ocupă un singur perete — restul camerei rămâne liber",
@@ -5592,7 +5607,7 @@
             "runA": "Lungimea laturii A",
             "runB": "Lungimea laturii B",
             "runC": "Lungimea laturii C",
-            "wardrobeHeight": "Înălțimea dressingului"
+            "wardrobeHeight": "Înălțimea dressingului (H)"
           }
         },
         "interiorModules": {
@@ -5613,7 +5628,7 @@
               "description": "Lenjerie, tricouri, accesorii mici",
               "info": {
                 "title": "Sertare",
-                "body": "Modulul interior cel mai scump: glisiere, fronturi, montaj. Amortizarea merită în zonele folosite zilnic.",
+                "body": "Modulul interior cel mai scump: glisiere, fronturi, montaj. Închiderea lină merită în zonele folosite zilnic.",
                 "price": "+250–450 lei / sertar"
               }
             },
@@ -5657,7 +5672,7 @@
           "summaryLabel": "Module interioare"
         },
         "material": {
-          "title": "Ce material?",
+          "title": "Material — dressing",
           "subtitle": "Pentru tot dressingul: corpul și ușile, dacă are.",
           "summaryLabel": "Material"
         },
@@ -5665,17 +5680,6 @@
           "title": "Alte detalii?",
           "subtitle": "Opțional.",
           "summaryLabel": "Alte detalii"
-        },
-        "toCeiling": {
-          "title": "Până în tavan?",
-          "info": {
-            "title": "Dressing până în tavan",
-            "body": "Modulele urcă până la tavan: nu se mai adună praf deasupra și câștigi loc pentru lucrurile de sezon. Tavanul e rar perfect drept — cere măsurători atente.",
-            "pros1": "Nimic nu se mai prăfuiește deasupra dulapului",
-            "pros2": "Zona de sus ține lenjeria de pat și hainele de sezon",
-            "cons1": "La rafturile de sus ajungi doar cu scărița",
-            "price": "+10–15% față de înălțimea standard"
-          }
         },
         "lighting": {
           "title": "Iluminare LED integrată?",
@@ -5691,7 +5695,7 @@
           "summaryLabel": "Iluminare LED"
         },
         "sketch": {
-          "title": "Ai o schiță a spațiului?",
+          "title": "Ai o schiță a dressingului?",
           "subtitle": "Opțional — o schiță simplă cu dimensiuni ajută firmele să dea un preț exact.",
           "summaryLabel": "Schiță"
         },
@@ -5701,7 +5705,7 @@
             "subtitle": "Cu uși: materialul e pentru uși și sertare, corpul se face din PAL standard. Fără uși: materialul e pentru tot dressingul."
           },
           "openingSystems": {
-            "title": "Cum se deschid ușile dressingului?",
+            "title": "Deschidere — dressing",
             "summaryLabel": "Deschiderea ușilor"
           }
         },
@@ -5744,12 +5748,12 @@
           "summaryLabel": "Piese"
         },
         "material": {
-          "title": "Din ce material?",
+          "title": "Material — dormitor",
           "subtitle": "Materialul din care se construiește mobilierul.",
           "summaryLabel": "Material"
         },
         "openingSystems": {
-          "title": "Sisteme de deschidere?",
+          "title": "Deschidere — dormitor",
           "subtitle": "Opțional — pentru ușile dulapului și sertare.",
           "summaryLabel": "Deschidere"
         },
@@ -5802,23 +5806,12 @@
           },
           "summaryLabel": "Uși dulap"
         },
-        "wardrobeToCeiling": {
-          "title": "Dulap până în tavan?",
-          "info": {
-            "title": "Dulap până în tavan",
-            "body": "Corpul urcă până la tavan, fără spațiu mort deasupra. Înălțimea se măsoară în mai multe puncte — tavanele sunt rar perfect drepte.",
-            "pros1": "Nu se mai adună praf deasupra dulapului",
-            "pros2": "Rafturile de sus preiau bagajele și lucrurile de sezon",
-            "cons1": "La rafturile de sus ajungi doar cu o scăriță",
-            "price": "+10–15%"
-          }
-        },
         "bedSize": {
           "title": "Ce dimensiune de saltea?",
           "subtitle": "Patul se construiește în jurul saltelei.",
           "info": {
             "title": "Dimensiuni standard de saltea",
-            "body": "Dimensiunile uzuale în România: 90×200 (o persoană), 140×200 (două persoane, compact), 160×200 (matrimonialul standard), 180×200 (king). Atenție: salteaua nu e inclusă în mobilier."
+            "body": "Dimensiunile uzuale în România: 90×200 (o persoană), 140×200 (două persoane, compact), 160×200 (matrimonialul standard), 180×200 (cel mai lat). Atenție: salteaua nu e inclusă în mobilier."
           },
           "options": {
             "S_90": {
@@ -5835,10 +5828,10 @@
             },
             "K_180": {
               "label": "180 × 200 cm",
-              "description": "King — spațiu în plus pentru doi"
+              "description": "Cel mai lat dintre cele standard — spațiu în plus pentru doi"
             },
             "CUSTOM": {
-              "label": "Dimensiuni custom",
+              "label": "Altă mărime",
               "description": "Introdu lățimea și lungimea saltelei tale"
             }
           },
@@ -5858,8 +5851,7 @@
               "label": "Fără",
               "info": {
                 "title": "Pat simplu",
-                "body": "Cadru clasic, fără mecanisme — cel mai mic preț și cel mai ușor de mutat la nevoie.",
-                "price": "inclus"
+                "body": "Cadru clasic, fără mecanisme — cel mai mic preț și cel mai ușor de mutat la nevoie."
               }
             },
             "LIFT_UP": {
@@ -5879,7 +5871,8 @@
               }
             }
           },
-          "summaryLabel": "Depozitare sub pat"
+          "summaryLabel": "Depozitare sub pat",
+          "subtitle": "Spațiu ascuns pentru lenjerii și pături. Alege „Fără” dacă vrei un pat simplu."
         },
         "bedUpholstered": {
           "title": "Pat tapițat?",
@@ -5887,7 +5880,8 @@
             "title": "Pat tapițat",
             "body": "Cadrul și tăblia sunt îmbrăcate în stofă sau piele ecologică — moale la atingere, cu multe culori posibile. Țesătura exactă o alegi împreună cu firma."
           },
-          "summaryLabel": "Pat tapițat"
+          "summaryLabel": "Pat tapițat",
+          "subtitle": "Cadrul și tăblia îmbrăcate în stofă sau piele ecologică."
         },
         "nightstandsCount": {
           "title": "Câte noptiere?",
@@ -5903,7 +5897,8 @@
               "label": "Pereche (2)"
             }
           },
-          "summaryLabel": "Număr de noptiere"
+          "summaryLabel": "Număr de noptiere",
+          "subtitle": "Una singură sau o pereche — câte una de fiecare parte a patului."
         },
         "materialWardrobe": {
           "title": "Material — dulap"
@@ -5942,8 +5937,8 @@
           "title": "Deschidere — măsuță toaletă"
         },
         "sketch": {
-          "title": "Ai o schiță a camerei?",
-          "subtitle": "Opțional — planul camerei, cu poziția patului și a dulapului.",
+          "title": "Ai o schiță a dormitorului?",
+          "subtitle": "Opțional — peretele sau zona unde vine mobilierul, cu dimensiuni, uși, ferestre și prize.",
           "summaryLabel": "Schiță"
         },
         "v3": {
@@ -5979,7 +5974,7 @@
               }
             },
             "info": {
-              "body": "Dimensiunile uzuale în România: 90 × 200 (o persoană), 120 × 200 (o persoană, cu spațiu în plus), 140 × 200 (două persoane, compact), 160 × 200 (matrimonialul standard), 180 × 200 (king). Unele saltele au 190 cm lungime — o alegi mai jos. Atenție: salteaua nu e inclusă în mobilier."
+              "body": "Dimensiunile uzuale în România: 90 × 200 (o persoană), 120 × 200 (o persoană, cu spațiu în plus), 140 × 200 (două persoane, compact), 160 × 200 (matrimonialul standard), 180 × 200 (cel mai lat). Unele saltele au 190 cm lungime — o alegi mai jos. Atenție: salteaua nu e inclusă în mobilier."
             }
           },
           "bedLength": {
@@ -6068,23 +6063,23 @@
               "description": "Piesa din mijlocul livingului"
             },
             "WALL_SHELVES": {
-              "label": "Rafturi suspendate",
+              "label": "Rafturi de perete",
               "description": "Montate pe perete, fără corp jos"
             },
             "OTHER": {
-              "label": "Altceva",
+              "label": "Altă piesă",
               "description": "O piesă care nu apare în listă"
             }
           },
           "summaryLabel": "Piese"
         },
         "material": {
-          "title": "Din ce material?",
+          "title": "Material — living",
           "subtitle": "Materialul din care se construiește mobilierul.",
           "summaryLabel": "Material"
         },
         "openingSystems": {
-          "title": "Sisteme de deschidere?",
+          "title": "Deschidere — living",
           "subtitle": "Opțional — pentru uși și sertare.",
           "summaryLabel": "Deschidere"
         },
@@ -6093,18 +6088,18 @@
           "subtitle": "Măsurile cerute mai jos (lățimi și, unde se cer, înălțimi) și înălțimea tavanului.",
           "slots": {
             "wallWidth": "Lățime perete",
-            "tvUnitWidth": "Lățime zonă TV",
-            "tvUnitHeight": "Înălțime zonă TV",
+            "tvUnitWidth": "Lățime comodă TV",
+            "tvUnitHeight": "Înălțime comodă TV",
             "bookshelfWidth": "Lățime bibliotecă",
             "bookshelfHeight": "Înălțime bibliotecă",
             "displayWidth": "Lățime vitrină",
             "displayHeight": "Înălțime vitrină",
             "coffeeTableLength": "Lungime măsuță",
             "coffeeTableHeight": "Înălțime măsuță",
-            "shelvesTotal": "Lungime totală rafturi",
-            "shelvesHeight": "Înălțime rafturi",
-            "otherWidth": "Lățime piesa ta",
-            "otherHeight": "Înălțime piesa ta"
+            "shelvesTotal": "Lungime totală rafturi de perete",
+            "shelvesHeight": "Înălțime rafturi de perete",
+            "otherWidth": "Lățimea altei piese",
+            "otherHeight": "Înălțimea altei piese"
           }
         },
         "notes": {
@@ -6113,7 +6108,7 @@
           "summaryLabel": "Alte detalii"
         },
         "tvStyle": {
-          "title": "Cum arată zona TV?",
+          "title": "Cum arată comoda TV?",
           "subtitle": "Suspendată, pe pardoseală sau un ansamblu pe tot peretele.",
           "options": {
             "FLOATING": {
@@ -6130,7 +6125,7 @@
             },
             "ON_FLOOR": {
               "label": "Comodă pe pardoseală",
-              "description": "Corp așezat pe picioare sau soclu",
+              "description": "Corp așezat pe picioare sau pe soclu (o bază plină, retrasă)",
               "info": {
                 "title": "Comodă TV pe pardoseală",
                 "body": "Clasica soluție, mereu potrivită: depozitare pentru electronice și media, cu televizorul pe comodă sau prins pe perete deasupra.",
@@ -6153,7 +6148,7 @@
               }
             }
           },
-          "summaryLabel": "Zona TV"
+          "summaryLabel": "Tip de comodă TV"
         },
         "piecesOtherText": {
           "title": "Ce piesă ai în minte?",
@@ -6161,16 +6156,16 @@
           "summaryLabel": "Altă piesă"
         },
         "materialOtherPiece": {
-          "title": "Material — piesa ta"
+          "title": "Material — altă piesă"
         },
         "systemsOtherPiece": {
-          "title": "Deschidere — piesa ta"
+          "title": "Deschidere — altă piesă"
         },
         "materialTvUnit": {
-          "title": "Material — zonă TV"
+          "title": "Material — comodă TV"
         },
         "systemsTvUnit": {
-          "title": "Deschidere — zonă TV"
+          "title": "Deschidere — comodă TV"
         },
         "materialBookshelf": {
           "title": "Material — bibliotecă"
@@ -6191,10 +6186,10 @@
           "title": "Deschidere — măsuță"
         },
         "materialShelves": {
-          "title": "Material — rafturi"
+          "title": "Material — rafturi de perete"
         },
         "systemsShelves": {
-          "title": "Deschidere — rafturi"
+          "title": "Deschidere — rafturi de perete"
         },
         "ledLighting": {
           "title": "Iluminare LED în mobilier?",
@@ -6223,13 +6218,13 @@
           "summaryLabel": "Corpuri cu LED"
         },
         "sketch": {
-          "title": "Ai o schiță a spațiului?",
-          "subtitle": "Opțional — peretele cu televizorul, cu dimensiuni și prize marcate.",
+          "title": "Ai o schiță a livingului?",
+          "subtitle": "Opțional — peretele sau zona unde vine mobilierul, cu dimensiuni, uși, ferestre și prize.",
           "summaryLabel": "Schiță"
         },
         "v4": {
           "materialTvUnit": {
-            "title": "Material pentru fronturi — zonă TV"
+            "title": "Material pentru fronturi — comodă TV"
           },
           "materialBookshelf": {
             "title": "Material pentru fronturi — bibliotecă"
@@ -6241,10 +6236,10 @@
             "title": "Material — măsuță"
           },
           "materialShelves": {
-            "title": "Material — rafturi"
+            "title": "Material — rafturi de perete"
           },
           "materialOtherPiece": {
-            "title": "Material pentru fronturi — piesa ta"
+            "title": "Material pentru fronturi — altă piesă"
           }
         },
         "v5": {
@@ -6259,7 +6254,7 @@
           "subtitle": "Alege mobilierul pentru birou.",
           "options": {
             "DESK": {
-              "label": "Birou",
+              "label": "Birou de lucru",
               "description": "Blatul la care lucrezi zilnic"
             },
             "BOOKSHELF": {
@@ -6267,25 +6262,25 @@
               "description": "Rafturi pentru cărți și dosare"
             },
             "STORAGE": {
-              "label": "Dulap depozitare",
+              "label": "Dulap de depozitare",
               "description": "Documente și obiecte, în spatele ușilor"
             },
             "WALL_SHELVES": {
-              "label": "Rafturi perete",
+              "label": "Rafturi de perete",
               "description": "Suspendate, deasupra biroului"
             }
           },
           "summaryLabel": "Piese"
         },
         "deskShape": {
-          "title": "Ce formă are biroul?",
+          "title": "Ce formă are biroul de lucru?",
           "subtitle": "Configurația blatului de lucru.",
           "options": {
             "STRAIGHT": {
-              "label": "Drept",
+              "label": "Pe un perete",
               "description": "Un singur blat, pe un perete",
               "info": {
-                "title": "Birou drept",
+                "title": "Birou pe un perete",
                 "body": "Blat pe un singur perete — compact și ușor de așezat oriunde. Pentru lucru confortabil: minim 120 cm lățime și 60 cm adâncime.",
                 "pros1": "Încape și în camere mici sau într-un colț de dormitor",
                 "pros2": "Cea mai accesibilă formă ca preț",
@@ -6315,15 +6310,15 @@
               }
             }
           },
-          "summaryLabel": "Forma biroului"
+          "summaryLabel": "Forma biroului de lucru"
         },
         "material": {
-          "title": "Din ce material?",
+          "title": "Material — birou",
           "subtitle": "Materialul din care se construiește mobilierul.",
           "summaryLabel": "Material"
         },
         "openingSystems": {
-          "title": "Sisteme de deschidere?",
+          "title": "Deschidere — birou",
           "subtitle": "Opțional — pentru uși și sertare.",
           "summaryLabel": "Deschidere"
         },
@@ -6332,15 +6327,15 @@
           "subtitle": "Lățimile cerute mai jos și înălțimea tavanului.",
           "slots": {
             "spaceWidth": "Lățime spațiu",
-            "deskWidth": "Lățime birou",
-            "deskWidthA": "Lățime birou A",
-            "deskWidthB": "Lățime birou B",
-            "deskWidthC": "Lățime birou C",
+            "deskWidth": "Lățime birou de lucru",
+            "deskWidthA": "Lățime birou de lucru A",
+            "deskWidthB": "Lățime birou de lucru B",
+            "deskWidthC": "Lățime birou de lucru C",
             "bookshelfWidth": "Lățime bibliotecă",
-            "storageWidth": "Lățime dulap depozitare",
+            "storageWidth": "Lățime dulap de depozitare",
             "shelvesTotal": "Lățimea zonei cu rafturi",
             "bookshelfHeight": "Înălțime bibliotecă",
-            "storageHeight": "Înălțime dulap depozitare"
+            "storageHeight": "Înălțime dulap de depozitare"
           }
         },
         "notes": {
@@ -6348,18 +6343,11 @@
           "subtitle": "Opțional — orice ar mai ajuta firmele să înțeleagă proiectul.",
           "summaryLabel": "Alte detalii"
         },
-        "cableManagement": {
-          "title": "Canal pentru cabluri?",
-          "info": {
-            "title": "Organizarea cablurilor",
-            "body": "Canal metalic sub blat și decupaje discrete pentru cabluri — blatul rămâne liber, iar sub birou se aspiră ușor. Spune firmei câte monitoare și echipamente ai."
-          }
-        },
         "materialDesk": {
-          "title": "Material — birou"
+          "title": "Material — birou de lucru"
         },
         "systemsDesk": {
-          "title": "Deschidere — birou"
+          "title": "Deschidere — birou de lucru"
         },
         "materialBookshelf": {
           "title": "Material — bibliotecă"
@@ -6368,34 +6356,36 @@
           "title": "Deschidere — bibliotecă"
         },
         "materialStorage": {
-          "title": "Material — dulap"
+          "title": "Material — dulap de depozitare"
         },
         "systemsStorage": {
-          "title": "Deschidere — dulap"
+          "title": "Deschidere — dulap de depozitare"
         },
         "materialShelves": {
-          "title": "Material — rafturi"
+          "title": "Material — rafturi de perete"
         },
         "systemsShelves": {
-          "title": "Deschidere — rafturi"
+          "title": "Deschidere — rafturi de perete"
         },
         "sketch": {
-          "title": "Ai o schiță a camerei?",
-          "subtitle": "Opțional — peretele de lucru, cu prizele și fereastra marcate.",
+          "title": "Ai o schiță a biroului?",
+          "subtitle": "Opțional — peretele sau zona unde vine mobilierul, cu dimensiuni, uși, ferestre și prize.",
           "summaryLabel": "Schiță"
         },
         "v3": {
           "materialDesk": {
-            "title": "Material pentru fronturi — birou"
+            "title": "Material pentru fronturi — birou de lucru",
+            "summaryLabel": "Material fronturi — birou de lucru"
           },
           "materialBookshelf": {
             "title": "Material pentru fronturi — bibliotecă"
           },
           "materialStorage": {
-            "title": "Material pentru fronturi — dulap"
+            "title": "Material pentru fronturi — dulap de depozitare",
+            "summaryLabel": "Material fronturi — dulap de depozitare"
           },
           "materialShelves": {
-            "title": "Material — rafturi"
+            "title": "Material — rafturi de perete"
           }
         },
         "v4": {
@@ -6454,12 +6444,12 @@
           },
           "info": {
             "title": "De ce contează ventilația",
-            "body": "Fără ventilație, aburul se depune zi de zi pe mobilier: fronturile se pot umfla, canturile se desprind. În acest caz recomandăm MDF, care ține mai bine la umezeală — alegerea finală rămâne a ta."
+            "body": "Fără ventilație, aburul se depune zi de zi pe mobilier: fronturile se pot umfla, canturile se desprind. În acest caz recomandăm MDF înfoliat, care ține mai bine la umezeală — alegerea finală rămâne a ta."
           },
           "summaryLabel": "Ventilație"
         },
         "material": {
-          "title": "Din ce material?",
+          "title": "Material — baie",
           "subtitle": "Recomandarea noastră pentru mediu umed.",
           "info": {
             "title": "Material pentru baie",
@@ -6468,22 +6458,22 @@
           "summaryLabel": "Material"
         },
         "materialVanity": {
-          "title": "Ce material pentru corpul de lavoar?",
+          "title": "Material — corp de lavoar",
           "subtitle": "Piesa care ia cei mai mulți stropi — merită materialul cel mai rezistent.",
           "summaryLabel": "Material — corp lavoar"
         },
         "materialMirror": {
-          "title": "Ce material pentru dulapul cu oglindă?",
+          "title": "Material — dulap cu oglindă",
           "subtitle": "Poate fi alt material decât restul pieselor.",
           "summaryLabel": "Material — dulap cu oglindă"
         },
         "materialTall": {
-          "title": "Ce material pentru coloană?",
+          "title": "Material — coloană",
           "subtitle": "Poate fi alt material decât restul pieselor.",
           "summaryLabel": "Material — coloană"
         },
         "sketch": {
-          "title": "Încarcă proiectul sau schița ta",
+          "title": "Ai o schiță a băii?",
           "subtitle": "Opțional — o schiță sau un plan al băii ajută firmele să dea oferte precise."
         },
         "notes": {
@@ -6493,24 +6483,24 @@
         },
         "v3": {
           "materialVanity": {
-            "title": "Material pentru fronturi — corpul de lavoar",
+            "title": "Material pentru fronturi — corp de lavoar",
             "summaryLabel": "Material fronturi — corp lavoar"
           },
           "materialMirror": {
-            "title": "Material pentru fronturi — dulapul cu oglindă",
+            "title": "Material pentru fronturi — dulap cu oglindă",
             "summaryLabel": "Material fronturi — dulap cu oglindă"
           },
           "materialTall": {
-            "title": "Material pentru fronturi — coloana"
+            "title": "Material pentru fronturi — coloană"
           },
           "systemsVanity": {
-            "title": "Deschidere — corpul de lavoar"
+            "title": "Deschidere — corp de lavoar"
           },
           "systemsMirror": {
-            "title": "Deschidere — dulapul cu oglindă"
+            "title": "Deschidere — dulap cu oglindă"
           },
           "systemsTall": {
-            "title": "Deschidere — coloana"
+            "title": "Deschidere — coloană"
           }
         },
         "v4": {
@@ -6553,7 +6543,7 @@
       },
       "HALLWAY": {
         "piecesNeeded": {
-          "title": "De ce piese ai nevoie?",
+          "title": "Ce piese îți trebuie?",
           "subtitle": "Alege ce te întâmpină la intrare.",
           "options": {
             "SHOE_CABINET": {
@@ -6578,38 +6568,6 @@
             }
           },
           "summaryLabel": "Piese"
-        },
-        "depthProfile": {
-          "title": "Cât de lat e holul?",
-          "subtitle": "Adâncimea mobilierului se alege după spațiul de trecere rămas.",
-          "info": {
-            "title": "De ce contează adâncimea",
-            "body": "Pe un hol îngust fiecare centimetru contează: păstrează cel puțin 90 cm de trecere liberă. Mobilierul slim (25–35 cm) folosește uși rabatabile și suporturi înclinate, ca pantofii să încapă și pe adâncime mică."
-          },
-          "options": {
-            "SLIM": {
-              "label": "Hol îngust — slim",
-              "description": "Adâncime 25–35 cm",
-              "info": {
-                "title": "Corpuri slim",
-                "body": "Pantofar cu uși rabatabile, cuier plat, oglindă — totul sub 35 cm adâncime, ca să rămână loc de trecere.",
-                "pros1": "Trecerea rămâne liberă, chiar și în doi",
-                "pros2": "Holul pare mai aerisit decât e",
-                "cons1": "Încap mai puține perechi pe corp — numără-le înainte"
-              }
-            },
-            "STANDARD": {
-              "label": "Hol generos — standard",
-              "description": "Adâncime 45–60 cm",
-              "info": {
-                "title": "Corpuri standard",
-                "body": "Adâncime obișnuită de dulap: umerașele stau perpendicular pe bară, iar cutiile de depozitare încap fără forțat.",
-                "pros1": "Capacitate maximă pe fiecare corp",
-                "pros2": "Umerașele stau normal, nu pieziș",
-                "cons1": "Are sens doar la un hol de peste 1,5 m lățime"
-              }
-            }
-          }
         },
         "dimensions": {
           "title": "Dimensiuni",
@@ -6653,10 +6611,6 @@
         },
         "systemsMirror": {
           "title": "Deschidere — oglindă"
-        },
-        "openingSystems": {
-          "title": "Sisteme de deschidere",
-          "subtitle": "Opțional — doar pentru corpurile cu uși sau sertare."
         },
         "sketch": {
           "title": "Ai o schiță a holului?",
@@ -6708,7 +6662,7 @@
             "title": "Material pentru fronturi — băncuță"
           },
           "materialMirror": {
-            "title": "Rama oglinzii"
+            "title": "Material pentru ramă — oglindă"
           }
         },
         "v3": {
@@ -6777,7 +6731,7 @@
           "summaryLabel": "Așezarea electrocasnicelor"
         },
         "piecesNeeded": {
-          "title": "Ce mobilier îți trebuie?",
+          "title": "Ce piese îți trebuie?",
           "subtitle": "Alege corpurile pentru spălătorie.",
           "options": {
             "APPLIANCE_HOUSING": {
@@ -6785,7 +6739,7 @@
               "description": "Îmbracă și aliniază electrocasnicele"
             },
             "STORAGE": {
-              "label": "Dulapuri depozitare",
+              "label": "Dulapuri de depozitare",
               "description": "Detergenți, coșuri de rufe, consumabile"
             },
             "COUNTERTOP": {
@@ -6794,7 +6748,7 @@
             },
             "SINK_UNIT": {
               "label": "Corp cu cuvă",
-              "description": "Cuvă tehnică pentru spălat manual"
+              "description": "Corp cu o cuvă (chiuvetă adâncă), pentru spălat de mână"
             }
           },
           "summaryLabel": "Mobilier"
@@ -6804,7 +6758,7 @@
           "subtitle": "Umiditatea din spălătorie contează la alegerea materialelor.",
           "info": {
             "title": "De ce contează ventilația",
-            "body": "Mașina de spălat și uscătorul scot abur la fiecare ciclu. Fără geam sau ventilator, umezeala se adună și mobilierul suferă în timp — în acest caz recomandăm MDF înfoliat, care o suportă mai bine."
+            "body": "Mașina de spălat și uscătorul scot abur la fiecare ciclu. Fără geam sau ventilator, umezeala se adună și mobilierul suferă în timp. În acest caz recomandăm MDF înfoliat, care ține mai bine la umezeală — alegerea finală rămâne a ta."
           },
           "options": {
             "WINDOW": {
@@ -6829,58 +6783,58 @@
             "runA": "Lungime perete principal",
             "applianceHousingWidth": "Lățime dulap încastrare electrocasnice",
             "applianceHousingHeight": "Înălțime dulap încastrare electrocasnice",
-            "storageWidth": "Lățime dulapuri depozitare",
-            "storageHeight": "Înălțime dulapuri depozitare",
+            "storageWidth": "Lățime dulapuri de depozitare",
+            "storageHeight": "Înălțime dulapuri de depozitare",
             "countertopWidth": "Lățime blat de lucru",
             "sinkUnitWidth": "Lățime corp cu cuvă"
           }
         },
         "material": {
-          "title": "Ce material?",
+          "title": "Material — spălătorie",
           "subtitle": "Mediu umed — ține cont de recomandarea de mai sus.",
           "summaryLabel": "Material"
         },
         "materialApplianceHousing": {
-          "title": "Material pentru dulapul de încastrare"
+          "title": "Material — dulap de încastrare"
         },
         "systemsApplianceHousing": {
-          "title": "Deschidere pentru dulapul de încastrare"
+          "title": "Deschidere — dulap de încastrare"
         },
         "materialStorage": {
-          "title": "Material pentru dulapurile de depozitare"
+          "title": "Material — dulapuri de depozitare"
         },
         "systemsStorage": {
-          "title": "Deschidere pentru dulapurile de depozitare",
-          "summaryLabel": "Deschidere — dulapuri depozitare"
+          "title": "Deschidere — dulapuri de depozitare",
+          "summaryLabel": "Deschidere — dulapuri de depozitare"
         },
         "materialCountertop": {
-          "title": "Material pentru blatul de lucru"
+          "title": "Material — blat de lucru"
         },
         "materialSinkUnit": {
-          "title": "Material pentru corpul cu cuvă"
+          "title": "Material — corp cu cuvă"
         },
         "systemsSinkUnit": {
-          "title": "Deschidere pentru corpul cu cuvă"
+          "title": "Deschidere — corp cu cuvă"
         },
         "sketch": {
-          "title": "Ai o schiță a spațiului?",
+          "title": "Ai o schiță a spălătoriei?",
           "subtitle": "Opțional — poziția racordurilor de apă și a prizelor ajută mult.",
           "summaryLabel": "Schiță"
         },
         "v3": {
           "materialApplianceHousing": {
-            "title": "Material pentru fronturi — dulapul de încastrare",
+            "title": "Material pentru fronturi — dulap de încastrare",
             "summaryLabel": "Material fronturi — dulap încastrare"
           },
           "materialStorage": {
-            "title": "Material pentru fronturi — dulapurile de depozitare",
+            "title": "Material pentru fronturi — dulapuri de depozitare",
             "summaryLabel": "Material fronturi — dulapuri depozitare"
           },
           "materialCountertop": {
-            "title": "Material — blatul de lucru"
+            "title": "Material — blat de lucru"
           },
           "materialSinkUnit": {
-            "title": "Material pentru fronturi — corpul cu cuvă",
+            "title": "Material pentru fronturi — corp cu cuvă",
             "summaryLabel": "Material fronturi — corp cu cuvă"
           }
         },
@@ -6906,24 +6860,24 @@
       },
       "PANTRY": {
         "wallsUsed": {
-          "title": "Pe câți pereți montăm?",
-          "subtitle": "Configurația rafturilor în debara.",
+          "title": "Pe câți pereți vine mobilierul?",
+          "subtitle": "Cum se așază mobilierul în debara.",
           "info": {
             "title": "Circulația în debara",
             "body": "Păstrează cel puțin 80 cm liberi între rafturi, ca să te poți întoarce și să vezi ce ai pe polițe. Într-o debara îngustă, un singur perete de rafturi e alegerea corectă."
           },
           "options": {
             "ONE_WALL": {
-              "label": "Un perete",
-              "description": "Rafturi pe o singură latură"
+              "label": "Pe un perete",
+              "description": "Pe o singură latură"
             },
             "L_SHAPE": {
               "label": "În L",
-              "description": "Rafturi pe două laturi"
+              "description": "Pe două laturi"
             },
             "U_SHAPE": {
               "label": "În U",
-              "description": "Rafturi pe trei laturi"
+              "description": "Pe trei laturi"
             }
           },
           "summaryLabel": "Pereți folosiți"
@@ -6984,18 +6938,18 @@
           }
         },
         "material": {
-          "title": "Ce material?",
+          "title": "Material — debara",
           "subtitle": "Debaraua e spațiu utilitar — PAL-ul dă aici cel mai bun raport calitate-preț.",
           "summaryLabel": "Material"
         },
         "materialShelves": {
-          "title": "Material pentru rafturile deschise"
+          "title": "Material — rafturi deschise"
         },
         "materialCabinets": {
-          "title": "Material pentru dulapurile închise"
+          "title": "Material — dulapuri închise"
         },
         "systemsCabinets": {
-          "title": "Deschidere pentru dulapurile închise"
+          "title": "Deschidere — dulapuri închise"
         },
         "sketch": {
           "title": "Ai o schiță a debaralei?",
@@ -7004,10 +6958,10 @@
         },
         "v3": {
           "materialShelves": {
-            "title": "Material — rafturile deschise"
+            "title": "Material — rafturi deschise"
           },
           "materialCabinets": {
-            "title": "Material pentru fronturi — dulapurile închise",
+            "title": "Material pentru fronturi — dulapuri închise",
             "summaryLabel": "Material fronturi — dulapuri închise"
           }
         },
@@ -7052,7 +7006,7 @@
           "summaryLabel": "Tip de balcon"
         },
         "piecesNeeded": {
-          "title": "De ce piese ai nevoie?",
+          "title": "Ce piese îți trebuie?",
           "subtitle": "Alege mobilierul pentru balcon.",
           "options": {
             "STORAGE_BENCH": {
@@ -7088,27 +7042,27 @@
           }
         },
         "material": {
-          "title": "Ce material?",
+          "title": "Material — balcon",
           "subtitle": "Recomandarea depinde de tipul balconului — vezi mai sus.",
           "summaryLabel": "Material"
         },
         "materialStorageBench": {
-          "title": "Material pentru banca cu ladă"
+          "title": "Material — bancă cu ladă"
         },
         "systemsStorageBench": {
-          "title": "Deschidere pentru banca cu ladă"
+          "title": "Deschidere — bancă cu ladă"
         },
         "materialTallCabinet": {
-          "title": "Material pentru dulapul înalt"
+          "title": "Material — dulap înalt"
         },
         "systemsTallCabinet": {
-          "title": "Deschidere pentru dulapul înalt"
+          "title": "Deschidere — dulap înalt"
         },
         "materialWorktop": {
-          "title": "Material pentru blatul de lucru"
+          "title": "Material — blat de lucru"
         },
         "materialShelves": {
-          "title": "Material pentru rafturi"
+          "title": "Material — rafturi"
         },
         "sketch": {
           "title": "Ai o schiță a balconului?",
@@ -7117,16 +7071,16 @@
         },
         "v3": {
           "materialStorageBench": {
-            "title": "Material pentru fronturi — banca cu ladă"
+            "title": "Material pentru fronturi — bancă cu ladă"
           },
           "materialTallCabinet": {
-            "title": "Material pentru fronturi — dulapul înalt"
+            "title": "Material pentru fronturi — dulap înalt"
           },
           "materialWorktop": {
-            "title": "Material — blatul de lucru"
+            "title": "Material — blat de lucru"
           },
           "materialShelves": {
-            "title": "Material — rafturile"
+            "title": "Material — rafturi"
           }
         },
         "v4": {
@@ -7212,22 +7166,22 @@
           "summaryLabel": "Interior"
         },
         "material": {
-          "title": "Ce material?",
+          "title": "Material — dulap",
           "subtitle": "Alege materialul principal. Scrie în „Mesaj pentru firme” dacă vrei materiale diferite pentru corp și fronturi.",
           "summaryLabel": "Material"
         },
         "sketch": {
-          "title": "Ai o schiță a peretelui?",
+          "title": "Ai o schiță pentru această piesă?",
           "subtitle": "Opțional — lățimea peretelui și obstacolele: prize, calorifer, ușă.",
           "summaryLabel": "Schiță"
         },
         "config3d": {
-          "title": "Construiește-ți dulapul în 3D",
+          "title": "Creează dulapul",
           "subtitle": "Alege lățimea, împarte coloanele și decide fiecare zonă: bară de haine, polițe, sertare sau uși."
         },
         "v4": {
           "material": {
-            "title": "Material pentru fronturile dulapului"
+            "title": "Material pentru fronturi — dulap"
           }
         }
       },
@@ -7290,25 +7244,25 @@
           }
         },
         "material": {
-          "title": "Ce material?",
+          "title": "Material — comodă TV",
           "subtitle": "Pentru corpuri și panouri.",
           "summaryLabel": "Material"
         },
         "openingSystems": {
-          "title": "Sisteme de deschidere"
+          "title": "Deschidere — comodă TV"
         },
         "sketch": {
-          "title": "Ai o schiță a peretelui?",
+          "title": "Ai o schiță pentru această piesă?",
           "subtitle": "Opțional — lățimea peretelui și unde sunt prizele.",
           "summaryLabel": "Schiță"
         },
         "config3d": {
-          "title": "Construiește-ți comoda TV în 3D",
+          "title": "Creează comoda TV",
           "subtitle": "Ajustează dimensiunile și alege pentru fiecare zonă: deschis, sertare sau uși."
         },
         "v4": {
           "material": {
-            "title": "Material pentru fronturile comodei TV"
+            "title": "Material pentru fronturi — comodă TV"
           }
         }
       },
@@ -7373,38 +7327,38 @@
           }
         },
         "material": {
-          "title": "Ce material?",
+          "title": "Material — bibliotecă",
           "subtitle": "Rafturile late cer material rigid, altfel se curbează sub cărți.",
           "summaryLabel": "Material"
         },
         "openingSystems": {
-          "title": "Sisteme de deschidere"
+          "title": "Deschidere — bibliotecă"
         },
         "sketch": {
-          "title": "Ai o schiță a peretelui?",
+          "title": "Ai o schiță pentru această piesă?",
           "subtitle": "Opțional — lățimea peretelui și înălțimea tavanului.",
           "summaryLabel": "Schiță"
         },
         "config3d": {
-          "title": "Construiește-ți biblioteca în 3D",
-          "subtitle": "Trage de glisoare și dă clic pe zone — modelul se actualizează live, iar firma primește exact configurația ta."
+          "title": "Creează biblioteca",
+          "subtitle": "Trage de glisoare și dă clic pe zone — modelul se schimbă pe loc, iar firma primește exact configurația ta."
         },
         "v4": {
           "material": {
-            "title": "Material pentru fronturile bibliotecii"
+            "title": "Material pentru fronturi — bibliotecă"
           }
         }
       },
       "PIECE_DESK": {
         "shape": {
-          "title": "Ce formă are biroul?",
-          "subtitle": "Drept, pe un singur perete, sau în L, pe colț.",
+          "title": "Ce formă are biroul de lucru?",
+          "subtitle": "Pe un singur perete sau în L, pe colț.",
           "options": {
             "STRAIGHT": {
-              "label": "Drept",
-              "description": "Compact, pe un perete",
+              "label": "Pe un perete",
+              "description": "Compact, un singur blat",
               "info": {
-                "title": "Birou drept",
+                "title": "Birou pe un perete",
                 "body": "Un blat pe un singur perete. Pentru lucru confortabil: minimum 120 cm lățime și 60 cm adâncime.",
                 "pros1": "Încape și în camere mici sau pe un perete îngust",
                 "pros2": "Mai puțin material — preț mai mic",
@@ -7423,7 +7377,7 @@
               }
             }
           },
-          "summaryLabel": "Forma biroului"
+          "summaryLabel": "Forma biroului de lucru"
         },
         "cableManagement": {
           "title": "Canal pentru cabluri?",
@@ -7468,22 +7422,23 @@
           "summaryLabel": "Depozitare"
         },
         "material": {
-          "title": "Ce material?",
+          "title": "Material — birou de lucru",
           "subtitle": "Blatul e suprafața cea mai solicitată — finisajul decide cât de repede se zgârie.",
           "summaryLabel": "Material"
         },
         "sketch": {
-          "title": "Ai o schiță a spațiului?",
+          "title": "Ai o schiță pentru această piesă?",
           "subtitle": "Opțional — peretele de lucru, cu prizele și fereastra.",
           "summaryLabel": "Schiță"
         },
         "config3d": {
-          "title": "Construiește-ți biroul în 3D",
+          "title": "Creează biroul de lucru",
           "subtitle": "Alege blatul și configurează casetierele: sertare sau uși."
         },
         "v4": {
           "material": {
-            "title": "Material pentru fronturile biroului"
+            "title": "Material pentru fronturi — birou de lucru",
+            "summaryLabel": "Material fronturi — birou de lucru"
           }
         }
       },
@@ -7493,7 +7448,7 @@
           "subtitle": "Cadrul se construiește în jurul saltelei — pornim de la dimensiunea ei.",
           "info": {
             "title": "Dimensiuni standard",
-            "body": "Standardele din România: 90×200 (o persoană), 140×200 (două persoane, compact), 160×200 (matrimonial), 180×200 (king). Salteaua nu e inclusă — o alegi separat."
+            "body": "Standardele din România: 90×200 (o persoană), 140×200 (două persoane, compact), 160×200 (matrimonial), 180×200 (cel mai lat). Salteaua nu e inclusă — o alegi separat."
           },
           "options": {
             "S_90": {
@@ -7510,7 +7465,7 @@
             },
             "K_180": {
               "label": "180 × 200 cm",
-              "description": "King — cel mai spațios"
+              "description": "Cel mai spațios"
             }
           },
           "summaryLabel": "Saltea"
@@ -7535,13 +7490,12 @@
                 "body": "Cadru clasic, fără mecanisme — cea mai simplă și mai ieftină variantă.",
                 "pros1": "Cel mai mic preț și nimic care să se strice",
                 "pros2": "Ușor — îl muți sau îl demontezi fără efort",
-                "cons1": "Spațiul de sub saltea rămâne nefolosit",
-                "price": "inclus"
+                "cons1": "Spațiul de sub saltea rămâne nefolosit"
               }
             },
             "LIFT_UP": {
               "label": "Ladă rabatabilă",
-              "description": "Salteaua se ridică pe pistoane",
+              "description": "Salteaua se ridică pe pistoane, dedesubt e o ladă",
               "info": {
                 "title": "Somieră rabatabilă",
                 "body": "Ridici salteaua pe pistoane cu gaz și dedesubt se deschide o ladă cât tot patul.",
@@ -7567,22 +7521,22 @@
           "summaryLabel": "Depozitare sub pat"
         },
         "material": {
-          "title": "Ce material?",
+          "title": "Material — pat",
           "subtitle": "Materialul cadrului (la patul tapițat, al structurii interioare).",
           "summaryLabel": "Material"
         },
         "sketch": {
-          "title": "Ai o schiță a camerei?",
+          "title": "Ai o schiță pentru această piesă?",
           "subtitle": "Opțional — unde stă patul în cameră.",
           "summaryLabel": "Schiță"
         },
         "config3d": {
-          "title": "Creează patul tău",
+          "title": "Creează patul",
           "subtitle": "Alege mărimea saltelei, tapițeria și depozitarea. Vezi rezultatul în 3D."
         },
         "v4": {
           "material": {
-            "title": "Din ce material să fie patul?",
+            "title": "Material — pat",
             "summaryLabel": "Material"
           }
         }
@@ -7640,25 +7594,25 @@
           }
         },
         "material": {
-          "title": "Ce material?",
+          "title": "Material — comodă",
           "subtitle": "Materialul corpului și al fronturilor.",
           "summaryLabel": "Material"
         },
         "openingSystems": {
-          "title": "Sisteme de deschidere"
+          "title": "Deschidere — comodă"
         },
         "sketch": {
-          "title": "Ai o schiță?",
+          "title": "Ai o schiță pentru această piesă?",
           "subtitle": "Opțional — peretele unde va sta comoda.",
           "summaryLabel": "Schiță"
         },
         "config3d": {
-          "title": "Construiește-ți comoda în 3D",
+          "title": "Creează comoda",
           "subtitle": "Ajustează dimensiunile și împarte corpul în sertare, uși sau zone deschise."
         },
         "v4": {
           "material": {
-            "title": "Material pentru fronturile comodei"
+            "title": "Material pentru fronturi — comodă"
           }
         }
       },
@@ -7754,22 +7708,22 @@
           }
         },
         "material": {
-          "title": "Ce material?",
+          "title": "Material — masă",
           "subtitle": "Blatul muncește cel mai mult — lemnul masiv rezistă și se poate recondiționa.",
           "summaryLabel": "Material"
         },
         "sketch": {
-          "title": "Ai o schiță?",
+          "title": "Ai o schiță pentru această piesă?",
           "subtitle": "Opțional — spațiul unde va sta masa.",
           "summaryLabel": "Schiță"
         },
         "config3d": {
-          "title": "Creează masa ta",
-          "subtitle": "Alege utilizarea, forma și dimensiunile, cu previzualizare showroom."
+          "title": "Creează masa",
+          "subtitle": "Alege utilizarea, forma și dimensiunile — vezi masa în 3D pe măsură ce o schimbi."
         },
         "v4": {
           "material": {
-            "title": "Din ce material să fie masa?",
+            "title": "Material — masă",
             "summaryLabel": "Material"
           }
         }
@@ -7780,10 +7734,10 @@
           "subtitle": "Mecanismul dictează adâncimea și capacitatea.",
           "options": {
             "SLIM_TILT": {
-              "label": "Slim rabatabil",
-              "description": "Adâncime 17–25 cm",
+              "label": "Îngust, cu uși rabatabile",
+              "description": "Ușile se rabat în față, pantofii stau înclinați; adâncime 17–25 cm",
               "info": {
-                "title": "Pantofar slim",
+                "title": "Pantofar îngust",
                 "body": "Uși rabatabile cu suporturi înclinate — pantofii stau aproape vertical, corpul intră pe orice hol.",
                 "pros1": "La 17–25 cm adâncime încape unde un corp clasic nu are loc",
                 "pros2": "Lasă holul îngust circulabil",
@@ -7796,7 +7750,7 @@
               "description": "Adâncime ~35 cm",
               "info": {
                 "title": "Pantofar clasic",
-                "body": "Rafturi orizontale clasice — încap ghete înalte, cutii și tot ce nu intră în slim.",
+                "body": "Rafturi orizontale clasice — încap ghete înalte, cutii și tot ce nu intră în pantofarul îngust.",
                 "pros1": "Cele mai multe perechi pe același perete",
                 "pros2": "Primește și ghete înalte, și cutii de pantofi",
                 "cons1": "La ~35 cm adâncime, îngustează sesizabil un hol mic",
@@ -7827,22 +7781,22 @@
           }
         },
         "material": {
-          "title": "Ce material?",
+          "title": "Material — pantofar",
           "subtitle": "Holul e zonă de trafic — alege fronturi care rezistă la lovituri.",
           "summaryLabel": "Material"
         },
         "sketch": {
-          "title": "Ai o schiță a holului?",
+          "title": "Ai o schiță pentru această piesă?",
           "subtitle": "Opțional — spațiul disponibil pe hol.",
           "summaryLabel": "Schiță"
         },
         "config3d": {
-          "title": "Construiește-ți pantofarul în 3D",
+          "title": "Creează pantofarul",
           "subtitle": "Alege dimensiunile și ce are fiecare coloană: uși, sertare sau nișe deschise."
         },
         "v4": {
           "material": {
-            "title": "Material pentru fronturile pantofarului"
+            "title": "Material pentru fronturi — pantofar"
           }
         }
       },
@@ -7856,11 +7810,11 @@
               "description": "1–2 sertare",
               "info": {
                 "title": "Noptieră cu sertare",
-                "body": "Mărunțișurile stau ascunse, blatul rămâne liber. Amortizarea închide sertarul în liniște, noaptea.",
+                "body": "Mărunțișurile stau ascunse, blatul rămâne liber. Închiderea lină oprește sertarul în liniște, noaptea.",
                 "pros1": "Încărcător, carte, medicamente — ascunse, dar la o mână distanță",
                 "pros2": "Blatul liber ține dormitorul ordonat",
                 "cons1": "Glisierele urcă prețul față de o poliță simplă",
-                "price": "600–1.200 lei / buc"
+                "price": "600–1.200 lei / bucată"
               }
             },
             "OPEN_SHELF": {
@@ -7872,7 +7826,7 @@
                 "pros1": "Cea mai simplă construcție — cel mai mic preț",
                 "pros2": "Nimic de deschis — iei și pui dintr-o mișcare",
                 "cons1": "Tot ce așezi pe poliță rămâne la vedere",
-                "price": "400–800 lei / buc"
+                "price": "400–800 lei / bucată"
               }
             },
             "SUSPENDED": {
@@ -7884,7 +7838,7 @@
                 "pros1": "Podeaua liberă — aspiratorul trece fără ocolișuri",
                 "pros2": "Aspect ușor, modern lângă pat",
                 "cons1": "Cere perete solid — pe gips-carton e nevoie de prinderi speciale",
-                "price": "500–1.000 lei / buc"
+                "price": "500–1.000 lei / bucată"
               }
             }
           },
@@ -7904,7 +7858,8 @@
               "label": "Pereche (2)"
             }
           },
-          "summaryLabel": "Număr de noptiere"
+          "summaryLabel": "Număr de noptiere",
+          "subtitle": "Una singură sau o pereche — câte una de fiecare parte a patului."
         },
         "dimensions": {
           "title": "Dimensiuni",
@@ -7914,22 +7869,22 @@
           }
         },
         "material": {
-          "title": "Ce material?",
+          "title": "Material — noptieră",
           "subtitle": "De obicei asortată cu patul sau cu dulapul.",
           "summaryLabel": "Material"
         },
         "sketch": {
-          "title": "Ai o schiță?",
+          "title": "Ai o schiță pentru această piesă?",
           "subtitle": "Opțional — spațiul disponibil lângă pat.",
           "summaryLabel": "Schiță"
         },
         "config3d": {
-          "title": "Construiește-ți noptiera în 3D",
+          "title": "Creează noptiera",
           "subtitle": "Ajustează dimensiunile și alege combinația de sertare și zone deschise."
         },
         "v4": {
           "material": {
-            "title": "Material pentru fronturile noptierei"
+            "title": "Material pentru fronturi — noptieră"
           }
         }
       },
@@ -7993,156 +7948,156 @@
           }
         },
         "material": {
-          "title": "Ce material?",
+          "title": "Material — băncuță",
           "subtitle": "Structura băncuței.",
           "summaryLabel": "Material"
         },
         "sketch": {
-          "title": "Ai o schiță?",
+          "title": "Ai o schiță pentru această piesă?",
           "subtitle": "Opțional — spațiul unde va sta băncuța.",
           "summaryLabel": "Schiță"
         },
         "config3d": {
-          "title": "Creează băncuța ta",
+          "title": "Creează băncuța",
           "subtitle": "Stabilește lățimea, depozitarea și tapițeria șezutului."
         },
         "v4": {
           "material": {
-            "title": "Material pentru băncuță"
+            "title": "Material — băncuță"
           }
         }
       },
       "PIECE_SIDEBOARD": {
         "config3d": {
-          "title": "Configurează: Bufet",
+          "title": "Creează bufetul",
           "subtitle": "Uși, sertare și polițe deschise"
         },
         "material": {
-          "title": "Ce material dorești pentru structură?",
+          "title": "Material — bufet",
           "subtitle": "Pentru corpul și fronturile piesei (uși, sertare). Dacă vrei alt material la fronturi, scrie în „Mesaj pentru firme”.",
-          "summaryLabel": "Material structură"
+          "summaryLabel": "Material"
         },
         "sketch": {
-          "title": "Ai o schiță?",
+          "title": "Ai o schiță pentru această piesă?",
           "subtitle": "Opțional — dimensiuni, referințe sau detalii de montaj.",
           "summaryLabel": "Schiță"
         },
         "v2": {
           "material": {
-            "title": "Material pentru fronturile bufetului"
+            "title": "Material pentru fronturi — bufet"
           }
         }
       },
       "PIECE_WALL_CABINET": {
         "config3d": {
-          "title": "Configurează: Corp suspendat",
+          "title": "Creează corpul suspendat",
           "subtitle": "Polițe și uși, cu montaj suspendat"
         },
         "material": {
-          "title": "Ce material dorești pentru structură?",
+          "title": "Material — corp suspendat",
           "subtitle": "Pentru corpul și fronturile piesei (uși, sertare). Dacă vrei alt material la fronturi, scrie în „Mesaj pentru firme”.",
-          "summaryLabel": "Material structură"
+          "summaryLabel": "Material"
         },
         "sketch": {
-          "title": "Ai o schiță?",
+          "title": "Ai o schiță pentru această piesă?",
           "subtitle": "Opțional — dimensiuni, referințe sau detalii de montaj.",
           "summaryLabel": "Schiță"
         },
         "v2": {
           "material": {
-            "title": "Material pentru fronturile corpului suspendat",
+            "title": "Material pentru fronturi — corp suspendat",
             "summaryLabel": "Material fronturi"
           }
         }
       },
       "PIECE_BATHROOM_VANITY": {
         "config3d": {
-          "title": "Configurează: Mobilier lavoar",
+          "title": "Creează mobilierul de lavoar",
           "subtitle": "Unul sau două lavoare, pe podea sau suspendat"
         },
         "material": {
-          "title": "Ce material dorești pentru structură?",
+          "title": "Material — mobilier de lavoar",
           "subtitle": "Pentru corpul și fronturile piesei (uși, sertare). Dacă vrei alt material la fronturi, scrie în „Mesaj pentru firme”.",
-          "summaryLabel": "Material structură"
+          "summaryLabel": "Material"
         },
         "sketch": {
-          "title": "Ai o schiță?",
+          "title": "Ai o schiță pentru această piesă?",
           "subtitle": "Opțional — dimensiuni, referințe sau detalii de montaj.",
           "summaryLabel": "Schiță"
         },
         "v2": {
           "material": {
-            "title": "Material pentru fronturile mobilierului de lavoar",
+            "title": "Material pentru fronturi — mobilier de lavoar",
             "summaryLabel": "Material fronturi"
           }
         }
       },
       "PIECE_ENTRYWAY": {
         "config3d": {
-          "title": "Configurează: Mobilier hol",
+          "title": "Creează mobilierul de hol",
           "subtitle": "Bancă, pantofar, cuiere și oglindă"
         },
         "material": {
-          "title": "Ce material dorești pentru structură?",
+          "title": "Material — mobilier de hol",
           "subtitle": "Pentru corpul și fronturile piesei (uși, sertare). Dacă vrei alt material la fronturi, scrie în „Mesaj pentru firme”.",
-          "summaryLabel": "Material structură"
+          "summaryLabel": "Material"
         },
         "sketch": {
-          "title": "Ai o schiță?",
+          "title": "Ai o schiță pentru această piesă?",
           "subtitle": "Opțional — dimensiuni, referințe sau detalii de montaj.",
           "summaryLabel": "Schiță"
         },
         "v2": {
           "material": {
-            "title": "Material pentru fronturile mobilierului de hol",
+            "title": "Material pentru fronturi — mobilier de hol",
             "summaryLabel": "Material fronturi"
           }
         }
       },
       "PIECE_SOFA": {
         "config3d": {
-          "title": "Configurează: Canapea",
+          "title": "Creează canapeaua",
           "subtitle": "Dimensiuni, șezlong, perne și tapițerie"
         },
         "material": {
-          "title": "Ce material dorești pentru structură?",
+          "title": "Material pentru cadru — canapea",
           "subtitle": "Materialul cadrului; preferințele pentru tapițerie se salvează separat.",
-          "summaryLabel": "Material structură"
+          "summaryLabel": "Material cadru"
         },
         "sketch": {
-          "title": "Ai o schiță?",
+          "title": "Ai o schiță pentru această piesă?",
           "subtitle": "Opțional — dimensiuni, referințe sau detalii de montaj.",
           "summaryLabel": "Schiță"
         }
       },
       "PIECE_ARMCHAIR": {
         "config3d": {
-          "title": "Configurează: Fotoliu",
+          "title": "Creează fotoliul",
           "subtitle": "Dimensiuni, brațe și tapițerie"
         },
         "material": {
-          "title": "Ce material dorești pentru structură?",
+          "title": "Material pentru cadru — fotoliu",
           "subtitle": "Materialul cadrului; preferințele pentru tapițerie se salvează separat.",
-          "summaryLabel": "Material structură"
+          "summaryLabel": "Material cadru"
         },
         "sketch": {
-          "title": "Ai o schiță?",
+          "title": "Ai o schiță pentru această piesă?",
           "subtitle": "Opțional — dimensiuni, referințe sau detalii de montaj.",
           "summaryLabel": "Schiță"
         }
       },
       "PIECE_OTTOMAN": {
         "config3d": {
-          "title": "Configurează: Taburet tapițat",
+          "title": "Creează taburetul tapițat",
           "subtitle": "Rotund sau dreptunghiular, cu depozitare opțională"
         },
         "material": {
-          "title": "Ce material dorești pentru structură?",
+          "title": "Material pentru cadru — taburet tapițat",
           "subtitle": "Materialul cadrului; preferințele pentru tapițerie se salvează separat.",
-          "summaryLabel": "Material structură"
+          "summaryLabel": "Material cadru"
         },
         "sketch": {
-          "title": "Ai o schiță?",
+          "title": "Ai o schiță pentru această piesă?",
           "subtitle": "Opțional — dimensiuni, referințe sau detalii de montaj.",
           "summaryLabel": "Schiță"
         }
@@ -8373,14 +8328,25 @@
         },
         "sla": {
           "h": "5. Termenul de răspuns",
-          "b": "După preluare ai la dispoziție un termen pentru a trimite oferta: {small} pentru proiectele mici, {medium} pentru cele medii și {large} pentru cele mari. Zilele lucrătoare nu includ weekendurile și sărbătorile legale. Termenul exact apare în fișa de lucru a preluării.\n\nO întrebare de clarificare trimisă clientului pune termenul pe pauză până la răspuns și îl prelungește cu {clarificationDays}.\n\nDacă nu trimiți oferta până la termen plus {graceHours} de grație, preluarea expiră, creditele rezervate se consumă și firma primește {slaMissPoints} de penalizare. Dacă cererea revine apoi în marketplace, firmele care au depășit termenul pe ea nu o mai pot prelua."
+          "b": "După preluare ai la dispoziție un termen pentru a trimite oferta: {terms}. Zilele lucrătoare nu includ weekendurile și sărbătorile legale. Termenul exact apare în fișa de lucru a preluării.\n\nO întrebare de clarificare trimisă clientului pune termenul pe pauză până la răspuns și îl prelungește cu {clarificationDays}.\n\nDacă nu trimiți oferta până la termen plus {graceHours} de grație, preluarea expiră, {slaMiss}. Dacă cererea revine apoi în marketplace, firmele care au depășit termenul pe ea nu o mai pot prelua.",
+          "terms": {
+            "all": "{small} pentru orice proiect",
+            "smallMedium": "{small} pentru proiectele mici și medii, {large} pentru cele mari",
+            "mediumLarge": "{small} pentru proiectele mici, {medium} pentru cele medii și mari",
+            "smallLarge": "{small} pentru proiectele mici și mari, {medium} pentru cele medii",
+            "distinct": "{small} pentru proiectele mici, {medium} pentru cele medii și {large} pentru cele mari"
+          },
+          "missPoints": "creditele rezervate se consumă și firma primește {points, plural, one {# punct de penalizare} few {# puncte de penalizare} other {# de puncte de penalizare}}",
+          "missNoPoints": "creditele rezervate se consumă"
         },
         "withdrawals": {
           "h": "6. Retragerea din preluare",
-          "b": "Proprietarul și managerii firmei pot retrage oricând o preluare deschisă; ceilalți membri își pot retrage doar propria preluare, în primele {graceMinutes}. După ce clientul acceptă o ofertă, preluarea nu mai poate fi retrasă.\n\n• Retragere voluntară în primele {graceMinutes}: creditele se restituie integral, fără penalizare.\n• Retragere voluntară după {graceMinutes}: creditele se consumă, locul se eliberează pentru alte firme și firma primește {withdrawalPoints} de penalizare.\n• I-ai scris clientului în aplicație (mesaj sau întrebare de clarificare) și nu ți-a răspuns de {unresponsiveHours}: retragerea se aprobă automat și creditele se restituie.\n• Cererea a fost modificată după preluare și nu ai trimis încă o ofertă după modificare: retragerea se aprobă automat și creditele se restituie.\n• Date de contact invalide, anulare cerută de client sau alt motiv: retragerea este analizată de administrator, iar până la decizie locul rămâne ocupat. Dacă este aprobată, creditele se restituie; dacă este respinsă, preluarea continuă.",
+          "b": "Proprietarul și managerii firmei pot retrage oricând o preluare deschisă; ceilalți membri își pot retrage doar propria preluare, în primele {graceMinutes}. După ce clientul acceptă o ofertă, preluarea nu mai poate fi retrasă.\n\n• Retragere voluntară în primele {graceMinutes}: creditele se restituie integral, fără penalizare.\n• Retragere voluntară după {graceMinutes}: {withdrawalLate}.\n• I-ai scris clientului în aplicație (mesaj sau întrebare de clarificare) și nu ți-a răspuns de {unresponsiveHours}: retragerea se aprobă automat și creditele se restituie.\n• Cererea a fost modificată după preluare și nu ai trimis încă o ofertă după modificare: retragerea se aprobă automat și creditele se restituie.\n• Date de contact invalide, anulare cerută de client sau alt motiv: retragerea este analizată de administrator, iar până la decizie locul rămâne ocupat. Dacă este aprobată, creditele se restituie; dacă este respinsă, preluarea continuă.",
           "contactsOnClaim": "Datele de contact ale clientului și adresa completă sunt vizibile firmei imediat după preluare, cât timp preluarea este activă. Angajații cu rol limitat le văd doar pe preluările lor.",
           "contactsAfterGrace": "Datele de contact ale clientului și adresa completă devin vizibile după primele {graceMinutes} de la preluare, cât timp preluarea este activă. Angajații cu rol limitat le văd doar pe preluările lor.",
-          "contactsRetention": "La {days} după livrare, datele de contact ale proiectelor finalizate rămân vizibile doar proprietarului și managerilor firmei."
+          "contactsRetention": "La {days} după livrare, datele de contact ale proiectelor finalizate rămân vizibile doar proprietarului și managerilor firmei.",
+          "latePoints": "creditele se consumă, locul se eliberează pentru alte firme și firma primește {points, plural, one {# punct de penalizare} few {# puncte de penalizare} other {# de puncte de penalizare}}",
+          "lateNoPoints": "creditele se consumă și locul se eliberează pentru alte firme"
         },
         "penalties": {
           "h": "7. Puncte de penalizare",
@@ -8514,5 +8480,16 @@
     "requestNotYoursHint": "Poate a fost ștearsă sau linkul e pentru alt cont.",
     "claimNotYours": "Preluarea nu există sau nu e a firmei tale",
     "claimNotYoursHint": "Poate a fost ștearsă sau linkul e pentru alt cont de firmă."
+  },
+  "DateField": {
+    "day": "Ziua",
+    "month": "Luna",
+    "year": "Anul",
+    "dayPlaceholder": "Zi",
+    "monthPlaceholder": "Lună",
+    "yearPlaceholder": "An",
+    "clear": "Șterge data",
+    "incomplete": "Alege ziua, luna și anul sau lasă toate trei goale.",
+    "invalid": "Data aceasta nu există în calendar (de exemplu, 31 februarie). Alege altă zi."
   }
 }

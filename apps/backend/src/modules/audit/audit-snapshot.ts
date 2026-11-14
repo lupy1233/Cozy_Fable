@@ -23,6 +23,23 @@ const OPAQUE = /^[a-zA-Z0-9_-]{1,128}$/;
 const NUMBER = /^-?\d{1,15}(?:\.\d{1,8})?$/;
 const SECRET_VALUE = /(?:secret|token|password|bearer)[\s:=_-]/i;
 
+// k2 (etapa 12): text liber scris de admin — fara date de contact, fara caractere de control.
+// Un motiv care pare sa contina un secret (parola / token) nu se pastreaza, dar ramane urma ca a
+// existat: '[ascuns]'. Se mascheaza adresele de e-mail, IBAN-urile si numerele lungi (de la 9
+// cifre in sus: telefoane, conturi); datele („14.11.2026”) si sumele obisnuite raman citibile.
+const FREE_REASON_HIDDEN = '[ascuns]';
+export function freeReason(value: string): string | undefined {
+  // eslint-disable-next-line no-control-regex
+  const clean = value.replace(/[\u0000-\u001F\u007F]+/g, ' ').trim();
+  if (!clean.length) return undefined;
+  if (SECRET_VALUE.test(clean)) return FREE_REASON_HIDDEN;
+  return clean
+    .replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, '[email]')
+    .replace(/\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){3,7}(?:[ ]?[A-Z0-9]{1,3})?\b/g, '[iban]')
+    .replace(/\+?\d[\d ().-]{6,}\d/g, (match) => (match.replace(/\D/g, '').length >= 9 ? '[nr]' : match))
+    .slice(0, 1000);
+}
+
 function numeric(value: unknown): number | string | null | undefined {
   if (value === null) return null;
   if (typeof value === 'number') return Number.isFinite(value) ? value : undefined;
@@ -66,6 +83,10 @@ export function auditSnapshot(input: unknown): Prisma.InputJsonValue | undefined
       } else if (key === 'mimeType' && typeof item === 'string' && /^[a-z0-9.+-]+\/[a-z0-9.+-]+$/i.test(item)) safe = item;
       else if (key === 'key' && typeof item === 'string' && SETTING_KEYS.has(item)) safe = item;
       else if (key === 'value') safe = settingValue(source.key, item);
+      // k2 (etapa 12, plan aprobat de PO): motivul ridicarii suspendarii e singurul text liber din
+      // audit. Il scrie un admin; aici se mascheaza inca o data adresele de e-mail si numerele lungi
+      // (telefon / IBAN), se scot caracterele de control si se taie la 1000 de caractere.
+      else if (key === 'unsuspendReason' && typeof item === 'string') safe = freeReason(item);
       else if (CONTAINERS.has(key)) safe = visit(item, depth + 1);
       if (safe !== undefined) output[key] = safe;
     }

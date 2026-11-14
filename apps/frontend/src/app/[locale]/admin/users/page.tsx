@@ -2,6 +2,7 @@
 
 import type { AdminUserItemDto } from '@marketplace/shared';
 import { useFormatter, useTranslations } from 'next-intl';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { useState } from 'react';
 import { useAdminUsers, useBlockUser } from '@/hooks/use-admin';
 import { Badge } from '@/components/ui/badge';
@@ -55,7 +56,7 @@ export default function AdminUsersPage() {
 
   const rows = users.data ?? [];
   const paged = pageSlice(rows, page, PAGE_SIZE);
-  const date = (iso: string) => format.dateTime(new Date(iso), { dateStyle: 'medium' });
+  const date = (iso: string) => format.dateTime(new Date(iso), { dateStyle: 'medium', timeZone: APP_TIME_ZONE });
 
   return (
     <div className="flex w-full max-w-[1180px] flex-col gap-6">

@@ -20,6 +20,7 @@ import { useSlaDateFormat } from '@/lib/sla-deadline';
 import { RequestGeneralFiles } from '@/components/configurator/request-general-files';
 import { ClosedRequestNotice, closedDetails } from './closed-request-notice';
 import { ClaimCostSource, claimBlockedByRole } from './claim-panel-notes';
+import { ClaimDialogGraceLine, ClaimDialogRulesNote, ClaimPanelSlaRule } from './claim-penalty-text';
 import { toast } from '@/components/ui/toaster';
 import {
   ClaimDialogDetails,
@@ -34,7 +35,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
 import { SkeletonPage } from '@/components/ui/skeleton';
 import { ContactSafeText } from '@/components/ui/contact-safe-text';
-import { FirmRulesLink, firmRulesChunk } from '../../_components/firm-rules-link';
+import { FirmRulesLink } from '../../_components/firm-rules-link';
 import { ActionConfirmDialog } from '../../_components/action-confirm-dialog';
 import { RoomSpecCard, RoomSpecNav } from '@/components/configurator/room-spec-card';
 import { useDisplayAddress } from '@/components/configurator/use-display-address';
@@ -396,16 +397,10 @@ function ClaimPanel({ request }: { request: MarketplaceDetailDto }) {
           assignMinutesLabel={tu('minute', { n: rules?.claims.assignDeadlineMinutes ?? 60 })}
           disabled={claim.isPending}
         />
-        {rules && (
-          <p>
-            {t('claimConfirmGrace', {
-              minutes: tu('minute', { n: rules.withdrawals.voluntaryGraceMinutes }),
-              points: tu('point', { n: rules.penalties.points.VOLUNTARY_WITHDRAWAL }),
-            })}
-          </p>
-        )}
+        {/* i3 (etapa 12): aceleasi valori ca Regulile pentru firme; o regula cu 0 puncte nu pomeneste puncte */}
+        <ClaimDialogGraceLine rules={rules} />
         <p>{t('claimConfirmPayToPlay')}</p>
-        <p className="text-xs text-muted-foreground">{t.rich('claimRulesNote', { rules: firmRulesChunk('sla') })}</p>
+        <ClaimDialogRulesNote rules={rules} />
       </ActionConfirmDialog>
 
       {/* credite insuficiente: pasul urmator e portofelul, nu butonul de preluare */}
@@ -440,7 +435,9 @@ function ClaimPanel({ request }: { request: MarketplaceDetailDto }) {
             </>
           )}
         </RuleRow>
-        <RuleRow tone="warn">{t('claimPanel.ruleSla')}</RuleRow>
+        <RuleRow tone="warn">
+          <ClaimPanelSlaRule rules={rules} />
+        </RuleRow>
         <RuleRow tone="warn">{t('claimConfirmPayToPlay')}</RuleRow>
       </ul>
       <FirmRulesLink

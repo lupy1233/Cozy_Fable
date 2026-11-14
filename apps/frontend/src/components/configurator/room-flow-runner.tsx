@@ -95,6 +95,17 @@ export function RoomFlowRunner({
     else onExitToCart();
   }, [room, firstAskable, setActiveRoom, onExitToCart]);
 
+  // m11 (etapa 12): Forward din browser oprit pe un ecran incomplet → acelasi „Continua”
+  // (apar mesajele ecranului); contorul e doar in memorie
+  const continueRequest = useConfiguratorStore((s) => s.continueRequest);
+  const seenContinueRequest = useRef(continueRequest);
+  const goNextRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    if (continueRequest === seenContinueRequest.current) return;
+    seenContinueRequest.current = continueRequest;
+    goNextRef.current();
+  }, [continueRequest]);
+
   if (!room) return null;
 
   // step-urile hidden nu primesc ecran; cu proiect propriu sar dimensiunile +
@@ -135,6 +146,7 @@ export function RoomFlowRunner({
       onAllDone();
     }
   };
+  goNextRef.current = goNext;
 
   const goBack = () => {
     setErrors({});

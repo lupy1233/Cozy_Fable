@@ -626,14 +626,16 @@ function SubscriptionPill() {
   );
 }
 
-// Penalizari: punctele active vin din statisticile panoului; pragul si ultimele evenimente
-// din starea penalizarilor (aceeasi interogare ca in portofel), daca s-a incarcat.
-function PenaltyCard({ points }: { points: number }) {
+// Penalizari: punctele, pragul si ultimele evenimente vin din starea penalizarilor (aceeasi
+// interogare ca in portofel, reimprospatata la penalizare / suspendare / ridicare); statisticile
+// panoului sunt doar rezerva pana se incarca (etapa 12, k2: cifra si lista din aceeasi sursa).
+function PenaltyCard({ points: statsPoints }: { points: number }) {
   const t = useTranslations('Dashboard.company');
   const tp = useTranslations('Penalties');
   const format = useFormatter();
   const penalties = usePenaltyStatus();
   const detail = penalties.data;
+  const points = detail?.activePoints ?? statsPoints;
   const warn = points > 0;
 
   return (

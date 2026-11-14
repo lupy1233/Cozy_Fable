@@ -2,6 +2,7 @@
 
 import { ADMIN_REQUEST_FILTERS, type AdminRequestFilter } from '@marketplace/shared';
 import { useFormatter, useTranslations } from 'next-intl';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { useMemo, useState } from 'react';
 import { Link } from '@/i18n/routing';
 import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
@@ -42,9 +43,9 @@ export default function AdminRequestsPage() {
   const isAdmin = me.data?.role === 'ADMIN';
 
   const pages = list.data ? Math.max(1, Math.ceil(list.data.total / list.data.pageSize)) : 1;
-  const fmtDate = (iso: string | null) => (iso ? format.dateTime(new Date(iso), { dateStyle: 'medium' }) : '—');
+  const fmtDate = (iso: string | null) => (iso ? format.dateTime(new Date(iso), { dateStyle: 'medium', timeZone: APP_TIME_ZONE }) : '—');
   const fmtDay = (d: string | null) =>
-    d ? format.dateTime(new Date(`${d}T12:00:00`), { dateStyle: 'medium' }) : '—';
+    d ? format.dateTime(new Date(`${d}T12:00:00Z`), { dateStyle: 'medium', timeZone: APP_TIME_ZONE }) : '—';
 
   // endpoint-ul nu are parametru de cautare: filtram randurile paginii incarcate
   const q = query.trim().toLowerCase();

@@ -39,6 +39,7 @@ import { getQuestionTargets, QuestionTargetStrip } from './illustrations/questio
 import { getDimensionFigure } from './dimension-figures';
 import { Configurator3dStep } from './piece3d/dynamic';
 import { CompactChoiceCard, PlayingCard } from './playing-card';
+import { isNotRecommendedHere, NotRecommendedTag } from './material-warning';
 import { RoomSketchUpload } from './room-sketch-upload';
 import { ContactInTextHint } from './contact-in-text-hint';
 import { useDecimalField } from './use-decimal-field';
@@ -117,7 +118,7 @@ function StepShell({
             <button
               type="button"
               onClick={() => onInfo(step.info!)}
-              aria-label={t('info.showInfo')}
+              aria-label={t('info.showInfoFor', { option: t(step.titleKey) })}
               className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-walnut-soft hover:text-walnut"
             >
               <Info className="h-4 w-4" />
@@ -271,6 +272,9 @@ export function StepRenderer(props: StepRendererProps) {
     );
   };
 
+  // c13: "Nerecomandat aici" langa insigna "Recomandat" (doar afisare, din raspunsurile date)
+  const notRecommended = (opt: ChoiceOption) => isNotRecommendedHere(roomType, step, opt.value, answers);
+
   const optionCard = (opt: ChoiceOption, selected: boolean, multi: boolean, onSelect: () => void) => (
     <PlayingCard
       key={opt.value}
@@ -278,7 +282,16 @@ export function StepRenderer(props: StepRendererProps) {
       selected={selected}
       onSelect={onSelect}
       title={t(opt.labelKey)}
-      sub={opt.descriptionKey ? t(opt.descriptionKey) : undefined}
+      sub={
+        notRecommended(opt) ? (
+          <>
+            {opt.descriptionKey ? t(opt.descriptionKey) : null}
+            <NotRecommendedTag />
+          </>
+        ) : opt.descriptionKey ? (
+          t(opt.descriptionKey)
+        ) : undefined
+      }
       visual={optionVisual(opt)}
       info={opt.info}
       recommended={opt.recommendedIf ? evalCondition(opt.recommendedIf, answers) : false}
@@ -297,7 +310,16 @@ export function StepRenderer(props: StepRendererProps) {
         multi={multi}
         selected={selected}
         onSelect={onSelect}
-        title={t(opt.labelKey)}
+        title={
+          notRecommended(opt) ? (
+            <>
+              {t(opt.labelKey)}
+              <NotRecommendedTag />
+            </>
+          ) : (
+            t(opt.labelKey)
+          )
+        }
         visual={
           Illustration ? (
             <Illustration />

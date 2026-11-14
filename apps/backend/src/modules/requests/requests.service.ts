@@ -1336,7 +1336,8 @@ export class RequestsService {
     LIVING: { one: 'Living', many: 'Living-uri' },
     OFFICE: { one: 'Birou', many: 'Birouri' },
     DRESSING: { one: 'Dressing', many: 'Dressing-uri' },
-    PIECES: { one: 'Piese individuale', many: 'Piese individuale' },
+    // c11 (etapa 12): aceleasi nume ca in glosarul de piese din formular
+    PIECES: { one: 'Altă piesă', many: 'Alte piese' },
     HALLWAY: { one: 'Hol', many: 'Holuri' },
     PANTRY: { one: 'Debara', many: 'Debarale' },
     LAUNDRY: { one: 'Spălătorie', many: 'Spălătorii' },
@@ -1345,11 +1346,12 @@ export class RequestsService {
     PIECE_TV_UNIT: { one: 'Comodă TV', many: 'Comode TV' },
     PIECE_BOOKCASE: { one: 'Bibliotecă', many: 'Biblioteci' },
     PIECE_BED: { one: 'Pat', many: 'Paturi' },
-    PIECE_DESK: { one: 'Birou', many: 'Birouri' },
+    // PO c11-1: camera „Birou”, piesa „Birou de lucru”
+    PIECE_DESK: { one: 'Birou de lucru', many: 'Birouri de lucru' },
     PIECE_DRESSER: { one: 'Comodă', many: 'Comode' },
     PIECE_TABLE: { one: 'Masă', many: 'Mese' },
     PIECE_SHOE_CABINET: { one: 'Pantofar', many: 'Pantofare' },
-    PIECE_NIGHTSTAND: { one: 'Noptiere', many: 'Noptiere' },
+    PIECE_NIGHTSTAND: { one: 'Noptieră', many: 'Noptiere' },
     PIECE_BENCH: { one: 'Băncuță', many: 'Băncuțe' },
     PIECE_SIDEBOARD: { one: 'Bufet', many: 'Bufete' },
     PIECE_WALL_CABINET: { one: 'Corp suspendat', many: 'Corpuri suspendate' },
@@ -1360,9 +1362,20 @@ export class RequestsService {
     PIECE_OTTOMAN: { one: 'Taburet tapițat', many: 'Taburete tapițate' },
   };
 
+  // Cate bucati numara o camera in titlu: noptierele dupa raspunsul „Câte noptiere?” (implicit
+  // doua, ca in flux), „Altă piesă” dupa randurile completate; restul — o bucata pe camera.
+  private static titleUnits(room: ProcessedRoom): number {
+    if (room.roomType === 'PIECE_NIGHTSTAND') return room.answers?.count === 'ONE' ? 1 : 2;
+    if (room.roomType === 'PIECES') {
+      const rows = room.answers?.pieces;
+      return Array.isArray(rows) && rows.length > 0 ? rows.length : 1;
+    }
+    return 1;
+  }
+
   private buildRequestTitle(rooms: ProcessedRoom[], city: string): string {
     const counts = new Map<string, number>();
-    for (const room of rooms) counts.set(room.roomType, (counts.get(room.roomType) ?? 0) + 1);
+    for (const room of rooms) counts.set(room.roomType, (counts.get(room.roomType) ?? 0) + RequestsService.titleUnits(room));
     const parts = [...counts.entries()].map(([type, n]) => {
       const label = RequestsService.ROOM_TITLE_LABELS[type] ?? { one: type, many: type };
       return n === 1 ? label.one : `${n} ${label.many}`;

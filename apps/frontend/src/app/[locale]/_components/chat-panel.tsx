@@ -24,6 +24,7 @@ import { SkeletonList } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiError, isUnauthorizedError } from '@/lib/api';
 import { rejectReasonFromError } from '@/lib/attachment-upload';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { cn } from '@/lib/utils';
 
 // g3 (etapa 7): limita textului = aceeasi ca pe server (SendMessageDto @MaxLength(5000),
@@ -244,6 +245,8 @@ export function ChatPanel({
       month: 'short',
       hour: '2-digit',
       minute: '2-digit',
+      // g2: ora Romaniei, nu fusul browserului
+      timeZone: APP_TIME_ZONE,
     });
 
   return (

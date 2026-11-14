@@ -4,6 +4,11 @@ import { afterEach, vi } from 'vitest';
 
 afterEach(cleanup);
 
+// g2 (revizuire m6): aplicatia afiseaza totul in ora Romaniei (fusul global next-intl din
+// i18n/request.ts + layout). Providerii din teste nu primesc mereu timeZone, deci fixam fusul
+// procesului pe acelasi, ca testele sa nu depinda de fusul masinii (CI ruleaza in UTC).
+process.env.TZ = 'Europe/Bucharest';
+
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({

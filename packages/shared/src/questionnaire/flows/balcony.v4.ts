@@ -1,5 +1,6 @@
 import { DEFAULT_CEILING_HEIGHT, dimensionValues, linearMeters, STANDARD_CABINET_DEPTH } from '../mapping';
 import type { AnswerMap, DimensionGroupStep, DimensionSlot, RoomFlow } from '../types';
+import { finishDescription } from './finish-sets';
 import { ceilingIfTall, informativeSlot, optionalHeightSlot, pieceWidthSlot } from './measure-sets';
 import {
   buildFinishItems,
@@ -71,6 +72,10 @@ const OPTS: FinishOpts = {
   common: true,
   recommended: { material: 'LEMN_MASIV', cond: { questionId: 'enclosed', equals: 'OPEN' } },
 };
+
+// etapa 12 (c13, PO c13-1): nota pentru firma pe fiecare piesa cand balconul e deschis
+// (doar pe v4; versiunile vechi raman identice)
+export const BALCONY_OPEN_NOTE = 'Balcon deschis — exterior';
 
 // piesele inalte (DESIGN tabelul 5.0): tavan + inaltime optionala
 export const BALCONY_V4_TALL_PIECES = ['TALL_CABINET'] as const;
@@ -175,6 +180,13 @@ export const balconyFlowV4: RoomFlow = {
     // ca in v3: adancimea mobilierului nu poate depasi adancimea libera a balconului
     const depth = Math.min(values.balconyDepth ?? STANDARD_CABINET_DEPTH, STANDARD_CABINET_DEPTH);
     const { items, firmRecommendations } = buildFinishItems(answers, PIECES, 'Mobilier balcon');
+    // etapa 12 (c13): la balcon deschis firma vede direct pe fiecare piesa ca e mobilier de exterior
+    if (answers.enclosed === 'OPEN') {
+      for (const item of items) {
+        const description = finishDescription([BALCONY_OPEN_NOTE, item.description]);
+        if (description) item.description = description;
+      }
+    }
     return {
       // marimea = suma latimilor pieselor, plafonata la lungimea utila a balconului (M3)
       lengthM: cappedPiecesLength(linearMeters(dimensionsStep, answers), numberOr0(values.balconyLength)),
