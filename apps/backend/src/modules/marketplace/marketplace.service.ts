@@ -257,6 +257,8 @@ export class MarketplaceService {
         answers: (room.answers ?? null) as Record<string, unknown> | null,
         flowVersion: room.flowVersion,
         needsDesignHelp: room.needsDesignHelp,
+        // d3: lungimea aproximativa (proiect propriu) — numar, nu text liber
+        approxLengthM: room.approxLengthM == null ? null : Number(room.approxLengthM),
         items: room.items.map((it) => ({
           id: it.id,
           name: it.name,

@@ -9,7 +9,8 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { cmRangeText, inRangeCm, useDecimalField } from '../use-decimal-field';
+import { cmRangeText } from '../use-decimal-field';
+import { useDimensionField } from './use-dimension-field';
 import { PieceCanvas, type SnapshotFn } from './piece-canvas';
 import { config3dChips } from './config-chips';
 import { CatalogControls } from './catalog-controls';
@@ -24,21 +25,23 @@ interface Props {
 function SizeInput({ label, value, min, max, onChange }: {
   label: string; value: number; min: number; max: number; onChange: (n: number) => void;
 }) {
-  // b1: virgula acceptata; in afara intervalului → ramane valoarea veche, cu mesaj
-  const t = useTranslations('Configurator');
+  // b1: virgula acceptata; b7: in afara intervalului se corecteaza la limita
+  // CU mesaj, campul golit pastreaza valoarea veche cu mesaj, "1,2" = 120 cm
   const locale = useLocale();
   const id = useId();
   const range = cmRangeText(min, max, locale);
-  const field = useDecimalField({
-    value: value * 100, commitOn: 'blur', maxFractionDigits: 1,
-    validate: (v) => (inRangeCm(v, min, max) ? null : t('validation.outOfRangeKept', { range })),
-    onValue: (v) => { if (v !== undefined) onChange(v / 100); },
+  const cmExact = (v: number) => Math.round(v * 1000) / 10;
+  const field = useDimensionField({
+    valueCm: cmExact(value), minCm: cmExact(min), maxCm: cmExact(max),
+    onValueCm: (v) => onChange(v / 100),
   });
   return <label htmlFor={id} className="grid gap-1 text-sm font-medium">{label}
     <Input id={id} {...field.inputProps} className={field.error ? 'border-crimson' : undefined} />
     {field.error
       ? <span role="alert" className="text-xs font-normal text-crimson">{field.error}</span>
-      : <span className="text-xs font-normal text-muted-foreground">{range}</span>}
+      : !field.note && <span className="text-xs font-normal text-muted-foreground">{range}</span>}
+    {/* montat mereu (gol fara mesaj), ca anuntul sa fie citit cand apare */}
+    <span id={field.noteId} role="status" aria-live="polite" className={field.note ? 'text-xs font-normal text-muted-foreground' : 'sr-only'}>{field.note}</span>
   </label>;
 }
 

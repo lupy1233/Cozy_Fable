@@ -5,6 +5,7 @@ import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useAdminRequests } from '@/hooks/use-admin';
 import { StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ export default function AdminRequestsPage() {
   const format = useFormatter();
   const router = useRouter();
   const me = useMe();
+  const toLogin = useLoginRedirect();
   const [filter, setFilter] = useState<AdminRequestFilter>('accepted');
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState('');
@@ -41,9 +43,9 @@ export default function AdminRequestsPage() {
   const isAdmin = me.data?.role === 'ADMIN';
 
   useEffect(() => {
-    if (me.isError) router.replace('/login');
+    if (me.isError) toLogin();
     else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
-  }, [me.isError, me.data, router]);
+  }, [me.isError, me.data, router, toLogin]);
 
   const pages = list.data ? Math.max(1, Math.ceil(list.data.total / list.data.pageSize)) : 1;
   const fmtDate = (iso: string | null) => (iso ? format.dateTime(new Date(iso), { dateStyle: 'medium' }) : '—');

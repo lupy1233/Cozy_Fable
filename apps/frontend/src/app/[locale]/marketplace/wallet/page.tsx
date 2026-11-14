@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useMyCompany } from '@/hooks/use-company';
 import { useSubscription, useWallet } from '@/hooks/use-marketplace';
 import { companyCan } from '@/lib/company-permissions';
@@ -50,6 +51,7 @@ export default function WalletPage() {
   const qc = useQueryClient();
   const searchParams = useSearchParams();
   const me = useMe();
+  const toLogin = useLoginRedirect();
   const company = useMyCompany();
   // doar OWNER/MANAGER cumpara si vad comenzile (CompanyManagerGuard); cat timp rolul se incarca = doar citire
   const canBuy = companyCan(company.data, 'BILLING_MANAGE');
@@ -100,9 +102,9 @@ export default function WalletPage() {
   const pollTimers = useRef<number[]>([]);
 
   useEffect(() => {
-    if (me.isError) router.replace('/login');
+    if (me.isError) toLogin();
     else if (me.data && me.data.role !== 'COMPANY_USER') router.replace('/dashboard');
-  }, [me.isError, me.data, router]);
+  }, [me.isError, me.data, router, toLogin]);
 
   // Intoarcerea din Stripe Checkout (?payment=success|cancelled&order=...): toast + poll scurt
   // (webhook-ul ajunge la cateva secunde dupa redirect) + curatam query-ul din URL.

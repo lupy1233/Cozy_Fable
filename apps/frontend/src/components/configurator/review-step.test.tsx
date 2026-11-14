@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { CURRENT_FLOW_VERSION } from '@marketplace/shared';
 import { NextIntlClientProvider } from 'next-intl';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api';
 import en from '@/messages/en.json';
 import { useConfiguratorStore } from '@/stores/configurator-store';
@@ -14,6 +14,9 @@ const hoisted = vi.hoisted(() => ({
   remove: vi.fn(async (_id: string): Promise<unknown> => undefined),
   upload: vi.fn(),
   toastWarning: vi.fn(),
+  // a6: raspunsul POST drafts/:token/coverage (undefined = nimic inca / eroare)
+  coverage: { data: undefined as { coverage: 'COVERED' | 'NONE' | 'UNKNOWN' } | undefined },
+  coverageArgs: [] as unknown[][],
 }));
 vi.mock('@/components/ui/toaster', () => ({ toast: { warning: hoisted.toastWarning, success: vi.fn() } }));
 vi.mock('@/hooks/use-auth', () => ({
@@ -26,6 +29,10 @@ vi.mock('@/hooks/use-requests', () => ({
   useRemoveAttachmentFor: () => ({ mutateAsync: hoisted.remove }),
   usePublishDraft: () => hoisted.publish,
   useEditRequestById: () => hoisted.publish,
+  useDraftCoverage: (...args: unknown[]) => {
+    hoisted.coverageArgs.push(args);
+    return hoisted.coverage;
+  },
 }));
 vi.mock('@/i18n/routing', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
 vi.mock('./inspiration-picker', () => ({ InspirationPicker: () => null }));
@@ -196,6 +203,68 @@ describe('ReviewStep — files that must not reach companies (M1, m7)', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+// a6 (PO a6-1 / a6-2): nicio firma in zona → avertisment inaintea butonului, publicarea ramane posibila
+describe('ReviewStep — no company in the area (a6)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useConfiguratorStore.getState().reset();
+    hoisted.me = { data: { email: 'ana@demo.ro', role: 'CLIENT' }, isPending: false };
+    hoisted.publish.error = null;
+    hoisted.publish.mutateAsync = vi.fn(async () => ({ id: 'req-9', attachments: [] }));
+    hoisted.attachments = { attachments: [], isSuccess: true, isFetching: false, dataUpdatedAt: 0 };
+    hoisted.coverageArgs = [];
+    useConfiguratorStore.getState().loadSnapshot({
+      ...useConfiguratorStore.getState().snapshot(),
+      startMode: 'DESIGN_HELP',
+      phase: 'review',
+      details: {
+        budgetRange: 'UNDISCLOSED', budgetChosen: true, addressText: 'Str. 1', county: 'Cluj', city: 'Cluj',
+        contactPreferences: [{ channel: 'EMAIL', value: 'ana@demo.ro' }],
+      },
+      roomInstances: [{ localId: 'k', roomType: 'KITCHEN', flowVersion: 1, answers: {}, completed: true, needsDesignHelp: true }],
+    });
+  });
+
+  afterEach(() => {
+    hoisted.coverage = { data: undefined };
+  });
+
+  it('NONE: the warning shows before "Publish", without any number, and publishing still works', async () => {
+    hoisted.coverage = { data: { coverage: 'NONE' } };
+    const onPublished = vi.fn();
+    mount(onPublished);
+    const warning = screen.getByTestId('no-coverage-warning');
+    expect(warning).toHaveTextContent(en.Requests.visibility.noCoverage.title);
+    expect(warning).toHaveTextContent(en.Requests.visibility.noCoverage.reviewBody);
+    expect(warning.textContent).not.toMatch(/\d/);
+    // avertismentul sta inaintea butonului
+    const button = screen.getByRole('button', { name: en.Requests.publish });
+    expect(warning.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+    await waitFor(() => expect(onPublished).toHaveBeenCalledWith('req-9'));
+    // intrebarea pleaca cu tokenul ciornei si adresa din Detalii
+    expect(hoisted.coverageArgs[0]).toEqual(['tok', { addressText: 'Str. 1', city: 'Cluj', county: 'Cluj', country: 'RO' }]);
+  });
+
+  it.each([
+    ['COVERED', { coverage: 'COVERED' as const }],
+    ['UNKNOWN', { coverage: 'UNKNOWN' as const }],
+    ['no answer / error', undefined],
+  ])('%s: no warning', (_label, data) => {
+    hoisted.coverage = { data };
+    mount();
+    expect(screen.queryByTestId('no-coverage-warning')).not.toBeInTheDocument();
+  });
+
+  it('while editing a published request nothing is asked and nothing is shown', () => {
+    hoisted.coverage = { data: { coverage: 'NONE' } };
+    mount(() => {}, 'req-1');
+    expect(hoisted.coverageArgs[0]?.[0]).toBeNull();
+    expect(screen.queryByTestId('no-coverage-warning')).not.toBeInTheDocument();
   });
 });
 

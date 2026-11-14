@@ -7,6 +7,7 @@ import { Link, useRouter } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
 import { useRelativeTime } from '@/lib/relative-time';
 import { useMe } from '@/hooks/use-auth';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useAdminDisputes, useResolveDispute } from '@/hooks/use-fulfillment';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,7 @@ export default function AdminDisputesPage() {
   const router = useRouter();
   const relative = useRelativeTime();
   const me = useMe();
+  const toLogin = useLoginRedirect();
   const list = useAdminDisputes();
   const resolve = useResolveDispute();
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -49,9 +51,9 @@ export default function AdminDisputesPage() {
     : null;
 
   useEffect(() => {
-    if (me.isError) router.replace('/login');
+    if (me.isError) toLogin();
     else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
-  }, [me.isError, me.data, router]);
+  }, [me.isError, me.data, router, toLogin]);
 
   if (me.isPending) return <SkeletonPage variant="list" />;
 

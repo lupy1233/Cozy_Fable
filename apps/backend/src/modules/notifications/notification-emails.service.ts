@@ -54,6 +54,8 @@ const EMAILED_EVENTS = new Set([
   // refuzul ofertei → firma, cu motivul
   'quote.updated',
   'quote.declined',
+  // a6 (2026-11-14): cerere publicata fara nicio firma in zona → adminii (tintele)
+  'request.no_coverage',
 ]);
 
 // a4: motivele refuzului (PO a4-2), in limba destinatarului
@@ -939,6 +941,24 @@ export class NotificationEmailsService {
             : `The deadline for your offer on “${requestTitle}” is ${date}. Send it by then: after the grace period the claim closes, the reserved credits are consumed and your company gets penalty points.`,
           cta: ro ? 'Trimite oferta' : 'Send the offer',
           path: claimsPath,
+        };
+      }
+      // a6 (2026-11-14): echipa Cozy Home afla ca o cerere noua nu are nicio firma pe raza
+      case 'request.no_coverage': {
+        const place = [payload.city, payload.county]
+          .map((v) => (typeof v === 'string' ? v.trim() : ''))
+          .filter((v) => v.length > 0)
+          .map((v) => esc(v))
+          .join(', ');
+        return {
+          subject: ro
+            ? `Cerere nouă fără nicio firmă în zonă${place ? ` — ${place}` : ''}`
+            : `New request with no company in the area${place ? ` — ${place}` : ''}`,
+          intro: ro
+            ? `Cererea „${requestTitle}”${place ? ` din <strong>${place}</strong>` : ''} a fost publicată, dar nicio firmă cu abonament activ nu lucrează pe raza ei. Clientul a fost anunțat că echipa caută o firmă în zonă.`
+            : `The request “${requestTitle}”${place ? ` in <strong>${place}</strong>` : ''} was published, but no company with an active subscription works within its area. The client was told that the team is looking for a company there.`,
+          cta: ro ? 'Vezi cererea în Admin' : 'View the request in Admin',
+          path: `/${lang}/admin/requests/${requestId}`,
         };
       }
       default:

@@ -15,6 +15,7 @@ import { ApiError } from '@/lib/api';
 import { useMe } from '@/hooks/use-auth';
 import {
   useAttachmentsStateFor,
+  useDraftCoverage,
   useEditRequestById,
   usePublishDraft,
   useRemoveAttachmentFor,
@@ -24,6 +25,7 @@ import {
 import { useRouter } from '@/i18n/routing';
 import { excludedFileIds, useConfiguratorStore, type RoomInstance } from '@/stores/configurator-store';
 import { synchronizeStudioSnapshots, invalidStudioRequestEntries } from '@/stores/studio-transfer';
+import { ApproxLengthNote, needsApproxLength } from './approx-length-field';
 import { InspirationPicker } from './inspiration-picker';
 import { ReviewFactsCard } from './review-facts-card';
 import { budgetPayload, isBudgetChosen } from './budget-choice';
@@ -161,6 +163,15 @@ export function ReviewStep({
   const publish = isEdit ? editRequest : publishDraft;
   // urcarea snapshot-urilor 3D dinaintea publish-ului (R4)
   const [preparing, setPreparing] = useState(false);
+  // a6: cu adresa completata intrebam serverul daca exista vreo firma in zona; la NONE aratam
+  // avertismentul inaintea butonului (publicarea ramane posibila). UNKNOWN / eroare → nimic.
+  const coverage = useDraftCoverage(isEdit ? null : token, {
+    addressText: details.addressText,
+    city: details.city,
+    county: details.county,
+    country: details.country ?? 'RO',
+  });
+  const noCoverage = !isEdit && coverage.data?.coverage === 'NONE';
 
   // titlul nu mai e cerut: e generat automat pe server din camere + oras
   // b11: bugetul ales de client (o suma sau "Prefer sa nu spun") face parte din Date generale
@@ -416,16 +427,21 @@ export function ReviewStep({
           {designHelp && <Alert tone="info">{t('review.designHelpBanner')}</Alert>}
 
           {/* Camere */}
-          {rooms.map((room, i) => <ReviewRoomCard
-            key={room.localId}
-            room={room}
-            index={i + 1}
-            attachments={attachments}
-            designHelp={room.needsDesignHelp === true}
-            onEdit={() => onEditRoom(i)}
-            issue={roomIssues[i]?.issue ?? null}
-            onFix={() => onEditRoom(i, roomIssues[i]?.stepId ?? undefined)}
-          />)}
+          {rooms.map((room, i) => {
+            const card = <ReviewRoomCard
+              key={room.localId}
+              room={room}
+              index={i + 1}
+              attachments={attachments}
+              designHelp={room.needsDesignHelp === true}
+              onEdit={() => onEditRoom(i)}
+              issue={roomIssues[i]?.issue ?? null}
+              onFix={() => onEditRoom(i, roomIssues[i]?.stepId ?? undefined)}
+            />;
+            // d3: lungimea aproximativa data cu "Am deja un proiect", sub camera ei
+            if (startMode !== 'OWN_PROJECT' || typeof room.approxLengthM !== 'number' || !needsApproxLength(room, true)) return card;
+            return <div key={room.localId} className="flex flex-col gap-2">{card}<ApproxLengthNote value={room.approxLengthM} /></div>;
+          })}
 
           {projectFiles.length > 0 && <section aria-labelledby="review-files-title" className="flex flex-col gap-3.5 rounded-xl border border-border bg-surface px-5 py-5 sm:px-6">
             <h2 id="review-files-title" className="heading-section">{t('review.filesTitle')}</h2>
@@ -545,6 +561,18 @@ export function ReviewStep({
                       {t(`rooms.type.${r.roomType}`)} — {t('review.roomIncomplete')}
                     </p>
                   ))}
+              </div>
+            )}
+
+            {/* a6 (PO a6-1 / a6-2): nicio firma in zona — avertisment cinstit, fara numar de firme */}
+            {noCoverage && (
+              <div
+                role="status"
+                data-testid="no-coverage-warning"
+                className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2.5 text-ui text-amber-950 dark:border-amber-700/60 dark:bg-amber-950/30 dark:text-amber-100"
+              >
+                <p className="font-medium">{tr('visibility.noCoverage.title')}</p>
+                <p className="mt-1">{tr('visibility.noCoverage.reviewBody')}</p>
               </div>
             )}
 

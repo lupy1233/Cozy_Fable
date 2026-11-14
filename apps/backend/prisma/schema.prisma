@@ -318,6 +318,16 @@ enum ReviewDisputeStatus {
   @@map("review_dispute_status")
 }
 
+// e1-2 (PO 2026-11-13): etape informative dupa acceptare, bifate de firma castigatoare.
+enum ExecutionStage {
+  MEASUREMENTS
+  CONTRACT
+  PRODUCTION
+  INSTALLATION
+
+  @@map("execution_stage")
+}
+
 // mock_billing_orders.order_type / status (Sprint 8; nedefinit verbatim, confirmat sesiune). 4.16/4.17.
 enum BillingOrderType {
   SUBSCRIPTION
@@ -468,6 +478,7 @@ model User {
   inspirationBoards  InspirationBoard[]
   chatThreadReads    ChatThreadRead[]
   studioDrafts       StudioDraft[]
+  executionStagesCompleted RequestExecutionStage[]
 
   @@map("users")
 }
@@ -677,6 +688,7 @@ model Request {
   studioScenes       RequestStudioScene[]
   projectCases       RequestProjectCase[]
   contactDetections  RequestContactDetection[]
+  executionStages    RequestExecutionStage[]
 
   @@index([clientUserId])
   @@index([status])
@@ -876,6 +888,9 @@ model RequestRoom {
   // b8 (PO g0-8): clientul cere ajutor la camera asta → pleaca la firme doar cu tipul,
   // schitele si mesajul (fara raspunsuri); cererea e "cu proiectare" daca macar o camera e bifata
   needsDesignHelp Boolean @default(false) @map("needs_design_help")
+  // d3 (PO d3-2): lungimea aproximativa data de client doar cu "Am deja un proiect";
+  // conteaza la treapta ROOM_SIZE doar cand lungimea derivata din dimensiuni e 0
+  approxLengthM Decimal? @map("approx_length_m") @db.Decimal(5, 2)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   request     Request                 @relation(fields: [requestId], references: [id], onDelete: Cascade)
@@ -1426,6 +1441,23 @@ model RequestProjectCase {
   @@index([requestId])
   @@index([status])
   @@map("request_project_cases")
+}
+
+// e1-2 (PO 2026-11-13): un rand = etapa bifata de firma castigatoare (debifarea sterge randul).
+// Informativ: NU blocheaza livrarea si nu schimba starea cererii.
+model RequestExecutionStage {
+  id               String         @id @default(uuid())
+  requestId        String         @map("request_id")
+  stage            ExecutionStage
+  completedAt      DateTime       @map("completed_at") @db.Timestamptz()
+  completedByUserId String        @map("completed_by_user_id")
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz()
+
+  request     Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  completedBy User    @relation(fields: [completedByUserId], references: [id])
+
+  @@unique([requestId, stage])
+  @@map("request_execution_stages")
 }
 
 // docs/04 §5.1 + 4.11 — clarificare ceruta firmei catre client; pune SLA pe pauza (+1 zi lucr.).

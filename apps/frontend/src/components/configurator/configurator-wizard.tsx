@@ -117,6 +117,8 @@ export function buildSnapshotFromRequest(dto: RequestDto): ConfiguratorSnapshot 
         completed: true,
         // piesele din Studio 3D nu au bifa de ajutor (deja configurate)
         needsDesignHelp: startMode !== 'OWN_PROJECT' && !sourceStudio && r.needsDesignHelp === true,
+        // d3: lungimea aproximativa revine la editare (doar cu proiect propriu)
+        ...(startMode === 'OWN_PROJECT' && typeof r.approxLengthM === 'number' ? { approxLengthM: r.approxLengthM } : {}),
       };
     });
   // E-client-34: notita + camera per poza; la editare localId = id-ul camerei persistate

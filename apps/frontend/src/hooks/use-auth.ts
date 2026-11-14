@@ -5,8 +5,9 @@ import type { AuthUser, LoginInput, RegisterInput } from '@marketplace/shared';
 import { api, ApiError } from '@/lib/api';
 import { adoptLocalOwner, clearUserLocalData, forgetLocalOwner } from '@/lib/session-cleanup';
 import { useSessionHint, useSetSessionHint } from '@/lib/session-hint-context';
+import { AUTH_QUERY_KEY, clearSessionLost } from '@/lib/session-lost';
 
-const AUTH_KEY = ['auth', 'me'] as const;
+const AUTH_KEY = AUTH_QUERY_KEY;
 
 // SEC2-11 (E-admin-platform-5): fara cookie-uri de sesiune serverul raspunde 200 { user: null },
 // deci vizitatorul anonim nu mai declanseaza un /auth/refresh esuat. Transformam null intr-un
@@ -46,6 +47,7 @@ export function useLogin() {
       api<{ user: AuthUser }>('/auth/login', { method: 'POST', body: JSON.stringify(input) }),
     // alt cont logat anterior in acest browser → curatenie INAINTE de setarea noului user
     onSuccess: ({ user }) => {
+      clearSessionLost();
       void adoptLocalOwner(qc, user.id);
       qc.setQueryData(AUTH_KEY, user);
       setHint(user.role);
@@ -76,6 +78,7 @@ export function useLogout() {
     // onSettled: si un logout esuat pe un calculator partajat sterge datele locale.
     // qc.clear acopera si ['auth']; guard-urile redirectioneaza pe me.isError (401).
     onSettled: () => {
+      clearSessionLost();
       void clearUserLocalData(qc);
       forgetLocalOwner();
       // altfel, dupa qc.clear(), me redevine pending si indiciul vechi ar reaparea o clipa

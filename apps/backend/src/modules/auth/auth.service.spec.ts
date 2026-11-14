@@ -89,7 +89,8 @@ function makeService(user: Record<string, unknown> | null = makeUser(), systemSe
   } as any;
   const tokens = {
     revokeAllForUser: jest.fn().mockResolvedValue(undefined),
-    issueNewFamily: jest.fn().mockResolvedValue({ refreshToken: 'raw-refresh', familyId: 'session-family' }),
+    issueNewFamily: jest.fn().mockResolvedValue({ refreshToken: 'raw-refresh', familyId: 'session-family', revokedFamilyIds: [] }),
+    revokeByRawToken: jest.fn().mockResolvedValue({ userId: 'u1', familyId: 'session-family' }),
     signAccessToken: jest.fn().mockResolvedValue('access-jwt'),
     rotate: jest.fn().mockResolvedValue({ userId: 'u1', refreshToken: 'raw-refresh-2', familyId: 'session-family' }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -338,8 +339,46 @@ describe('change-password', () => {
     expect(out).toEqual({ accessToken: 'access-jwt', refreshToken: 'raw-refresh' });
     const data = prisma.user.update.mock.calls[0][0].data;
     expect(await bcrypt.compare('NouaParola1', data.passwordHash)).toBe(true);
-    expect(tokens.issueNewFamily).toHaveBeenCalledWith('u1', data.passwordHash);
+    expect(tokens.issueNewFamily).toHaveBeenCalledWith('u1', data.passwordHash, { revokeAll: true });
     expect(tokens.signAccessToken).toHaveBeenCalledWith(expect.objectContaining({ id: 'u1' }), 'session-family');
+  });
+
+  it('schimbarea parolei inchide socketurile tuturor sesiunilor contului (fara lista de sid)', async () => {
+    const { service, eventBus } = makeService();
+    await service.changePassword('u1', 'Parola123', 'NouaParola1');
+    expect(eventBus.emitAuthExpired).toHaveBeenCalledWith('u1');
+  });
+});
+
+// f3 (PO f3-1): cel mult 5 sesiuni; login-ul anunta doar sesiunile scoase.
+describe('sesiuni multiple (f3)', () => {
+  it('login: auth_expired doar catre familiile revocate peste limita, nu catre tot contul', async () => {
+    const { service, tokens, eventBus } = makeService();
+    tokens.issueNewFamily.mockResolvedValueOnce({ refreshToken: 'raw-refresh', familyId: 'f-new', revokedFamilyIds: ['f-oldest'] });
+    await service.login({ email: 'ana@demo.ro', password: 'Parola123' } as never);
+    expect(tokens.issueNewFamily).toHaveBeenCalledWith('u1', expect.any(String));
+    expect(eventBus.emitAuthExpired).toHaveBeenCalledTimes(1);
+    expect(eventBus.emitAuthExpired).toHaveBeenCalledWith('u1', ['f-oldest']);
+  });
+
+  it('login sub limita: lista goala, niciun socket deconectat', async () => {
+    const { service, eventBus } = makeService();
+    await service.login({ email: 'ana@demo.ro', password: 'Parola123' } as never);
+    expect(eventBus.emitAuthExpired).toHaveBeenCalledWith('u1', []);
+  });
+
+  it('logout: revoca si anunta doar sesiunea curenta', async () => {
+    const { service, tokens, eventBus } = makeService();
+    await service.logout('raw-refresh');
+    expect(tokens.revokeByRawToken).toHaveBeenCalledWith('raw-refresh');
+    expect(eventBus.emitAuthExpired).toHaveBeenCalledWith('u1', ['session-family']);
+  });
+
+  it('logout cu token necunoscut nu deconecteaza pe nimeni', async () => {
+    const { service, tokens, eventBus } = makeService();
+    tokens.revokeByRawToken.mockResolvedValueOnce(undefined);
+    await service.logout('necunoscut');
+    expect(eventBus.emitAuthExpired).not.toHaveBeenCalled();
   });
 });
 

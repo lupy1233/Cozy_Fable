@@ -14,6 +14,7 @@ import { LoadError, QueryState } from '@/components/ui/query-state';
 import { SkeletonPage } from '@/components/ui/skeleton';
 import { Tabs } from '@/components/ui/tabs';
 import { useMe } from '@/hooks/use-auth';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useRequest } from '@/hooks/use-requests';
 import { useRequestQuotes } from '@/hooks/use-quotes';
 import { useThreads } from '@/hooks/use-chat';
@@ -67,6 +68,7 @@ export default function RequestOffersPage() {
   const id = params.id;
   const router = useRouter();
   const me = useMe();
+  const toLogin = useLoginRedirect();
   const request = useRequest(id);
   const quotes = useRequestQuotes(id);
   const threads = useThreads('client');
@@ -74,9 +76,9 @@ export default function RequestOffersPage() {
   useRealtimeSync();
 
   useEffect(() => {
-    if (me.isError) router.replace('/login');
+    if (me.isError) toLogin();
     else if (me.data && me.data.role !== 'CLIENT') router.replace('/dashboard');
-  }, [me.isError, me.data, router]);
+  }, [me.isError, me.data, router, toLogin]);
 
   // conversatiile acestei cereri, cele mai vechi primele (ordinea prelurii)
   const requestThreads = useMemo(

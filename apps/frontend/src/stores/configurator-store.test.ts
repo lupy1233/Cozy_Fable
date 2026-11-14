@@ -506,3 +506,66 @@ describe('configurator store — review fixes (m6, m1, m3)', () => {
     expect(s().legacyPaidDesignNote).toBe(false);
   });
 });
+
+// d3 (etapa 5, PO d3-2): lungimea aproximativa exista doar in modul "Am deja un proiect"
+describe('configurator store — approximate length (d3)', () => {
+  const s = () => useConfiguratorStore.getState();
+  const kitchenRoom = (extra: Partial<RoomInstance> = {}): RoomInstance => ({
+    localId: 'k', roomType: 'KITCHEN', flowVersion: CURRENT_FLOW_VERSION.KITCHEN, answers: {}, completed: false, ...extra,
+  });
+  beforeEach(() => {
+    localStorage.clear();
+    s().reset();
+  });
+
+  it('se pune si se goleste doar in OWN_PROJECT', () => {
+    load([kitchenRoom()]);
+    s().setRoomApproxLength('k', 6.5);
+    expect(s().roomInstances[0].approxLengthM).toBeUndefined();
+    s().setStartMode('OWN_PROJECT');
+    s().setRoomApproxLength('k', 6.5);
+    expect(s().roomInstances[0].approxLengthM).toBe(6.5);
+    s().setRoomApproxLength('k', null);
+    expect('approxLengthM' in s().roomInstances[0]).toBe(false);
+  });
+
+  it('iesirea din OWN_PROJECT o scoate (serverul ar refuza-o)', () => {
+    load([kitchenRoom()]);
+    s().setStartMode('OWN_PROJECT');
+    s().setRoomApproxLength('k', 8);
+    s().setStartMode('STANDARD');
+    expect(s().roomInstances[0].approxLengthM).toBeUndefined();
+  });
+
+  it('o ciorna veche fara camp ramane valida; una fara proiect propriu pierde campul la incarcare', () => {
+    load([kitchenRoom()]);
+    expect(s().roomInstances[0].approxLengthM).toBeUndefined();
+    load([kitchenRoom({ approxLengthM: 8 })]);
+    expect(s().roomInstances[0].approxLengthM).toBeUndefined();
+    s().loadSnapshot({
+      phase: 'review', startMode: 'OWN_PROJECT', roomInstances: [kitchenRoom({ approxLengthM: 8 })],
+      activeRoomIndex: 0, activeStepIndex: 0, details: { hasOwnProject: true }, inspirationPhotoIds: [], updatedAt: Date.now(),
+    });
+    expect(s().roomInstances[0].approxLengthM).toBe(8);
+  });
+
+  // revizuire M1: dormitor cu dulap → 6 m → clientul lasa doar cadrul de pat
+  it('the value is cleared when the room no longer has a linear dimensions step', () => {
+    const bedroom: RoomInstance = { localId: 'b', roomType: 'BEDROOM', flowVersion: CURRENT_FLOW_VERSION.BEDROOM, answers: {}, completed: false };
+    load([bedroom]);
+    s().setStartMode('OWN_PROJECT');
+    s().setAnswer('b', 'piecesNeeded', ['WARDROBE']);
+    s().setRoomApproxLength('b', 6);
+    expect(s().roomInstances[0].approxLengthM).toBe(6);
+    s().setAnswer('b', 'piecesNeeded', ['BED_FRAME']);
+    expect(s().roomInstances[0].approxLengthM).toBeUndefined();
+  });
+
+  // revizuire m10: dimensiunile ramase ascunse au prioritate → campul nu primeste valoare
+  it('a room with a length from hidden dimensions does not take an approximate length', () => {
+    load([kitchenRoom({ answers: { dimensions: { runA: 1.5 } } })]);
+    s().setStartMode('OWN_PROJECT');
+    s().setRoomApproxLength('k', 8);
+    expect(s().roomInstances[0].approxLengthM).toBeUndefined();
+  });
+});

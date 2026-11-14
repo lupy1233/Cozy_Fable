@@ -14,6 +14,7 @@ import { useRouter } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
 import { apiErrorKey } from '@/lib/error-messages';
 import { useMe } from '@/hooks/use-auth';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useMyCompany, useOnboardCompany } from '@/hooks/use-company';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -29,13 +30,14 @@ import { CompanyDashboard } from './_components/company-dashboard';
 export default function CompanyPage() {
   const router = useRouter();
   const me = useMe();
+  const toLogin = useLoginRedirect();
   const company = useMyCompany();
 
   // Doar COMPANY_USER acceseaza zona; restul → dashboard
   useEffect(() => {
-    if (me.isError) router.replace('/login');
+    if (me.isError) toLogin();
     else if (me.data && me.data.role !== 'COMPANY_USER') router.replace('/dashboard');
-  }, [me.isError, me.data, router]);
+  }, [me.isError, me.data, router, toLogin]);
 
   const loading = me.isPending || company.isPending;
   if (!loading) {

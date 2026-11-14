@@ -1248,6 +1248,8 @@ export class QuotesService {
       answers: (r.answers ?? null) as Record<string, unknown> | null,
       flowVersion: r.flowVersion,
       needsDesignHelp: r.needsDesignHelp,
+      // d3: lungimea aproximativa (proiect propriu)
+      approxLengthM: r.approxLengthM == null ? null : Number(r.approxLengthM),
       items: r.items.map((it) => ({
         id: it.id,
         name: it.name,

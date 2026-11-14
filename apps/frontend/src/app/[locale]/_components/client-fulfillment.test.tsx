@@ -17,8 +17,10 @@ const warrantyMutate = vi.fn();
 const mutation = (mutate: ReturnType<typeof vi.fn>) => ({ mutate, reset: vi.fn(), isPending: false, error: null });
 let projectCase: unknown = null;
 let warranty: unknown = null;
+let fulfillment: unknown = null;
 
 vi.mock('@/hooks/use-fulfillment', () => ({
+  useClientFulfillment: () => ({ data: fulfillment, isPending: false }),
   useConfirmDelivery: () => mutation(confirmMutate),
   useCreateReview: () => mutation(reviewMutate),
   useOpenProjectCase: () => mutation(caseMutate),
@@ -41,6 +43,81 @@ beforeEach(() => {
   vi.clearAllMocks();
   projectCase = null;
   warranty = null;
+  fulfillment = null;
+});
+
+// e1-1 / e1-2: contactul persoanei responsabile, datele firmei si etapele — doar ce trimite serverul
+describe('ClientFulfillment — dupa acceptare (e1)', () => {
+  const stages = [
+    { stage: 'MEASUREMENTS', done: true, completedAt: '2026-11-10T10:00:00Z', completedByName: 'Ion Pop' },
+    { stage: 'CONTRACT', done: false, completedAt: null, completedByName: null },
+    { stage: 'PRODUCTION', done: false, completedAt: null, completedByName: null },
+    { stage: 'INSTALLATION', done: false, completedAt: null, completedByName: null },
+  ];
+  const full = {
+    requestId: 'r1',
+    acceptedAt: '2026-11-01T10:00:00Z',
+    deliveredAt: null,
+    completedAt: null,
+    autoCompleteAt: null,
+    company: { name: 'Mobila Bună SRL', cui: 'RO123456', addressText: 'Str. Lemnului 3', city: 'Cluj-Napoca', county: 'Cluj' },
+    contact: { name: 'Ion Pop', email: 'ion@firma.ro', phone: '+40722000111' },
+    stages,
+  };
+
+  it('arata persoana responsabila (mailto / tel), firma (CUI, adresa) si etapele cu data', () => {
+    fulfillment = full;
+    renderIt('ACCEPTED');
+    expect(screen.getByText('Ion Pop')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'ion@firma.ro' }).getAttribute('href')).toBe('mailto:ion@firma.ro');
+    expect(screen.getByRole('link', { name: '+40722000111' }).getAttribute('href')).toBe('tel:+40722000111');
+    expect(screen.getByText('Mobila Bună SRL')).toBeTruthy();
+    expect(screen.getByText('CUI RO123456')).toBeTruthy();
+    expect(screen.getByText('Str. Lemnului 3, Cluj-Napoca, Cluj')).toBeTruthy();
+    expect(screen.getByText('Măsurători')).toBeTruthy();
+    expect(screen.getByText('Bifată pe 10 noiembrie 2026')).toBeTruthy();
+    expect(screen.getAllByText('Încă nebifată')).toHaveLength(3);
+    // clientul doar vede etapele
+    expect(screen.queryByRole('checkbox')).toBeNull();
+  });
+
+  it('fara telefon: nu apare legatura tel:', () => {
+    fulfillment = { ...full, contact: { ...full.contact, phone: null } };
+    renderIt('IN_EXECUTION');
+    expect(screen.queryByRole('link', { name: /^\+40/ })).toBeNull();
+    expect(screen.getByRole('link', { name: 'ion@firma.ro' })).toBeTruthy();
+  });
+
+  it('fara oferta acceptata (company / contact null, stages []) → nimic din ele', () => {
+    fulfillment = { ...full, acceptedAt: null, company: null, contact: null, stages: [] };
+    renderIt('ACCEPTED');
+    expect(screen.queryByText('Cu cine vorbești')).toBeNull();
+    expect(screen.queryByText('Cum avansează proiectul')).toBeNull();
+    expect(screen.queryByRole('link', { name: /@/ })).toBeNull();
+  });
+
+  // m2 (revizie e5): dupa finalizare contactul ramane (garantie) — aratam ce trimite serverul
+  it.each(['COMPLETED', 'DISPUTED'])('%s: contactul si firma trimise de server raman vizibile', (status) => {
+    fulfillment = { ...full, completedAt: '2026-11-20T10:00:00Z' };
+    renderIt(status);
+    expect(screen.getByText('Cu cine vorbești')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'ion@firma.ro' }).getAttribute('href')).toBe('mailto:ion@firma.ro');
+    expect(screen.getByText('CUI RO123456')).toBeTruthy();
+    expect(screen.queryByRole('checkbox')).toBeNull();
+  });
+
+  it('COMPLETED fara date de la server → fara card de contact', () => {
+    fulfillment = { ...full, company: null, contact: null, stages: [] };
+    renderIt('COMPLETED');
+    expect(screen.queryByText('Cu cine vorbești')).toBeNull();
+  });
+
+  it('livrata: data finalizarii automate + contactul raman vizibile', () => {
+    fulfillment = { ...full, deliveredAt: '2026-11-12T10:00:00Z', autoCompleteAt: '2026-11-26T10:00:00Z' };
+    renderIt('DELIVERED_BY_COMPANY');
+    expect(screen.getByText(/se finalizează automat pe 26 noiembrie 2026/)).toBeTruthy();
+    expect(screen.getByText('Cu cine vorbești')).toBeTruthy();
+  });
 });
 
 describe('ClientFulfillment — recenzia (e2 pasul 1)', () => {

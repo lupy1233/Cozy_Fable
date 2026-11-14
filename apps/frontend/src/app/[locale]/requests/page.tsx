@@ -4,8 +4,9 @@ import type { RequestListItemDto, RequestStatus } from '@marketplace/shared';
 import { ArrowRight, Plus, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useRouter } from '@/i18n/routing';
+import { Link } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useMyRequests } from '@/hooks/use-requests';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -84,15 +85,15 @@ function cardCta(r: RequestListItemDto): CardCta {
 export default function MyRequestsPage() {
   const t = useTranslations('Requests');
   const tc = useTranslations('Configurator');
-  const router = useRouter();
   const me = useMe();
+  const toLogin = useLoginRedirect();
   const list = useMyRequests();
   const relTime = useRelativeTime();
   const next = useRequestNextStep();
 
   useEffect(() => {
-    if (me.isError) router.replace('/login');
-  }, [me.isError, router]);
+    if (me.isError) toLogin();
+  }, [me.isError, toLogin]);
 
   const [tab, setTab] = useState<RequestTab>('ALL');
   const [query, setQuery] = useState('');

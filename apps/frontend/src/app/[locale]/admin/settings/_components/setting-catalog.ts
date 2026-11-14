@@ -61,6 +61,8 @@ export const SETTING_CATALOG: readonly SettingDef[] = [
   { key: 'consultation_invite_expiry_days', group: 'quotes', spec: int('days', 0, null) },
   { key: 'eur_ron_rate', group: 'quotes', spec: { kind: 'decimal', unit: 'ronPerEur' } },
   { key: 'delivery_reminder_days_before', group: 'quotes', spec: int('days', 0, 365) },
+  // e1-3 (etapa 5): zile minime intre acceptare si „Marcheaza ca livrata” (0 = fara limita)
+  { key: 'delivery_min_days_after_accept', group: 'quotes', spec: int('days', 0, 365) },
   { key: 'expired_offer_autoclose_enabled', group: 'quotes', spec: { kind: 'bool' } },
   { key: 'expired_offer_autoclose_days', group: 'quotes', spec: int('days', 0, 365) },
   {

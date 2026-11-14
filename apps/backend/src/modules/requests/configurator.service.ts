@@ -1,4 +1,5 @@
 import {
+  approxLengthApplies,
   collectScoreEntries,
   deriveRoomForFirms,
   ERROR_CODES,
@@ -14,6 +15,7 @@ import {
 } from '@marketplace/shared';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfiguratorRoomInputDto } from './dto/request.dto';
+import { assertApproxLengthAllowed } from './publish-rules';
 
 // O camera procesata: forma legacy derivata (pentru persistenta + afisare) +
 // answers-ul brut canonic + intrarile de scoring (rezolvate ulterior din DB).
@@ -23,6 +25,8 @@ export interface ProcessedRoom {
   flowVersion: number;
   // b8: camera cu ajutor de proiectare (answers = doar fisierele ei); processRooms il pune mereu
   needsDesignHelp?: boolean;
+  // d3 (PO d3-2): lungimea aproximativa (m), doar cu proiect propriu; null = nedata
+  approxLengthM?: number | null;
   answers: AnswerMap;
   derived: DerivedRoom;
   scoreEntries: ScoreEntry[];
@@ -93,6 +97,8 @@ export class ConfiguratorService {
     if (new Set(sourceIds).size !== sourceIds.length) {
       throw new BadRequestException({ code: ERROR_CODES.VALIDATION_ERROR, message: 'Duplicate request entry identity' });
     }
+    // d3: lungimea aproximativa doar cu proiect propriu (estimarea informativa o accepta oricum)
+    if (opts.designBrief !== true) assertApproxLengthAllowed(rooms, opts.ownProject === true);
 
     rooms.forEach((room, roomIndex) => {
       // orice versiune INREGISTRATA e acceptata: cererile publicate pe o versiune
@@ -150,14 +156,22 @@ export class ConfiguratorService {
         }
       }
 
+      // d3: camera cu ajutor nu are proiect propriu, deci nici lungime aproximativa; iar valoarea
+      // se pastreaza doar cand campul are sens (pas de dimensiuni liniar, lungime derivata 0) —
+      // o valoare ramasa dupa ce clientul si-a schimbat raspunsurile nu se salveaza si nu se plateste
+      const approxLengthM =
+        !needsDesignHelp && typeof room.approxLengthM === 'number' && approxLengthApplies(room.roomType, answers, room.flowVersion)
+          ? room.approxLengthM
+          : null;
       processed.push({
         sourceLocalId: room.sourceLocalId,
         roomType: room.roomType,
         flowVersion: room.flowVersion,
         needsDesignHelp,
+        approxLengthM,
         answers,
         derived,
-        scoreEntries: collectScoreEntries(room.roomType, answers, room.flowVersion, { needsDesignHelp }),
+        scoreEntries: collectScoreEntries(room.roomType, answers, room.flowVersion, { needsDesignHelp, approxLengthM }),
       });
     });
 

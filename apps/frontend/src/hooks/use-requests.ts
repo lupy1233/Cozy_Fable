@@ -11,6 +11,7 @@ import type {
   ConfiguratorContentInput,
   PresignUploadInput,
   PresignUploadResultDto,
+  RequestCoverageDto,
   RequestDraftCreatedDto,
   RequestDraftPatchInput,
   RequestDto,
@@ -278,16 +279,22 @@ export function useAttachmentsStateFor(target: AttachmentTarget): {
 
 // Estimarea de buget din scorul camerelor (F5, item 18) — cheia de query e
 // continutul camerelor: se recalculeaza doar cand raspunsurile chiar se schimba.
-export function useBudgetEstimate(
-  rooms: { roomType: RoomType; flowVersion: number; answers: AnswerMap; needsDesignHelp?: boolean }[],
-) {
-  // b8: bifa de ajutor pe camera calatoreste doar cand e pusa (cheia de query ramane stabila)
-  const payload = rooms.map((r) => ({
+type EstimateRoom = { roomType: RoomType; flowVersion: number; answers: AnswerMap; needsDesignHelp?: boolean; approxLengthM?: number };
+
+// b8: bifa de ajutor pe camera calatoreste doar cand e pusa (cheia de query ramane stabila);
+// d3: la fel lungimea aproximativa (proiect propriu)
+export function budgetEstimatePayload(rooms: EstimateRoom[]) {
+  return rooms.map((r) => ({
     roomType: r.roomType,
     flowVersion: r.flowVersion,
     answers: r.answers,
     ...(r.needsDesignHelp ? { needsDesignHelp: true } : {}),
+    ...(typeof r.approxLengthM === 'number' ? { approxLengthM: r.approxLengthM } : {}),
   }));
+}
+
+export function useBudgetEstimate(rooms: EstimateRoom[]) {
+  const payload = budgetEstimatePayload(rooms);
   const key = JSON.stringify(payload);
   return useQuery({
     queryKey: ['requests', 'estimate', key],
@@ -337,6 +344,31 @@ export function useRequestVisibility(id: string, enabled = true) {
     queryFn: () => api<RequestVisibilityDto>(`/requests/${id}/visibility`),
     enabled: !!id && enabled,
     staleTime: 30_000,
+  });
+}
+
+// a6 — Sumar: exista vreo firma in zona adresei ciornei? (COVERED / NONE / UNKNOWN, niciodata un
+// numar). Se intreaba doar cand adresa e completa (aceleasi minime ca la publicare); cheia e
+// adresa, deci o adresa noua inseamna o intrebare noua. Eroarea / limita de apeluri → fara date.
+export function useDraftCoverage(
+  token: string | null,
+  address: { addressText?: string | null; city?: string | null; county?: string | null; country?: string | null },
+) {
+  const addressText = address.addressText?.trim() ?? '';
+  const city = address.city?.trim() ?? '';
+  const county = address.county?.trim() ?? '';
+  const country = address.country?.trim() || undefined;
+  const complete = addressText.length >= 3 && city.length >= 2 && county.length >= 2;
+  return useQuery({
+    queryKey: ['requests', 'draft-coverage', token ?? '', addressText, city, county, country ?? ''],
+    queryFn: async () =>
+      (await api<RequestCoverageDto>(`/requests/drafts/${token}/coverage`, {
+        method: 'POST',
+        body: JSON.stringify({ addressText, city, county, ...(country ? { country } : {}) }),
+      })) ?? null,
+    enabled: !!token && complete,
+    staleTime: 10 * 60_000,
+    retry: false,
   });
 }
 

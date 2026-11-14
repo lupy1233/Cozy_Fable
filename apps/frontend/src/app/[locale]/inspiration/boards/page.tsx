@@ -4,7 +4,7 @@ import { MAX_BOARD_NAME_LENGTH, type InspirationBoardDto } from '@marketplace/sh
 import { AlertTriangle, Bookmark, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
-import { Link, useRouter } from '@/i18n/routing';
+import { Link } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import { useMe, useSessionRole } from '@/hooks/use-auth';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useBoards, useCreateBoard } from '@/hooks/use-inspiration-boards';
 import { cn } from '@/lib/utils';
 import { PublicShell } from '../../_components/public-shell';
@@ -29,8 +30,8 @@ const textLink = 'font-medium text-walnut transition-colors hover:text-walnut-de
 
 export default function BoardsPage() {
   const t = useTranslations('Inspiration');
-  const router = useRouter();
   const me = useMe();
+  const toLogin = useLoginRedirect();
   const { role } = useSessionRole();
   const boards = useBoards();
   const create = useCreateBoard();
@@ -41,8 +42,8 @@ export default function BoardsPage() {
   const canRequest = role === 'CLIENT';
 
   useEffect(() => {
-    if (me.isError) router.replace('/login?redirect=/inspiration/boards');
-  }, [me.isError, router]);
+    if (me.isError) toLogin();
+  }, [me.isError, toLogin]);
 
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import type { AttachmentTarget } from '@/hooks/use-requests';
 import { cn } from '@/lib/utils';
 import { useConfiguratorStore } from '@/stores/configurator-store';
+import { ApproxLengthField, needsApproxLength } from './approx-length-field';
 import { InfoDialog } from './info-dialog';
 import { isStudioNightstand, roomScreens, validateStep } from './room-screens';
 import { StepRenderer } from './step-renderer';
@@ -265,6 +266,12 @@ export function RoomFlowRunner({
           ))}
         </motion.div>
       </div>
+
+      {/* d3 (PO d3-2): cu proiect propriu dimensiunile se sar — lungimea aproximativa, optionala,
+          pe ultimul ecran al camerei; gol = "sub 2 m" la cost, ca inainte */}
+      {screenIndex === screens.length - 1 && needsApproxLength(room, hasOwnProject) && (
+        <ApproxLengthField key={room.localId} room={room} />
+      )}
 
       {/* un singur buton principal; "Inapoi" ramane discret, in stanga */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6">

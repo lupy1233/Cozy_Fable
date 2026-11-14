@@ -4,9 +4,10 @@ import type { MarketplaceDetailDto } from '@marketplace/shared';
 import { ArrowRight, Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
-import { ApiError } from '@/lib/api';
+import { ApiError, isUnauthorizedError } from '@/lib/api';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useClaim, useMarketplaceDetail, useWallet } from '@/hooks/use-marketplace';
 import { useBudgetFormat } from '@/hooks/use-budget-format';
 import { isFirmRules, useFirmRules } from '@/hooks/use-legal';
@@ -55,8 +56,17 @@ export default function MarketplaceDetailPage() {
   const detail = useMarketplaceDetail(id);
   const relTime = useRelativeTime();
   const budgetFormat = useBudgetFormat();
+  // f3 (review M1): plasa de siguranta — 401 pe cerere SI „cine sunt eu” a esuat → login cu
+  // intoarcere, chiar daca semnalul global n-a dus acolo (pagina nu ramane pe schelet)
+  const me = useMe();
+  const toLogin = useLoginRedirect();
+  const unauthorized = isUnauthorizedError(detail.error);
+  useEffect(() => {
+    if (unauthorized && me.isError) toLogin();
+  }, [unauthorized, me.isError, toLogin]);
 
-  if (detail.isPending) {
+  // f3: 401 = sesiune pierduta, nu „nicio cerere”: incarcare, ascultatorul global duce la login
+  if (detail.isPending || unauthorized) {
     return <SkeletonPage variant="detail" />;
   }
   if (detail.isError || !detail.data) {

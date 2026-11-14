@@ -12,6 +12,7 @@ import {
 import { ArrowRight, Inbox } from 'lucide-react';
 import { Link, useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useMarketplace, useWallet } from '@/hooks/use-marketplace';
 import { useBudgetFormat } from '@/hooks/use-budget-format';
 import { Button } from '@/components/ui/button';
@@ -64,6 +65,7 @@ export default function MarketplacePage() {
   const tr = useTranslations('Requests');
   const router = useRouter();
   const me = useMe();
+  const toLogin = useLoginRedirect();
   // b11-3: glisorul de buget minim (0 = oricare) se trimite serverului
   const [minBudget, setMinBudget] = useState(0);
   // m7: "Reseteaza filtrele" monteaza din nou glisorul → mutarea in asteptare se anuleaza
@@ -119,9 +121,9 @@ export default function MarketplacePage() {
 
   // Acces doar COMPANY_USER; restul → dashboard / login
   useEffect(() => {
-    if (me.isError) router.replace('/login');
+    if (me.isError) toLogin();
     else if (me.data && me.data.role !== 'COMPANY_USER') router.replace('/dashboard');
-  }, [me.isError, me.data, router]);
+  }, [me.isError, me.data, router, toLogin]);
 
   if (me.isPending) {
     return <QueryState pending onRetry={() => void me.refetch()} skeleton={<SkeletonPage variant="list" />} />;

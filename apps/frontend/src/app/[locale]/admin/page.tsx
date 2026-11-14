@@ -6,6 +6,7 @@ import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useKpi } from '@/hooks/use-admin';
 import { STATUS_TONE } from '@/components/ui/badge';
 import { Card, CardSection } from '@/components/ui/card';
@@ -21,12 +22,13 @@ export default function AdminDashboardPage() {
   const t = useTranslations('Admin');
   const router = useRouter();
   const me = useMe();
+  const toLogin = useLoginRedirect();
   const kpi = useKpi();
 
   useEffect(() => {
-    if (me.isError) router.replace('/login');
+    if (me.isError) toLogin();
     else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
-  }, [me.isError, me.data, router]);
+  }, [me.isError, me.data, router, toLogin]);
 
   return (
     <div className="flex w-full max-w-[1180px] flex-col gap-7">

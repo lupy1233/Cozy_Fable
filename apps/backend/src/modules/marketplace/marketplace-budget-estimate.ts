@@ -9,6 +9,8 @@ export interface StoredRoomForEstimate {
   flowVersion: number | null;
   answers: unknown;
   needsDesignHelp: boolean;
+  // d3: request_rooms.approx_length_m (Prisma Decimal | null); optional pentru apelantii vechi
+  approxLengthM?: { toString(): string } | number | null;
 }
 
 // b11 (PO 2026-11-13): firma vede daca bugetul declarat e sub estimarea din raspunsuri.
@@ -37,6 +39,7 @@ export class MarketplaceBudgetEstimator {
           flowVersion: r.flowVersion as number,
           answers: (r.answers && typeof r.answers === 'object' ? r.answers : {}) as Record<string, unknown>,
           needsDesignHelp: r.needsDesignHelp,
+          ...(r.approxLengthM == null ? {} : { approxLengthM: Number(r.approxLengthM) }),
         })),
         { designBrief: true },
       );

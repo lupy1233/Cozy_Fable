@@ -54,6 +54,10 @@ export const CLARIFICATION_STATUSES = ['PENDING', 'ANSWERED'] as const;
 // Sprint 8 (nedefinite verbatim in docs/04, confirmate in sesiune).
 export const REVIEW_DISPUTE_STATUSES = ['OPEN', 'RESOLVED', 'DISMISSED'] as const;
 
+// e1-2 (PO 2026-11-13): etape informative dupa acceptare (request_execution_stages.stage), in ordinea asta.
+export const EXECUTION_STAGES = ['MEASUREMENTS', 'CONTRACT', 'PRODUCTION', 'INSTALLATION'] as const;
+export type ExecutionStage = (typeof EXECUTION_STAGES)[number];
+
 export const BILLING_ORDER_TYPES = ['SUBSCRIPTION', 'CREDIT_PACKAGE'] as const;
 
 export const BILLING_ORDER_STATUSES = ['PENDING', 'CONFIRMED', 'CANCELLED'] as const;

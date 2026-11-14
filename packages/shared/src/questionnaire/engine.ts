@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { RoomType } from '../enums';
 import { requestItemSchema, type RequestItemInput } from '../request.schemas';
 import { CURRENT_FLOW_VERSION, FLOW_REGISTRY } from './flows';
-import { itemQuantityBucket, roomSizeBucket } from './mapping';
+import { itemQuantityBucket, roomSizeBucket, roomSizeLengthM } from './mapping';
 import { isPieceConfig3d, pieceConfig3dSchema } from './piece3d/config';
 import type {
   AnswerMap,
@@ -351,8 +351,28 @@ export function summarizeAnswers(
 // d1 (PO d1-1, 2026-11-13): camera cu "am nevoie de ajutor" pleaca fara raspunsuri — firma nu
 // primeste piese, materiale sau dimensiuni puse din oficiu, deci nici punctele lor. Raman doar
 // intrarile de camera (tip, marime 0 m, cantitate 0); costul reflecta doar ce a spus clientul.
+// d3 (PO d3-2): approxLengthM = lungimea aproximativa (proiect propriu); conteaza la ROOM_SIZE
+// doar cand lungimea derivata e 0 (roomSizeLengthM). Ignorata la camera cu ajutor.
 export interface DeriveOptions {
   needsDesignHelp?: boolean;
+  approxLengthM?: number | null;
+}
+
+// d3 (PO d3-2 + revizuire etapa 5): lungimea aproximativa are sens DOAR cand fluxul camerei are
+// (cu raspunsurile de acum) un pas de dimensiuni cu metri liniari, iar lungimea derivata din
+// dimensiuni e 0. Altfel valoarea se ignora (la scor, la salvare, la afisare). Dimensiunile date
+// (si cele ramase ascunse dupa trecerea pe "Am deja un proiect") au prioritate.
+export function approxLengthApplies(roomType: RoomType, answers: AnswerMap, version?: number): boolean {
+  let flow: RoomFlow;
+  try {
+    flow = getFlow(roomType, version);
+  } catch {
+    return false;
+  }
+  const hasLinearStep = visibleSteps(flow, answers).some(
+    (s) => s.type === 'dimension-group' && !s.hidden && s.slots(answers).some((slot) => slot.countsTowardLinear),
+  );
+  return hasLinearStep && flow.deriveRoom(answers).lengthM <= 0;
 }
 
 export function emptyDerivedRoom(): DerivedRoom {
@@ -381,7 +401,11 @@ export function collectScoreEntries(
   const entries: ScoreEntry[] = [];
 
   entries.push({ category: 'ROOM_TYPE', optionKey: roomType });
-  entries.push({ category: 'ROOM_SIZE', optionKey: roomSizeBucket(derived.lengthM) });
+  const approx =
+    opts.needsDesignHelp === true || opts.approxLengthM == null || !approxLengthApplies(roomType, answers, version)
+      ? null
+      : opts.approxLengthM;
+  entries.push({ category: 'ROOM_SIZE', optionKey: roomSizeBucket(roomSizeLengthM(derived.lengthM, approx)) });
 
   const totalQty = derived.items.reduce((acc, it) => acc + it.quantity, 0);
   entries.push({ category: 'ITEM_QUANTITY', optionKey: itemQuantityBucket(totalQty) });

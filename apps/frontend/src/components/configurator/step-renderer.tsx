@@ -9,8 +9,8 @@ import {
   type InfoContentRef,
   type QuestionStep,
   type RoomType,
-  ITEM_SYSTEMS,
-  MATERIALS,
+  type ItemSystem,
+  type Material,
   type RequestItemInput,
 } from '@marketplace/shared';
 import { Info, Plus, X } from 'lucide-react';
@@ -572,21 +572,77 @@ export function StepRenderer(props: StepRendererProps) {
   }
 
   // pieces
-  const pieces = Array.isArray(value) ? (value as RequestItemInput[]) : [];
-  const update = (next: RequestItemInput[]) => onChange(next);
+  return (
+    <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} counter={counter}>
+      <PieceRows
+        pieces={Array.isArray(value) ? (value as RequestItemInput[]) : []}
+        onChange={(next) => onChange(next)}
+      />
+    </StepShell>
+  );
+}
+
+// c10: listele de pe randul "Alta piesa" arata doar ce se ofera azi — aceleasi seturi ca
+// OFFERED_MATERIALS / GENERAL_SYSTEMS din flows/common.ts (shared nu le exporta).
+// Validarea (requestItemSchema) accepta in continuare toate valorile din enum, iar o valoare
+// veche deja aleasa (MDF simplu, BUTON_PRESIUNE, GOLA, AVENTOS) ramane afisata si selectata.
+export const PIECE_ROW_MATERIALS: readonly Material[] = [
+  'PAL',
+  'MDF_INFOLIAT',
+  'MDF_VOPSIT',
+  'MDF_FURNIR',
+  'LEMN_MASIV',
+  'ALTUL',
+];
+export const PIECE_ROW_SYSTEMS: readonly ItemSystem[] = ['MANER', 'PUSH', 'GLISANTE'];
+// limitele din requestItemSchema (name max 150, description max 2000)
+export const PIECE_NAME_MAX = 150;
+export const PIECE_DETAILS_MAX = 2000;
+
+function PieceRows({
+  pieces,
+  onChange,
+}: {
+  pieces: RequestItemInput[];
+  onChange: (next: RequestItemInput[]) => void;
+}) {
+  const t = useTranslations('Configurator');
+  const uid = useId();
+  const update = onChange;
   const addPiece = () =>
     update([...pieces, { name: '', material: 'PAL', systems: [], quantity: 1, description: '' }]);
   const setPiece = (i: number, patch: Partial<RequestItemInput>) =>
     update(pieces.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
 
   return (
-    <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} counter={counter}>
       <div className="flex flex-col gap-3">
-        {pieces.map((piece, i) => (
+        {pieces.map((piece, i) => {
+          const materials = PIECE_ROW_MATERIALS.includes(piece.material)
+            ? PIECE_ROW_MATERIALS
+            : [piece.material, ...PIECE_ROW_MATERIALS];
+          const systems = [
+            ...PIECE_ROW_SYSTEMS,
+            ...piece.systems.filter((s) => !PIECE_ROW_SYSTEMS.includes(s)),
+          ];
+          const details = piece.description ?? '';
+          const nameCounterId = `${uid}-${i}-name-counter`;
+          const detailsCounterId = `${uid}-${i}-details-counter`;
+          // m8: indemnul de la "Altul" e legat de campul Detalii (cititoare de ecran)
+          const otherHintId = `${uid}-${i}-other-material-hint`;
+          const otherMaterial = piece.material === 'ALTUL';
+          return (
           <div key={i} className="flex flex-col gap-2 rounded-lg border border-border-2 bg-surface-2 p-3">
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               <Field label={t('pieces.name')} className="col-span-2">
-                <Input value={piece.name} onChange={(e) => setPiece(i, { name: e.target.value })} />
+                <Input
+                  value={piece.name}
+                  maxLength={PIECE_NAME_MAX}
+                  aria-describedby={nameCounterId}
+                  onChange={(e) => setPiece(i, { name: e.target.value })}
+                />
+                <p id={nameCounterId} className="self-end text-micro text-muted-foreground">
+                  {t('pieces.charCounter', { count: piece.name.length, max: PIECE_NAME_MAX })}
+                </p>
                 <ContactInTextHint value={piece.name} />
               </Field>
               <Field label={t('pieces.material')}>
@@ -594,7 +650,7 @@ export function StepRenderer(props: StepRendererProps) {
                   value={piece.material}
                   onChange={(e) => setPiece(i, { material: e.target.value as RequestItemInput['material'] })}
                 >
-                  {MATERIALS.map((m) => (
+                  {materials.map((m) => (
                     <option key={m} value={m}>
                       {t(`common.materials.${m}.label`)}
                     </option>
@@ -610,8 +666,27 @@ export function StepRenderer(props: StepRendererProps) {
                 />
               </Field>
             </div>
+            <Field label={t('pieces.details')}>
+              <Textarea
+                rows={2}
+                value={details}
+                maxLength={PIECE_DETAILS_MAX}
+                placeholder={t('pieces.detailsPlaceholder')}
+                aria-describedby={otherMaterial ? `${otherHintId} ${detailsCounterId}` : detailsCounterId}
+                onChange={(e) => setPiece(i, { description: e.target.value })}
+              />
+              {otherMaterial && (
+                <p id={otherHintId} className="text-xs text-muted-foreground">
+                  {t('pieces.otherMaterialHint')}
+                </p>
+              )}
+              <p id={detailsCounterId} className="self-end text-micro text-muted-foreground">
+                {t('pieces.charCounter', { count: details.length, max: PIECE_DETAILS_MAX })}
+              </p>
+              <ContactInTextHint value={details} />
+            </Field>
             <div className="flex flex-wrap gap-3 text-sm">
-              {ITEM_SYSTEMS.map((s) => {
+              {systems.map((s) => {
                 const checked = piece.systems.includes(s);
                 return (
                   <label key={s} className="flex items-center gap-1.5">
@@ -640,12 +715,12 @@ export function StepRenderer(props: StepRendererProps) {
               </button>
             </div>
           </div>
-        ))}
+          );
+        })}
         <Button type="button" variant="secondary" size="sm" onClick={addPiece} className="self-start">
           <Plus className="mr-1 h-4 w-4" />
           {t('pieces.add')}
         </Button>
       </div>
-    </StepShell>
   );
 }

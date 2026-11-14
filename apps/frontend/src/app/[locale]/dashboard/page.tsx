@@ -10,8 +10,9 @@ import {
 import { ArrowRight, Check, Plus } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, type ReactNode } from 'react';
-import { Link, useRouter } from '@/i18n/routing';
+import { Link } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useCompanyDashboardStats, useMyCompany } from '@/hooks/use-company';
 import { useSubscription } from '@/hooks/use-marketplace';
 import { useMoney } from '@/hooks/use-money';
@@ -44,12 +45,12 @@ import { ApiError } from '@/lib/api';
 // firma vede starea verificarii + abonamentul, urgentele si cifrele preluarilor.
 // „De facut acum” e mereu primul bloc; „Cerere noua” sta in antetul aplicatiei.
 export default function DashboardPage() {
-  const router = useRouter();
   const me = useMe();
+  const toLogin = useLoginRedirect();
 
   useEffect(() => {
-    if (me.isError) router.replace('/login');
-  }, [me.isError, router]);
+    if (me.isError) toLogin();
+  }, [me.isError, toLogin]);
 
   if (me.isPending || me.isError) {
     return (

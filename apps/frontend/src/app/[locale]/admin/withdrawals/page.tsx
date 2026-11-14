@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
 import { useMe } from '@/hooks/use-auth';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useAdminWithdrawals, useReviewWithdrawal } from '@/hooks/use-claims-lifecycle';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,7 @@ export default function AdminWithdrawalsPage() {
   const format = useFormatter();
   const router = useRouter();
   const me = useMe();
+  const toLogin = useLoginRedirect();
   const list = useAdminWithdrawals();
   const review = useReviewWithdrawal();
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -49,9 +51,9 @@ export default function AdminWithdrawalsPage() {
     : null;
 
   useEffect(() => {
-    if (me.isError) router.replace('/login');
+    if (me.isError) toLogin();
     else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
-  }, [me.isError, me.data, router]);
+  }, [me.isError, me.data, router, toLogin]);
 
   if (me.isPending) {
     return <SkeletonPage variant="list" />;

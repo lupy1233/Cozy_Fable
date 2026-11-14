@@ -42,6 +42,12 @@ export class ResolveDisputeDto {
   resolutionNote?: string;
 }
 
+// e1-2: PUT company/requests/:id/stages/:stage
+export class UpdateExecutionStageDto {
+  @IsBoolean()
+  done: boolean;
+}
+
 // E-admin-platform-3 — proiect acceptat blocat (raport / raspuns / inchidere admin).
 export class OpenProjectCaseDto {
   @IsIn(PROJECT_CASE_REASONS)

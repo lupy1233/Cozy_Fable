@@ -1,4 +1,4 @@
-import { getFlow, type AnswerMap, type RoomType } from '@marketplace/shared';
+import { approxLengthApplies, getFlow, type AnswerMap, type RoomType } from '@marketplace/shared';
 import type { RoomInstance } from '@/stores/configurator-store';
 
 // Forma unei camere trimise la server (publicare, editare, estimare) — b8, PO g0-8 / b8-3:
@@ -10,6 +10,8 @@ export interface ServerRoomPayload {
   flowVersion: number;
   answers: AnswerMap;
   needsDesignHelp: boolean;
+  // d3 (PO d3-2): lungimea aproximativa (m); store-ul o tine doar in "Am deja un proiect"
+  approxLengthM?: number;
 }
 
 // Doar raspunsurile pasilor de fisiere vizibili (schitele camerei); restul cade.
@@ -30,7 +32,7 @@ export function fileAnswersOnly(room: Pick<RoomInstance, 'roomType' | 'flowVersi
 }
 
 export function toServerRoom(
-  room: Pick<RoomInstance, 'roomType' | 'flowVersion' | 'answers' | 'needsDesignHelp' | 'sourceStudio'>,
+  room: Pick<RoomInstance, 'roomType' | 'flowVersion' | 'answers' | 'needsDesignHelp' | 'sourceStudio' | 'approxLengthM'>,
 ): ServerRoomPayload {
   // o piesa din Studio 3D e deja configurata: nu pleaca niciodata ca "cere ajutor"
   const needsDesignHelp = room.needsDesignHelp === true && !room.sourceStudio;
@@ -39,6 +41,10 @@ export function toServerRoom(
     flowVersion: room.flowVersion,
     answers: needsDesignHelp ? fileAnswersOnly(room) : room.answers,
     needsDesignHelp,
+    // d3 (revizuire M1): doar cat campul are sens pentru raspunsurile de acum
+    ...(!needsDesignHelp && typeof room.approxLengthM === 'number' && approxLengthApplies(room.roomType, room.answers, room.flowVersion)
+      ? { approxLengthM: room.approxLengthM }
+      : {}),
   };
 }
 

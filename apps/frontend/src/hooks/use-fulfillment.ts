@@ -3,8 +3,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   AdminDisputeItemDto,
+  ClientFulfillmentDto,
   CompanyCompletionDto,
   CreateReviewInput,
+  ExecutionStage,
   OpenProjectCaseInput,
   OpenWarrantyCaseInput,
   ProjectCaseDto,
@@ -89,11 +91,44 @@ export function useOpenWarrantyCase(requestId: string) {
   });
 }
 
-// e2 pasul 4: fisa firmei castigatoare — livrare confirmata, recenzia primita, raport deschis
+// e2 pasul 4: fisa firmei castigatoare — livrare confirmata, recenzia primita, raport deschis;
+// e1 (etapa 5): plus acceptarea, prima zi de livrare, finalizarea automata si etapele
+const companyCompletionKey = (requestId: string) => ['fulfillment', 'company-completion', requestId];
+
 export function useCompanyCompletion(requestId: string, enabled = true) {
   return useQuery({
-    queryKey: ['fulfillment', 'company-completion', requestId],
+    queryKey: companyCompletionKey(requestId),
     queryFn: () => api<CompanyCompletionDto>(`/company/requests/${requestId}/completion`),
+    enabled: !!requestId && enabled,
+    retry: false,
+  });
+}
+
+// e1-2: firma bifeaza / debifeaza o etapa informativa; serverul intoarce fisa adusa la zi
+export function useSetExecutionStage(requestId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ stage, done }: { stage: ExecutionStage; done: boolean }) =>
+      api<CompanyCompletionDto>(`/company/requests/${requestId}/stages/${stage}`, {
+        method: 'PUT',
+        body: JSON.stringify({ done }),
+      }),
+    onSuccess: (data) => {
+      if (data) qc.setQueryData(companyCompletionKey(requestId), data);
+      qc.invalidateQueries({ queryKey: ['fulfillment'] });
+    },
+    // etapa nu se mai poate schimba (cererea a trecut in alta stare) → reincarcam starea
+    onError: (e) => {
+      if (e instanceof ApiError && e.code === 'EXECUTION_STAGE_NOT_EDITABLE') invalidate(qc);
+    },
+  });
+}
+
+// e1-1: clientul — persoana responsabila, datele firmei castigatoare si etapele (doar dupa acceptare)
+export function useClientFulfillment(requestId: string, enabled = true) {
+  return useQuery({
+    queryKey: ['fulfillment', 'client', requestId],
+    queryFn: async () => (await api<ClientFulfillmentDto | null>(`/requests/${requestId}/fulfillment`)) ?? null,
     enabled: !!requestId && enabled,
     retry: false,
   });
@@ -106,6 +141,10 @@ export function useMarkDelivered() {
     mutationFn: (requestId: string) =>
       api<{ status: string }>(`/company/requests/${requestId}/deliver`, { method: 'POST' }),
     onSuccess: () => invalidate(qc),
+    // e1-3: prea devreme → reincarcam fisa (data de la care se poate marca vine de pe server)
+    onError: (e) => {
+      if (e instanceof ApiError && e.code === 'DELIVERY_TOO_EARLY') invalidate(qc);
+    },
   });
 }
 

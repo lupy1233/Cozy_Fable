@@ -65,6 +65,8 @@ function makeService(opts: {
     },
     companyMember: { findMany: jest.fn().mockResolvedValue([{ userId: 'm1' }]) },
     user: { findMany: jest.fn().mockResolvedValue([]) },
+    // e1-2: etapele bifate (implicit niciuna)
+    requestExecutionStage: { findMany: jest.fn().mockResolvedValue([]) },
     reviewDispute: {
       findUnique: jest.fn().mockResolvedValue({
         id: 'd1',
@@ -305,6 +307,13 @@ describe('getCompletionForCompany (e2 pasul 4 + m5)', () => {
       review: { rating: 4, comment: 'Bine', disputed: false, createdAt: completedAt.toISOString() },
       openCase: { reason: 'WARRANTY_CLAIM', note: 'Usa s-a lasat', createdAt: completedAt.toISOString() },
       clientTextsHidden: false,
+      // e1: fara accepted_at in fixture; COMPLETED → fara finalizare automata; etapele mereu 4
+      acceptedAt: null,
+      earliestDeliveryAt: null,
+      autoCompleteAt: null,
+      stages: ['MEASUREMENTS', 'CONTRACT', 'PRODUCTION', 'INSTALLATION'].map((stage) => ({
+        stage, done: false, completedAt: null, completedByName: null,
+      })),
     });
     expect(prisma.quote.findFirst).toHaveBeenCalledWith(expect.objectContaining({
       where: { requestId: 'r1', status: 'ACCEPTED', companyId: 'c1' },

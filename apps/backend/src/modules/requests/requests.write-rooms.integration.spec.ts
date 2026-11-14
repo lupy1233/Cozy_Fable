@@ -98,4 +98,16 @@ const url = testDatabaseUrl();
     const edited = await prisma.requestRoom.findUniqueOrThrow({ where: { id: stored.id } });
     expect(edited.needsDesignHelp).toBe(false);
   });
+
+  // d3 (PO d3-2): lungimea aproximativa (proiect propriu) se salveaza si se pastreaza la editare
+  it('approximate length: 6,5 is stored and read back; a rewrite without it stores null', async () => {
+    const requestId = await newRequest();
+    const ids = await write(requestId, [{ ...room('own', ['P1']), approxLengthM: 6.5 }]);
+    const stored = await prisma.requestRoom.findUniqueOrThrow({ where: { id: ids.get('own')! } });
+    expect(Number(stored.approxLengthM)).toBe(6.5);
+
+    await write(requestId, [room(stored.id, ['P1'])]);
+    const edited = await prisma.requestRoom.findUniqueOrThrow({ where: { id: stored.id } });
+    expect(edited.approxLengthM).toBeNull();
+  });
 });

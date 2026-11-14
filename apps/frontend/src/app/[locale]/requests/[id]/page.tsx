@@ -8,9 +8,14 @@ import { discardPendingEditSession } from '@/stores/configurator-store';
 import { takePublishNotice } from '@/components/configurator/publish-notice';
 import { toast } from '@/components/ui/toaster';
 import { Link, useRouter } from '@/i18n/routing';
-import { ApiError } from '@/lib/api';
+import { ApiError, isUnauthorizedError } from '@/lib/api';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
+import { useMe } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { useDeleteRequest, useRepostRequest, useRequest, useRequestVisibility } from '@/hooks/use-requests';
+import { useClientFulfillment } from '@/hooks/use-fulfillment';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
+import { useLongDate } from '../../_components/use-long-date';
 import { useBudgetFormat } from '@/hooks/use-budget-format';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -52,6 +57,16 @@ const STATUSES_WITH_OFFERS: RequestStatus[] = [
   'CANCELLED',
 ];
 
+// e1: starile de dupa acceptarea unei oferte (pentru „Acceptată pe …”)
+const STATUSES_AFTER_ACCEPT: RequestStatus[] = [
+  'ACCEPTED',
+  'IN_EXECUTION',
+  'DELIVERED_BY_COMPANY',
+  'COMPLETED',
+  'DISPUTED',
+  'CANCELLED',
+];
+
 // Starile din care clientul mai poate sterge cererea (Î17).
 const DELETABLE_STATUSES: RequestStatus[] = [
   'DRAFT',
@@ -82,6 +97,9 @@ export default function RequestDetailPage() {
   // si cate dintre ele au trimis oferta (pentru banda „pasul urmator”)
   const visibility = useRequestVisibility(id, !!detail.data && detail.data.status !== 'DRAFT');
   const next = useRequestNextStep();
+  const fmtLongDate = useLongDate();
+  // e1: data acceptarii vine din panoul de dupa acceptare (doar dupa ce exista o oferta acceptata)
+  const fulfillment = useClientFulfillment(id, !!detail.data && STATUSES_AFTER_ACCEPT.includes(detail.data.status));
   // m1: intoarcerea la cerere inchide editarea lasata in asteptare (fereastra de reluare
   // e doar pentru schimbarea limbii pe pagina de editare); "Editeaza" porneste de la server
   useEffect(() => {
@@ -95,8 +113,17 @@ export default function RequestDetailPage() {
     if (notice) toast.success(tConfigurator(notice === 'editSaved' ? 'review.editSavedToast' : 'review.publishedToast'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+  // f3 (review M1): plasa de siguranta — 401 pe cerere SI „cine sunt eu” a esuat → login cu
+  // intoarcere, chiar daca semnalul global n-a dus acolo (pagina nu ramane pe schelet)
+  const me = useMe();
+  const toLogin = useLoginRedirect();
+  const unauthorized = isUnauthorizedError(detail.error);
+  useEffect(() => {
+    if (unauthorized && me.isError) toLogin();
+  }, [unauthorized, me.isError, toLogin]);
 
-  if (detail.isPending) {
+  // e1 / f3: sesiunea a expirat (401) → ramanem pe incarcare; ascultatorul global duce omul la login
+  if (detail.isPending || (detail.error instanceof ApiError && detail.error.status === 401)) {
     return (
       <QueryState pending onRetry={() => void detail.refetch()} skeleton={<SkeletonPage variant="detail" />} />
     );
@@ -202,11 +229,19 @@ export default function RequestDetailPage() {
               <SheetCell label={t('field.addressText')}>
                 {r.addressText}, {r.city}, {r.county}
               </SheetCell>
-              {r.expiresAt && (
+              {/* e1: termenul de expirare conteaza doar cat cererea asteapta in piata */}
+              {r.expiresAt && r.status === 'IN_MARKETPLACE' && (
                 <SheetCell label={t('expiresAt')} mono>
-                  {/* data localizata, fara secunde */}
-                  {format.dateTime(new Date(r.expiresAt), { dateStyle: 'medium', timeStyle: 'short' })}
+                  {/* data localizata, fara secunde, in ora Romaniei */}
+                  {format.dateTime(new Date(r.expiresAt), {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                    timeZone: APP_TIME_ZONE,
+                  })}
                 </SheetCell>
+              )}
+              {STATUSES_AFTER_ACCEPT.includes(r.status) && fulfillment.data?.acceptedAt && (
+                <SheetCell label={t('acceptedOn')}>{fmtLongDate(fulfillment.data.acceptedAt)}</SheetCell>
               )}
             </dl>
           </Card>

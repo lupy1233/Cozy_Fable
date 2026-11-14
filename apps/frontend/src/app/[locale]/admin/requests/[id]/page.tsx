@@ -13,6 +13,7 @@ import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
 import { useMe } from '@/hooks/use-auth';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useAdminRequest, useCloseProject, useDismissProjectCase } from '@/hooks/use-admin';
 import { Badge, StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -47,12 +48,13 @@ export default function AdminRequestDetailPage() {
   const id = params.id;
   const router = useRouter();
   const me = useMe();
+  const toLogin = useLoginRedirect();
   const detail = useAdminRequest(id);
 
   useEffect(() => {
-    if (me.isError) router.replace('/login');
+    if (me.isError) toLogin();
     else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
-  }, [me.isError, me.data, router]);
+  }, [me.isError, me.data, router, toLogin]);
 
   if (detail.isPending) return <SkeletonPage variant="detail" />;
   if (detail.isError || !detail.data) {

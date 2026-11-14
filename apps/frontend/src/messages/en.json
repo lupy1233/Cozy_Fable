@@ -755,7 +755,8 @@
     "verifySuccessBody": "You can log in now.",
     "changePasswordDoneBody": "The other devices you were logged in on have been signed out.",
     "totpLabel": "Two-step authentication code",
-    "totpHint": "The 6 digits from your authenticator app."
+    "totpHint": "The 6 digits from your authenticator app.",
+    "sessionExpired": "You signed in on another device or your session expired. Please sign in again."
   },
   "Company": {
     "onboardingTitle": "Register your company",
@@ -1267,6 +1268,11 @@
         "FIRST_OFFER_RULE": "You received the first offer and, under the current rules, new companies can no longer claim the request.",
         "EXPIRED": "The request expired, so it is no longer listed for companies.",
         "CLOSED": "The request is no longer listed for companies, so new companies can no longer see it."
+      },
+      "noCoverage": {
+        "title": "We don't have partner companies working in your area yet.",
+        "body": "The Cozy Home team has been notified and is looking for a company in your area. Your request stays published, and we'll let you know when a company claims it.",
+        "reviewBody": "You can still publish your request: the Cozy Home team will be notified and will look for a company in your area. Your request stays published, and we'll let you know when a company claims it."
       }
     },
     "tabsLabel": "Filter requests by stage",
@@ -1373,7 +1379,8 @@
       "declaredLabel": "Budget stated by the client",
       "estimateLabel": "Estimate from answers",
       "belowEstimate": "Below the estimate from answers"
-    }
+    },
+    "acceptedOn": "Accepted on"
   },
   "Marketplace": {
     "title": "Marketplace",
@@ -2277,7 +2284,9 @@
       "PROJECT_CASE_ALREADY_OPEN": "There is already an open case for this project.",
       "PROJECT_CASE_NOT_OPEN": "The case is no longer open or has already been answered.",
       "DATABASE_BUSY": "The server is responding slowly right now, so the action was not saved. Please try again in a few seconds.",
-      "WARRANTY_REPORT_WINDOW_CLOSED": "The period for reporting a problem has ended."
+      "WARRANTY_REPORT_WINDOW_CLOSED": "The period for reporting a problem has ended.",
+      "DELIVERY_TOO_EARLY": "It's too early to mark the work as delivered. You can do it only after the minimum number of days since acceptance.",
+      "EXECUTION_STAGE_NOT_EDITABLE": "Stages can be ticked only after your offer is accepted and until the project is completed."
     },
     "agreement": {
       "title": "Your agreement",
@@ -2322,7 +2331,6 @@
       "cancelledBody": "The project was closed by the Cozy Home team on {date}."
     },
     "deliverConfirmTitle": "Mark the work as delivered?",
-    "deliverConfirmBody": "The client is notified and must confirm receipt. If they do not confirm within {days}, the order completes automatically.",
     "deliverConfirmBodyNoDays": "The client is notified and must confirm receipt; otherwise the order completes automatically after the period in the rules.",
     "deliverConfirmIrreversible": "This cannot be undone in the app.",
     "deliverConfirmCta": "Yes, it is delivered",
@@ -2366,6 +2374,48 @@
       "openCaseDelivered": "The client reported a problem after delivery, on {date}. The order is not completed automatically until the Cozy Home team closes the report.",
       "openCaseWarranty": "The client reported a problem under warranty, on {date}. The Cozy Home team will contact you.",
       "clientNote": "Client's message: “{note}”"
+    },
+    "firmProject": {
+      "badge": {
+        "accepted": "Accepted",
+        "delivered": "Delivered — awaiting client",
+        "completed": "Completed"
+      },
+      "cellLabel": "Project",
+      "headline": {
+        "accepted": "Offer accepted",
+        "delivered": "Delivered — waiting for the client to confirm",
+        "completed": "Completed"
+      },
+      "acceptedOn": "Accepted on {date}",
+      "deliverFrom": "You can mark the delivery starting {date}.",
+      "autoCompleteOn": "If the client does not confirm, the project completes automatically on {date}.",
+      "autoCompletePaused": "The client reported a problem. Automatic completion is paused until the Cozy Home team closes the report.",
+      "completedOn": "Completed on {date}",
+      "deliverConfirmNext": "The client is notified and must confirm receipt. If they neither confirm nor report a problem within {days}, the project completes automatically on {date}."
+    },
+    "stages": {
+      "title": "What's next",
+      "intro": "Tick the stages as you go through them. The client sees them on their page. They are for information only: they do not block the delivery.",
+      "name": {
+        "MEASUREMENTS": "Measurements",
+        "CONTRACT": "Contract",
+        "PRODUCTION": "Production",
+        "INSTALLATION": "Installation"
+      },
+      "doneBy": "Ticked on {date} by {name}",
+      "doneOn": "Ticked on {date}",
+      "readOnly": "Stages are ticked by the owner, managers, trusted employees or the person working on this request.",
+      "forbidden": "You cannot tick the stages of this request. They are ticked by the owner, managers, trusted employees or the person working on the request."
+    },
+    "clientProject": {
+      "contactTitle": "Who you talk to",
+      "contactRole": "The person at the firm handling your project",
+      "cui": "Tax ID (CUI) {cui}",
+      "stagesTitle": "How the project is going",
+      "stagesIntro": "The firm ticks the stages as it goes through them.",
+      "stageNotDone": "Not ticked yet",
+      "autoCompleteOn": "If you neither confirm nor report a problem, the order completes automatically on {date}."
     }
   },
   "Billing": {
@@ -3128,6 +3178,10 @@
         "legal_reaccept_existing_users": {
           "label": "Existing accounts accept the Terms again",
           "help": "When on, users who accepted an older version must accept the current Terms and Policy. New accounts accept them at sign-up anyway; administrators are exempt. It applies within one minute."
+        },
+        "delivery_min_days_after_accept": {
+          "label": "Minimum days before delivery",
+          "help": "How many days after the offer is accepted the firm can mark the project as delivered. 0 = any time."
         }
       },
       "units": {
@@ -3650,7 +3704,8 @@
       "request": {
         "status_changed": "Request status changed",
         "expired": "Your request expired",
-        "expiry_reminder": "Your request expires soon"
+        "expiry_reminder": "Your request expires soon",
+        "no_coverage": "New request with no company in the area — find a company"
       },
       "claim": {
         "created": "Request claimed by a company",
@@ -3719,6 +3774,19 @@
       },
       "credits": {
         "ledger_mismatch": "Credit wallets do not match the ledger — check the daily report"
+      },
+      "execution": {
+        "stage_updated": "The company ticked a project stage"
+      }
+    },
+    "stageUpdated": {
+      "withCompany": "{company} ticked the stage: {stage}",
+      "noCompany": "The firm ticked the stage: {stage}",
+      "stage": {
+        "MEASUREMENTS": "Measurements",
+        "CONTRACT": "Contract",
+        "PRODUCTION": "Production",
+        "INSTALLATION": "Installation"
       }
     }
   },
@@ -3905,13 +3973,13 @@
         "LAUNDRY": "Cabinets around the washer",
         "BALCONY": "Storage bench, cabinet, worktop",
         "PIECE_WARDROBE": "Sliding or hinged doors",
-        "PIECE_TV_UNIT": "Low unit or full media wall",
-        "PIECE_BOOKCASE": "Shelves, display, closed bases",
-        "PIECE_DESK": "Straight or corner",
+        "PIECE_TV_UNIT": "Low unit with open niches, drawers or doors",
+        "PIECE_BOOKCASE": "Open shelves, drawers and doors",
+        "PIECE_DESK": "Top on solid side panels, with or without drawer pedestals",
         "PIECE_BED": "Upholstered, lift-up or drawers",
         "PIECE_DRESSER": "With drawers and doors",
         "PIECE_TABLE": "Dining, coffee or console",
-        "PIECE_SHOE_CABINET": "Slim tilt-out or with seat",
+        "PIECE_SHOE_CABINET": "Slim, with doors, drawers or open niches",
         "PIECE_NIGHTSTAND": "One or a pair",
         "PIECE_BENCH": "With storage or simple",
         "PIECE_SIDEBOARD": "Doors, drawers and open shelves",
@@ -4085,8 +4153,8 @@
       "columnWidth": "Column width",
       "lockSize": "Lock size (stays fixed)",
       "unlockSize": "Unlock size (shares space equally)",
-      "drawersTooHigh": "Drawers can't sit above 160 cm — you couldn't reach them.",
-      "hangingNeeds": "A hanging rod needs at least 55 cm of depth and 80 cm of height per rod.",
+      "drawersTooHigh": "Drawers can't sit above {cm} cm — you couldn't reach them.",
+      "hangingNeeds": "A hanging rod needs at least {depth} cm of depth and {height} cm of height per rod.",
       "zoneToolbarTitle": "Column {column} · zone {zone}",
       "columnLabel": "Column {n}",
       "addZone": "Add zone",
@@ -4137,7 +4205,7 @@
         "HINGED": "Hinged",
         "SLIDING": "Sliding"
       },
-      "slidingNeeds": "Sliding doors are available with 2–3 columns.",
+      "slidingNeeds": "Sliding doors are available with {min}–{max} columns.",
       "slideDirection": "Slide",
       "slideDirections": {
         "L": "To the left",
@@ -4232,7 +4300,22 @@
           "LEFT": "Left",
           "RIGHT": "Right"
         }
-      }
+      },
+      "drawersTooShort": "A drawer needs at least {cm} cm of height — this section is too low.",
+      "shelvesNeedSpace": "Shelves need at least {cm} cm of space between them.",
+      "pedestalsNeedWidth": "A second pedestal fits from a desk width of {width} cm.",
+      "pedestalsMaxReached": "The desk can have at most {n} pedestals.",
+      "columnsMaxReached": "You've reached the maximum number of columns ({n}).",
+      "columnWidthRange": "Each column is between {min} and {max} cm wide.",
+      "columnsFitWidth": "We matched the number of columns to the width: each column is between {min} and {max} cm.",
+      "slidingLost": "We switched to hinged doors: sliding doors only work with {min}–{max} columns.",
+      "hangingReduced": "We kept {n, plural, one {# hanging rod} other {# hanging rods}}: each rod needs {cm} cm of height.",
+      "shelvesReduced": "We kept {n, plural, one {# shelf} other {# shelves}}: they need at least {cm} cm between them.",
+      "drawersReduced": "We kept {n, plural, one {# drawer} other {# drawers}}: each drawer needs at least {cm} cm of height.",
+      "dimClampedMin": "The minimum is {value} cm — we set {value}.",
+      "dimClampedMax": "The maximum is {value} cm — we set {value}.",
+      "dimKeptPrevious": "We kept the previous value.",
+      "dimReadAsMeters": "We read this as {value} cm."
     },
     "copyFromPrevious": "Copy answers from the previous {room}",
     "pieces": {
@@ -4240,7 +4323,11 @@
       "material": "Material",
       "quantity": "Quantity",
       "add": "Add piece",
-      "remove": "Remove"
+      "remove": "Remove",
+      "details": "Details (optional)",
+      "detailsPlaceholder": "Approximate size, colour, where it goes, what you want inside — anything that helps the company understand the piece.",
+      "otherMaterialHint": "You chose “Other”: write here which material you want.",
+      "charCounter": "{count} / {max} characters"
     },
     "apiErrors": {
       "CONFIGURATOR_ANSWERS_INVALID": "Some answers couldn't be validated. Check the highlighted steps.",
@@ -4279,7 +4366,10 @@
       "positiveNumber": "Enter a number greater than 0. We kept the previous value.",
       "wholeNumber": "Enter a whole number, e.g. 3. We kept the previous value.",
       "designHelpWithOwnProject": "You chose “I already have a project”, so you can't ask for help with a room. Change the mode or untick the help box.",
-      "designHelpWithStudioPiece": "This piece is placed in Studio, so it is already configured: you can't ask for help with it. Untick the help box or remove the piece from Studio."
+      "designHelpWithStudioPiece": "This piece is placed in Studio, so it is already configured: you can't ask for help with it. Untick the help box or remove the piece from Studio.",
+      "approxLengthOutOfRange": "The approximate length must be between 0.1 and 50 m.",
+      "approxLengthTooManyDecimals": "Use at most two decimals, for example 6.25.",
+      "approxLengthWithoutOwnProject": "The approximate length can only be given with “I already have a project”. Choose that mode or clear the length."
     },
     "common": {
       "boolean": {
@@ -4402,16 +4492,16 @@
           }
         },
         "GLISANTE": {
-          "label": "Sliding",
-          "description": "Doors or drawers on rails",
+          "label": "Sliding doors",
+          "description": "The doors slide sideways on tracks",
           "info": {
-            "title": "Sliding systems",
-            "body": "Sliding doors move sideways along tracks; drawers pull out on runners. Allow clearance in front of drawers.",
+            "title": "Sliding doors",
+            "body": "The doors slide sideways on tracks and do not swing into the room. A good fit for wide wardrobes and for rooms with no space for doors that open outwards.",
             "pros1": "Sliding doors do not swing into the room; allow space to stand and access the cabinet",
             "pros2": "Carries wide, heavy fronts, all the way to the ceiling",
             "cons1": "Good rails cost more — cheap ones you feel on every open",
             "cons2": "Needs precise fitting — a skewed rail is heard and felt",
-            "price": "+80–200 RON/set"
+            "price": "+RON 800–2,000"
           }
         },
         "BUTON_PRESIUNE": {
@@ -6600,7 +6690,7 @@
         },
         "config3d": {
           "title": "Build your shoe cabinet in 3D",
-          "subtitle": "Choose the dimensions and the fronts: tilt-out, drawers or doors."
+          "subtitle": "Choose the dimensions and what each column has: doors, drawers or open niches."
         }
       },
       "PIECE_NIGHTSTAND": {
@@ -6857,7 +6947,8 @@
       "designHelpClient": "You asked for design help with this room",
       "furnitureLinear": "Furniture: ~{m} linear m",
       "ceilingHeight": "Ceiling: {m} m",
-      "designHelpDetails": "The details are agreed with the company."
+      "designHelpDetails": "The details are agreed with the company.",
+      "approxLength": "Approximate length: {m} m"
     },
     "contactInText": {
       "hint": "It looks like you typed a phone number, email or link. Companies can't see these before they claim your request: add them in the Contact step and only the companies that claim it will get them.",
@@ -6891,6 +6982,10 @@
       "kept": "Nothing is lost: the answers stay in your draft and come back if you untick the help.",
       "cancel": "Cancel",
       "confirm": "Yes, ask for help"
+    },
+    "approxLength": {
+      "label": "Approximate length (m) — optional",
+      "hint": "Roughly how long the furniture in your project is (for example 6.5). It helps us show companies how big the project is. You can leave it empty."
     }
   },
   "Legal": {

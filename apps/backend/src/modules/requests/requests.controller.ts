@@ -11,6 +11,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { UserRole } from '@prisma/client';
 import { AccessTokenPayload } from '../auth/auth.constants';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -26,6 +27,30 @@ import {
   PresignAttachmentDto,
 } from './dto/request.dto';
 import { RequestsService } from './requests.service';
+
+// a6 — adresa ciornei pentru verificarea acoperirii, cu aceleasi reguli ca la publicare
+// (CreateRequestContentDto: addressText / county / city / country)
+export class DraftCoverageDto {
+  @IsString()
+  @MinLength(3)
+  @MaxLength(300)
+  addressText!: string;
+
+  @IsString()
+  @MinLength(2)
+  @MaxLength(100)
+  county!: string;
+
+  @IsString()
+  @MinLength(2)
+  @MaxLength(100)
+  city!: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Za-z]{2}$/)
+  country?: string;
+}
 
 @Controller('requests')
 @UseGuards(OptionalJwtAuthGuard)
@@ -84,6 +109,20 @@ export class RequestsController {
     @Body() dto: CreateRequestContentDto,
   ) {
     return this.requests.publish(token, dto, user?.sub ?? null);
+  }
+
+  // a6 — Sumar: exista vreo firma in zona adresei? (COVERED / NONE / UNKNOWN, niciodata un numar).
+  // Geocodare pe server (apel extern). Doua frane: 10/min pe ciorna (in serviciu, peste limita →
+  // UNKNOWN) si 60/min pe IP aici (mai larga: pe productie IP-ul poate fi comun tuturor clientilor).
+  @Public()
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @Post('drafts/:token/coverage')
+  draftCoverage(
+    @CurrentUser() user: AccessTokenPayload | undefined,
+    @Param('token') token: string,
+    @Body() dto: DraftCoverageDto,
+  ) {
+    return this.requests.draftCoverage(token, dto, user?.sub ?? null);
   }
 
   // Tokenul deschide doar o CIORNA (SEC2-4): editarea si repostul dupa publicare

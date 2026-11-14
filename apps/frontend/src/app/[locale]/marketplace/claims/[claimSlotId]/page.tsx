@@ -11,12 +11,11 @@ import { companyCan } from '@/lib/company-permissions';
 import { latestVersion } from '@/lib/quote-version';
 import { cn } from '@/lib/utils';
 import { useMe } from '@/hooks/use-auth';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useMessages, useThreads } from '@/hooks/use-chat';
 import { useMyCompany } from '@/hooks/use-company';
 import { useAssignClaim } from '@/hooks/use-marketplace';
 import { useClaimContext } from '@/hooks/use-quotes';
-import { useMarkDelivered } from '@/hooks/use-fulfillment';
-import { isFirmRules, useFirmRules } from '@/hooks/use-legal';
 import { useRealtimeSync } from '@/hooks/use-socket';
 import { useNow } from '@/hooks/use-now';
 import { useRelativeTime } from '@/lib/relative-time';
@@ -38,10 +37,17 @@ import { Tabs } from '@/components/ui/tabs';
 import { ChatPanel } from '../../../_components/chat-panel';
 import { AgreementCard } from '../../../_components/agreement-card';
 import { ClaimLifecyclePanel } from '../../../_components/claim-lifecycle-panel';
-import { ActionConfirmDialog } from '../../../_components/action-confirm-dialog';
 import { FirmRulesLink } from '../../../_components/firm-rules-link';
 import { ProjectCasePanel } from '../../../_components/project-case-panel';
-import { ClaimCompletionCard } from '../../../_components/claim-completion-card';
+import {
+  canEditExecutionStages,
+  ClaimCompletionCard,
+  DeliverProjectButton,
+  ExecutionStagesPanel,
+  FirmProjectBadge,
+  FirmProjectStatus,
+  firmProjectState,
+} from '../../../_components/claim-completion-card';
 import { SubscriptionStatusNotice } from '../../_components/subscription-status-notice';
 import { OfferBuilder } from '../../../_components/offer-builder';
 import { OfferCard } from '../../../_components/offer-card';
@@ -81,16 +87,18 @@ export default function CompanyClaimPage() {
   const claimSlotId = params.claimSlotId;
   const router = useRouter();
   const me = useMe();
+  const toLogin = useLoginRedirect();
   const ctx = useClaimContext(claimSlotId);
   const company = useMyCompany();
   useRealtimeSync();
 
   useEffect(() => {
-    if (me.isError) router.replace('/login');
+    if (me.isError) toLogin();
     else if (me.data && me.data.role !== 'COMPANY_USER') router.replace('/dashboard');
-  }, [me.isError, me.data, router]);
+  }, [me.isError, me.data, router, toLogin]);
 
-  if (ctx.isPending) {
+  // e1 / f3: sesiunea a expirat (401) → ramanem pe incarcare; ascultatorul global duce omul la login
+  if (ctx.isPending || (ctx.error instanceof ApiError && ctx.error.status === 401)) {
     return <SkeletonPage variant="detail" />;
   }
   if (ctx.isError || !ctx.data) {
@@ -114,10 +122,22 @@ export default function CompanyClaimPage() {
   if (c.visibility === 'REDACTED' || c.visibility === 'TOMBSTONE') {
     return <ClosedClaimSummary ctx={c} />;
   }
-  return <ClaimWorkspace ctx={c} isManager={isManager} />;
+  // e1-2: aceeasi regula ca serverul (setExecutionStage = accesul la fisa de lucru): fisa completa
+  // (aici visibility e FULL) si nu „angajat limitat pe preluarea altcuiva” (NOT_ASSIGNED_TO_YOU).
+  // Restul cazurilor le prinde mesajul de la 403.
+  const canEditStages = canEditExecutionStages(c);
+  return <ClaimWorkspace ctx={c} isManager={isManager} canEditStages={canEditStages} />;
 }
 
-function ClaimWorkspace({ ctx: c, isManager }: { ctx: ClaimQuoteContextDto; isManager: boolean }) {
+function ClaimWorkspace({
+  ctx: c,
+  isManager,
+  canEditStages,
+}: {
+  ctx: ClaimQuoteContextDto;
+  isManager: boolean;
+  canEditStages: boolean;
+}) {
   const t = useTranslations('Quotes');
   const tm = useTranslations('Marketplace');
   const threads = useThreads('company');
@@ -227,11 +247,15 @@ function ClaimWorkspace({ ctx: c, isManager }: { ctx: ClaimQuoteContextDto; isMa
                 rooms={c.rooms}
               />
             )}
+            {/* e1-2: „Ce urmeaza” pentru firma — etapele informative, vazute de client */}
+            {isWinner && (
+              <ExecutionStagesPanel requestId={c.requestId} requestStatus={c.requestStatus} canEdit={canEditStages} />
+            )}
             {/* E-company-1: livrarea o marcheaza doar OWNER/MANAGER, pe castigator inca deschis */}
             {c.quote?.status === 'ACCEPTED' &&
               c.claimStatus === 'OFFER_SENT' &&
               (c.requestStatus === 'ACCEPTED' || c.requestStatus === 'IN_EXECUTION') &&
-              isManager && <DeliverButton requestId={c.requestId} />}
+              isManager && <DeliverProjectButton requestId={c.requestId} />}
             {isWinner && (projectActive || c.projectCase?.status === 'CLOSED_PROJECT_CANCELLED') && (
               <ProjectCasePanel
                 requestId={c.requestId}
@@ -293,6 +317,8 @@ function ClaimWorkspace({ ctx: c, isManager }: { ctx: ClaimQuoteContextDto; isMa
 function ClaimHeader({ ctx, subtitle }: { ctx: ClaimQuoteContextDto; subtitle?: ReactNode }) {
   const t = useTranslations('Quotes');
   const tm = useTranslations('Marketplace');
+  // e1: pe castigator insigna arata starea proiectului, nu „Ofertă trimisă”
+  const project = ctx.quote?.status === 'ACCEPTED' ? firmProjectState(ctx.requestStatus) : null;
   return (
     <header className="flex flex-col gap-2">
       <Link
@@ -305,7 +331,11 @@ function ClaimHeader({ ctx, subtitle }: { ctx: ClaimQuoteContextDto; subtitle?: 
         <h1 className="page-title min-w-0 break-words">
           <ContactSafeText text={ctx.requestTitle} />
         </h1>
-        <StatusBadge status={ctx.claimStatus} label={tm(`claimStatus.${ctx.claimStatus}`)} />
+        {project ? (
+          <FirmProjectBadge state={project} />
+        ) : (
+          <StatusBadge status={ctx.claimStatus} label={tm(`claimStatus.${ctx.claimStatus}`)} />
+        )}
       </div>
       {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
     </header>
@@ -418,8 +448,19 @@ function WorkBar({ ctx }: { ctx: ClaimQuoteContextDto }) {
       ? slaPhase(ctx.slaDeadlineAt, ctx.firmActions.slaBreachAt, now)
       : null;
   const late = phase === 'GRACE' || phase === 'BREACHED';
-  const slaTone: SlaTone =
-    !active || !ctx.slaDeadlineAt ? 'idle' : ctx.slaPaused ? 'info' : late ? 'crimson' : 'amber';
+  // e1: pe castigator celula termenului arata starea proiectului (livrata = se asteapta clientul)
+  const project = !active && ctx.quote?.status === 'ACCEPTED' ? firmProjectState(ctx.requestStatus) : null;
+  const slaTone: SlaTone = project
+    ? project === 'delivered'
+      ? 'info'
+      : 'idle'
+    : !active || !ctx.slaDeadlineAt
+      ? 'idle'
+      : ctx.slaPaused
+        ? 'info'
+        : late
+          ? 'crimson'
+          : 'amber';
 
   return (
     <Card
@@ -489,6 +530,11 @@ function WorkBar({ ctx }: { ctx: ClaimQuoteContextDto }) {
         )}
       </div>
 
+      {project ? (
+      <div className={cn('flex flex-col gap-1.5 px-5 py-4 sm:px-6', SLA_CELL[slaTone])}>
+        <FirmProjectStatus requestId={ctx.requestId} state={project} />
+      </div>
+      ) : (
       <div className={cn('flex flex-col gap-1.5 px-5 py-4 sm:px-6', SLA_CELL[slaTone])}>
         <span className={cn('label', slaTone !== 'idle' && 'text-current')}>{t('workspace.slaLabel')}</span>
         {!active ? (
@@ -527,6 +573,7 @@ function WorkBar({ ctx }: { ctx: ClaimQuoteContextDto }) {
           </>
         )}
       </div>
+      )}
 
       <div className="flex flex-col gap-1.5 bg-surface px-5 py-4 sm:px-6">
         <BudgetLine ctx={ctx} />
@@ -719,52 +766,5 @@ function ClientNote({ ctx }: { ctx: ClaimQuoteContextDto }) {
         </div>
       )}
     </Card>
-  );
-}
-
-function DeliverButton({ requestId }: { requestId: string }) {
-  const t = useTranslations('Fulfillment');
-  const tu = useTranslations('Legal.firmRules.units');
-  const deliver = useMarkDelivered();
-  // E-company-6: marcarea e ireversibila din aplicatie → dialog cu consecintele (D-L1-1)
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const firmRules = useFirmRules();
-  const rules = isFirmRules(firmRules.data) ? firmRules.data : null;
-  const err = deliver.error instanceof ApiError ? deliver.error.code : null;
-  const errText = err ? (t.has(`apiErrors.${err}`) ? t(`apiErrors.${err}`) : t('apiErrors.INTERNAL_ERROR')) : null;
-  return (
-    <div className="flex flex-col gap-2">
-      <Button
-        variant="walnut"
-        size="lg"
-        className="self-start"
-        onClick={() => {
-          deliver.reset();
-          setConfirmOpen(true);
-        }}
-        disabled={deliver.isPending || deliver.isSuccess}
-      >
-        {deliver.isSuccess ? t('markedDelivered') : t('markDelivered')}
-      </Button>
-      {errText && <p className="text-sm text-crimson">{errText}</p>}
-      <ActionConfirmDialog
-        open={confirmOpen}
-        onOpenChange={setConfirmOpen}
-        title={t('deliverConfirmTitle')}
-        confirmLabel={t('deliverConfirmCta')}
-        cancelLabel={t('deliverConfirmCancel')}
-        pendingLabel={t('deliverConfirmPending')}
-        pending={deliver.isPending}
-        error={errText}
-        onConfirm={() => deliver.mutate(requestId, { onSuccess: () => setConfirmOpen(false) })}
-      >
-        <p>
-          {rules
-            ? t('deliverConfirmBody', { days: tu('day', { n: rules.delivery.autoCompleteDays }) })
-            : t('deliverConfirmBodyNoDays')}
-        </p>
-        <p className="font-medium">{t('deliverConfirmIrreversible')}</p>
-      </ActionConfirmDialog>
-    </div>
   );
 }

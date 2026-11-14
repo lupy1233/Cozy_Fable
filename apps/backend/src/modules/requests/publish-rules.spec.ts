@@ -9,7 +9,14 @@ import {
   type ScoreEntry,
 } from '@marketplace/shared';
 import { computeSizing } from '../sizing/sizing.service';
-import { normalizeBudget, projectFileCount, resolveDesignHelp, sizeWithBudgetFloor, studioSourceIds } from './publish-rules';
+import {
+  assertApproxLengthAllowed,
+  normalizeBudget,
+  projectFileCount,
+  resolveDesignHelp,
+  sizeWithBudgetFloor,
+  studioSourceIds,
+} from './publish-rules';
 import type { CreateRequestContentDto } from './dto/request.dto';
 
 function dto(partial: Partial<CreateRequestContentDto>): CreateRequestContentDto {
@@ -145,6 +152,27 @@ describe('publish rules', () => {
 });
 
 // b8 (PO g0-8) + reparatiile din revizuire (M2-M4, hotarari coordonator)
+// d3 (PO d3-2): lungimea aproximativa doar cu "Am deja un proiect"
+describe('assertApproxLengthAllowed', () => {
+  it('cu proiect propriu orice valoare trece; fara camp trece oricum', () => {
+    expect(() => assertApproxLengthAllowed([{ approxLengthM: 8 }, {}], true)).not.toThrow();
+    expect(() => assertApproxLengthAllowed([{}, { approxLengthM: null }], false)).not.toThrow();
+  });
+
+  it('fara proiect propriu → 400 VALIDATION_ERROR cu camera si campul', () => {
+    try {
+      assertApproxLengthAllowed([{}, { approxLengthM: 6.5 }], false);
+      throw new Error('expected error');
+    } catch (e) {
+      expect(e).toBeInstanceOf(BadRequestException);
+      expect((e as BadRequestException).getResponse()).toMatchObject({
+        code: ERROR_CODES.VALIDATION_ERROR,
+        details: [{ roomIndex: 1, field: 'approxLengthM', messageKey: 'validation.approxLengthWithoutOwnProject' }],
+      });
+    }
+  });
+});
+
 describe('resolveDesignHelp', () => {
   type Room = { sourceLocalId?: string; roomType: string; flowVersion: number; answers: Record<string, unknown>; needsDesignHelp?: boolean };
   const room = (id: string, over: Partial<Room> = {}): Room => ({ sourceLocalId: id, roomType: 'KITCHEN', flowVersion: 1, answers: {}, ...over });

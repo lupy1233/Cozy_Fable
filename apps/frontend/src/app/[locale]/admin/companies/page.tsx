@@ -5,6 +5,7 @@ import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useAdminCompanies } from '@/hooks/use-company';
 import { useRelativeTime } from '@/lib/relative-time';
 import { Button } from '@/components/ui/button';
@@ -47,6 +48,7 @@ export default function AdminCompaniesPage() {
   const relative = useRelativeTime();
   const router = useRouter();
   const me = useMe();
+  const toLogin = useLoginRedirect();
   const [status, setStatus] = useState('');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -57,9 +59,9 @@ export default function AdminCompaniesPage() {
   const all = useAdminCompanies(undefined);
 
   useEffect(() => {
-    if (me.isError) router.replace('/login');
+    if (me.isError) toLogin();
     else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
-  }, [me.isError, me.data, router]);
+  }, [me.isError, me.data, router, toLogin]);
 
   const counts = useMemo(() => {
     if (!all.data) return null;

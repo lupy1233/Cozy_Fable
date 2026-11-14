@@ -55,6 +55,19 @@ export class EventsGateway implements OnGatewayConnection {
     }));
   }
 
+  // f3: doar socketurile contului ale caror sesiuni (sid) au fost revocate.
+  async expireSessions(userId: string, sids: string[]): Promise<void> {
+    if (!this.server || sids.length === 0) return;
+    const revoked = new Set(sids);
+    const sockets = await this.server.in(`user:${userId}`).fetchSockets();
+    for (const socket of sockets) {
+      const sid = (socket.data.accessPayload as AccessTokenPayload | undefined)?.sid;
+      if (!sid || !revoked.has(sid)) continue;
+      socket.emit('auth_expired');
+      socket.disconnect(true);
+    }
+  }
+
   async handleConnection(socket: Socket): Promise<void> {
     const cookies = parseCookie(socket.handshake.headers.cookie ?? '');
     const token = cookies[ACCESS_COOKIE];

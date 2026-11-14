@@ -75,3 +75,18 @@ describe('RoomSpecCard design help', () => {
     expect(screen.getByText('Dulap')).toBeVisible();
   });
 });
+
+// d3 (PO d3-2): lungimea aproximativa data cu "Am deja un proiect"
+describe('RoomSpecCard approximate length', () => {
+  it('shows "Lungime aproximativă: 6 m" when the client gave it', () => {
+    const { container } = show({ roomType: 'KITCHEN', lengthM: 0, approxLengthM: 6 });
+    expect(container.querySelector('[data-room-approx-length]')?.textContent).toBe('Lungime aproximativă: 6 m');
+    const decimal = show({ roomType: 'KITCHEN', lengthM: 0, approxLengthM: 6.5 });
+    expect(decimal.container.querySelector('[data-room-approx-length]')?.textContent).toBe('Lungime aproximativă: 6,5 m');
+  });
+
+  it('shows nothing without the field', () => {
+    const { container } = show({ roomType: 'KITCHEN', lengthM: 0, approxLengthM: null });
+    expect(container.querySelector('[data-room-approx-length]')).toBeNull();
+  });
+});

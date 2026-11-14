@@ -32,6 +32,15 @@ const SIZING_CONFIG: { key: string; option: string; weight: number }[] = [
   { key: 'ROOM_TYPE', option: 'PIECE_SHOE_CABINET', weight: 1 },
   { key: 'ROOM_TYPE', option: 'PIECE_NIGHTSTAND', weight: 1 },
   { key: 'ROOM_TYPE', option: 'PIECE_BENCH', weight: 1 },
+  // d3 (PO g0-10, 2026-11-13): cele 7 piese noi — ponderi provizorii; aceleasi randuri in
+  // migrarea 20261114100000 (pe productie adminul poate doar edita randuri existente)
+  { key: 'ROOM_TYPE', option: 'PIECE_SOFA', weight: 3 },
+  { key: 'ROOM_TYPE', option: 'PIECE_SIDEBOARD', weight: 2 },
+  { key: 'ROOM_TYPE', option: 'PIECE_BATHROOM_VANITY', weight: 2 },
+  { key: 'ROOM_TYPE', option: 'PIECE_ENTRYWAY', weight: 2 },
+  { key: 'ROOM_TYPE', option: 'PIECE_WALL_CABINET', weight: 1 },
+  { key: 'ROOM_TYPE', option: 'PIECE_ARMCHAIR', weight: 1 },
+  { key: 'ROOM_TYPE', option: 'PIECE_OTTOMAN', weight: 1 },
   // ROOM_SIZE (metri liniari = length_m)
   { key: 'ROOM_SIZE', option: 'UNDER_2M', weight: 1 },
   { key: 'ROOM_SIZE', option: 'FROM_2_TO_4M', weight: 3 },
@@ -195,6 +204,8 @@ const SYSTEM_SETTINGS: Record<string, string> = {
   // E-company-24 DECIZIE NECESARA PO: 0 = oprit (reminder / anulare automata comenzi transfer bancar)
   bank_transfer_reminder_days: '0',
   bank_transfer_expiry_days: '0',
+  // e1-3 (PO 2026-11-13): "livrat" doar dupa N zile de la acceptare; 0 = fara limita
+  delivery_min_days_after_accept: '7',
 };
 
 async function main() {

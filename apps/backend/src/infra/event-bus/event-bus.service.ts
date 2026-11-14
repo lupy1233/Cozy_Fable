@@ -2,6 +2,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { randomUUID } from 'node:crypto';
+import { safeErrorSummary } from '../../common/logging/safe-error';
 import { QUEUE_NOTIFICATIONS } from '../queues/queues.module';
 import { EventsGateway } from './events.gateway';
 
@@ -59,7 +60,11 @@ export type DomainEvent =
   | 'payment.transfer_instructions'
   | 'payment.transfer_reminder'
   | 'payment.auto_cancelled'
-  | 'payment.marked_paid';
+  | 'payment.marked_paid'
+  // e1-2 (etapa 5): firma a bifat o etapa de executie (doar clientul; clopotel, fara e-mail)
+  | 'execution.stage_updated'
+  // a6 (etapa 5): cerere publicata fara nicio firma pe raza (doar adminii; clopotel + e-mail)
+  | 'request.no_coverage';
 
 // Invarianta 3.5: TOATE evenimentele trec prin publish() —
 // emite pe Socket.IO si pune in coada de notificari. Controllerele nu emit direct.
@@ -100,10 +105,21 @@ export class EventBusService {
     this.logger.debug(`published ${event}`);
   }
 
-  // Semnal de sesiune (3.13): la login nou pe alt device, socketul vechi
-  // primeste auth_expired. Nu e eveniment de domeniu — nu intra in coada.
-  emitAuthExpired(userId: string): void {
-    this.gateway.server?.to(`user:${userId}`).emit('auth_expired');
-    this.gateway.server?.in(`user:${userId}`).disconnectSockets(true);
+  // Semnal de sesiune (3.13): socketurile sesiunilor revocate primesc auth_expired.
+  // Fara `sids` = toate socketurile contului (schimbare/resetare parola, blocare de admin);
+  // cu `sids` = doar socketurile acelor sesiuni (login peste limita de 5, logout).
+  // Nu e eveniment de domeniu — nu intra in coada. Nu arunca niciodata.
+  async emitAuthExpired(userId: string, sids?: string[]): Promise<void> {
+    if (!sids) {
+      this.gateway.server?.to(`user:${userId}`).emit('auth_expired');
+      this.gateway.server?.in(`user:${userId}`).disconnectSockets(true);
+      return;
+    }
+    if (sids.length === 0) return;
+    try {
+      await this.gateway.expireSessions(userId, sids);
+    } catch (e) {
+      this.logger.warn(`auth_expired pe sesiuni a esuat: ${safeErrorSummary(e)}`);
+    }
   }
 }

@@ -18,7 +18,9 @@ import {
   Gavel,
   Handshake,
   Hourglass,
+  ListChecks,
   Mail,
+  MapPinOff,
   MessageSquare,
   PackageCheck,
   RefreshCw,
@@ -85,6 +87,8 @@ const TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   'project.cancelled': Ban,
   'project.delivery_reminder': CalendarClock,
   'project.overdue': CalendarX,
+  // e1-2 (etapa 5): firma a bifat o etapa de executie (clientul ajunge pe pagina ofertelor)
+  'execution.stage_updated': ListChecks,
   'quote.expired': Hourglass,
   'quote.expired_closed': Undo2,
   'quote.extension_requested': RefreshCw,
@@ -96,6 +100,8 @@ const TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   'sla.expiring_soon': AlarmClock,
   // E-admin-platform-15: verificarea zilnica ledger vs portofel (doar admini)
   'credits.ledger_mismatch': AlertTriangle,
+  // a6 (etapa 5): cerere publicata fara nicio firma in zona (doar admini)
+  'request.no_coverage': MapPinOff,
 };
 
 type Payload = Record<string, unknown> | null;
@@ -104,6 +110,19 @@ const str = (p: Payload, key: string): string | null => {
   const v = p?.[key];
   return typeof v === 'string' && v.trim() ? v : null;
 };
+
+// m3 (revizie e5): „<Firma> a bifat etapa: Productie” — etapa (si firma, daca vine) din payload.
+// null = payload fara etapa cunoscuta → titlul de baza al tipului.
+type BellT = { (key: string, values?: Record<string, string>): string; has(key: string): boolean };
+export function executionStageTitle(t: BellT, payload: Payload): string | null {
+  const stage = str(payload, 'stage');
+  if (!stage || !t.has(`stageUpdated.stage.${stage}`)) return null;
+  const stageName = t(`stageUpdated.stage.${stage}`);
+  const company = str(payload, 'companyName');
+  return company
+    ? t('stageUpdated.withCompany', { company, stage: stageName })
+    : t('stageUpdated.noCompany', { stage: stageName });
+}
 
 // Varianta de titlu per payload (ex. motivul inchiderii claimului, decizia admin) —
 // cheia `type.<tip>_<varianta>` cu fallback pe `type.<tip>`.
@@ -155,6 +174,8 @@ function hrefFor(type: string, payload: Payload, role: string | undefined): stri
     if (type === 'dispute.opened') return '/admin/disputes';
     // E-admin-platform-15: raportul zilnic de credite → pagina de joburi (operare)
     if (type === 'credits.ledger_mismatch') return '/admin/jobs';
+    // a6: cererea fara nicio firma in zona → detaliul cererii din Admin
+    if (type === 'request.no_coverage' && requestId) return `/admin/requests/${requestId}`;
     // E-admin-platform-3: rapoartele pe proiecte acceptate → detaliul proiectului
     if ((type === 'project.case_opened' || type === 'project.case_responded') && requestId) {
       return `/admin/requests/${requestId}`;
@@ -250,6 +271,10 @@ export function NotificationBell() {
                     <span className="flex items-baseline justify-between gap-2">
                       <span className="font-medium">
                         {(() => {
+                          if (n.type === 'execution.stage_updated') {
+                            const stageTitle = executionStageTitle(t, n.payload);
+                            if (stageTitle) return stageTitle;
+                          }
                           const variant = titleVariant(n.type, n.payload);
                           if (variant && t.has(`type.${n.type}_${variant}`)) {
                             return t(`type.${n.type}_${variant}`);

@@ -6,9 +6,10 @@ import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useRouter } from '@/i18n/routing';
+import { Link } from '@/i18n/routing';
 import { apiErrorKey } from '@/lib/error-messages';
 import { useChangePassword, useMe } from '@/hooks/use-auth';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Alert } from '@/components/ui/alert';
@@ -20,14 +21,14 @@ import { useMounted } from '../_components/use-mounted';
 // re-emite cookie-urile pentru dispozitivul curent → userul ramane logat aici.
 export default function ChangePasswordPage() {
   const t = useTranslations('Auth');
-  const router = useRouter();
   const me = useMe();
+  const toLogin = useLoginRedirect();
   const change = useChangePassword();
   const mounted = useMounted();
 
   useEffect(() => {
-    if (me.isError) router.replace('/login?redirect=%2Fchange-password');
-  }, [me.isError, router]);
+    if (me.isError) toLogin();
+  }, [me.isError, toLogin]);
 
   const {
     register,

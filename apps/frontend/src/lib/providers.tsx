@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { purgeLegacyRequestTokens } from '@/lib/session-cleanup';
+import { SessionLostListener } from '@/lib/session-lost-listener';
 
 // TanStack Query = single source of truth pentru server state (STATE_CONVENTIONS.md).
 export function Providers({ children }: { children: ReactNode }) {
@@ -28,6 +29,8 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
+      {/* f3: sesiune pierduta → golire cont + login cu intoarcere (doar pe paginile cu cont) */}
+      <SessionLostListener />
       <Toaster />
     </QueryClientProvider>
   );

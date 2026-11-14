@@ -2,6 +2,7 @@
 
 import type { AnswerMap, AnswerValue, RequestStudioSceneData, RoomType, StudioDraftData } from '@marketplace/shared';
 import {
+  approxLengthApplies,
   CURRENT_FLOW_VERSION,
   getFlow,
   INSPIRATION_NOTE_MAX,
@@ -43,6 +44,9 @@ export interface RoomInstance {
   // b8 (PO g0-8): "La camera asta am nevoie de ajutor" — camera sare intrebarile si
   // pleaca la firme doar cu tipul si fisierele ei; raspunsurile raman doar aici, in ciorna
   needsDesignHelp?: boolean;
+  // d3 (PO d3-2): "Lungime aproximativa (m)" — doar in modul OWN_PROJECT (altfel se scoate);
+  // camp optional in afara raspunsurilor, deci ciornele vechi raman valide fara migrare
+  approxLengthM?: number;
 }
 
 export interface ContactPreferenceValue {
@@ -127,6 +131,8 @@ interface ConfiguratorStore extends ConfiguratorSnapshot {
   // bifa "La camera asta am nevoie de ajutor"; ignorata in OWN_PROJECT. Toate
   // camerele bifate = modul DESIGN_HELP; una debifata in DESIGN_HELP = STANDARD.
   setRoomDesignHelp: (localId: string, value: boolean) => void;
+  // d3: lungimea aproximativa a camerei (metri); null = golit. Ignorata in afara OWN_PROJECT.
+  setRoomApproxLength: (localId: string, value: number | null) => void;
   dismissLegacyPaidDesignNote: () => void;
   addRoom: (roomType: RoomType) => void;
   // Studio 3D: adauga o camera-piesa cu raspunsuri precompletate (config3d);
@@ -216,9 +222,29 @@ function filterUploadRefs(
 // acele camere au fost create pe versiunea 1 a flow-urilor. Aplicata pe TOATE
 // caile de intrare (migrate localStorage, resume de pe server, edit-mode),
 // impune si ordinea canonica a intrebarilor (ROOM_ORDER, stabila per tip).
+// d3: in afara modului "Am deja un proiect" lungimea aproximativa nu exista (serverul o refuza)
+export function withoutApproxLength(rooms: RoomInstance[]): RoomInstance[] {
+  if (!rooms.some((r) => r.approxLengthM !== undefined)) return rooms;
+  return rooms.map((r) => {
+    if (r.approxLengthM === undefined) return r;
+    const copy = { ...r };
+    delete copy.approxLengthM;
+    return copy;
+  });
+}
+
+// d3 (revizuire M1 / m10): valoarea traieste doar cat campul are sens pentru camera (pas de
+// dimensiuni liniar cu raspunsurile de acum si lungime din dimensiuni 0); altfel se goleste
+export function keepApproxIfApplies(room: RoomInstance): RoomInstance {
+  if (room.approxLengthM === undefined || approxLengthApplies(room.roomType, room.answers, room.flowVersion)) return room;
+  const copy = { ...room };
+  delete copy.approxLengthM;
+  return copy;
+}
+
 function normalizeInstances(rooms: RoomInstance[] | undefined): RoomInstance[] {
   return sortByRoomOrder(
-    (rooms ?? []).map((r) => lockStudioNightstand({ ...r, flowVersion: r.flowVersion ?? 1 })),
+    (rooms ?? []).map((r) => keepApproxIfApplies(lockStudioNightstand({ ...r, flowVersion: r.flowVersion ?? 1 }))),
   );
 }
 
@@ -350,6 +376,7 @@ function normalizeSnapshot(snapshot: Partial<ConfiguratorSnapshot>): Partial<Con
   // OWN_PROJECT si camerele din Studio nu au bifa de ajutor
   rooms = rooms.map((r) => (r.needsDesignHelp && (startMode === 'OWN_PROJECT' || isStudioRoom(r)) ? { ...r, needsDesignHelp: false } : r));
   startMode = modeForRooms(startMode, rooms);
+  if (startMode !== 'OWN_PROJECT') rooms = withoutApproxLength(rooms);
   if (startMode !== null) details.hasOwnProject = startMode === 'OWN_PROJECT';
   const inspirationPhotoIds = Array.isArray(snapshot.inspirationPhotoIds) ? snapshot.inspirationPhotoIds : [];
   return {
@@ -592,7 +619,7 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
           const startMode = modeForRooms(mode, roomInstances) ?? mode;
           return {
             startMode,
-            roomInstances,
+            roomInstances: startMode === 'OWN_PROJECT' ? roomInstances : withoutApproxLength(roomInstances),
             details: { ...s.details, hasOwnProject: startMode === 'OWN_PROJECT' },
             updatedAt: Date.now(),
           };
@@ -612,6 +639,23 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
             ...(value ? { legacyPaidDesignNote: false } : {}),
             updatedAt: Date.now(),
           };
+        }),
+
+      setRoomApproxLength: (localId, value) =>
+        set((s) => {
+          if (s.startMode !== 'OWN_PROJECT') return s;
+          const target = s.roomInstances.find((r) => r.localId === localId);
+          const next = typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
+          if (!target || target.approxLengthM === next) return s;
+          if (next !== undefined && !approxLengthApplies(target.roomType, target.answers, target.flowVersion)) return s;
+          const roomInstances = s.roomInstances.map((r) => {
+            if (r.localId !== localId) return r;
+            if (next !== undefined) return { ...r, approxLengthM: next };
+            const copy = { ...r };
+            delete copy.approxLengthM;
+            return copy;
+          });
+          return { roomInstances, updatedAt: Date.now() };
         }),
 
       dismissLegacyPaidDesignNote: () => set({ legacyPaidDesignNote: false, updatedAt: Date.now() }),
@@ -714,7 +758,7 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
             if (r.localId !== localId) return r;
             const flow = getFlow(r.roomType, r.flowVersion);
             const next = pruneAnswers(flow, { ...r.answers, [stepId]: value });
-            return { ...r, answers: next };
+            return keepApproxIfApplies({ ...r, answers: next });
           });
           return { roomInstances, updatedAt: Date.now() };
         }),
@@ -743,7 +787,7 @@ export const useConfiguratorStore = create<ConfiguratorStore>()(
           }
           const roomInstances = s.roomInstances.map((r) =>
             r.localId === targetLocalId
-              ? { ...r, answers: pruneAnswers(flow, cloned), completed: false }
+              ? keepApproxIfApplies({ ...r, answers: pruneAnswers(flow, cloned), completed: false })
               : r,
           );
           return { roomInstances, updatedAt: Date.now() };

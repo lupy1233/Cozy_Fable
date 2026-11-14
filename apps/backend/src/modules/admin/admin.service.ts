@@ -124,6 +124,8 @@ const SETTING_VALUE_RULES: Partial<Record<string, (value: string) => boolean>> =
   // E-company-24: comenzi prin transfer bancar — reminder / anulare automata; 0 = oprit (DECIZIE NECESARA PO)
   [SETTING_BANK_TRANSFER_REMINDER_DAYS]: (v) => DAY_COUNT.test(v) && Number(v) <= 365,
   [SETTING_BANK_TRANSFER_EXPIRY_DAYS]: (v) => DAY_COUNT.test(v) && Number(v) <= 365,
+  // e1-3 (PO 2026-11-13): zile minime de la acceptare pana la "livrat"; 0 = fara limita
+  delivery_min_days_after_accept: (v) => DAY_COUNT.test(v) && Number(v) <= 365,
 };
 
 // escape minimal pentru valorile interpolate in HTML-ul emailurilor
@@ -218,7 +220,7 @@ export class AdminService {
     });
     if (res.count === 1) {
       await this.tokens.revokeAllForUser(id);
-      this.eventBus.emitAuthExpired(id);
+      await this.eventBus.emitAuthExpired(id);
       await this.sendBlockedEmail(user.email, user.name, user.languagePreference);
     }
     const fresh = await this.prisma.user.findUniqueOrThrow({

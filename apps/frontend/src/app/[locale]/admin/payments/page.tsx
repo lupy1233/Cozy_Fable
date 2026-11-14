@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { PageHeader } from '@/components/ui/page-header';
 import { SkeletonPage } from '@/components/ui/skeleton';
 import { Tabs } from '@/components/ui/tabs';
@@ -25,15 +26,16 @@ export default function AdminPaymentsPage() {
   const t = useTranslations('AdminPayments');
   const router = useRouter();
   const me = useMe();
+  const toLogin = useLoginRedirect();
   const [zone, setZone] = useState<Zone>('orders');
   // filtrele zonei „Comenzi” stau aici ca rezumatul e-Factura sa poata deschide lista „de raportat”
   const [status, setStatus] = useState<OrderStatusFilter>('PENDING');
   const [eInvoiceOnly, setEInvoiceOnly] = useState(false);
 
   useEffect(() => {
-    if (me.isError) router.replace('/login');
+    if (me.isError) toLogin();
     else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
-  }, [me.isError, me.data, router]);
+  }, [me.isError, me.data, router, toLogin]);
 
   // zona curenta se tine si in #hash (link direct, ex. /admin/payments#subscriptions)
   useEffect(() => {

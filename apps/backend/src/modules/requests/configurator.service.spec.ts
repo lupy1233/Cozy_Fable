@@ -140,3 +140,47 @@ describe('ConfiguratorService', () => {
     expect(typeof details[0].stepId).toBe('string');
   });
 });
+
+// d3 (etapa 5, PO d3-2): "Lungime aproximativa" doar cu "Am deja un proiect"
+describe('ConfiguratorService — approxLengthM', () => {
+  const kitchen = (extra: Partial<ConfiguratorRoomInputDto> = {}): ConfiguratorRoomInputDto =>
+    ({ roomType: 'KITCHEN', flowVersion: CURRENT_FLOW_VERSION.KITCHEN, answers: {}, ...extra }) as ConfiguratorRoomInputDto;
+  const roomSize = (rooms: ProcessedRoom[]) =>
+    rooms[0].scoreEntries.find((e) => e.category === 'ROOM_SIZE' && 'optionKey' in e) as { optionKey: string } | undefined;
+
+  it('fara proiect propriu, campul e respins (400 VALIDATION_ERROR pe approxLengthM)', () => {
+    const body = errorOf(() => service.processRooms([kitchen(), kitchen({ approxLengthM: 8 })], { ownProject: false }));
+    expect(body.code).toBe(ERROR_CODES.VALIDATION_ERROR);
+    expect(body.details).toEqual([{ roomIndex: 1, field: 'approxLengthM', messageKey: 'validation.approxLengthWithoutOwnProject' }]);
+  });
+
+  it('cu proiect propriu, camera fara dimensiuni cu 8 m conteaza "peste 4 m" si pastreaza valoarea', () => {
+    const processed = service.processRooms([kitchen({ approxLengthM: 8 })], { ownProject: true, designBrief: true });
+    expect(processed.rooms[0].approxLengthM).toBe(8);
+    expect(processed.rooms[0].derived.lengthM).toBe(0);
+    expect(roomSize(processed.rooms)?.optionKey).toBe('OVER_4M');
+  });
+
+  it('fara camp ramane "sub 2 m", ca inainte', () => {
+    const processed = service.processRooms([kitchen()], { ownProject: true, designBrief: true });
+    expect(processed.rooms[0].approxLengthM).toBeNull();
+    expect(roomSize(processed.rooms)?.optionKey).toBe('UNDER_2M');
+  });
+
+  // revizuire M1: dormitor doar cu cadru de pat (fara pas de dimensiuni liniar) — valoarea ramasa
+  // in ciorna nu se salveaza si nu urca costul
+  it('o valoare ramasa fara pas de dimensiuni liniar e ignorata (nu se salveaza, nu se plateste)', () => {
+    const processed = service.processRooms(
+      [{ ...bedroom({ piecesNeeded: ['BED_FRAME'] }), approxLengthM: 6 }],
+      { ownProject: true, designBrief: true },
+    );
+    expect(processed.rooms[0].approxLengthM).toBeNull();
+    expect(roomSize(processed.rooms)?.optionKey).toBe('UNDER_2M');
+  });
+
+  it('camera cu ajutor nu pastreaza lungimea aproximativa', () => {
+    const processed = service.processRooms([kitchen({ needsDesignHelp: true, approxLengthM: 8 })], { ownProject: true });
+    expect(processed.rooms[0].approxLengthM).toBeNull();
+    expect(roomSize(processed.rooms)?.optionKey).toBe('UNDER_2M');
+  });
+});

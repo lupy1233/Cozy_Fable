@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { io, type Socket } from 'socket.io-client';
 import { refreshSession } from '@/lib/api';
+import { signalSessionLost } from '@/lib/session-lost';
 
 // Socket.IO pe acelasi cookie httpOnly (invarianta 3.5). La auth_expired → reconectare
 // (api.ts face refresh-ul pe requesturile REST). URL-ul = baza fara prefixul /api/v1.
@@ -63,6 +64,9 @@ export function useRealtimeSync(): void {
       if (disposed) return;
       if (refreshed) s.connect();
       else {
+        // f3: deconectarea de pe alt dispozitiv se anunta pe loc — acelasi semnal ca in api.ts
+        // (ascultatorul global duce la login). Intai semnalul: el verifica „cine sunt eu” din cache.
+        signalSessionLost({ source: 'socket' });
         qc.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' });
         void qc.invalidateQueries({ queryKey: ['auth'] });
       }
@@ -140,6 +144,8 @@ export function useRealtimeSync(): void {
     s.on('delivery.autocompleted', onDelivery);
     s.on('review.created', onDelivery);
     s.on('dispute.decided', onDelivery);
+    // e1-2: firma a bifat o etapa de executie → panoul „Ce urmeaza” al clientului se reface
+    s.on('execution.stage_updated', onDelivery);
     s.on('request.expired', onRequestChange);
     s.on('request.expiry_reminder', onRequestChange);
     s.on('claim.assign_warning', onClaimDeadline);
@@ -161,6 +167,8 @@ export function useRealtimeSync(): void {
     s.on('dispute.opened', onBell);
     // E-admin-platform-15: alerta zilnica ledger vs portofel (admini)
     s.on('credits.ledger_mismatch', onBell);
+    // a6: cerere publicata fara nicio firma in zona (admini)
+    s.on('request.no_coverage', onBell);
     s.on('quote.expired', onQuote);
     s.on('quote.extension_requested', onQuote);
     s.on('quote.expired_closed', onClaimClosed);
@@ -190,6 +198,7 @@ export function useRealtimeSync(): void {
       s.off('delivery.autocompleted', onDelivery);
       s.off('review.created', onDelivery);
       s.off('dispute.decided', onDelivery);
+      s.off('execution.stage_updated', onDelivery);
       s.off('request.expired', onRequestChange);
       s.off('request.expiry_reminder', onRequestChange);
       s.off('claim.assign_warning', onClaimDeadline);
@@ -209,6 +218,7 @@ export function useRealtimeSync(): void {
       s.off('payment.pending', onBell);
       s.off('dispute.opened', onBell);
       s.off('credits.ledger_mismatch', onBell);
+      s.off('request.no_coverage', onBell);
       s.off('quote.expired', onQuote);
       s.off('quote.extension_requested', onQuote);
       s.off('quote.expired_closed', onClaimClosed);

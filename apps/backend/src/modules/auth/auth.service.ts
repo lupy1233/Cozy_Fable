@@ -295,14 +295,14 @@ export class AuthService {
     });
     // toate sesiunile cad (parola compromisa); userul se autentifica din nou
     await this.tokens.revokeAllForUser(user.id);
-    this.eventBus.emitAuthExpired(user.id);
+    await this.eventBus.emitAuthExpired(user.id);
     // E-admin-platform-5: linkul dovedeste controlul adresei → ridica si pauza de login
     await this.lockout.clear(user.email, { includeLock: true });
   }
 
   // Schimbare parola autentificata: verifica parola curenta, revoca toate familiile
-  // de refresh tokens si emite una noua pentru dispozitivul curent (o singura sesiune
-  // activa, 3.13) — controllerul seteaza cookie-urile noi, userul ramane logat.
+  // de refresh tokens (toate dispozitivele) si emite una noua pentru dispozitivul curent
+  // — controllerul seteaza cookie-urile noi, userul ramane logat.
   async changePassword(
     userId: string,
     currentPassword: string,
@@ -324,9 +324,9 @@ export class AuthService {
       where: { id: user.id },
       data: { passwordHash: await bcrypt.hash(newPassword, BCRYPT_COST) },
     });
-    const { refreshToken, familyId } = await this.tokens.issueNewFamily(user.id, updated.passwordHash);
+    const { refreshToken, familyId } = await this.tokens.issueNewFamily(user.id, updated.passwordHash, { revokeAll: true });
     const accessToken = await this.tokens.signAccessToken(updated, familyId);
-    this.eventBus.emitAuthExpired(user.id);
+    await this.eventBus.emitAuthExpired(user.id);
     return { accessToken, refreshToken };
   }
 
@@ -392,10 +392,11 @@ export class AuthService {
       await this.lockout.clear(dto.email);
     }
 
-    // O singura sesiune activa (3.13): revoca tot, familie noua, auth_expired pe socketul vechi
-    const { refreshToken, familyId } = await this.tokens.issueNewFamily(user.id, user.passwordHash);
+    // f3 (3.13): cel mult 5 sesiuni active; familie noua, iar auth_expired ajunge DOAR la
+    // socketurile sesiunilor scoase (cele mai vechi peste limita), nu la toate ale contului.
+    const { refreshToken, familyId, revokedFamilyIds } = await this.tokens.issueNewFamily(user.id, user.passwordHash);
     const accessToken = await this.tokens.signAccessToken(user, familyId);
-    this.eventBus.emitAuthExpired(user.id);
+    await this.eventBus.emitAuthExpired(user.id, revokedFamilyIds);
 
     return { user: await this.toPublic(user), accessToken, refreshToken };
   }
@@ -425,8 +426,9 @@ export class AuthService {
 
   async logout(rawToken: string | undefined): Promise<void> {
     if (rawToken) {
-      const userId = await this.tokens.revokeByRawToken(rawToken);
-      if (userId) this.eventBus.emitAuthExpired(userId);
+      // f3: deconectarea inchide doar sesiunea curenta; celelalte dispozitive raman logate
+      const revoked = await this.tokens.revokeByRawToken(rawToken);
+      if (revoked) await this.eventBus.emitAuthExpired(revoked.userId, [revoked.familyId]);
     }
   }
 

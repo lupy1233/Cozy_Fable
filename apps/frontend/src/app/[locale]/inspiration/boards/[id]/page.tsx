@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useMe, useSessionRole } from '@/hooks/use-auth';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import {
   useBoardDetail,
   useDeleteBoard,
@@ -154,6 +155,7 @@ export default function BoardDetailPage() {
   const id = params.id;
   const router = useRouter();
   const me = useMe();
+  const toLogin = useLoginRedirect();
   const { role } = useSessionRole();
   const board = useBoardDetail(id);
   const rename = useRenameBoard(id);
@@ -168,8 +170,8 @@ export default function BoardDetailPage() {
   const [removed, setRemoved] = useState<RemovedItem | null>(null);
 
   useEffect(() => {
-    if (me.isError) router.replace('/login?redirect=/inspiration/boards');
-  }, [me.isError, router]);
+    if (me.isError) toLogin();
+  }, [me.isError, toLogin]);
 
   if (board.isPending) {
     return (

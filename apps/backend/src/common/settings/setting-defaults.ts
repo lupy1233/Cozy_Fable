@@ -36,4 +36,6 @@ export const SETTING_DEFAULTS = {
   // Hotfix 2026-10-04 (PO): re-acceptarea Termenilor/Politicii pentru conturile existente —
   // OPRITA pana la revizuirea avocatului (conturile noi accepta oricum la inregistrare)
   legal_reaccept_existing_users: false,
+  // e1-3 (PO 2026-11-13): "Marcheaza ca livrata" doar dupa N zile de la acceptare; 0 = fara limita
+  delivery_min_days_after_accept: 7,
 } as const;

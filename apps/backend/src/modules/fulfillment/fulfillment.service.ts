@@ -2,13 +2,18 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { ForbiddenException, HttpException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
   ERROR_CODES,
+  EXECUTION_STAGES,
   type AdminDisputeItemDto,
+  type ClientFulfillmentDto,
   type CompanyCompletionDto,
   type CreateReviewInput,
+  type ExecutionStage,
+  type ExecutionStageDto,
   type ResolveDisputeInput,
   type ReviewDto,
 } from '@marketplace/shared';
-import { Prisma } from '@prisma/client';
+import { Prisma, type RequestStatus } from '@prisma/client';
+import { SETTING_DEFAULTS } from '../../common/settings/setting-defaults';
 import { OutboxService } from '../outbox/outbox.service';
 import type { Queue } from 'bullmq';
 import { PrismaService } from '../../infra/prisma/prisma.service';
@@ -55,6 +60,23 @@ export function autoCompleteDue(clockStart: Date | null, now: number = Date.now(
   return !!clockStart && now >= clockStart.getTime() + AUTO_COMPLETE_DAYS * DAY_MS;
 }
 
+// e1-3 (PO 2026-11-13): cheia de setare + prima zi in care firma poate marca livrarea.
+export const SETTING_DELIVERY_MIN_DAYS_AFTER_ACCEPT = 'delivery_min_days_after_accept';
+export function earliestDeliveryAt(acceptedAt: Date | null, minDays: number): Date | null {
+  if (!acceptedAt || minDays <= 0) return null;
+  return new Date(acceptedAt.getTime() + minDays * DAY_MS);
+}
+
+// e1-2: etapele cererii (mereu toate 4, in ordinea EXECUTION_STAGES)
+export const EXECUTION_STAGE_EDITABLE_STATUSES: RequestStatus[] = ['ACCEPTED', 'IN_EXECUTION', 'DELIVERED_BY_COMPANY'];
+// e1-1 + review m4: starile in care clientul primeste contactul si datele firmei castigatoare
+export const CLIENT_CONTACT_STATUSES: RequestStatus[] = ['ACCEPTED', 'IN_EXECUTION', 'DELIVERED_BY_COMPANY', 'COMPLETED', 'DISPUTED'];
+
+type ContactUser = { name: string; email: string; phone: string | null; deletedAt: Date | null; blockedAt: Date | null; anonymizedAt: Date | null };
+function isActiveUser(u: ContactUser | null | undefined): u is ContactUser {
+  return !!u && !u.deletedAt && !u.blockedAt && !u.anonymizedAt;
+}
+
 // Sprint 8 — livrare → COMPLETED (cu consum credite castigator) + review + dispute (4.18).
 @Injectable()
 export class FulfillmentService {
@@ -96,12 +118,26 @@ export class FulfillmentService {
         409,
       );
     }
+    const minDays = await this.deliveryMinDays();
     const deliveredAt = new Date();
     await runTx(this.prisma, 'write', async (tx) => {
       // E-company-1: acelasi lock ca retragerile; castigatorul trebuie sa fie inca OFFER_SENT (altfel completeDelivered nu mai consuma creditele)
       await tx.$queryRaw`SELECT id FROM requests WHERE id = ${requestId} FOR UPDATE`;
       const open = await tx.claimSlot.count({ where: { id: quote.claimSlotId, status: 'OFFER_SENT' } });
       if (open === 0) throw FulfillmentService.winnerNotOpen();
+      // e1-3 (PO 2026-11-13): "livrat" doar dupa N zile de la acceptare (0 = fara limita),
+      // verificat sub acelasi lock. accepted_at nu se mai schimba dupa acceptare.
+      const earliest = earliestDeliveryAt(quote.acceptedAt, minDays);
+      if (earliest && deliveredAt.getTime() < earliest.getTime()) {
+        throw new HttpException(
+          {
+            code: ERROR_CODES.DELIVERY_TOO_EARLY,
+            message: 'Delivery can be marked only after the minimum number of days since acceptance',
+            details: { earliestDeliveryAt: earliest.toISOString() },
+          },
+          409,
+        );
+      }
       const changed = await tx.request.updateMany({
         where: { id: requestId, status: { in: ['ACCEPTED', 'IN_EXECUTION'] }, deletedAt: null },
         data: { status: 'DELIVERED_BY_COMPANY', deliveredAt },
@@ -373,6 +409,7 @@ export class FulfillmentService {
       where: { requestId, status: 'ACCEPTED', companyId: ctx.companyId },
       select: {
         id: true,
+        acceptedAt: true,
         claimSlot: {
           select: { status: true, createdAt: true, updatedAt: true, claimedByUserId: true, assignedToUserId: true },
         },
@@ -406,13 +443,17 @@ export class FulfillmentService {
       throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Request not found' });
     }
     const hideText = !access.clientVisible;
-    const [review, openCase] = await Promise.all([
+    const [review, openCase, minDays, autoCompleteAt, stages] = await Promise.all([
       this.prisma.review.findUnique({ where: { requestId }, include: { dispute: true } }),
       this.prisma.requestProjectCase.findFirst({
         where: { requestId, status: 'OPEN', openedBy: 'CLIENT' },
         select: { reason: true, note: true, createdAt: true },
       }),
+      this.deliveryMinDays(),
+      this.autoCompleteAt(requestId, request.status, request.deliveredAt),
+      this.loadStages(requestId),
     ]);
+    const acceptedAt = winning.acceptedAt ?? null;
     return {
       requestId,
       requestStatus: request.status,
@@ -430,7 +471,214 @@ export class FulfillmentService {
         ? { reason: openCase.reason, note: hideText ? null : openCase.note, createdAt: openCase.createdAt.toISOString() }
         : null,
       clientTextsHidden: hideText,
+      acceptedAt: acceptedAt?.toISOString() ?? null,
+      earliestDeliveryAt: earliestDeliveryAt(acceptedAt, minDays)?.toISOString() ?? null,
+      autoCompleteAt: autoCompleteAt?.toISOString() ?? null,
+      stages,
     };
+  }
+
+  // e1-2 (PO 2026-11-13): firma castigatoare bifeaza / debifeaza o etapa informativa.
+  // Acces = regula fisei de lucru (resolveClaimContextAccess): angajatul cu rol limitat doar pe
+  // preluarea preluata de el sau atribuita lui. Idempotent: (request_id, stage) e unic.
+  async setExecutionStage(
+    ctx: CompanyContext,
+    actingUserId: string,
+    requestId: string,
+    stage: ExecutionStage,
+    done: boolean,
+  ): Promise<CompanyCompletionDto> {
+    const winning = await this.prisma.quote.findFirst({
+      where: { requestId, status: 'ACCEPTED', companyId: ctx.companyId },
+      select: {
+        id: true,
+        company: { select: { name: true } },
+        claimSlot: {
+          select: { status: true, createdAt: true, updatedAt: true, claimedByUserId: true, assignedToUserId: true },
+        },
+      },
+    });
+    if (!winning) throw FulfillmentService.stageNotEditable();
+    const request = await this.prisma.request.findUnique({
+      where: { id: requestId },
+      select: { status: true, deliveredAt: true, deletedAt: true },
+    });
+    if (!request || request.deletedAt || !EXECUTION_STAGE_EDITABLE_STATUSES.includes(request.status)) {
+      throw FulfillmentService.stageNotEditable();
+    }
+    const [revealPolicy, retentionDays] = await readClaimContactAccessSettings(this.settings);
+    const access = resolveClaimContextAccess({
+      slotStatus: winning.claimSlot.status,
+      requestDeletedAt: request.deletedAt,
+      slotCreatedAt: winning.claimSlot.createdAt,
+      slotUpdatedAt: winning.claimSlot.updatedAt,
+      requestDeliveredAt: request.deliveredAt,
+      claimedByUserId: winning.claimSlot.claimedByUserId,
+      assignedToUserId: winning.claimSlot.assignedToUserId,
+      memberRole: ctx.memberRole,
+      actingUserId,
+      revealPolicy,
+      retentionDays,
+      now: Date.now(),
+    });
+    if (access.visibility !== 'FULL') throw FulfillmentService.stageNotEditable();
+    if (access.clientHiddenReason === 'NOT_ASSIGNED_TO_YOU') {
+      throw new ForbiddenException({ code: ERROR_CODES.FORBIDDEN, message: 'This claim is not assigned to you' });
+    }
+    await runTx(this.prisma, 'write', async (tx) => {
+      // acelasi lock ca tranzitiile de stare: starea se re-verifica sub el
+      await tx.$queryRaw`SELECT id FROM requests WHERE id = ${requestId} FOR UPDATE`;
+      const locked = await tx.request.findUnique({
+        where: { id: requestId },
+        select: { status: true, deletedAt: true, clientUserId: true, title: true },
+      });
+      if (!locked || locked.deletedAt || !EXECUTION_STAGE_EDITABLE_STATUSES.includes(locked.status)) {
+        throw FulfillmentService.stageNotEditable();
+      }
+      if (!done) {
+        // debifarea sterge randul; nu se anunta nimic
+        await tx.requestExecutionStage.deleteMany({ where: { requestId, stage } });
+        return;
+      }
+      const completedAt = new Date();
+      const created = await tx.requestExecutionStage.createMany({
+        data: [{ requestId, stage, completedAt, completedByUserId: actingUserId }],
+        skipDuplicates: true,
+      });
+      // bifata deja → nimic nou, fara a doua notificare
+      if (created.count === 0 || !locked.clientUserId) return;
+      // review m3: cheie stabila pe (cerere, etapa) — outbox-ul are skipDuplicates pe event_key,
+      // deci clientul afla cel mult o data per etapa, oricate bifari / debifari urmeaza.
+      // review m2: companyId → outbox-ul pune la loc companyName la livrare (ca delivery.marked).
+      await this.outbox.record(
+        tx,
+        `execution.stage_updated:${requestId}:${stage}`,
+        'execution.stage_updated',
+        { requestId, stage, companyId: ctx.companyId, companyName: winning.company.name, requestTitle: locked.title ?? '' },
+        [locked.clientUserId],
+      );
+    });
+    return this.getCompletionForCompany(ctx, actingUserId, requestId);
+  }
+
+  // e1-1 (PO 2026-11-13): "Ce urmeaza" la client. Datele firmei si contactul pleaca DOAR catre
+  // clientul cererii, DOAR dupa acceptare si DOAR pentru firma cu oferta acceptata.
+  async getFulfillmentForClient(userId: string, requestId: string): Promise<ClientFulfillmentDto> {
+    const request = await this.prisma.request.findUnique({
+      where: { id: requestId },
+      select: { id: true, clientUserId: true, status: true, deliveredAt: true, completedAt: true, deletedAt: true },
+    });
+    if (!request || request.deletedAt) {
+      throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Request not found' });
+    }
+    if (!request.clientUserId || request.clientUserId !== userId) {
+      throw new ForbiddenException({ code: ERROR_CODES.FORBIDDEN, message: 'Not your request' });
+    }
+    const [winning, autoCompleteAt] = await Promise.all([
+      this.prisma.quote.findFirst({
+        where: { requestId, status: 'ACCEPTED' },
+        select: {
+          acceptedAt: true,
+          companyId: true,
+          company: { select: { name: true, cui: true, addressText: true, city: true, county: true } },
+          claimSlot: { select: { claimedByUserId: true, assignedToUserId: true } },
+        },
+      }),
+      this.autoCompleteAt(requestId, request.status, request.deliveredAt),
+    ]);
+    const base = {
+      requestId,
+      deliveredAt: request.deliveredAt?.toISOString() ?? null,
+      completedAt: request.completedAt?.toISOString() ?? null,
+      autoCompleteAt: autoCompleteAt?.toISOString() ?? null,
+    };
+    // review m4 (coordonator): datele firmei doar cat proiectul e in executie sau finalizat
+    // (garantie); CANCELLED si orice alta stare → fara contact, fara etape.
+    if (!winning || !CLIENT_CONTACT_STATUSES.includes(request.status)) {
+      return { ...base, acceptedAt: winning?.acceptedAt?.toISOString() ?? null, company: null, contact: null, stages: [] };
+    }
+    const [contact, stages] = await Promise.all([
+      this.resolveClientContact(winning.companyId, winning.claimSlot.assignedToUserId, winning.claimSlot.claimedByUserId),
+      this.loadStages(requestId),
+    ]);
+    return {
+      ...base,
+      acceptedAt: winning.acceptedAt?.toISOString() ?? null,
+      company: {
+        name: winning.company.name,
+        cui: winning.company.cui || null,
+        addressText: winning.company.addressText || null,
+        city: winning.company.city || null,
+        county: winning.company.county || null,
+      },
+      contact,
+      stages,
+    };
+  }
+
+  // contactul = persoana atribuita → cel care a preluat → proprietarul firmei; primul cu cont
+  // activ (nesters, neblocat, neanonimizat) care e inca membru al firmei castigatoare.
+  private async resolveClientContact(
+    companyId: string,
+    assignedToUserId: string | null,
+    claimedByUserId: string,
+  ): Promise<ClientFulfillmentDto['contact']> {
+    const userSelect = { name: true, email: true, phone: true, deletedAt: true, blockedAt: true, anonymizedAt: true } as const;
+    const candidates = [assignedToUserId, claimedByUserId].filter((id): id is string => !!id);
+    const members = candidates.length
+      ? await this.prisma.companyMember.findMany({
+          where: { companyId, userId: { in: candidates } },
+          select: { userId: true, user: { select: userSelect } },
+        })
+      : [];
+    for (const id of candidates) {
+      const user = members.find((m) => m.userId === id)?.user;
+      if (isActiveUser(user)) return { name: user.name, email: user.email, phone: user.phone || null };
+    }
+    const owners = await this.prisma.companyMember.findMany({
+      where: { companyId, role: 'OWNER' },
+      orderBy: { createdAt: 'asc' },
+      select: { user: { select: userSelect } },
+    });
+    const owner = owners.map((o) => o.user).find(isActiveUser);
+    return owner ? { name: owner.name, email: owner.email, phone: owner.phone || null } : null;
+  }
+
+  private async loadStages(requestId: string): Promise<ExecutionStageDto[]> {
+    const rows = await this.prisma.requestExecutionStage.findMany({
+      where: { requestId },
+      select: { stage: true, completedAt: true, completedBy: { select: { name: true } } },
+    });
+    return EXECUTION_STAGES.map((stage) => {
+      const row = rows.find((r) => r.stage === stage);
+      return {
+        stage,
+        done: !!row,
+        completedAt: row?.completedAt.toISOString() ?? null,
+        completedByName: row?.completedBy?.name ?? null,
+      };
+    });
+  }
+
+  // regula existenta a finalizarii automate (autoCompleteClockStart, cu ceasul repornit dupa un
+  // caz inchis); null in afara DELIVERED_BY_COMPANY sau cat timp un caz deschis opreste ceasul
+  private async autoCompleteAt(requestId: string, status: string, deliveredAt: Date | null): Promise<Date | null> {
+    if (status !== 'DELIVERED_BY_COMPANY' || !deliveredAt) return null;
+    const start = await autoCompleteClockStart(this.prisma, requestId, deliveredAt);
+    return start ? new Date(start.getTime() + AUTO_COMPLETE_DAYS * DAY_MS) : null;
+  }
+
+  private async deliveryMinDays(): Promise<number> {
+    const fallback = SETTING_DEFAULTS.delivery_min_days_after_accept;
+    const n = await this.settings.getInt(SETTING_DELIVERY_MIN_DAYS_AFTER_ACCEPT, fallback);
+    return Number.isInteger(n) && n >= 0 ? n : fallback;
+  }
+
+  private static stageNotEditable(): HttpException {
+    return new HttpException(
+      { code: ERROR_CODES.EXECUTION_STAGE_NOT_EDITABLE, message: 'Execution stages cannot be changed now' },
+      409,
+    );
   }
 
   // --- admin dispute ---

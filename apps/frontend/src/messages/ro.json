@@ -755,7 +755,8 @@
     "verifySuccessBody": "Te poți autentifica.",
     "changePasswordDoneBody": "Celelalte dispozitive pe care erai autentificat au fost deconectate.",
     "totpLabel": "Cod de autentificare în doi pași",
-    "totpHint": "Cele 6 cifre din aplicația ta de autentificare."
+    "totpHint": "Cele 6 cifre din aplicația ta de autentificare.",
+    "sessionExpired": "Te-ai autentificat pe alt dispozitiv sau sesiunea a expirat. Intră din nou."
   },
   "Company": {
     "onboardingTitle": "Înregistrează firma",
@@ -1267,6 +1268,11 @@
         "FIRST_OFFER_RULE": "Ai primit prima ofertă și, după regulile în vigoare acum, firme noi nu mai pot prelua cererea.",
         "EXPIRED": "Cererea a expirat, așa că nu mai apare în lista firmelor.",
         "CLOSED": "Cererea nu mai apare în lista firmelor, deci firme noi nu o mai pot vedea."
+      },
+      "noCoverage": {
+        "title": "Momentan nu avem firme partenere care lucrează în zona ta.",
+        "body": "Echipa Cozy Home a fost anunțată și caută o firmă pentru zona ta. Cererea rămâne publicată, iar când o firmă o preia, te anunțăm.",
+        "reviewBody": "Poți publica cererea: echipa Cozy Home va fi anunțată și va căuta o firmă pentru zona ta. Cererea rămâne publicată, iar când o firmă o preia, te anunțăm."
       }
     },
     "tabsLabel": "Filtrează cererile după stadiu",
@@ -1373,7 +1379,8 @@
       "declaredLabel": "Bugetul declarat de client",
       "estimateLabel": "Estimare din răspunsuri",
       "belowEstimate": "Sub estimarea din răspunsuri"
-    }
+    },
+    "acceptedOn": "Acceptată pe"
   },
   "Marketplace": {
     "title": "Marketplace",
@@ -2277,7 +2284,9 @@
       "PROJECT_CASE_ALREADY_OPEN": "Există deja un caz deschis pentru acest proiect.",
       "PROJECT_CASE_NOT_OPEN": "Cazul nu mai este deschis sau a primit deja un răspuns.",
       "DATABASE_BUSY": "Serverul răspunde greu acum, așa că acțiunea nu a fost salvată. Încearcă din nou în câteva secunde.",
-      "WARRANTY_REPORT_WINDOW_CLOSED": "Perioada în care puteai raporta o problemă s-a încheiat."
+      "WARRANTY_REPORT_WINDOW_CLOSED": "Perioada în care puteai raporta o problemă s-a încheiat.",
+      "DELIVERY_TOO_EARLY": "E prea devreme ca lucrarea să fie marcată ca livrată. Se poate abia după numărul minim de zile de la acceptare.",
+      "EXECUTION_STAGE_NOT_EDITABLE": "Etapele se pot bifa doar după acceptarea ofertei tale și până la finalizarea proiectului."
     },
     "agreement": {
       "title": "Acordul vostru",
@@ -2322,7 +2331,6 @@
       "cancelledBody": "Proiectul a fost închis de echipa Cozy Home pe {date}."
     },
     "deliverConfirmTitle": "Marchezi lucrarea ca livrată?",
-    "deliverConfirmBody": "Clientul este anunțat și trebuie să confirme primirea. Dacă nu confirmă în {days}, comanda se finalizează automat.",
     "deliverConfirmBodyNoDays": "Clientul este anunțat și trebuie să confirme primirea; altfel comanda se finalizează automat după termenul din reguli.",
     "deliverConfirmIrreversible": "Marcarea nu se poate anula din aplicație.",
     "deliverConfirmCta": "Da, am livrat",
@@ -2366,6 +2374,48 @@
       "openCaseDelivered": "Clientul a raportat o problemă după livrare, pe {date}. Comanda nu se finalizează automat până când echipa Cozy Home închide raportul.",
       "openCaseWarranty": "Clientul a raportat o problemă în garanție, pe {date}. Echipa Cozy Home vă contactează.",
       "clientNote": "Mesajul clientului: „{note}”"
+    },
+    "firmProject": {
+      "badge": {
+        "accepted": "Acceptată",
+        "delivered": "Livrată — așteaptă clientul",
+        "completed": "Finalizată"
+      },
+      "cellLabel": "Proiectul",
+      "headline": {
+        "accepted": "Ofertă acceptată",
+        "delivered": "Livrată — așteaptă confirmarea clientului",
+        "completed": "Finalizată"
+      },
+      "acceptedOn": "Acceptată pe {date}",
+      "deliverFrom": "Poți marca livrarea începând cu {date}.",
+      "autoCompleteOn": "Dacă clientul nu confirmă, proiectul se finalizează automat pe {date}.",
+      "autoCompletePaused": "Clientul a raportat o problemă. Finalizarea automată e oprită până când echipa Cozy Home închide raportul.",
+      "completedOn": "Finalizată pe {date}",
+      "deliverConfirmNext": "Clientul este anunțat și trebuie să confirme primirea. Dacă nu confirmă și nu raportează o problemă în {days}, proiectul se finalizează automat pe {date}."
+    },
+    "stages": {
+      "title": "Ce urmează",
+      "intro": "Bifează etapele pe măsură ce le parcurgeți. Clientul le vede pe pagina lui. Sunt doar informative: nu blochează livrarea.",
+      "name": {
+        "MEASUREMENTS": "Măsurători",
+        "CONTRACT": "Contract",
+        "PRODUCTION": "Producție",
+        "INSTALLATION": "Montaj"
+      },
+      "doneBy": "Bifată pe {date} de {name}",
+      "doneOn": "Bifată pe {date}",
+      "readOnly": "Etapele le bifează proprietarul, managerii, angajații de încredere sau persoana care lucrează la această cerere.",
+      "forbidden": "Nu poți bifa etapele acestei cereri. Le bifează proprietarul, managerii, angajații de încredere sau persoana care lucrează la cerere."
+    },
+    "clientProject": {
+      "contactTitle": "Cu cine vorbești",
+      "contactRole": "Persoana din firmă care se ocupă de proiectul tău",
+      "cui": "CUI {cui}",
+      "stagesTitle": "Cum avansează proiectul",
+      "stagesIntro": "Firma bifează etapele pe măsură ce le parcurge.",
+      "stageNotDone": "Încă nebifată",
+      "autoCompleteOn": "Dacă nu confirmi și nu raportezi o problemă, comanda se finalizează automat pe {date}."
     }
   },
   "Billing": {
@@ -3128,6 +3178,10 @@
         "legal_reaccept_existing_users": {
           "label": "Re-acceptarea Termenilor de către conturile existente",
           "help": "Dacă e pornit, utilizatorii care au acceptat o versiune mai veche trebuie să accepte Termenii și Politica actuale. Conturile noi le acceptă oricum la înregistrare; administratorii sunt exceptați. Se aplică în cel mult un minut."
+        },
+        "delivery_min_days_after_accept": {
+          "label": "Zile minime până la livrare",
+          "help": "După câte zile de la acceptarea ofertei poate firma marca proiectul ca livrat. 0 = oricând."
         }
       },
       "units": {
@@ -3650,7 +3704,8 @@
       "request": {
         "status_changed": "Statusul cererii s-a schimbat",
         "expired": "Cererea ta a expirat",
-        "expiry_reminder": "Cererea ta expiră curând"
+        "expiry_reminder": "Cererea ta expiră curând",
+        "no_coverage": "Cerere nouă fără nicio firmă în zonă — caută o firmă"
       },
       "claim": {
         "created": "Cerere preluată de o firmă",
@@ -3719,6 +3774,19 @@
       },
       "credits": {
         "ledger_mismatch": "Neconcordanță între portofelele de credite și registru — verifică raportul zilnic"
+      },
+      "execution": {
+        "stage_updated": "Firma a bifat o etapă a proiectului"
+      }
+    },
+    "stageUpdated": {
+      "withCompany": "{company} a bifat etapa: {stage}",
+      "noCompany": "Firma a bifat etapa: {stage}",
+      "stage": {
+        "MEASUREMENTS": "Măsurători",
+        "CONTRACT": "Contract",
+        "PRODUCTION": "Producție",
+        "INSTALLATION": "Montaj"
       }
     }
   },
@@ -3905,13 +3973,13 @@
         "LAUNDRY": "Dulapuri în jurul mașinii de spălat",
         "BALCONY": "Bancă cu ladă, dulap, blat",
         "PIECE_WARDROBE": "Cu uși glisante sau batante",
-        "PIECE_TV_UNIT": "Comodă joasă sau perete media",
-        "PIECE_BOOKCASE": "Rafturi, vitrine, corpuri închise",
-        "PIECE_DESK": "Drept sau pe colț",
+        "PIECE_TV_UNIT": "Comodă joasă, cu nișe deschise, sertare sau uși",
+        "PIECE_BOOKCASE": "Rafturi deschise, sertare și uși",
+        "PIECE_DESK": "Blat pe laterale pline, cu sau fără casetiere",
         "PIECE_BED": "Tapițat, cu ladă sau sertare",
         "PIECE_DRESSER": "Cu sertare și uși",
         "PIECE_TABLE": "Dining, cafea sau consolă",
-        "PIECE_SHOE_CABINET": "Slim rabatabil sau cu băncuță",
+        "PIECE_SHOE_CABINET": "Îngust, cu uși, sertare sau nișe deschise",
         "PIECE_NIGHTSTAND": "Una sau pereche",
         "PIECE_BENCH": "Cu depozitare sau simplă",
         "PIECE_SIDEBOARD": "Uși, sertare și polițe deschise",
@@ -4085,8 +4153,8 @@
       "columnWidth": "Lățime coloană",
       "lockSize": "Blochează dimensiunea (rămâne fixă)",
       "unlockSize": "Deblochează dimensiunea (împarte spațiul egal)",
-      "drawersTooHigh": "Sertarele nu pot sta peste 160 cm — nu ai ajunge la ele.",
-      "hangingNeeds": "Bara de haine cere minim 55 cm adâncime și câte 80 cm de înălțime pentru fiecare bară.",
+      "drawersTooHigh": "Sertarele nu pot sta peste {cm} cm — nu ai ajunge la ele.",
+      "hangingNeeds": "Bara de haine cere minim {depth} cm adâncime și câte {height} cm de înălțime pentru fiecare bară.",
       "zoneToolbarTitle": "Coloana {column} · zona {zone}",
       "columnLabel": "Coloana {n}",
       "addZone": "Adaugă zonă",
@@ -4137,7 +4205,7 @@
         "HINGED": "Batante",
         "SLIDING": "Glisante"
       },
-      "slidingNeeds": "Ușile glisante sunt disponibile la 2–3 coloane.",
+      "slidingNeeds": "Ușile glisante sunt disponibile la {min}–{max} coloane.",
       "slideDirection": "Glisare",
       "slideDirections": {
         "L": "Spre stânga",
@@ -4232,7 +4300,22 @@
           "LEFT": "Stânga",
           "RIGHT": "Dreapta"
         }
-      }
+      },
+      "drawersTooShort": "Un sertar cere minim {cm} cm de înălțime — zona e prea joasă.",
+      "shelvesNeedSpace": "Polițele cer minim {cm} cm de spațiu între ele.",
+      "pedestalsNeedWidth": "A doua casetieră încape de la {width} cm lățime a biroului.",
+      "pedestalsMaxReached": "Biroul are cel mult {n} casetiere.",
+      "columnsMaxReached": "Ai ajuns la numărul maxim de coloane ({n}).",
+      "columnWidthRange": "Fiecare coloană are între {min} și {max} cm lățime.",
+      "columnsFitWidth": "Am potrivit numărul de coloane la lățime: fiecare coloană are între {min} și {max} cm.",
+      "slidingLost": "Am trecut pe uși batante: ușile glisante merg doar la {min}–{max} coloane.",
+      "hangingReduced": "Am lăsat {n, plural, one {o bară} few {# bare} other {# de bare}} de haine: fiecare bară cere {cm} cm de înălțime.",
+      "shelvesReduced": "Am lăsat {n, plural, one {o poliță} few {# polițe} other {# de polițe}}: între ele trebuie cel puțin {cm} cm.",
+      "drawersReduced": "Am lăsat {n, plural, one {un sertar} few {# sertare} other {# de sertare}}: fiecare sertar cere cel puțin {cm} cm înălțime.",
+      "dimClampedMin": "Minimul e {value} cm — am pus {value}.",
+      "dimClampedMax": "Maximul e {value} cm — am pus {value}.",
+      "dimKeptPrevious": "Am păstrat valoarea anterioară.",
+      "dimReadAsMeters": "Am înțeles {value} cm."
     },
     "copyFromPrevious": "Copiază răspunsurile de la {room} anterioară",
     "pieces": {
@@ -4240,7 +4323,11 @@
       "material": "Material",
       "quantity": "Cantitate",
       "add": "Adaugă piesa",
-      "remove": "Șterge"
+      "remove": "Șterge",
+      "details": "Detalii (opțional)",
+      "detailsPlaceholder": "Dimensiuni aproximative, culoare, unde stă, ce vrei înăuntru — orice ajută firma să înțeleagă piesa.",
+      "otherMaterialHint": "Ai ales „Altul”: scrie aici ce material vrei.",
+      "charCounter": "{count} / {max} caractere"
     },
     "apiErrors": {
       "CONFIGURATOR_ANSWERS_INVALID": "Unele răspunsuri nu au putut fi validate. Verifică pașii marcați.",
@@ -4279,7 +4366,10 @@
       "positiveNumber": "Scrie un număr mai mare decât 0. Am păstrat valoarea de dinainte.",
       "wholeNumber": "Scrie un număr întreg, de ex. 3. Am păstrat valoarea de dinainte.",
       "designHelpWithOwnProject": "Ai ales „Am deja un proiect”, deci nu poți cere ajutor la cameră. Schimbă modul sau scoate bifa de ajutor.",
-      "designHelpWithStudioPiece": "Piesa asta e așezată în Studio, deci e deja configurată: nu poți cere ajutor la ea. Scoate bifa de ajutor sau scoate piesa din Studio."
+      "designHelpWithStudioPiece": "Piesa asta e așezată în Studio, deci e deja configurată: nu poți cere ajutor la ea. Scoate bifa de ajutor sau scoate piesa din Studio.",
+      "approxLengthOutOfRange": "Lungimea aproximativă trebuie să fie între 0,1 și 50 m.",
+      "approxLengthTooManyDecimals": "Scrie cel mult două zecimale, de exemplu 6,25.",
+      "approxLengthWithoutOwnProject": "Lungimea aproximativă se dă doar cu „Am deja un proiect”. Alege modul acesta sau șterge lungimea."
     },
     "common": {
       "boolean": {
@@ -4402,16 +4492,16 @@
           }
         },
         "GLISANTE": {
-          "label": "Glisante",
-          "description": "Uși sau sertare pe șine",
+          "label": "Uși glisante (culisante)",
+          "description": "Ușile alunecă lateral pe șine",
           "info": {
-            "title": "Sisteme glisante",
-            "body": "Ușile glisează lateral pe șine, iar sertarele ies în față pe glisiere. Lasă spațiu liber pentru extensia sertarelor.",
+            "title": "Uși glisante",
+            "body": "Ușile alunecă lateral pe șine și nu se deschid spre cameră. Sunt potrivite la dulapuri late și la încăperi unde nu ai loc pentru uși care se deschid în afară.",
             "pros1": "Ușile glisante nu se deschid în cameră; păstrează spațiu pentru a sta și a folosi dulapul",
             "pros2": "Susține fronturi late și grele, până în tavan",
             "cons1": "Șinele bune costă — pe cele ieftine le simți la fiecare deschidere",
             "cons2": "Cer montaj precis — o șină strâmbă se aude și se simte",
-            "price": "+80–200 lei/set"
+            "price": "+800–2.000 lei"
           }
         },
         "BUTON_PRESIUNE": {
@@ -6600,7 +6690,7 @@
         },
         "config3d": {
           "title": "Construiește-ți pantofarul în 3D",
-          "subtitle": "Alege dimensiunile și fronturile: rabatabile, sertare sau uși."
+          "subtitle": "Alege dimensiunile și ce are fiecare coloană: uși, sertare sau nișe deschise."
         }
       },
       "PIECE_NIGHTSTAND": {
@@ -6857,7 +6947,8 @@
       "designHelpClient": "Ai cerut ajutor la proiectare pentru această cameră",
       "furnitureLinear": "Mobilier: ~{m} m liniari",
       "ceilingHeight": "Tavan: {m} m",
-      "designHelpDetails": "Detaliile se stabilesc cu firma."
+      "designHelpDetails": "Detaliile se stabilesc cu firma.",
+      "approxLength": "Lungime aproximativă: {m} m"
     },
     "contactInText": {
       "hint": "Se pare că ai scris un telefon, un email sau un link. Firmele nu le văd înainte de preluare: adaugă-le la pasul Contact și le primesc doar firmele care preiau cererea.",
@@ -6891,6 +6982,10 @@
       "kept": "Nu se pierde nimic: răspunsurile rămân în ciornă și le regăsești dacă debifezi ajutorul.",
       "cancel": "Renunță",
       "confirm": "Da, cer ajutor"
+    },
+    "approxLength": {
+      "label": "Lungime aproximativă (m) — opțional",
+      "hint": "Cât de lungă e, cam, mobila din proiect (de exemplu 6,5). Ne ajută să arătăm firmelor mărimea proiectului. Poți lăsa gol."
     }
   },
   "Legal": {

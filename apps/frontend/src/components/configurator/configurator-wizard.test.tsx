@@ -147,6 +147,14 @@ describe('start mode of a published request (contract b8 §5)', () => {
     expect(snap.roomInstances.map((r) => [r.localId, r.needsDesignHelp])).toEqual([['a', true]]);
     expect('includesPaidDesign' in snap.details).toBe(false);
   });
+
+  // d3 (PO d3-2): lungimea aproximativa revine la editare, doar cu "Am deja un proiect"
+  it('brings back the approximate length of an own-project room', () => {
+    const own = buildSnapshotFromRequest(requestDto({ hasOwnProject: true, rooms: [{ ...room('a', false), approxLengthM: 6.5 }] }));
+    expect(own.roomInstances[0].approxLengthM).toBe(6.5);
+    const standard = buildSnapshotFromRequest(requestDto({ rooms: [{ ...room('a', false, { layout: 'X' }), approxLengthM: 6.5 }] }));
+    expect(standard.roomInstances[0].approxLengthM).toBeUndefined();
+  });
 });
 
 // b11: la editare, suma aleasa de client ramane aleasa; cea dintr-o cerere veche se cere din nou

@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import en from '../../../../messages/en.json';
 import { leavePublishNotice, PUBLISH_NOTICE_KEY, PUBLISH_NOTICE_TTL_MS } from '@/components/configurator/publish-notice';
+import { ApiError } from '@/lib/api';
 import RequestDetailPage from './page';
 
 // E-client-3: repostul nu mai depinde de un token local; dupa un repost folosit,
@@ -13,6 +14,17 @@ const state = vi.hoisted(() => ({
   repost: { mutate: vi.fn(), isPending: false, isSuccess: false, error: null as unknown },
   repostId: '' as string,
   toastSuccess: vi.fn(),
+  fulfillment: null as unknown,
+  requestError: null as unknown,
+  // f3: plasa de siguranta (401 + „cine sunt eu” esuat → login)
+  meError: false,
+  toLogin: vi.fn(),
+}));
+vi.mock('@/hooks/use-auth', () => ({ useMe: () => ({ isError: state.meError, data: undefined }) }));
+vi.mock('@/lib/use-login-redirect', () => ({ useLoginRedirect: () => state.toLogin }));
+// e1: "Accepted on" vine din panoul de dupa acceptare
+vi.mock('@/hooks/use-fulfillment', () => ({
+  useClientFulfillment: () => ({ data: state.fulfillment, isPending: false }),
 }));
 vi.mock('@/components/ui/toaster', () => ({ toast: { success: state.toastSuccess } }));
 
@@ -22,7 +34,10 @@ vi.mock('@/i18n/routing', () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
 }));
 vi.mock('@/hooks/use-requests', () => ({
-  useRequest: () => ({ isPending: false, isError: false, data: state.request }),
+  useRequest: () =>
+    state.requestError
+      ? { isPending: false, isError: true, error: state.requestError, data: undefined, refetch: vi.fn() }
+      : { isPending: false, isError: false, data: state.request },
   useDeleteRequest: () => ({ mutate: vi.fn(), isPending: false }),
   // E-client-9: cardul "Cine vede cererea" (fara date → nu se randeaza)
   useRequestVisibility: () => ({ data: undefined }),
@@ -71,6 +86,60 @@ function renderPage() {
 beforeEach(() => {
   localStorage.clear();
   state.repost = { mutate: vi.fn(), isPending: false, isSuccess: false, error: null };
+  state.fulfillment = null;
+  state.requestError = null;
+  state.meError = false;
+  state.toLogin = vi.fn();
+});
+
+// e1: "Expires" doar cat cererea asteapta in piata; dupa acceptare "Accepted on <data>"
+describe('request detail expiry and acceptance date (e1)', () => {
+  const expiresAt = '2026-12-01T10:00:00Z';
+
+  it('shows "Expires" while the request is in the marketplace', () => {
+    state.request = request({ status: 'IN_MARKETPLACE', expiresAt });
+    renderPage();
+    expect(screen.getByText(en.Requests.expiresAt)).toBeTruthy();
+    expect(screen.queryByText(en.Requests.acceptedOn)).toBeNull();
+  });
+
+  it.each(['CLAIMED_PARTIAL', 'OFFERS_RECEIVED', 'NEGOTIATION', 'ACCEPTED', 'COMPLETED'])(
+    'hides "Expires" in %s',
+    (status) => {
+      state.request = request({ status, expiresAt });
+      renderPage();
+      expect(screen.queryByText(en.Requests.expiresAt)).toBeNull();
+    },
+  );
+
+  it('shows "Accepted on <date>" after acceptance, in the app language', () => {
+    state.request = request({ status: 'ACCEPTED', expiresAt });
+    state.fulfillment = { requestId: 'req-1', acceptedAt: '2026-11-03T10:00:00Z', stages: [] };
+    renderPage();
+    expect(screen.getByText(en.Requests.acceptedOn)).toBeTruthy();
+    expect(screen.getByText('November 3, 2026')).toBeTruthy();
+  });
+
+  it('a 401 keeps the loading state instead of "not found"', () => {
+    state.requestError = new ApiError('UNAUTHORIZED', 401, 'unauthorized');
+    renderPage();
+    expect(screen.queryByText(en.Requests.empty)).toBeNull();
+    expect(state.toLogin).not.toHaveBeenCalled();
+  });
+
+  it('f3: a 401 with a failed who-am-I goes to login instead of staying on the skeleton', () => {
+    state.requestError = new ApiError('UNAUTHORIZED', 401, 'unauthorized');
+    state.meError = true;
+    renderPage();
+    expect(state.toLogin).toHaveBeenCalled();
+  });
+
+  it('f3: a 404 with a failed who-am-I does not trigger the session safety net', () => {
+    state.requestError = new ApiError('NOT_FOUND', 404, 'missing');
+    state.meError = true;
+    renderPage();
+    expect(state.toLogin).not.toHaveBeenCalled();
+  });
 });
 
 describe('request detail repost section', () => {

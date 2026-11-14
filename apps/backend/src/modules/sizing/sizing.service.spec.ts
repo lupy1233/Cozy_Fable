@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { creditCostFromBaseScore } from '@marketplace/shared';
 import { computeSizing, SizingService, type SizingConfigRow, type SizingThresholdRow } from './sizing.service';
 import type { PrismaService } from '../../infra/prisma/prisma.service';
@@ -72,6 +74,71 @@ describe('computeSizing', () => {
     expect(result.baseScore).toBe(0);
     expect(result.size).toBe('SMALL');
     expect(result.creditCost).toBe(1);
+  });
+});
+
+// d3 (etapa 5, PO g0-10): ponderile din seed (citite din fisier, nu copiate) — cele 7 piese noi
+// au pondere de tip, iar migrarea adauga exact aceleasi randuri pe bazele existente.
+describe('ponderile din seed (d3)', () => {
+  const prismaDir = path.join(__dirname, '..', '..', '..', 'prisma');
+  const ROW = /\{\s*key:\s*'([A-Z_]+)',\s*option:\s*'([A-Z0-9_]+)',\s*weight:\s*(\d+)\s*\}/g;
+  const SQL_ROW = /'([A-Z_]+)',\s*'([A-Z0-9_]+)',\s*(\d+)\)/g;
+  const parse = (text: string, re: RegExp): SizingConfigRow[] =>
+    [...text.matchAll(re)].map((m) => ({ key: m[1], option: m[2], weight: Number(m[3]) }));
+  const SEED = parse(fs.readFileSync(path.join(prismaDir, 'seed.ts'), 'utf8'), ROW);
+  const NEW_PIECES: Record<string, number> = {
+    PIECE_SOFA: 3,
+    PIECE_SIDEBOARD: 2,
+    PIECE_BATHROOM_VANITY: 2,
+    PIECE_ENTRYWAY: 2,
+    PIECE_WALL_CABINET: 1,
+    PIECE_ARMCHAIR: 1,
+    PIECE_OTTOMAN: 1,
+  };
+  const weightOf = (option: string) => SEED.find((r) => r.key === 'ROOM_TYPE' && r.option === option)?.weight;
+  const baseOf = (scoreEntries: Parameters<typeof computeSizing>[2]['scoreEntries']) =>
+    computeSizing(SEED, THRESHOLDS, { scoreEntries, budgetRange: 'UNDISCLOSED', includesPaidDesign: false }).baseScore;
+
+  it('cele 7 piese noi au ponderea hotarata de PO', () => {
+    for (const [option, weight] of Object.entries(NEW_PIECES)) expect(weightOf(option)).toBe(weight);
+  });
+
+  it('migrarea adauga aceleasi 7 randuri, fara sa suprascrie (ON CONFLICT DO NOTHING)', () => {
+    const sql = fs.readFileSync(
+      path.join(prismaDir, 'migrations', '20261114100000_piece_weights_room_approx_length', 'migration.sql'),
+      'utf8',
+    );
+    const rows = parse(sql, SQL_ROW);
+    expect(Object.fromEntries(rows.map((r) => [r.option, r.weight]))).toEqual(NEW_PIECES);
+    expect(rows.every((r) => r.key === 'ROOM_TYPE')).toBe(true);
+    expect(sql).toMatch(/ON CONFLICT \("key", "option"\) DO NOTHING/);
+    expect(sql).toMatch(/ADD COLUMN "approx_length_m" NUMERIC\(5,2\)/);
+  });
+
+  it('canapea de 3 locuri > pereche de noptiere (intrarile emise de engine pentru fiecare)', () => {
+    // canapea 3 locuri (~2,2 m): tip + 2–4 m + o piesa + materialul structurii
+    const sofa = baseOf([
+      { category: 'ROOM_TYPE', optionKey: 'PIECE_SOFA' },
+      { category: 'ROOM_SIZE', optionKey: 'FROM_2_TO_4M' },
+      { category: 'ITEM_QUANTITY', optionKey: 'QTY_1' },
+      { category: 'MATERIAL', optionKey: 'PAL' },
+    ]);
+    // pereche de noptiere: tip + sub 2 m + 2 bucati + material
+    const nightstands = baseOf([
+      { category: 'ROOM_TYPE', optionKey: 'PIECE_NIGHTSTAND' },
+      { category: 'ROOM_SIZE', optionKey: 'UNDER_2M' },
+      { category: 'ITEM_QUANTITY', optionKey: 'QTY_2_3' },
+      { category: 'MATERIAL', optionKey: 'PAL' },
+    ]);
+    expect(sofa).toBe(7); // inainte: 4 (canapeaua nu avea rand → 0)
+    expect(nightstands).toBe(5);
+    expect(sofa).toBeGreaterThan(nightstands);
+  });
+
+  it('fotoliul, taburetul si bufetul conteaza la tip', () => {
+    for (const option of ['PIECE_ARMCHAIR', 'PIECE_OTTOMAN', 'PIECE_SIDEBOARD']) {
+      expect(baseOf([{ category: 'ROOM_TYPE', optionKey: option }])).toBeGreaterThan(0);
+    }
   });
 });
 

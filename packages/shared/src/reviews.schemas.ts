@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { REVIEW_DISPUTE_STATUSES } from './enums';
+import { REVIEW_DISPUTE_STATUSES, type ExecutionStage } from './enums';
 
 // Sprint 8 — review post-COMPLETED + dispute (4.18).
 
@@ -39,6 +39,46 @@ export interface CompanyCompletionDto {
   // review m5: aceleasi reguli ca fisa de lucru — fara acces la datele clientului, comentariul
   // recenziei si nota raportului vin null
   clientTextsHidden: boolean;
+  // e1 (PO 2026-11-13): momentul acceptarii ofertei firmei (quotes.accepted_at)
+  acceptedAt: string | null;
+  // acceptedAt + delivery_min_days_after_accept; null cand setarea e 0 sau nu exista acceptare
+  earliestDeliveryAt: string | null;
+  // finalizarea automata a livrarii neconfirmate (ceasul repornit dupa un caz inchis);
+  // null daca cererea nu e DELIVERED_BY_COMPANY sau ceasul e oprit de un caz deschis
+  autoCompleteAt: string | null;
+  // mereu toate cele 4 etape, in ordinea EXECUTION_STAGES
+  stages: ExecutionStageDto[];
+}
+
+// e1-2: etapa informativa bifata de firma castigatoare, vizibila clientului.
+export interface ExecutionStageDto {
+  stage: ExecutionStage;
+  done: boolean;
+  completedAt: string | null;
+  completedByName: string | null;
+}
+
+// PUT company/requests/:id/stages/:stage
+export const updateExecutionStageSchema = z.object({ done: z.boolean() });
+export type UpdateExecutionStageInput = z.infer<typeof updateExecutionStageSchema>;
+
+// e1-1: GET requests/:id/fulfillment — doar clientul cererii. company / contact = null si
+// stages = [] cat nu exista oferta acceptata; doar datele firmei castigatoare.
+export interface ClientFulfillmentDto {
+  requestId: string;
+  acceptedAt: string | null;
+  deliveredAt: string | null;
+  completedAt: string | null;
+  autoCompleteAt: string | null;
+  company: {
+    name: string;
+    cui: string | null;
+    addressText: string | null;
+    city: string | null;
+    county: string | null;
+  } | null;
+  contact: { name: string; email: string; phone: string | null } | null;
+  stages: ExecutionStageDto[];
 }
 
 export interface AdminDisputeItemDto {

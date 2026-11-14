@@ -6,8 +6,8 @@ import { describe, expect, it, vi } from 'vitest';
 import ro from '@/messages/ro.json';
 import { CatalogSize } from './catalog-controls';
 
-// b1: campurile de dimensiuni din 3D accepta virgula; o valoare in afara
-// intervalului e refuzata cu mesaj si ramane valoarea veche (nu se taie la maxim)
+// b1: campurile de dimensiuni din 3D accepta virgula; b7: o valoare in afara
+// intervalului se pune pe limita, cu mesaj langa camp
 function Harness({ onChange }: { onChange: (m: number) => void }) {
   const [value, setValue] = useState(1.2);
   return (
@@ -53,13 +53,16 @@ describe('CatalogSize — dimensiuni cu virgula (b1)', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('valoarea peste limita e refuzata cu mesaj, ramane valoarea veche', async () => {
+  // b7: valoarea in afara limitelor se pune pe limita, cu mesaj
+  it('valoarea peste limita se pune pe maxim, cu mesaj', async () => {
     const { input, onChange } = setup();
     await userEvent.clear(input);
     await userEvent.type(input, '1505{Enter}');
-    expect(onChange).not.toHaveBeenCalled();
-    expect(input.value).toBe('120');
-    expect(screen.getByRole('alert')).toHaveTextContent('80–200 cm');
+    expect(onChange).toHaveBeenLastCalledWith(2);
+    expect(input.value).toBe('200');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      ro.Configurator.config3d.dimClampedMax.replaceAll('{value}', '200'),
+    );
   });
 
   it('textul care nu e numar arata "Scrie un numar"', async () => {
@@ -72,11 +75,12 @@ describe('CatalogSize — dimensiuni cu virgula (b1)', () => {
     expect(input.value).toBe('120');
   });
 
-  it('campul golit pastreaza valoarea veche', async () => {
+  it('campul golit pastreaza valoarea veche, cu mesaj', async () => {
     const { input, onChange } = setup();
     await userEvent.clear(input);
     await userEvent.tab();
     expect(onChange).not.toHaveBeenCalled();
     expect(input.value).toBe('120');
+    expect(screen.getByRole('status')).toHaveTextContent(ro.Configurator.config3d.dimKeptPrevious);
   });
 });

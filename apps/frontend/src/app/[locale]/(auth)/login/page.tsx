@@ -33,6 +33,8 @@ function LoginInner() {
   // doar cai interne (f1: „//alt-site” era acceptat); o adresa respinsa nu se mai propaga
   const rawRedirect = searchParams.get('redirect');
   const redirect = isSafeRedirect(rawRedirect) ? rawRedirect : null;
+  // f3: venit aici de la ascultatorul global (sesiune scoasa de pe alt dispozitiv / expirata)
+  const sessionExpired = searchParams.get('reason') === 'expired';
   const mounted = useMounted();
 
   const {
@@ -64,6 +66,11 @@ function LoginInner() {
   return (
     <div className="flex flex-col gap-5">
       <h1 className={authTitleCls}>{t('loginTitle')}</h1>
+      {sessionExpired && !login.isPending && !apiErr && (
+        <Alert tone="amber" role="status">
+          {t('sessionExpired')}
+        </Alert>
+      )}
 
       <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
         <Field

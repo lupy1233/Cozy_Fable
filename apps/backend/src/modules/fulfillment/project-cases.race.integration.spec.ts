@@ -79,6 +79,8 @@ function wire(dbUrl: string) {
       description: 'M1 oferta',
     } as CreateQuoteInput);
     await w.quotes.acceptQuote(clientId, quote.id, quote.versions[0].id);
+    // e1-3: "livrat" doar dupa delivery_min_days_after_accept (7) zile de la acceptare
+    await w.prisma.quote.update({ where: { id: quote.id }, data: { acceptedAt: new Date(Date.now() - 8 * DAY) } });
     await w.fulfillment.markDelivered(ownerCtx(a.companyId), requestId);
     await backdateRequest(w.prisma, requestId, { deliveredAt: new Date(Date.now() - 15 * DAY) });
     return { clientId, requestId };

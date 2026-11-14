@@ -110,6 +110,10 @@ export const ERROR_CODES = {
   // Livrare / finalizare
   DELIVERY_NOT_ALLOWED: 'DELIVERY_NOT_ALLOWED',
   COMPLETION_NOT_ALLOWED: 'COMPLETION_NOT_ALLOWED',
+  // e1-3: "livrat" doar dupa delivery_min_days_after_accept zile de la acceptare
+  DELIVERY_TOO_EARLY: 'DELIVERY_TOO_EARLY',
+  // e1-2: etapele se bifeaza doar pe oferta acceptata, in ACCEPTED / IN_EXECUTION / DELIVERED_BY_COMPANY
+  EXECUTION_STAGE_NOT_EDITABLE: 'EXECUTION_STAGE_NOT_EDITABLE',
 
   // Review / dispute
   REVIEW_NOT_ALLOWED_YET: 'REVIEW_NOT_ALLOWED_YET',

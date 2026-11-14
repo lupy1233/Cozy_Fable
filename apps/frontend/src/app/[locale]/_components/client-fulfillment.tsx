@@ -1,9 +1,9 @@
 'use client';
 
-import { ArrowDown } from 'lucide-react';
+import { ArrowDown, Building2, Check, Mail, Phone, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
-import type { ProjectCaseDto, QuoteDto } from '@marketplace/shared';
+import { useId, useState } from 'react';
+import type { ClientFulfillmentDto, ProjectCaseDto, QuoteDto } from '@marketplace/shared';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import {
+  useClientFulfillment,
   useConfirmDelivery,
   useCreateReview,
   useOpenProjectCase,
@@ -76,6 +77,14 @@ export function ClientFulfillment({
     requestId,
     inProgress || status === 'CANCELLED' || status === 'DELIVERED_BY_COMPANY' || finished,
   );
+  // e1-1 / e1-2: persoana responsabila, datele firmei castigatoare si etapele. Serverul hotaraste
+  // cand le trimite (dupa acceptare, doar firma castigatoare, si dupa finalizare — garantia); aici
+  // aratam ce primim (company / contact nenule), fara filtru propriu pe stare.
+  const fulfillment = useClientFulfillment(
+    requestId,
+    inProgress || status === 'DELIVERED_BY_COMPANY' || finished,
+  );
+  const project = fulfillment.data ?? null;
 
   // E-admin-platform-3: proiectul a fost inchis de echipa Cozy Home (dupa un raport / anulare)
   if (status === 'CANCELLED') {
@@ -137,6 +146,8 @@ export function ClientFulfillment({
               </a>
             ))}
         </Card>
+        {project && <ProjectContactCard project={project} />}
+        {project && <ProjectStagesCard project={project} />}
         {acceptedQuote && <AgreementCard quote={acceptedQuote} requestStatus={status} mode="client" />}
         {!projectCase.isPending && (
           <ProjectCasePanel requestId={requestId} mode="client" projectCase={projectCase.data ?? null} canAct />
@@ -147,7 +158,17 @@ export function ClientFulfillment({
 
   // e randul clientului: confirma primirea (chihlimbar = cere atentie)
   if (status === 'DELIVERED_BY_COMPANY') {
-    return <DeliveredCard requestId={requestId} projectCase={projectCase.data ?? null} />;
+    return (
+      <div className="flex flex-col gap-4">
+        <DeliveredCard
+          requestId={requestId}
+          projectCase={projectCase.data ?? null}
+          autoCompleteAt={project?.autoCompleteAt ?? null}
+        />
+        {project && <ProjectContactCard project={project} />}
+        {project && <ProjectStagesCard project={project} />}
+      </div>
+    );
   }
 
   if (finished) {
@@ -169,6 +190,9 @@ export function ClientFulfillment({
           !review.isPending && <ReviewForm requestId={requestId} />
         )}
         {!projectCase.isPending && <WarrantyReport requestId={requestId} projectCase={projectCase.data ?? null} />}
+        {/* m2 (revizie e5): dupa finalizare clientul pastreaza contactul firmei (garantie) */}
+        {project && <ProjectContactCard project={project} />}
+        {project && <ProjectStagesCard project={project} />}
       </div>
     );
   }
@@ -176,9 +200,107 @@ export function ClientFulfillment({
   return null;
 }
 
+// e1-1: cine lucreaza la proiect (nume, e-mail, telefon daca exista) + datele firmei
+// castigatoare (nume, CUI, adresa). Nimic cat serverul nu le trimite (inainte de acceptare).
+function ProjectContactCard({ project }: { project: ClientFulfillmentDto }) {
+  const t = useTranslations('Fulfillment.clientProject');
+  const titleId = useId();
+  const { contact, company } = project;
+  if (!contact && !company) return null;
+  const place = company ? [company.city, company.county].filter(Boolean).join(', ') : '';
+  const linkCls =
+    'inline-flex min-h-10 items-center gap-2 font-medium text-walnut [overflow-wrap:anywhere] hover:text-walnut-deep hover:underline';
+  return (
+    <Card as="section" aria-labelledby={titleId} className="flex flex-col gap-3">
+      <h2 id={titleId} className="heading-card">
+        {t('contactTitle')}
+      </h2>
+      {contact && (
+        <div className="flex flex-col gap-0.5 text-sm">
+          <p className="flex items-center gap-2 font-medium">
+            <UserRound className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+            {contact.name}
+          </p>
+          <p className="text-xs text-muted-foreground">{t('contactRole')}</p>
+          <a href={`mailto:${contact.email}`} className={linkCls}>
+            <Mail className="h-4 w-4 shrink-0" aria-hidden />
+            {contact.email}
+          </a>
+          {contact.phone && (
+            <a href={`tel:${contact.phone}`} className={linkCls}>
+              <Phone className="h-4 w-4 shrink-0" aria-hidden />
+              {contact.phone}
+            </a>
+          )}
+        </div>
+      )}
+      {company && (
+        <div className="flex items-start gap-2 border-t border-border pt-3 text-sm">
+          <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <p className="font-medium">{company.name}</p>
+            {company.cui && <p className="text-muted-foreground">{t('cui', { cui: company.cui })}</p>}
+            {(company.addressText || place) && (
+              <p className="text-muted-foreground">{[company.addressText, place].filter(Boolean).join(', ')}</p>
+            )}
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// e1-2: etapele bifate de firma (doar de citit), cu data bifarii.
+function ProjectStagesCard({ project }: { project: ClientFulfillmentDto }) {
+  const t = useTranslations('Fulfillment.stages');
+  const tc = useTranslations('Fulfillment.clientProject');
+  const fmtDate = useLongDate();
+  const titleId = useId();
+  if (project.stages.length === 0) return null;
+  return (
+    <Card as="section" aria-labelledby={titleId} className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <h2 id={titleId} className="heading-card">
+          {tc('stagesTitle')}
+        </h2>
+        <p className="text-sm text-muted-foreground">{tc('stagesIntro')}</p>
+      </div>
+      <ul className="flex flex-col gap-2 text-sm">
+        {project.stages.map((s) => (
+          <li key={s.stage} className="flex items-start gap-2.5">
+            <span
+              className={cn(
+                'mt-0.5 grid h-5 w-5 flex-none place-items-center rounded-full',
+                s.done ? 'bg-sage text-white' : 'border border-border-2',
+              )}
+              aria-hidden
+            >
+              {s.done && <Check className="h-3 w-3" />}
+            </span>
+            <span className="flex min-w-0 flex-col">
+              <span className={cn(s.done ? 'font-medium' : 'text-muted-foreground')}>{t(`name.${s.stage}`)}</span>
+              <span className="text-xs text-muted-foreground">
+                {s.done && s.completedAt ? t('doneOn', { date: fmtDate(s.completedAt) }) : tc('stageNotDone')}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
 // e2 pasii 2-3: "Confirma livrarea" cere confirmare, cu varianta "Am o problema" (raport OTHER +
 // nota). Raportul deschis opreste finalizarea automata pana il inchide echipa Cozy Home (e2-1).
-function DeliveredCard({ requestId, projectCase }: { requestId: string; projectCase: ProjectCaseDto | null }) {
+function DeliveredCard({
+  requestId,
+  projectCase,
+  autoCompleteAt,
+}: {
+  requestId: string;
+  projectCase: ProjectCaseDto | null;
+  autoCompleteAt: string | null;
+}) {
   const t = useTranslations('Fulfillment');
   const apiErrText = useApiErrText();
   const fmtDate = useLongDate();
@@ -193,6 +315,10 @@ function DeliveredCard({ requestId, projectCase }: { requestId: string; projectC
     <Card as="section" tone="amber">
       <h2 className="heading-section text-amber">{t('deliveredTitle')}</h2>
       <p className="mt-1 max-w-prose text-sm">{t('deliveredBody')}</p>
+      {/* e1: data finalizarii automate (lipseste cat un raport deschis tine ceasul oprit) */}
+      {!openCase && autoCompleteAt && (
+        <p className="mt-1 max-w-prose text-sm">{t('clientProject.autoCompleteOn', { date: fmtDate(autoCompleteAt) })}</p>
+      )}
       {openCase && (
         <Alert tone="info" className="mt-3">
           {t('deliveredProblemOpen', { date: fmtDate(openCase.createdAt) })}

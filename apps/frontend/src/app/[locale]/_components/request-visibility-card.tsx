@@ -19,6 +19,9 @@ export function RequestVisibilityCard({
   const holders = visibility.contactHolders;
   // a1: motivul pentru care firme noi nu mai vad cererea (lipsa = slot vechi → textul general)
   const reason = visibility.marketplaceClosedReason;
+  // a6 (PO a6-1): cat cererea e in piata si nicio firma nu lucreaza pe raza ei, spunem asta
+  // cinstit in locul textului "vizibila firmelor din zona" — fara niciun numar de firme
+  const noCoverage = visibility.projectVisibleInMarketplace && visibility.coverage === 'NONE';
 
   return (
     <Card
@@ -33,13 +36,24 @@ export function RequestVisibilityCard({
 
       <div>
         <h3 className="font-semibold">{t('projectLabel')}</h3>
-        <p className="text-ui text-muted-foreground">
-          {visibility.projectVisibleInMarketplace
-            ? t('projectVisible')
-            : reason
-              ? t(`closedReason.${reason}`)
-              : t('projectClosed')}
-        </p>
+        {noCoverage ? (
+          <div
+            role="status"
+            data-testid="no-coverage-warning"
+            className="mt-1 rounded-md border border-amber-300 bg-amber-50 px-3 py-2.5 text-ui text-amber-950 dark:border-amber-700/60 dark:bg-amber-950/30 dark:text-amber-100"
+          >
+            <p className="font-medium">{t('noCoverage.title')}</p>
+            <p className="mt-1">{t('noCoverage.body')}</p>
+          </div>
+        ) : (
+          <p className="text-ui text-muted-foreground">
+            {visibility.projectVisibleInMarketplace
+              ? t('projectVisible')
+              : reason
+                ? t(`closedReason.${reason}`)
+                : t('projectClosed')}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">

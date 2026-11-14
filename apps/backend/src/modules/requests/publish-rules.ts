@@ -110,6 +110,22 @@ export function resolveDesignHelp<T extends Pick<CreateRequestContentDto, 'rooms
   return { ...dto, rooms, includesPaidDesign };
 }
 
+// d3 (PO d3-2, 2026-11-13): "Lungime aproximativa" exista doar cu "Am deja un proiect" (acolo
+// dimensiunile se pot sari). Fara proiect propriu campul e un payload gresit → 400, nu se ignora.
+export function assertApproxLengthAllowed(
+  rooms: { approxLengthM?: number | null }[],
+  hasOwnProject: boolean,
+): void {
+  if (hasOwnProject) return;
+  const bad = rooms.flatMap((room, roomIndex) => (room.approxLengthM !== undefined && room.approxLengthM !== null ? [roomIndex] : []));
+  if (bad.length === 0) return;
+  throw new BadRequestException({
+    code: ERROR_CODES.VALIDATION_ERROR,
+    message: 'approxLengthM is allowed only for a request with its own project',
+    details: bad.map((roomIndex) => ({ roomIndex, field: 'approxLengthM', messageKey: 'validation.approxLengthWithoutOwnProject' })),
+  });
+}
+
 // sourceLocalId-urile camerelor legate de piese asezate in Studio (scenele publicate / de publicat).
 export function studioSourceIds(scenes: { requestEntryIds?: Record<string, string> }[]): Set<string> {
   return new Set(scenes.flatMap((s) => Object.values(s.requestEntryIds ?? {})));

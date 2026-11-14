@@ -6,6 +6,7 @@ import {
   IsBoolean,
   IsEnum,
   IsInt,
+  IsNumber,
   IsObject,
   IsOptional,
   IsString,
@@ -19,6 +20,8 @@ import {
 } from 'class-validator';
 import { BudgetRange, ContactChannel, DesiredDeadlineBucket, RoomType } from '@prisma/client';
 import {
+  APPROX_LENGTH_MAX_M,
+  APPROX_LENGTH_MIN_M,
   BUDGET_SLIDER_STEP_RON,
   INSPIRATION_NOTE_MAX,
   MAX_BUDGET_RON,
@@ -54,6 +57,14 @@ export class ConfiguratorRoomInputDto {
   @IsOptional()
   @IsBoolean()
   needsDesignHelp?: boolean;
+
+  // d3 (PO d3-2): lungimea aproximativa (m) a camerei, doar cu hasOwnProject (verificat in
+  // resolveApproxLength). Conteaza la ROOM_SIZE doar cand dimensiunile lipsesc.
+  @IsOptional()
+  @IsNumber({ allowNaN: false, allowInfinity: false, maxDecimalPlaces: 2 })
+  @Min(APPROX_LENGTH_MIN_M)
+  @Max(APPROX_LENGTH_MAX_M)
+  approxLengthM?: number;
 }
 
 // Canal restrans la EMAIL/PHONE; formatul valorii (email valid / telefon RO)

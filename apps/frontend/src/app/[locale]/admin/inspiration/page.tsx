@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import type { InspirationPhotoDto } from '@marketplace/shared';
 import { useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import {
   useAdminInspiration,
   useDeleteInspiration,
@@ -49,6 +50,7 @@ export default function AdminInspirationPage() {
   const t = useTranslations('AdminInspiration');
   const router = useRouter();
   const me = useMe();
+  const toLogin = useLoginRedirect();
   const list = useAdminInspiration();
   const update = useUpdateInspiration();
   const remove = useDeleteInspiration();
@@ -59,9 +61,9 @@ export default function AdminInspirationPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (me.isError) router.replace('/login');
+    if (me.isError) toLogin();
     else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
-  }, [me.isError, me.data, router]);
+  }, [me.isError, me.data, router, toLogin]);
 
   if (me.isPending || me.data?.role !== 'ADMIN') return <SkeletonPage variant="list" />;
 

@@ -35,6 +35,9 @@ function setup() {
   return { input, onChange };
 }
 
+// blocul campului (eticheta + camp + mesaje)
+const fieldOf = (input: HTMLElement) => input.closest('div')!.parentElement!.parentElement as HTMLElement;
+
 describe('Configurator 3D — dimensiuni cu virgula (b1)', () => {
   // jsdom nu are WebGL: getContext → null (fara zgomot in consola)
   beforeEach(() => {
@@ -49,6 +52,20 @@ describe('Configurator 3D — dimensiuni cu virgula (b1)', () => {
     expect(input.value).toBe('240');
   });
 
+  // b7 (accesibilitate): regiunea de mesaje exista INAINTE de mesaj, goala,
+  // legata de camp — cititoarele de ecran anunta textul cand apare
+  it('regiunea role=status a campului e montata goala si legata prin aria-describedby', async () => {
+    const { input } = setup();
+    const status = within(fieldOf(input)).getByRole('status');
+    expect(status).toBeEmptyDOMElement();
+    expect(status).toHaveAttribute('aria-live', 'polite');
+    expect(input.getAttribute('aria-describedby')).toBe(status.id);
+    await userEvent.clear(input);
+    await userEvent.type(input, '5{Enter}');
+    expect(within(fieldOf(input)).getByRole('status')).toBe(status);
+    expect(status).not.toBeEmptyDOMElement();
+  });
+
   it('"150,5" ramane 150,5 (1.505 m) si nu se transforma in maxim', async () => {
     const { input, onChange } = setup();
     await userEvent.clear(input);
@@ -57,15 +74,49 @@ describe('Configurator 3D — dimensiuni cu virgula (b1)', () => {
     expect(input.value).toBe('150,5');
   });
 
-  it('valoarea peste limita e refuzata cu mesaj langa camp, ramane valoarea veche', async () => {
+  // b7: valoarea in afara limitelor se corecteaza la limita, cu mesaj langa camp
+  it('valoarea peste limita se pune pe maxim, cu "Maximul e 600 cm — am pus 600"', async () => {
+    const { input, onChange } = setup();
+    await userEvent.clear(input);
+    await userEvent.type(input, '700{Enter}');
+    expect((onChange.mock.calls.at(-1)?.[0] as PieceConfig3d).widthM).toBe(6);
+    expect(input.value).toBe('600');
+    const field = input.closest('div')!.parentElement!.parentElement as HTMLElement;
+    expect(within(field).getByRole('status')).toHaveTextContent(
+      ro.Configurator.config3d.dimClampedMax.replaceAll('{value}', '600'),
+    );
+  });
+
+  it('5 la latimea dulapului → "Minimul e 60 cm — am pus 60"', async () => {
+    const { input, onChange } = setup();
+    await userEvent.clear(input);
+    await userEvent.type(input, '5{Enter}');
+    expect((onChange.mock.calls.at(-1)?.[0] as PieceConfig3d).widthM).toBe(0.6);
+    expect(input.value).toBe('60');
+    expect(within(fieldOf(input)).getByRole('status')).toHaveTextContent(
+      ro.Configurator.config3d.dimClampedMin.replaceAll('{value}', '60'),
+    );
+  });
+
+  it('"1,2" se citeste ca metri → 120 cm, cu "Am inteles 120 cm"', async () => {
+    const { input, onChange } = setup();
+    await userEvent.clear(input);
+    await userEvent.type(input, '1,2{Enter}');
+    expect((onChange.mock.calls.at(-1)?.[0] as PieceConfig3d).widthM).toBe(1.2);
+    expect(input.value).toBe('120');
+    expect(within(fieldOf(input)).getByRole('status')).toHaveTextContent(
+      ro.Configurator.config3d.dimReadAsMeters.replace('{value}', '120'),
+    );
+  });
+
+  it('campul golit pastreaza valoarea veche, cu mesaj', async () => {
     const { input, onChange } = setup();
     const before = onChange.mock.calls.length;
     await userEvent.clear(input);
-    await userEvent.type(input, '700{Enter}');
+    await userEvent.tab();
     expect(onChange.mock.calls.length).toBe(before);
     expect(input.value).toBe('240');
-    const field = input.closest('div')!.parentElement!.parentElement as HTMLElement;
-    expect(within(field).getByRole('alert')).toHaveTextContent('60–600 cm');
+    expect(within(fieldOf(input)).getByRole('status')).toHaveTextContent(ro.Configurator.config3d.dimKeptPrevious);
   });
 
   it('textul care nu e numar arata "Scrie un numar"', async () => {

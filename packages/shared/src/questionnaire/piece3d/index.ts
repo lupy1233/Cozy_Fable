@@ -5,3 +5,4 @@ export * from './furniture-config';
 export * from './catalog-config';
 export * from './drawer-model';
 export * from './showroom-details';
+export * from './cleanup-notes';

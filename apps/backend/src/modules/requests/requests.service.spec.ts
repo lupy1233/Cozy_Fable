@@ -31,8 +31,13 @@ function setup() {
   };
   const prisma = {
     request: { findUnique: jest.fn(), update: jest.fn().mockResolvedValue({}) },
-    // f2: rolul celui care publica se citeste din baza
-    user: { findUnique: jest.fn().mockResolvedValue({ role: 'CLIENT' }) },
+    // f2: rolul celui care publica se citeste din baza; a6: adminii anuntati (inainte de tranzactie)
+    user: {
+      findUnique: jest.fn().mockResolvedValue({ role: 'CLIENT' }),
+      findMany: jest.fn().mockResolvedValue([{ id: 'admin-1' }, { id: 'admin-2' }]),
+    },
+    // a6: acoperirea zonei (implicit exista o firma pe raza), citita in afara tranzactiei
+    $queryRaw: jest.fn().mockResolvedValue([{ covered: true }]),
     // b8 / M3: camerele bifate ale cererii editate (reprezentarea veche a proiectarii)
     requestRoom: { count: jest.fn().mockResolvedValue(0) },
     requestContactDetection: {
@@ -261,6 +266,143 @@ describe('RequestsService draft token (DRAFT-only, owner check)', () => {
     expect(data.draftTokenHash).toBeNull();
     expect(data.clientUserId).toBe('A');
     expect(data.status).toBe('IN_MARKETPLACE');
+  });
+});
+
+// a6 (PO a6-2): publicarea trece si fara firma in zona; adminii sunt anuntati o singura data.
+describe('RequestsService publish — acoperirea zonei (a6)', () => {
+  function prepare(covered: boolean) {
+    const ctx = setup();
+    (ctx.prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'DRAFT', clientUserId: 'A' }));
+    ctx.prisma.$queryRaw.mockResolvedValue([{ covered }]);
+    const s = ctx.service as unknown as Record<string, unknown>;
+    for (const m of ['withAccountEmail', 'assertRoomAttachments', 'writeContactPreferences', 'writeInspirationPhotos', 'writeStudioScenes', 'writeVersion']) {
+      jest.spyOn(s as never, m as never).mockResolvedValue([] as never);
+    }
+    jest.spyOn(s as never, 'assertContactFormats' as never).mockReturnValue(undefined as never);
+    jest.spyOn(s as never, 'scalarData' as never).mockReturnValue({} as never);
+    jest.spyOn(s as never, 'resolveTitle' as never).mockReturnValue('Bucatarie Cluj' as never);
+    jest.spyOn(s as never, 'writeRooms' as never).mockResolvedValue(new Map() as never);
+    return ctx;
+  }
+  const content = { rooms: [], hasOwnProject: false, studioScenes: [], addressText: 'Str. X 1', city: 'Cluj-Napoca', county: 'Cluj' } as never;
+  const noCoverageCalls = (outbox: { record: AnyMock }) =>
+    outbox.record.mock.calls.filter((c: unknown[]) => c[2] === 'request.no_coverage');
+
+  it('NONE → un singur eveniment request.no_coverage catre admini, in tranzactie; publicarea trece', async () => {
+    const { service, outbox, tx, prisma } = prepare(false);
+    await expect(service.publish('tok', content, 'A')).resolves.toEqual({ id: EXP_ID });
+    expect(tx.request.update.mock.calls[0][0].data.status).toBe('IN_MARKETPLACE');
+    const calls = noCoverageCalls(outbox);
+    expect(calls).toHaveLength(1);
+    const [txArg, key, , payload, targets] = calls[0];
+    expect(txArg).toBe(tx);
+    expect(key).toBe(`request.no_coverage:${EXP_ID}`);
+    expect(payload).toEqual({ requestId: EXP_ID, requestTitle: 'Bucatarie Cluj', city: 'Cluj-Napoca', county: 'Cluj' });
+    expect(targets).toEqual(['admin-1', 'admin-2']);
+    // m1: acoperirea se citeste in afara tranzactiei (inaintea ei)
+    expect(prisma.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(prisma.$transaction.mock.invocationCallOrder[0]);
+  });
+
+  // m5: doar adminii activi (nestersi, neblocati, neanonimizati)
+  it('destinatarii sunt doar adminii activi', async () => {
+    const { service, prisma } = prepare(false);
+    await service.publish('tok', content, 'A');
+    expect(prisma.user.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { role: 'ADMIN', deletedAt: null, blockedAt: null, anonymizedAt: null },
+    }));
+  });
+
+  it('NONE fara admini activi → niciun eveniment', async () => {
+    const { service, outbox, prisma } = prepare(false);
+    prisma.user.findMany.mockResolvedValue([]);
+    await service.publish('tok', content, 'A');
+    expect(noCoverageCalls(outbox)).toHaveLength(0);
+  });
+
+  it('COVERED → niciun eveniment request.no_coverage', async () => {
+    const { service, outbox, prisma } = prepare(true);
+    await service.publish('tok', content, 'A');
+    expect(noCoverageCalls(outbox)).toHaveLength(0);
+    expect(prisma.user.findMany).not.toHaveBeenCalled();
+  });
+
+  // m1: o eroare a interogarii de acoperire nu strica publicarea
+  it('interogarea de acoperire arunca → publicarea reuseste, fara eveniment', async () => {
+    const { service, outbox, prisma, tx } = prepare(false);
+    prisma.$queryRaw.mockRejectedValue(new Error('statement timeout'));
+    await expect(service.publish('tok', content, 'A')).resolves.toEqual({ id: EXP_ID });
+    expect(tx.request.update.mock.calls[0][0].data.status).toBe('IN_MARKETPLACE');
+    expect(noCoverageCalls(outbox)).toHaveLength(0);
+    expect(outbox.record.mock.calls.map((c: unknown[]) => c[1])).toContain(`request.published:${EXP_ID}`);
+  });
+
+  it('interogarea primeste punctul geocodat al cererii', async () => {
+    const { service, prisma } = prepare(true);
+    await service.publish('tok', content, 'A');
+    const values = prisma.$queryRaw.mock.calls[0].slice(1);
+    expect(values).toEqual(expect.arrayContaining([44.4, 26.1]));
+  });
+});
+
+// a6 — Sumar: POST drafts/:token/coverage
+describe('RequestsService.draftCoverage (a6)', () => {
+  const address = { addressText: 'Str. X 1', city: 'Cluj-Napoca', county: 'Cluj' };
+
+  it('ciorna proprie + firma pe raza → COVERED; fara firma → NONE', async () => {
+    const { service, prisma, geo } = setup();
+    (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'DRAFT', clientUserId: 'A' }));
+    const raw = prisma.$queryRaw;
+    await expect(service.draftCoverage('tok', address, 'A')).resolves.toEqual({ coverage: 'COVERED' });
+    expect(geo.geocode).toHaveBeenCalledWith('Str. X 1', 'Cluj-Napoca', 'Cluj', undefined);
+    raw.mockResolvedValue([{ covered: false }]);
+    await expect(service.draftCoverage('tok', address, 'A')).resolves.toEqual({ coverage: 'NONE' });
+  });
+
+  it('geocodarea esueaza → UNKNOWN, nu eroare', async () => {
+    const { service, prisma, geo } = setup();
+    (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'DRAFT', clientUserId: null }));
+    geo.geocode.mockRejectedValue(new Error('geocoding failed'));
+    await expect(service.draftCoverage('tok', address, null)).resolves.toEqual({ coverage: 'UNKNOWN' });
+  });
+
+  it('interogarea de acoperire arunca → UNKNOWN, nu eroare', async () => {
+    const { service, prisma } = setup();
+    (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'DRAFT', clientUserId: 'A' }));
+    prisma.$queryRaw.mockRejectedValue(new Error('db down'));
+    await expect(service.draftCoverage('tok', address, 'A')).resolves.toEqual({ coverage: 'UNKNOWN' });
+  });
+
+  // m6: cel mult 10 intrebari pe minut pe ciorna; peste limita UNKNOWN, fara geocodare
+  it('limita pe ciorna: a 11-a intrebare in 60 s → UNKNOWN fara geocodare; dupa fereastra merge iar', async () => {
+    jest.useFakeTimers({
+      now: new Date('2026-11-14T10:00:00Z'),
+      doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'],
+    });
+    try {
+      const { service, prisma, geo } = setup();
+      (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'DRAFT', clientUserId: 'A' }));
+      for (let i = 0; i < 10; i++) {
+        await expect(service.draftCoverage('tok', address, 'A')).resolves.toEqual({ coverage: 'COVERED' });
+      }
+      await expect(service.draftCoverage('tok', address, 'A')).resolves.toEqual({ coverage: 'UNKNOWN' });
+      expect(geo.geocode).toHaveBeenCalledTimes(10);
+      // alta ciorna are contorul ei
+      (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ id: 'req-2', status: 'DRAFT', clientUserId: 'A' }));
+      await expect(service.draftCoverage('tok2', address, 'A')).resolves.toEqual({ coverage: 'COVERED' });
+      (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'DRAFT', clientUserId: 'A' }));
+      jest.setSystemTime(new Date('2026-11-14T10:01:00Z'));
+      await expect(service.draftCoverage('tok', address, 'A')).resolves.toEqual({ coverage: 'COVERED' });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('ciorna altui cont → 404 DRAFT_TOKEN_INVALID, fara geocodare', async () => {
+    const { service, prisma, geo } = setup();
+    (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'DRAFT', clientUserId: 'B' }));
+    await expectCode(service.draftCoverage('tok', address, 'A'), NotFoundException, ERROR_CODES.DRAFT_TOKEN_INVALID);
+    expect(geo.geocode).not.toHaveBeenCalled();
   });
 });
 

@@ -7,10 +7,12 @@ import en from '../../../messages/en.json';
 import { RequestVisibilityCard } from './request-visibility-card';
 
 // E-client-9 (C7-16): cardul "Cine vede cererea".
-function renderCard(visibility: RequestVisibilityDto & RequestVisibilityClosedReasonDto, locale: 'ro' | 'en' = 'ro') {
+// a6: acoperirea lipsa din fixture = exista firme in zona (COVERED)
+type CardInput = Omit<RequestVisibilityDto, 'coverage'> & Partial<Pick<RequestVisibilityDto, 'coverage'>> & RequestVisibilityClosedReasonDto;
+function renderCard(visibility: CardInput, locale: 'ro' | 'en' = 'ro') {
   return render(
     <NextIntlClientProvider locale={locale} messages={locale === 'ro' ? ro : en} timeZone="Europe/Bucharest">
-      <RequestVisibilityCard visibility={visibility} />
+      <RequestVisibilityCard visibility={{ coverage: 'COVERED', ...visibility }} />
     </NextIntlClientProvider>,
   );
 }
@@ -58,6 +60,31 @@ describe('RequestVisibilityCard', () => {
     renderCard({ requestId: 'r1', projectVisibleInMarketplace: false, contactHolders: [], marketplaceClosedReason: reason });
     expect(screen.getByText(text)).toBeTruthy();
     expect(screen.queryByText(ro.Requests.visibility.projectClosed)).toBeNull();
+  });
+
+  // a6 (PO a6-1): avertisment doar la NONE si doar cat cererea e in piata; niciodata un numar
+  it('nicio firma in zona (NONE): avertismentul in locul textului "vizibila", RO si EN', () => {
+    const v = { requestId: 'r1', projectVisibleInMarketplace: true, contactHolders: [], coverage: 'NONE' as const };
+    renderCard(v);
+    const warning = screen.getByTestId('no-coverage-warning');
+    expect(warning.textContent).toContain(ro.Requests.visibility.noCoverage.title);
+    expect(warning.textContent).toContain(ro.Requests.visibility.noCoverage.body);
+    expect(warning.textContent).not.toMatch(/\d/);
+    expect(screen.queryByText(ro.Requests.visibility.projectVisible)).toBeNull();
+    const { container } = renderCard(v, 'en');
+    expect(container.textContent).toContain(en.Requests.visibility.noCoverage.title);
+  });
+
+  it.each(['COVERED', 'UNKNOWN'] as const)('acoperire %s: fara avertisment, textul obisnuit', (coverage) => {
+    renderCard({ requestId: 'r1', projectVisibleInMarketplace: true, contactHolders: [], coverage });
+    expect(screen.queryByTestId('no-coverage-warning')).toBeNull();
+    expect(screen.getByText(ro.Requests.visibility.projectVisible)).toBeTruthy();
+  });
+
+  it('NONE dar cererea nu mai e in piata: motivul inchiderii, fara avertisment', () => {
+    renderCard({ requestId: 'r1', projectVisibleInMarketplace: false, contactHolders: [], coverage: 'NONE', marketplaceClosedReason: 'EXPIRED' });
+    expect(screen.queryByTestId('no-coverage-warning')).toBeNull();
+    expect(screen.getByText(ro.Requests.visibility.closedReason.EXPIRED)).toBeTruthy();
   });
 
   it('contacte in asteptare (AFTER_GRACE): "din {ora}" in ora Romaniei, si in engleza', () => {

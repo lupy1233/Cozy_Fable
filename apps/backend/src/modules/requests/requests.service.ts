@@ -15,6 +15,7 @@ import {
   type ContactDetectionTrigger,
   SETTING_PRE_CLAIM_CONTACT_TEXT_POLICY,
   type PresignUploadResultDto,
+  type RequestCoverageDto,
   type RequestDraftCreatedDto,
   type RequestDto,
   type RequestListItemDto,
@@ -56,6 +57,7 @@ import { QUEUE_REQUEST_EXPIRATION } from '../../infra/queues/queues.module';
 import { SizingService } from '../sizing/sizing.service';
 import { InspirationService } from '../inspiration/inspiration.service';
 import { GeoService } from '../geo/geo.service';
+import { requestCoverage } from '../marketplace/area-coverage';
 import { UploadsService } from '../uploads/uploads.service';
 import { ClaimSettlementService } from '../billing/claim-settlement.service';
 import { SettingsService } from '../../common/settings/settings.service';
@@ -347,12 +349,16 @@ export class RequestsService {
     const now = new Date();
     const expiresAt = this.calendar.addWorkingDays(now, EXPIRATION_WORKING_DAYS);
 
+    const title = this.resolveTitle(dto, processed.rooms, contactScreen.titleHasContact);
+    // a6 / m1: acoperirea si adminii se citesc INAINTE de tranzactie, cu orice eroare = fara anunt
+    // (o instructiune esuata in tranzactie ar strica toata publicarea)
+    const noCoverageAdminIds = await this.noCoverageRecipients(geo.lat, geo.lng);
     await runTx(this.prisma, 'write', async (tx) => {
       await tx.request.update({
         where: { id: request.id },
         data: {
           ...this.scalarData(saved),
-          title: this.resolveTitle(dto, processed.rooms, contactScreen.titleHasContact),
+          title,
           // leaga draftul (posibil anonim) de contul care publica
           clientUserId: userId,
           lat: geo.lat,
@@ -378,6 +384,17 @@ export class RequestsService {
         await tx.requestContactDetection.createMany({ data: contactScreen.rows });
       }
       await this.outbox.record(tx, `request.published:${request.id}`, 'request.status_changed', { requestId: request.id, status: 'IN_MARKETPLACE' }, []);
+      // a6-2: publicarea trece si fara nicio firma in zona; echipa Cozy Home e anuntata
+      // (clopotel + e-mail adminilor) ca sa caute o firma acolo
+      if (noCoverageAdminIds.length > 0) {
+        await this.outbox.record(
+          tx,
+          `request.no_coverage:${request.id}`,
+          'request.no_coverage',
+          { requestId: request.id, requestTitle: title, city: dto.city, county: dto.county },
+          noCoverageAdminIds,
+        );
+      }
     });
 
     await this.scheduleExpiration(request.id, expiresAt);
@@ -592,7 +609,7 @@ export class RequestsService {
     id: string,
   ): Promise<RequestVisibilityDto & RequestVisibilityClosedReasonDto> {
     const request = await this.findOwnedRequest(userId, id);
-    const [openAfterFirstOffer, maxClaims, [revealPolicy], slots] = await Promise.all([
+    const [openAfterFirstOffer, maxClaims, [revealPolicy], slots, coverage] = await Promise.all([
       this.settings.getBool(SETTING_CLAIMS_OPEN_AFTER_FIRST_OFFER, SETTING_DEFAULTS.claims_open_after_first_offer),
       this.settings.getInt('max_claims_per_request', SETTING_DEFAULTS.max_claims_per_request),
       readClaimContactAccessSettings(this.settings),
@@ -601,6 +618,9 @@ export class RequestsService {
         include: { company: { select: { name: true } } },
         orderBy: { createdAt: 'asc' },
       }),
+      // a6: doar da / nu (fara numar de firme); UNKNOWN = cererea nu are coordonate.
+      // Interfata il foloseste doar cat proiectul e in piata.
+      requestCoverage(this.prisma, request.lat, request.lng),
     ]);
     const projectVisibleInMarketplace =
       claimableStatuses(openAfterFirstOffer).includes(request.status) &&
@@ -640,7 +660,69 @@ export class RequestsService {
     const marketplaceClosedReason = projectVisibleInMarketplace
       ? null
       : (closedReasonFor({ status: request.status, occupied: slots.length, maxClaims, openAfterFirstOffer }) ?? 'CLOSED');
-    return { requestId: id, projectVisibleInMarketplace, contactHolders, marketplaceClosedReason };
+    return { requestId: id, projectVisibleInMarketplace, contactHolders, marketplaceClosedReason, coverage };
+  }
+
+  // a6 — Sumar: exista vreo firma care acopera adresa ciornei? Aceleasi verificari de acces ca
+  // celelalte rute de ciorna (tokenul + proprietarul); adresa vine in forma de la publicare si se
+  // geocodeaza pe server. Geocodare esuata → UNKNOWN (nu eroare). Doar da / nu, niciodata un numar.
+  async draftCoverage(
+    token: string,
+    address: { addressText: string; city: string; county: string; country?: string },
+    callerId: string | null,
+  ): Promise<RequestCoverageDto> {
+    const draft = await this.findByToken(token, callerId);
+    // m6: limita pe ciorna (nu doar pe IP, care pe productie poate fi comun tuturor) — peste
+    // limita raspundem UNKNOWN, fara geocodare: Sumarul nu arata nimic
+    if (!this.takeDraftCoverageSlot(draft.id)) return { coverage: 'UNKNOWN' };
+    try {
+      // geo.geocode citeste / scrie geocoding_cache: aceeasi adresa nu se geocodeaza a doua oara
+      const geo = await this.geo.geocode(address.addressText, address.city, address.county, address.country);
+      return { coverage: await requestCoverage(this.prisma, geo.lat, geo.lng) };
+    } catch {
+      return { coverage: 'UNKNOWN' };
+    }
+  }
+
+  // m6: fereastra fixa de 60 s, cel mult DRAFT_COVERAGE_LIMIT intrebari pe ciorna. Contor in
+  // memoria procesului (un singur slot activ blue/green; la repornire se goleste — e doar o frana).
+  private static readonly DRAFT_COVERAGE_LIMIT = 10;
+  private static readonly DRAFT_COVERAGE_WINDOW_MS = 60_000;
+  private readonly draftCoverageHits = new Map<string, { windowStart: number; count: number }>();
+
+  private takeDraftCoverageSlot(draftId: string, now = Date.now()): boolean {
+    const windowMs = RequestsService.DRAFT_COVERAGE_WINDOW_MS;
+    // curatenie: intrarile cu fereastra expirata nu mai conteaza
+    if (this.draftCoverageHits.size > 1000) {
+      for (const [id, hit] of this.draftCoverageHits) {
+        if (now - hit.windowStart >= windowMs) this.draftCoverageHits.delete(id);
+      }
+    }
+    const hit = this.draftCoverageHits.get(draftId);
+    if (!hit || now - hit.windowStart >= windowMs) {
+      this.draftCoverageHits.set(draftId, { windowStart: now, count: 1 });
+      return true;
+    }
+    if (hit.count >= RequestsService.DRAFT_COVERAGE_LIMIT) return false;
+    hit.count += 1;
+    return true;
+  }
+
+  // a6-2 / m1 / m5 — cine primeste anuntul "cerere fara nicio firma in zona": adminii activi
+  // (nestersi, neblocati, neanonimizati), doar cand acoperirea e NONE. Se cheama INAINTE de
+  // tranzactia publicarii; orice eroare = lista goala (UNKNOWN), publicarea nu pica.
+  private async noCoverageRecipients(lat: number, lng: number): Promise<string[]> {
+    try {
+      if ((await requestCoverage(this.prisma, lat, lng)) !== 'NONE') return [];
+      const admins = await this.prisma.user.findMany({
+        where: { role: 'ADMIN', deletedAt: null, blockedAt: null, anonymizedAt: null },
+        select: { id: true },
+      });
+      return admins.map((a) => a.id);
+    } catch (e) {
+      this.logger.warn(`coverage check failed at publish: ${e instanceof Error ? e.name : 'error'}`);
+      return [];
+    }
   }
 
   // Cererea exista, nu e stearsa si apartine clientului curent (ownership).
@@ -1228,6 +1310,8 @@ export class RequestsService {
         answers: room.answers as Prisma.InputJsonValue,
         flowVersion: room.flowVersion,
         needsDesignHelp: room.needsDesignHelp === true,
+        // d3: lungimea aproximativa (proiect propriu) — editarea o pastreaza
+        approxLengthM: room.approxLengthM ?? null,
       };
       if (existingId) toUpdate.push({ id, data });
       else toCreate.push({ id, requestId, ...data });
@@ -1399,6 +1483,7 @@ export class RequestsService {
         answers: (r.answers ?? null) as Record<string, unknown> | null,
         flowVersion: r.flowVersion,
         needsDesignHelp: r.needsDesignHelp,
+        approxLengthM: r.approxLengthM === null || r.approxLengthM === undefined ? null : Number(r.approxLengthM),
         items: r.items.map((it) => ({
           id: it.id,
           name: it.name,

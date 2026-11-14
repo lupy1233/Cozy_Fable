@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { requestStudioSceneDataSchema, REQUEST_STUDIO_SCENES_MAX, type RequestStudioSceneDto } from './studio.schemas';
 import type { DashboardActionItemDto } from './dashboard.schemas';
 import { INSPIRATION_NOTE_MAX, MAX_REQUEST_INSPIRATION_PHOTOS } from './inspiration.schemas';
+import { APPROX_LENGTH_DECIMALS, APPROX_LENGTH_MAX_M, APPROX_LENGTH_MIN_M, hasAtMostDecimals } from './questionnaire/mapping';
 import {
   ATTACHMENT_STATUSES,
   BUDGET_RANGES,
@@ -279,6 +280,14 @@ export const configuratorRoomSchema = z.object({
   // b8 (PO g0-8): "La camera asta am nevoie de ajutor" — validare relaxata doar pentru
   // camera bifata; serverul ii arunca raspunsurile la publicare/editare (pastreaza fisierele)
   needsDesignHelp: z.boolean().optional(),
+  // d3 (PO d3-2): lungimea aproximativa (m), in afara raspunsurilor; permisa doar cand cererea
+  // are hasOwnProject (verificat pe server). Gol = "sub 2 m" la marime, ca inainte.
+  approxLengthM: z
+    .number()
+    .min(APPROX_LENGTH_MIN_M, 'approxLengthOutOfRange')
+    .max(APPROX_LENGTH_MAX_M, 'approxLengthOutOfRange')
+    .refine((v) => hasAtMostDecimals(v, APPROX_LENGTH_DECIMALS), 'approxLengthTooManyDecimals')
+    .optional(),
 });
 
 // Continutul complet al unei cereri create prin configurator (payload publish/edit).
@@ -459,6 +468,8 @@ export interface RequestRoomDto {
   // b8 (PO g0-8): clientul a cerut ajutor la camera asta — pleaca fara raspunsuri
   // (doar tipul, schitele si mesajul); cererea e "cu proiectare" daca macar o camera e bifata
   needsDesignHelp: boolean;
+  // d3 (PO d3-2): lungimea aproximativa (m) data cu "Am deja un proiect"; null = nedata
+  approxLengthM?: number | null;
 }
 
 // E-client-34: poza de inspiratie a cererii cu notita si camera
@@ -570,6 +581,16 @@ export interface RequestVisibilityDto {
   requestId: string;
   projectVisibleInMarketplace: boolean;
   contactHolders: RequestVisibilityContactHolderDto[];
+  // a6: exista vreo firma care acopera punctul aproximat al cererii (doar da / nu, niciodata
+  // un numar). UNKNOWN = cererea nu are coordonate.
+  coverage: RequestCoverage;
+}
+
+// a6 — acoperirea zonei (cardul "Cine vede cererea" + Sumar: POST /requests/drafts/:token/coverage)
+export const REQUEST_COVERAGE_VALUES = ['COVERED', 'NONE', 'UNKNOWN'] as const;
+export type RequestCoverage = (typeof REQUEST_COVERAGE_VALUES)[number];
+export interface RequestCoverageDto {
+  coverage: RequestCoverage;
 }
 
 // Raspuns la crearea unui draft anonim (tokenul e secretul de editare).

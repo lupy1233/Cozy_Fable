@@ -264,6 +264,13 @@ export function RoomSpecCard({
           </p>
         )}
 
+        {/* d3 (PO d3-2): lungimea aproximativa data de client cu "Am deja un proiect" */}
+        {!designHelp && typeof room.approxLengthM === 'number' && room.approxLengthM > 0 && (
+          <p data-room-approx-length className="font-mono text-xs text-muted-foreground">
+            {t('roomSpec.approxLength', { m: fmtM(room.approxLengthM) })}
+          </p>
+        )}
+
         {/* note text libere (ex. "alt material" e deja in items; raman doar textele reale) */}
         {notes.length > 0 && (
           <div className="flex flex-col gap-1">

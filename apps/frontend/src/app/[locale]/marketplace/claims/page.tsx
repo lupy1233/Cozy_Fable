@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useMyCompany } from '@/hooks/use-company';
 import { useMyClaims } from '@/hooks/use-marketplace';
 import { useThreads } from '@/hooks/use-chat';
@@ -22,6 +23,7 @@ import { Select } from '@/components/ui/select';
 import { SkeletonPage, SkeletonTable } from '@/components/ui/skeleton';
 import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/table';
 import { useNow } from '@/hooks/use-now';
+import { isUnauthorizedError } from '@/lib/api';
 import { companyCan } from '@/lib/company-permissions';
 import { useRelativeTime } from '@/lib/relative-time';
 import { compareClaimUrgency, slaPhase, timeLeftUnits, useSlaDateFormat } from '@/lib/sla-deadline';
@@ -61,6 +63,7 @@ export default function CompanyClaimsPage() {
   const tr = useTranslations('Requests');
   const router = useRouter();
   const me = useMe();
+  const toLogin = useLoginRedirect();
   const claims = useMyClaims();
   const threads = useThreads('company');
   // cine poate atribui (OWNER/MANAGER) primeste pasul "Alege responsabilul"
@@ -115,9 +118,11 @@ export default function CompanyClaimsPage() {
   );
 
   useEffect(() => {
-    if (me.isError) router.replace('/login');
+    if (me.isError) toLogin();
     else if (me.data && me.data.role !== 'COMPANY_USER') router.replace('/dashboard');
-  }, [me.isError, me.data, router]);
+  }, [me.isError, me.data, router, toLogin]);
+
+  const unauthorized = isUnauthorizedError(claims.error);
 
   if (me.isPending) {
     return <QueryState pending onRetry={() => void me.refetch()} skeleton={<SkeletonPage variant="table" />} />;
@@ -129,8 +134,9 @@ export default function CompanyClaimsPage() {
       {/* h2: fara abonament lista ramane; mesajul spune doar ce s-a schimbat */}
       <SubscriptionStatusNotice />
 
-      {claims.isPending && <SkeletonTable rows={5} cols={6} />}
-      {claims.isError && <AccessBlocked error={claims.error} onRetry={() => void claims.refetch()} />}
+      {/* f3: 401 = sesiune pierduta → incarcare (ascultatorul global duce la login), nu eroare */}
+      {(claims.isPending || unauthorized) && <SkeletonTable rows={5} cols={6} />}
+      {claims.isError && !unauthorized && <AccessBlocked error={claims.error} onRetry={() => void claims.refetch()} />}
       {claims.isSuccess && claims.data.length === 0 && (
         <EmptyState
           variant="card"

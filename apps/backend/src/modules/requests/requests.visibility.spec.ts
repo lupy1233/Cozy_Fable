@@ -12,6 +12,7 @@ function setup(opts: {
   request?: Record<string, unknown> | null;
   slots?: Record<string, unknown>[];
   settings?: Record<string, string>;
+  covered?: boolean;
 } = {}) {
   const request = opts.request === undefined
     ? {
@@ -25,6 +26,8 @@ function setup(opts: {
     claimSlot: {
       findMany: jest.fn(async ({ where }: any) => allSlots.filter((s: any) => where.status.in.includes(s.status))),
     },
+    // a6: interogarea de acoperire (hasCoveringCompany) — doar da / nu
+    $queryRaw: jest.fn().mockResolvedValue([{ covered: opts.covered ?? true }]),
   };
   const values: Record<string, string> = opts.settings ?? {};
   const settings: any = {
@@ -86,7 +89,25 @@ describe('RequestsService.getVisibilityForClient (E-client-9)', () => {
     });
     await expect(service.getVisibilityForClient('client-1', 'r1')).resolves.toEqual({
       requestId: 'r1', projectVisibleInMarketplace: true, contactHolders: [], marketplaceClosedReason: null,
+      coverage: 'COVERED',
     });
+  });
+
+  // a6 (PO a6-1): doar da / nu, fara numar de firme
+  it('acoperire: nicio firma pe raza → NONE; firma pe raza → COVERED', async () => {
+    const none = setup({ covered: false });
+    expect((await none.service.getVisibilityForClient('client-1', 'r1')).coverage).toBe('NONE');
+    expect(none.prisma.$queryRaw).toHaveBeenCalledTimes(1);
+    const covered = setup({ covered: true });
+    expect((await covered.service.getVisibilityForClient('client-1', 'r1')).coverage).toBe('COVERED');
+  });
+
+  it('acoperire: cerere fara coordonate → UNKNOWN, fara interogare', async () => {
+    const { service, prisma } = setup({
+      request: { id: 'r1', clientUserId: 'client-1', status: 'IN_MARKETPLACE', deletedAt: null, publishedAt: new Date(), lat: null, lng: null, deliveredAt: null },
+    });
+    expect((await service.getVisibilityForClient('client-1', 'r1')).coverage).toBe('UNKNOWN');
+    expect(prisma.$queryRaw).not.toHaveBeenCalled();
   });
 
   it('ACCEPTED / sloturi pline → proiectul nu mai e in marketplace; COMPLETED ramane detinator', async () => {
