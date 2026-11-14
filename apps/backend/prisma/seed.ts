@@ -208,6 +208,9 @@ const SYSTEM_SETTINGS: Record<string, string> = {
   bank_transfer_expiry_days: '0',
   // e1-3 (PO 2026-11-13): "livrat" doar dupa N zile de la acceptare; 0 = fara limita
   delivery_min_days_after_accept: '7',
+  // f6-1 (PO 2026-11-13): ciornele neatinse se sterg dupa N zile (vizitatori / clienti cu cont)
+  guest_draft_retention_days: '7',
+  client_draft_retention_days: '90',
 };
 
 async function main() {

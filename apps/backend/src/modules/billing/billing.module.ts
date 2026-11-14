@@ -9,6 +9,7 @@ import {
   PaymentsController,
 } from './payments.controller';
 import { CreditsService } from './credits.service';
+import { CreditHistoryService } from './credit-history.service';
 import { ClaimSettlementService } from './claim-settlement.service';
 import { LedgerCheckService } from './ledger-check.service';
 import { SubscriptionsService } from './subscriptions.service';
@@ -41,6 +42,8 @@ import { activeOnlyProviders } from '../../config/deployment-mode';
     BillingReadyGuard,
     EInvoiceExportService,
     CreditsService,
+    // h3 (etapa 9): istoricul portofelului (doar citire)
+    CreditHistoryService,
     // E-admin-platform-15: decontarea unica a rezervarilor + verificarea zilnica ledger/portofel
     ClaimSettlementService,
     LedgerCheckService,

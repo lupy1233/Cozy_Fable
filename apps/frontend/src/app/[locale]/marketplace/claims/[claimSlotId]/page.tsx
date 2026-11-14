@@ -53,6 +53,7 @@ import { SubscriptionStatusNotice } from '../../_components/subscription-status-
 import { OfferBuilder } from '../../../_components/offer-builder';
 import { OfferCard } from '../../../_components/offer-card';
 import { useBudgetFormat } from '@/hooks/use-budget-format';
+import { RequestChangesNotice } from './request-changes-notice';
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -209,6 +210,9 @@ function ClaimWorkspace({
       <SubscriptionStatusNotice />
 
       <WorkBar ctx={c} />
+
+      {/* e3: clientul a editat cererea dupa preluare — ce s-a schimbat (doar daca e cazul) */}
+      <RequestChangesNotice claimSlotId={c.claimSlotId} />
 
       <div ref={tabsRef} className="scroll-mt-24">
         <Tabs

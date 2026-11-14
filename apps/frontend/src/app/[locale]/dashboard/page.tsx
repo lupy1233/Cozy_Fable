@@ -8,7 +8,7 @@ import {
   type DashboardActionItemDto,
 } from '@marketplace/shared';
 import { ArrowRight, Check, Plus } from 'lucide-react';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useEffect, type ReactNode } from 'react';
 import { Link } from '@/i18n/routing';
 import { useMe } from '@/hooks/use-auth';
@@ -25,6 +25,7 @@ import { FirmRulesLink } from '../_components/firm-rules-link';
 import { RequestStatusBadge } from '../_components/request-progress';
 import { TodoNowCard } from '../_components/todo-now-card';
 import { UnpublishedDraftCard } from './_components/unpublished-draft-card';
+import { formatQuoteTotals } from './_components/format-quote-totals';
 import {
   SubscriptionStatusNotice,
   useSubscriptionLapsed,
@@ -380,6 +381,7 @@ function CompanyDashboard({ user }: { user: AuthUser }) {
   const tc = useTranslations('Company');
   const tm = useTranslations('Marketplace');
   const money = useMoney();
+  const locale = useLocale();
   const stats = useCompanyDashboardStats();
   const lapsed = useSubscriptionLapsed();
   const s = stats.data;
@@ -442,7 +444,7 @@ function CompanyDashboard({ user }: { user: AuthUser }) {
               <StatCard label={t('company.quotesSent')} value={s.quotesSent} href="/marketplace/claims" />
               <StatCard
                 label={t('company.quotesTotalRon')}
-                value={money(s.quotesTotalRon)}
+                value={formatQuoteTotals(s.quotesTotals, money, locale)}
                 href="/marketplace/claims"
               />
             </div>

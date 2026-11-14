@@ -180,7 +180,8 @@ export interface CompanyDashboardStatsDto {
   perMember: { userId: string | null; name: string | null; activeClaims: number }[];
   // oferte trimise/acceptate + valoarea totala a ultimei versiuni per oferta
   quotesSent: number;
-  quotesTotalRon: number;
+  // h3 (etapa 9): totalurile pe moneda ofertei, fara conversie ("X lei + Y EUR")
+  quotesTotals: { RON: number; EUR: number };
   wallet: { balance: number; reserved: number; available: number };
   creditsConsumed7d: number;
   creditsConsumed30d: number;

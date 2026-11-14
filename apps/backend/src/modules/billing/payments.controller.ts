@@ -148,6 +148,17 @@ export class PaymentsController {
   markPaid(@CurrentCompany() ctx: CompanyContext, @Param('id', ParseUUIDPipe) id: string) {
     return this.bankTransfer.markPaid(ctx.companyId, id);
   }
+
+  // h3 (etapa 9): "Anuleaza comanda" — proprietar/manager, comanda proprie PENDING nemarcata
+  // "Am platit". Acelasi drum ca anularea de admin (FOR UPDATE + updateMany conditionat).
+  // Fara Idempotency-Key: repetarea e idempotenta pe stare (CANCELLED → acelasi raspuns).
+  @Post('orders/:id/cancel')
+  @HttpCode(200)
+  @Audit('PAYMENT_CANCELLED', 'mock_billing_order')
+  @UseGuards(CompanyManagerGuard)
+  cancelOrder(@CurrentCompany() ctx: CompanyContext, @Param('id', ParseUUIDPipe) id: string) {
+    return this.payments.cancel(id, 'company', ctx.companyId);
+  }
 }
 
 // Admin: lista comenzi + confirma plata (calea A, 3.7 — transfer bancar) / anuleaza — auditat (3.9).

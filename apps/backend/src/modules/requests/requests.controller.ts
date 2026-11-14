@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  type ExecutionContext,
   Get,
   Param,
   ParseUUIDPipe,
@@ -13,6 +14,7 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { UserRole } from '@prisma/client';
+import { clientIpSourceOf, type ClientIpSource } from '../../common/http/client-ip';
 import { AccessTokenPayload } from '../auth/auth.constants';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
@@ -27,6 +29,17 @@ import {
   PresignAttachmentDto,
 } from './dto/request.dto';
 import { RequestsService } from './requests.service';
+
+// f6 / revizie M2 — limita la crearea ciornelor. 10/min pe IP doar cand IP-ul clientului vine din
+// antetul de incredere (TRUSTED_CLIENT_IP_HEADER configurat SI prezent, clientIpSource = 'header').
+// Altfel (antet nesetat: toti vizitatorii au IP-ul proxy-ului) un plafon larg, ca protectie
+// generala fara sa blocheze formularul pentru toata lumea. Limita globala (100/min) ramane.
+export const DRAFT_CREATE_LIMIT_PER_CLIENT_IP = 10;
+export const DRAFT_CREATE_LIMIT_SHARED_IP = 120;
+export function draftCreateLimit(context: ExecutionContext): number {
+  const req = context.switchToHttp().getRequest<{ clientIpSource?: ClientIpSource }>();
+  return clientIpSourceOf(req) === 'header' ? DRAFT_CREATE_LIMIT_PER_CLIENT_IP : DRAFT_CREATE_LIMIT_SHARED_IP;
+}
 
 // a6 — adresa ciornei pentru verificarea acoperirii, cu aceleasi reguli ca la publicare
 // (CreateRequestContentDto: addressText / county / city / country)
@@ -68,7 +81,10 @@ export class RequestsController {
 
   // --- flux draft anonim cu token (Public; legat de client daca e logat) ---
 
+  // f6: fiecare apel creeaza un rand DRAFT (si poate primi fisiere) → 10/min pe IP, doar cand IP-ul
+  // clientului e sigur (revizie M2, vezi draftCreateLimit)
   @Public()
+  @Throttle({ default: { limit: draftCreateLimit, ttl: 60_000 } })
   @Post('drafts')
   createDraft(@CurrentUser() user: AccessTokenPayload | undefined, @Body() dto: PatchDraftDto) {
     return this.requests.createDraft(user?.sub ?? null, dto, user?.role ?? null);
@@ -225,6 +241,20 @@ export class RequestsController {
   @Post(':id/repost')
   repostById(@CurrentUser() user: AccessTokenPayload, @Param('id') id: string) {
     return this.requests.repostForClient(user.sub, id);
+  }
+
+  // f6-2: "Republica cu modificari" — continutul nou + republicarea intr-un singur pas, tot o
+  // singura data (REPOST_ALREADY_USED); nu consuma din editari. Audit ca la repost.
+  @Roles(UserRole.CLIENT)
+  @UseInterceptors(AuditInterceptor)
+  @Audit('REQUEST_REPOSTED', 'request')
+  @Post(':id/repost-with-changes')
+  repostWithChangesById(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateRequestContentDto,
+  ) {
+    return this.requests.repostWithChangesForClient(user.sub, id, dto);
   }
 
   // Atasamente pe cererea proprie (echivalentul autentificat al rutelor cu token).

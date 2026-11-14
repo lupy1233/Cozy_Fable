@@ -7,7 +7,8 @@ import { MailService } from '../../infra/mail/mail.service';
 import { supportLineHtml } from '../../infra/mail/mail-footer';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { BillingDocumentsService, type BillingEmailExtras } from '../billing/billing-documents.service';
-import { BILLING_MANAGER_ROLES } from '../billing/billing-recipients';
+import { BILLING_MANAGER_ROLES, billingManagerIds } from '../billing/billing-recipients';
+import { CLAIM_COMPANY_EMAIL_EVENTS, claimCompanyEmailRecipients } from './notification-rules';
 
 // Emailuri pentru evenimentele de domeniu (Q4 + L1 audit 2026-08-23). Trimise din worker-ul
 // cozii de notificari (nu blocheaza requestul); esecul unui email NU esueaza jobul (altfel
@@ -58,7 +59,28 @@ const EMAILED_EVENTS = new Set([
   'request.no_coverage',
   // e4 (2026-11-14): o firma a renuntat la preluare → clientul (tinta unica)
   'request.company_withdrew',
+  // g1 (etapa 9): publicarea → clientul (doar e-mail); finalizarea si recenzia → firma;
+  // e3: intrebarea firmei → clientul, raspunsul clientului si editarea dupa preluare → firma.
+  // La firma: responsabilul preluarii + proprietar/manageri (CLAIM_COMPANY_EMAIL_EVENTS).
+  // request.new_in_area NU e aici: e-mailul firmei e rezumatul zilnic (sendNewRequestsDigest).
+  'request.published',
+  'delivery.confirmed',
+  'review.created',
+  'clarification.asked',
+  'clarification.answered',
+  'request.edited_after_claim',
 ]);
+
+// g1-2: rezumatul zilnic arata cel mult atatea cereri (restul = „si inca N”)
+const DIGEST_MAX_ITEMS = 20;
+
+export interface NewRequestDigestItem {
+  requestId: string;
+  // titlul / localitatea asa cum le vede firma in marketplace (titlul deja mascat)
+  title: string;
+  city: string;
+  county: string;
+}
 
 // a4: motivele refuzului (PO a4-2), in limba destinatarului
 const DECLINE_REASON_TEXT: Record<string, { ro: string; en: string }> = {
@@ -141,6 +163,13 @@ function formatRon(value: unknown, ro: boolean): string {
   const n = Number(value);
   if (!Number.isFinite(n)) return '';
   return `${new Intl.NumberFormat(ro ? 'ro-RO' : 'en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)} lei`;
+}
+
+// m7 (revizie g1): in romana „de” apare cand ultimele doua cifre sunt 0 sau 20–99
+// (2–19 cereri, 101–119 cereri, dar 20 / 100 / 120 de cereri)
+export function roNeedsDe(n: number): boolean {
+  const lastTwo = Math.abs(Math.trunc(n)) % 100;
+  return n !== 0 && (lastTwo === 0 || lastTwo >= 20);
 }
 
 // Anti HTML-injection in emailuri: numele firmelor/titlurile cererilor vin de la utilizatori.
@@ -302,6 +331,81 @@ export class NotificationEmailsService {
     });
   }
 
+  // g1-2 (PO): rezumatul zilnic „cereri noi in zona ta” — un singur e-mail pe firma, catre
+  // proprietar + manageri (conturi active, e-mail confirmat, nedezabonati). Doar ce vede firma
+  // in marketplace inainte de preluare: titlul mascat + localitatea; fara date de contact,
+  // adresa exacta sau numele clientului. Eroarea SMTP se logheaza (nu se reia: fara dubluri).
+  // Intoarce cate e-mailuri au plecat.
+  async sendNewRequestsDigest(
+    company: { id: string; name: string },
+    items: NewRequestDigestItem[],
+  ): Promise<number> {
+    if (items.length === 0) return 0;
+    const managerIds = await billingManagerIds(this.prisma, company.id);
+    if (managerIds.length === 0) return 0;
+    const users = await this.prisma.user.findMany({
+      where: {
+        id: { in: managerIds },
+        deletedAt: null,
+        emailNotificationsEnabled: true,
+        emailVerifiedAt: { not: null },
+      },
+      select: { id: true, email: true, name: true, languagePreference: true },
+    });
+    const origin = this.config.getOrThrow<string>('FRONTEND_ORIGIN');
+    let sent = 0;
+    for (const user of users) {
+      const lang = user.languagePreference === Language.EN ? 'en' : 'ro';
+      const content = this.buildDigestContent(company.name, items, lang, origin);
+      try {
+        await this.mail.send(user.email, content.subject, this.wrapHtml(user, content, origin, lang), { replyToSupport: false });
+        sent += 1;
+      } catch (e) {
+        this.logger.warn(`rezumat cereri noi catre ${user.id} a esuat: ${safeErrorSummary(e)}`);
+      }
+    }
+    return sent;
+  }
+
+  private buildDigestContent(
+    companyName: string,
+    items: NewRequestDigestItem[],
+    lang: 'ro' | 'en',
+    origin: string,
+  ): EmailContent {
+    const ro = lang === 'ro';
+    const n = items.length;
+    const countText = ro
+      ? n === 1 ? 'o cerere nouă' : `${n} ${roNeedsDe(n) ? 'de ' : ''}cereri noi`
+      : n === 1 ? 'one new request' : `${n} new requests`;
+    const shown = items.slice(0, DIGEST_MAX_ITEMS);
+    const list = shown
+      .map((item) => {
+        const place = [item.city, item.county]
+          .map((v) => (typeof v === 'string' ? v.trim() : ''))
+          .filter((v) => v.length > 0)
+          .map((v) => esc(v))
+          .join(', ');
+        const href = `${origin}/${lang}/marketplace/${encodeURIComponent(item.requestId)}`;
+        return `<li style="margin: 6px 0;"><a href="${href}">${esc(item.title)}</a>${place ? ` — ${place}` : ''}</li>`;
+      })
+      .join('');
+    const more = n - shown.length;
+    const moreLine = more > 0
+      ? ro
+        ? `<p>Și încă ${more} în lista cererilor disponibile.</p>`
+        : `<p>And ${more} more in the list of available requests.</p>`
+      : '';
+    return {
+      subject: ro ? `Cereri noi în zona ta — ${countText}` : `New requests in your area — ${countText}`,
+      intro: ro
+        ? `În ultimele 24 de ore au apărut ${countText} în zona firmei <strong>${esc(companyName)}</strong>:</p><ul style="padding-left: 18px;">${list}</ul>${moreLine}<p>Datele de contact ale clientului se văd după preluare.`
+        : `In the last 24 hours, ${countText} appeared in <strong>${esc(companyName)}</strong>'s area:</p><ul style="padding-left: 18px;">${list}</ul>${moreLine}<p>The client's contact details become visible after you claim a request.`,
+      cta: ro ? 'Vezi cererile disponibile' : 'See available requests',
+      path: `/${lang}/marketplace`,
+    };
+  }
+
   // Cine primeste EMAIL (in-app primesc toate tintele; emailul e mai selectiv).
   private async recipientsFor(
     type: string,
@@ -319,43 +423,42 @@ export class NotificationEmailsService {
       const managerIds = new Set(managers.map((m) => m.userId));
       return targets.filter((id) => managerIds.has(id));
     }
+    // g1-1 (PO): evenimentele unei preluari catre firma → responsabilul + proprietar/manageri
+    const toClaimCompany = async (): Promise<string[]> => {
+      const companyId = typeof payload.companyId === 'string' ? payload.companyId : null;
+      if (!companyId) return [];
+      const allowed = await claimCompanyEmailRecipients(this.prisma, {
+        companyId,
+        claimSlotId: typeof payload.claimSlotId === 'string' ? payload.claimSlotId : null,
+        requestId: typeof payload.requestId === 'string' ? payload.requestId : null,
+      });
+      return targets.filter((id) => allowed.has(id) && id !== clientUserId);
+    };
     switch (type) {
       // cerere preluata / oferta noua → DOAR clientul
+      // g1: cererea publicata; e3: intrebarea firmei → DOAR clientul
       case 'claim.created':
       case 'quote.created':
+      case 'request.published':
+      case 'clarification.asked':
         return clientUserId ? [clientUserId] : [];
-      // mesaj nou → doar partea CEALALTA a conversatiei
+      // mesaj nou → doar partea CEALALTA a conversatiei; la firma doar responsabilul + conducerea
       case 'message.created':
-        return payload.senderRole === 'COMPANY'
-          ? clientUserId
-            ? [clientUserId]
-            : []
-          : targets.filter((id) => id !== payload.senderUserId && id !== clientUserId);
-      // oferta acceptata → membrii firmei CASTIGATOARE (clientul a facut chiar el actiunea)
-      case 'quote.accepted': {
-        const companyId = typeof payload.companyId === 'string' ? payload.companyId : null;
-        if (!companyId) return [];
-        const members = await this.prisma.companyMember.findMany({
-          where: { companyId },
-          select: { userId: true },
-        });
-        const memberIds = new Set(members.map((m) => m.userId));
-        return targets.filter((id) => memberIds.has(id));
-      }
+        if (payload.senderRole === 'COMPANY') return clientUserId ? [clientUserId] : [];
+        return (await toClaimCompany()).filter((id) => id !== payload.senderUserId);
       // a4: quote.updated trimite e-mail DOAR la varianta noua (clientului) si la cererea de
       // modificare (firmei); restul actualizarilor raman pe clopotel
-      case 'quote.updated': {
+      case 'quote.updated':
         if (payload.kind === 'NEW_VERSION') return clientUserId ? [clientUserId] : [];
         if (payload.kind !== 'CHANGE_REQUESTED') return [];
-        const companyId = typeof payload.companyId === 'string' ? payload.companyId : null;
-        if (!companyId) return [];
-        const members = await this.prisma.companyMember.findMany({
-          where: { companyId },
-          select: { userId: true },
-        });
-        const memberIds = new Set(members.map((m) => m.userId));
-        return targets.filter((id) => memberIds.has(id));
-      }
+        return toClaimCompany();
+      default:
+        break;
+    }
+    // oferta acceptata / refuzata, raspunsul clientului, editarea dupa preluare, finalizarea,
+    // recenzia → firma (clientul a facut chiar el actiunea)
+    if (CLAIM_COMPANY_EMAIL_EVENTS.has(type)) return toClaimCompany();
+    switch (type) {
       // inchidere de claim → email doar cand firma pierde bani/puncte
       case 'claim.withdrawn':
         return EMAILED_WITHDRAW_REASONS.has(String(payload.reason ?? '')) ? targets : [];
@@ -487,9 +590,12 @@ export class NotificationEmailsService {
               ? `You have a new message from <strong>${companyName}</strong> on “${requestTitle}”.`
               : `You have a new message from the client on “${requestTitle}”.`,
           cta: ro ? 'Deschide conversația' : 'Open the conversation',
+          // g1: firma ajunge direct pe fisa preluarii (conversatia cererii), nu pe lista de mesaje
           path: isClientRecipient
             ? `/${lang}/requests/${requestId}/offers`
-            : `/${lang}/marketplace/messages`,
+            : claimSlotId && payload.teamChat !== true
+              ? claimsPath
+              : `/${lang}/marketplace/messages`,
         };
       }
       case 'quote.accepted':
@@ -984,6 +1090,104 @@ export class NotificationEmailsService {
           path: `/${lang}/admin/requests/${requestId}`,
         };
       }
+      // g1 (etapa 9): clientul afla ca cererea e publicata si pana cand ramane disponibila
+      case 'request.published': {
+        const until = esc(formatDateTime(payload.expiresAt, ro));
+        return {
+          subject: ro
+            ? `Cererea ta e publicată — ${requestTitle}`
+            : `Your request is published — ${requestTitle}`,
+          intro: ro
+            ? `Cererea „${requestTitle}” e publicată, iar firmele din zona ta o pot vedea.${
+                until ? ` Rămâne disponibilă până pe ${until}.` : ''
+              } Te anunțăm când o firmă o preia.`
+            : `Your request “${requestTitle}” is published and companies in your area can see it.${
+                until ? ` It stays open until ${until}.` : ''
+              } We'll let you know when a company claims it.`,
+          cta: ro ? 'Vezi cererea' : 'View the request',
+          path: `/${lang}/requests/${requestId}`,
+        };
+      }
+      // g1: finalizarea comenzii → firma (confirmata de client sau automat dupa 14 zile)
+      case 'delivery.confirmed': {
+        const auto = payload.autoCompleted === true;
+        return {
+          subject: ro
+            ? `Comanda a fost finalizată — ${requestTitle}`
+            : `The order is completed — ${requestTitle}`,
+          intro: ro
+            ? auto
+              ? `Au trecut 14 zile de la livrarea comenzii „${requestTitle}” fără o confirmare din partea clientului, așa că am finalizat-o automat.`
+              : `Clientul a confirmat primirea comenzii „${requestTitle}”. Comanda firmei <strong>${companyName}</strong> e finalizată.`
+            : auto
+              ? `14 days passed since the order “${requestTitle}” was delivered without a confirmation from the client, so we completed it automatically.`
+              : `The client confirmed receipt of the order “${requestTitle}”. <strong>${companyName}</strong>'s order is completed.`,
+          cta: ro ? 'Deschide comanda' : 'Open the order',
+          path: claimsPath,
+        };
+      }
+      // g1: recenzia clientului → firma
+      case 'review.created': {
+        const rating = Number(payload.rating);
+        const stars = Number.isInteger(rating) && rating >= 1 && rating <= 5 ? rating : null;
+        const disputed = payload.disputed === true;
+        const starsText = stars
+          ? ro
+            ? ` de ${stars} ${stars === 1 ? 'stea' : 'stele'}`
+            : ` of ${stars} ${stars === 1 ? 'star' : 'stars'}`
+          : '';
+        const disputeLine = disputed
+          ? ro
+            ? ' Pentru că nota e sub 3 stele, echipa Cozy Home analizează recenzia.'
+            : ' Because the rating is below 3 stars, the Cozy Home team is reviewing it.'
+          : '';
+        return {
+          subject: ro
+            ? `Ai primit o recenzie — ${requestTitle}`
+            : `You received a review — ${requestTitle}`,
+          intro: ro
+            ? `Clientul a lăsat o recenzie${starsText} firmei <strong>${companyName}</strong> pentru comanda „${requestTitle}”.${disputeLine}`
+            : `The client left a review${starsText} for <strong>${companyName}</strong> on the order “${requestTitle}”.${disputeLine}`,
+          cta: ro ? 'Deschide comanda' : 'Open the order',
+          path: claimsPath,
+        };
+      }
+      // e3: intrebarea firmei → clientul (doar numele firmei, care a preluat deja cererea)
+      case 'clarification.asked':
+        return {
+          subject: ro
+            ? `Firma ${companyName} are o întrebare la cererea ta — ${requestTitle}`
+            : `${companyName} has a question about your request — ${requestTitle}`,
+          intro: ro
+            ? `Firma <strong>${companyName}</strong> are o întrebare la cererea „${requestTitle}”. Răspunde din pagina cererii, ca firma să poată pregăti oferta.`
+            : `The company <strong>${companyName}</strong> has a question about your request “${requestTitle}”. Answer it from the request page so the company can prepare its offer.`,
+          cta: ro ? 'Răspunde la întrebare' : 'Answer the question',
+          path: `/${lang}/requests/${requestId}`,
+        };
+      // e3: raspunsul clientului → firma
+      case 'clarification.answered':
+        return {
+          subject: ro
+            ? `Clientul a răspuns la întrebare — ${requestTitle}`
+            : `The client answered your question — ${requestTitle}`,
+          intro: ro
+            ? `Clientul a răspuns la întrebarea firmei <strong>${companyName}</strong> despre „${requestTitle}”. Răspunsul e în fișa preluării.`
+            : `The client answered <strong>${companyName}</strong>'s question about “${requestTitle}”. The answer is on the claim page.`,
+          cta: ro ? 'Vezi răspunsul' : 'View the answer',
+          path: claimsPath,
+        };
+      // e3: clientul a modificat cererea dupa preluare → firma
+      case 'request.edited_after_claim':
+        return {
+          subject: ro
+            ? `Clientul a modificat cererea — ${requestTitle}`
+            : `The client changed the request — ${requestTitle}`,
+          intro: ro
+            ? `Clientul a modificat cererea „${requestTitle}” preluată de firma <strong>${companyName}</strong>. Verifică detaliile noi în fișa preluării înainte să trimiți oferta.`
+            : `The client changed the request “${requestTitle}” claimed by <strong>${companyName}</strong>. Check the new details on the claim page before you send your offer.`,
+          cta: ro ? 'Vezi modificările' : 'View the changes',
+          path: claimsPath,
+        };
       default:
         return null;
     }

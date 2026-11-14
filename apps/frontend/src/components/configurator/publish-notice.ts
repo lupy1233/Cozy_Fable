@@ -4,7 +4,8 @@
 // Semnul e legat de id-ul cererii si expira repede: nu apare pe alta cerere, la o
 // reincarcare ulterioara sau dupa "inapoi" in browser.
 
-export type PublishNoticeKind = 'published' | 'editSaved';
+// f6-2: 'reposted' = "Republica cu modificari" salvata (cererea expirata e din nou in piata)
+export type PublishNoticeKind = 'published' | 'editSaved' | 'reposted';
 
 export const PUBLISH_NOTICE_KEY = 'mm_publish_notice';
 // cat poate dura deschiderea paginii cererii (prima compilare in dev poate dura mult)
@@ -43,7 +44,7 @@ export function takePublishNotice(requestId: string): PublishNoticeKind | null {
   }
   const valid =
     !!notice &&
-    (notice.kind === 'published' || notice.kind === 'editSaved') &&
+    (notice.kind === 'published' || notice.kind === 'editSaved' || notice.kind === 'reposted') &&
     typeof notice.requestId === 'string' &&
     typeof notice.at === 'number' &&
     Date.now() - notice.at <= PUBLISH_NOTICE_TTL_MS;

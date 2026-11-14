@@ -16,7 +16,7 @@ describe('AdminService.sendTestEmail', () => {
       {} as never,
       mail as never,
       {} as never,
-      queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue,
+      queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue,
     );
     return { service, prisma, mail };
   };

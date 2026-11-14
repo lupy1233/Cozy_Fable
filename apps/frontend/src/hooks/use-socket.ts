@@ -130,6 +130,20 @@ export function useRealtimeSync(): void {
       qc.invalidateQueries({ queryKey: ['notifications'] });
     };
 
+    const onNewInArea = () => {
+      qc.invalidateQueries({ queryKey: ['marketplace'] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
+    };
+    // prefixul ['lifecycle'] acopera ['lifecycle','clarifications',…] (client + fisa firmei) si
+    // ['lifecycle','request-changes',claimSlotId] (caseta „Cererea a fost modificata”)
+    const onClarification = () => {
+      qc.invalidateQueries({ queryKey: ['lifecycle'] });
+      qc.invalidateQueries({ queryKey: ['requests'] });
+      qc.invalidateQueries({ queryKey: ['request'] });
+      qc.invalidateQueries({ queryKey: ['claims'] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
+    };
+
     s.on('message.created', onMessage);
     s.on('quote.created', onQuote);
     s.on('quote.updated', onQuote);
@@ -184,6 +198,12 @@ export function useRealtimeSync(): void {
     s.on('project.cancelled', onProject);
     s.on('project.delivery_reminder', onProject);
     s.on('project.overdue', onProject);
+    // g1 (etapa 9): cerere noua in zona firmei → lista marketplace + clopotelul
+    s.on('request.new_in_area', onNewInArea);
+    // e3 (etapa 9): intrebare / raspuns / editare dupa preluare → fisa cererii, preluarea, clopotelul
+    s.on('clarification.asked', onClarification);
+    s.on('clarification.answered', onClarification);
+    s.on('request.edited_after_claim', onClarification);
     s.on('auth_expired', onAuthExpired);
 
     return () => {
@@ -235,6 +255,10 @@ export function useRealtimeSync(): void {
       s.off('project.cancelled', onProject);
       s.off('project.delivery_reminder', onProject);
       s.off('project.overdue', onProject);
+      s.off('request.new_in_area', onNewInArea);
+      s.off('clarification.asked', onClarification);
+      s.off('clarification.answered', onClarification);
+      s.off('request.edited_after_claim', onClarification);
       s.off('auth_expired', onAuthExpired);
     };
   }, [qc]);

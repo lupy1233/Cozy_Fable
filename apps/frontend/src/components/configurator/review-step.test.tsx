@@ -35,6 +35,8 @@ vi.mock('@/hooks/use-requests', () => ({
   },
 }));
 const routerPush = vi.hoisted(() => vi.fn());
+// f6-2: republicarea cu modificari (mutatia ei; aceeasi forma ca publicarea)
+vi.mock('./use-repost-with-changes', () => ({ useRepostWithChangesById: () => hoisted.publish }));
 vi.mock('@/i18n/routing', () => ({ useRouter: () => ({ push: routerPush, replace: vi.fn() }) }));
 vi.mock('./inspiration-picker', () => ({ InspirationPicker: () => null }));
 vi.mock('./review-room-card', () => ({ ReviewRoomCard: () => null }));
@@ -436,5 +438,39 @@ describe('ReviewStep — expired session and the phone bar (etapa 8)', () => {
     const login = screen.getAllByRole('button', { name: en.Configurator.review.loginToPublish });
     expect(login).toHaveLength(1);
     expect(bar).toContainElement(login[0]);
+  });
+});
+
+// f6-2: „Republica cu modificari” — aceeasi pagina de sumar, butonul spune ce se intampla
+describe('ReviewStep — repost with changes (f6-2)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useConfiguratorStore.getState().reset();
+    useConfiguratorStore.getState().setStartMode('STANDARD');
+    useConfiguratorStore.getState().addRoom('KITCHEN');
+    hoisted.publish.error = null;
+    hoisted.me = { data: { email: 'ana@demo.ro', role: 'CLIENT' }, isPending: false };
+  });
+
+  it('in repost mode the main button reposts; a normal edit keeps "save changes"', () => {
+    const v = render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <ReviewStep
+          token={null}
+          editId="req-1"
+          repost
+          uploadTarget={{ kind: 'request', id: 'req-1' }}
+          onBack={() => {}}
+          onEditRoom={() => {}}
+          onEditDetails={() => {}}
+          onPublished={() => {}}
+        />
+      </NextIntlClientProvider>,
+    );
+    expect(screen.getByRole('button', { name: en.Configurator.review.saveRepost })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: en.Configurator.review.saveEdit })).not.toBeInTheDocument();
+    v.unmount();
+    mount(() => {}, 'req-1');
+    expect(screen.getByRole('button', { name: en.Configurator.review.saveEdit })).toBeInTheDocument();
   });
 });

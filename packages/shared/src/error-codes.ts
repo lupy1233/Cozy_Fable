@@ -150,6 +150,8 @@ export const ERROR_CODES = {
   // Plati Stripe (L0-D)
   PAYMENT_PROVIDER_UNAVAILABLE: 'PAYMENT_PROVIDER_UNAVAILABLE',
   PAYMENT_NOT_PENDING: 'PAYMENT_NOT_PENDING',
+  // h3 (etapa 9) — firma nu mai poate anula comanda dupa ce a apasat "Am platit" (409)
+  PAYMENT_REPORTED_PAID: 'PAYMENT_REPORTED_PAID',
   // E-admin-platform-3 — proiect acceptat blocat / oferte expirate (409)
   PROJECT_NOT_CLOSABLE: 'PROJECT_NOT_CLOSABLE',
   PROJECT_CASE_ALREADY_OPEN: 'PROJECT_CASE_ALREADY_OPEN',

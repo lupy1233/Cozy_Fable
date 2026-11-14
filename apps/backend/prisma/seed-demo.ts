@@ -113,6 +113,12 @@ async function main() {
       },
     });
     await prisma.companyCreditWallet.create({ data: { companyId: company.id, balance: s.credits ?? 0, reserved: 0 } });
+    // h3 (etapa 9): miscarea soldului initial, ca istoricul portofelului sa ajunga la sold
+    if ((s.credits ?? 0) > 0) {
+      await prisma.creditTransaction.create({
+        data: { companyId: company.id, type: 'GRANT', amount: s.credits ?? 0, reason: 'OPENING_BALANCE', createdAt: daysAgo(40) },
+      });
+    }
     // matrice permisiuni oferta pentru firmele APPROVED (ca demo-ul sa poata trimite oferte live)
     if (s.status === 'APPROVED') {
       for (const role of ['OWNER', 'MANAGER', 'EMPLOYEE_TRUSTED', 'EMPLOYEE_MANAGED'] as const) {

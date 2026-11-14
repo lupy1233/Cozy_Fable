@@ -218,3 +218,42 @@ export interface AdminSubscriptionItemDto {
   daysLeft: number;
   isCurrent: boolean; // ACTIVE si neexpirat
 }
+
+// h3 (etapa 9): istoricul miscarilor de credite al firmei (credit_transactions, doar citire).
+// kind = ce s-a intamplat, tradus din tip + motiv; motivele necunoscute → OTHER ("Alta miscare").
+export const CREDIT_HISTORY_KINDS = [
+  'PURCHASE',
+  'SUBSCRIPTION_CREDITS',
+  'TRIAL_BONUS',
+  'OPENING_BALANCE',
+  'CLAIM',
+  'REFUND',
+  'CONSUME',
+  'OTHER',
+] as const;
+export type CreditHistoryKind = (typeof CREDIT_HISTORY_KINDS)[number];
+
+export interface CreditHistoryItemDto {
+  id: string;
+  createdAt: string;
+  type: 'GRANT' | 'RESERVE' | 'REFUND' | 'CONSUME';
+  kind: CreditHistoryKind;
+  // motivul din registru, doar daca e unul cunoscut (CREDIT_REASONS / OPENING_BALANCE); altfel null
+  reason: string | null;
+  amount: number; // marimea miscarii (mereu pozitiva, ca in registru)
+  // schimbarea creditelor disponibile / rezervate (cu semn); CONSUME = 0 disponibile, -n rezervate
+  availableDelta: number;
+  reservedDelta: number;
+  // soldul dupa miscare, calculat din registru (suma miscarilor pana la ea, inclusiv)
+  availableAfter: number;
+  reservedAfter: number;
+  claimSlotId: string | null;
+  requestId: string | null;
+  requestTitle: string | null;
+}
+
+export interface CreditHistoryPageDto {
+  items: CreditHistoryItemDto[];
+  // id-ul ultimei miscari din pagina, daca mai urmeaza; null = sfarsitul istoricului
+  nextCursor: string | null;
+}

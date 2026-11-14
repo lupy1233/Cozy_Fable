@@ -1,10 +1,12 @@
 'use client';
 
 import {
-  BED_MATTRESS_SIZES, BED_STORAGES, BENCH_STYLES, TABLE_TYPES, TABLE_SHAPES, TABLE_SEATS,
-  TABLE_LENGTH_LIMITS, PIECE3D_FINISHES, initialPieceConfig, normalizePieceConfig,
-  pieceConfig3dSchema, type Piece3dKind, type PieceConfig3d,
+  BED_MATTRESS_SIZES, BED_STORAGES, BENCH_STYLES, TABLE_TYPES, TABLE_SEATS,
+  TABLE_LENGTH_LIMITS, TABLE_ROUND_DIAMETER, PIECE3D_FINISHES, applyPieceEditRules, editPieceConfig, initialPieceConfig,
+  pieceConfig3dSchema, tableDepthAfterRound, tableSeatsShortfall, type Piece3dKind, type PieceConfig3d,
 } from '@marketplace/shared';
+import { formatDecimal } from '@/lib/decimal';
+import { isInEditSession } from '@/stores/configurator-store';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Select } from '@/components/ui/select';
@@ -12,6 +14,9 @@ import { PieceCanvas, type SnapshotFn } from './piece-canvas';
 import { config3dChipItems } from './config-chips';
 import { CatalogControls } from './catalog-controls';
 import { PieceDimensionControl } from './dimension-control';
+
+// etapa 9 (l1-3): formele afisate (EXTENDABLE ramane valoare salvata, aratata ca dreptunghi + bifa)
+const TABLE_FORMS = ['RECTANGULAR', 'ROUND'] as const;
 
 interface Props {
   piece: Piece3dKind;
@@ -34,13 +39,55 @@ export function FurnitureControls({ piece, value, onChange, onSnapshot }: Props)
   });
   const [mode, setMode] = useState<'3d' | 'fields'>(webgl ? '3d' : 'fields');
   useEffect(() => { if (value == null) onChange(initialPieceConfig(piece)); }, [piece, value, onChange]);
+  const rectDepth = useRef<number | undefined>(undefined);
+  const wantExtendable = useRef(false);
+  const [diameterNote, setDiameterNote] = useState<{ type: keyof typeof TABLE_ROUND_DIAMETER; value: number } | null>(null);
   useEffect(() => {
     if (!onSnapshot || !config || mode !== '3d') return;
     const timer = setTimeout(() => onSnapshot(snapshot.current?.() ?? null), 800);
     return () => clearTimeout(timer);
   }, [config, mode, onSnapshot]);
+  // revizuire m5: ca la biblioteca si comoda TV, o ciorna cu masa in afara intervalului nou de
+  // diametru se ajusteaza O DATA la redeschidere, cu motiv; la editarea unei cereri publicate
+  // configuratia ramane cum a fost publicata pana cand omul schimba ceva.
+  const [fixSavedConfig] = useState(() => !isInEditSession());
+  const editRulesChecked = useRef(false);
+  useEffect(() => {
+    if (!config || editRulesChecked.current) return;
+    editRulesChecked.current = true;
+    if (!fixSavedConfig || piece !== 'TABLE') return;
+    const ruled = applyPieceEditRules(piece, config);
+    if (ruled === config) return;
+    if (ruled.table?.shape === 'ROUND') setDiameterNote({ type: ruled.table.type, value: ruled.widthM });
+    onChange(ruled);
+  }, [config, fixSavedConfig, onChange, piece]);
+  // etapa 9 (l1-3): adancimea dreptunghiulara de dinainte de trecerea la rotund
+  if (config?.table && config.table.shape !== 'ROUND') rectDepth.current = config.depthM;
+  // revizuire m6: bifa "Extensibilă" se tine minte la ocolul prin alt tip / rotund
+  if (config?.table?.shape === 'EXTENDABLE') wantExtendable.current = true;
   if (!config) return value == null ? null : <p role="alert">{t('config3d.furniture.invalidSavedConfig')}</p>;
-  const apply = (patch: Partial<PieceConfig3d>) => onChange(normalizePieceConfig(piece, { ...config, ...patch }));
+  // etapa 9 (l1): curatarea + regulile noi de editare (diametrul mesei rotunde pe tip); trecerea
+  // de la rotund la dreptunghi nu mai pune tacit adancimea pe maxim; diametrul corectat are motiv
+  const apply = (patch: Partial<PieceConfig3d>, opts?: { extendable?: boolean }) => {
+    if (opts?.extendable !== undefined) wantExtendable.current = opts.extendable;
+    let merged: PieceConfig3d = { ...config, ...patch };
+    if (merged.table && config.table?.shape === 'ROUND' && merged.table.shape !== 'ROUND') {
+      merged = { ...merged, depthM: tableDepthAfterRound(merged.table.type, rectDepth.current) };
+    }
+    let next = editPieceConfig(piece, merged);
+    if (
+      opts?.extendable === undefined &&
+      wantExtendable.current &&
+      next.table?.type === 'DINING' &&
+      next.table.shape === 'RECTANGULAR'
+    ) {
+      next = editPieceConfig(piece, { ...next, table: { ...next.table, shape: 'EXTENDABLE' } });
+    }
+    const clamped = next.table?.shape === 'ROUND' && Math.abs(next.widthM - merged.widthM) > 1e-6;
+    setDiameterNote(clamped && next.table ? { type: next.table.type, value: next.widthM } : null);
+    onChange(next);
+  };
+  const seatsShort = tableSeatsShortfall(config);
   const choice = (label: string, current: string, options: readonly string[], labelFor: (v: string) => string, set: (v: string) => void) =>
     <label className="grid gap-1 text-sm font-medium">{label}<Select className="min-h-11" value={current} onChange={(e) => set(e.target.value)}>
       {options.map((v) => <option key={v} value={v}>{labelFor(v)}</option>)}
@@ -68,10 +115,28 @@ export function FurnitureControls({ piece, value, onChange, onSnapshot }: Props)
         </>}
         {table && <>
           {choice(t('flows.PIECE_TABLE.tableType.title'), table.type, TABLE_TYPES, (v) => t(`flows.PIECE_TABLE.tableType.options.${v}.label`), (v) => apply({ table: { ...table, type: v as typeof table.type } }))}
-          {choice(t('flows.PIECE_TABLE.shape.title'), table.shape, TABLE_SHAPES.filter((v) => v !== 'EXTENDABLE' || table.type === 'DINING'), (v) => t(`flows.PIECE_TABLE.shape.options.${v}.label`), (v) => apply({ table: { ...table, shape: v as typeof table.shape } }))}
+          {/* etapa 9 (l1-3): doua forme + "Extensibilă" da/nu doar la masa dreptunghiulara de dining.
+              Se SALVEAZA tot ca shape 'EXTENDABLE' (fluxurile inghetate puncteaza si descriu dupa el) */}
+          {choice(t('flows.PIECE_TABLE.shape.title'), table.shape === 'ROUND' ? 'ROUND' : 'RECTANGULAR', TABLE_FORMS, (v) => t(`flows.PIECE_TABLE.shape.options.${v}.label`), (v) => {
+            if ((v === 'ROUND') !== (table.shape === 'ROUND')) apply({ table: { ...table, shape: v as typeof table.shape } });
+          })}
+          {table.type === 'DINING' && table.shape !== 'ROUND' && toggle(t('flows.PIECE_TABLE.shape.options.EXTENDABLE.label'), table.shape === 'EXTENDABLE',
+            (v) => apply({ table: { ...table, shape: v ? 'EXTENDABLE' : 'RECTANGULAR' } }, { extendable: v }))}
           {table.type === 'DINING' && choice(t('flows.PIECE_TABLE.seats.title'), table.seats ?? 'SIX', TABLE_SEATS, (v) => t(`flows.PIECE_TABLE.seats.options.${v}.label`), (v) => apply({ table: { ...table, seats: v as NonNullable<typeof table.seats> } }))}
           <PieceDimensionControl label={table.shape === 'ROUND' ? t('flows.PIECE_TABLE.dimensions.slots.diameter') : t('config3d.width')} valueM={config.widthM}
-            minM={table.shape === 'ROUND' ? 0.7 : TABLE_LENGTH_LIMITS[table.type].min} maxM={table.shape === 'ROUND' ? 1.8 : TABLE_LENGTH_LIMITS[table.type].max} onValueM={(widthM) => apply({ widthM })} />
+            minM={table.shape === 'ROUND' ? TABLE_ROUND_DIAMETER[table.type].min : TABLE_LENGTH_LIMITS[table.type].min} maxM={table.shape === 'ROUND' ? TABLE_ROUND_DIAMETER[table.type].max : TABLE_LENGTH_LIMITS[table.type].max} onValueM={(widthM) => apply({ widthM })} />
+          {/* motivul corectarii diametrului (b7) si avertismentul de persoane */}
+          <div role="status" aria-live="polite" data-testid="table-reasons" className="flex flex-col gap-1 text-meta text-muted-foreground">
+            {diameterNote && <p>{t('config3d.furniture.diameterClamped', {
+              min: formatDecimal(TABLE_ROUND_DIAMETER[diameterNote.type].min * 100, locale, 0),
+              max: formatDecimal(TABLE_ROUND_DIAMETER[diameterNote.type].max * 100, locale, 0),
+              value: formatDecimal(Math.round(diameterNote.value * 1000) / 10, locale, 1),
+            })}</p>}
+            {seatsShort && <p className="text-amber-800 dark:text-amber-300" data-testid="table-seats-warning">{t('config3d.furniture.seatsTooSmall', {
+              seats: t(`flows.PIECE_TABLE.seats.options.${seatsShort.seats}.label`),
+              cm: formatDecimal(seatsShort.minM * 100, locale, 0),
+            })}</p>}
+          </div>
           {table.shape !== 'ROUND' && <PieceDimensionControl label={t('config3d.depth')} valueM={config.depthM} minM={0.4} maxM={1.2} onValueM={(depthM) => apply({ depthM })} />}
         </>}
         {bench && <>

@@ -71,6 +71,8 @@ const PHASE_ORDER: ConfiguratorPhase[] = ['start', 'cart', 'rooms', 'uploads', '
 // camerele, atasezi eventual poze, completezi detaliile si publici cu
 // Proiectare platita; proiectarea o face atelierul care preia cererea.
 const DESIGN_HELP_PHASE_ORDER: ConfiguratorPhase[] = ['start', 'cart', 'uploads', 'details', 'review'];
+// f6 / revizie m7: dupa 429 la crearea ciornei, reincercarea se deblocheaza dupa fereastra limitei
+export const DRAFT_RATE_LIMIT_COOLDOWN_MS = 60_000;
 
 // Modul unei cereri publicate (contract b8, punctul 5): nu exista coloana de mod —
 // hasOwnProject → "Am deja un proiect"; toate camerele cu needsDesignHelp →
@@ -276,6 +278,15 @@ function DraftStatus({ saving, failed, savedAt, onRetry }: { saving: boolean; fa
 // deja incarcate (preClaimEditsUsed / postClaimEditsUsed). Salvarea consuma una.
 function EditNotice({ request, className }: { request: RequestDto; className?: string }) {
   const t = useTranslations('Configurator');
+  // f6-2: cererea expirata — salvarea o republica; nu se numara la editari
+  if (request.status === 'EXPIRED' && !request.repostUsed) {
+    return (
+      <div className={cn('flex flex-col gap-2 rounded-xl border border-amber/30 bg-amber-soft px-4 py-4 text-amber sm:px-5', className)}>
+        <p className="font-semibold">{t('edit.repostTitle')}</p>
+        <p className="text-ui">{t('edit.repostNote')}</p>
+      </div>
+    );
+  }
   const preClaim = request.status === 'IN_MARKETPLACE';
   const postClaim = request.status === 'CLAIMED_PARTIAL' || request.status === 'CLAIMED_FULL';
   if (!preClaim && !postClaim) return null;
@@ -302,7 +313,9 @@ function EditNotice({ request, className }: { request: RequestDto; className?: s
   );
 }
 
-export function ConfiguratorWizard({ editId }: { editId?: string }) {
+// repost (f6-2): cererea expirata se editeaza pentru „Republica cu modificari” — decizia o ia
+// pagina de editare o singura data, la prima incarcare
+export function ConfiguratorWizard({ editId, repost = false }: { editId?: string; repost?: boolean }) {
   const t = useTranslations('Configurator');
   const router = useRouter();
   const locale = useLocale();
@@ -313,6 +326,14 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
   const [token, setToken] = useState<string | null>(null);
   const [bootstrapFailed, setBootstrapFailed] = useState(false);
   const [creatingDraft, setCreatingDraft] = useState(false);
+  // f6 / revizie m7: 429 la crearea ciornei — mesaj propriu si „Incearca din nou” blocat un minut
+  // (fara reincercari imediate care ar prelungi limita)
+  const [rateLimited, setRateLimited] = useState(false);
+  useEffect(() => {
+    if (!rateLimited) return;
+    const handle = setTimeout(() => setRateLimited(false), DRAFT_RATE_LIMIT_COOLDOWN_MS);
+    return () => clearTimeout(handle);
+  }, [rateLimited]);
   const resetOnCreate = useRef(true);
 
   const store = useConfiguratorStore;
@@ -341,9 +362,10 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
         // E-admin-platform-8: doar un draft NOU conteaza (reutilizarea tokenului salvat, nu)
         track('wizard_start', locale);
       })
-      .catch(() => {
+      .catch((e: unknown) => {
         // Retry explicit: un serviciu indisponibil nu trebuie sa declanseze POST-uri in bucla.
         setBootstrapFailed(true);
+        if (e instanceof ApiError && e.status === 429) setRateLimited(true);
       })
       .finally(() => setCreatingDraft(false));
   }, [createDraftAsync, locale, setTokenInStore, store]);
@@ -581,8 +603,8 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
     if (failed) return (
       <div className="mx-auto flex max-w-lg flex-col items-center gap-4 py-20 text-center" role="alert">
         <h1 className="font-serif text-2xl">{t('bootstrap.title')}</h1>
-        <p className="text-sm text-muted-foreground">{t('bootstrap.description')}</p>
-        <Button type="button" variant="walnut" disabled={retrying} onClick={() => {
+        <p className="text-sm text-muted-foreground">{t(rateLimited && !isEdit ? 'bootstrap.rateLimited' : 'bootstrap.description')}</p>
+        <Button type="button" variant="walnut" disabled={retrying || (rateLimited && !isEdit)} onClick={() => {
           if (isEdit) void editRequest.refetch();
           else if (token) void draft.refetch();
           else void createAnonymousDraft(resetOnCreate.current);
@@ -748,6 +770,7 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
           <ReviewStep
             token={token}
             editId={editId}
+            repost={isEdit && repost}
             uploadTarget={uploadTarget}
             onBack={() => setPhase('details')}
             onEditRoom={(i, stepId) => {
@@ -782,7 +805,7 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
               // store-ul revine pe ciorna cererii noi (neatinsa, b8) la demontare
               if (isEdit) finishEditSession();
               // mesajul de reusita il arata pagina cererii, la montare (semn de o singura folosinta)
-              leavePublishNotice(id, isEdit ? 'editSaved' : 'published');
+              leavePublishNotice(id, isEdit && repost ? 'reposted' : isEdit ? 'editSaved' : 'published');
               router.push(`/requests/${id}`);
             }}
           />

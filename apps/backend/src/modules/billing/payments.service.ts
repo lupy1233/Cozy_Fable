@@ -492,25 +492,38 @@ export class PaymentsService {
 
   // Anulare comanda PENDING (admin sau sesiune Stripe expirata). Idempotent pe CANCELLED;
   // CONFIRMED → 409 (nu se anuleaza o factura emisa — 4.17, storno post-MVP).
-  async cancel(orderId: string, source: 'admin' | 'stripe'): Promise<BillingOrderDto> {
+  // h3 (etapa 9): `companyId` = anularea ceruta de firma (proprietar/manager) — doar comanda
+  // proprie, PENDING si nemarcata "Am platit"; verificarea se repeta sub acelasi FOR UPDATE.
+  async cancel(orderId: string, source: 'admin' | 'stripe' | 'company', companyId?: string): Promise<BillingOrderDto> {
+    const byCompany = source === 'company';
+    if (byCompany && !companyId) throw new Error('cancel by company requires companyId');
     const existing = await this.prisma.mockBillingOrder.findUnique({ where: { id: orderId } });
-    if (!existing) {
+    if (!existing || (byCompany && existing.companyId !== companyId)) {
       throw new NotFoundException({ code: ERROR_CODES.PAYMENT_NOT_FOUND, message: 'Order not found' });
     }
     const tier = existing.planId ? ((await this.planCodes()).get(existing.planId) ?? null) : null;
     if (existing.status === 'CANCELLED') return this.toDto(existing, tier);
+    const reportedPaid = () =>
+      new HttpException({ code: ERROR_CODES.PAYMENT_REPORTED_PAID, message: 'Order was reported as paid' }, 409);
+    if (byCompany && existing.status !== 'PENDING') {
+      throw new HttpException({ code: ERROR_CODES.PAYMENT_ALREADY_CONFIRMED, message: 'Order already confirmed' }, 409);
+    }
+    if (byCompany && existing.paymentClaimedAt) throw reportedPaid();
     const unresolved = (order: MockBillingOrder) => {
       const attempt = order.stripeCheckoutAttempt as Prisma.JsonObject | null;
       return attempt && (!order.stripeSessionId || attempt.previousSessionId === order.stripeSessionId);
     };
     if (unresolved(existing)) throw new HttpException({ code: ERROR_CODES.PAYMENT_NOT_PENDING, message: 'Checkout outcome must be reconciled before cancellation' }, 409);
-    if (source === 'admin' && existing.stripeSessionId) await this.stripe.ensureSessionExpired(existing.stripeSessionId);
+    if (source !== 'stripe' && existing.stripeSessionId) await this.stripe.ensureSessionExpired(existing.stripeSessionId);
     const order = await runTx(this.prisma, 'write', async (tx) => {
       await tx.$executeRaw`SELECT id FROM mock_billing_orders WHERE id = ${orderId} FOR UPDATE`;
       const fresh = await tx.mockBillingOrder.findUniqueOrThrow({ where: { id: orderId } });
       if (unresolved(fresh) || fresh.stripeSessionId !== existing.stripeSessionId) throw new HttpException({ code: ERROR_CODES.PAYMENT_NOT_PENDING, message: 'Checkout changed during cancellation; retry after checking its state' }, 409);
+      // "Am platit" apasat intre timp (markPaid tine acelasi lock) → firma nu mai anuleaza
+      if (byCompany && fresh.status === 'CANCELLED') return fresh; // dublu-clic concurent: idempotent
+      if (byCompany && fresh.paymentClaimedAt) throw reportedPaid();
       const res = await tx.mockBillingOrder.updateMany({
-      where: { id: orderId, status: 'PENDING' },
+      where: { id: orderId, status: 'PENDING', ...(byCompany ? { paymentClaimedAt: null } : {}) },
       data: { status: 'CANCELLED', cancelledAt: new Date() },
     });
     if (res.count === 0) {

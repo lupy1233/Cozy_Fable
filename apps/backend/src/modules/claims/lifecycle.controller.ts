@@ -47,6 +47,12 @@ export class ClaimLifecycleController {
     return this.clarifications.listForClaim(ctx, id);
   }
 
+  // e3: „Cererea a fost modificata pe … — ce s-a schimbat” (read-only, fara audit)
+  @Get(':id/request-changes')
+  requestChanges(@CurrentCompany() ctx: CompanyContext, @Param('id', ParseUUIDPipe) id: string) {
+    return this.clarifications.editChangesForClaim(ctx, id);
+  }
+
   // POST critic pe bani (refund/consum credite) — Idempotency-Key (3.2) + rate limit,
   // ca la POST /claims (anti dubla retragere, audit 2026-08-23).
   @Post(':id/withdraw')

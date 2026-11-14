@@ -161,7 +161,8 @@ type RoomTypes = Map<string, RoomPriceInput['roomType']>;
 type Preloaded = { rate: number; vatRate: number; attachments: Map<string, AttachmentDto[]> };
 // a4: ce spune evenimentul quote.updated (alege destinatarii e-mailului: varianta noua → client,
 // cerere de modificare → firma)
-type QuoteEventExtra = { kind: 'NEW_VERSION' | 'CHANGE_REQUESTED'; version?: number; changeRequestId?: string };
+// g1 (etapa 9): actorUserId = cine a facut actiunea (scos din destinatari de procesorul de notificari)
+type QuoteEventExtra = { kind: 'NEW_VERSION' | 'CHANGE_REQUESTED'; version?: number; changeRequestId?: string; actorUserId?: string };
 type MutationOutcome<T> = {
   result: T;
   next: QuoteFull;
@@ -283,6 +284,8 @@ export class QuotesService {
         companyId: ctx.companyId,
         clientUserId: req.client_user_id,
         claimSlotId: slot.id,
+        // g1 (revizie m5): membrul care trimite oferta nu primeste clopotel pentru ea
+        actorUserId: actingUserId,
       });
       const full = withNewVersion(
         { ...quote, company: { name: company?.name ?? '' }, versions: [], consultationInvites: [] },
@@ -377,7 +380,7 @@ export class QuotesService {
       return {
         result: row.id,
         next: withChangeRequest(current, version.id, row),
-        event: { kind: 'CHANGE_REQUESTED', changeRequestId: row.id, ...(versionNo != null ? { version: versionNo } : {}) },
+        event: { kind: 'CHANGE_REQUESTED', changeRequestId: row.id, actorUserId: userId, ...(versionNo != null ? { version: versionNo } : {}) },
       };
     }, pre);
     return out;
@@ -437,7 +440,7 @@ export class QuotesService {
         result: version.id,
         next,
         attachments: new Map([[version.id, attachments]]),
-        event: { kind: 'NEW_VERSION', version: version.version },
+        event: { kind: 'NEW_VERSION', version: version.version, actorUserId: actingUserId },
       };
     }, pre);
 
@@ -512,7 +515,7 @@ export class QuotesService {
         result: version.id,
         next,
         attachments: new Map([[version.id, attachments]]),
-        event: { kind: 'NEW_VERSION', version: version.version },
+        event: { kind: 'NEW_VERSION', version: version.version, actorUserId: actingUserId },
       };
     }, pre);
 
@@ -555,7 +558,7 @@ export class QuotesService {
         result: version.id,
         next,
         attachments: new Map([[version.id, attachments]]),
-        event: { kind: 'NEW_VERSION', version: version.version },
+        event: { kind: 'NEW_VERSION', version: version.version, actorUserId: actingUserId },
       };
     }, pre);
 
@@ -893,6 +896,8 @@ export class QuotesService {
       await this.outbox.record(tx, `quote.accepted:${quote.id}`, 'quote.accepted', {
         quoteId: quote.id, requestId: quote.requestId, companyId: quote.companyId,
         claimSlotId: quote.claimSlotId,
+        // g1 (etapa 9): clientul a acceptat chiar el → nu primeste notificare
+        actorUserId: userId,
       }, await this.participantsForRequest(quote.requestId, tx));
       for (const { slot, refunded } of settledLosers) {
         const members = await tx.companyMember.findMany({ where: { companyId: slot.companyId }, select: { userId: true } });
@@ -1013,6 +1018,7 @@ export class QuotesService {
         reason,
         note: noteForCompany,
         consumed: settled.credit === 'CONSUMED',
+        actorUserId: userId,
       }, members.map((m) => m.userId));
       await this.outbox.record(tx, `quote.declined:${quote.id}:status`, 'request.status_changed', { requestId: quote.requestId }, []);
       // chitanta in memorie; snapshot vechi → recitire rara (ca la accept)
@@ -2101,6 +2107,8 @@ export class QuotesService {
       // a4: slotul (link-ul firmei din clopotel / e-mail) + ce s-a intamplat (alege e-mailul)
       claimSlotId?: string;
       extra?: QuoteEventExtra;
+      // g1: cine a facut actiunea (scos din destinatari de procesorul de notificari)
+      actorUserId?: string;
     },
   ): Promise<void> {
     const targets = await this.quoteTargets(db, p.companyId, p.clientUserId);
@@ -2115,6 +2123,7 @@ export class QuotesService {
         // destinatarul emailului "oferta noua" (Q4, idee 5)
         clientUserId: p.clientUserId,
         ...(p.claimSlotId ? { claimSlotId: p.claimSlotId } : {}),
+        ...(p.actorUserId ? { actorUserId: p.actorUserId } : {}),
         ...(p.extra ?? {}),
       },
       targets,

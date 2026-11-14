@@ -1093,7 +1093,7 @@
     "publish": "Publică cererea",
     "repost": "Republică",
     "reposted": "Cererea a fost republicată.",
-    "repostHint": "Cererea a expirat fără să fie preluată de o firmă. O poți republica o singură dată, cu un nou termen de expirare.",
+    "repostHint": "Cererea a expirat fără să fie preluată de o firmă. O poți republica o singură dată, așa cum este sau cu modificări, cu un nou termen de expirare.",
     "repostUsedNote": "Ai folosit deja republicarea acestei cereri (este permisă o singură dată). Poți începe o cerere nouă.",
     "repostStartNew": "Începe o cerere nouă",
     "deleteRequest": "Șterge cererea",
@@ -1381,7 +1381,8 @@
     },
     "deleteSection": {
       "title": "Ștergerea cererii",
-      "hint": "Preluările active ale firmelor vor fi anulate. Îți cerem o confirmare înainte."
+      "hint": "Preluările active ale firmelor vor fi anulate. Îți cerem o confirmare înainte.",
+      "hintNoClaims": "Îți cerem o confirmare înainte."
     },
     "budgetNoEstimateHint": "Alege suma pe care vrei să o cheltui. Firmele o văd ca reper pentru ofertă.",
     "budgetChoose": "Alege suma",
@@ -1422,7 +1423,8 @@
       "pending": "Se șterge…",
       "done": "Cererea a fost ștearsă."
     },
-    "messageCounter": "{count, number} / {max, number} caractere"
+    "messageCounter": "{count, number} / {max, number} caractere",
+    "repostWithChanges": "Republică cu modificări"
   },
   "Marketplace": {
     "title": "Cereri disponibile",
@@ -2126,7 +2128,30 @@
     },
     "pdfFailed": "Nu am putut genera PDF-ul acum. Încearcă din nou peste câteva minute.",
     "pdfPending": "Se pregătește PDF-ul…",
-    "requestDeletedByClient": "Cererea a fost ștearsă de client"
+    "requestDeletedByClient": "Cererea a fost ștearsă de client",
+    "requestChanges": {
+      "title": "Cererea a fost modificată pe {date}",
+      "whatChanged": "Ce s-a schimbat:",
+      "field": {
+        "budget": "Bugetul",
+        "deadline": "Termenul dorit",
+        "location": "Localitatea",
+        "inspiration": "Pozele de inspirație"
+      },
+      "roomNumbered": "{room} {n}",
+      "roomAdded": "Cameră adăugată: {room}",
+      "roomRemoved": "Cameră scoasă: {room}",
+      "roomModified": "{room} a fost modificată",
+      "roomModifiedWhat": "{room} a fost modificată: {what}",
+      "aspect": {
+        "answers": "răspunsurile din formular",
+        "designHelp": "proiectarea cu plată",
+        "approxLength": "lungimea aproximativă"
+      },
+      "notComparable": "Nu putem arăta toate detaliile acestei modificări. Verifică cererea pe fișă, la camere.",
+      "nothingVisible": "Nu s-a schimbat nimic din ce vezi pe această fișă.",
+      "hint": "Valorile noi sunt deja pe fișă. Verifică-le înainte să trimiți sau să actualizezi oferta."
+    }
   },
   "Lifecycle": {
     "slaTitle": "Termen de răspuns și stare",
@@ -2228,7 +2253,15 @@
       "decidedOn": "decisă pe {date}",
       "title": "Retrageri cerute"
     },
-    "noClarifications": "Nu ai cerut nicio clarificare pe această preluare."
+    "noClarifications": "Nu ai cerut nicio clarificare pe această preluare.",
+    "clarificationHistory": {
+      "title": "Întrebări la care ai răspuns",
+      "askedBy": "{company} a întrebat pe {date}",
+      "askedOn": "Întrebare primită pe {date}",
+      "question": "Întrebare:",
+      "yourAnswer": "Răspunsul tău:",
+      "answeredOn": "Ai răspuns pe {date}"
+    }
   },
   "Penalties": {
     "title": "Penalizări",
@@ -2564,7 +2597,8 @@
       "COMPANY_NOT_APPROVED": "Firma ta nu a fost încă aprobată.",
       "PLAN_NOT_PURCHASABLE": "Acest plan nu se cumpără online; îl activează administratorul platformei.",
       "CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION": "Creditele se pot cumpăra doar cu abonament activ. Reactivează abonamentul, apoi alege pachetul.",
-      "DOCUMENT_RENDER_FAILED": "Nu am putut genera documentul PDF acum. Încearcă din nou peste câteva minute."
+      "DOCUMENT_RENDER_FAILED": "Nu am putut genera documentul PDF acum. Încearcă din nou peste câteva minute.",
+      "PAYMENT_REPORTED_PAID": "Ai anunțat deja că ai plătit, așa că plata nu se mai poate anula. Echipa Cozy Home verifică transferul; dacă e o greșeală, scrie-ne."
     },
     "rulesNotice": "Cum se rezervă, se consumă și se restituie creditele: <rules>Regulile pentru firme</rules>.",
     "testMode": {
@@ -2586,7 +2620,56 @@
     "priceExVat": "{price} + TVA",
     "perCredit": "{price} / credit",
     "totalWithVat": "{total} cu TVA {rate}%",
-    "packagesNeedSubscription": "Pachetele de credite se pot cumpăra doar cu abonament activ. Creditele pe care le ai deja rămân în cont."
+    "packagesNeedSubscription": "Pachetele de credite se pot cumpăra doar cu abonament activ. Creditele pe care le ai deja rămân în cont.",
+    "orderValidUntil": "Valabilă până pe {date}; după aceea se anulează automat.",
+    "cancelOrder": {
+      "action": "Anulează plata",
+      "title": "Anulezi plata?",
+      "body": "{what} · {total} · referința #{ref}. Plata rămâne în listă ca anulată.",
+      "note": "Nu se pierd credite. Dacă ai trimis deja banii, nu anula: apasă „Am plătit” și echipa Cozy Home verifică transferul.",
+      "keep": "Nu, păstrez plata",
+      "confirm": "Da, anulează plata",
+      "done": "Plata a fost anulată."
+    },
+    "history": {
+      "title": "Istoric credite",
+      "empty": "Încă nu există mișcări de credite.",
+      "loadFailed": "Istoricul nu s-a putut încărca. Reîncarcă pagina.",
+      "loadMore": "Vezi mai multe",
+      "hint": "Suma arată cum s-au schimbat creditele disponibile. La preluare, creditele trec din disponibile în rezervate; la decontare se consumă sau se întorc în disponibile.",
+      "amount": "{amount} disponibile",
+      "reservedChange": "{amount} rezervate",
+      "after": "După: {available} disponibile · {reserved} rezervate",
+      "untitledRequest": "Cerere fără titlu",
+      "kind": {
+        "PURCHASE": "Cumpărare de credite",
+        "SUBSCRIPTION_CREDITS": "Credite incluse în abonament",
+        "TRIAL_BONUS": "Bonus de probă",
+        "OPENING_BALANCE": "Sold inițial",
+        "CLAIM": "Preluare — credite rezervate",
+        "REFUND": "Restituire — credite întoarse",
+        "CONSUME": "Decontare — credite consumate",
+        "OTHER": "Altă mișcare"
+      },
+      "reason": {
+        "CLAIM_AUTO_CANCEL_UNASSIGNED": "Anulată: nu a fost atribuită la timp",
+        "SLA_BREACH": "Termen de răspuns depășit",
+        "WITHDRAWAL_CLIENT_UNRESPONSIVE_48H": "Retragere: clientul nu a răspuns 48 de ore",
+        "WITHDRAWAL_REQUEST_MODIFIED_POST_CLAIM": "Retragere: clientul a modificat cererea după preluare",
+        "WITHDRAWAL_VOLUNTARY_GRACE": "Retragere voluntară, în perioada fără cost",
+        "WITHDRAWAL_VOLUNTARY_LATE": "Retragere voluntară, după perioada fără cost",
+        "WITHDRAWAL_ADMIN_APPROVED": "Retragere aprobată de echipa Cozy Home",
+        "OFFER_LOST": "Oferta nu a fost aleasă",
+        "REQUEST_ACCEPTED_OTHER_OFFER": "Clientul a ales altă ofertă",
+        "COMPLETED": "Preluare finalizată",
+        "REQUEST_DELETED_BY_CLIENT": "Clientul a șters cererea",
+        "PROJECT_CANCELLED_REFUND": "Anulată de echipa Cozy Home după acceptare",
+        "PROJECT_CANCELLED_CONSUME": "Anulată de echipa Cozy Home după acceptare",
+        "OFFER_EXPIRED_UNDECIDED_REFUND": "Oferta a expirat fără decizia clientului",
+        "OFFER_EXPIRED_UNDECIDED_CONSUME": "Oferta a expirat fără decizia clientului",
+        "OFFER_DECLINED": "Clientul a refuzat oferta"
+      }
+    }
   },
   "AdminPayments": {
     "title": "Plăți și abonamente",
@@ -3251,6 +3334,14 @@
         "delivery_min_days_after_accept": {
           "label": "Zile minime până la livrare",
           "help": "După câte zile de la acceptarea ofertei poate firma marca proiectul ca livrat. 0 = oricând."
+        },
+        "guest_draft_retention_days": {
+          "label": "Păstrarea ciornelor fără cont",
+          "help": "După câte zile fără nicio modificare se șterg ciornele începute de vizitatori, împreună cu fișierele lor. Minimum 1."
+        },
+        "client_draft_retention_days": {
+          "label": "Păstrarea ciornelor clienților",
+          "help": "După câte zile fără nicio modificare se șterg ciornele clienților cu cont, împreună cu fișierele lor. Minimum 1."
         }
       },
       "units": {
@@ -3354,7 +3445,9 @@
         "uploads": "Fișiere încărcate",
         "domain-events": "Evenimente de trimis",
         "offer-expiry-settlement": "Închiderea ofertelor expirate",
-        "project-deadlines": "Termenele de livrare ale proiectelor"
+        "project-deadlines": "Termenele de livrare ale proiectelor",
+        "draft-cleanup": "Curățarea ciornelor vechi",
+        "new-requests": "Cereri noi în zona firmelor"
       }
     },
     "requests": {
@@ -3775,7 +3868,9 @@
         "expired": "Cererea ta a expirat",
         "expiry_reminder": "Cererea ta expiră curând",
         "no_coverage": "Cerere nouă fără nicio firmă în zonă — caută o firmă",
-        "company_withdrew": "O firmă a renunțat — cererea e din nou disponibilă pentru alte firme"
+        "company_withdrew": "O firmă a renunțat — cererea e din nou disponibilă pentru alte firme",
+        "new_in_area": "Cerere nouă în zona ta",
+        "edited_after_claim": "Clientul a modificat cererea preluată — verifică detaliile"
       },
       "claim": {
         "created": "Cerere preluată de o firmă",
@@ -3850,6 +3945,10 @@
       },
       "documents": {
         "pdf_failed": "Documentele PDF (oferte, proforme, facturi) nu se pot genera — verifică jurnalul serverului"
+      },
+      "clarification": {
+        "asked": "O firmă are o întrebare la cererea ta",
+        "answered": "Clientul a răspuns la întrebare"
       }
     },
     "stageUpdated": {
@@ -3876,7 +3975,8 @@
     "bootstrap": {
       "title": "Cererea nu a putut fi deschisă",
       "description": "Serviciul este temporar indisponibil. Verifică conexiunea și încearcă din nou. Progresul salvat deja pe acest dispozitiv este păstrat.",
-      "retry": "Încearcă din nou"
+      "retry": "Încearcă din nou",
+      "rateLimited": "Prea multe cereri începute într-un timp scurt. Încearcă din nou peste un minut."
     },
     "sheet": {
       "phaseLabel": "Faza {current} din {total}",
@@ -4165,7 +4265,10 @@
         "failed": "Nu am putut face imaginea 3D a piesei pe acest dispozitiv. Poți publica și fără ea: firmele văd toate măsurile și alegerile tale."
       },
       "sessionExpired": "Sesiunea a expirat — intră din nou în cont; cererea rămâne salvată.",
-      "sessionExpiredLogin": "Intră în cont"
+      "sessionExpiredLogin": "Intră în cont",
+      "saveRepost": "Republică cu modificările",
+      "publishingRepost": "Se republică cererea…",
+      "repostedToast": "Cererea a fost republicată cu modificările tale."
     },
     "inspirationPicker": {
       "title": "Inspirație din galerie",
@@ -4326,7 +4429,9 @@
         "upholsteredSeat": "Șezut tapițat",
         "viewerHint": "Rotește modelul pentru a verifica proporțiile. Dimensiunile arată gabaritul exterior al mobilierului; mărimea saltelei este indicată separat.",
         "openStorage": "Deschide depozitarea",
-        "closeStorage": "Închide depozitarea"
+        "closeStorage": "Închide depozitarea",
+        "seatsTooSmall": "Pentru {seats} persoane recomandăm cel puțin {cm} cm — la dimensiunea aleasă nu încap toți.",
+        "diameterClamped": "La tipul ales, masa rotundă are între {min} și {max} cm în diametru — am pus {value} cm."
       },
       "catalog": {
         "seats": "Locuri",
@@ -4407,7 +4512,13 @@
       "dimKeptPrevious": "Am păstrat valoarea anterioară.",
       "dimReadAsMeters": "Am înțeles {value} cm.",
       "summaryLabel": "Configurația piesei",
-      "dimsOrientative": "Dimensiuni orientative — clientul nu le-a modificat"
+      "dimsOrientative": "Dimensiuni orientative — clientul nu le-a modificat",
+      "reframe": "Reîncadrează",
+      "reframeLabel": "Reîncadrează piesa, ca să se vadă întreagă",
+      "drawerFrontMax": "Un front de sertar are cel mult {cm} cm: am micșorat rândul de sertare (restul a trecut la rândurile vecine) sau am pus mai multe sertare.",
+      "drawersMinForFront": "Cu mai puține sertare, fronturile ar trece de {cm} cm.",
+      "bookcaseColumnLowered": "O coloană de bibliotecă are cel mult {max} cm lățime — am pus {max} cm.",
+      "tvUnitMinHeight": "Comoda TV are cel puțin {cm} cm înălțime — am pus {cm} cm."
     },
     "copyFromPrevious": "Copiază răspunsurile de la {room} anterioară",
     "pieces": {
@@ -7618,7 +7729,9 @@
       "preClaimNote": "Ai {max} modificări înainte ca o firmă să preia cererea și una după preluare, cât timp nu ai primit nicio ofertă. Salvarea de acum consumă una.",
       "postClaimNote": "Cererea a fost deja preluată, deci aceasta este singura modificare rămasă. După salvare, firmele pot renunța la preluare.",
       "saveHint": "Nimic nu se schimbă până nu apeși „Salvează modificările”, la ultimul pas.",
-      "phaseReview": "Verifică și salvează"
+      "phaseReview": "Verifică și salvează",
+      "repostTitle": "Republici cererea cu modificări",
+      "repostNote": "Când salvezi, cererea primește modificările și ajunge din nou la firme, cu un nou termen de expirare. Republicarea se poate face o singură dată și nu se numără la editări."
     },
     "clientOnly": {
       "note": "Cererile se publică dintr-un cont de client.",
@@ -7636,6 +7749,12 @@
     "approxLength": {
       "label": "Lungime aproximativă (m) — opțional",
       "hint": "Cât de lungă e, cam, mobila din proiect (de exemplu 6,5). Ne ajută să arătăm firmelor mărimea proiectului. Poți lăsa gol."
+    },
+    "postClaimEditConfirm": {
+      "title": "Salvezi modificările?",
+      "body": "Cererea ta a fost deja preluată. Când salvezi, firmele care lucrează la ea sunt anunțate și văd ce s-a schimbat. După preluare, cererea se poate modifica doar o dată.",
+      "cancel": "Nu acum",
+      "confirm": "Da, salvează"
     }
   },
   "Legal": {

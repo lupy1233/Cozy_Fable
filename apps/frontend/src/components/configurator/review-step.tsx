@@ -44,6 +44,8 @@ import { BELOW_LG, useMediaQuery } from '@/components/ui/use-media-query';
 import { loginTarget } from '@/lib/session-lost';
 import { StickyActionBar } from './sticky-action-bar';
 import { summaryLabel } from './summary-rows';
+import { PostClaimEditConfirm } from './post-claim-edit-confirm';
+import { useRepostWithChangesById } from './use-repost-with-changes';
 
 // O problema de camera intoarsa de server: details[] de la CONFIGURATOR_ANSWERS_INVALID /
 // FILE_SCAN_BLOCKED sau obiectul {roomIndex} de la CONFIGURATOR_FLOW_VERSION_UNSUPPORTED.
@@ -108,6 +110,7 @@ export const FILE_REMOVAL_TIMEOUT_MS = 10_000;
 export function ReviewStep({
   token,
   editId,
+  repost = false,
   uploadTarget,
   onBack,
   onEditRoom,
@@ -119,6 +122,8 @@ export function ReviewStep({
   // mod creare: tokenul draftului; mod editare: id-ul cererii publicate
   token: string | null;
   editId?: string;
+  // f6-2: cererea expirata — salvarea aplica modificarile SI o republica (o singura data)
+  repost?: boolean;
   // sursa atasamentelor pentru preview-urile din sumar (item 10)
   uploadTarget: AttachmentTarget;
   onBack: () => void;
@@ -167,7 +172,9 @@ export function ReviewStep({
   const snapshots = useReviewSnapshots({ rooms, attachments, target: uploadTarget, isEdit });
   const publishDraft = usePublishDraft(token ?? '');
   const editRequest = useEditRequestById(editId ?? '');
-  const publish = isEdit ? editRequest : publishDraft;
+  const repostWithChanges = useRepostWithChangesById(editId ?? '');
+  const isRepost = isEdit && repost;
+  const publish = isRepost ? repostWithChanges : isEdit ? editRequest : publishDraft;
   // urcarea snapshot-urilor 3D dinaintea publish-ului (R4)
   const [preparing, setPreparing] = useState(false);
   // a6: cu adresa completata intrebam serverul daca exista vreo firma in zona; la NONE aratam
@@ -427,17 +434,22 @@ export function ReviewStep({
   // autentificarea. Randata intr-un singur loc (cardul de publicare sau bara de pe telefon).
   const primaryAction = (className: string) =>
     authed ? (
-      <Button
-        type="button"
-        variant="walnut"
-        size="xl"
-        className={cn('px-4', className)}
-        disabled={!detailsComplete || !allRoomsComplete || publish.isPending || preparing}
-        onClick={() => void doPublish()}
-      >
-        <Send aria-hidden />
-        {isEdit ? t('review.saveEdit') : tr('publish')}
-      </Button>
+      // e3: salvarea unei cereri deja preluate cere confirmare (dialogul din aplicatie)
+      <PostClaimEditConfirm editId={editId} onConfirm={() => void doPublish()}>
+        {(onClick) => (
+          <Button
+            type="button"
+            variant="walnut"
+            size="xl"
+            className={cn('px-4', className)}
+            disabled={!detailsComplete || !allRoomsComplete || publish.isPending || preparing}
+            onClick={onClick}
+          >
+            <Send aria-hidden />
+            {isRepost ? t('review.saveRepost') : isEdit ? t('review.saveEdit') : tr('publish')}
+          </Button>
+        )}
+      </PostClaimEditConfirm>
     ) : (
       <Button
         type="button"
@@ -463,7 +475,7 @@ export function ReviewStep({
           >
             <Loader2 className="h-7 w-7 animate-spin text-walnut" />
             <p className="font-serif text-lg">
-              {isEdit ? t('review.publishingEdit') : t('review.publishing')}
+              {isRepost ? t('review.publishingRepost') : isEdit ? t('review.publishingEdit') : t('review.publishing')}
             </p>
             {/* m2: publicarea asteapta imaginea 3D care inca se pregateste */}
             <p className="max-w-xs text-sm text-muted-foreground">{snapshots.waiting ? t('review.snapshot3d.working') : t('review.publishingHint')}</p>

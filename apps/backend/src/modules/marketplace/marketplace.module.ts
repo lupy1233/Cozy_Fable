@@ -21,5 +21,7 @@ import { SubscriptionActiveGuard } from '../../common/guards/subscription-active
     CompanyApprovedGuard,
     SubscriptionActiveGuard,
   ],
+  // g1-2 (etapa 9): anunturile de cereri noi refolosesc lista din marketplace
+  exports: [MarketplaceService],
 })
 export class MarketplaceModule {}

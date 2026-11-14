@@ -33,6 +33,8 @@ vi.mock('@/hooks/use-requests', () => ({
   useEditRequestById: () => hoisted.publish,
   useDraftCoverage: () => ({ data: undefined }),
 }));
+// f6-2: republicarea cu modificari (mutatia ei; aceeasi forma ca publicarea)
+vi.mock('./use-repost-with-changes', () => ({ useRepostWithChangesById: () => hoisted.publish }));
 vi.mock('@/i18n/routing', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
 vi.mock('./inspiration-picker', () => ({ InspirationPicker: () => null }));
 vi.mock('./room-answer-summary', () => ({ RoomAnswerSummary: () => null }));

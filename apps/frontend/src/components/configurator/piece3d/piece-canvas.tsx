@@ -28,6 +28,7 @@ import { FurnitureMotion } from './furniture-motion';
 import { FrontDetails } from './front-details';
 import { ShowroomBatches } from './showroom-batches';
 import { useTranslations } from 'next-intl';
+import { Scan } from 'lucide-react';
 
 // Scena 3D a piesei (R1 + fidelizare Tylko): carcasa parametrica generata din
 // config, lumini soft, orbita limitata, dpr limitat si frameloop="demand".
@@ -365,6 +366,8 @@ function PieceScene({ kind, config, activeZone, openZones, onZoneClick, onFrontS
 export function PieceCanvas(props: PieceCanvasProps) {
   const { config, className, onSnapshotReady } = props;
   const t = useTranslations('Configurator.config3d.furniture');
+  const tFrame = useTranslations('Configurator.config3d');
+  const [reframeKey, setReframeKey] = useState(0);
   const [furnitureOpen, setFurnitureOpen] = useState<Set<string>>(new Set());
   const motionKeys = useMemo(() => [...new Set(buildPanels(config, props.kind).flatMap(p => p.motion && !p.motion.key.startsWith('slide:') ? [p.motion.key] : []))], [config, props.kind]);
   useEffect(() => setFurnitureOpen(previous => {
@@ -417,9 +420,22 @@ export function PieceCanvas(props: PieceCanvasProps) {
           minPolarAngle={0.12}
           maxPolarAngle={Math.PI / 2 - 0.05}
         />
-        <PieceCameraRig width={viewBounds.width} height={viewBounds.height} depth={viewBounds.depth} />
+        <PieceCameraRig width={viewBounds.width} height={viewBounds.height} depth={viewBounds.depth} reframeKey={reframeKey} />
         <SnapshotBridge onReady={onSnapshotReady} />
       </Canvas>
+      {/* etapa 9 (l1): reincadrarea la cerere (camera se reincadreaza si singura cand piesa
+          iese din cadru sau creste mult) */}
+      <button
+        type="button"
+        onClick={() => setReframeKey((k) => k + 1)}
+        aria-label={tFrame('reframeLabel')}
+        title={tFrame('reframeLabel')}
+        data-testid="reframe-3d"
+        className="absolute right-2 top-2 inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border-2 bg-surface/90 px-3 text-xs text-foreground shadow-sm hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-walnut max-lg:min-h-11"
+      >
+        <Scan aria-hidden className="h-3.5 w-3.5" />
+        {tFrame('reframe')}
+      </button>
       {motionKeys.length > 0 && <button type="button" aria-pressed={furnitureOpen.size > 0}
         className="absolute bottom-3 left-3 min-h-11 rounded-full border border-border-2 bg-surface px-4 text-sm text-foreground shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-walnut"
         onClick={() => setFurnitureOpen(furnitureOpen.size ? new Set() : new Set(motionKeys))}>

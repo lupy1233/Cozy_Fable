@@ -13,6 +13,7 @@ import {
   SLIDING_COLUMNS_MIN,
   drawersCountFor,
   hangingCountFor,
+  resolveColumnWidths,
   resolvePieceLayout,
   shelvesCountFor,
   type Piece3dKind,
@@ -21,6 +22,7 @@ import {
 } from './config';
 import { isFurnitureKind } from './furniture-config';
 import { canAddColumn, canRemoveColumn } from './model';
+import { BOOKCASE_COLUMN_W_MAX, DRAWER_FRONT_H_MAX, TV_UNIT_HEIGHT_MIN } from './edit-rules';
 
 // b7: curatarea (normalizePieceConfig) scoate pe tacute ce nu mai incape.
 // Functiile de aici NU schimba rezultatul curatarii — doar spun CE s-a scos
@@ -44,7 +46,12 @@ export type Piece3dCleanupReason =
   // numar micsorat (nu scos de tot): bare / sertare / polite care nu mai incap
   | 'HANGING_COUNT'
   | 'DRAWERS_COUNT'
-  | 'SHELVES_COUNT';
+  | 'SHELVES_COUNT'
+  // etapa 9 (l1): regulile de editare (edit-rules.ts) — front de sertar max 50 cm (zona
+  // stransa sau mai multe sertare), coloana de biblioteca max 80 cm, comoda TV min 35 cm
+  | 'DRAWER_FRONT_MAX'
+  | 'BOOKCASE_COLUMN_WIDTH'
+  | 'TV_UNIT_HEIGHT';
 
 export interface Piece3dCleanupNote {
   reason: Piece3dCleanupReason;
@@ -93,6 +100,18 @@ export function explainPieceCleanup(
     notes.push({ reason: 'SLIDING_COLUMNS' });
   }
 
+  // etapa 9 (l1-2): limitele de editare
+  if (kind === 'TV_UNIT' && before.heightM < TV_UNIT_HEIGHT_MIN - GEOM_EPS && after.heightM >= TV_UNIT_HEIGHT_MIN - GEOM_EPS) {
+    notes.push({ reason: 'TV_UNIT_HEIGHT' });
+  }
+  if (
+    kind === 'BOOKCASE' &&
+    before.columns.some((c) => c.widthM !== undefined && c.widthM > BOOKCASE_COLUMN_W_MAX + GEOM_EPS) &&
+    resolveColumnWidths(kind, after).every((w) => w <= BOOKCASE_COLUMN_W_MAX + GEOM_EPS)
+  ) {
+    notes.push({ reason: 'BOOKCASE_COLUMN_WIDTH' });
+  }
+
   const layout = resolvePieceLayout(kind, after);
   const nCols = Math.min(before.columns.length, after.columns.length);
   for (let ci = 0; ci < nCols; ci++) {
@@ -119,6 +138,18 @@ export function explainPieceCleanup(
           notes.push({ reason: 'DRAWERS_TOO_HIGH', col: ci, zone: zi });
         } else if (drawersCountFor(r.height) < 1) {
           notes.push({ reason: 'DRAWERS_TOO_SHORT', col: ci, zone: zi });
+        }
+      }
+      // etapa 9 (l1-1): zona de sertare stransa la n x 50 cm sau sertare adaugate ca frontul
+      // sa nu treaca de 50 cm (doar ce a pus regula, nu blocajele omului)
+      if (hadDrawers(b) && a.type === 'DRAWERS') {
+        const cap = (a.count ?? 1) * DRAWER_FRONT_H_MAX;
+        const capped =
+          a.heightM !== undefined &&
+          Math.abs(a.heightM - cap) < 1e-6 &&
+          (b.heightM === undefined || Math.abs(b.heightM - a.heightM) > 1e-6);
+        if (capped || (a.count ?? 1) > (b.count ?? 1)) {
+          notes.push({ reason: 'DRAWER_FRONT_MAX', col: ci, zone: zi, kept: a.count ?? 1 });
         }
       }
       // numar micsorat de geometrie (a ramas exact cat incape, dar mai putin

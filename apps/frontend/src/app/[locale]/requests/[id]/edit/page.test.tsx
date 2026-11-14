@@ -15,10 +15,13 @@ vi.mock('@/i18n/routing', () => ({
 }));
 vi.mock('@/hooks/use-requests', () => ({ useRequest: () => state.query }));
 vi.mock('@/components/configurator/configurator-wizard', () => ({
-  ConfiguratorWizard: ({ editId }: { editId: string }) => <div data-testid="wizard">{editId}</div>,
+  ConfiguratorWizard: ({ editId, repost }: { editId: string; repost?: boolean }) => (
+    <div data-testid="wizard" data-repost={repost ? 'yes' : 'no'}>{editId}</div>
+  ),
 }));
 
-const req = (status: string, pre = 0, post = 0) => ({ id: 'req-1', status, preClaimEditsUsed: pre, postClaimEditsUsed: post });
+// f6-2: repostUsed implicit true — o cerere expirata deja republicata nu se mai poate edita
+const req = (status: string, pre = 0, post = 0, repostUsed = true) => ({ id: 'req-1', status, preClaimEditsUsed: pre, postClaimEditsUsed: post, repostUsed });
 const view = () =>
   render(
     <NextIntlClientProvider locale="en" messages={en}>
@@ -75,5 +78,18 @@ describe('edit page guard', () => {
     state.query = { isPending: false, data: undefined, isError: true };
     view();
     expect(screen.getByTestId('wizard')).toBeTruthy();
+  });
+
+  // f6-2: „Republica cu modificari” — cererea expirata cu republicarea nefolosita deschide formularul
+  it('EXPIRED with the repost unused → the editor in repost mode', () => {
+    state.query = { isPending: false, data: req('EXPIRED', 3, 1, false), isError: false };
+    view();
+    expect(screen.getByTestId('wizard').getAttribute('data-repost')).toBe('yes');
+  });
+
+  it('a normal edit is not in repost mode', () => {
+    state.query = { isPending: false, data: req('IN_MARKETPLACE', 0, 0, false), isError: false };
+    view();
+    expect(screen.getByTestId('wizard').getAttribute('data-repost')).toBe('no');
   });
 });

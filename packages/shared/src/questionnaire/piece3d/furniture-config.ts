@@ -36,6 +36,16 @@ export const TABLE_HEIGHT = { DINING: 0.75, COFFEE: 0.45, CONSOLE: 0.8 } as cons
 export const TABLE_LENGTH_LIMITS = {
   DINING: { min: 1.2, max: 3 }, COFFEE: { min: 0.5, max: 1.5 }, CONSOLE: { min: 0.6, max: 2 },
 } as const;
+// Etapa 9 (l1): diametrul mesei rotunde pe tip, aplicat la creare/editare (edit-rules.ts).
+export const TABLE_ROUND_DIAMETER = {
+  DINING: { min: 0.8, max: 1.6 },
+  COFFEE: { min: 0.5, max: 1.0 },
+  CONSOLE: { min: 0.6, max: 1.0 },
+} as const;
+// Plaja ACCEPTATA la validare pentru masa rotunda: vechea 70-180 cm (cererile publicate raman
+// valide), largita in jos doar cat cer minimele noi (cafea 50, consola 60).
+const tableRoundAcceptedMin = (type: keyof typeof TABLE_ROUND_DIAMETER) =>
+  Math.min(0.7, TABLE_ROUND_DIAMETER[type].min);
 
 // Gabaritul include cadrul. Dimensiunile saltelei raman separate pentru oferta/scoring.
 export function bedFootprint(bed: BedOptions3d): { widthM: number; depthM: number } {
@@ -86,7 +96,7 @@ export function normalizeFurnitureConfig(kind: Piece3dKind, config: PieceConfig3
       delete table.seats;
     } else table.seats ??= 'SIX';
     const limits = TABLE_LENGTH_LIMITS[table.type];
-    const widthM = table.shape === 'ROUND' ? clamp(config.widthM, 0.7, 1.8) : clamp(config.widthM, limits.min, limits.max);
+    const widthM = table.shape === 'ROUND' ? clamp(config.widthM, tableRoundAcceptedMin(table.type), 1.8) : clamp(config.widthM, limits.min, limits.max);
     return { ...next, widthM, depthM: table.shape === 'ROUND' ? widthM : clamp(config.depthM, 0.4, 1.2), heightM: TABLE_HEIGHT[table.type], table };
   }
   const bench = benchOptionsSchema.parse(config.bench ?? defaultFurnitureConfig('BENCH').bench);

@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ERROR_CODES, type NotificationDto, type UnreadCountDto } from '@marketplace/shared';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+// g1: evenimentele doar pe e-mail (ex. request.published) nu apar in clopotel
+import { EMAIL_ONLY_EVENTS } from './notification-rules';
 
 @Injectable()
 export class NotificationsService {
@@ -41,7 +43,7 @@ export class NotificationsService {
 
   async listForUser(userId: string): Promise<NotificationDto[]> {
     const rows = await this.prisma.notification.findMany({
-      where: { userId },
+      where: { userId, type: { notIn: [...EMAIL_ONLY_EVENTS] } },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
@@ -56,7 +58,7 @@ export class NotificationsService {
   }
 
   async unreadCount(userId: string): Promise<UnreadCountDto> {
-    const unread = await this.prisma.notification.count({ where: { userId, readAt: null } });
+    const unread = await this.prisma.notification.count({ where: { userId, readAt: null, type: { notIn: [...EMAIL_ONLY_EVENTS] } } });
     return { unread };
   }
 

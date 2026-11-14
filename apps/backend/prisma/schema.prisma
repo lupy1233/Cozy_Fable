@@ -505,6 +505,8 @@ model Company {
   suspendedUntil  DateTime?     @map("suspended_until") @db.Timestamptz()
   deletedAt       DateTime?     @map("deleted_at") @db.Timestamptz()
   createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  // g1-2 (etapa 9): pana unde a ajuns rezumatul zilnic „cereri noi in zona ta” (fara dubluri)
+  newRequestsDigestUntil DateTime? @map("new_requests_digest_until") @db.Timestamptz()
 
   members             CompanyMember[]
   locations           CompanyLocation[]

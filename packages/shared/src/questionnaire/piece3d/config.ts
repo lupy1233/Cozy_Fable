@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { NEW_PIECE_RULES, upholsterySchema, sofaSchema, armchairSchema, ottomanSchema, vanitySchema, entrywaySchema, validCatalogOptions, describeCatalogOptions, type Upholstery3d, type Sofa3d, type Armchair3d, type Ottoman3d, type Vanity3d, type Entryway3d } from './catalog-config';
 import { bedOptionsSchema, tableOptionsSchema, benchOptionsSchema, defaultFurnitureConfig, isFurnitureKind, normalizeFurnitureConfig, validFurnitureConfig, type BedOptions3d, type TableOptions3d, type BenchOptions3d } from './furniture-config';
+// ciclu de import sigur: edit-rules foloseste config.ts doar in functii (nimic la incarcare)
+import { applyPieceEditRules } from './edit-rules';
 
 // Configuratorul 3D de piese (stil Tylko) — docs/10, sprinturile R1-R6.
 // Config-ul e serializabil si intra in answers ca orice raspuns de step;
@@ -511,7 +513,7 @@ export function defaultPieceConfig(kind: Piece3dKind): PieceConfig3d {
 // fronturi (ce vede clientul ales ajunge la firma si se puncteaza).
 export function initialPieceConfig(kind: Piece3dKind): PieceConfig3d {
   const base = defaultPieceConfig(kind);
-  if (isFurnitureKind(kind)) return normalizePieceConfig(kind, base);
+  if (isFurnitureKind(kind)) return applyPieceEditRules(kind, normalizePieceConfig(kind, base));
   let columns = base.columns;
   if (kind === 'WARDROBE') {
     columns = columns.map((column) => ({
@@ -522,7 +524,8 @@ export function initialPieceConfig(kind: Piece3dKind): PieceConfig3d {
   if (kind === 'TV_UNIT') {
     columns = columns.map(() => ({ zones: [{ type: 'DRAWERS', count: 1 }] }));
   }
-  const next = normalizePieceConfig(kind, { ...base, columns });
+  // etapa 9 (l1): regulile noi de editare (front de sertar max 50 cm etc.) se aplica si la pornire
+  const next = applyPieceEditRules(kind, normalizePieceConfig(kind, { ...base, columns }));
   return configHasFronts(kind, next) ? { ...next, frontStyle: 'PUSH' } : next;
 }
 

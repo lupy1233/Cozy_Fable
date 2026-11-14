@@ -1,14 +1,22 @@
 'use client';
 
 import {
+  applyPieceEditRules,
   canAddColumn,
   canRemoveColumn,
   columnStepperLimits,
-  COLUMN_W_MAX,
+  columnWidthMaxFor,
   COLUMN_W_MIN,
   configHasFronts,
   DESK_TWO_PEDESTALS_FROM_W,
+  DRAWER_FRONT_H_MAX,
   DRAWER_H_MIN,
+  drawerCountMinFor,
+  editPieceConfig,
+  releaseRuleDrawerLocks,
+  pieceHeightMinFor,
+  TV_UNIT_HEIGHT_MIN,
+  zoneTypesInDisplayOrder,
   DRAWERS_MAX_TOP,
   explainPieceCleanup,
   drawersCountFor,
@@ -246,11 +254,14 @@ function LockableSize({
 // Numarul de sertare/polite din modul "campuri clasice": acelasi tipar draft —
 // clamp-ul la [1, max] se aplica DOAR la commit (blur/Enter), nu la fiecare tasta.
 function ZoneCountInput({
+  min = 1,
   max,
   value,
   onValue,
   label,
 }: {
+  // etapa 9 (revizuire m3): minimul de sertare cand frontul ar trece de 50 cm
+  min?: number;
   max: number;
   value: number;
   onValue: (v: number) => void;
@@ -266,8 +277,8 @@ function ZoneCountInput({
     validate: (v) =>
       !Number.isInteger(v)
         ? t('validation.wholeNumber')
-        : v < 1 || v > max
-          ? t('validation.outOfRangeKept', { range: `1–${max}` })
+        : v < min || v > max
+          ? t('validation.outOfRangeKept', { range: `${min}–${max}` })
           : null,
     onValue: (v) => {
       if (v !== undefined) onValue(v);
@@ -326,13 +337,31 @@ function CabinetControls({
   // publicata (costul in credite si imaginea nu se schimba) pana cand omul schimba ceva la
   // piesa; atunci regula se aplica prin `apply`.
   const [fixSavedConfig] = useState(() => !isInEditSession());
+  // etapa 9 (l1-1, l1-2): o ciorna in afara limitelor noi (sertar peste 50 cm, coloana de
+  // biblioteca peste 80 cm, comoda TV sub 35 cm) se ajusteaza O DATA la redeschidere, cu motiv
+  // (intentia = ciorna salvata). Tot doar pe ciorne, nu la editarea unei cereri publicate.
+  const editRulesCheckedFor = useRef<Piece3dKind | null>(null);
   useEffect(() => {
     if (!config) {
+      editRulesCheckedFor.current = piece;
       onChange(initialPieceConfig(piece));
       return;
     }
     if (!fixSavedConfig) return;
     const fixed = withFrontStyleRule(piece, config);
+    if (editRulesCheckedFor.current !== piece) {
+      editRulesCheckedFor.current = piece;
+      const normalized = normalizePieceConfig(piece, fixed);
+      const ruled = applyPieceEditRules(piece, normalized);
+      if (ruled !== normalized) {
+        const cleaned = withFrontStyleRule(piece, ruled, fixed);
+        // revizuire m1: intentia "ciorna dinainte" e doar pentru motivul afisat acum (oneShot);
+        // urmatoarea editare porneste de la ce s-a salvat, deci motivul nu mai revine
+        setIntentState({ piece, intent: config, cleanedKey: stableKey(cleaned), oneShot: true, prevSaved: config });
+        onChange(cleaned);
+        return;
+      }
+    }
     if (fixed !== config) onChange(fixed);
   }, [config, onChange, piece, fixSavedConfig]);
 
@@ -346,27 +375,52 @@ function CabinetControls({
     piece: Piece3dKind;
     intent: PieceConfig3d;
     cleanedKey: string;
+    // etapa 9: intentia pusa la ajustarea de la redeschidere — doar pentru motiv, nu pentru editari
+    oneShot?: boolean;
+    // configuratia salvata inainte de aceasta editare (pentru motivul sertarelor, revizuire m1)
+    prevSaved?: PieceConfig3d;
   } | null>(null);
   const configKey = useMemo(() => (config ? stableKey(config) : ''), [config]);
-  const intent: PieceConfig3d | null =
-    config && intentState && intentState.piece === piece && intentState.cleanedKey === configKey
-      ? intentState.intent
-      : config;
+  const intentValid =
+    !!config && !!intentState && intentState.piece === piece && intentState.cleanedKey === configKey;
+  const intent: PieceConfig3d | null = intentValid ? intentState!.intent : config;
+  // intentia tinuta de pas (fara blocajele puse de regula); altfel editarile pornesc de la ce e salvat
+  const intentHeld = intentValid && !intentState!.oneShot;
+  // configuratia salvata din care porneste editarea cand intentia nu e tinuta (revizuire M1)
+  const previousRef = useRef<PieceConfig3d | undefined>(undefined);
+  previousRef.current = intentHeld ? undefined : config ?? undefined;
+  const configRef = useRef<PieceConfig3d | null>(config);
+  configRef.current = config;
 
   const apply = useCallback(
     (next: PieceConfig3d) => {
+      // revizuire M1: pornind de la ce e salvat, blocajele puse atunci de regula pe sertare
+      // (count x 50 cm, neschimbate de om) ies din intentie; cele puse de om raman
+      const base = previousRef.current ? releaseRuleDrawerLocks(next, previousRef.current) : next;
       // d2: deschiderea se scrie doar cand piesa are fronturi; intentia o pastreaza oricum
-      const cleaned = withFrontStyleRule(piece, normalizePieceConfig(piece, next), next);
-      setIntentState({ piece, intent: next, cleanedKey: stableKey(cleaned) });
+      // etapa 9 (l1): curatarea + regulile noi de editare (front de sertar max 50 cm etc.)
+      const cleaned = withFrontStyleRule(piece, editPieceConfig(piece, base), base);
+      setIntentState({ piece, intent: base, cleanedKey: stableKey(cleaned), prevSaved: configRef.current ?? undefined });
       onChange(cleaned);
     },
     [onChange, piece],
   );
 
   // ce a scos curatarea din intentie si de ce (linie scurta in panou)
+  // revizuire m1: motivul "front de cel mult 50 cm" doar cand zona chiar s-a schimbat fata de
+  // configuratia salvata dinainte (altfel ar reveni la fiecare editare)
+  const prevSaved = intentValid ? intentState!.prevSaved : undefined;
   const cleanupNotes = useMemo(
-    () => (config && intent ? explainPieceCleanup(piece, intent, config) : []),
-    [piece, intent, config],
+    () =>
+      config && intent
+        ? explainPieceCleanup(piece, intent, config).filter((note) => {
+            if (note.reason !== 'DRAWER_FRONT_MAX' || note.col === undefined || note.zone === undefined) return true;
+            const before = prevSaved?.columns[note.col]?.zones[note.zone];
+            const after = config.columns[note.col]?.zones[note.zone];
+            return !before || !after || before.type !== after.type || before.count !== after.count || before.heightM !== after.heightM;
+          })
+        : [],
+    [piece, intent, config, prevSaved],
   );
 
   // snapshot PNG debounced dupa fiecare schimbare (R4); doar in modul 3D
@@ -436,7 +490,7 @@ function CabinetControls({
 
   // intentia completata cu ce a adaugat curatarea (coloane / zone implicite),
   // ca indicii din UI (luati din config-ul curatat) sa existe si in intentie
-  const src = intent ?? config;
+  const src = intentHeld && intent ? intent : config;
   const b: PieceConfig3d = {
     ...src,
     columns: [
@@ -573,6 +627,12 @@ function CabinetControls({
             : activeMax
       : activeMax;
 
+  // etapa 9 (revizuire m3): minimul de sertare cand zona nu are vecina libera (front <= 50 cm)
+  const activeCountMin =
+    validActiveZone && activeZoneData?.type === 'DRAWERS'
+      ? drawerCountMinFor(piece, config, validActiveZone.col, validActiveZone.zone)
+      : 1;
+
   // b7: optiunile ascunse ale zonei active au motivul sub ele (o linie scurta);
   // bara de haine se explica doar la piesele care o pot avea vreodata
   // b7: inaltimea interioara a unei coloane = maximul unui rand ("8,5" la
@@ -582,6 +642,10 @@ function CabinetControls({
 
   // b7: textele de motiv primesc pragurile din ACELEASI constante ca regula
   const cmText = (m: number) => formatDecimal(cmExact(m), locale, 1);
+  // etapa 9 (l1-2): latimea maxima a coloanei la editare (biblioteca 80 cm) si ordinea fixa
+  // de afisare a tipurilor de zona (Deschis · Sertare · Usa)
+  const columnWMax = columnWidthMaxFor(piece);
+  const zoneTypesShown = zoneTypesInDisplayOrder(piece);
   const msg = {
     drawersTooHigh: t('config3d.drawersTooHigh', { cm: cmText(DRAWERS_MAX_TOP) }),
     drawersTooShort: t('config3d.drawersTooShort', { cm: cmText(DRAWER_H_MIN) }),
@@ -641,9 +705,17 @@ function CabinetControls({
       case 'PEDESTALS_WIDTH':
         return msg.pedestalsNeedWidth;
       case 'COLUMNS_WIDTH':
-        return t('config3d.columnsFitWidth', { min: cm(COLUMN_W_MIN), max: cm(COLUMN_W_MAX) });
+        return t('config3d.columnsFitWidth', { min: cm(COLUMN_W_MIN), max: cm(columnWMax) });
       case 'SLIDING_COLUMNS':
         return msg.slidingLost;
+      // etapa 9 (l1): regulile noi de editare
+      case 'DRAWER_FRONT_MAX':
+        return t('config3d.drawerFrontMax', { cm: cmText(DRAWER_FRONT_H_MAX) });
+      case 'BOOKCASE_COLUMN_WIDTH':
+        // revizuire m7: spune ce s-a schimbat, nu doar regula
+        return t('config3d.bookcaseColumnLowered', { max: cm(columnWMax) });
+      case 'TV_UNIT_HEIGHT':
+        return t('config3d.tvUnitMinHeight', { cm: cmText(TV_UNIT_HEIGHT_MIN) });
     }
   };
   const cleanupLines = Array.from(new Set(cleanupNotes.map(cleanupMessage)));
@@ -662,7 +734,7 @@ function CabinetControls({
       case 'PEDESTALS_WIDTH':
         return msg.pedestalsNeedWidth;
       case 'COLUMN_WIDTH':
-        return t('config3d.columnWidthRange', { min: cm(COLUMN_W_MIN), max: cm(COLUMN_W_MAX) });
+        return t('config3d.columnWidthRange', { min: cm(COLUMN_W_MIN), max: cm(columnWMax) });
     }
   };
   const columnLimitLines = Array.from(
@@ -698,7 +770,7 @@ function CabinetControls({
           (feedback PO 2026-07-13); cea selectata ramane mereu vizibila;
           T1: usa per zona nu exista in spatele usilor glisante */}
       <div className="flex flex-wrap gap-1.5">
-        {rules.zoneTypes
+        {zoneTypesShown
           .filter(
             (type) => !(type === 'DRAWERS' && !drawersAllowed && activeZoneData.type !== type),
           )
@@ -781,12 +853,18 @@ function CabinetControls({
                 count: Math.max(1, Math.min(activeCountMax, (activeZoneData.count ?? 1) + d)),
               })
             }
-            canDec={(activeZoneData.count ?? 1) > 1}
+            canDec={(activeZoneData.count ?? 1) > activeCountMin}
             canInc={(activeZoneData.count ?? 1) < activeCountMax}
             decLabel={t('config3d.fewer')}
             incLabel={t('config3d.more')}
           />
         </div>
+      )}
+      {/* revizuire m3: "−" dezactivat cand mai putine sertare ar avea fronturi peste 50 cm */}
+      {activeCountMin > 1 && (activeZoneData.count ?? 1) <= activeCountMin && (
+        <p className="text-meta text-muted-foreground" data-testid="drawers-min-reason">
+          {t('config3d.drawersMinForFront', { cm: cmText(DRAWER_FRONT_H_MAX) })}
+        </p>
       )}
       {/* randurile (zonele) coloanei selectate: + adauga jos, − scoate de jos */}
       <div className="flex items-center gap-3">
@@ -825,7 +903,7 @@ function CabinetControls({
           <LockableSize
             label={t('config3d.columnWidth')}
             minCm={cmExact(COLUMN_W_MIN)}
-            maxCm={cmExact(COLUMN_W_MAX)}
+            maxCm={cmExact(columnWMax)}
             valueCm={cmExact(activeColWidth)}
             locked={config.columns[validActiveZone.col].widthM !== undefined}
             onValueCm={(v) => updateColumn(validActiveZone.col, { widthM: v / 100 })}
@@ -859,7 +937,7 @@ function CabinetControls({
       />
       <PieceDimensionControl
         label={t('config3d.height')}
-        minM={rules.height.min}
+        minM={pieceHeightMinFor(piece)}
         maxM={rules.height.max}
         valueM={config.heightM}
         onValueM={(v) => apply({ ...b, heightM: v })}
@@ -1057,7 +1135,7 @@ function CabinetControls({
                   <LockableSize
                     label={t('config3d.columnWidth')}
                     minCm={cmExact(COLUMN_W_MIN)}
-                    maxCm={cmExact(COLUMN_W_MAX)}
+                    maxCm={cmExact(columnWMax)}
                     valueCm={cmExact(layout[ci].width)}
                     locked={column.widthM !== undefined}
                     onValueCm={(v) => updateColumn(ci, { widthM: v / 100 })}
@@ -1129,7 +1207,7 @@ function CabinetControls({
                       }
                     >
                       {/* optiunile indisponibile geometric se ascund (PO 2026-07-13) */}
-                      {rules.zoneTypes
+                      {zoneTypesShown
                         .filter(
                           (type) =>
                             !(type === 'DRAWERS' && !zoneDrawersOk && zone.type !== type),
@@ -1174,6 +1252,7 @@ function CabinetControls({
                   )}
                   {max !== undefined && (
                     <ZoneCountInput
+                      min={zone.type === 'DRAWERS' ? Math.min(max, drawerCountMinFor(piece, config, ci, zi)) : 1}
                       max={max}
                       value={zone.count ?? 1}
                       label={t('config3d.countLabel')}
@@ -1278,7 +1357,9 @@ function CabinetControls({
               onSnapshotReady={(fn) => {
                 snapshotFn.current = fn;
               }}
-              className="h-[40dvh] min-h-[220px] w-full lg:h-[500px] lg:min-h-0"
+              // etapa 9 (l1, pasul 6): pe desktop scena e mai inalta (comenzile raman 330 px);
+              // pe ecrane scunde nu trece de inaltimea ferestrei de sub antet
+              className="h-[40dvh] min-h-[220px] w-full lg:h-[min(640px,calc(100dvh_-_7rem))] lg:min-h-[500px]"
             />
           </div>
           <div className="flex min-w-0 flex-col gap-3">

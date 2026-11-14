@@ -399,3 +399,49 @@ describe('request detail delete dialog (e4)', () => {
     expect(within(screen.getByRole('dialog')).getByRole('alert')).toBeTruthy();
   });
 });
+
+// f6-2 / f6 (etapa 9): „Republica cu modificari” pe cererea expirata; textul despre preluari
+// dispare unde nu exista preluari active
+describe('request detail — repost with changes (f6)', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    state.toastSuccess.mockClear();
+    state.repost = { mutate: vi.fn(), isPending: false, isSuccess: false, error: null };
+  });
+
+  it('an expired request with the repost unused links to the prefilled form', () => {
+    state.request = request({});
+    renderPage();
+    expect(screen.getByRole('link', { name: en.Requests.repostWithChanges }).getAttribute('href')).toBe('/requests/req-1/edit');
+    // republicarea identica ramane
+    expect(screen.getByRole('button', { name: en.Requests.repost })).toBeTruthy();
+  });
+
+  it('no repost-with-changes link once the repost was used, nor on a live request', () => {
+    state.request = request({ repostUsed: true });
+    const v = renderPage();
+    expect(screen.queryByRole('link', { name: en.Requests.repostWithChanges })).toBeNull();
+    v.unmount();
+    state.request = request({ status: 'IN_MARKETPLACE' });
+    renderPage();
+    expect(screen.queryByRole('link', { name: en.Requests.repostWithChanges })).toBeNull();
+  });
+
+  it('the delete card of an expired request does not talk about active claims', () => {
+    state.request = request({});
+    const v = renderPage();
+    expect(screen.queryByText(en.Requests.deleteSection.hint)).toBeNull();
+    expect(screen.getByText(en.Requests.deleteSection.hintNoClaims)).toBeTruthy();
+    v.unmount();
+    state.request = request({ status: 'IN_MARKETPLACE' });
+    renderPage();
+    expect(screen.getByText(en.Requests.deleteSection.hint)).toBeTruthy();
+  });
+
+  it('after saving the repost with changes the page shows its own message', () => {
+    state.request = request({ status: 'IN_MARKETPLACE', repostUsed: true });
+    leavePublishNotice('req-1', 'reposted');
+    renderPage();
+    expect(state.toastSuccess).toHaveBeenCalledWith(en.Configurator.review.repostedToast);
+  });
+});

@@ -1093,7 +1093,7 @@
     "publish": "Publish request",
     "repost": "Repost",
     "reposted": "Request reposted.",
-    "repostHint": "This request expired without being claimed by a company. You can repost it once, with a new expiry date.",
+    "repostHint": "This request expired without being claimed by a company. You can repost it once, as it is or with changes, with a new expiry date.",
     "repostUsedNote": "You have already reposted this request (it can be reposted only once). You can start a new request.",
     "repostStartNew": "Start a new request",
     "deleteRequest": "Delete request",
@@ -1381,7 +1381,8 @@
     },
     "deleteSection": {
       "title": "Deleting the request",
-      "hint": "Companies' active claims will be cancelled. We'll ask you to confirm first."
+      "hint": "Companies' active claims will be cancelled. We'll ask you to confirm first.",
+      "hintNoClaims": "We'll ask you to confirm first."
     },
     "budgetNoEstimateHint": "Choose the amount you'd like to spend. Companies see it as a guide for their quote.",
     "budgetChoose": "Choose the amount",
@@ -1422,7 +1423,8 @@
       "pending": "Deleting…",
       "done": "The request was deleted."
     },
-    "messageCounter": "{count, number} / {max, number} characters"
+    "messageCounter": "{count, number} / {max, number} characters",
+    "repostWithChanges": "Repost with changes"
   },
   "Marketplace": {
     "title": "Available requests",
@@ -2126,7 +2128,30 @@
     },
     "pdfFailed": "We couldn’t generate the PDF right now. Please try again in a few minutes.",
     "pdfPending": "Preparing the PDF…",
-    "requestDeletedByClient": "The client deleted the request"
+    "requestDeletedByClient": "The client deleted the request",
+    "requestChanges": {
+      "title": "The request was changed on {date}",
+      "whatChanged": "What changed:",
+      "field": {
+        "budget": "Budget",
+        "deadline": "Desired timeframe",
+        "location": "Town",
+        "inspiration": "Inspiration photos"
+      },
+      "roomNumbered": "{room} {n}",
+      "roomAdded": "Room added: {room}",
+      "roomRemoved": "Room removed: {room}",
+      "roomModified": "{room} was changed",
+      "roomModifiedWhat": "{room} was changed: {what}",
+      "aspect": {
+        "answers": "the form answers",
+        "designHelp": "paid design",
+        "approxLength": "the approximate length"
+      },
+      "notComparable": "We can't show every detail of this change. Check the rooms on this sheet.",
+      "nothingVisible": "Nothing you see on this sheet has changed.",
+      "hint": "The new values are already on the sheet. Check them before you send or update your offer."
+    }
   },
   "Lifecycle": {
     "slaTitle": "Response deadline & status",
@@ -2228,7 +2253,15 @@
       "decidedOn": "decided on {date}",
       "title": "Withdrawal requests"
     },
-    "noClarifications": "You haven't asked for any clarification on this claim."
+    "noClarifications": "You haven't asked for any clarification on this claim.",
+    "clarificationHistory": {
+      "title": "Questions you answered",
+      "askedBy": "{company} asked on {date}",
+      "askedOn": "Question received on {date}",
+      "question": "Question:",
+      "yourAnswer": "Your answer:",
+      "answeredOn": "You answered on {date}"
+    }
   },
   "Penalties": {
     "title": "Penalties",
@@ -2564,7 +2597,8 @@
       "COMPANY_NOT_APPROVED": "Your company hasn't been approved yet.",
       "PLAN_NOT_PURCHASABLE": "This plan cannot be bought online; the platform administrator activates it.",
       "CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION": "Credits can be bought only with an active subscription. Reactivate your subscription, then choose a package.",
-      "DOCUMENT_RENDER_FAILED": "We couldn’t generate the PDF document right now. Please try again in a few minutes."
+      "DOCUMENT_RENDER_FAILED": "We couldn’t generate the PDF document right now. Please try again in a few minutes.",
+      "PAYMENT_REPORTED_PAID": "You have already said you paid, so the payment can no longer be cancelled. The Cozy Home team is checking the transfer; if this is a mistake, write to us."
     },
     "rulesNotice": "How credits are reserved, consumed and refunded: <rules>Rules for firms</rules>.",
     "testMode": {
@@ -2586,7 +2620,56 @@
     "priceExVat": "{price} + VAT",
     "perCredit": "{price} / credit",
     "totalWithVat": "{total} incl. {rate}% VAT",
-    "packagesNeedSubscription": "Credit packages can be bought only with an active subscription. The credits you already have stay in your account."
+    "packagesNeedSubscription": "Credit packages can be bought only with an active subscription. The credits you already have stay in your account.",
+    "orderValidUntil": "Valid until {date}; after that it is cancelled automatically.",
+    "cancelOrder": {
+      "action": "Cancel payment",
+      "title": "Cancel this payment?",
+      "body": "{what} · {total} · reference #{ref}. The payment stays in the list as cancelled.",
+      "note": "No credits are lost. If you have already sent the money, don’t cancel: press “I've paid” and the Cozy Home team will check the transfer.",
+      "keep": "No, keep it",
+      "confirm": "Yes, cancel the payment",
+      "done": "The payment was cancelled."
+    },
+    "history": {
+      "title": "Credit history",
+      "empty": "No credit movements yet.",
+      "loadFailed": "The history could not be loaded. Reload the page.",
+      "loadMore": "Show more",
+      "hint": "The amount shows how your available credits changed. When you claim a request, credits move from available to reserved; at settlement they are used up or returned to available.",
+      "amount": "{amount} available",
+      "reservedChange": "{amount} reserved",
+      "after": "After: {available} available · {reserved} reserved",
+      "untitledRequest": "Untitled request",
+      "kind": {
+        "PURCHASE": "Credit purchase",
+        "SUBSCRIPTION_CREDITS": "Credits included in the plan",
+        "TRIAL_BONUS": "Trial bonus",
+        "OPENING_BALANCE": "Opening balance",
+        "CLAIM": "Claim — credits reserved",
+        "REFUND": "Refund — credits returned",
+        "CONSUME": "Settlement — credits used",
+        "OTHER": "Other movement"
+      },
+      "reason": {
+        "CLAIM_AUTO_CANCEL_UNASSIGNED": "Cancelled: not assigned in time",
+        "SLA_BREACH": "Response deadline missed",
+        "WITHDRAWAL_CLIENT_UNRESPONSIVE_48H": "Withdrawal: the client did not reply for 48 hours",
+        "WITHDRAWAL_REQUEST_MODIFIED_POST_CLAIM": "Withdrawal: the client changed the request after the claim",
+        "WITHDRAWAL_VOLUNTARY_GRACE": "Voluntary withdrawal, within the free period",
+        "WITHDRAWAL_VOLUNTARY_LATE": "Voluntary withdrawal, after the free period",
+        "WITHDRAWAL_ADMIN_APPROVED": "Withdrawal approved by the Cozy Home team",
+        "OFFER_LOST": "The offer was not chosen",
+        "REQUEST_ACCEPTED_OTHER_OFFER": "The client chose another offer",
+        "COMPLETED": "Claim completed",
+        "REQUEST_DELETED_BY_CLIENT": "The client deleted the request",
+        "PROJECT_CANCELLED_REFUND": "Cancelled by the Cozy Home team after acceptance",
+        "PROJECT_CANCELLED_CONSUME": "Cancelled by the Cozy Home team after acceptance",
+        "OFFER_EXPIRED_UNDECIDED_REFUND": "The offer expired without the client’s decision",
+        "OFFER_EXPIRED_UNDECIDED_CONSUME": "The offer expired without the client’s decision",
+        "OFFER_DECLINED": "The client declined the offer"
+      }
+    }
   },
   "AdminPayments": {
     "title": "Payments & subscriptions",
@@ -3251,6 +3334,14 @@
         "delivery_min_days_after_accept": {
           "label": "Minimum days before delivery",
           "help": "How many days after the offer is accepted the firm can mark the project as delivered. 0 = any time."
+        },
+        "guest_draft_retention_days": {
+          "label": "Keeping drafts without an account",
+          "help": "After how many days without changes drafts started by visitors are deleted, together with their files. Minimum 1."
+        },
+        "client_draft_retention_days": {
+          "label": "Keeping client drafts",
+          "help": "After how many days without changes drafts of clients with an account are deleted, together with their files. Minimum 1."
         }
       },
       "units": {
@@ -3354,7 +3445,9 @@
         "uploads": "Uploaded files",
         "domain-events": "Events to send",
         "offer-expiry-settlement": "Closing of expired offers",
-        "project-deadlines": "Project delivery deadlines"
+        "project-deadlines": "Project delivery deadlines",
+        "draft-cleanup": "Old draft clean-up",
+        "new-requests": "New requests in companies' areas"
       }
     },
     "requests": {
@@ -3775,7 +3868,9 @@
         "expired": "Your request expired",
         "expiry_reminder": "Your request expires soon",
         "no_coverage": "New request with no company in the area — find a company",
-        "company_withdrew": "A company stepped back — your request is available to other companies again"
+        "company_withdrew": "A company stepped back — your request is available to other companies again",
+        "new_in_area": "New request in your area",
+        "edited_after_claim": "The client changed a claimed request — check the details"
       },
       "claim": {
         "created": "Request claimed by a company",
@@ -3850,6 +3945,10 @@
       },
       "documents": {
         "pdf_failed": "PDF documents (offers, proformas, invoices) can’t be generated — check the server log"
+      },
+      "clarification": {
+        "asked": "A company has a question about your request",
+        "answered": "The client answered your question"
       }
     },
     "stageUpdated": {
@@ -3876,7 +3975,8 @@
     "bootstrap": {
       "title": "The request could not be opened",
       "description": "The service is temporarily unavailable. Check your connection and try again. Any progress already saved on this device is kept.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "rateLimited": "Too many requests started in a short time. Please try again in a minute."
     },
     "sheet": {
       "phaseLabel": "Phase {current} of {total}",
@@ -4165,7 +4265,10 @@
         "failed": "We couldn't make the 3D picture of the piece on this device. You can publish without it: companies see all your measurements and choices."
       },
       "sessionExpired": "Your session has expired — sign in again; your request stays saved.",
-      "sessionExpiredLogin": "Sign in"
+      "sessionExpiredLogin": "Sign in",
+      "saveRepost": "Repost with these changes",
+      "publishingRepost": "Reposting your request…",
+      "repostedToast": "Your request was reposted with your changes."
     },
     "inspirationPicker": {
       "title": "Gallery inspiration",
@@ -4326,7 +4429,9 @@
         "upholsteredSeat": "Upholstered seat",
         "viewerHint": "Rotate the model to inspect its proportions. Dimensions show the outer furniture footprint; bed mattress size is listed separately.",
         "openStorage": "Open storage",
-        "closeStorage": "Close storage"
+        "closeStorage": "Close storage",
+        "seatsTooSmall": "For {seats} people we recommend at least {cm} cm — not everyone fits at the chosen size.",
+        "diameterClamped": "For this table type a round top is {min}–{max} cm across — we set it to {value} cm."
       },
       "catalog": {
         "seats": "Seats",
@@ -4407,7 +4512,13 @@
       "dimKeptPrevious": "We kept the previous value.",
       "dimReadAsMeters": "We read this as {value} cm.",
       "summaryLabel": "Piece configuration",
-      "dimsOrientative": "Approximate dimensions — the client didn't change them"
+      "dimsOrientative": "Approximate dimensions — the client didn't change them",
+      "reframe": "Reframe",
+      "reframeLabel": "Reframe the piece so it is fully in view",
+      "drawerFrontMax": "A drawer front is at most {cm} cm tall: we made the drawer row shorter (the rest went to the neighbouring rows) or added more drawers.",
+      "drawersMinForFront": "With fewer drawers, the fronts would be taller than {cm} cm.",
+      "bookcaseColumnLowered": "A bookcase column is at most {max} cm wide — we set it to {max} cm.",
+      "tvUnitMinHeight": "A TV unit is at least {cm} cm tall — we set it to {cm} cm."
     },
     "copyFromPrevious": "Copy answers from the previous {room}",
     "pieces": {
@@ -7618,7 +7729,9 @@
       "preClaimNote": "You have {max} changes before a company claims the request, and one after the claim, as long as you haven't received an offer. Saving now uses one.",
       "postClaimNote": "The request has already been claimed, so this is the only edit left. After you save, companies may withdraw their claim.",
       "saveHint": "Nothing changes until you press “Save changes” at the last step.",
-      "phaseReview": "Review and save"
+      "phaseReview": "Review and save",
+      "repostTitle": "You are reposting the request with changes",
+      "repostNote": "When you save, the request gets your changes and goes back to companies with a new expiry date. You can repost only once, and it does not count as an edit."
     },
     "clientOnly": {
       "note": "Requests are published from a client account.",
@@ -7636,6 +7749,12 @@
     "approxLength": {
       "label": "Approximate length (m) — optional",
       "hint": "Roughly how long the furniture in your project is (for example 6.5). It helps us show companies how big the project is. You can leave it empty."
+    },
+    "postClaimEditConfirm": {
+      "title": "Save the changes?",
+      "body": "Your request has already been taken by companies. When you save, the companies working on it are notified and see what changed. After it is taken, the request can only be changed once.",
+      "cancel": "Not now",
+      "confirm": "Yes, save"
     }
   },
   "Legal": {

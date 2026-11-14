@@ -254,8 +254,10 @@ export class RequestsService {
     }
     const configuratorState = this.serializeConfiguratorState(dto.configuratorState);
     await runTx(this.prisma, 'write', async (tx) => {
-      await tx.request.update({
-        where: { id: request.id },
+      // f6 / revizie m2: scriere conditionata — o ciorna marcata intre timp de curatare (sau publicata)
+      // nu mai primeste salvarea; omul afla (404 DRAFT_TOKEN_INVALID), formularul porneste o ciorna noua
+      const res = await tx.request.updateMany({
+        where: { id: request.id, status: 'DRAFT', deletedAt: null },
         data: {
           title: dto.title,
           description: dto.description,
@@ -273,6 +275,9 @@ export class RequestsService {
           ...(callerId && callerRole === 'CLIENT' && !request.clientUserId ? { clientUserId: callerId } : {}),
         },
       });
+      if (res.count !== 1) {
+        throw new NotFoundException({ code: ERROR_CODES.DRAFT_TOKEN_INVALID, message: 'Draft token invalid' });
+      }
       // draftul nu materializeaza camere; doar contact preferences se pot salva incremental
       if (dto.contactPreferences) {
         await this.writeContactPreferences(tx, request.id, dto.contactPreferences);
@@ -363,6 +368,13 @@ export class RequestsService {
     // (o instructiune esuata in tranzactie ar strica toata publicarea)
     const noCoverageAdminIds = await this.noCoverageRecipients(geo.lat, geo.lng);
     await runTx(this.prisma, 'write', async (tx) => {
+      // f6: re-verificare sub lock — curatarea ciornelor vechi poate fi marcat-o stearsa intre
+      // citirea prin token si aceasta tranzactie (aceeasi blocare ca DraftCleanupService)
+      const [locked] = await tx.$queryRaw<{ status: RequestStatus; deleted_at: Date | null }[]>`
+        SELECT status, deleted_at FROM requests WHERE id = ${request.id} FOR UPDATE`;
+      if (!locked || locked.status !== 'DRAFT' || locked.deleted_at !== null) {
+        throw new NotFoundException({ code: ERROR_CODES.DRAFT_TOKEN_INVALID, message: 'Draft token invalid' });
+      }
       await tx.request.update({
         where: { id: request.id },
         data: {
@@ -393,6 +405,11 @@ export class RequestsService {
         await tx.requestContactDetection.createMany({ data: contactScreen.rows });
       }
       await this.outbox.record(tx, `request.published:${request.id}`, 'request.status_changed', { requestId: request.id, status: 'IN_MARKETPLACE' }, []);
+      // g1 (etapa 9): e-mail catre client „Cererea ta e publicata” (fara clopotel)
+      await this.outbox.record(tx, `request.published:${request.id}:client`, 'request.published',
+        { requestId: request.id, requestTitle: title, clientUserId: userId, expiresAt: expiresAt.toISOString() },
+        [userId],
+      );
       // a6-2: publicarea trece si fara nicio firma in zona; echipa Cozy Home e anuntata
       // (clopotel + e-mail adminilor) ca sa caute o firma acolo
       if (noCoverageAdminIds.length > 0) {
@@ -446,8 +463,24 @@ export class RequestsService {
     return this.editRequest(request, dto);
   }
 
-  private async editRequest(request: RequestModel, rawDto: CreateRequestContentDto): Promise<RequestDto> {
-    const editCounters = this.assertEditableAndCount(request);
+  // f6-2 (PO): "Republica cu modificari" — cererea EXPIRED primeste continutul nou SI revine in
+  // piata intr-un singur pas (aceeasi tranzactie), cu regula repostului unic (REPOST_ALREADY_USED).
+  // NU consuma una dintre editari (contoarele raman neschimbate).
+  async repostWithChangesForClient(userId: string, id: string, dto: CreateRequestContentDto): Promise<RequestDto> {
+    const request = await this.findOwnedRequest(userId, id);
+    return this.editRequest(request, dto, 'repost');
+  }
+
+  private async editRequest(
+    request: RequestModel,
+    rawDto: CreateRequestContentDto,
+    mode: 'edit' | 'repost' = 'edit',
+  ): Promise<RequestDto> {
+    const repost = mode === 'repost';
+    // f6-2: republicarea nu atinge contoarele de editare; verificarea repostului se refac in tranzactie
+    const editCounters = repost ? this.assertRepostable(request) : this.assertEditableAndCount(request);
+    const repostAt = new Date();
+    const repostExpiresAt = repost ? this.calendar.addWorkingDays(repostAt, EXPIRATION_WORKING_DAYS) : null;
     const studioScenes = rawDto.studioScenes === undefined
       ? parsePublicationScenes((await this.prisma.requestStudioScene.findMany({ where: { requestId: request.id } })).map((s) => s.data))
       : parsePublicationScenes(rawDto.studioScenes);
@@ -490,19 +523,53 @@ export class RequestsService {
     );
     const saved = { ...dto, budgetRange: sizedBudgetRange };
 
+    const savedTitle = this.resolveTitle(dto, processed.rooms, contactScreen.titleHasContact);
     await runTx(this.prisma, 'write', async (tx) => {
+      // revizie A m2: limitele de editare se reverifica sub blocarea randului cererii (FOR UPDATE +
+      // scrierea contoarelor pe acelasi rand, mai jos) — doua salvari simultane (dublu clic) nu pot
+      // trece amandoua; a doua vede contorul deja crescut si primeste codul limitei atinse
+      let current = request;
+      let counters = editCounters;
+      if (!repost) {
+        const [locked] = await tx.$queryRaw<{
+          status: RequestStatus;
+          deleted_at: Date | null;
+          pre_claim_edits_used: number;
+          post_claim_edits_used: number;
+        }[]>`SELECT status, deleted_at, pre_claim_edits_used, post_claim_edits_used FROM requests WHERE id = ${request.id} FOR UPDATE`;
+        if (!locked || locked.deleted_at !== null) {
+          throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Request not found' });
+        }
+        current = {
+          ...request,
+          status: locked.status,
+          preClaimEditsUsed: locked.pre_claim_edits_used,
+          postClaimEditsUsed: locked.post_claim_edits_used,
+        };
+        counters = this.assertEditableAndCount(current);
+      }
+      if (repostExpiresAt) {
+        // f6-2: aceeasi garda ca repostul identic — dublu-clic / doua dispozitive → un singur repost
+        const res = await tx.request.updateMany({
+          where: { id: request.id, status: 'EXPIRED', repostUsed: false, deletedAt: null },
+          data: { status: 'IN_MARKETPLACE', repostUsed: true, publishedAt: repostAt, expiresAt: repostExpiresAt },
+        });
+        if (res.count !== 1) {
+          throw new BadRequestException({ code: ERROR_CODES.REPOST_ALREADY_USED, message: 'Repost already used' });
+        }
+      }
       await tx.request.update({
         where: { id: request.id },
         data: {
           ...this.scalarData(saved),
-          title: this.resolveTitle(dto, processed.rooms, contactScreen.titleHasContact),
+          title: savedTitle,
           lat: geo.lat,
           lng: geo.lng,
           sizeScore: sizing.score,
           projectSize: sizing.size,
           creditCost: sizing.creditCost,
-          lastEditAt: new Date(),
-          ...editCounters,
+          ...(repost ? {} : { lastEditAt: new Date() }),
+          ...counters,
         },
       });
       const roomIds = await this.writeRooms(tx, request.id, processed.rooms);
@@ -513,8 +580,44 @@ export class RequestsService {
       if (contactScreen.rows.length > 0) {
         await tx.requestContactDetection.createMany({ data: contactScreen.rows });
       }
-      await this.outbox.record(tx, `request.edited:${request.id}:${randomUUID()}`, 'request.status_changed', { requestId: request.id, status: request.status, edited: true }, []);
+      if (repostExpiresAt) {
+        // f6-2: aceleasi evenimente ca repostul identic (cheile sunt unice: repostul e o singura data)
+        await this.outbox.record(tx, `request.reposted:${request.id}`, 'request.status_changed', { requestId: request.id, status: 'IN_MARKETPLACE', reposted: true, edited: true }, []);
+        if (request.clientUserId) {
+          await this.outbox.record(tx, `request.published:${request.id}:repost`, 'request.published',
+            { requestId: request.id, requestTitle: savedTitle, clientUserId: request.clientUserId, expiresAt: repostExpiresAt.toISOString() },
+            [request.clientUserId],
+          );
+        }
+      } else {
+        await this.outbox.record(tx, `request.edited:${request.id}:${randomUUID()}`, 'request.status_changed', { requestId: request.id, status: current.status, edited: true }, []);
+        // e3 (etapa 9): editarea DUPA preluare anunta fiecare firma cu preluare deschisa
+        // (OPEN_CLAIM_STATUSES: ACTIVE / OFFER_SENT) — toti membrii; nu cele retrase / anulate / expirate
+        // starea si contoarele citite sub lock (current), nu cele de dinaintea tranzactiei
+        if (POST_CLAIM_STATUSES.includes(current.status) && request.clientUserId) {
+          const openClaims = await tx.claimSlot.findMany({
+            where: { requestId: request.id, status: { in: ['ACTIVE', 'OFFER_SENT'] } },
+            select: { id: true, companyId: true, company: { select: { name: true, members: { select: { userId: true } } } } },
+          });
+          for (const slot of openClaims) {
+            await this.outbox.record(tx, `request.edited_after_claim:${slot.id}:${current.postClaimEditsUsed + 1}`,
+              'request.edited_after_claim',
+              {
+                requestId: request.id,
+                requestTitle: savedTitle,
+                claimSlotId: slot.id,
+                companyId: slot.companyId,
+                companyName: slot.company.name,
+                clientUserId: request.clientUserId,
+                actorUserId: request.clientUserId,
+              },
+              slot.company.members.map((m) => m.userId),
+            );
+          }
+        }
+      }
     });
+    if (repostExpiresAt) await this.scheduleExpiration(request.id, repostExpiresAt);
     await this.removeDroppedDesignHelpUploads(request.id, dto.rooms, processed.rooms);
 
     return this.toDto(request.id);
@@ -553,6 +656,13 @@ export class RequestsService {
       });
       if (res.count !== 1) return false;
       await this.outbox.record(tx, `request.reposted:${request.id}`, 'request.status_changed', { requestId: request.id, status: 'IN_MARKETPLACE', reposted: true }, []);
+      // g1 (etapa 9): republicarea anunta clientul la fel ca publicarea (o singura data: repost unic)
+      if (request.clientUserId) {
+        await this.outbox.record(tx, `request.published:${request.id}:repost`, 'request.published',
+          { requestId: request.id, requestTitle: request.title ?? '', clientUserId: request.clientUserId, expiresAt: expiresAt.toISOString() },
+          [request.clientUserId],
+        );
+      }
       return true;
     });
     if (!reposted) {
@@ -1110,12 +1220,32 @@ export class RequestsService {
   }
 
   private assertAttachmentEditableStatus(request: RequestModel): void {
-    if (!ATTACHMENT_EDITABLE_STATUSES.includes(request.status)) {
+    // f6-2: cererea expirata cu repostul nefolosit se poate republica cu modificari — formularul
+    // urca / scoate fisierele (schite, imaginea 3D) inainte si dupa salvare
+    const repostable = request.status === 'EXPIRED' && !request.repostUsed;
+    if (!ATTACHMENT_EDITABLE_STATUSES.includes(request.status) && !repostable) {
       throw new BadRequestException({
         code: ERROR_CODES.REQUEST_NOT_EDITABLE,
         message: 'Attachments cannot be changed in this state',
       });
     }
+  }
+
+  // f6-2: aceleasi verificari ca repostul identic; nu numara nicio editare
+  private assertRepostable(request: RequestModel): Record<string, never> {
+    if (request.status !== 'EXPIRED') {
+      throw new BadRequestException({
+        code: ERROR_CODES.REQUEST_NOT_EDITABLE,
+        message: 'Only expired requests can be reposted',
+      });
+    }
+    if (request.repostUsed) {
+      throw new BadRequestException({
+        code: ERROR_CODES.REPOST_ALREADY_USED,
+        message: 'Repost already used',
+      });
+    }
+    return {};
   }
 
   private assertEditableAndCount(

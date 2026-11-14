@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import {
   defaultPieceConfig,
+  editPieceConfig,
   normalizePieceConfig,
   type Piece3dKind,
   type PieceConfig3d,
@@ -70,7 +71,10 @@ describe('Configurator 3D — intentia clientului (b7)', () => {
     expect(last().depthM).toBe(0.6);
     expect(last().columns.map((c) => c.zones[0].fill)).toEqual(hangingCols);
     // etapa 8 (d2): dulapul are sertare, deci deschiderea "Push" e scrisa in ce se salveaza
-    expect(last()).toEqual({ ...normalizePieceConfig('WARDROBE', defaultPieceConfig('WARDROBE')), frontStyle: 'PUSH' });
+    // etapa 9 (l1-1): sertarele de 2 x 57 cm se strang la 2 x 50 cm (ciorna veche), cu motiv
+    expect(last()).toEqual({ ...editPieceConfig('WARDROBE', defaultPieceConfig('WARDROBE')), frontStyle: 'PUSH' });
+    expect(normalizePieceConfig('WARDROBE', last())).toEqual(last());
+    // revizuire m1: motivul sertarelor apare o data (la redeschidere), nu la fiecare editare
     expect(screen.getByTestId('cleanup-reasons')).toBeEmptyDOMElement();
   });
 

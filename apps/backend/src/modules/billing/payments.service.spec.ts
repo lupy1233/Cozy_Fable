@@ -10,6 +10,10 @@ import type { SettingsService } from '../../common/settings/settings.service';
 import type { AuditService } from '../audit/audit.service';
 import type { BillingReadinessService } from './billing-readiness.service';
 import type { ConfigService } from '@nestjs/config';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
+import { PaymentsController } from './payments.controller';
+import { CompanyManagerGuard } from '../../common/guards/company-manager.guard';
+import { AUDIT_ACTION_KEY } from '../audit/audit.decorator';
 
 // L0-D — plati Stripe + confirmare race-safe + abonament prelungit.
 
@@ -884,5 +888,95 @@ describe('PaymentsService — planuri ca date (E-admin-platform-58)', () => {
     });
     expect(plans[1]).toMatchObject({ tier: 'SILVER', isFree: false, vatRon: 31.29, totalRon: 180.29, features: { MARKETPLACE_ACCESS: { enabled: true, limit: null } } });
     expect(plans[2]).toMatchObject({ tier: 'PLATINUM', vatRon: 188.79, totalRon: 1087.79 });
+  });
+});
+
+// h3 (etapa 9) — "Anuleaza comanda" ceruta de firma: acelasi drum ca anularea de admin, dar doar
+// pentru comanda proprie, PENDING si nemarcata "Am platit" (re-verificat sub FOR UPDATE).
+describe('PaymentsService — cancel by company', () => {
+  it('PENDING proprie (transfer bancar) → CANCELLED; repetarea e idempotenta', async () => {
+    const prisma = makePrisma(baseOrder());
+    const { service } = build(prisma, makeStripe(false));
+    const dto = await service.cancel(ORDER_ID, 'company', 'c1');
+    expect(dto.status).toBe('CANCELLED');
+    expect(prisma.tx.$executeRaw).toHaveBeenCalled(); // FOR UPDATE pe rand
+    expect(prisma.tx.mockBillingOrder.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: ORDER_ID, status: 'PENDING', paymentClaimedAt: null } }),
+    );
+    expect((await service.cancel(ORDER_ID, 'company', 'c1')).status).toBe('CANCELLED');
+    expect(prisma.tx.mockBillingOrder.updateMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('comanda Stripe proprie: expira sesiunea, ca la admin', async () => {
+    const prisma = makePrisma(baseOrder({ stripeSessionId: 'cs_x' }));
+    const stripe = makeStripe(true);
+    const { service } = build(prisma, stripe);
+    expect((await service.cancel(ORDER_ID, 'company', 'c1')).status).toBe('CANCELLED');
+    expect(stripe.ensureSessionExpired).toHaveBeenCalledWith('cs_x');
+  });
+
+  it('comanda altei firme → 404 PAYMENT_NOT_FOUND, fara scriere', async () => {
+    const prisma = makePrisma(baseOrder({ companyId: 'c-alta' }));
+    const { service } = build(prisma, makeStripe(false));
+    await expect(service.cancel(ORDER_ID, 'company', 'c1')).rejects.toMatchObject({
+      status: 404,
+      response: { code: 'PAYMENT_NOT_FOUND' },
+    });
+    expect(prisma.tx.mockBillingOrder.updateMany).not.toHaveBeenCalled();
+    expect(prisma.state.order.status).toBe('PENDING');
+  });
+
+  it('comanda platita (CONFIRMED) → 409 PAYMENT_ALREADY_CONFIRMED', async () => {
+    const prisma = makePrisma(baseOrder({ status: 'CONFIRMED', invoiceSeries: 'MM', invoiceNumber: 1 }));
+    const { service } = build(prisma, makeStripe(false));
+    await expect(service.cancel(ORDER_ID, 'company', 'c1')).rejects.toMatchObject({
+      status: 409,
+      response: { code: 'PAYMENT_ALREADY_CONFIRMED' },
+    });
+    expect(prisma.tx.mockBillingOrder.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('marcata "Am platit" → 409 PAYMENT_REPORTED_PAID (adminul poate anula in continuare)', async () => {
+    const prisma = makePrisma(baseOrder({ paymentClaimedAt: new Date('2026-11-10T09:00:00Z') }));
+    const { service } = build(prisma, makeStripe(false));
+    await expect(service.cancel(ORDER_ID, 'company', 'c1')).rejects.toMatchObject({
+      status: 409,
+      response: { code: 'PAYMENT_REPORTED_PAID' },
+    });
+    expect(prisma.state.order.status).toBe('PENDING');
+    expect((await service.cancel(ORDER_ID, 'admin')).status).toBe('CANCELLED');
+  });
+
+  it('"Am platit" apasat intre verificare si blocare → refuz sub lock, comanda ramane PENDING', async () => {
+    const prisma = makePrisma(baseOrder());
+    prisma.tx.$executeRaw.mockImplementation(async () => {
+      prisma.state.order.paymentClaimedAt = new Date();
+      return 1;
+    });
+    const { service } = build(prisma, makeStripe(false));
+    await expect(service.cancel(ORDER_ID, 'company', 'c1')).rejects.toMatchObject({
+      status: 409,
+      response: { code: 'PAYMENT_REPORTED_PAID' },
+    });
+    expect(prisma.tx.mockBillingOrder.updateMany).not.toHaveBeenCalled();
+    expect(prisma.state.order.status).toBe('PENDING');
+  });
+
+  it('anulata concurent intre verificare si blocare → acelasi raspuns, fara a doua scriere', async () => {
+    const prisma = makePrisma(baseOrder());
+    prisma.tx.$executeRaw.mockImplementation(async () => {
+      prisma.state.order.status = 'CANCELLED';
+      return 1;
+    });
+    const { service } = build(prisma, makeStripe(false));
+    expect((await service.cancel(ORDER_ID, 'company', 'c1')).status).toBe('CANCELLED');
+    expect(prisma.tx.mockBillingOrder.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('ruta firmei: doar OWNER/MANAGER (CompanyManagerGuard) si auditata PAYMENT_CANCELLED', () => {
+    const handler = (PaymentsController.prototype as any).cancelOrder;
+    expect(Reflect.getMetadata('path', handler)).toBe('orders/:id/cancel');
+    expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toContain(CompanyManagerGuard);
+    expect(Reflect.getMetadata(AUDIT_ACTION_KEY, handler)).toEqual({ action: 'PAYMENT_CANCELLED', entityType: 'mock_billing_order' });
   });
 });

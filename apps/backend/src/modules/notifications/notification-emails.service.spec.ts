@@ -1,4 +1,4 @@
-import { NotificationEmailsService } from './notification-emails.service';
+import { NotificationEmailsService, roNeedsDe } from './notification-emails.service';
 import type { PrismaService } from '../../infra/prisma/prisma.service';
 import type { MailService } from '../../infra/mail/mail.service';
 import type { ConfigService } from '@nestjs/config';
@@ -18,6 +18,8 @@ function makeService(
   users: Array<Record<string, unknown>> = [],
   members: Array<string | Partial<MemberRow>> = [],
   extras: BillingEmailExtras | null = null,
+  // g1: preluarea (responsabilul) citita de regula „cine din firma primeste e-mail”
+  slot: { assignedToUserId: string | null; companyId: string } | null = null,
 ) {
   const rows: MemberRow[] = members.map((m) =>
     typeof m === 'string'
@@ -44,6 +46,10 @@ function makeService(
     },
     company: {
       findUnique: jest.fn().mockResolvedValue({ name: 'A Mobila Premium', billingEmail: 'contabil@firma-a.ro' }),
+    },
+    claimSlot: {
+      findUnique: jest.fn().mockResolvedValue(slot),
+      findFirst: jest.fn().mockResolvedValue(slot),
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
@@ -132,17 +138,26 @@ describe('selectia destinatarilor (sendForEvent)', () => {
     );
   });
 
-  it('message.created de la client → email membrilor firmei, fara expeditor', async () => {
-    const { service, prisma } = makeService([]);
-    await service.sendForEvent('message.created', ['m1', 'm2', 'u-client'], {
+  // g1-1 (PO): la firma e-mail doar proprietar/manageri + responsabilul preluarii
+  it('message.created de la client → email proprietarului/managerilor + responsabilului, fara expeditor', async () => {
+    const { service, prisma } = makeService(
+      [],
+      ['m1', { userId: 'm2', role: 'MANAGER' }, { userId: 'e1', role: 'EMPLOYEE_MANAGED' }, { userId: 'e2', role: 'EMPLOYEE_TRUSTED' }],
+      null,
+      { assignedToUserId: 'e1', companyId: 'c1' },
+    );
+    await service.sendForEvent('message.created', ['m1', 'm2', 'e1', 'e2', 'u-client'], {
       senderUserId: 'u-client',
       senderRole: 'CLIENT',
       clientUserId: 'u-client',
       requestId: 'r1',
+      companyId: 'c1',
+      claimSlotId: 's1',
     });
+    expect(prisma.claimSlot.findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 's1' } }));
     expect(prisma.user.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ id: { in: ['m1', 'm2'] } }),
+        where: expect.objectContaining({ id: { in: ['m1', 'm2', 'e1'] } }),
       }),
     );
   });
@@ -169,7 +184,7 @@ describe('selectia destinatarilor (sendForEvent)', () => {
       claimSlotId: 'slot1',
     });
     expect(prisma.companyMember.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { companyId: 'c1' } }),
+      expect.objectContaining({ where: expect.objectContaining({ companyId: 'c1', role: { in: ['OWNER', 'MANAGER'] } }) }),
     );
     expect(prisma.user.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -751,5 +766,179 @@ describe('request.company_withdrew', () => {
     await service.sendForEvent('request.company_withdrew', ['u-client'], { requestId: 'r1', requestTitle: 'Kitchen' });
     const [, subject] = mail.send.mock.calls[0];
     expect(subject).toContain('A company stepped back from your request');
+  });
+});
+
+// g1 (etapa 9): evenimentele noi + regula „cine din firma primeste e-mail” (PO g1-1)
+describe('g1: evenimente noi si destinatarii firmei', () => {
+  const owner = { id: 'm1', email: 'owner@demo.ro', name: 'Ana', languagePreference: 'RO' };
+  const team = ['m1', { userId: 'm2', role: 'MANAGER' }, { userId: 'e1', role: 'EMPLOYEE_MANAGED' }, { userId: 'e2', role: 'EMPLOYEE_TRUSTED' }];
+  const base = { requestId: 'r1', requestTitle: 'Bucătărie', companyName: 'A Mobila', companyId: 'c1', claimSlotId: 's1', clientUserId: 'u-client' };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const emailedIds = (prisma: any) => prisma.user.findMany.mock.calls[0]?.[0]?.where?.id?.in;
+
+  it.each(['quote.accepted', 'quote.declined', 'clarification.answered', 'request.edited_after_claim', 'delivery.confirmed', 'review.created'])(
+    '%s → responsabilul preluarii + proprietar/manageri; ceilalti membri si clientul NU',
+    async (type) => {
+      const { service, prisma } = makeService([owner], team, null, { assignedToUserId: 'e1', companyId: 'c1' });
+      await service.sendForEvent(type, ['u-client', 'm1', 'm2', 'e1', 'e2'], { ...base, rating: 4 });
+      expect(emailedIds(prisma)).toEqual(['m1', 'm2', 'e1']);
+    },
+  );
+
+  it('preluare fara responsabil → doar proprietar + manageri', async () => {
+    const { service, prisma } = makeService([owner], team, null, { assignedToUserId: null, companyId: 'c1' });
+    await service.sendForEvent('quote.accepted', ['m1', 'm2', 'e1', 'e2'], base);
+    expect(emailedIds(prisma)).toEqual(['m1', 'm2']);
+  });
+
+  it('responsabilul unei alte firme (slot strain) nu e adaugat', async () => {
+    const { service, prisma } = makeService([owner], team, null, { assignedToUserId: 'e2', companyId: 'alta' });
+    await service.sendForEvent('review.created', ['m1', 'm2', 'e1', 'e2'], { ...base, rating: 5 });
+    expect(emailedIds(prisma)).toEqual(['m1', 'm2']);
+  });
+
+  it('payload fara slot → cauta ultima preluare a firmei pe cerere', async () => {
+    const { service, prisma } = makeService([owner], team, null, { assignedToUserId: 'e2', companyId: 'c1' });
+    await service.sendForEvent('delivery.confirmed', ['m1', 'm2', 'e1', 'e2'], { ...base, claimSlotId: undefined });
+    expect(prisma.claimSlot.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { requestId: 'r1', companyId: 'c1' } }));
+    expect(emailedIds(prisma)).toEqual(['m1', 'm2', 'e2']);
+  });
+
+  it('payload vechi fara companyId → niciun e-mail la firma', async () => {
+    const { service, prisma } = makeService([owner], team);
+    await service.sendForEvent('review.created', ['m1'], { requestId: 'r1', rating: 5 });
+    expect(prisma.user.findMany).not.toHaveBeenCalled();
+  });
+
+  it('message.created de la client: link direct la fisa preluarii (nu la lista de mesaje)', async () => {
+    const { service, mail } = makeService([owner], team);
+    await service.sendForEvent('message.created', ['m1'], { ...base, senderUserId: 'u-client', senderRole: 'CLIENT' });
+    expect(mail.send.mock.calls[0][2]).toContain('/ro/marketplace/claims/s1');
+    expect(mail.send.mock.calls[0][2]).not.toContain('/marketplace/messages');
+  });
+
+  it('request.published → e-mail DOAR clientului, cu legatura spre cerere si data expirarii (ora Romaniei)', async () => {
+    const { service, prisma, mail } = makeService([radu]);
+    await service.sendForEvent('request.published', ['u-client'], {
+      requestId: 'r1', requestTitle: 'Dulap <b>hol</b>', clientUserId: 'u-client', expiresAt: '2026-11-20T22:30:00.000Z',
+    });
+    expect(emailedIds(prisma)).toEqual(['u-client']);
+    const [to, subject, html] = mail.send.mock.calls[0];
+    expect(to).toBe('radu@demo.ro');
+    expect(subject).toContain('Cererea ta e publicată');
+    expect(html).toContain('/ro/requests/r1');
+    expect(html).not.toContain('/ro/requests/r1/offers');
+    // 22:30 UTC = 21 noiembrie, 00:30 in Bucuresti
+    expect(html).toContain('21 nov. 2026');
+    expect(html).toContain('Dulap &lt;b&gt;hol&lt;/b&gt;');
+  });
+
+  it('request.published in engleza', async () => {
+    const { service, mail } = makeService([{ ...radu, languagePreference: 'EN' }]);
+    await service.sendForEvent('request.published', ['u-client'], { requestId: 'r1', requestTitle: 'Hall', clientUserId: 'u-client', expiresAt: '2026-11-20T10:00:00.000Z' });
+    const [, subject, html] = mail.send.mock.calls[0];
+    expect(subject).toContain('Your request is published');
+    expect(html).toContain('/en/requests/r1');
+    expect(html).toContain('20 Nov 2026');
+  });
+
+  it('clarification.asked → clientul, cu numele firmei si legatura spre cerere', async () => {
+    const { service, prisma, mail } = makeService([radu], team);
+    await service.sendForEvent('clarification.asked', ['u-client'], { ...base, actorUserId: 'm1' });
+    expect(emailedIds(prisma)).toEqual(['u-client']);
+    const [, subject, html] = mail.send.mock.calls[0];
+    expect(subject).toContain('Firma A Mobila are o întrebare la cererea ta');
+    expect(html).toContain('/ro/requests/r1');
+  });
+
+  it('clarification.answered / request.edited_after_claim / delivery.confirmed / review.created → legatura spre fisa preluarii', async () => {
+    const { service, mail } = makeService([owner], team);
+    for (const type of ['clarification.answered', 'request.edited_after_claim', 'delivery.confirmed', 'review.created']) {
+      await service.sendForEvent(type, ['m1'], { ...base, rating: 2, disputed: true });
+    }
+    expect(mail.send).toHaveBeenCalledTimes(4);
+    for (const call of mail.send.mock.calls) {
+      expect(call[2]).toContain('/ro/marketplace/claims/s1');
+      expect(String(call[1]) + String(call[2])).not.toMatch(/atelier|lucrare/i);
+    }
+    expect(mail.send.mock.calls[3][2]).toContain('2 stele');
+  });
+
+  it('request.new_in_area NU trimite e-mail pe eveniment (doar rezumatul zilnic)', async () => {
+    const { service, prisma } = makeService([owner], team);
+    await service.sendForEvent('request.new_in_area', ['m1', 'm2'], { requestId: 'r1', companyId: 'c1', requestTitle: 'X' });
+    expect(prisma.user.findMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('g1-2: rezumatul zilnic „cereri noi in zona ta”', () => {
+  const items = [
+    { requestId: 'r1', title: 'Dulap <i>dormitor</i>', city: 'Iași', county: 'Iași' },
+    { requestId: 'r2', title: 'Bucătărie', city: 'Pașcani', county: '' },
+  ];
+
+  it('un singur e-mail per destinatar (proprietar + manageri activi), cu cererile si legaturile lor', async () => {
+    const users = [
+      { id: 'm1', email: 'owner@demo.ro', name: 'Ana', languagePreference: 'RO' },
+      { id: 'm2', email: 'manager@demo.ro', name: 'Ann', languagePreference: 'EN' },
+    ];
+    const { service, prisma, mail } = makeService(users, ['m1', { userId: 'm2', role: 'MANAGER' }, { userId: 'e1', role: 'EMPLOYEE_MANAGED' }]);
+    await expect(service.sendNewRequestsDigest({ id: 'c1', name: 'A Mobila' }, items)).resolves.toBe(2);
+    // doar OWNER/MANAGER, conturi nesterse/neblocate
+    expect(prisma.companyMember.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ companyId: 'c1', role: { in: ['OWNER', 'MANAGER'] }, user: { deletedAt: null, blockedAt: null } }),
+    }));
+    expect(prisma.user.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ id: { in: ['m1', 'm2'] }, emailNotificationsEnabled: true, emailVerifiedAt: { not: null } }),
+    }));
+    expect(mail.send).toHaveBeenCalledTimes(2);
+    const [, subjectRo, htmlRo] = mail.send.mock.calls[0];
+    expect(subjectRo).toBe('Cereri noi în zona ta — 2 cereri noi');
+    expect(htmlRo).toContain('http://localhost:3000/ro/marketplace/r1');
+    expect(htmlRo).toContain('Dulap &lt;i&gt;dormitor&lt;/i&gt;');
+    expect(htmlRo).toContain('Pașcani');
+    expect(htmlRo).toContain('/ro/unsubscribe?uid=m1');
+    expect(htmlRo).not.toMatch(/atelier/i);
+    const [, subjectEn, htmlEn] = mail.send.mock.calls[1];
+    expect(subjectEn).toBe('New requests in your area — 2 new requests');
+    expect(htmlEn).toContain('/en/marketplace/r2');
+  });
+
+  it('fara cereri sau fara manageri → niciun e-mail', async () => {
+    const { service, mail } = makeService([{ id: 'm1', email: 'o@demo.ro', name: 'A', languagePreference: 'RO' }], ['m1']);
+    await expect(service.sendNewRequestsDigest({ id: 'c1', name: 'A' }, [])).resolves.toBe(0);
+    const { service: s2, mail: mail2 } = makeService([], [{ userId: 'e1', role: 'EMPLOYEE_MANAGED' }]);
+    await expect(s2.sendNewRequestsDigest({ id: 'c1', name: 'A' }, items)).resolves.toBe(0);
+    expect(mail.send).not.toHaveBeenCalled();
+    expect(mail2.send).not.toHaveBeenCalled();
+  });
+
+  it('o singura cerere → „o cerere nouă”; esecul SMTP nu arunca', async () => {
+    const { service, mail } = makeService([{ id: 'm1', email: 'o@demo.ro', name: 'A', languagePreference: 'RO' }], ['m1']);
+    mail.send.mockRejectedValueOnce(new Error('smtp down'));
+    await expect(service.sendNewRequestsDigest({ id: 'c1', name: 'A' }, [items[0]])).resolves.toBe(0);
+    expect(mail.send.mock.calls[0][1]).toBe('Cereri noi în zona ta — o cerere nouă');
+  });
+});
+
+// revizie g1 m7: „de” in romana doar cand ultimele doua cifre sunt 0 sau 20–99
+describe('roNeedsDe', () => {
+  it.each([[2, false], [19, false], [20, true], [99, true], [100, true], [101, false], [119, false], [120, true], [1000, true], [1005, false]])('%i → %s', (n, de) => {
+    expect(roNeedsDe(n)).toBe(de);
+  });
+});
+
+// revizie g1 m4: recenziile nu se afiseaza public, deci e-mailul nu promite „inainte sa apara public”
+describe('review.created sub 3 stele', () => {
+  it('spune doar ca echipa analizeaza recenzia (RO + EN)', async () => {
+    const ro = { id: 'm1', email: 'o@demo.ro', name: 'A', languagePreference: 'RO' };
+    const en = { id: 'm2', email: 'e@demo.ro', name: 'B', languagePreference: 'EN' };
+    const { service, mail } = makeService([ro, en], ['m1', 'm2']);
+    await service.sendForEvent('review.created', ['m1', 'm2'], { requestId: 'r1', companyId: 'c1', claimSlotId: 's1', rating: 2, disputed: true });
+    const all = mail.send.mock.calls.map((c: unknown[]) => String(c[2])).join(' | ');
+    expect(all).toContain('echipa Cozy Home analizează recenzia');
+    expect(all).toContain('the Cozy Home team is reviewing it');
+    expect(all).not.toMatch(/public/i);
   });
 });

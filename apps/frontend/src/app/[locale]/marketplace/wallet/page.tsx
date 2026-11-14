@@ -14,6 +14,8 @@ import { companyCan } from '@/lib/company-permissions';
 import { usePenaltyStatus } from '@/hooks/use-penalties';
 import {
   useBillingOrders,
+  useCancelOrder,
+  useCreditHistory,
   useCreditPackages,
   useEntitlements,
   useMarkOrderPaid,
@@ -34,6 +36,8 @@ import { SectionNav } from '../../company/_components/section-nav';
 import { AccessBlocked } from '../_components/access-blocked';
 import { SubscriptionStatusNotice } from '../_components/subscription-status-notice';
 import { BankTransferPanel } from './_components/bank-transfer-panel';
+import { CancelOrderDialog } from './_components/cancel-order-dialog';
+import { CreditHistorySection } from './_components/credit-history-section';
 import { CreditPackagesSection } from './_components/credit-packages-section';
 import { CreditWalletSection } from './_components/credit-wallet-section';
 import { shortRef } from './_components/order-ref';
@@ -68,6 +72,10 @@ export default function WalletPage() {
   const purchasePlan = usePurchaseSubscription();
   const checkout = useOrderCheckout();
   const markPaid = useMarkOrderPaid();
+  // h3 (etapa 9): istoricul creditelor (aceleasi roluri ca soldul) + anularea comenzii in asteptare
+  const history = useCreditHistory(auth.status === 'ok');
+  const cancelOrder = useCancelOrder();
+  const [orderToCancel, setOrderToCancel] = useState<BillingOrderDto | null>(null);
 
   const [pending, setPending] = useState<PendingPurchase | null>(null);
   // comanda plasata fara Stripe → panou cu datele de transfer bancar
@@ -184,6 +192,21 @@ export default function WalletPage() {
     });
   };
 
+  // h3 (etapa 9): "Anuleaza comanda" dupa confirmare; panoul de transfer al comenzii se inchide
+  const openCancelOrder = (order: BillingOrderDto) => {
+    cancelOrder.reset();
+    setOrderToCancel(order);
+  };
+  const confirmCancelOrder = (order: BillingOrderDto) => {
+    cancelOrder.mutate(order.id, {
+      onSuccess: () => {
+        setOrderToCancel(null);
+        if (bankOrder?.id === order.id) setBankOrder(null);
+        toast.success(tb('cancelOrder.done'));
+      },
+    });
+  };
+
   const errorText = (err: unknown) => {
     const code = err instanceof ApiError ? err.code : 'INTERNAL_ERROR';
     return tb.has(`apiErrors.${code}`) ? tb(`apiErrors.${code}`) : tb('apiErrors.INTERNAL_ERROR');
@@ -210,6 +233,7 @@ export default function WalletPage() {
   // sectiunile randate acum = intrarile din navigarea paginii (aceleasi conditii ca mai jos)
   const navItems = [
     { id: 'credits', label: t('wallet.navCredits') },
+    { id: 'history', label: tb('history.title') },
     { id: 'subscription', label: t('subscription.title') },
     ...(canBuy
       ? [
@@ -249,6 +273,15 @@ export default function WalletPage() {
         wallet={wallet.data}
         canBuy={canBuy}
         readOnlyNote={!canBuy && !company.isPending}
+      />
+
+      <CreditHistorySection
+        pending={history.isPending}
+        error={history.isError}
+        items={history.data?.pages.flatMap((p) => p.items)}
+        hasMore={history.hasNextPage}
+        loadingMore={history.isFetchingNextPage}
+        onLoadMore={() => void history.fetchNextPage()}
       />
 
       <SubscriptionSection
@@ -306,6 +339,8 @@ export default function WalletPage() {
               onContinuePayment={continuePayment}
               onShowBankDetails={showBankOrder}
               onDownloadInvoice={(o) => void downloadInvoice(o)}
+              onCancelOrder={openCancelOrder}
+              cancelPendingId={cancelOrder.isPending ? (cancelOrder.variables ?? null) : null}
             />
           )}
           {penalties.data && <PenaltiesSection status={penalties.data} className="flex-[1_1_320px]" />}
@@ -322,6 +357,16 @@ export default function WalletPage() {
           error={dialogError ? errorText(dialogError) : null}
           onClose={() => setPending(null)}
           onConfirm={confirmPurchase}
+        />
+      )}
+
+      {canBuy && (
+        <CancelOrderDialog
+          order={orderToCancel}
+          busy={cancelOrder.isPending}
+          error={cancelOrder.error ? errorText(cancelOrder.error) : null}
+          onClose={() => setOrderToCancel(null)}
+          onConfirm={confirmCancelOrder}
         />
       )}
     </div>

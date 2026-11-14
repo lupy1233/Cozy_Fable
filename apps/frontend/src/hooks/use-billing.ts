@@ -1,11 +1,12 @@
 'use client';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   AdminBillingOrderItemDto,
   AdminSubscriptionItemDto,
   BillingOrderDto,
   BillingReadinessDto,
+  CreditHistoryPageDto,
   CreditPackageDto,
   EntitlementsDto,
   GrantSubscriptionInput,
@@ -114,6 +115,37 @@ export function useMarkOrderPaid() {
     mutationFn: (orderId: string) =>
       api<BillingOrderDto>(`/billing/orders/${orderId}/mark-paid`, { method: 'POST' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['billing'] }),
+  });
+}
+
+// h3 (etapa 9): "Anuleaza comanda" (proprietar/manager) — comanda proprie in asteptare,
+// nemarcata "Am platit". Idempotent pe server (anulata deja → acelasi raspuns).
+export function useCancelOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (orderId: string) =>
+      api<BillingOrderDto>(`/billing/orders/${orderId}/cancel`, { method: 'POST' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: BILLING_ORDERS_KEY }),
+  });
+}
+
+// h3 (etapa 9): istoricul miscarilor de credite, cele mai noi primele, cu "Vezi mai multe".
+export const CREDIT_HISTORY_KEY = ['billing', 'credit-history'] as const;
+export const CREDIT_HISTORY_PAGE_SIZE = 20;
+export function useCreditHistory(enabled = true) {
+  return useInfiniteQuery({
+    enabled,
+    queryKey: CREDIT_HISTORY_KEY,
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) => {
+      const qs = new URLSearchParams({ limit: String(CREDIT_HISTORY_PAGE_SIZE) });
+      if (pageParam) qs.set('cursor', pageParam);
+      return api<CreditHistoryPageDto | null>(`/billing/credit-history?${qs.toString()}`).then(
+        (p) => p ?? { items: [], nextCursor: null },
+      );
+    },
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    retry: false,
   });
 }
 

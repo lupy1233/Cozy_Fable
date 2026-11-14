@@ -105,7 +105,8 @@ describe('QuotesService.createQuote — sub lock (E-company-2)', () => {
       tx,
       expect.stringMatching(new RegExp(`^quote\\.created:${quoteId}:`)),
       'quote.created',
-      { quoteId, requestId: 'r1', companyId: 'c-win', clientUserId: 'u-client', claimSlotId: 'slot-win' },
+      // g1 (revizie m5): autorul ofertei (actorUserId) nu primeste clopotel pentru ea
+      { quoteId, requestId: 'r1', companyId: 'c-win', clientUserId: 'u-client', claimSlotId: 'slot-win', actorUserId: 'u1' },
       ['m1', 'u-client'],
     );
     expect(queue.add).toHaveBeenCalledWith('expire', expect.anything(), expect.objectContaining({ jobId: expect.stringMatching(/^qv-/) }));

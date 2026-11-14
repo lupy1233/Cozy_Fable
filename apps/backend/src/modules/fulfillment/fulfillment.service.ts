@@ -294,7 +294,12 @@ export class FulfillmentService {
       });
       await this.outbox.record(tx, `delivery.confirmed:${requestId}`,
         'delivery.confirmed',
-        { requestId, requestTitle, claimSlotId: winner.claimSlotId, autoCompleted },
+        // g1 (etapa 9): companyId = regula „cine din firma primeste e-mail”; actorUserId = clientul
+        // care a confirmat (la finalizarea automata nu e nimeni)
+        {
+          requestId, requestTitle, claimSlotId: winner.claimSlotId, companyId: winner.companyId, autoCompleted,
+          ...(!autoCompleted && clientUserId ? { actorUserId: clientUserId } : {}),
+        },
         members.map((m) => m.userId),
       );
     }
@@ -357,6 +362,9 @@ export class FulfillmentService {
           requestId,
           requestTitle: request.title ?? '',
           claimSlotId: winning.claimSlotId,
+          // g1 (etapa 9): e-mail catre responsabil + proprietar/manageri; autorul = clientul
+          companyId: winning.companyId,
+          actorUserId: userId,
           rating: dto.rating,
           disputed,
         },

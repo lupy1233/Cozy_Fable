@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { randomUUID } from 'node:crypto';
 import { safeErrorSummary } from '../../common/logging/safe-error';
+import { maskFreeText } from '../../common/privacy/contact-masking';
 import { QUEUE_NOTIFICATIONS } from '../queues/queues.module';
 import { EventsGateway } from './events.gateway';
 
@@ -69,7 +70,17 @@ export type DomainEvent =
   // clopotel o data pe zi, fara e-mail)
   | 'documents.pdf_failed'
   // e4 (etapa 7): o firma a renuntat la preluare — doar clientul (clopotel + e-mail)
-  | 'request.company_withdrew';
+  | 'request.company_withdrew'
+  // g1 (etapa 9): cererea a fost publicata — doar clientul (e-mail, fara clopotel)
+  | 'request.published'
+  // g1 (etapa 9): cerere noua in zona firmei — membrii firmelor care o vad (clopotel cand
+  // le devine vizibila; e-mailul e rezumatul zilnic, nu acest eveniment)
+  | 'request.new_in_area'
+  // e3 (etapa 9): intrebarea firmei (→ clientul) si raspunsul clientului (→ firma);
+  // editarea cererii dupa preluare (→ firmele cu preluare activa). Clopotel + e-mail.
+  | 'clarification.asked'
+  | 'clarification.answered'
+  | 'request.edited_after_claim';
 
 // Invarianta 3.5: TOATE evenimentele trec prin publish() —
 // emite pe Socket.IO si pune in coada de notificari. Controllerele nu emit direct.
@@ -95,6 +106,11 @@ export class EventBusService {
     // Singurul eveniment public este invalidarea listei de cereri. Lipsa
     // destinatarilor unui eveniment privat nu acorda drept de broadcast.
     if (!unique && event !== 'request.status_changed') return;
+    // g1 (etapa 9): anuntul „cerere noua in zona” ajunge la firme INAINTE de preluare → titlul
+    // (rehidratat brut de outbox) se mascheaza ca in lista din marketplace (fara date de contact)
+    if (event === 'request.new_in_area' && typeof payload.requestTitle === 'string') {
+      payload = { ...payload, requestTitle: maskFreeText(payload.requestTitle) };
+    }
     await this.gateway.publishToActiveSessions(event, payload, unique);
     // __targets calatoreste in job ca procesorul de notificari sa stie destinatarii (Sprint 9).
     const jobPayload = { ...payload, ...(unique ? { __targets: unique } : {}), ...(eventId ? { __eventId: eventId } : {}) };

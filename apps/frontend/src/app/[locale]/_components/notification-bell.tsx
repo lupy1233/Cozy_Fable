@@ -20,9 +20,12 @@ import {
   Hourglass,
   ListChecks,
   Mail,
+  MapPin,
   MapPinOff,
+  MessageCircleQuestionMark,
   MessageSquare,
   PackageCheck,
+  PenLine,
   RefreshCw,
   ShieldAlert,
   Star,
@@ -106,6 +109,12 @@ const TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   'request.company_withdrew': Undo2,
   // g4 (etapa 7): PDF-urile nu se pot genera (doar admini, o data pe zi)
   'documents.pdf_failed': AlertTriangle,
+  // g1 (etapa 9): cerere noua in zona firmei (cand ii devine vizibila dupa plan)
+  'request.new_in_area': MapPin,
+  // e3 (etapa 9): intrebarea firmei (client), raspunsul clientului si editarea dupa preluare (firma)
+  'clarification.asked': MessageCircleQuestionMark,
+  'clarification.answered': MessageSquare,
+  'request.edited_after_claim': PenLine,
 };
 
 type Payload = Record<string, unknown> | null;
@@ -152,11 +161,17 @@ function hrefFor(type: string, payload: Payload, role: string | undefined): stri
     }
     // e4: o firma a renuntat → pagina cererii (caseta "Cine vede cererea")
     if (type === 'request.company_withdrew') return `/requests/${requestId}`;
+    // e3: intrebarea firmei → pagina cererii (raspunsul se da acolo)
+    if (type === 'clarification.asked') return `/requests/${requestId}`;
     return `/requests/${requestId}/offers`;
   }
   if (role === 'COMPANY_USER') {
-    // mesajele (client sau echipa) duc in mesagerie
-    if (type === 'message.created') return '/marketplace/messages';
+    // g1: mesajul clientului duce pe fisa preluarii; chatul echipei ramane in mesagerie
+    if (type === 'message.created') {
+      return claimSlotId && payload?.teamChat !== true ? `/marketplace/claims/${claimSlotId}` : '/marketplace/messages';
+    }
+    // g1: cerere noua in zona → detaliul din marketplace
+    if (type === 'request.new_in_area') return requestId ? `/marketplace/${requestId}` : '/marketplace';
     if (
       type === 'payment.confirmed' ||
       type === 'subscription.expiring' ||

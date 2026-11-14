@@ -116,7 +116,13 @@ export default function RequestDetailPage() {
   const tConfigurator = useTranslations('Configurator');
   useEffect(() => {
     const notice = takePublishNotice(id);
-    if (notice) toast.success(tConfigurator(notice === 'editSaved' ? 'review.editSavedToast' : 'review.publishedToast'));
+    if (notice) {
+      toast.success(
+        tConfigurator(
+          notice === 'reposted' ? 'review.repostedToast' : notice === 'editSaved' ? 'review.editSavedToast' : 'review.publishedToast',
+        ),
+      );
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
   // f3 (review M1): plasa de siguranta — 401 pe cerere SI „cine sunt eu” a esuat → login cu
@@ -430,7 +436,10 @@ function DeleteRequestCard({ id, status }: { id: string; status: RequestStatus }
       <h2 id="request-delete-title" className="text-sm font-semibold">
         {t('deleteSection.title')}
       </h2>
-      <p className="text-ui text-muted-foreground">{t('deleteSection.hint')}</p>
+      {/* f6 / e4: ciorna si cererea expirata nu au preluari active de anulat */}
+      <p className="text-ui text-muted-foreground">
+        {draft || status === 'EXPIRED' ? t('deleteSection.hintNoClaims') : t('deleteSection.hint')}
+      </p>
       <button
         type="button"
         onClick={() => {
@@ -523,16 +532,22 @@ function RepostSection({ id, status, repostUsed }: { id: string; status: Request
           </p>
         )}
       </div>
-      <Button
-        type="button"
-        variant="walnut"
-        size="xl"
-        className="w-full px-6 text-sm sm:w-auto"
-        onClick={() => repost.mutate()}
-        disabled={repost.isPending}
-      >
-        {t('repost')}
-      </Button>
+      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+        {/* f6-2: formularul precompletat; salvarea aplica modificarile si republica (tot o singura data) */}
+        <Button asChild variant="outline" size="xl" className="w-full px-6 text-sm sm:w-auto">
+          <Link href={`/requests/${id}/edit`}>{t('repostWithChanges')}</Link>
+        </Button>
+        <Button
+          type="button"
+          variant="walnut"
+          size="xl"
+          className="w-full px-6 text-sm sm:w-auto"
+          onClick={() => repost.mutate()}
+          disabled={repost.isPending}
+        >
+          {t('repost')}
+        </Button>
+      </div>
     </Card>
   );
 }

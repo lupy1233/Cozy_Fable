@@ -51,6 +51,29 @@ import type {
   UpdateOfferPermissionsDto,
 } from './dto/company.dto';
 
+export interface QuoteTotalsRow {
+  currency: string | null;
+  quotes: number;
+  total: number;
+}
+
+// h3 (etapa 9): numarul ofertelor + totalurile pe moneda (RON / EUR), fara conversie.
+// O moneda necunoscuta (nu exista azi) se numara, dar nu intra in niciun total.
+export function quoteTotalsByCurrency(rows: QuoteTotalsRow[]): {
+  quotesSent: number;
+  quotesTotals: { RON: number; EUR: number };
+} {
+  const quotesTotals = { RON: 0, EUR: 0 };
+  let quotesSent = 0;
+  for (const r of rows) {
+    quotesSent += Number(r.quotes) || 0;
+    const total = Number(r.total) || 0;
+    if (r.currency === 'RON' || r.currency === 'EUR') quotesTotals[r.currency] += total;
+  }
+  quotesTotals.RON = Math.round(quotesTotals.RON * 100) / 100;
+  quotesTotals.EUR = Math.round(quotesTotals.EUR * 100) / 100;
+  return { quotesSent, quotesTotals };
+}
 
 @Injectable()
 export class CompaniesService {
@@ -169,19 +192,17 @@ export class CompaniesService {
           _sum: { points: true },
           where: { companyId, scope: 'COMPANY', expiresAt: { gt: now } },
         }),
-        // valoarea ofertelor = pretul ULTIMEI versiuni per quote (SENT/ACCEPTED), in lei: etapa 4
-        // (revizuire m8) — moneda e pe varianta, sumele in EUR se convertesc cu eur_ron_rate
-        // (aceeasi setare ca oferta; 5.2 implicit) inainte de adunare
-        this.prisma.$queryRaw<{ quotes: number; total: number }[]>`
-          SELECT COUNT(DISTINCT q.id)::int AS quotes,
-                 COALESCE(SUM(CASE WHEN COALESCE(qv.currency, q.currency) = 'EUR'
-                   THEN qv.price * COALESCE((SELECT s.value::numeric FROM system_settings s
-                     WHERE s.key = 'eur_ron_rate' AND s.value ~ '^[0-9]+(\\.[0-9]+)?$'), 5.2)
-                   ELSE qv.price END), 0)::float AS total
+        // valoarea ofertelor = pretul ULTIMEI versiuni per quote (SENT/ACCEPTED). h3 (etapa 9,
+        // decizia din plan): totaluri SEPARATE pe moneda versiunii, fara conversie ("X lei + Y EUR")
+        this.prisma.$queryRaw<QuoteTotalsRow[]>`
+          SELECT COALESCE(qv.currency, q.currency)::text AS currency,
+                 COUNT(DISTINCT q.id)::int AS quotes,
+                 COALESCE(SUM(qv.price), 0)::float AS total
           FROM quotes q
           JOIN quote_versions qv ON qv.quote_id = q.id
            AND qv.version = (SELECT MAX(v2.version) FROM quote_versions v2 WHERE v2.quote_id = q.id)
           WHERE q.company_id = ${companyId} AND q.status::text IN ('SENT', 'ACCEPTED')
+          GROUP BY 1
         `,
         isManager
           ? this.prisma.claimSlot.findMany({
@@ -262,8 +283,7 @@ export class CompaniesService {
         name: g.assignedToUserId ? (nameOf.get(g.assignedToUserId) ?? null) : null,
         activeClaims: g._count._all,
       })),
-      quotesSent: quoteAgg[0]?.quotes ?? 0,
-      quotesTotalRon: quoteAgg[0]?.total ?? 0,
+      ...quoteTotalsByCurrency(quoteAgg),
       // 4.8: balance exclude deja rezervarile (RESERVE muta balance -> reserved); identic cu GET /billing/wallet
       wallet: { balance, reserved, available: balance },
       creditsConsumed7d: Math.abs(consumed7._sum.amount ?? 0),

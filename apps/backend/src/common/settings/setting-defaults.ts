@@ -38,4 +38,7 @@ export const SETTING_DEFAULTS = {
   legal_reaccept_existing_users: false,
   // e1-3 (PO 2026-11-13): "Marcheaza ca livrata" doar dupa N zile de la acceptare; 0 = fara limita
   delivery_min_days_after_accept: 7,
+  // f6-1 (PO 2026-11-13): ciornele neatinse se sterg — vizitatori (fara cont) / clienti cu cont; minim 1
+  guest_draft_retention_days: 7,
+  client_draft_retention_days: 90,
 } as const;

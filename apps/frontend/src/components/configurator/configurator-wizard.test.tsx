@@ -74,6 +74,22 @@ describe('anonymous draft bootstrap recovery', () => {
     expect(localStorage.getItem('mm_draft_token')).toBe('new-draft');
   });
 
+  // f6 / revizie m7: limita de ciorne (429) — mesaj propriu, fara reincercare imediata
+  it('a 429 on draft creation shows its own message and blocks the retry for a while', async () => {
+    let posts = 0;
+    vi.stubGlobal('fetch', vi.fn(async (_url, init) => {
+      if (init?.method === 'POST') {
+        posts += 1;
+        return response({ error: { code: 'RATE_LIMITED', message: 'Too many requests' } }, 429);
+      }
+      return response(draft);
+    }));
+    mount();
+    expect(await screen.findByRole('alert')).toHaveTextContent(en.Configurator.bootstrap.rateLimited);
+    expect(screen.getByRole('button', { name: en.Configurator.bootstrap.retry })).toBeDisabled();
+    expect(posts).toBe(1);
+  });
+
   it('keeps local answers when replacing an expired token fails and is retried', async () => {
     localStorage.setItem('mm_draft_token', 'expired');
     useConfiguratorStore.getState().addRoomWithAnswers('KITCHEN', { layout: 'L_SHAPE' });

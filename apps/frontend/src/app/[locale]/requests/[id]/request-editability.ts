@@ -13,6 +13,13 @@ export type RequestEditability = {
   noteKey: 'preClaim' | 'postClaim' | 'noneLeft' | 'locked';
 };
 
+// f6-2 (PO): cererea expirata cu republicarea nefolosita se poate republica cu modificari
+// (formularul in mod editare; salvarea republica). Nu consuma din editari. Serverul aplica
+// aceeasi regula (repostWithChangesForClient → REPOST_ALREADY_USED la a doua incercare).
+export function canRepostWithChanges(r: { status: RequestStatus; repostUsed?: boolean }): boolean {
+  return r.status === 'EXPIRED' && r.repostUsed === false;
+}
+
 // Regula unica pentru butonul "Editeaza" de pe pagina cererii SI pentru garda paginii de
 // editare: pre-claim doar IN_MARKETPLACE, post-claim doar CLAIMED_PARTIAL / CLAIMED_FULL,
 // cu editari ramase. Serverul aplica aceleasi limite la salvare (assertEditableAndCount).
