@@ -1774,6 +1774,326 @@ _Limitare lasata PO dupa revizuire (m1 server): daca adminul schimba `claim_cont
 
 **Impact: **`my-drafts-list.tsx`, nou `components/configurator/draft-continue.ts`, `configurator-wizard.tsx` (`sendDraft`); cheile `Requests.drafts.*`, `Configurator.draft.continuedElsewhere` / `openMyDrafts`. Completeaza D-E7-11.
 
+### D-E8-1. Comutatorul m / cm / mm ramane; clientul vede unitatea lui, firma mereu centimetri (2026-11-13, PO c4-1)
+
+**Decizie: **Comutatorul m / cm / mm din campurile camerelor ramane. Formularul, Fisa cererii, Sumarul si pagina cererii ii arata clientului unitatea aleasa de el; firma (piata, detaliul, fisa de lucru) vede mereu centimetri. Un singur formatator: `apps/frontend/src/lib/dimension-format.ts` (`formatDimension`, `formatDimensions`, `formatDimensionRange`; intrare in metri, virgula in romana, punct in engleza, „×” intre valori, fara zecimale inutile, `NaN` → „—”; precizia: D-E8-35).
+
+**Rationale: **Raspunsul PO (altfel decat recomandarea „doar centimetri”): clientul vede unitatea aleasa peste tot; firma vede tot cm, ca sa compare cererile usor. Valorile se salvau deja in metri, deci e doar afisare.
+
+**Impact: **`room-answer-summary.tsx`, `review-rail.tsx`, `room-spec-card.tsx` (`audience` → `'cm'` la firma), `step-renderer.tsx` (legenda, valorile de pe schita, intervalul), `piece3d/config-chips.ts`. Cererile vechi se afiseaza corect fara migrare. Detalii: D-E8-9, D-E8-10. docs/03 4.1.
+
+### D-E8-2. Un singur nume: „Proiectare cu plata”, cu drumul descris de PO (2026-11-13, PO i1-1)
+
+**Decizie: **Numele ramane „Proiectare cu plata” / „Paid design” (fara „Proiectare platita”, „Proiectare cu plata inclusa”, „Include proiectare cu plata”, „Ajutor la proiectare”, „contra cost”); textele spun drumul: „Firmele iti trimit intai pretul proiectarii si ce include; apoi alegi firma cu care proiectezi piesele.” „cu proiectantul” → „cu firma”.
+
+**Rationale: **Raspunsul PO: „fiecare firma o sa vina mai intai cu un raspuns legat de pretul proiectarii si ce include dupa care clientul alege cu ce firma merge mai departe”. Textul trebuie sa fie adevarat azi (D-E8-16).
+
+**Impact: **`Configurator.start.DESIGN_HELP.*`, `cart.designHelp*`, `review.designHelp*`, `review.facts.helpRooms`, `sheet.withDesigner`, `Requests.designHelpIncluded*`, `Marketplace.includesPaidDesign` (fragmentul `e8-words`). `docs/glosar.md`.
+
+### D-E8-3. Ecranul firmei se numeste „Cereri disponibile” (2026-11-13, PO i1-2)
+
+**Decizie: **Firmele: „Cereri disponibile” / „Available requests” (meniu, titlul paginii, e-mailuri — CTA „Vezi cererile disponibile”); clientul: „cererea ajunge la firmele din zona” (nu „trimiti cererea in marketplace”). Adresa `/marketplace` si cheile raman.
+
+**Rationale: **Raspunsul PO (recomandarea): fara englezisme; meniul firmei se schimba.
+
+**Impact: **`Nav.marketplace`, `Marketplace.title`, `Configurator.review.subtitle`, `review.loginToPublishHint`, `notification-emails.service.ts`. Eticheta starii: D-E8-17.
+
+### D-E8-4. „Cerere” pana la acceptare, „comanda” dupa; „plata” la platile firmei (2026-11-13, PO i1-3)
+
+**Decizie: **„cerere” / „request” pana la acceptarea unei oferte (niciodata „comanda” inainte); „comanda” / „order” dupa acceptare (in locul lui „lucrare” / „proiect” pentru acelasi lucru — de ex. „Comanda livrata”, starea `CANCELLED` afisata „Comanda anulata”); in portofel si facturare „plata” / „payment” in locul lui „comanda” („Plati si facturi”, butonul „Primeste datele de transfer”, e-mailul „Plata {ref}…”).
+
+**Rationale: **Raspunsul PO (recomandarea): clar pentru client — a acceptat, deci a comandat; la platile firmei „comanda” ar fi amestecat doua lucruri.
+
+**Impact: **`Fulfillment.*`, `Lifecycle.*`, `Requests.statusValue.*`, `Billing.*`, `Marketplace.wallet.*`, e-mailurile de livrare si de transfer. Exceptie: D-E8-14 (referinta „Comanda {ref}”), D-E8-22.
+
+### D-E8-5. Firma vede „Dimensiuni orientative” cand clientul n-a schimbat dimensiunile 3D (2026-11-13, PO d2-1)
+
+**Decizie: **Clientul nu are pas in plus. Pe fisa firmei, langa pilulele piesei 3D, insigna „Dimensiuni orientative — clientul nu le-a modificat” (`config3d.dimsOrientative`), doar pentru firma (`audience="company"`). Cum se calculeaza: D-E8-11.
+
+**Rationale: **Raspunsul PO (recomandarea „marcam orientativ la firma”): firma nu mai ia dulapul de 240 × 240 × 60 cm de pornire drept alegerea clientului.
+
+**Impact: **`piece3d/config-chips.ts` (`config3dDimsUntouched`), `room-spec-card.tsx` (`data-config3d-dims-orientative`).
+
+### D-E8-6. Dulapul porneste cu usi, comoda TV cu sertare (2026-11-13, PO d2-2)
+
+**Decizie: **Piesele noi (si „De la capat”) pornesc dintr-o configuratie noua, `initialPieceConfig(kind)` (shared `piece3d/config.ts`): dulapul cu usi batante pe toate zonele, comoda TV cu un rand de sertare; „Push” scris cand piesa are fronturi. `defaultPieceConfig` ramane neschimbat (il folosesc fixturile si instantaneele). Interpretarea exacta: D-E8-12.
+
+**Rationale: **Raspunsul PO (recomandarea): ce vede clientul corespunde cu ce ajunge la firma (inainte dulapul pornea fara nicio usa, dar cu „Batante” aprins; comoda TV doar cu zone deschise).
+
+**Impact: **`configurator3d-step.tsx` (montarea fara raspuns si `config3d.reset`), test nou `piece3d/initial-config.test.ts` (curatarea nu scoate nimic, `defaultPieceConfig` neschimbat). Ciornele existente isi pastreaza configuratia.
+
+### D-E8-7. „Push” lasat pe implicit se salveaza si se puncteaza (2026-11-13, PO d2-3)
+
+**Decizie: **O piesa 3D cu fronturi (usi sau sertare) pentru care clientul n-a ales deschiderea primeste in configuratia salvata `frontStyle: 'PUSH'`; firma vede „deschidere push” si sistemul PUSH, care intra in costul in credite (2 puncte de sistem, adica pana la 2 credite in plus). O piesa fara fronturi nu salveaza nicio deschidere. Cum se aplica ciornelor: D-E8-13.
+
+**Rationale: **Raspunsul PO (recomandarea): ce vede firma si ce plateste se potrivesc; piesele cu fronturi devin cu 1–2 credite mai scumpe.
+
+**Impact: **Nou `piece3d/front-style.ts` (`withFrontStyleRule`), aplicat dupa `normalizePieceConfig` in `configurator3d-step.tsx`. Codul de derivare din fluxuri (v3, v4, catalog) NEATINS: derivau deja PUSH din `frontStyle: 'PUSH'`. docs/03 4.1, docs/04.
+
+### D-E8-8. Pe telefon, „Publica cererea” sta in bara lipita jos (2026-11-13, alegere marunta din plan, fara PO — se poate schimba)
+
+**Decizie: **Pe telefon, in Sumar, butonul „Publica cererea” sta intr-o bara lipita jos, nu urca cardul de publicare inaintea raspunsurilor. Aceeasi bara (`StickyActionBar`, sub `lg`; de la `lg` ca inainte) si pe ecranele de intrebari, in cos, la fisiere si la Date generale.
+
+**Rationale: **Butonul e mereu la indemana, iar clientul vede raspunsurile inainte sa publice. Bara e `sticky`, nu `fixed` (cardul e intr-un container cu `transform`), si nu acopera finalul paginii.
+
+**Impact: **Nou `components/configurator/sticky-action-bar.tsx` (atributul `data-sticky-action-bar`); `room-flow-runner.tsx`, `room-cart-step.tsx`, `uploads-step.tsx`, `details-step.tsx`, `review-step.tsx`. Felul in care se randeaza un singur buton: D-E8-23.
+
+### D-E8-9. Unitatea clientului pe pagina cererii vine din browser (2026-11-14, D1 din proiectul etapei, aprobata de coordonator; de confirmat de PO)
+
+**Decizie: **Unitatea nu se salveaza pe cerere. Preferinta sta in `localStorage['cozy.dimensionUnit']` (`lib/dimension-unit.ts`: `useDimensionUnitPreference`, `rememberDimensionUnit`; implicit `'cm'`, tot `'cm'` pe server si la hidratare); comutatorul o scrie si in store, si in browser; dupa revizuire si unitatea din formular (inclusiv cea tinuta in ciorna) se scrie ca preferinta (D-E8-36). Pe alt dispozitiv clientul vede cm.
+
+**Rationale: **Varianta mica; varianta mare (coloana pe cerere) cere migrare si nu era in plan.
+
+**Impact: **`RoomSpecCard audience="client"` pe pagina cererii. docs/04 (fara coloana noua).
+
+### D-E8-10. Ce ramane in metri; 3D-ul ramane in centimetri (2026-11-14, D2 din proiectul etapei; de confirmat de PO)
+
+**Decizie: **(a) Metrii liniari de mobilier (`roomSpec.furnitureLinear`), lungimea aproximativa (`approxLength.*`, scrisa in m in formular) si preturile „lei pe metru liniar” raman in metri, si la firma — sunt lungimi de mobilier, nu dimensiuni. (b) Pasul 3D ramane mereu in cm (intervalele si pasii lui sunt in cm), nu urmeaza comutatorul.
+
+**Rationale: **Schimbarea lor ar schimba numerele pe care firmele le folosesc la pret si ar cere alte intervale in 3D.
+
+**Impact: **`room-spec-card.tsx`, `piece3d/dimension-control.tsx`. Completeaza D-E8-1.
+
+### D-E8-11. „Dimensiuni orientative” calculat la afisare, fara coloana noua (2026-11-14, D3 din proiectul etapei; de confirmat de PO)
+
+**Decizie: **Insigna apare cand latimea, inaltimea si adancimea piesei sunt exact cele de pornire — fie din `initialPieceConfig`, fie din `defaultPieceConfig` (ca sa prinda si cererile vechi). Nimic nu se salveaza; serverul nu se schimba.
+
+**Rationale: **Varianta mica. Cost: un client care alege intentionat exact dimensiunile de pornire e marcat „orientativ”. Varianta cu marcaj salvat cere camp nou in payload si o nota in `request_items.description` — doar daca PO o vrea.
+
+**Impact: **`config3dDimsUntouched(kind, config)` in `piece3d/config-chips.ts`. Completeaza D-E8-5.
+
+### D-E8-12. Pornirea dulapului si a comodei TV — interpretare (2026-11-14, D4 din proiectul etapei; de confirmat de PO)
+
+**Decizie: **Dulap: zonele `OPEN` devin `DOOR` cu aceeasi umplutura; sertarele raman. Comoda TV: fiecare coloana `[{ type: 'DRAWERS', count: 1 }]`. Doar pentru piesele noi, nu pentru ciorne. (b) „Batante” apare ales doar cand piesa are cel putin o usa (`configHasDoors`); fara usi, niciuna din „Batante / Glisante” nu e aleasa.
+
+**Rationale: **Cea mai mica schimbare care face piesa sa arate ce i se spune clientului, fara sa piarda interiorul ales.
+
+**Impact: **`initialPieceConfig` (shared), `piece3d/front-style.ts` (`configHasDoors`), `configurator3d-step.tsx`. Completeaza D-E8-6; abaterea la butonul „Batante”: D-E8-25. Studio 3D NU foloseste `initialPieceConfig` (D-E8-40).
+
+### D-E8-13. „Push” scris de interfata, si la ciornele redeschise (2026-11-14, D5 din proiectul etapei; de confirmat de PO)
+
+**Decizie: **Regula din D-E8-7 se aplica la fiecare schimbare facuta de om in pasul 3D si, pe CIORNE, la deschiderea pasului pe o configuratie salvata care o incalca (ciornele vechi, toate versiunile) — costul acestor ciorne urca cu 1–2 credite. La editarea unei cereri publicate corectia automata la deschidere NU ruleaza (D-E8-34). Alegerea clientului („Cu maner”) se pastreaza in intentia pasului si revine cand fronturile revin. Cererile PUBLICATE nu se recalculeaza; la ele doar Sumarul / pagina cererii / fisa afiseaza „Push” cand lipseste si piesa are fronturi.
+
+**Rationale: **Fara sa atingem fluxurile inghetate, singurul loc sigur e configuratia scrisa de interfata; recalcularea cererilor publicate ar schimba costul unor preluari deja platite.
+
+**Impact: **`withFrontStyleRule(kind, cleaned, intent)`; `config3dChipItems` (lipsa = Push la afisare). Completeaza D-E8-7. Efect cunoscut, lasat asa dupa revizuire (de confirmat de PO): pe cererile publicate inainte de etapa 8, firma vede pe pilule „Deschidere: Push”, dar descrierea salvata a piesei nu pomeneste deschiderea, iar costul n-a inclus sistemul PUSH.
+
+### D-E8-14. Referinta de plata „Comanda {ref}” ramane (2026-11-14, D6 din proiectul etapei; de confirmat de PO)
+
+**Decizie: **Referinta din datele de transfer bancar (`Billing.bankTransfer.referenceValue` = „Comanda {ref}” / „Order {ref}”, si in e-mail) ramane neschimbata; restul textelor de plata spun „plata”.
+
+**Rationale: **Adminul o cauta in extrasul bancii; firmele care au platit deja au folosit-o.
+
+**Impact: **Exceptie in `glossary.test.ts`. Completeaza D-E8-4. Nefacut dupa revizuire (de confirmat de PO): pe panoul de transfer „Plata #{ref}” sta langa „Comanda {ref}”; o nota scurta langa referinta („scrie exact acest text in ordinul de plata”) ar lamuri, dar cere o cheie noua si cod.
+
+### D-E8-15. Ecranele de administrare raman in afara glosarului (2026-11-14, D7 din proiectul etapei; de confirmat de PO)
+
+**Decizie: **Textele `Admin*` nu au trecut prin glosar („SLA” si celelalte raman acolo); anglicismele de la admin sunt la problema 55 (`i2`).
+
+**Rationale: **Texte interne, citite doar de admin; problema 42 era despre client si firma.
+
+**Impact: **Exceptie in `glossary.test.ts`; `docs/glosar.md`.
+
+### D-E8-16. Textul proiectarii cu plata spune doar ce e adevarat azi (2026-11-14, D8 din proiectul etapei; de confirmat de PO)
+
+**Decizie: **Textele spun: oferta firmei are pretul proiectarii si ce include (pe randuri separate), iar clientul alege firma. Nu promit un pas separat in care firmele raspund doar cu pretul proiectarii inainte de oferta — acest pas nu exista azi; cat din drumul PO se construieste ramane intrebare deschisa.
+
+**Rationale: **Un text care promite un pas inexistent ar insela clientul.
+
+**Impact: **Cheile din D-E8-2.
+
+### D-E8-17. Eticheta starii `IN_MARKETPLACE`: „Disponibila firmelor” (2026-11-14, D9 din proiectul etapei; de confirmat de PO)
+
+**Decizie: **`Requests.statusValue.IN_MARKETPLACE` se afiseaza „Disponibila firmelor” / „Open to companies” (inainte „In marketplace”). Doar eticheta; valoarea din date (`requests.status`) ramane `IN_MARKETPLACE`.
+
+**Rationale: **Alegere mica, aliniata cu D-E8-3.
+
+**Impact: **`ro.json` / `en.json`. docs/03 4.20.
+
+### D-E8-18. „lei” si in engleza (2026-11-14, D10 din proiectul etapei; de confirmat de PO)
+
+**Decizie: **In texte se scrie „lei”, si in interfata in engleza (aliniat cu `formatLei`); „RON” ramane doar in codurile de moneda. Daca PO prefera „RON” in engleza, se schimba doar EN.
+
+**Rationale: **O singura forma; sumele afisate cu `formatLei` scriau deja „lei” in engleza (etapa 3).
+
+**Impact: **~36 de chei EN schimbate (`e8-words`, numarate aproximativ de agent). Dupa revizuire `LandingV2.materialsScaleMax` = „{max} lei/m liniar” / „{max} lei/linear m” (inainte „lei/ml” / „RON/lm”).
+
+### D-E8-19. Plafoanele afisate sunt cele existente (2026-11-14, D11 din proiectul etapei; de confirmat de PO)
+
+**Decizie: **„Alta piesa”: cantitatea ≤ 999 (limita din `requestItemSchema`; „Cel mult 999 de bucati.”, plural ICU dupa revizuire), cel mult 10 piese (`maxPieces`; „Adauga piesa” dezactivat, „Cel mult 10 piese.”); „Mesaj pentru firme” ≤ 5.000 (`maxLength` pe camp + contor). Nicio limita noua; doar se arata cele care existau.
+
+**Rationale: **Clientul afla limita inainte sa fie refuzat.
+
+**Impact: **`step-renderer.tsx` (`PieceRows`, `PieceRowsV2`), `details-step.tsx`; chei `Configurator.pieces.maxReached`, `pieces.quantityMax`, `Requests.messageCounter`, `Requests.messageHint`.
+
+### D-E8-20. Lista scurta din Sumar (2026-11-14, D12 din proiectul etapei; de confirmat de PO)
+
+**Decizie: **Cardul camerei din Sumar arata scurt: piesele, materialele, deschiderile, configuratia 3D, dimensiunile si pasii primului ecran (`importance: 'main'` in `buildSummaryRows`); „Vezi toate raspunsurile” adauga doar restul (`'extra'`) si nu apare cand n-ar ascunde nimic. Lista exacta de pasi „main”: D-E8-29.
+
+**Rationale: **Inainte lista extinsa repeta tot ce era deasupra, iar materialele si deschiderile apareau doar in lista completa. Daca PO vrea dimensiunile doar in lista completa, se muta dintr-o lista.
+
+**Impact: **`summary-rows.ts`, `review-room-card.tsx` (`data-review-room-more`), `room-answer-summary.tsx` (prop `only`).
+
+### D-E8-21. „Piese individuale” vs „Alta piesa” — neliniate (2026-11-14, R5 din proiectul etapei; de confirmat de PO)
+
+**Decizie: **Tipul de camera `Requests.roomType.PIECES` („Piese individuale”) si „Alta piesa” din configurator raman cu nume diferite; alinierea la „Alta piesa” nu s-a facut (nu era in plan si n-a fost confirmata de coordonator).
+
+**Rationale: **Titlul generat pe server foloseste numele; schimbarea doar in interfata ar fi partiala.
+
+**Impact: **Niciunul in etapa 8. De hotarat de PO.
+
+### D-E8-22. Exceptiile glosarului; textele juridice `Legal.*` neschimbate (2026-11-14, aleasa de agentul glosarului, de confirmat de PO)
+
+**Decizie: **Raman neschimbate: (1) textele juridice `Legal.*` (Termeni — „Cozy Home este un marketplace…”, „detaliile proiectului”; Reguli pentru firme — „revine in marketplace”; EN „slot”); (2) „la comanda” cu sensul „facut pe masura” („Mobilier la comanda”); (3) cheile si codurile (`IN_MARKETPLACE`, `SLA_*`, `/marketplace`); (4) „lucrare” cu alt sens (`Quotes.workSubtotal` — subtotalul manoperei; „montajul e o lucrare in sine”); (5) EN „in this order” (`Configurator.cart.basketNext`); (6) „proiect” unde inseamna continutul cererii („Camerele proiectului”) sau proiectul tehnic („Am deja un proiect”); (7) textele generate in `packages/shared` pentru firma (inghetate; nu contin termenii interzisi).
+
+**Rationale: **Textele juridice sunt versionate si acceptate de utilizatori; o schimbare cere o versiune noua a documentelor si o noua acceptare — hotararea de a le schimba la versiunea urmatoare e a PO.
+
+**Impact: **Lista de exceptii pe chei in `apps/frontend/src/messages/glossary.test.ts`; `docs/glosar.md` (sectiunea „Exceptii”).
+
+### D-E8-23. Un singur buton „Publica” si un singur fel de comparare, alese dupa latimea ecranului (2026-11-14, abatere a agentului de la proiectul etapei, aprobata de coordonator; de confirmat de PO)
+
+**Decizie: **In loc de doua butoane „Publica cererea” (unul ascuns cu CSS pe telefon, altul pe desktop) si de tabel + carduri amandoua in pagina, se randeaza UN singur element, ales cu `useMediaQuery` (`components/ui/use-media-query.ts`: `BELOW_LG` = `(max-width: 1023.98px)` pentru Sumar, `BELOW_SM` = `(max-width: 639.98px)` pentru comparare; pe server si la hidratare = desktop).
+
+**Rationale: **Doua elemente cu acelasi nume in pagina strica testele (`getByRole` / `getByText`, in jsdom ambele sunt „vizibile”) si e2e-urile care cauta `exact`. Pretul: la prima incarcare pe telefon apare o clipa asezarea de desktop.
+
+**Impact: **`review-step.tsx`, `app/[locale]/_components/offers-comparison.tsx` (`data-compare-rubric`). Completeaza D-E8-8.
+
+### D-E8-24. Pe telefon, in Sumar, si „Inapoi” sta in bara (2026-11-14, aleasa de agent, de confirmat de PO)
+
+**Decizie: **Pe telefon „Inapoi” se muta din coloana din stanga in bara lipita, langa „Publica cererea”. Un cont de firma sau de admin (care nu poate publica) are in bara doar „Inapoi”; nota „Cererile se publica dintr-un cont de client” ramane in card. La fisiere cu proiect propriu, „Nu am proiectul la indemana” sta pe primul rand al barei, pe toata latimea. In `Tabs` cu `scrollable`, fila aleasa e adusa in vedere doar pe orizontala.
+
+**Rationale: **Pe telefon coloana din stanga vine dupa toate camerele; „Inapoi” ar fi fost la capatul paginii.
+
+**Impact: **`review-step.tsx`, `uploads-step.tsx`, `components/ui/tabs.tsx`.
+
+### D-E8-25. „Batante” apasat pe un dulap fara usi pune usi (2026-11-14, aleasa de agent, de confirmat de PO)
+
+**Decizie: **Daca piesa nu are nicio usa, apasarea pe „Batante” transforma zonele deschise in usi batante, cu acelasi interior (`withHingedDoors`), ca la pornirea dulapului.
+
+**Rationale: **Altfel butonul n-ar face nimic vizibil (doar ar schimba felul usilor, fara usi).
+
+**Impact: **`piece3d/front-style.ts`, `configurator3d-step.tsx`. Completeaza D-E8-12.
+
+### D-E8-26. Totalul de ecrane apare doar cand e sigur (2026-11-14, aleasa de agent, de confirmat de PO)
+
+**Decizie: **Antetul arata „Ecranul {current} din {total}” (`nav.screenOf`) doar cand totalul nu se mai poate schimba, altfel „Ecranul {current}” (`nav.screenOnly`) si fara bara de progres. Regula (`screenTotalKnown` in `dimension-check.ts`): o intrebare fara raspuns conteaza doar daca poate adauga sau scoate un ECRAN; un pas dependent care sta in acelasi ecran (`screenGroup`) cu un pas vizibil, neconditionat de intrebari fara raspuns, nu conteaza. Raspuns „gol” = `undefined`, `''` sau `[]`. Efect: bucataria si dulapul au totalul de la inceput, dormitorul dupa ecranul pieselor.
+
+**Rationale: **Regula din proiect luata literal („orice pas de care depind altii are raspuns”) facea ca si „Altul” → campul text sa ascunda totalul de la inceput, contrar rezultatului cerut. Numaratoarea nu mai sare („07/20” → „07/22”).
+
+**Impact: **`room-flow-runner.tsx` (`data-screen-counter`). In Fisa se numara altceva, cu eticheta: „{done} din {total} raspunsuri obligatorii” (`sheet.progress`); camera pliata „cateva intrebari” (`sheet.someQuestions`, si in cos); cheile `sheet.sections`, `sheet.progressLabel` scoase.
+
+### D-E8-27. „Adresa montajului” ca titlu de sectiune si ca eticheta de camp (2026-11-14, aleasa de agentul glosarului — INLOCUITA dupa revizuire de D-E8-37)
+
+**Decizie: **`Requests.sectionAddress` si `Requests.field.addressText` sunt ambele „Adresa montajului” / „Installation address”; in Date generale acelasi text apare de doua ori (titlul sectiunii si eticheta campului).
+
+**Rationale: **Asa cere glosarul (un nume pentru un lucru); e2e-urile cauta campul dupa eticheta, care ramane unica intre campuri.
+
+**Impact: **`ro.json` / `en.json`. Dupa revizuire campul din formular are eticheta proprie „Strada si numar” (D-E8-37); `Requests.field.addressText` = „Adresa montajului” ramane pe pagina cererii.
+
+### D-E8-28. Mesajele de validare: cazurile nescrise in plan (2026-11-14, alese de agenti, de confirmat de PO)
+
+**Decizie: **(1) Mesajul de raspuns lipsa dupa tip (`requiredMessageKey` in `room-screens.ts`): alegere / da-nu → `validation.chooseOne`, mai multe → `validation.minOneOption`, piese → `validation.minPieces`, text si NUMAR → `validation.fillThisField`, dimensiuni → `validation.dimensionsMissing` (cu `{count}`; pe fiecare camp `validation.fillField` cu `{field}` — dupa revizuire „Completează câmpul „{field}”.”, ca sa nu iasa dezacordat), 3D / fisiere → `validation.answerRequired` (ramane). (2) Doar valori in afara intervalului → rezumatul de jos e textul existent `validation.dimensionOutOfRange`. (3) In lista problemelor de la Sumar (`roomIssue`), o camera fara dimensiuni spune `validation.dimensionRequired`, fara numar. (4) „Alta piesa” v1: mesajele fara prefix ale randului devin `validation.pieceRow.{name|quantity|dimension}` cu `{row}` (inainte „Raspunsul nu are formatul asteptat”). (5) Date generale: email / telefon gol (schema da `contactEmailInvalid` / `contactPhoneInvalid`) → `Requests.validation.contactRequired`; adresa / judetul goale → `addressRequired` / `countyRequired`; orasul gol foloseste cheia existenta `cityRequired` (etapa 7). (6) Sesiunea expirata la publicare: `UNAUTHORIZED`, `SESSION_SUPERSEDED` sau 401 → `review.sessionExpired` + „Intra in cont” spre `/login?redirect=<pagina>&reason=expired`.
+
+**Rationale: **Planul numea doar cazurile principale; fiecare caz ramas avea nevoie de un text care spune ce lipseste.
+
+**Impact: **`room-screens.ts` (`validateStepIssue`, `StepIssue`), `step-renderer.tsx`, `details-step.tsx`, `review-step.tsx`. docs/ERROR_CODES.md.
+
+### D-E8-29. Ce pasi intra in lista scurta din Sumar (2026-11-14, aleasa de agent, de confirmat de PO)
+
+**Decizie: **„main” = `pieces`, `configurator-3d`, `dimension-group`, pasii primului ecran al camerei si id-urile `material*`, `frontMaterial*`, `separateFrontMaterials`, `openingSystems*`, `systems*`, `sameFinish*`, `liftUp*`, `doorType`, `wardrobeDoorType`; pasii de fisiere intra la „extra”. Etichetele scurte au ca rezerva titlul intrebarii; cheile `common.finish.*.summaryLabel` si `common.otherMaterial.summaryLabel` stau sub `common.*`.
+
+**Rationale: **Materialul si deschiderea sunt ce cauta firma intai; testul pe tot `FLOW_REGISTRY` verifica `main ∪ extra` = tot, disjuncte, si etichete ≤ 40 de caractere.
+
+**Impact: **`summary-rows.ts` (+`.test.ts`). Completeaza D-E8-20.
+
+### D-E8-30. Mobilierul 3D nu primeste regula „Push” (2026-11-14, aleasa de agent, de confirmat de PO)
+
+**Decizie: **Patul, masa, canapeaua, lavoarul si mobilierul de hol din 3D (`isFurnitureKind`) nu primesc si nu pierd `frontStyle`: au deschiderea lor sau deloc.
+
+**Rationale: **Regula „are fronturi → Push” e definita pentru corpuri (zone cu usi / sertare).
+
+**Impact: **`withFrontStyleRule` (iesire timpurie). Completeaza D-E8-7.
+
+### D-E8-31. Unitatea clientului si pe antetul vechi; fisierele numarate fara imaginile 3D (2026-11-14, alese de agent, de confirmat de PO)
+
+**Decizie: **(1) Pe pagina cererii, unitatea clientului se aplica si antetului vechi „L × l × H” (camerele din formularul manual) si tavanului (`roomSpec.ceiling` = „Tavan: {value}”, in locul lui `roomSpec.ceilingHeight`). (2) Randul „Fisiere” din Fisa numara fisierele cererii fara imaginile 3D generate; la 0: „optional” fara proiect propriu, „obligatoriu” cu proiect propriu.
+
+**Rationale: **Aceeasi regula ca restul dimensiunilor clientului; imaginile 3D nu sunt fisiere urcate de client.
+
+**Impact: **`room-spec-card.tsx`, `review-rail.tsx` (prop `filesCount`, `data-sheet-files`), `configurator-wizard.tsx`.
+
+### D-E8-32. Imaginea 3D o singura data pe pagina cererii (2026-11-14, reparatia observatiei O4 din verificarea in browser a etapei 7)
+
+**Decizie: **Pe pagina cererii (client), imaginea 3D a piesei apare doar in cardul piesei, nu si ca miniatura in „Atasamente” — aceeasi regula ca in cardul din Sumar, mutata in `room-snapshot.ts`. Fisierul ramane unul singur pe cerere.
+
+**Rationale: **Verificarea a vazut acelasi fisier de doua ori; „o singura imagine pe piesa” (D-E7-22) inseamna si ce vede omul.
+
+**Impact: **Nou `components/configurator/room-snapshot.ts`; `app/[locale]/requests/[id]/page.tsx` (+test).
+
+### D-E8-33. Motorul spune „Completeaza toate dimensiunile” pentru un slot lipsa (2026-11-14, pasii planului b9 + proiectul etapei)
+
+**Decizie: **In `engine.ts` (`stepAnswerSchema`, cazul `dimension-group`) slotul lipsa da `validation.dimensionRequired` („Completează toate dimensiunile.”); tipul gresit / `NaN` si valorile in afara intervalului dau, ca inainte, `validation.dimensionOutOfRange`. Singura schimbare in motor; scorul si textele pentru firma nu depind de ea (instantaneele neschimbate).
+
+**Rationale: **Un camp gol primea acelasi mesaj ca o valoare prea mare.
+
+**Impact: **Ajunge si in `CONFIGURATOR_ANSWERS_INVALID.details[].messageKey` la publicare / editare. Verificarea separata din `configurator.service.ts` (camera cu dimensiune derivata 0) ramane `validation.dimensionOutOfRange`. docs/ERROR_CODES.md.
+
+### D-E8-34. „Push” automat doar pe ciorne; la editare doar cand omul schimba piesa (2026-11-14, dupa revizuirea de cod — M1 cod)
+
+**Decizie: **Corectia automata de la deschiderea pasului 3D (`withFrontStyleRule` la montare) ruleaza doar pe ciorne. La editarea unei cereri publicate configuratia ramane cea publicata; „Push” se scrie abia cand omul schimba ceva la piesa (prin `apply`). Semnul vine din store (`isInEditSession()`), fara prop nou.
+
+**Rationale: **Editarea reface calculul de marime la salvare: o cerere publicata cu un bufet lasat pe implicit, editata doar la material, ar fi urcat 1–2 credite (si si-ar fi refacut imaginea 3D si descrierea), chiar si la editarea de dupa preluare, cand firma platise deja dupa costul vechi.
+
+**Impact: **`piece3d/configurator3d-step.tsx` (`fixSavedConfig`); test nou `configurator3d-step-edit.test.tsx` (editare fara atingere: `onChange` neapelat, imaginea „fresh”; editare cu schimbare: Push aplicat; ciorna: imaginea devine „stale” si se reface). Schimba D-E8-13. docs/03 4.1.
+
+### D-E8-35. Precizia afisarii = precizia campului din formular (2026-11-14, dupa revizuirea de cod — m1 cod)
+
+**Decizie: **`DIMENSION_DECIMALS` = `{ m: 4, cm: 4, mm: 4 }` (cat accepta campul, `useDecimalField`), zerourile de la coada taiate: „45,55 cm” arata la fel in camp, in Fisa, in Sumar si la firma; o valoare peste limita se vede exacta („600,04 cm — de corectat”); „1234,5 mm” ramane. 3D-ul lucreaza la 0,1 cm si pilulele lui raman cu o zecimala.
+
+**Rationale: **Cu o zecimala, „600,04 cm” aparea „600 cm — de corectat”, desi intervalul spunea „…–600 cm”.
+
+**Impact: **`lib/dimension-format.ts` (+ test). Doar afisare; nimic rotunjit nu se scrie inapoi. Completeaza D-E8-1.
+
+### D-E8-36. Unitatea din formular e si preferinta pentru pagina cererii (2026-11-14, dupa revizuirea de cod — m2 cod)
+
+**Decizie: **Runner-ul scrie unitatea din store (inclusiv cea tinuta in ciorna sau aleasa inainte de etapa 8) ca preferinta (`rememberDimensionUnit`), doar cand difera de `readDimensionUnit()`. Pagina cererii arata aceeasi unitate ca Fisa si Sumarul.
+
+**Rationale: **Cheia `cozy.dimensionUnit` se scria doar la clic pe comutator; un client care alesese „m” in iulie vedea „m” in formular si „cm” pe pagina cererii.
+
+**Impact: **`room-flow-runner.tsx` (+2 teste). Completeaza D-E8-9.
+
+### D-E8-37. Campul de adresa se numeste „Strada si numar” (2026-11-14, dupa revizuirea textelor — m2 texte)
+
+**Decizie: **In Date generale campul de adresa are eticheta „Stradă și număr” / „Street and number” (cheie noua `Requests.field.street`); titlul sectiunii ramane „Adresa montajului” (`Requests.sectionAddress`), iar `Requests.field.addressText` = „Adresa montajului” ramane eticheta adresei intregi pe pagina cererii.
+
+**Rationale: **Titlul sectiunii si campul de imediat sub el aveau acelasi text.
+
+**Impact: **`address-autocomplete.tsx` (`label={t('field.street')}`); de adus la zi e2e-urile care cauta campul dupa `field.addressText` cu `exact: true` (`helpers/guided-request.ts`, `etapa7.spec.ts`). Inlocuieste D-E8-27.
+
+### D-E8-38. La editare ultimul pas se numeste „Verifica si salveaza” (2026-11-14, dupa revizuirea textelor — m5 texte)
+
+**Decizie: **In modul de editare, in bara de pasi (wizard si Fisa), pasul `review` se numeste „Verifică și salvează” / „Review and save” (cheie noua `Configurator.edit.phaseReview`); la o cerere noua ramane „Verifică și publică”. `edit.saveHint` = „Nimic nu se schimbă până nu apeși „Salvează modificările”, la ultimul pas.”
+
+**Rationale: **La editare nu se publica nimic; butonul de acolo salveaza.
+
+**Impact: **`configurator-wizard.tsx`, `review-rail.tsx` (`isInEditSession()`). `docs/glosar.md`.
+
+### D-E8-39. „Proiectare cu plata” si in dialoguri, validari si bifa din cos; exceptia titlului de pornire (2026-11-14, dupa revizuirea textelor — M1 texte)
+
+**Decizie: **Variantele „ajutor” ramase pentru proiectarea cu plata sunt inlocuite: dialogul de comutare (`designHelpSwitch.{titleAll,titleRoom,confirm,kept,body}` — „Da, cer proiectare cu plată”, iar corpul spune si drumul platit), `validation.designHelpWithOwnProject` / `designHelpWithStudioPiece`, `cart.legacyPaidDesign`, bifa din cos `cart.designHelpRoom` = „Proiectare cu plată pentru camera asta”. Exceptie: titlul cartonasului de pornire `Configurator.start.DESIGN_HELP.title` („Nu știu exact ce vreau — am nevoie de ajutor”) ramane — descrie situatia clientului, iar insigna de sub el spune „Proiectare cu plată”. Testul glosarului prinde acum si tiparele RO `cer(i) ajutor`, „bifa de ajutor”, „debifezi ajutorul” si EN „ask for help”, „help box”, „untick the help”, plus „proiect / project” in cheile de dupa acceptare (de ex. `Marketplace.apiErrors.PROJECT_*` → „comandă”).
+
+**Rationale: **Clientul putea confirma „Da, cer ajutor” fara sa vada ca serviciul e platit (PO i1-1: un singur nume).
+
+**Impact: **Fragmentul `e8-words`, `glossary.test.ts`, `docs/glosar.md`. Completeaza D-E8-2, D-E8-4, D-E8-22.
+
+### D-E8-40. Studio 3D porneste in continuare piesele din configuratia veche (2026-11-14, constatare a revizuirii de cod — m4; lasata asa, de confirmat de PO)
+
+**Decizie: **Studio (`components/studio/studio-page.tsx`) foloseste in continuare `defaultPieceConfig`: un dulap adaugat din Studio porneste cu zone deschise (fara usi, „Batante” neales), comoda TV fara sertare — spre deosebire de configurator (D-E8-6). „Push” se scrie totusi la montarea pasului 3D, deci costul ramane coerent cu ce se vede.
+
+**Rationale: **Studio nu era in lista de fisiere a etapei 8; schimbarea (`initialPieceConfig` la alegerea tipului) e mica, dar ramane hotararea PO.
+
+**Impact: **Niciunul in etapa 8. Completeaza D-E8-12.
+
 # 9. Checklist uman: ce faci acum
 
 - Citește integral acest document o dată. Verifică Decisions Log (Secțiunea 8, inclusiv 8.4). Dacă o decizie te deranjează, schimb-o ACUM în document, înainte ca agentul să scrie cod.
