@@ -4,19 +4,20 @@ import { NextIntlClientProvider } from 'next-intl';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import ro from '@/messages/ro.json';
-import { CatalogSize } from './catalog-controls';
+import { PieceDimensionControl } from './dimension-control';
 
 // b1: campurile de dimensiuni din 3D accepta virgula; b7: o valoare in afara
-// intervalului se pune pe limita, cu mesaj langa camp
+// intervalului se pune pe limita, cu mesaj langa camp. Etapa 8 (41.4): fostul CatalogSize
+// e acum componenta unica PieceDimensionControl (aceeasi in toate panourile 3D).
 function Harness({ onChange }: { onChange: (m: number) => void }) {
   const [value, setValue] = useState(1.2);
   return (
-    <CatalogSize
+    <PieceDimensionControl
       label="Lățime"
-      value={value}
-      min={0.8}
-      max={2}
-      onChange={(m) => {
+      valueM={value}
+      minM={0.8}
+      maxM={2}
+      onValueM={(m) => {
         setValue(m);
         onChange(m);
       }}
@@ -31,11 +32,11 @@ function setup() {
       <Harness onChange={onChange} />
     </NextIntlClientProvider>,
   );
-  const input = screen.getByRole('textbox', { name: 'Lățime (cm)' }) as HTMLInputElement;
+  const input = screen.getByRole('textbox', { name: 'Lățime' }) as HTMLInputElement;
   return { input, onChange };
 }
 
-describe('CatalogSize — dimensiuni cu virgula (b1)', () => {
+describe('PieceDimensionControl (fost CatalogSize) — dimensiuni cu virgula (b1)', () => {
   it('campul e text cu tastatura zecimala', () => {
     const { input } = setup();
     expect(input.type).toBe('text');

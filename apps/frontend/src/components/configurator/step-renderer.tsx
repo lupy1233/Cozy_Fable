@@ -24,7 +24,8 @@ import {
 import { Info, Plus, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useId } from 'react';
-import { formatDecimal } from '@/lib/decimal';
+import { DIMENSION_UNIT_FACTOR, DIMENSION_UNITS, formatDimension, formatDimensionRange } from '@/lib/dimension-format';
+import { rememberDimensionUnit } from '@/lib/dimension-unit';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -41,6 +42,7 @@ import { CompactChoiceCard, PlayingCard } from './playing-card';
 import { RoomSketchUpload } from './room-sketch-upload';
 import { ContactInTextHint } from './contact-in-text-hint';
 import { useDecimalField } from './use-decimal-field';
+import type { StepIssue } from './room-screens';
 
 interface StepRendererProps {
   step: QuestionStep;
@@ -51,7 +53,8 @@ interface StepRendererProps {
   flowVersion?: number;
   onChange: (value: AnswerValue) => void;
   onInfo: (info: InfoContentRef) => void;
-  error?: string;
+  // eroarea pasului dupa un "Continua" respins (validateStepIssue); un string = doar cheia
+  error?: StepIssue | string;
   // step secundar pe acelasi ecran (screenGroup): titlu mai mic, UI compact
   inline?: boolean;
   // pur vizual: "1/3" in fata titlului cand ecranul are mai multe intrebari
@@ -80,7 +83,7 @@ function StepShell({
   answers: AnswerMap;
   flowVersion?: number;
   onInfo: (info: InfoContentRef) => void;
-  error?: string;
+  error?: StepIssue;
   inline?: boolean;
   counter?: string;
   children: React.ReactNode;
@@ -127,13 +130,14 @@ function StepShell({
       </div>
       {targets && <QuestionTargetStrip data={targets} />}
       {children}
-      {error && <p className="text-sm text-crimson">{t(error)}</p>}
+      {error && (
+        <p data-step-error className="text-sm text-crimson">
+          {t(error.key, error.values)}
+        </p>
+      )}
     </div>
   );
 }
-
-// factorii de conversie pentru afisarea dimensiunilor (stocarea ramane in metri)
-const UNIT_FACTOR = { m: 1, cm: 100, mm: 1000 } as const;
 
 const cnUnit = (active: boolean) =>
   'rounded-full px-2 py-0.5 uppercase tracking-[0.06em] transition-colors ' +
@@ -147,29 +151,36 @@ function DimensionSlotInput({
   factor,
   unit,
   outOfRange,
+  missing,
   onMeters,
   hint,
+  hintId,
 }: {
   id: string;
   metersVal: number | undefined;
   factor: number;
   unit: string;
   outOfRange: boolean;
+  // camp gol marcat dupa un "Continua" respins (39)
+  missing: boolean;
   onMeters: (meters: number | undefined) => void;
   hint: React.ReactNode;
+  hintId: string;
 }) {
   const field = useDecimalField({
     value: metersVal === undefined ? undefined : metersVal * factor,
     commitOn: 'change',
     onValue: (v) => onMeters(v === undefined ? undefined : v / factor),
   });
-  const invalid = outOfRange || field.error !== null;
+  const invalid = outOfRange || missing || field.error !== null;
+  const errorId = `${id}-error`;
   return (
     <>
       <div className="relative">
         <Input
           id={id}
           {...field.inputProps}
+          aria-describedby={field.error ? errorId : hintId}
           aria-invalid={invalid || undefined}
           className={invalid ? 'border-crimson pr-10' : 'pr-10'}
         />
@@ -177,7 +188,13 @@ function DimensionSlotInput({
           {unit}
         </span>
       </div>
-      {field.error ? <p className="mt-1 text-meta text-crimson">{field.error}</p> : hint}
+      {field.error ? (
+        <p id={errorId} className="mt-1 text-meta text-crimson">
+          {field.error}
+        </p>
+      ) : (
+        hint
+      )}
     </>
   );
 }
@@ -209,12 +226,13 @@ export function StepRenderer(props: StepRendererProps) {
     flowVersion,
     onChange,
     onInfo,
-    error,
+    error: rawError,
     inline,
     counter,
     uploadContext,
     config3dContext,
   } = props;
+  const error: StepIssue | undefined = typeof rawError === 'string' ? { key: rawError } : rawError;
   const t = useTranslations('Configurator');
   const dimensionUnit = useConfiguratorStore((s) => s.dimensionUnit);
   const setDimensionUnit = useConfiguratorStore((s) => s.setDimensionUnit);
@@ -276,7 +294,9 @@ export function StepRenderer(props: StepRendererProps) {
   };
 
   // grila cartonaselor mari (intrebarea principala a ecranului) si a celor compacte
-  const cardGrid = 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3';
+  // j1: doua coloane si pe telefon (cartonasul are imaginea mai mica sub sm)
+  const cardGrid = 'grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3';
+  const pairGrid = 'grid grid-cols-2 gap-3 sm:gap-4';
   const tileGrid = 'grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(150px,1fr))]';
 
   // Conventie: ecranele din screenGroup 'materials' (material per piesa, v2)
@@ -369,7 +389,7 @@ export function StepRenderer(props: StepRendererProps) {
       const YesIllu = getIllustration(roomType, step.id, 'YES') ?? BOOLEAN_ILLUSTRATIONS.yes;
       return (
         <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} inline counter={counter}>
-          <div role="group" aria-label={t(step.titleKey)} data-boolean-pair className="grid gap-4 sm:grid-cols-2">
+          <div role="group" aria-label={t(step.titleKey)} data-boolean-pair className={pairGrid}>
             <PlayingCard
               selected={value === true}
               onSelect={() => onChange(true)}
@@ -418,7 +438,7 @@ export function StepRenderer(props: StepRendererProps) {
     const NoIllu = BOOLEAN_ILLUSTRATIONS.no;
     return (
       <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} counter={counter}>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className={pairGrid}>
           <PlayingCard
             selected={value === true}
             onSelect={() => onChange(true)}
@@ -441,33 +461,39 @@ export function StepRenderer(props: StepRendererProps) {
     const values = (value && typeof value === 'object' && !Array.isArray(value)
       ? value
       : {}) as Record<string, number>;
-    const factor = UNIT_FACTOR[dimensionUnit];
+    const factor = DIMENSION_UNIT_FACTOR[dimensionUnit];
     // afisare fara artefacte float (0.30000000000000004 → 0.3)
     const fmtNum = (v: number) => Math.round(v * 10000) / 10000;
-    // afisare dupa limba: "1,6 m" in romana (b1); ce se salveaza ramane numar
-    const fmtShow = (v: number) => formatDecimal(v, locale);
+    // formatatorul unic (41): "1,6 m" / "245,5 cm" dupa limba; ce se salveaza ramane in metri
+    const fmt = { unit: dimensionUnit, locale };
+    // campurile marcate dupa "Continua" (39): gol → "Completeaza {camp}"
+    const fieldIssues = error?.fields ?? {};
+    const isOutOfRange = (slot: { id: string; min: number; max: number }) =>
+      Number.isFinite(values[slot.id]) && (values[slot.id] < slot.min || values[slot.id] > slot.max);
+    const isMissing = (slotId: string) =>
+      fieldIssues[slotId]?.key === 'validation.fillField' && !Number.isFinite(values[slotId]);
     // plansa cu litere (A/B/C/H...) — valorile completate apar si langa litere
     // pe desen (feedback PO 2026-07-13), pe langa legenda si campuri
     const valueLabels: Record<string, string> = {};
     for (const s of slots) {
-      if (Number.isFinite(values[s.id])) {
-        valueLabels[s.id] = `${fmtShow(values[s.id] * factor)} ${dimensionUnit}`;
-      }
+      if (Number.isFinite(values[s.id])) valueLabels[s.id] = formatDimension(values[s.id], fmt);
     }
+    // 38: cota gresita (in afara intervalului sau goala dupa "Continua") e rosie pe schita
+    const invalidSlots = slots.filter((s) => isOutOfRange(s) || isMissing(s.id)).map((s) => s.id);
     const figure =
       step.id === 'dimensions' || step.id === 'bedCustomSize'
-        ? getDimensionFigure(roomType, answers, slots.map((s) => s.id), valueLabels)
+        ? getDimensionFigure(roomType, answers, slots.map((s) => s.id), valueLabels, invalidSlots)
         : null;
     const letterOf = (slotId: string) => figure?.letters[slotId];
     const legend = slots
       .filter((s) => letterOf(s.id) && Number.isFinite(values[s.id]))
-      .map((s) => `${letterOf(s.id)} = ${fmtShow(values[s.id] * factor)} ${dimensionUnit}`);
+      .map((s) => `${letterOf(s.id)} = ${formatDimension(values[s.id], fmt)}`);
     return (
       <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} counter={counter}>
         {figure && (
           <figure className="rounded-xl border border-border-2 bg-surface-2 p-4">
             {figure.node}
-            <figcaption className="mt-2 text-center text-xs text-muted-foreground">
+            <figcaption className="mt-2 text-center text-sm text-muted-foreground sm:text-xs">
               {legend.length > 0 ? (
                 <span className="font-mono tabular-nums">{legend.join(' · ')}</span>
               ) : (
@@ -479,12 +505,16 @@ export function StepRenderer(props: StepRendererProps) {
         {/* comutator unitate de masura — valorile raman in metri in answers */}
         <div className="flex justify-end">
           <div className="inline-flex items-center rounded-full border border-border-2 bg-surface-2 p-0.5 font-mono text-meta">
-            {(['m', 'cm', 'mm'] as const).map((u) => (
+            {DIMENSION_UNITS.map((u) => (
               <button
                 key={u}
                 type="button"
                 aria-pressed={dimensionUnit === u}
-                onClick={() => setDimensionUnit(u)}
+                onClick={() => {
+                  setDimensionUnit(u);
+                  // D1: preferinta ramane si dupa publicare (pagina cererii clientului)
+                  rememberDimensionUnit(u);
+                }}
                 className={cnUnit(dimensionUnit === u)}
               >
                 {u}
@@ -496,8 +526,10 @@ export function StepRenderer(props: StepRendererProps) {
           {slots.map((slot) => {
             const metersVal = values[slot.id];
             const hasValue = Number.isFinite(metersVal);
-            const outOfRange = hasValue && (metersVal < slot.min || metersVal > slot.max);
-            const rangeText = `${fmtShow(slot.min * factor)}–${fmtShow(slot.max * factor)} ${dimensionUnit}`;
+            const outOfRange = isOutOfRange(slot);
+            const missing = isMissing(slot.id);
+            const rangeText = formatDimensionRange(slot.min, slot.max, fmt);
+            const hintId = `${inputId}-${slot.id}-hint`;
             const letter = letterOf(slot.id);
             return (
               <Field
@@ -522,6 +554,8 @@ export function StepRenderer(props: StepRendererProps) {
                   factor={factor}
                   unit={dimensionUnit}
                   outOfRange={outOfRange}
+                  missing={missing}
+                  hintId={hintId}
                   onMeters={(meters) => {
                     const next = { ...values };
                     if (meters === undefined) delete next[slot.id];
@@ -531,11 +565,17 @@ export function StepRenderer(props: StepRendererProps) {
                   hint={
                     /* validare imediata per camp, nu doar la Continua */
                     outOfRange ? (
-                      <p className="mt-1 text-meta text-crimson">
+                      <p id={hintId} className="mt-1 text-meta text-crimson">
                         {t('validation.dimensionRange', { range: rangeText })}
                       </p>
+                    ) : missing ? (
+                      <p id={hintId} className="mt-1 text-meta text-crimson">
+                        {t('validation.fillField', { field: t(slot.labelKey) })}
+                      </p>
                     ) : (
-                      <p className="mt-1 text-meta text-muted-foreground">{rangeText}</p>
+                      <p id={hintId} className="mt-1 text-meta text-muted-foreground">
+                        {rangeText}
+                      </p>
                     )
                   }
                 />
@@ -635,11 +675,13 @@ export function StepRenderer(props: StepRendererProps) {
           pieces={v2Rows}
           onChange={(next) => onChange(next as unknown as AnswerValue)}
           showErrors={Boolean(error)}
+          maxPieces={step.maxPieces}
         />
       ) : (
         <PieceRows
           pieces={Array.isArray(value) ? (value as RequestItemInput[]) : []}
           onChange={(next) => onChange(next)}
+          maxPieces={step.maxPieces}
         />
       )}
     </StepShell>
@@ -662,13 +704,88 @@ export const PIECE_ROW_SYSTEMS: readonly ItemSystem[] = ['MANER', 'PUSH', 'GLISA
 // limitele din requestItemSchema (name max 150, description max 2000)
 export const PIECE_NAME_MAX = 150;
 export const PIECE_DETAILS_MAX = 2000;
+// limita cantitatii din requestItemSchema (D11: doar afisata, fara limita noua)
+export const PIECE_QUANTITY_MAX = 999;
+
+const quantityTooHigh = (q: unknown) => typeof q === 'number' && q > PIECE_QUANTITY_MAX;
+
+// Campul "Cantitate" comun randurilor v1 / v2: plafonul 999 + mesajul langa camp.
+function PieceQuantityInput({
+  id,
+  value,
+  onValue,
+  fallbackError,
+}: {
+  // pus de Field (legatura eticheta → camp)
+  id?: string;
+  value: number;
+  onValue: (q: number) => void;
+  // eroarea randului dupa un "Continua" respins (v2), cand nu e plafonul
+  fallbackError?: React.ReactNode;
+}) {
+  const t = useTranslations('Configurator');
+  const errorId = `${useId()}-quantity-error`;
+  const tooHigh = quantityTooHigh(value);
+  return (
+    <>
+      <Input
+        id={id}
+        type="number"
+        min={1}
+        max={PIECE_QUANTITY_MAX}
+        value={value}
+        aria-invalid={tooHigh || undefined}
+        aria-describedby={tooHigh ? errorId : undefined}
+        className={tooHigh ? 'border-crimson' : undefined}
+        onChange={(e) => onValue(Number(e.target.value) || 1)}
+      />
+      {tooHigh ? (
+        <p id={errorId} className="text-meta text-crimson">
+          {t('pieces.quantityMax', { max: PIECE_QUANTITY_MAX })}
+        </p>
+      ) : (
+        fallbackError
+      )}
+    </>
+  );
+}
+
+// Butonul "Adauga piesa" cu plafonul pasului (maxPieces, de obicei 10).
+function AddPieceButton({ count, maxPieces, onAdd }: { count: number; maxPieces: number; onAdd: () => void }) {
+  const t = useTranslations('Configurator');
+  const hintId = `${useId()}-max-pieces`;
+  const full = count >= maxPieces;
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={onAdd}
+        disabled={full}
+        aria-describedby={full ? hintId : undefined}
+        className="self-start"
+      >
+        <Plus className="mr-1 h-4 w-4" />
+        {t('pieces.add')}
+      </Button>
+      {full && (
+        <p id={hintId} className="text-meta text-muted-foreground">
+          {t('pieces.maxReached', { max: maxPieces })}
+        </p>
+      )}
+    </div>
+  );
+}
 
 function PieceRows({
   pieces,
   onChange,
+  maxPieces,
 }: {
   pieces: RequestItemInput[];
   onChange: (next: RequestItemInput[]) => void;
+  maxPieces: number;
 }) {
   const t = useTranslations('Configurator');
   const uid = useId();
@@ -722,12 +839,7 @@ function PieceRows({
                 </Select>
               </Field>
               <Field label={t('pieces.quantity')}>
-                <Input
-                  type="number"
-                  min={1}
-                  value={piece.quantity}
-                  onChange={(e) => setPiece(i, { quantity: Number(e.target.value) || 1 })}
-                />
+                <PieceQuantityInput value={piece.quantity} onValue={(quantity) => setPiece(i, { quantity })} />
               </Field>
             </div>
             <Field label={t('pieces.details')}>
@@ -781,10 +893,7 @@ function PieceRows({
           </div>
           );
         })}
-        <Button type="button" variant="secondary" size="sm" onClick={addPiece} className="self-start">
-          <Plus className="mr-1 h-4 w-4" />
-          {t('pieces.add')}
-        </Button>
+        <AddPieceButton count={pieces.length} maxPieces={maxPieces} onAdd={addPiece} />
       </div>
   );
 }
@@ -885,11 +994,13 @@ function PieceRowsV2({
   pieces,
   onChange,
   showErrors,
+  maxPieces,
 }: {
   pieces: PieceRowV2[];
   onChange: (next: PieceRowV2[]) => void;
   // dupa un "Continua" respins: erorile fiecarui rand, langa campul cu problema
   showErrors: boolean;
+  maxPieces: number;
 }) {
   const t = useTranslations('Configurator');
   const uid = useId();
@@ -986,13 +1097,11 @@ function PieceRowsV2({
                 {fieldError('material')}
               </Field>
               <Field label={t('pieces.quantity')}>
-                <Input
-                  type="number"
-                  min={1}
+                <PieceQuantityInput
                   value={piece.quantity}
-                  onChange={(e) => setPiece(i, { quantity: Number(e.target.value) || 1 })}
+                  onValue={(quantity) => setPiece(i, { quantity })}
+                  fallbackError={fieldError('quantity')}
                 />
-                {fieldError('quantity')}
               </Field>
             </div>
             <div className="grid grid-cols-3 gap-3">
@@ -1099,10 +1208,7 @@ function PieceRowsV2({
           </div>
         );
       })}
-      <Button type="button" variant="secondary" size="sm" onClick={addPiece} className="self-start">
-        <Plus className="mr-1 h-4 w-4" />
-        {t('pieces.add')}
-      </Button>
+      <AddPieceButton count={pieces.length} maxPieces={maxPieces} onAdd={addPiece} />
     </div>
   );
 }

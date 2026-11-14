@@ -1143,10 +1143,10 @@
     },
     "accountEmailLockedHint": "Your account email is always included as a contact channel. You can add extra email addresses or phone numbers.",
     "autoTitleLabel": "Title (generated automatically)",
-    "messageHint": "Optional — any detail that helps companies understand your project. Don't put your phone number or email here.",
+    "messageHint": "Optional, up to 5,000 characters — any detail that helps companies understand your project. Don't put your phone number or email here.",
     "addressSearchPlaceholder": "Start typing and pick your address…",
     "editRequest": "Edit request ({remaining} left)",
-    "editPostClaimWarning": "Companies have already claimed this request. You have one edit left: the project will be re-scored, companies keep the credits they've spent, and they may withdraw their claim after your changes. Continue?",
+    "editPostClaimWarning": "Companies have already claimed this request. You have one edit left, as long as you haven't received an offer: the project will be re-scored, companies keep the credits they've spent, and they may withdraw their claim after your changes. Continue?",
     "budget": {
       "UNDER_5K": "Under 5,000 lei",
       "FROM_5K_TO_15K": "5,000 – 15,000 lei",
@@ -1239,7 +1239,10 @@
       "descriptionTooLong": "Message is too long.",
       "budgetRequired": "Choose an amount or tick “I prefer not to share”.",
       "cityRequired": "Enter the city.",
-      "addressDetailsTooLong": "Building, entrance and apartment can have at most 100 characters."
+      "addressDetailsTooLong": "Building, entrance and apartment can have at most 100 characters.",
+      "addressRequired": "Enter the address.",
+      "countyRequired": "Enter the county.",
+      "contactRequired": "Enter the email or phone number."
     },
     "apiErrors": {
       "GEOCODING_FAILED": "We couldn't locate that address. Check it and try again.",
@@ -1417,7 +1420,8 @@
       "cancel": "Cancel",
       "pending": "Deleting…",
       "done": "The request was deleted."
-    }
+    },
+    "messageCounter": "{count, number} / {max, number} characters"
   },
   "Marketplace": {
     "title": "Marketplace",
@@ -2037,7 +2041,8 @@
       "assembly": "Assembly",
       "included": "included in the price",
       "notIncluded": "not included",
-      "rateNote": "Rate used: 1 EUR = {rate} lei."
+      "rateNote": "Rate used: 1 EUR = {rate} lei.",
+      "actionsTitle": "Offer and conversation"
     },
     "offersSubtitleFor": "{request} · your request's journey with every company that claimed it.",
     "firmsTabsLabel": "Companies that claimed your request",
@@ -3875,15 +3880,16 @@
     "sheet": {
       "phaseLabel": "Phase {current} of {total}",
       "title": "Request sheet",
-      "progressLabel": "{done} of {total} required questions answered",
-      "sections": "{count, plural, =1 {1 section} other {# sections}}",
       "questions": "{count, plural, =1 {1 question} other {# questions}}",
       "optional": "optional",
       "required": "required",
       "roomDone": "done",
       "withDesigner": "with the designer",
       "missing": "to fill in",
-      "hint": "Click any row to go back to that section. Nothing you filled in is lost."
+      "hint": "Click any row to go back to that section. Nothing you filled in is lost.",
+      "toFix": "to fix",
+      "progress": "{done} of {total} required answers",
+      "someQuestions": "a few questions"
     },
     "phases": {
       "start": "Start",
@@ -3901,7 +3907,9 @@
       "toDetails": "To general info",
       "toReview": "To summary",
       "roomsLabel": "Rooms in this request",
-      "nextUp": "Next: {label}"
+      "nextUp": "Next: {label}",
+      "screenOf": "Screen {current} of {total}",
+      "screenOnly": "Screen {current}"
     },
     "anchors": {
       "kitchenZones": {
@@ -3930,8 +3938,8 @@
       "recommended": "Recommended"
     },
     "cart": {
-      "title": "Which rooms do you want furnished?",
-      "subtitle": "Add as many rooms as you need — several of the same type is fine.",
+      "title": "What do you want to furnish?",
+      "subtitle": "Add the rooms and pieces you need — several of the same type is fine.",
       "designHelpSubtitle": "Pick the rooms or pieces you want furniture for — the design is worked out together with the company that claims your request.",
       "basketTitle": "Your request cart",
       "basketEmpty": "Nothing here yet. Pick rooms or pieces.",
@@ -4102,7 +4110,7 @@
       "count": "{n, plural, =1 {one attached file} other {# attached files}}"
     },
     "editTitle": "Edit your request",
-    "editSubtitle": "Change your answers, files or details, then save. Edit limits apply: 3 changes before a claim, 1 after.",
+    "editSubtitle": "Change your answers, files or details, then save. Edit limits apply: 3 times before a company claims it, and once after the claim, before the first offer.",
     "review": {
       "filesTitle": "Project files",
       "facts": {
@@ -4142,7 +4150,7 @@
       "readyTitleEdit": "Ready to save",
       "notReadyTitle": "A few things left to fill in",
       "checkDetails": "General details filled in",
-      "publishNote": "After publishing you can still change it 3 times until a company claims it, and once after that.",
+      "publishNote": "After publishing you can still change it 3 times until a company claims it, and once after the claim, before the first offer.",
       "roomComplete": "done",
       "publishedToast": "Your request has been published.",
       "editSavedToast": "Your changes have been saved.",
@@ -4154,7 +4162,9 @@
         "caption": "This is how companies see the configured piece.",
         "working": "Preparing the 3D picture of the piece…",
         "failed": "We couldn't make the 3D picture of the piece on this device. You can publish without it: companies see all your measurements and choices."
-      }
+      },
+      "sessionExpired": "Your session has expired — sign in again; your request stays saved.",
+      "sessionExpiredLogin": "Sign in"
     },
     "inspirationPicker": {
       "title": "Gallery inspiration",
@@ -4180,7 +4190,7 @@
       "roomLabel": "For room",
       "roomNone": "Whole home / not specified",
       "roomOption": "{room} {n}",
-      "notesVisibleHint": "Companies interested in your request see these notes and rooms. Don't add a phone number, email or links — add them in the Contact step.",
+      "notesVisibleHint": "Companies interested in your request see these notes and rooms. Don't add a phone number, email or links — add them in the Contact preferences section of General details.",
       "noteContactBlocked": "This note contains contact details. Remove them to publish.",
       "removePhoto": "Remove “{title}”"
     },
@@ -4294,9 +4304,15 @@
         "tiltOut": "{count, plural, one {1 tilt-out front} other {# tilt-out fronts}}",
         "open": "{count, plural, one {1 open zone} other {# open zones}}",
         "sliding": "Sliding doors",
-        "legs": "On legs",
-        "handles": "Fronts with handles",
-        "finish": "{finish} finish"
+        "finish": "{finish} finish",
+        "openingPush": "Opening: push",
+        "openingHandle": "Opening: with handles",
+        "basePlinth": "Base: plinth",
+        "baseLegs": "Base: legs",
+        "mattress": "Mattress: {size}",
+        "storage": "Storage: {value}",
+        "seats": "People: {value}",
+        "colorApprox": "Colour: close to {color}"
       },
       "snapshotAlt": "3D preview of the configured piece",
       "furniture": {
@@ -4388,7 +4404,9 @@
       "dimClampedMin": "The minimum is {value} cm — we set {value}.",
       "dimClampedMax": "The maximum is {value} cm — we set {value}.",
       "dimKeptPrevious": "We kept the previous value.",
-      "dimReadAsMeters": "We read this as {value} cm."
+      "dimReadAsMeters": "We read this as {value} cm.",
+      "summaryLabel": "Piece configuration",
+      "dimsOrientative": "Approximate dimensions — the client didn't change them"
     },
     "copyFromPrevious": "Copy answers from the previous {room}",
     "pieces": {
@@ -4413,7 +4431,9 @@
         "opening": "Choose how the piece opens: Handle, Push, “Not sure” or “No doors or drawers”.",
         "wholeCm": "Write a whole number of centimetres."
       },
-      "firmDecidesShort": "Firm decides"
+      "firmDecidesShort": "Firm decides",
+      "maxReached": "At most {max} pieces.",
+      "quantityMax": "At most {max} units."
     },
     "apiErrors": {
       "CONFIGURATOR_ANSWERS_INVALID": "Some answers couldn't be validated. Check the highlighted steps.",
@@ -4424,7 +4444,7 @@
       "GENERIC": "Something unexpected went wrong. Please try again.",
       "REQUEST_PROJECT_FILE_REQUIRED": "You chose “I already have a project”: upload it at the Files step before publishing.",
       "INSPIRATION_UNAVAILABLE": "Some inspiration photos are no longer in the gallery and were removed. Press Publish again.",
-      "REQUEST_CONTACT_INFO_IN_TEXT": "Your request has contact details in free-text fields. Remove them from the marked fields: add them in the Contact step and only the companies that claim your request will get them.",
+      "REQUEST_CONTACT_INFO_IN_TEXT": "Your request has contact details in free-text fields. Remove them from the marked fields: add them in the Contact preferences section of General details and only the companies that claim your request will get them.",
       "REQUEST_PUBLISH_CLIENT_ONLY": "Requests are published from a client account. Sign out of the company or admin account and sign in with a client account."
     },
     "validation": {
@@ -4444,7 +4464,7 @@
       "fileUnavailable": "A file in this step no longer exists. Please upload it again.",
       "studioNightstandSingle": "A nightstand placed in the Studio counts as one piece.",
       "flowVersionUnsupported": "This room's questionnaire was updated. Please answer it again.",
-      "contactInText": "Remove the phone number, email or link from this answer — add them in the Contact step.",
+      "contactInText": "Remove the phone number, email or link from this answer — add them in the Contact preferences section of General details.",
       "inspirationRoomUnknown": "The room chosen for an inspiration photo is no longer in the request — we removed the link, please choose again.",
       "studioPieceDoesNotFit": "This piece no longer fits its room or overlaps another piece. Adjust its dimensions or mounting height, or reposition it in Studio.",
       "notANumber": "Enter a number, e.g. 2.5",
@@ -4456,7 +4476,17 @@
       "approxLengthOutOfRange": "The approximate length must be between 0.1 and 50 m.",
       "approxLengthTooManyDecimals": "Use at most two decimals, for example 6.25.",
       "approxLengthWithoutOwnProject": "The approximate length can only be given with “I already have a project”. Choose that mode or clear the length.",
-      "exclusiveOption": "This option can only be chosen on its own. Untick the others or drop it."
+      "exclusiveOption": "This option can only be chosen on its own. Untick the others or drop it.",
+      "chooseOne": "Pick an option.",
+      "fillThisField": "Fill in this field.",
+      "fillField": "Fill in {field}.",
+      "dimensionsMissing": "{count, plural, one {One field is empty.} other {# fields are empty.}}",
+      "dimensionRequired": "Fill in all the dimensions.",
+      "pieceRow": {
+        "name": "Piece {row}: the name is too short (at least 2 characters).",
+        "quantity": "Piece {row}: the quantity must be between 1 and {max}.",
+        "dimension": "Piece {row}: one of the dimensions isn't right."
+      }
     },
     "common": {
       "boolean": {
@@ -4558,7 +4588,8 @@
       },
       "otherMaterial": {
         "title": "What material do you have in mind?",
-        "subtitle": "Briefly describe the material or finish you want — the company will confirm whether they can work with it."
+        "subtitle": "Briefly describe the material or finish you want — the company will confirm whether they can work with it.",
+        "summaryLabel": "Other material"
       },
       "pieceSystems": {
         "title": "Which opening system?",
@@ -4764,10 +4795,12 @@
         },
         "sameAll": {
           "title": "Same material and same opening for all pieces?",
-          "subtitle": "For the units with doors or drawers. The bed, coffee table, mirror, shelves and worktop have their own question."
+          "subtitle": "For the units with doors or drawers. The bed, coffee table, mirror, shelves and worktop have their own question.",
+          "summaryLabel": "Same finish for all"
         },
         "allMaterial": {
-          "title": "Front material — all units"
+          "title": "Front material — all units",
+          "summaryLabel": "Front material — all units"
         },
         "allOpening": {
           "title": "Opening — all units"
@@ -4775,7 +4808,8 @@
         "liftUp": {
           "title": "Doors on gas struts",
           "cardLabel": "Some doors open up or down, on gas struts",
-          "subtitle": "Tick this if you want lift-up doors. You choose handle or push in the 3D model."
+          "subtitle": "Tick this if you want lift-up doors. You choose handle or push in the 3D model.",
+          "summaryLabel": "Gas-strut doors"
         }
       }
     },
@@ -4840,7 +4874,8 @@
                 "cons2": "No room left for a table in the kitchen"
               }
             }
-          }
+          },
+          "summaryLabel": "Shape"
         },
         "hasIsland": {
           "title": "Do you want an island?",
@@ -4854,7 +4889,8 @@
             "pros2": "Doubles as a breakfast bar or a spot for guests",
             "cons1": "Only works in large kitchens — otherwise it blocks circulation",
             "cons2": "A separate unit and worktop — the cost adds up visibly"
-          }
+          },
+          "summaryLabel": "Island"
         },
         "dimensions": {
           "title": "A few dimensions",
@@ -4887,39 +4923,48 @@
               "label": "Island units",
               "description": "In the island"
             }
-          }
+          },
+          "summaryLabel": "Cabinet zones"
         },
         "frontMaterial": {
           "title": "Front material?",
-          "subtitle": "The front material sets the look and much of the price."
+          "subtitle": "The front material sets the look and much of the price.",
+          "summaryLabel": "Front material"
         },
         "frontMaterialBase": {
           "title": "Front material for the base units?",
-          "subtitle": "The lower cabinets — the material sets their look and price."
+          "subtitle": "The lower cabinets — the material sets their look and price.",
+          "summaryLabel": "Front material — base units"
         },
         "frontMaterialWall": {
           "title": "Front material for the wall units?",
-          "subtitle": "The upper cabinets can use a different material from the lower ones."
+          "subtitle": "The upper cabinets can use a different material from the lower ones.",
+          "summaryLabel": "Front material — wall units"
         },
         "frontMaterialIsland": {
           "title": "Front material for the island?",
-          "subtitle": "The island can stand out with a material of its own."
+          "subtitle": "The island can stand out with a material of its own.",
+          "summaryLabel": "Front material — island"
         },
         "openingSystems": {
           "title": "Opening systems?",
-          "subtitle": "You can pick several."
+          "subtitle": "You can pick several.",
+          "summaryLabel": "Opening"
         },
         "openingSystemsBase": {
           "title": "Opening system for the base units?",
-          "subtitle": "You can pick several."
+          "subtitle": "You can pick several.",
+          "summaryLabel": "Opening — base units"
         },
         "openingSystemsWall": {
           "title": "Opening system for the wall units?",
-          "subtitle": "You can pick several."
+          "subtitle": "You can pick several.",
+          "summaryLabel": "Opening — wall units"
         },
         "openingSystemsIsland": {
           "title": "Opening system for the island?",
-          "subtitle": "You can pick several."
+          "subtitle": "You can pick several.",
+          "summaryLabel": "Opening — island"
         },
         "sketch": {
           "title": "Upload your project or sketch",
@@ -5007,7 +5052,8 @@
                 "cons2": "Standing water stains and swells the wood"
               }
             }
-          }
+          },
+          "summaryLabel": "Countertop"
         },
         "appliances": {
           "title": "Built-in appliances?",
@@ -5031,7 +5077,8 @@
             "MICROWAVE": {
               "label": "Microwave"
             }
-          }
+          },
+          "summaryLabel": "Built-in appliances"
         },
         "extraPieces": {
           "title": "Extra pieces",
@@ -5039,17 +5086,20 @@
         },
         "notes": {
           "title": "Anything else?",
-          "subtitle": "Optional — any preference or note for the companies."
+          "subtitle": "Optional — any preference or note for the companies.",
+          "summaryLabel": "Other details"
         },
         "separateFrontMaterials": {
           "title": "Different materials per zone",
           "subtitle": "Tick this if you want a different material for the wall units or the island.",
-          "cardLabel": "I want different materials for base units, wall units and island"
+          "cardLabel": "I want different materials for base units, wall units and island",
+          "summaryLabel": "Different materials per zone"
         },
         "v3": {
           "frontMaterial": {
             "title": "Which material do you want for the fronts?",
-            "subtitle": "We use it for the whole kitchen. Below you can pick different materials per zone."
+            "subtitle": "We use it for the whole kitchen. Below you can pick different materials per zone.",
+            "summaryLabel": "Front material"
           },
           "zones": {
             "base": "Base units",
@@ -5059,14 +5109,16 @@
         },
         "v4": {
           "frontMaterial": {
-            "title": "Material for the fronts (doors and drawers)"
+            "title": "Material for the fronts (doors and drawers)",
+            "summaryLabel": "Front material"
           }
         }
       },
       "PIECES": {
         "pieces": {
           "title": "What pieces do you need?",
-          "subtitle": "Add each piece, with its material and quantity."
+          "subtitle": "Add each piece, with its material and quantity.",
+          "summaryLabel": "Pieces"
         },
         "sketch": {
           "title": "Upload your project or sketch",
@@ -5126,7 +5178,8 @@
                 "cons1": "You give up a room, or part of one"
               }
             }
-          }
+          },
+          "summaryLabel": "Layout"
         },
         "doorType": {
           "title": "What door type?",
@@ -5168,7 +5221,8 @@
                 "cons1": "Dust settles on clothes — takes constant tidiness"
               }
             }
-          }
+          },
+          "summaryLabel": "Door type"
         },
         "dimensions": {
           "title": "Closet dimensions",
@@ -5238,15 +5292,18 @@
                 "price": "+400–1,200 lei"
               }
             }
-          }
+          },
+          "summaryLabel": "Interior modules"
         },
         "material": {
           "title": "Which material?",
-          "subtitle": "For the whole dressing: the carcass and the doors, if it has any."
+          "subtitle": "For the whole dressing: the carcass and the doors, if it has any.",
+          "summaryLabel": "Material"
         },
         "notes": {
           "title": "Anything else?",
-          "subtitle": "Optional."
+          "subtitle": "Optional.",
+          "summaryLabel": "Other details"
         },
         "toCeiling": {
           "title": "Up to the ceiling?",
@@ -5269,11 +5326,13 @@
             "pros2": "Warm light gives the interior a premium feel",
             "cons1": "Needs a power outlet nearby",
             "price": "+400–1,200 lei"
-          }
+          },
+          "summaryLabel": "LED lighting"
         },
         "sketch": {
           "title": "Do you have a sketch of the space?",
-          "subtitle": "Optional — a simple sketch with measurements helps companies quote a precise price."
+          "subtitle": "Optional — a simple sketch with measurements helps companies quote a precise price.",
+          "summaryLabel": "Sketch"
         },
         "v4": {
           "material": {
@@ -5281,7 +5340,8 @@
             "subtitle": "With doors: the material is for the doors and drawers, the carcass is made of standard chipboard. Without doors: the material is for the whole closet."
           },
           "openingSystems": {
-            "title": "How do the closet doors open?"
+            "title": "How do the closet doors open?",
+            "summaryLabel": "Door opening"
           }
         }
       },
@@ -5314,15 +5374,18 @@
               "label": "Vanity table",
               "description": "Mirror and drawers for cosmetics"
             }
-          }
+          },
+          "summaryLabel": "Pieces"
         },
         "material": {
           "title": "Which material?",
-          "subtitle": "The material your furniture is built from."
+          "subtitle": "The material your furniture is built from.",
+          "summaryLabel": "Material"
         },
         "openingSystems": {
           "title": "Opening systems?",
-          "subtitle": "Optional — for the wardrobe doors and drawers."
+          "subtitle": "Optional — for the wardrobe doors and drawers.",
+          "summaryLabel": "Opening"
         },
         "dimensions": {
           "title": "Dimensions",
@@ -5338,7 +5401,8 @@
         },
         "notes": {
           "title": "Anything else?",
-          "subtitle": "Optional — anything that helps the companies understand your project."
+          "subtitle": "Optional — anything that helps the companies understand your project.",
+          "summaryLabel": "Other details"
         },
         "wardrobeDoorType": {
           "title": "What doors for the wardrobe?",
@@ -5368,7 +5432,8 @@
                 "price": "+300–900 lei"
               }
             }
-          }
+          },
+          "summaryLabel": "Wardrobe doors"
         },
         "wardrobeToCeiling": {
           "title": "Wardrobe up to the ceiling?",
@@ -5390,26 +5455,27 @@
           },
           "options": {
             "S_90": {
-              "label": "90 × 200",
+              "label": "90 × 200 cm",
               "description": "Single"
             },
             "M_140": {
-              "label": "140 × 200",
+              "label": "140 × 200 cm",
               "description": "Two people, small footprint"
             },
             "Q_160": {
-              "label": "160 × 200",
+              "label": "160 × 200 cm",
               "description": "The standard double"
             },
             "K_180": {
-              "label": "180 × 200",
+              "label": "180 × 200 cm",
               "description": "King — extra room for two"
             },
             "CUSTOM": {
               "label": "Custom dimensions",
               "description": "Enter your mattress width and length"
             }
-          }
+          },
+          "summaryLabel": "Mattress"
         },
         "bedCustomSize": {
           "title": "Your mattress dimensions",
@@ -5445,14 +5511,16 @@
                 "price": "+400–900 lei"
               }
             }
-          }
+          },
+          "summaryLabel": "Under-bed storage"
         },
         "bedUpholstered": {
           "title": "Upholstered bed?",
           "info": {
             "title": "Upholstered bed",
             "body": "Frame and headboard wrapped in fabric or eco-leather — soft to the touch, with plenty of colours to pick from. You choose the exact fabric together with the company."
-          }
+          },
+          "summaryLabel": "Upholstered bed"
         },
         "nightstandsCount": {
           "title": "How many nightstands?",
@@ -5467,7 +5535,8 @@
             "TWO": {
               "label": "Pair (2)"
             }
-          }
+          },
+          "summaryLabel": "Number of nightstands"
         },
         "materialWardrobe": {
           "title": "Material — wardrobe"
@@ -5507,7 +5576,8 @@
         },
         "sketch": {
           "title": "Do you have a room sketch?",
-          "subtitle": "Optional — the room plan, with the bed and wardrobe positions."
+          "subtitle": "Optional — the room plan, with the bed and wardrobe positions.",
+          "summaryLabel": "Sketch"
         },
         "v3": {
           "materialWardrobe": {
@@ -5526,7 +5596,8 @@
             "title": "Front material — TV unit"
           },
           "materialVanity": {
-            "title": "Front material — vanity"
+            "title": "Front material — vanity",
+            "summaryLabel": "Front material — vanity"
           }
         }
       },
@@ -5559,15 +5630,18 @@
               "label": "Something else",
               "description": "A piece that is not on the list"
             }
-          }
+          },
+          "summaryLabel": "Pieces"
         },
         "material": {
           "title": "Which material?",
-          "subtitle": "The material your furniture is built from."
+          "subtitle": "The material your furniture is built from.",
+          "summaryLabel": "Material"
         },
         "openingSystems": {
           "title": "Opening systems?",
-          "subtitle": "Optional — for doors and drawers."
+          "subtitle": "Optional — for doors and drawers.",
+          "summaryLabel": "Opening"
         },
         "dimensions": {
           "title": "Dimensions",
@@ -5590,7 +5664,8 @@
         },
         "notes": {
           "title": "Anything else?",
-          "subtitle": "Optional — anything that helps the companies understand your project."
+          "subtitle": "Optional — anything that helps the companies understand your project.",
+          "summaryLabel": "Other details"
         },
         "tvStyle": {
           "title": "What does the TV area look like?",
@@ -5632,11 +5707,13 @@
                 "price": "6,000–15,000 lei"
               }
             }
-          }
+          },
+          "summaryLabel": "TV area"
         },
         "piecesOtherText": {
           "title": "What piece do you have in mind?",
-          "subtitle": "Briefly describe the piece you want."
+          "subtitle": "Briefly describe the piece you want.",
+          "summaryLabel": "Other piece"
         },
         "materialOtherPiece": {
           "title": "Material — your piece"
@@ -5684,7 +5761,8 @@
             "pros2": "Puts the display cabinet's contents in the spotlight",
             "cons1": "Without an outlet nearby, the cable stays visible",
             "price": "+400–1,500 lei"
-          }
+          },
+          "summaryLabel": "LED lighting"
         },
         "ledPieces": {
           "title": "Which units get LED lighting?",
@@ -5696,11 +5774,13 @@
             "pros2": "Puts the display cabinet's contents in the spotlight",
             "cons1": "Without an outlet nearby, the cable stays visible",
             "price": "+400–1,500 lei"
-          }
+          },
+          "summaryLabel": "Units with LED"
         },
         "sketch": {
           "title": "Do you have a sketch of the space?",
-          "subtitle": "Optional — the TV wall, with measurements and outlets marked."
+          "subtitle": "Optional — the TV wall, with measurements and outlets marked.",
+          "summaryLabel": "Sketch"
         },
         "v4": {
           "materialTvUnit": {
@@ -5744,7 +5824,8 @@
               "label": "Wall shelves",
               "description": "Mounted above the desk"
             }
-          }
+          },
+          "summaryLabel": "Pieces"
         },
         "deskShape": {
           "title": "What desk shape?",
@@ -5783,15 +5864,18 @@
                 "cons1": "Needs a large room — in small spaces it blocks the walkway"
               }
             }
-          }
+          },
+          "summaryLabel": "Desk shape"
         },
         "material": {
           "title": "Which material?",
-          "subtitle": "The material your furniture is built from."
+          "subtitle": "The material your furniture is built from.",
+          "summaryLabel": "Material"
         },
         "openingSystems": {
           "title": "Opening systems?",
-          "subtitle": "Optional — for doors and drawers."
+          "subtitle": "Optional — for doors and drawers.",
+          "summaryLabel": "Opening"
         },
         "dimensions": {
           "title": "Dimensions",
@@ -5809,7 +5893,8 @@
         },
         "notes": {
           "title": "Anything else?",
-          "subtitle": "Optional — anything that helps the companies understand your project."
+          "subtitle": "Optional — anything that helps the companies understand your project.",
+          "summaryLabel": "Other details"
         },
         "cableManagement": {
           "title": "Cable management?",
@@ -5844,7 +5929,8 @@
         },
         "sketch": {
           "title": "Do you have a room sketch?",
-          "subtitle": "Optional — the working wall, with outlets and the window marked."
+          "subtitle": "Optional — the working wall, with outlets and the window marked.",
+          "summaryLabel": "Sketch"
         },
         "v3": {
           "materialDesk": {
@@ -5878,7 +5964,8 @@
               "label": "Tall storage",
               "description": "Vertical storage, small footprint"
             }
-          }
+          },
+          "summaryLabel": "Pieces"
         },
         "dimensions": {
           "title": "Dimensions",
@@ -5909,7 +5996,8 @@
           "info": {
             "title": "Why ventilation matters",
             "body": "Without ventilation, steam settles on the furniture day after day: fronts can swell, edge bands peel off. In that case we recommend MDF, which handles moisture better — the final choice is still yours."
-          }
+          },
+          "summaryLabel": "Ventilation"
         },
         "material": {
           "title": "Which material?",
@@ -5917,19 +6005,23 @@
           "info": {
             "title": "Bathroom material",
             "body": "We recommend painted or foil-wrapped MDF — it handles moisture better. Avoid unsealed chipboard near the basin, bathtub or shower."
-          }
+          },
+          "summaryLabel": "Material"
         },
         "materialVanity": {
           "title": "Material for the vanity unit?",
-          "subtitle": "The piece that catches the most splashes — it deserves the toughest material."
+          "subtitle": "The piece that catches the most splashes — it deserves the toughest material.",
+          "summaryLabel": "Material — vanity unit"
         },
         "materialMirror": {
           "title": "Material for the mirror cabinet?",
-          "subtitle": "It can be a different material from the other pieces."
+          "subtitle": "It can be a different material from the other pieces.",
+          "summaryLabel": "Material — mirror cabinet"
         },
         "materialTall": {
           "title": "Material for the tall storage?",
-          "subtitle": "It can be a different material from the other pieces."
+          "subtitle": "It can be a different material from the other pieces.",
+          "summaryLabel": "Material — tall storage"
         },
         "sketch": {
           "title": "Upload your project or sketch",
@@ -5937,14 +6029,17 @@
         },
         "notes": {
           "title": "Anything else?",
-          "subtitle": "Optional — anything that helps the companies understand your project."
+          "subtitle": "Optional — anything that helps the companies understand your project.",
+          "summaryLabel": "Other details"
         },
         "v3": {
           "materialVanity": {
-            "title": "Front material — vanity unit"
+            "title": "Front material — vanity unit",
+            "summaryLabel": "Front material — vanity unit"
           },
           "materialMirror": {
-            "title": "Front material — mirror cabinet"
+            "title": "Front material — mirror cabinet",
+            "summaryLabel": "Front material — mirror cabinet"
           },
           "materialTall": {
             "title": "Front material — tall cabinet"
@@ -5985,7 +6080,8 @@
               "label": "Mirror with shelf",
               "description": "A last look and a spot for keys"
             }
-          }
+          },
+          "summaryLabel": "Pieces"
         },
         "depthProfile": {
           "title": "How wide is the hallway?",
@@ -6066,7 +6162,8 @@
         },
         "sketch": {
           "title": "Do you have a hallway sketch?",
-          "subtitle": "Optional — wall lengths and door positions help with quoting."
+          "subtitle": "Optional — wall lengths and door positions help with quoting.",
+          "summaryLabel": "Sketch"
         },
         "wardrobeDoorType": {
           "title": "What doors for the wardrobe?",
@@ -6096,7 +6193,8 @@
                 "price": "+300–900 lei"
               }
             }
-          }
+          },
+          "summaryLabel": "Wardrobe doors"
         },
         "v2": {
           "materialShoeCabinet": {
@@ -6154,7 +6252,8 @@
                 "cons1": "Needs ~130 cm of run — not every laundry room has it"
               }
             }
-          }
+          },
+          "summaryLabel": "Appliance layout"
         },
         "piecesNeeded": {
           "title": "What furniture do you need?",
@@ -6176,7 +6275,8 @@
               "label": "Sink unit",
               "description": "Utility sink for hand-washing"
             }
-          }
+          },
+          "summaryLabel": "Furniture"
         },
         "ventilation": {
           "title": "Is the room ventilated?",
@@ -6198,7 +6298,8 @@
               "label": "Not ventilated",
               "description": "No window or fan"
             }
-          }
+          },
+          "summaryLabel": "Ventilation"
         },
         "dimensions": {
           "title": "Dimensions",
@@ -6209,7 +6310,8 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "Humid environment — keep the recommendation above in mind."
+          "subtitle": "Humid environment — keep the recommendation above in mind.",
+          "summaryLabel": "Material"
         },
         "materialApplianceHousing": {
           "title": "Material for the appliance housing"
@@ -6221,7 +6323,8 @@
           "title": "Material for the storage cabinets"
         },
         "systemsStorage": {
-          "title": "Opening for the storage cabinets"
+          "title": "Opening for the storage cabinets",
+          "summaryLabel": "Opening — storage cabinets"
         },
         "materialCountertop": {
           "title": "Material for the worktop"
@@ -6234,20 +6337,24 @@
         },
         "sketch": {
           "title": "Do you have a sketch of the space?",
-          "subtitle": "Optional — water hookups and outlet positions help a lot."
+          "subtitle": "Optional — water hookups and outlet positions help a lot.",
+          "summaryLabel": "Sketch"
         },
         "v3": {
           "materialApplianceHousing": {
-            "title": "Front material — appliance housing"
+            "title": "Front material — appliance housing",
+            "summaryLabel": "Front material — appliance housing"
           },
           "materialStorage": {
-            "title": "Front material — storage cabinets"
+            "title": "Front material — storage cabinets",
+            "summaryLabel": "Front material — storage cabinets"
           },
           "materialCountertop": {
             "title": "Material — worktop"
           },
           "materialSinkUnit": {
-            "title": "Front material — sink unit"
+            "title": "Front material — sink unit",
+            "summaryLabel": "Front material — sink unit"
           }
         }
       },
@@ -6272,7 +6379,8 @@
               "label": "U-shape",
               "description": "Shelves on three sides"
             }
-          }
+          },
+          "summaryLabel": "Walls used"
         },
         "storageStyle": {
           "title": "Open or closed storage?",
@@ -6314,7 +6422,8 @@
                 "price": "2,000–5,000 lei"
               }
             }
-          }
+          },
+          "summaryLabel": "Storage type"
         },
         "dimensions": {
           "title": "Dimensions",
@@ -6327,7 +6436,8 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "The pantry is a utility space — PAL gives the best value for money here."
+          "subtitle": "The pantry is a utility space — PAL gives the best value for money here.",
+          "summaryLabel": "Material"
         },
         "materialShelves": {
           "title": "Material for the open shelves"
@@ -6340,14 +6450,16 @@
         },
         "sketch": {
           "title": "Do you have a pantry sketch?",
-          "subtitle": "Optional — wall sizes and the door position."
+          "subtitle": "Optional — wall sizes and the door position.",
+          "summaryLabel": "Sketch"
         },
         "v3": {
           "materialShelves": {
             "title": "Material — open shelves"
           },
           "materialCabinets": {
-            "title": "Front material — closed cabinets"
+            "title": "Front material — closed cabinets",
+            "summaryLabel": "Front material — closed cabinets"
           }
         }
       },
@@ -6382,7 +6494,8 @@
                 "cons1": "PAL and MDF do not survive here, foil-wrapped or not"
               }
             }
-          }
+          },
+          "summaryLabel": "Enclosed balcony"
         },
         "piecesNeeded": {
           "title": "What pieces do you need?",
@@ -6404,7 +6517,8 @@
               "label": "Shelves",
               "description": "Open storage, in plain sight"
             }
-          }
+          },
+          "summaryLabel": "Pieces"
         },
         "dimensions": {
           "title": "Dimensions",
@@ -6416,7 +6530,8 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "The recommendation depends on the balcony type — see above."
+          "subtitle": "The recommendation depends on the balcony type — see above.",
+          "summaryLabel": "Material"
         },
         "materialStorageBench": {
           "title": "Material for the storage bench"
@@ -6438,7 +6553,8 @@
         },
         "sketch": {
           "title": "Do you have a balcony sketch?",
-          "subtitle": "Optional — length, depth and window positions."
+          "subtitle": "Optional — length, depth and window positions.",
+          "summaryLabel": "Sketch"
         },
         "v3": {
           "materialStorageBench": {
@@ -6484,7 +6600,8 @@
                 "price": "+300–900 lei"
               }
             }
-          }
+          },
+          "summaryLabel": "Wardrobe doors"
         },
         "toCeiling": {
           "title": "Up to the ceiling, built-in style?",
@@ -6496,7 +6613,8 @@
             "pros2": "The top row takes suitcases and seasonal bedding",
             "cons1": "You reach the top row only with a step stool",
             "price": "+10–15%"
-          }
+          },
+          "summaryLabel": "Up to the ceiling"
         },
         "dimensions": {
           "title": "Dimensions",
@@ -6526,15 +6644,18 @@
               "label": "Shoe rack",
               "description": "Tilted shelves for shoes"
             }
-          }
+          },
+          "summaryLabel": "Interior layout"
         },
         "material": {
           "title": "What material?",
-          "subtitle": "Choose the main material. Describe any different materials for the carcass and fronts in your project notes."
+          "subtitle": "Choose the main material. Describe any different materials for the carcass and fronts in your project notes.",
+          "summaryLabel": "Material"
         },
         "sketch": {
           "title": "Do you have a wall sketch?",
-          "subtitle": "Optional — wall width and obstacles: outlets, radiator, door."
+          "subtitle": "Optional — wall width and obstacles: outlets, radiator, door.",
+          "summaryLabel": "Sketch"
         },
         "config3d": {
           "title": "Build your wardrobe in 3D",
@@ -6575,7 +6696,8 @@
                 "price": "6,000–15,000 lei"
               }
             }
-          }
+          },
+          "summaryLabel": "Style"
         },
         "tvSetup": {
           "title": "Where does the TV go?",
@@ -6593,7 +6715,8 @@
             "UNDECIDED": {
               "label": "Not decided yet"
             }
-          }
+          },
+          "summaryLabel": "TV position"
         },
         "dimensions": {
           "title": "Dimensions",
@@ -6604,14 +6727,16 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "For the units and panels."
+          "subtitle": "For the units and panels.",
+          "summaryLabel": "Material"
         },
         "openingSystems": {
           "title": "Opening systems"
         },
         "sketch": {
           "title": "Do you have a wall sketch?",
-          "subtitle": "Optional — wall width and where the outlets are."
+          "subtitle": "Optional — wall width and where the outlets are.",
+          "summaryLabel": "Sketch"
         },
         "config3d": {
           "title": "Build your TV unit in 3D",
@@ -6664,14 +6789,16 @@
                 "price": "3,500–7,000 lei"
               }
             }
-          }
+          },
+          "summaryLabel": "Style"
         },
         "toCeiling": {
           "title": "Up to the ceiling?",
           "info": {
             "title": "Floor-to-ceiling bookcase",
             "body": "A whole wall of books — impressive and space-efficient. The top row takes a step stool."
-          }
+          },
+          "summaryLabel": "Up to the ceiling"
         },
         "dimensions": {
           "title": "Dimensions",
@@ -6683,14 +6810,16 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "Wide shelves need a rigid material, or they sag under books."
+          "subtitle": "Wide shelves need a rigid material, or they sag under books.",
+          "summaryLabel": "Material"
         },
         "openingSystems": {
           "title": "Opening systems"
         },
         "sketch": {
           "title": "Do you have a wall sketch?",
-          "subtitle": "Optional — wall width and ceiling height."
+          "subtitle": "Optional — wall width and ceiling height.",
+          "summaryLabel": "Sketch"
         },
         "config3d": {
           "title": "Build your bookcase in 3D",
@@ -6729,14 +6858,16 @@
                 "cons1": "Made for that corner — hard to move to another room"
               }
             }
-          }
+          },
+          "summaryLabel": "Desk shape"
         },
         "cableManagement": {
           "title": "Cable management?",
           "info": {
             "title": "Organizing the cables",
             "body": "A tray under the top and discreet cutouts keep cables gathered, so the desk stays clean. Tell the company how many devices you have — monitors, laptop, chargers."
-          }
+          },
+          "summaryLabel": "Cable management"
         },
         "dimensions": {
           "title": "Dimensions",
@@ -6769,15 +6900,18 @@
                 "price": "+400–900 lei"
               }
             }
-          }
+          },
+          "summaryLabel": "Storage"
         },
         "material": {
           "title": "What material?",
-          "subtitle": "The desktop takes the most wear — the finish decides how fast it scratches."
+          "subtitle": "The desktop takes the most wear — the finish decides how fast it scratches.",
+          "summaryLabel": "Material"
         },
         "sketch": {
           "title": "Do you have a sketch of the space?",
-          "subtitle": "Optional — the working wall, with the outlets and the window."
+          "subtitle": "Optional — the working wall, with the outlets and the window.",
+          "summaryLabel": "Sketch"
         },
         "config3d": {
           "title": "Build your desk in 3D",
@@ -6799,29 +6933,31 @@
           },
           "options": {
             "S_90": {
-              "label": "90 × 200",
+              "label": "90 × 200 cm",
               "description": "Single"
             },
             "M_140": {
-              "label": "140 × 200",
+              "label": "140 × 200 cm",
               "description": "Compact double"
             },
             "Q_160": {
-              "label": "160 × 200",
+              "label": "160 × 200 cm",
               "description": "Standard double"
             },
             "K_180": {
-              "label": "180 × 200",
+              "label": "180 × 200 cm",
               "description": "King — the most spacious"
             }
-          }
+          },
+          "summaryLabel": "Mattress"
         },
         "upholstered": {
           "title": "Upholstered bed?",
           "info": {
             "title": "Upholstered bed",
             "body": "Frame and headboard wrapped in fabric or faux leather. You choose the fabric and colour together with the company."
-          }
+          },
+          "summaryLabel": "Upholstered bed"
         },
         "storage": {
           "title": "Storage under the bed?",
@@ -6863,15 +6999,18 @@
                 "price": "+400–900 lei"
               }
             }
-          }
+          },
+          "summaryLabel": "Under-bed storage"
         },
         "material": {
           "title": "What material?",
-          "subtitle": "The frame material (for upholstered beds, the inner structure)."
+          "subtitle": "The frame material (for upholstered beds, the inner structure).",
+          "summaryLabel": "Material"
         },
         "sketch": {
           "title": "Do you have a room sketch?",
-          "subtitle": "Optional — where the bed sits in the room."
+          "subtitle": "Optional — where the bed sits in the room.",
+          "summaryLabel": "Sketch"
         },
         "config3d": {
           "title": "Create your bed",
@@ -6879,7 +7018,8 @@
         },
         "v4": {
           "material": {
-            "title": "What should the bed be made of?"
+            "title": "What should the bed be made of?",
+            "summaryLabel": "Material"
           }
         }
       },
@@ -6924,7 +7064,8 @@
                 "price": "1,200–2,500 lei"
               }
             }
-          }
+          },
+          "summaryLabel": "Layout"
         },
         "dimensions": {
           "title": "Dimensions",
@@ -6936,14 +7077,16 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "The material for the carcass and fronts."
+          "subtitle": "The material for the carcass and fronts.",
+          "summaryLabel": "Material"
         },
         "openingSystems": {
           "title": "Opening systems"
         },
         "sketch": {
           "title": "Do you have a sketch?",
-          "subtitle": "Optional — the wall where the dresser will go."
+          "subtitle": "Optional — the wall where the dresser will go.",
+          "summaryLabel": "Sketch"
         },
         "config3d": {
           "title": "Build your dresser in 3D",
@@ -6972,7 +7115,8 @@
               "label": "Console",
               "description": "Narrow and decorative"
             }
-          }
+          },
+          "summaryLabel": "Table type"
         },
         "shape": {
           "title": "What shape?",
@@ -7014,7 +7158,8 @@
                 "price": "+700–1,500 lei vs a fixed table"
               }
             }
-          }
+          },
+          "summaryLabel": "Shape"
         },
         "seats": {
           "title": "How many people?",
@@ -7032,7 +7177,8 @@
             "EIGHT_PLUS": {
               "label": "8+"
             }
-          }
+          },
+          "summaryLabel": "Seats"
         },
         "dimensions": {
           "title": "Dimensions",
@@ -7045,11 +7191,13 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "The tabletop takes the most wear — solid wood lasts and can be refinished."
+          "subtitle": "The tabletop takes the most wear — solid wood lasts and can be refinished.",
+          "summaryLabel": "Material"
         },
         "sketch": {
           "title": "Do you have a sketch?",
-          "subtitle": "Optional — the space where the table will go."
+          "subtitle": "Optional — the space where the table will go.",
+          "summaryLabel": "Sketch"
         },
         "config3d": {
           "title": "Create your table",
@@ -7057,7 +7205,8 @@
         },
         "v4": {
           "material": {
-            "title": "What should the table be made of?"
+            "title": "What should the table be made of?",
+            "summaryLabel": "Material"
           }
         }
       },
@@ -7102,7 +7251,8 @@
                 "price": "1,200–2,500 lei"
               }
             }
-          }
+          },
+          "summaryLabel": "Type"
         },
         "dimensions": {
           "title": "Dimensions",
@@ -7114,11 +7264,13 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "A high-traffic spot — pick fronts that shrug off knocks."
+          "subtitle": "A high-traffic spot — pick fronts that shrug off knocks.",
+          "summaryLabel": "Material"
         },
         "sketch": {
           "title": "Do you have a hallway sketch?",
-          "subtitle": "Optional — the available hallway space."
+          "subtitle": "Optional — the available hallway space.",
+          "summaryLabel": "Sketch"
         },
         "config3d": {
           "title": "Build your shoe cabinet in 3D",
@@ -7171,7 +7323,8 @@
                 "price": "500–1,000 lei / pc"
               }
             }
-          }
+          },
+          "summaryLabel": "Style"
         },
         "count": {
           "title": "How many nightstands?",
@@ -7186,7 +7339,8 @@
             "TWO": {
               "label": "Pair (2)"
             }
-          }
+          },
+          "summaryLabel": "Number of nightstands"
         },
         "dimensions": {
           "title": "Dimensions",
@@ -7197,11 +7351,13 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "Usually matched to the bed or the wardrobe."
+          "subtitle": "Usually matched to the bed or the wardrobe.",
+          "summaryLabel": "Material"
         },
         "sketch": {
           "title": "Do you have a sketch?",
-          "subtitle": "Optional — the space next to the bed."
+          "subtitle": "Optional — the space next to the bed.",
+          "summaryLabel": "Sketch"
         },
         "config3d": {
           "title": "Build your nightstand in 3D",
@@ -7254,14 +7410,16 @@
                 "price": "700–1,300 lei"
               }
             }
-          }
+          },
+          "summaryLabel": "Type"
         },
         "upholsteredSeat": {
           "title": "Upholstered seat?",
           "info": {
             "title": "Upholstered seat",
             "body": "A fixed cushion wrapped in fabric — comfortable while you put shoes on. You pick the fabric with the company."
-          }
+          },
+          "summaryLabel": "Upholstered seat"
         },
         "dimensions": {
           "title": "Dimensions",
@@ -7272,11 +7430,13 @@
         },
         "material": {
           "title": "What material?",
-          "subtitle": "The bench structure."
+          "subtitle": "The bench structure.",
+          "summaryLabel": "Material"
         },
         "sketch": {
           "title": "Do you have a sketch?",
-          "subtitle": "Optional — the space where the bench will go."
+          "subtitle": "Optional — the space where the bench will go.",
+          "summaryLabel": "Sketch"
         },
         "config3d": {
           "title": "Create your bench",
@@ -7295,11 +7455,13 @@
         },
         "material": {
           "title": "What material for the structure?",
-          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the project details."
+          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the project details.",
+          "summaryLabel": "Structure material"
         },
         "sketch": {
           "title": "Do you have a sketch?",
-          "subtitle": "Optional — dimensions, references or installation details."
+          "subtitle": "Optional — dimensions, references or installation details.",
+          "summaryLabel": "Sketch"
         },
         "v2": {
           "material": {
@@ -7314,15 +7476,18 @@
         },
         "material": {
           "title": "What material for the structure?",
-          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the project details."
+          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the project details.",
+          "summaryLabel": "Structure material"
         },
         "sketch": {
           "title": "Do you have a sketch?",
-          "subtitle": "Optional — dimensions, references or installation details."
+          "subtitle": "Optional — dimensions, references or installation details.",
+          "summaryLabel": "Sketch"
         },
         "v2": {
           "material": {
-            "title": "Material for the wall cabinet fronts"
+            "title": "Material for the wall cabinet fronts",
+            "summaryLabel": "Front material"
           }
         }
       },
@@ -7333,15 +7498,18 @@
         },
         "material": {
           "title": "What material for the structure?",
-          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the project details."
+          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the project details.",
+          "summaryLabel": "Structure material"
         },
         "sketch": {
           "title": "Do you have a sketch?",
-          "subtitle": "Optional — dimensions, references or installation details."
+          "subtitle": "Optional — dimensions, references or installation details.",
+          "summaryLabel": "Sketch"
         },
         "v2": {
           "material": {
-            "title": "Material for the vanity unit fronts"
+            "title": "Material for the vanity unit fronts",
+            "summaryLabel": "Front material"
           }
         }
       },
@@ -7352,15 +7520,18 @@
         },
         "material": {
           "title": "What material for the structure?",
-          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the project details."
+          "subtitle": "For the piece's carcass and fronts (doors, drawers). If you want a different material for the fronts, write it in the project details.",
+          "summaryLabel": "Structure material"
         },
         "sketch": {
           "title": "Do you have a sketch?",
-          "subtitle": "Optional — dimensions, references or installation details."
+          "subtitle": "Optional — dimensions, references or installation details.",
+          "summaryLabel": "Sketch"
         },
         "v2": {
           "material": {
-            "title": "Material for the entryway unit fronts"
+            "title": "Material for the entryway unit fronts",
+            "summaryLabel": "Front material"
           }
         }
       },
@@ -7371,11 +7542,13 @@
         },
         "material": {
           "title": "What material for the structure?",
-          "subtitle": "Frame material; upholstery preferences are saved separately."
+          "subtitle": "Frame material; upholstery preferences are saved separately.",
+          "summaryLabel": "Structure material"
         },
         "sketch": {
           "title": "Do you have a sketch?",
-          "subtitle": "Optional — dimensions, references or installation details."
+          "subtitle": "Optional — dimensions, references or installation details.",
+          "summaryLabel": "Sketch"
         }
       },
       "PIECE_ARMCHAIR": {
@@ -7385,11 +7558,13 @@
         },
         "material": {
           "title": "What material for the structure?",
-          "subtitle": "Frame material; upholstery preferences are saved separately."
+          "subtitle": "Frame material; upholstery preferences are saved separately.",
+          "summaryLabel": "Structure material"
         },
         "sketch": {
           "title": "Do you have a sketch?",
-          "subtitle": "Optional — dimensions, references or installation details."
+          "subtitle": "Optional — dimensions, references or installation details.",
+          "summaryLabel": "Sketch"
         }
       },
       "PIECE_OTTOMAN": {
@@ -7399,11 +7574,13 @@
         },
         "material": {
           "title": "What material for the structure?",
-          "subtitle": "Frame material; upholstery preferences are saved separately."
+          "subtitle": "Frame material; upholstery preferences are saved separately.",
+          "summaryLabel": "Structure material"
         },
         "sketch": {
           "title": "Do you have a sketch?",
-          "subtitle": "Optional — dimensions, references or installation details."
+          "subtitle": "Optional — dimensions, references or installation details.",
+          "summaryLabel": "Sketch"
         }
       }
     },
@@ -7413,14 +7590,14 @@
       "designHelpCompany": "The client asks for design help with this room",
       "designHelpClient": "You asked for design help with this room",
       "furnitureLinear": "Furniture: ~{m} linear m",
-      "ceilingHeight": "Ceiling: {m} m",
       "designHelpDetails": "The details are agreed with the company.",
       "approxLength": "Approximate length: {m} m",
       "firmRecommendation": "Company's recommendation",
-      "firmRecommendationOpening": "Opening: company's recommendation"
+      "firmRecommendationOpening": "Opening: company's recommendation",
+      "ceiling": "Ceiling: {value}"
     },
     "contactInText": {
-      "hint": "It looks like you typed a phone number, email or link. Companies can't see these before they claim your request: add them in the Contact step and only the companies that claim it will get them.",
+      "hint": "It looks like you typed a phone number, email or link. Companies can't see these before they claim your request: add them in the Contact preferences section of General details and only the companies that claim it will get them.",
       "descriptionIssue": "Your message to companies contains contact details."
     },
     "phasesLabel": "Request phases",

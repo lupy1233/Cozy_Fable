@@ -216,7 +216,9 @@ export default function RequestOffersPage() {
             panelId={PANEL_ID}
             current={selected.claimSlotId}
             onChange={setSelectedClaim}
-            className="mb-0 flex-wrap border-border-2"
+            // etapa 8 (40): firmele pe un singur rand, derulabil pe telefon
+            scrollable
+            className="mb-0 border-border-2"
             tabs={requestThreads.map((th) => {
               const stage = stageFor(th, quoteByClaim.get(th.claimSlotId));
               return {

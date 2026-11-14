@@ -32,6 +32,7 @@ import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { cn } from '@/lib/utils';
 import { Link, useRouter } from '@/i18n/routing';
 import { CONFIGURATOR_STORAGE_KEY, isAbandonedEditSnapshot } from '@/stores/configurator-keys';
+import { snapshot3dIds } from '@/stores/snapshot3d';
 import {
   discardPendingEditSession,
   EDIT_RESUME_WINDOW_MS,
@@ -472,6 +473,8 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
   const attachmentState = useAttachmentsStateFor(
     isEdit ? { kind: 'request', id: editId ?? '' } : { kind: 'draft', token: token ?? '' },
   );
+  // b10: id-urile imaginilor 3D (answers.snapshot3d) — nu se numara la "Fișiere" in Fisa
+  const snapshotFileIds = useConfiguratorStore((s) => s.roomInstances.flatMap((r) => snapshot3dIds(r)).join(' '));
   const initialPruneDone = useRef(false);
   const lastPrunedPhase = useRef<ConfiguratorPhase | null>(null);
   useEffect(() => {
@@ -841,7 +844,14 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
               {showBasket ? (
                 <CartBasket uploadTarget={uploadTarget} />
               ) : (
-                <RequestSheet phase={phase} phaseOrder={phaseOrder} designHelp={designHelp} />
+                <RequestSheet
+                  phase={phase}
+                  phaseOrder={phaseOrder}
+                  designHelp={designHelp}
+                  // b10: fisierele cererii, fara imaginile 3D ale pieselor
+                  filesCount={attachmentState.attachments.filter((a) => !snapshotFileIds.split(' ').includes(a.id)).length}
+                  collapsible
+                />
               )}
             </div>
           )}

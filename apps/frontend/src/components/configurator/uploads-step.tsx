@@ -17,6 +17,7 @@ import { AttachmentRow } from './attachment-item';
 import { UploadFeedback } from './upload-feedback';
 import { InspirationPicker } from './inspiration-picker';
 import { roomIssue, screenIndexForStep } from './room-screens';
+import { StickyActionBar } from './sticky-action-bar';
 
 export function UploadsStep({
   target,
@@ -162,18 +163,21 @@ export function UploadsStep({
 
       {blocked && <p className="text-sm text-amber" role="status">{t('uploads.projectRequired')}</p>}
 
-      <div className="flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+      {/* j1: pe telefon bara se lipeste jos. Inapoi + Continua pe acelasi rand; butonul
+          "Nu am proiectul la indemana" (doar la proiect propriu) pe randul de deasupra */}
+      <StickyActionBar>
         <Button type="button" variant="outline" size="xl" className="px-4 text-sm" onClick={onBack}>
           <ArrowLeft aria-hidden />
           {t('nav.back')}
         </Button>
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+        {/* sub sm grupul se "topeste" in bara (contents), ca butoanele lui sa se aseze pe randuri */}
+        <div className="contents sm:flex sm:flex-row sm:items-center sm:gap-3">
           {ownProject && (
             <Button
               type="button"
               variant="outline"
               size="xl"
-              className="h-auto min-h-12 whitespace-normal px-4 py-2 text-sm"
+              className="order-first h-auto min-h-12 w-full whitespace-normal px-4 py-2 text-sm sm:order-none sm:w-auto"
               onClick={switchToGuided}
             >
               <Ruler aria-hidden />
@@ -185,7 +189,7 @@ export function UploadsStep({
             <ArrowRight aria-hidden />
           </Button>
         </div>
-      </div>
+      </StickyActionBar>
     </div>
   );
 }

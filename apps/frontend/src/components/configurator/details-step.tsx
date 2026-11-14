@@ -40,6 +40,7 @@ import { AddressAutocomplete } from './address-autocomplete';
 import { BudgetSlider } from './budget-slider';
 import { isBudgetChosen } from './budget-choice';
 import { PhoneInput } from './phone-input';
+import { StickyActionBar } from './sticky-action-bar';
 import { anyRoomNeedsDesignHelp, toServerRoom } from './room-payload';
 
 // Tarile oferite la livrare (F5, item 19) — RO implicit; etichetele vin din
@@ -64,6 +65,20 @@ const detailsSchema = configuratorContentSchema
     }
   });
 type DetailsFormValues = z.infer<typeof detailsSchema>;
+
+// b9: mesajul schemei → mesajul "Completeaza ..." cand campul e gol
+const EMPTY_FIELD_MESSAGE: Record<string, string> = {
+  addressTooShort: 'addressRequired',
+  countyTooShort: 'countyRequired',
+  cityTooShort: 'cityRequired',
+  cityRequired: 'cityRequired',
+  contactValueTooShort: 'contactRequired',
+  contactEmailInvalid: 'contactRequired',
+  contactPhoneInvalid: 'contactRequired',
+};
+
+// mesajul pentru firme: aceeasi limita ca schema (descriptionTooLong), afisata pe camp
+export const MESSAGE_MAX_LENGTH = 5000;
 
 // b2: intarzierea salvarii automate in ciorna (ca la intrebarile camerelor)
 export const DETAILS_AUTOSAVE_MS = 400;
@@ -181,7 +196,14 @@ export function DetailsStep({
       flushDraft();
     };
   }, [watch, flushDraft]);
-  const vmsg = (msg?: string) => (msg ? t(`validation.${msg}`) : undefined);
+  // b9 (etapa 8): un camp GOL nu e "prea scurt" — cere completarea lui; "prea scurt" ramane
+  // doar pentru 1–2 caractere. Doar textul se schimba, regulile din shared raman.
+  const vmsg = (msg?: string, value?: unknown) => {
+    if (!msg) return undefined;
+    const empty = typeof value === 'string' && value.trim() === '';
+    const requiredKey = empty ? EMPTY_FIELD_MESSAGE[msg] : undefined;
+    return t(`validation.${requiredKey ?? msg}`);
+  };
   const contactsRootError =
     errors.contactPreferences?.root?.message ?? errors.contactPreferences?.message;
 
@@ -189,6 +211,8 @@ export function DetailsStep({
   const budgetRon = watch('budgetEstimateRon');
   const deadline = watch('deadlineBucket');
   const city = watch('city');
+  const addressText = watch('addressText');
+  const county = watch('county');
   const country = watch('country') ?? 'RO';
   const contactValues = watch('contactPreferences');
   const description = watch('description');
@@ -261,7 +285,16 @@ export function DetailsStep({
         hint={t('messageHint')}
         error={vmsg(errors.description?.message)}
       >
-        <Textarea rows={4} {...register('description')} />
+        <Textarea
+          rows={4}
+          maxLength={MESSAGE_MAX_LENGTH}
+          aria-describedby="details-message-counter"
+          {...register('description')}
+        />
+        {/* b9: contorul de caractere, ca la celelalte campuri text cu limita */}
+        <p id="details-message-counter" className="text-right text-micro text-muted-foreground">
+          {t('messageCounter', { count: (description ?? '').length, max: MESSAGE_MAX_LENGTH })}
+        </p>
         <ContactInTextHint value={description} />
       </Field>
 
@@ -337,7 +370,7 @@ export function DetailsStep({
           </div>
           <AddressAutocomplete
             defaultValue={stored.addressText ?? ''}
-            error={vmsg(errors.addressText?.message)}
+            error={vmsg(errors.addressText?.message, addressText)}
             country={country}
             onText={(text) => setValue('addressText', text, { shouldValidate: true })}
             onResolved={(parts) => {
@@ -360,10 +393,10 @@ export function DetailsStep({
             <Input {...register('addressDetails')} autoComplete="address-line2" />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label={t('field.county')} error={vmsg(errors.county?.message)}>
+            <Field label={t('field.county')} error={vmsg(errors.county?.message, county)}>
               <Input {...register('county')} />
             </Field>
-            <Field label={t('field.city')} error={vmsg(errors.city?.message)}>
+            <Field label={t('field.city')} error={vmsg(errors.city?.message, city)}>
               <Input {...register('city')} />
             </Field>
           </div>
@@ -418,7 +451,7 @@ export function DetailsStep({
                     locked ? t('field.accountEmail') : <span aria-hidden>&#8203;</span>
                   }
                   hint={locked ? t('accountEmailLockedHint') : undefined}
-                  error={vmsg(errors.contactPreferences?.[ci]?.value?.message)}
+                  error={vmsg(errors.contactPreferences?.[ci]?.value?.message, contactValues?.[ci]?.value)}
                 >
                   {/* key per varianta: inputul controlat (blocat) si cel
                       inregistrat RHF nu impart acelasi nod DOM — altfel React
@@ -470,7 +503,8 @@ export function DetailsStep({
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6">
+      {/* j1: pe telefon bara se lipeste jos (ultimul copil al formularului) */}
+      <StickyActionBar>
         <Button type="button" variant="outline" size="xl" className="px-4 text-sm" onClick={() => {
           // b2: valorile curente ajung in ciorna inainte de plecare
           flushDraft();
@@ -483,7 +517,7 @@ export function DetailsStep({
           {tc('nav.toReview')}
           <ArrowRight aria-hidden />
         </Button>
-      </div>
+      </StickyActionBar>
     </form>
   );
 }

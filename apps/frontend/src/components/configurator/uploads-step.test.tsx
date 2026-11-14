@@ -240,3 +240,35 @@ describe('UploadsStep — slots ignore files of removed rooms (m8)', () => {
     expect(container.querySelector('[data-upload-slots]')).toHaveTextContent('You can add 18 more files.');
   });
 });
+
+// j1 (etapa 8): bara de jos lipita pe telefon
+describe('UploadsStep — sticky bottom bar (etapa 8)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    apiMock.mockReset();
+    attachments = [];
+    useConfiguratorStore.getState().reset();
+  });
+
+  it('"Back" and "Continue" sit in the bar, the last element of the screen', () => {
+    useConfiguratorStore.getState().setStartMode('STANDARD');
+    useConfiguratorStore.getState().addRoom('KITCHEN');
+    const { container } = mount();
+    const bar = container.querySelector<HTMLElement>('[data-sticky-action-bar]')!;
+    expect(bar.parentElement?.lastElementChild).toBe(bar);
+    expect(bar).toContainElement(screen.getByRole('button', { name: en.Configurator.nav.back }));
+    expect(bar).toContainElement(screen.getByRole('button', { name: en.Configurator.nav.continue }));
+  });
+
+  it('own project: the "switch to the guided form" button is in the bar too, on its own row on phones', () => {
+    useConfiguratorStore.getState().setStartMode('OWN_PROJECT');
+    useConfiguratorStore.getState().setDetails({ hasOwnProject: true });
+    useConfiguratorStore.getState().addRoom('KITCHEN');
+    const { container } = mount();
+    const bar = container.querySelector<HTMLElement>('[data-sticky-action-bar]')!;
+    const guided = screen.getByRole('button', { name: en.Configurator.uploads.switchToGuided });
+    expect(bar).toContainElement(guided);
+    expect(guided.className).toContain('order-first');
+    expect(guided.className).toContain('w-full');
+  });
+});

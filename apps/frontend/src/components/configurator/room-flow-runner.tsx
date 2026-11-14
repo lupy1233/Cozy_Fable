@@ -1,6 +1,6 @@
 'use client';
 
-import type { InfoContentRef, QuestionStep } from '@marketplace/shared';
+import { getFlow, type InfoContentRef, type QuestionStep } from '@marketplace/shared';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check, Copy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -11,10 +11,12 @@ import type { AttachmentTarget } from '@/hooks/use-requests';
 import { cn } from '@/lib/utils';
 import { useConfiguratorStore } from '@/stores/configurator-store';
 import { ApproxLengthField, needsApproxLength } from './approx-length-field';
+import { screenTotalKnown } from './dimension-check';
 import { InfoDialog } from './info-dialog';
 import { screenSections } from './kitchen-front-zones';
-import { isStudioNightstand, roomScreens, validateStep } from './room-screens';
+import { isStudioNightstand, roomScreens, validateStepIssue, type StepIssue } from './room-screens';
 import { StepRenderer } from './step-renderer';
+import { StickyActionBar } from './sticky-action-bar';
 
 export function RoomFlowRunner({
   uploadTarget,
@@ -39,11 +41,14 @@ export function RoomFlowRunner({
   const markRoomCompleted = useConfiguratorStore((s) => s.markRoomCompleted);
 
   // erori per step (un ecran poate avea mai multe step-uri)
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, StepIssue>>({});
+  // creste la fiecare "Continua" respins → focus pe primul camp gresit (39)
+  const [rejected, setRejected] = useState(0);
   const [info, setInfo] = useState<InfoContentRef | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
   const dir = useRef(1);
   const topRef = useRef<HTMLDivElement>(null);
+  const screenRef = useRef<HTMLDivElement>(null);
 
   // b8 (PO g0-8): camerele bifate "am nevoie de ajutor" nu au intrebari — runner-ul
   // trece doar prin celelalte (indexurile raman cele din cos)
@@ -61,6 +66,20 @@ export function RoomFlowRunner({
     topRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   }, [roomKey, activeStepIndex, reduce]);
 
+  // Dupa un "Continua" respins: focus pe primul camp gresit al ecranului (dupa randare),
+  // adus in mijlocul ecranului ca bara lipita de jos sa nu-l acopere; fara camp (cartonase)
+  // se aduce in vedere primul mesaj de eroare.
+  useEffect(() => {
+    if (rejected === 0) return;
+    const root = screenRef.current;
+    if (!root) return;
+    const field = root.querySelector<HTMLElement>('[aria-invalid="true"]');
+    const target = field ?? root.querySelector<HTMLElement>('[data-step-error]');
+    if (!target) return;
+    target.scrollIntoView?.({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+    field?.focus({ preventScroll: true });
+  }, [rejected, reduce]);
+
   // camera activa lipsa sau bifata: prima camera cu intrebari, altfel inapoi la cos
   useEffect(() => {
     if (room) return;
@@ -75,6 +94,7 @@ export function RoomFlowRunner({
   const screens = roomScreens(room, hasOwnProject);
   const screenIndex = Math.min(activeStepIndex, screens.length - 1);
   const screen = screens[screenIndex];
+  const totalKnown = screenTotalKnown(screens, getFlow(room.roomType, room.flowVersion).steps, room.answers);
 
   const openInfo = (ref: InfoContentRef) => {
     setInfo(ref);
@@ -82,13 +102,14 @@ export function RoomFlowRunner({
   };
 
   const goNext = () => {
-    const nextErrors: Record<string, string> = {};
+    const nextErrors: Record<string, StepIssue> = {};
     for (const s of screen) {
-      const err = validateStep(s, room.answers);
+      const err = validateStepIssue(s, room.answers);
       if (err) nextErrors[s.id] = err;
     }
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
+      setRejected((n) => n + 1);
       return;
     }
     setErrors({});
@@ -196,24 +217,31 @@ export function RoomFlowRunner({
             );
           })}
         </div>
+        {/* 38: o singura numaratoare, cu eticheta; totalul (si bara) doar cand nu mai poate
+            creste (de ex. dupa alegerea pieselor) */}
         <div className="flex items-center gap-3.5">
-          <span className="font-mono text-xs tabular-nums text-walnut">
-            {String(screenIndex + 1).padStart(2, '0')}/{String(screens.length).padStart(2, '0')}
+          <span data-screen-counter className="shrink-0 text-xs tabular-nums text-walnut">
+            {totalKnown
+              ? t('nav.screenOf', { current: screenIndex + 1, total: screens.length })
+              : t('nav.screenOnly', { current: screenIndex + 1 })}
           </span>
-          <div
-            role="progressbar"
-            aria-valuemin={1}
-            aria-valuemax={screens.length}
-            aria-valuenow={screenIndex + 1}
-            className="relative h-1 flex-1 overflow-hidden rounded-full bg-border"
-          >
-            <motion.div
-              className="absolute inset-y-0 left-0 rounded-full bg-brass"
-              initial={false}
-              animate={{ width: `${((screenIndex + 1) / screens.length) * 100}%` }}
-              transition={{ duration: reduce ? 0 : 0.3, ease: 'easeOut' }}
-            />
-          </div>
+          {totalKnown && (
+            <div
+              role="progressbar"
+              aria-label={t('nav.screenOf', { current: screenIndex + 1, total: screens.length })}
+              aria-valuemin={1}
+              aria-valuemax={screens.length}
+              aria-valuenow={screenIndex + 1}
+              className="relative h-1 flex-1 overflow-hidden rounded-full bg-border"
+            >
+              <motion.div
+                className="absolute inset-y-0 left-0 rounded-full bg-brass"
+                initial={false}
+                animate={{ width: `${((screenIndex + 1) / screens.length) * 100}%` }}
+                transition={{ duration: reduce ? 0 : 0.3, ease: 'easeOut' }}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -234,7 +262,7 @@ export function RoomFlowRunner({
           AnimatePresence(wait): exit-ul depinde de rAF, iar intr-un tab ascuns
           (mobil, schimbare de aplicatie) rAF e pauzat si ecranul urmator nu se
           mai monta deloc — wizard blocat. */}
-      <div className="min-h-[16rem]">
+      <div ref={screenRef} className="min-h-[16rem]">
         <motion.div
           key={`${room.localId}:${screen[0]?.id}`}
           initial={{ opacity: 0, x: dir.current * offset }}
@@ -274,8 +302,15 @@ export function RoomFlowRunner({
                     config3dContext={{ onSnapshot: (dataUrl) => setSnapshot3d(room.localId, dataUrl) }}
                     onChange={(value) => {
                       setErrors((prev) => {
+                        if (!prev[s.id]) return prev;
                         const next = { ...prev };
-                        delete next[s.id];
+                        // dimensiuni: marcajele celorlalte campuri goale raman pana se completeaza
+                        const still =
+                          s.type === 'dimension-group'
+                            ? validateStepIssue(s, { ...room.answers, [s.id]: value })
+                            : undefined;
+                        if (still) next[s.id] = still;
+                        else delete next[s.id];
                         return next;
                       });
                       setAnswer(room.localId, s.id, value);
@@ -296,9 +331,12 @@ export function RoomFlowRunner({
         <ApproxLengthField key={room.localId} room={room} />
       )}
 
-      {/* un singur buton principal; "Inapoi" ramane discret, in stanga */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6">
-        <Button type="button" variant="outline" size="xl" className="px-4 text-sm" onClick={goBack}>
+      <InfoDialog info={info} open={infoOpen} onOpenChange={setInfoOpen} />
+
+      {/* un singur buton principal; "Inapoi" ramane discret, in stanga. j1: pe telefon bara
+          se lipeste jos (ultimul copil al ecranului, ca sticky sa tina) */}
+      <StickyActionBar>
+        <Button type="button" variant="outline" size="xl" className="px-3 text-sm sm:px-4" onClick={goBack}>
           <ArrowLeft aria-hidden />
           {t('nav.back')}
         </Button>
@@ -311,9 +349,7 @@ export function RoomFlowRunner({
             <ArrowRight aria-hidden />
           </Button>
         </div>
-      </div>
-
-      <InfoDialog info={info} open={infoOpen} onOpenChange={setInfoOpen} />
+      </StickyActionBar>
     </div>
   );
 }

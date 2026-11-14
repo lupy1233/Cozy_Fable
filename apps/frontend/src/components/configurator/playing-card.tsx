@@ -52,7 +52,8 @@ export function PlayingCard({
   const showPrice = Boolean(info?.priceHintKey && has(info.priceHintKey));
 
   return (
-    <div data-choice-card className={cn('relative h-72 rounded-xl bg-surface', disabled && 'pointer-events-none opacity-50', className)}>
+    // j1: pe telefon cartonasele stau cate doua pe rand — mai scunde, cu imaginea mai mica
+    <div data-choice-card className={cn('relative h-60 rounded-xl bg-surface sm:h-72', disabled && 'pointer-events-none opacity-50', className)}>
       <div className="relative h-full w-full">
         {/* FATA */}
         {!flipped && (
@@ -73,11 +74,11 @@ export function PlayingCard({
               className="flex h-full w-full flex-col text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-walnut"
             >
               {/* zona vizuala */}
-              <span className={cn('flex min-h-0 flex-1 items-center justify-center px-8 pt-6', selected ? 'text-walnut' : 'text-muted-foreground')}>
-                <span className="h-full max-h-44 w-full [&_svg]:h-full [&_svg]:w-full">{visual}</span>
+              <span className={cn('flex min-h-0 flex-1 items-center justify-center px-4 pt-7 sm:px-8 sm:pt-6', selected ? 'text-walnut' : 'text-muted-foreground')}>
+                <span className="h-full max-h-28 w-full sm:max-h-44 [&_svg]:h-full [&_svg]:w-full">{visual}</span>
               </span>
               {/* eticheta centrata; pretul orientativ e decorativ aici (acelasi text e pe spate) */}
-              <span className="flex flex-col items-center gap-0.5 px-4 pb-3.5 pt-1.5 text-center">
+              <span className="flex flex-col items-center gap-0.5 px-2 pb-3 pt-1.5 text-center sm:px-4 sm:pb-3.5">
                 <span className="text-sm font-semibold">{title}</span>
                 {sub && <span className="text-xs leading-snug text-muted-foreground">{sub}</span>}
                 {showPrice && (

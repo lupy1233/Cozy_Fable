@@ -69,7 +69,8 @@ describe('Configurator 3D — intentia clientului (b7)', () => {
     await typeDim(c3.depth, '60');
     expect(last().depthM).toBe(0.6);
     expect(last().columns.map((c) => c.zones[0].fill)).toEqual(hangingCols);
-    expect(last()).toEqual(normalizePieceConfig('WARDROBE', defaultPieceConfig('WARDROBE')));
+    // etapa 8 (d2): dulapul are sertare, deci deschiderea "Push" e scrisa in ce se salveaza
+    expect(last()).toEqual({ ...normalizePieceConfig('WARDROBE', defaultPieceConfig('WARDROBE')), frontStyle: 'PUSH' });
     expect(screen.getByTestId('cleanup-reasons')).toBeEmptyDOMElement();
   });
 

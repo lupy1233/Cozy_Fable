@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import en from '../../../../messages/en.json';
 import { leavePublishNotice, PUBLISH_NOTICE_KEY, PUBLISH_NOTICE_TTL_MS } from '@/components/configurator/publish-notice';
+import { defaultPieceConfig } from '@marketplace/shared';
 import { ApiError } from '@/lib/api';
 import RequestDetailPage from './page';
 
@@ -49,7 +50,9 @@ vi.mock('@/hooks/use-requests', () => ({
     return state.repost;
   },
 }));
-vi.mock('@/components/configurator/attachment-item', () => ({ AttachmentThumb: () => null }));
+vi.mock('@/components/configurator/attachment-item', () => ({
+  AttachmentThumb: ({ attachment }: { attachment: { id: string } }) => <span data-attachment-thumb={attachment.id} />,
+}));
 vi.mock('@/components/configurator/room-spec-card', () => ({ RoomSpecCard: () => null, RoomSpecNav: () => null }));
 vi.mock('@/components/configurator/request-inspiration-by-room', () => ({ RequestInspirationByRoom: () => null }));
 vi.mock('@/components/studio/scene-button', () => ({ StudioScenesButton: () => null }));
@@ -321,6 +324,33 @@ describe('request detail sheet repeats the summary rows (d5)', () => {
     state.request = request({ status: 'IN_MARKETPLACE', hasOwnProject: true });
     renderPage();
     expect(screen.getByText(en.Configurator.start.OWN_PROJECT.title)).toBeTruthy();
+  });
+});
+
+// d4 (verificarea etapei 7): imaginea 3D a piesei se arata o singura data — in cardul piesei,
+// nu si in lista "Atasamente"
+describe('request detail attachments', () => {
+  const file = (id: string) => ({ id, fileName: `${id}.png`, mimeType: 'image/png', sizeBytes: 10, scanStatus: 'CLEAN', downloadUrl: `https://files.test/${id}.png` });
+  const wardrobe = { id: 'r1', roomType: 'PIECE_WARDROBE', flowVersion: 4, needsDesignHelp: false, lengthM: 1, widthM: 0.6, heightM: 2.2, items: [], answers: { config3d: defaultPieceConfig('WARDROBE'), snapshot3d: ['snap'], sketch: ['sketch'] } };
+
+  it('lists the sketch but not the 3D image already shown in the piece card', () => {
+    state.request = request({ status: 'IN_MARKETPLACE', rooms: [wardrobe], attachments: [file('snap'), file('sketch')] });
+    const { container } = renderPage();
+    const section = container.querySelector('[aria-labelledby="request-attachments-title"]') as HTMLElement;
+    expect(section.querySelector('[data-attachment-thumb="sketch"]')).not.toBeNull();
+    expect(section.querySelector('[data-attachment-thumb="snap"]')).toBeNull();
+  });
+
+  it('hides the section when the 3D image is the only file', () => {
+    state.request = request({ status: 'IN_MARKETPLACE', rooms: [wardrobe], attachments: [file('snap')] });
+    const { container } = renderPage();
+    expect(container.querySelector('[aria-labelledby="request-attachments-title"]')).toBeNull();
+  });
+
+  it('keeps the image in the list when the card cannot show it (design-help room)', () => {
+    state.request = request({ status: 'IN_MARKETPLACE', rooms: [{ ...wardrobe, needsDesignHelp: true }], attachments: [file('snap')] });
+    const { container } = renderPage();
+    expect(container.querySelector('[data-attachment-thumb="snap"]')).not.toBeNull();
   });
 });
 

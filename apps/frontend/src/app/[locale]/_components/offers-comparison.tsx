@@ -6,6 +6,7 @@ import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { BELOW_SM, useMediaQuery } from '@/components/ui/use-media-query';
 import { useNow } from '@/hooks/use-now';
 import { formatInCurrency, formatLei, formatRate, toLei } from '@/lib/money';
 import {
@@ -128,6 +129,9 @@ export function OffersComparison({
   const locale = useLocale();
   const format = useFormatter();
   const now = useNow(60_000);
+  // j1 (etapa 8): sub 640 px tabelul devine carduri pe rubrica — un singur fel randat odata,
+  // ca textele si butoanele sa nu apara de doua ori
+  const asCards = useMediaQuery(BELOW_SM);
 
   const cols = threads.map((th) => {
     const quote = quoteByClaim.get(th.claimSlotId);
@@ -295,14 +299,120 @@ export function OffersComparison({
     },
   };
 
+  // capul firmei: numele + mesajele noi (acelasi in tabel si pe carduri)
+  const firmHead = (th: ChatThreadDto) => (
+    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+      {th.companyName}
+      {th.unreadCount > 0 && (
+        <span className={cn(PILL, 'bg-crimson-soft text-crimson')}>
+          {tq('unreadMessages', { n: th.unreadCount })}
+        </span>
+      )}
+    </span>
+  );
+
+  // actiunea per firma (ultimul rand al tabelului / ultimul card)
+  const actionFor = ({ th, quote }: Col) => {
+    const claim = th.claimSlotId;
+    const label = quote?.status === 'SENT' ? t('openAndChoose') : t('openChat');
+    const openedClass =
+      'inline-flex min-h-10 items-center gap-1.5 rounded-md font-semibold text-walnut-deep hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-walnut';
+    if (claim === selectedClaimSlotId) {
+      return onSelect ? (
+        <button type="button" onClick={() => onSelect(claim)} className={openedClass}>
+          {t('openedBelow')}
+          <ArrowDown className="size-4" aria-hidden />
+        </button>
+      ) : (
+        <a href={`#firm-${claim}`} className={openedClass}>
+          {t('openedBelow')}
+          <ArrowDown className="size-4" aria-hidden />
+        </a>
+      );
+    }
+    return onSelect ? (
+      <Button type="button" variant="outline" size="lg" onClick={() => onSelect(claim)}>
+        {label}
+      </Button>
+    ) : (
+      <Button asChild variant="outline" size="lg">
+        <a href={`#firm-${claim}`}>{label}</a>
+      </Button>
+    );
+  };
+
+  const header = (
+    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5 border-b border-border px-4 py-4 sm:px-5">
+      <h2 id="compare-title" className="heading-section">
+        {t('title')}
+      </h2>
+      <span className="text-ui text-muted-foreground">{t('hint')}</span>
+    </div>
+  );
+  const rateNote = eurCol && (
+    <p className="border-t border-border bg-surface-2 px-4 py-3 text-ui text-muted-foreground sm:px-5">
+      {t('rateNote', { rate: formatRate(eurCol.rate, locale) })}
+    </p>
+  );
+
+  // telefon: cate un card pe rubrica, cu randul "{firma}: {valoare}" pentru fiecare firma;
+  // aceleasi functii din `rows` ca tabelul (aceleasi valori, aceleasi insigne)
+  if (asCards) {
+    return (
+      <Card as="section" padding="none" aria-labelledby="compare-title" className="overflow-hidden shadow" data-compare-cards="">
+        {header}
+        <ul className="flex flex-col divide-y divide-border">
+          {COMPARE_ROW_KEYS.map((key) => {
+            const render = rows[key];
+            if (!render) return null;
+            return (
+              <li key={key} data-compare-rubric={key} className="px-4 py-3.5">
+                <h3 className="label mb-2">{t(key)}</h3>
+                <dl className="flex flex-col gap-1">
+                  {cols.map((c) => (
+                    <div
+                      key={c.th.id}
+                      className={cn(
+                        '-mx-2 grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-start gap-3 rounded-md px-2 py-1.5',
+                        colBg(c.th.claimSlotId),
+                      )}
+                    >
+                      <dt className="min-w-0 break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">
+                        {c.th.companyName}
+                      </dt>
+                      <dd className="min-w-0 break-words text-sm [overflow-wrap:anywhere]">{render(c)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </li>
+            );
+          })}
+          <li data-compare-rubric="actions" className="px-4 py-3.5">
+            <h3 className="label mb-2">{t('actionsTitle')}</h3>
+            <ul className="flex flex-col gap-2.5">
+              {cols.map((c) => (
+                <li
+                  key={c.th.id}
+                  className={cn(
+                    '-mx-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-md px-2 py-1.5',
+                    colBg(c.th.claimSlotId),
+                  )}
+                >
+                  <span className="min-w-0 break-words text-sm font-semibold [overflow-wrap:anywhere]">{firmHead(c.th)}</span>
+                  {actionFor(c)}
+                </li>
+              ))}
+            </ul>
+          </li>
+        </ul>
+        {rateNote}
+      </Card>
+    );
+  }
+
   return (
     <Card as="section" padding="none" aria-labelledby="compare-title" className="overflow-hidden shadow">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5 border-b border-border px-4 py-4 sm:px-5">
-        <h2 id="compare-title" className="heading-section">
-          {t('title')}
-        </h2>
-        <span className="text-ui text-muted-foreground">{t('hint')}</span>
-      </div>
+      {header}
       <div className="overflow-x-auto">
         <table
           className={cn(
@@ -317,14 +427,7 @@ export function OffersComparison({
               </th>
               {cols.map(({ th }) => (
                 <th key={th.id} scope="col" className={cn(cell, 'font-semibold', colBg(th.claimSlotId))}>
-                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    {th.companyName}
-                    {th.unreadCount > 0 && (
-                      <span className={cn(PILL, 'bg-crimson-soft text-crimson')}>
-                        {tq('unreadMessages', { n: th.unreadCount })}
-                      </span>
-                    )}
-                  </span>
+                  {firmHead(th)}
                 </th>
               ))}
             </tr>
@@ -351,46 +454,16 @@ export function OffersComparison({
               <th scope="row" className={cn(rowHead, 'border-b-0')}>
                 <span className="sr-only">{t('details')}</span>
               </th>
-              {cols.map(({ th, quote }) => {
-                const claim = th.claimSlotId;
-                const label = quote?.status === 'SENT' ? t('openAndChoose') : t('openChat');
-                const openedClass =
-                  'inline-flex min-h-10 items-center gap-1.5 rounded-md font-semibold text-walnut-deep hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-walnut';
-                return (
-                  <td key={th.id} className={cn(cell, 'border-b-0', colBg(claim))}>
-                    {claim === selectedClaimSlotId ? (
-                      onSelect ? (
-                        <button type="button" onClick={() => onSelect(claim)} className={openedClass}>
-                          {t('openedBelow')}
-                          <ArrowDown className="size-4" aria-hidden />
-                        </button>
-                      ) : (
-                        <a href={`#firm-${claim}`} className={openedClass}>
-                          {t('openedBelow')}
-                          <ArrowDown className="size-4" aria-hidden />
-                        </a>
-                      )
-                    ) : onSelect ? (
-                      <Button type="button" variant="outline" size="lg" onClick={() => onSelect(claim)}>
-                        {label}
-                      </Button>
-                    ) : (
-                      <Button asChild variant="outline" size="lg">
-                        <a href={`#firm-${claim}`}>{label}</a>
-                      </Button>
-                    )}
-                  </td>
-                );
-              })}
+              {cols.map((c) => (
+                <td key={c.th.id} className={cn(cell, 'border-b-0', colBg(c.th.claimSlotId))}>
+                  {actionFor(c)}
+                </td>
+              ))}
             </tr>
           </tbody>
         </table>
       </div>
-      {eurCol && (
-        <p className="border-t border-border bg-surface-2 px-4 py-3 text-ui text-muted-foreground sm:px-5">
-          {t('rateNote', { rate: formatRate(eurCol.rate, locale) })}
-        </p>
-      )}
+      {rateNote}
     </Card>
   );
 }

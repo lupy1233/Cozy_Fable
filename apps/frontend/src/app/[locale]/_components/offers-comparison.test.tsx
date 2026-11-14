@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type {
   ChatThreadDto,
   QuoteDeliveryTermUnit,
@@ -527,5 +527,80 @@ describe('UnreadBanner', () => {
     wrap(<UnreadBanner threads={[thread('t1', 's1', 'Firma A', 2), thread('t2', 's2', 'Firma B')]} />);
     expect(screen.getByText('Firma A ți-a scris: 2 mesaje noi').closest('a')?.getAttribute('href')).toBe('#firm-s1');
     expect(screen.queryByText(/Firma B/)).toBeNull();
+  });
+});
+
+// j1 (etapa 8): sub 640 px tabelul devine carduri pe rubrica, cu aceleasi valori
+describe('OffersComparison — cards on phones (etapa 8)', () => {
+  const setPhone = (on: boolean) => {
+    vi.mocked(window.matchMedia).mockImplementation((query: string) => ({
+      matches: on && query === '(max-width: 639.98px)',
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+  };
+  afterEach(() => setPhone(false));
+
+  const cases: [string, ChatThreadDto[], Map<string, QuoteDto>][] = [
+    [
+      '2 oferte (euro fara TVA langa lei)',
+      [thread('t1', 's1', 'Firma A', 2), thread('t2', 's2', 'Firma B')],
+      new Map([
+        ['s1', structured('s1', 3900, { currency: 'EUR', vatMode: 'VAT_EXCLUDED' })],
+        ['s2', structured('s2', 18500, { vatMode: 'VAT_INCLUDED', workingDays: 20 })],
+      ]),
+    ],
+    [
+      '3 oferte (cu proiectare, una refuzata, una in lucru)',
+      [thread('t1', 's1', 'Firma A'), thread('t2', 's2', 'Firma B'), thread('t3', 's3', 'Firma C'), thread('t4', 's4', 'Firma D')],
+      new Map([
+        ['s1', structured('s1', 10000, { designFee: 1500, designIncludes: 'Randări 3D' })],
+        ['s2', structured('s2', 9000, { status: 'DECLINED' })],
+        ['s3', structured('s3', 12000, { weeks: 4 })],
+      ]),
+    ],
+  ];
+
+  it.each(cases)('%s: every rubric card has exactly the values of the table', (_name, threads, quotes) => {
+    // desktop: tabelul
+    const desk = wrap(<OffersComparison threads={threads} quoteByClaim={quotes} selectedClaimSlotId="s1" onSelect={() => {}} />);
+    const tableRubrics = rowHeads(desk.container);
+    const tableValues = tableRubrics.map((rubric) =>
+      within(screen.getByText(rubric, { selector: 'th' }).closest('tr')!).getAllByRole('cell').map((c) => c.textContent),
+    );
+    const tableActions = desk.container.querySelectorAll('tbody tr:last-child td').length;
+    desk.unmount();
+
+    // telefon: cardurile, fara tabel
+    setPhone(true);
+    const phone = wrap(<OffersComparison threads={threads} quoteByClaim={quotes} selectedClaimSlotId="s1" onSelect={() => {}} />);
+    expect(phone.container.querySelector('table')).toBeNull();
+    const cards = Array.from(phone.container.querySelectorAll<HTMLElement>('[data-compare-rubric]'));
+    const rubricCards = cards.filter((c) => c.dataset.compareRubric !== 'actions');
+    expect(rubricCards.map((c) => c.querySelector('h3')?.textContent)).toEqual(tableRubrics);
+    rubricCards.forEach((card, i) => {
+      expect(Array.from(card.querySelectorAll('dt')).map((d) => d.textContent)).toEqual(threads.map((th) => th.companyName));
+      expect(Array.from(card.querySelectorAll('dd')).map((d) => d.textContent)).toEqual(tableValues[i]);
+    });
+    // ultimul card: actiunea fiecarei firme, o singura data
+    const actions = cards.find((c) => c.dataset.compareRubric === 'actions')!;
+    expect(actions.querySelector('h3')?.textContent).toBe(ro.Quotes.compare.actionsTitle);
+    expect(within(actions).getAllByRole('listitem')).toHaveLength(tableActions);
+    expect(screen.getAllByRole('button', { name: ro.Quotes.compare.openedBelow })).toHaveLength(1);
+  });
+
+  it('the badges and the unread pill stay on the phone cards', () => {
+    setPhone(true);
+    wrap(<OffersComparison threads={cases[0][1]} quoteByClaim={cases[0][2]} />);
+    const total = document.querySelector<HTMLElement>('[data-compare-rubric="totalLeiVat"]')!;
+    expect(within(total).getByText('cel mai mic').closest('dd')?.textContent).toContain('18.500 lei');
+    const actions = document.querySelector<HTMLElement>('[data-compare-rubric="actions"]')!;
+    expect(within(actions).getByText('2 mesaje noi').closest('li')?.textContent).toContain('Firma A');
+    expect(screen.getByText(/1 EUR = 4,97 lei/)).toBeTruthy();
   });
 });

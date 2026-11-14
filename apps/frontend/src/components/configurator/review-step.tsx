@@ -12,6 +12,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import { useMe } from '@/hooks/use-auth';
 import {
   useAttachmentsStateFor,
@@ -38,6 +39,9 @@ import { ClientOnlyNote, isNonClientRole } from './client-only-note';
 import { useReviewSnapshots } from './snapshot3d-sync';
 import { SNAPSHOT3D_STEP_ID, snapshot3dIds } from '@/stores/snapshot3d';
 import { editSnapshotIdsToRemove, resetEditSnapshotFiles } from '@/stores/edit-snapshot-files';
+import { BELOW_LG, useMediaQuery } from '@/components/ui/use-media-query';
+import { loginTarget } from '@/lib/session-lost';
+import { StickyActionBar } from './sticky-action-bar';
 
 // O problema de camera intoarsa de server: details[] de la CONFIGURATOR_ANSWERS_INVALID /
 // FILE_SCAN_BLOCKED sau obiectul {roomIndex} de la CONFIGURATOR_FLOW_VERSION_UNSUPPORTED.
@@ -341,6 +345,16 @@ export function ReviewStep({
 
   const apiErr = publish.error ? publish.error instanceof ApiError ? publish.error.code : 'GENERIC' : null;
   const apiDetails = publish.error instanceof ApiError ? publish.error.details : undefined;
+  // b9 (etapa 8): sesiunea a expirat / a fost inchisa de o alta autentificare — mesaj clar si
+  // drumul inapoi aici dupa login (faza "review" e deja salvata in ciorna / in editare)
+  const sessionExpired =
+    apiErr === 'UNAUTHORIZED' ||
+    apiErr === 'SESSION_SUPERSEDED' ||
+    (publish.error instanceof ApiError && publish.error.status === 401);
+  const sessionLoginHref = loginTarget(isEdit && editId ? `/requests/${editId}/edit` : '/requests/new', '', { expired: true });
+  // j1: pe telefon (sub lg) "Inapoi" si actiunea principala stau in bara lipita jos; pe desktop
+  // in coloana de publicare. Un singur buton in pagina la orice latime (nu doua ascunse cu CSS).
+  const isPhone = useMediaQuery(BELOW_LG);
   const errorRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (apiErr) errorRef.current?.focus();
@@ -405,6 +419,35 @@ export function ReviewStep({
   const publishing = preparing || publish.isPending || publish.isSuccess;
 
   const readyToPublish = detailsComplete && allRoomsComplete;
+
+  // actiunea principala: "Publica cererea" / "Salveaza modificarile" sau, ca vizitator,
+  // autentificarea. Randata intr-un singur loc (cardul de publicare sau bara de pe telefon).
+  const primaryAction = (className: string) =>
+    authed ? (
+      <Button
+        type="button"
+        variant="walnut"
+        size="xl"
+        className={cn('px-4', className)}
+        disabled={!detailsComplete || !allRoomsComplete || publish.isPending || preparing}
+        onClick={() => void doPublish()}
+      >
+        <Send aria-hidden />
+        {isEdit ? t('review.saveEdit') : tr('publish')}
+      </Button>
+    ) : (
+      <Button
+        type="button"
+        variant="walnut"
+        size="xl"
+        className={cn('h-auto min-h-12 whitespace-normal px-4 py-2 text-sm', className)}
+        disabled={!detailsComplete || !allRoomsComplete || me.isPending}
+        onClick={() => router.push('/login?redirect=/requests/new')}
+      >
+        <LogIn aria-hidden />
+        {t('review.loginToPublish')}
+      </Button>
+    );
 
   return (
     <div className="flex flex-col gap-6">
@@ -474,15 +517,34 @@ export function ReviewStep({
             </Alert>
           )}
 
-          <Button type="button" variant="outline" size="lg" className="h-11 self-start" onClick={onBack}>
-            <ArrowLeft aria-hidden />
-            {t('nav.back')}
-          </Button>
+          {!isPhone && (
+            <Button type="button" variant="outline" size="lg" className="h-11 self-start" onClick={onBack}>
+              <ArrowLeft aria-hidden />
+              {t('nav.back')}
+            </Button>
+          )}
         </div>
 
         {/* coloana de publicare: eroarea serverului, starea cererii, actiunea principala */}
         <div className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6.5rem)] lg:overflow-y-auto">
-          {apiErr && (
+          {apiErr && sessionExpired && (
+            <div ref={errorRef} tabIndex={-1} role="alert" data-session-expired className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-crimson">
+              <Alert tone="crimson">
+                <p>{t('review.sessionExpired')}</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 min-h-11"
+                  onClick={() => router.push(sessionLoginHref)}
+                >
+                  <LogIn aria-hidden className="mr-1 h-4 w-4" />
+                  {t('review.sessionExpiredLogin')}
+                </Button>
+              </Alert>
+            </div>
+          )}
+          {apiErr && !sessionExpired && (
             <div ref={errorRef} tabIndex={-1} role="alert" className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-crimson">
             <Alert tone="crimson">
               {t.has(`apiErrors.${apiErr}`)
@@ -594,34 +656,8 @@ export function ReviewStep({
               </div>
             )}
 
-            {/* singura actiune principala a ecranului */}
-            {nonClient ? (
-              <ClientOnlyNote />
-            ) : authed ? (
-              <Button
-                type="button"
-                variant="walnut"
-                size="xl"
-                className="w-full px-4"
-                disabled={!detailsComplete || !allRoomsComplete || publish.isPending || preparing}
-                onClick={() => void doPublish()}
-              >
-                <Send aria-hidden />
-                {isEdit ? t('review.saveEdit') : tr('publish')}
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="walnut"
-                size="xl"
-                className="h-auto min-h-12 w-full whitespace-normal px-4 py-2 text-sm"
-                disabled={!detailsComplete || !allRoomsComplete || me.isPending}
-                onClick={() => router.push('/login?redirect=/requests/new')}
-              >
-                <LogIn aria-hidden />
-                {t('review.loginToPublish')}
-              </Button>
-            )}
+            {/* singura actiune principala a ecranului (pe telefon sta in bara de jos) */}
+            {nonClient ? <ClientOnlyNote /> : !isPhone && primaryAction('w-full')}
 
             {/* Poti completa cererea ca vizitator, dar publicarea necesita cont */}
             {!authed && !me.isPending && readyToPublish ? (
@@ -650,6 +686,18 @@ export function ReviewStep({
           </section>
         </div>
       </div>
+
+      {/* j1: bara lipita jos pe telefon — ultimul copil al ecranului, fara margini negative
+          (Sumarul nu sta intr-un card) */}
+      {isPhone && (
+        <StickyActionBar bleed={false} className="flex-nowrap">
+          <Button type="button" variant="outline" size="xl" className="shrink-0 px-4 text-sm" onClick={onBack}>
+            <ArrowLeft aria-hidden />
+            {t('nav.back')}
+          </Button>
+          {!nonClient && primaryAction('min-w-0 flex-1')}
+        </StickyActionBar>
+      )}
     </div>
   );
 }

@@ -26,6 +26,7 @@ import { LoadError, QueryState } from '@/components/ui/query-state';
 import { SkeletonPage } from '@/components/ui/skeleton';
 import { AttachmentThumb } from '@/components/configurator/attachment-item';
 import { RoomSpecCard, RoomSpecNav } from '@/components/configurator/room-spec-card';
+import { roomSnapshotAttachment } from '@/components/configurator/room-snapshot';
 import { useDisplayAddress } from '@/components/configurator/use-display-address';
 import { RequestInspirationByRoom } from '@/components/configurator/request-inspiration-by-room';
 import { StudioScenesButton } from '@/components/studio/scene-button';
@@ -165,6 +166,11 @@ export default function RequestDetailPage() {
   const helpRooms = r.rooms
     .filter((room) => room.needsDesignHelp)
     .map((room) => tConfigurator(`rooms.type.${room.roomType}`));
+  // imaginile 3D aratate deja in cardul piesei (aceeasi regula ca RoomSpecCard)
+  const shownSnapshots = new Set(
+    r.rooms.map((room) => roomSnapshotAttachment(room, r.attachments)?.id).filter((id): id is string => !!id),
+  );
+  const listedAttachments = r.attachments.filter((a) => !shownSnapshots.has(a.id));
 
   const holders = visibility.data?.contactHolders ?? null;
   const facts: RequestProgressFacts = {
@@ -294,14 +300,15 @@ export default function RequestDetailPage() {
             ))}
           </section>
 
-          {/* Atasamente — statusul de scanare nu se afiseaza; doar eroarea (item 10) */}
-          {r.attachments.length > 0 && (
+          {/* Atasamente — statusul de scanare nu se afiseaza; doar eroarea (item 10).
+              Imaginea 3D a piesei e deja in cardul piesei: nu se repeta aici. */}
+          {listedAttachments.length > 0 && (
             <section aria-labelledby="request-attachments-title" className="flex flex-col gap-3">
               <h2 id="request-attachments-title" className="font-serif text-2xl">
                 {t('sectionAttachments')}
               </h2>
               <div className="flex flex-wrap gap-2">
-                {r.attachments.map((a) => (
+                {listedAttachments.map((a) => (
                   <AttachmentThumb key={a.id} attachment={a} />
                 ))}
               </div>

@@ -95,8 +95,12 @@ export function stepAnswerSchema(step: QuestionStep, answers: AnswerMap): z.ZodT
       const slots = step.slots(answers);
       const shape: Record<string, z.ZodTypeAny> = {};
       for (const slot of slots) {
+        // slot lipsa → "completeaza toate dimensiunile"; alt tip / NaN → in afara intervalului (ca inainte)
         shape[slot.id] = z
-          .number({ errorMap: () => ({ message: 'validation.dimensionOutOfRange' }) })
+          .number({
+            required_error: 'validation.dimensionRequired',
+            invalid_type_error: 'validation.dimensionOutOfRange',
+          })
           .min(slot.min, 'validation.dimensionOutOfRange')
           .max(slot.max, 'validation.dimensionOutOfRange');
       }

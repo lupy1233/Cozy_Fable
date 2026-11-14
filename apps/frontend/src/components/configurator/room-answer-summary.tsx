@@ -1,18 +1,19 @@
 'use client';
 
 import {
-  summarizeAnswers,
   type AnswerMap,
   type AttachmentDto,
   type RequestItemInput,
   type RoomType,
 } from '@marketplace/shared';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import type { DimensionUnit } from '@/lib/dimension-format';
 import { AttachmentThumb } from './attachment-item';
-import { config3dChips } from './piece3d/config-chips';
+import { buildSummaryRows, type SummaryRow } from './summary-rows';
 
-// Randare Q→A a raspunsurilor unei camere, partajata de pasul Review si de paginile
-// de detaliu (client + marketplace). Cheile de continut vin din flow config (i18n).
+// Randare Q→A a raspunsurilor unei camere in Sumar (ReviewRoomCard). Randurile vin din
+// buildSummaryRows (etichete scurte, "Altul — text" pe un rand, dimensiuni in unitatea
+// clientului); `only` alege lista scurta ('main') sau restul ('extra').
 // Cand primeste si lista de atasamente, pasii de tip upload arata preview-uri
 // (thumbnail imagini, iconita PDF/ZIP, eroare la BLOCKED) — feedback PO item 10.
 export function RoomAnswerSummary({
@@ -21,7 +22,8 @@ export function RoomAnswerSummary({
   flowVersion,
   attachments,
   hideFilePreviews = false,
-  stepIds,
+  only,
+  unit = 'cm',
 }: {
   roomType: RoomType;
   answers: Record<string, unknown>;
@@ -30,14 +32,18 @@ export function RoomAnswerSummary({
   // atasamentele cererii/draftului — optionale; fara ele, pasii upload arata doar numarul
   attachments?: AttachmentDto[];
   hideFilePreviews?: boolean;
-  // Preview-ul Review pastreaza intrebarile principale; lista completa ramane in disclosure.
-  stepIds?: readonly string[];
+  // lista scurta din Sumar ('main') sau doar randurile ascunse ('extra'); lipsa = toate
+  only?: SummaryRow['importance'];
+  // unitatea aleasa de client in formular; cererile fara unitate → cm
+  unit?: DimensionUnit;
 }) {
   const t = useTranslations('Configurator');
-  const format = useFormatter();
-  const entries = summarizeAnswers(roomType, answers as AnswerMap, flowVersion ?? 1).filter((entry) => !stepIds || stepIds.includes(entry.stepId));
+  const locale = useLocale();
+  const rows = buildSummaryRows({ roomType, answers, flowVersion }, t, { unit, locale }).filter(
+    (row) => !only || row.importance === only,
+  );
 
-  if (entries.length === 0) return null;
+  if (rows.length === 0) return null;
 
   const pieceLine = (p: RequestItemInput) => {
     const systems = p.systems.map((s) => t(`common.systems.${s}.label`)).join(', ');
@@ -54,21 +60,15 @@ export function RoomAnswerSummary({
 
   return (
     <dl className="flex flex-col divide-y divide-border-2">
-      {entries.map((e) => (
-        <div key={e.stepId} className="flex flex-col gap-1 py-2 sm:flex-row sm:gap-4">
-          <dt className="text-sm font-medium text-muted-foreground sm:w-2/5">{t(e.labelKey)}</dt>
-          <dd className="flex-1 text-sm">
-            {e.kind === 'choice' && e.optionLabelKeys.map((k) => t(k)).join(', ')}
-            {e.kind === 'boolean' && t(e.value ? 'common.boolean.yes' : 'common.boolean.no')}
-            {/* metri dupa limba aplicatiei (2,6 m in romana) */}
-            {e.kind === 'dimensions' &&
-              e.slots.map((s) => `${t(s.labelKey)}: ${format.number(s.value, { maximumFractionDigits: 2 })} m`).join(' · ')}
-            {e.kind === 'number' && e.value}
-            {e.kind === 'config3d' && config3dChips(t, e.config).join(' · ')}
-            {e.kind === 'text' && <span className="whitespace-pre-wrap">{e.value}</span>}
-            {e.kind === 'pieces' && (
+      {rows.map((row) => (
+        <div key={row.key} className="flex min-w-0 flex-col gap-1 py-2 sm:flex-row sm:gap-4">
+          {/* j1: eticheta nu ia mai mult de jumatate; valoarea se rupe si fara spatii */}
+          <dt className="text-sm font-medium text-muted-foreground sm:w-2/5 sm:max-w-[45%] sm:shrink-0">{row.label}</dt>
+          <dd className="min-w-0 flex-1 break-words text-sm [overflow-wrap:anywhere]">
+            {row.kind === 'text' && <span className="whitespace-pre-wrap">{row.value}</span>}
+            {row.kind === 'pieces' && (
               <ul className="flex flex-col gap-0.5">
-                {e.pieces.map((p, i) => (
+                {(row.pieces ?? []).map((p, i) => (
                   <li key={i}>
                     <p>{pieceLine(p)}</p>
                     {p.description && <p className="whitespace-pre-wrap text-muted-foreground">{p.description}</p>}
@@ -76,16 +76,10 @@ export function RoomAnswerSummary({
                 ))}
               </ul>
             )}
-            {e.kind === 'files' &&
+            {row.kind === 'files' &&
               (() => {
-                const files = hideFilePreviews ? [] : filesFor(e.stepId);
-                if (files.length === 0) {
-                  return (
-                    <span className="text-muted-foreground">
-                      {t('summaryFiles.count', { n: e.count })}
-                    </span>
-                  );
-                }
+                const files = hideFilePreviews ? [] : filesFor(row.stepId);
+                if (files.length === 0) return <span className="text-muted-foreground">{row.value}</span>;
                 return (
                   <span className="flex flex-wrap gap-2">
                     {files.map((a) => (
@@ -94,6 +88,12 @@ export function RoomAnswerSummary({
                   </span>
                 );
               })()}
+            {row.kind !== 'text' && row.kind !== 'pieces' && row.kind !== 'files' && (
+              <span className={row.invalid ? 'text-crimson' : undefined}>
+                {row.value}
+                {row.invalid && <span className="ml-1.5 text-xs">({t('sheet.toFix')})</span>}
+              </span>
+            )}
           </dd>
         </div>
       ))}

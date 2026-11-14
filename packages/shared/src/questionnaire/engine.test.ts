@@ -1157,6 +1157,32 @@ describe('dimension-group — sloturi strict pozitive (E-client-2)', () => {
   });
 });
 
+// Etapa 8 (nr. 39): slot lipsa ≠ valoare in afara intervalului
+describe('dimension-group — mesajul pentru slotul lipsa (etapa 8)', () => {
+  const flow = getFlow('LAUNDRY', 1);
+  const dimStep = flow.steps.find((s) => s.id === 'dimensions')!;
+  const message = (value: unknown) => {
+    const parsed = stepAnswerSchema(dimStep, {}).safeParse(value);
+    return parsed.success ? undefined : parsed.error.issues[0]?.message;
+  };
+
+  it('un slot lipsa da validation.dimensionRequired', () => {
+    expect(message({ ceilingHeight: 2.6 })).toBe('validation.dimensionRequired');
+  });
+
+  it('valoarea in afara intervalului, un text sau NaN raman validation.dimensionOutOfRange', () => {
+    expect(message({ runA: 999, ceilingHeight: 2.6 })).toBe('validation.dimensionOutOfRange');
+    expect(message({ runA: '2,4', ceilingHeight: 2.6 })).toBe('validation.dimensionOutOfRange');
+    expect(message({ runA: Number.NaN, ceilingHeight: 2.6 })).toBe('validation.dimensionOutOfRange');
+    expect(message({ runA: 2.4, ceilingHeight: 2.6 })).toBeUndefined();
+  });
+
+  it('validarea camerei raporteaza dimensionRequired pe pasul de dimensiuni', () => {
+    const res = validateRoomAnswers('LAUNDRY', { dimensions: { ceilingHeight: 2.6 } }, { partial: true, version: 1 });
+    expect(res).toEqual({ ok: false, errors: [{ stepId: 'dimensions', messageKey: 'validation.dimensionRequired' }] });
+  });
+});
+
 // Etapa 6 (valul 1, fundatia): capabilitatile noi ale motorului — toate optionale, deci
 // fluxurile vechi se comporta identic (acoperit si de score-invariance / firm-text).
 describe('etapa 6 — motor', () => {

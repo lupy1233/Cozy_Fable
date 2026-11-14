@@ -133,7 +133,7 @@ export function CartBasket({ className, uploadTarget }: { className?: string; up
                           {designHelp || line.allHelp
                             ? t('sheet.withDesigner')
                             : line.sections > 0
-                              ? t('sheet.sections', { count: line.sections })
+                              ? t('sheet.someQuestions')
                               : t(`rooms.desc.${line.roomType}`)}
                         </span>
                       </span>

@@ -1,13 +1,14 @@
 'use client';
 
-import { getFlow, summarizeAnswers, type AttachmentDto } from '@marketplace/shared';
+import { summarizeAnswers, type AttachmentDto } from '@marketplace/shared';
 import { Check, ChevronDown, Loader2, Pencil, Wrench } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import type { RoomInstance } from '@/stores/configurator-store';
+import { useConfiguratorStore, type RoomInstance } from '@/stores/configurator-store';
 import { AttachmentThumb } from './attachment-item';
 import { RoomAnswerSummary } from './room-answer-summary';
+import { buildSummaryRows } from './summary-rows';
 import type { ReviewSnapshot } from './snapshot3d-sync';
 
 // Problema care blocheaza publicarea camerei (validarea locala sau raspunsul
@@ -57,17 +58,21 @@ export function ReviewRoomCard({ room, index, attachments, designHelp, onEdit, i
   snapshot3d?: ReviewSnapshot | null;
 }) {
   const t = useTranslations('Configurator');
-  const { entries, previewStepIds } = useMemo(() => {
+  const locale = useLocale();
+  // b10 / c4: dimensiunile in unitatea aleasa de client in formular
+  const unit = useConfiguratorStore((s) => s.dimensionUnit);
+  const entries = useMemo(() => {
     try {
-      const flow = getFlow(room.roomType, room.flowVersion);
-      return {
-        entries: summarizeAnswers(room.roomType, room.answers, room.flowVersion),
-        previewStepIds: flow.steps.filter((step) => !step.screenGroup?.startsWith('piece:') && step.type !== 'upload').map((step) => step.id),
-      };
+      return summarizeAnswers(room.roomType, room.answers, room.flowVersion);
     } catch {
-      return { entries: [], previewStepIds: [] };
+      return [];
     }
   }, [room]);
+  // b10: lista scurta = randurile 'main'; "Vezi toate" adauga doar randurile 'extra'
+  const hasExtra = useMemo(
+    () => buildSummaryRows(room, t, { unit, locale }).some((row) => row.importance === 'extra'),
+    [room, t, unit, locale],
+  );
   const fileIds = new Set(entries.filter((entry) => entry.kind === 'files').flatMap((entry) => {
     const value = room.answers[entry.stepId];
     return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : [];
@@ -106,15 +111,15 @@ export function ReviewRoomCard({ room, index, attachments, designHelp, onEdit, i
       {files.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{files.map((attachment) => <AttachmentThumb key={attachment.id} attachment={attachment} />)}</div>}
     </> : <>
       <div className="mt-3" data-review-room-preview={room.roomType}>
-        {entries.length > 0 && <RoomAnswerSummary roomType={room.roomType} answers={room.answers} flowVersion={room.flowVersion} stepIds={previewStepIds} hideFilePreviews />}
+        {entries.length > 0 && <RoomAnswerSummary roomType={room.roomType} answers={room.answers} flowVersion={room.flowVersion} only="main" unit={unit} hideFilePreviews />}
       </div>
       {snapshot3d && <PieceSnapshot snapshot={snapshot3d} roomLabel={roomLabel} />}
       {files.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{files.map((attachment) => <AttachmentThumb key={attachment.id} attachment={attachment} />)}</div>}
-      {entries.length > 0 && <details className="group mt-4 border-t border-border pt-2">
+      {hasExtra && <details className="group mt-4 border-t border-border pt-2" data-review-room-more>
         <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 rounded text-sm font-medium text-walnut focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-walnut [&::-webkit-details-marker]:hidden">
           {t('review.rooms.allAnswers')}<ChevronDown aria-hidden className="h-4 w-4 transition-transform group-open:rotate-180" />
         </summary>
-        <RoomAnswerSummary roomType={room.roomType} answers={room.answers} flowVersion={room.flowVersion} attachments={attachments} hideFilePreviews />
+        <RoomAnswerSummary roomType={room.roomType} answers={room.answers} flowVersion={room.flowVersion} attachments={attachments} only="extra" unit={unit} hideFilePreviews />
       </details>}
     </>}
   </section>;

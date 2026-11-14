@@ -14,8 +14,9 @@ vi.mock('@/hooks/use-requests', () => ({ useBudgetEstimate: () => hoisted.estima
 // Places nu exista in jsdom: un camp simplu cu aceleasi callback-uri
 // b12: "pick-suggestion" = alegerea unei sugestii Google (strada + oras + judet, plus blocul tastat)
 vi.mock('./address-autocomplete', () => ({
-  AddressAutocomplete: ({ defaultValue, onText, onResolved }: {
+  AddressAutocomplete: ({ defaultValue, error, onText, onResolved }: {
     defaultValue: string;
+    error?: string;
     onText: (t: string) => void;
     onResolved: (p: { addressText: string; county: string; city: string; addressDetails?: string }) => void;
   }) => (
@@ -24,6 +25,7 @@ vi.mock('./address-autocomplete', () => ({
       <button type="button" onClick={() => onResolved({ addressText: 'Strada Fabricii 5', county: 'București', city: 'București', addressDetails: 'bl. A2, ap. 14' })}>
         pick-suggestion
       </button>
+      {error && <p>{error}</p>}
     </>
   ),
 }));
@@ -311,5 +313,74 @@ describe('DetailsStep — address details (b12)', () => {
     });
     expect(onContinue).not.toHaveBeenCalled();
     expect(screen.getByText(en.Requests.validation.cityRequired)).toBeInTheDocument();
+  });
+});
+
+// b9 + j1 (etapa 8): "Completeaza ..." la campuri goale, contorul mesajului, bara de jos
+describe('DetailsStep — validation messages, message counter, bottom bar (etapa 8)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    store().reset();
+    store().setStartMode('STANDARD');
+    store().addRoom('KITCHEN');
+    hoisted.me = { data: undefined };
+    hoisted.estimate = { data: undefined };
+  });
+  afterEach(() => leaveEditSession());
+
+  const V = en.Requests.validation;
+  const submit = async () => {
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: en.Configurator.nav.toReview }));
+    });
+  };
+
+  it('empty fields ask to be filled in, not "too short"', async () => {
+    const { onContinue } = mount();
+    await submit();
+    expect(onContinue).not.toHaveBeenCalled();
+    expect(screen.getByText(V.addressRequired)).toBeInTheDocument();
+    expect(screen.getByText(V.countyRequired)).toBeInTheDocument();
+    expect(screen.getByText(V.cityRequired)).toBeInTheDocument();
+    expect(screen.getByText(V.contactRequired)).toBeInTheDocument();
+    for (const tooShort of [V.addressTooShort, V.countyTooShort, V.cityTooShort, V.contactEmailInvalid]) {
+      expect(screen.queryByText(tooShort)).not.toBeInTheDocument();
+    }
+  });
+
+  it('1–2 characters still say "too short"; a wrong e-mail says it is not valid', async () => {
+    mount();
+    fireEvent.change(screen.getByLabelText('address'), { target: { value: 'ab' } });
+    fireEvent.change(screen.getByRole('textbox', { name: en.Requests.field.county }), { target: { value: 'C' } });
+    fireEvent.change(screen.getByRole('textbox', { name: en.Requests.field.city }), { target: { value: 'C' } });
+    fireEvent.change(screen.getByRole('textbox', { name: en.Requests.field.contactValue }), { target: { value: 'ana@' } });
+    await submit();
+    expect(screen.getByText(V.addressTooShort)).toBeInTheDocument();
+    expect(screen.getByText(V.countyTooShort)).toBeInTheDocument();
+    expect(screen.getByText(V.cityTooShort)).toBeInTheDocument();
+    expect(screen.getByText(V.contactEmailInvalid)).toBeInTheDocument();
+    expect(screen.queryByText(V.addressRequired)).not.toBeInTheDocument();
+    expect(screen.queryByText(V.contactRequired)).not.toBeInTheDocument();
+  });
+
+  it('the message for companies has a 5,000 limit and a live counter', () => {
+    mount();
+    expect(message()).toHaveAttribute('maxLength', '5000');
+    expect(screen.getByText('0 / 5,000 characters')).toBeInTheDocument();
+    fireEvent.change(message(), { target: { value: 'Salut' } });
+    expect(screen.getByText('5 / 5,000 characters')).toBeInTheDocument();
+    expect(message()).toHaveAttribute('aria-describedby', 'details-message-counter');
+    expect(screen.getByText(en.Requests.messageHint)).toBeInTheDocument();
+  });
+
+  it('"Back" and "Continue to summary" sit in the sticky bar, the last element of the form', () => {
+    const { container } = mount();
+    const bar = container.querySelector('[data-sticky-action-bar]') as HTMLElement;
+    expect(bar).not.toBeNull();
+    expect(bar.parentElement?.tagName).toBe('FORM');
+    expect(bar.parentElement?.lastElementChild).toBe(bar);
+    expect(bar).toContainElement(screen.getByRole('button', { name: en.Configurator.nav.back }));
+    expect(bar).toContainElement(screen.getByRole('button', { name: en.Configurator.nav.toReview }));
   });
 });

@@ -1,29 +1,12 @@
 'use client';
-import { useId } from 'react';
 import { useTranslations } from 'next-intl';
 import { NEW_PIECE_RULES, UPHOLSTERY_FABRICS, SEAT_FIRMNESSES, SEATING_BASES, SOFA_LAYOUTS, type Piece3dKind, type PieceConfig3d } from '@marketplace/shared';
-import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { useDimensionField } from './use-dimension-field';
+import { PieceDimensionControl } from './dimension-control';
 
-// cm cu o zecimala (precizie mm), ca in configurator3d-step
-const cmExact = (v: number) => Math.round(v * 1000) / 10;
-
-export function CatalogSize({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (n: number) => void }) {
-  const id = useId();
-  // b1: virgula acceptata; b7: in afara intervalului se corecteaza la limita
-  // CU mesaj, campul golit pastreaza valoarea veche cu mesaj, "1,2" = 120 cm
-  const field = useDimensionField({
-    valueCm: cmExact(value), minCm: cmExact(min), maxCm: cmExact(max),
-    onValueCm: v => onChange(v / 100),
-  });
-  return <div className="space-y-1"><label htmlFor={id} className="text-sm font-medium">{label} <span className="text-muted-foreground">(cm)</span></label>
-    <div className="flex items-center gap-3"><input type="range" aria-label={label} min={Math.round(min * 100)} max={Math.round(max * 100)} step={1}
-      value={Math.round(value * 100)} onChange={e => { field.reset(); onChange(Number(e.target.value) / 100); }} className="h-11 min-w-0 flex-1 accent-walnut" />
-      <Input id={id} {...field.inputProps} className={field.error ? 'w-24 border-crimson' : 'w-24'} /></div>
-    {field.error && <p role="alert" className="text-xs text-crimson">{field.error}</p>}
-    <p id={field.noteId} role="status" aria-live="polite" className={field.note ? 'text-xs text-muted-foreground' : 'sr-only'}>{field.note}</p>
-  </div>;
+// 41.4: fostul CatalogSize — acum componenta unica de dimensiune (dimension-control.tsx)
+function CatalogSize({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (n: number) => void }) {
+  return <PieceDimensionControl label={label} valueM={value} minM={min} maxM={max} onValueM={onChange} />;
 }
 
 export function CatalogControls({ kind, config, apply }: { kind: Piece3dKind; config: PieceConfig3d; apply: (patch: Partial<PieceConfig3d>) => void }) {

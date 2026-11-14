@@ -12,15 +12,19 @@ import {
   type RequestRoomDto,
 } from '@marketplace/shared';
 import { Layers, MoveDiagonal, NotebookPen, Paperclip, Rotate3d, Sparkles } from 'lucide-react';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { ContactSafeText } from '@/components/ui/contact-safe-text';
 import { ConfiguratorIcon } from '@/lib/configurator-icons';
+import { formatDimension, formatDimensions, type DimensionUnit } from '@/lib/dimension-format';
+import { useDimensionUnitPreference } from '@/lib/dimension-unit';
 import { ROOM_ICONS } from '@/lib/room-icons';
 import { AttachmentThumb } from './attachment-item';
 import { config3dChips } from './piece3d/config-chips';
 import { PieceViewer3dDialog } from './piece3d/dynamic';
+import { roomSnapshotAttachment } from './room-snapshot';
+import { flowStepsById, summaryLabelFor } from './summary-rows';
 
 // Prezentarea structurata a unei camere din cerere (feedback PO item 6) —
 // inlocuieste lista plata Q→A pe paginile de detaliu (marketplace + client).
@@ -73,6 +77,13 @@ export function RoomSpecCard({
   const t = useTranslations('Configurator');
   const tr = useTranslations('Requests');
   const format = useFormatter();
+  const locale = useLocale();
+  // c4: firma vede mereu cm; clientul, unitatea aleasa in formular (preferinta din browser)
+  const preferredUnit = useDimensionUnitPreference();
+  const dimUnit: DimensionUnit = audience === 'client' ? preferredUnit : 'cm';
+  // b10: etichetele scurte de rezumat (rezerva = titlul intrebarii)
+  const steps = flowStepsById(room.roomType, room.flowVersion);
+  const labelOf = (e: AnswerSummaryEntry) => summaryLabelFor(t, steps, e.stepId, e.labelKey);
   // viewerul 3D read-only al piesei configurate de client (U4, PO r4)
   const [viewer3d, setViewer3d] = useState(false);
 
@@ -92,10 +103,8 @@ export function RoomSpecCard({
   const config3d = entries.find(
     (e): e is Extract<AnswerSummaryEntry, { kind: 'config3d' }> => e.kind === 'config3d',
   );
-  const snapshotIds = (answers?.snapshot3d ?? []) as string[];
-  const snapshot = Array.isArray(snapshotIds)
-    ? (attachments ?? []).find((a) => snapshotIds.includes(a.id) && a.downloadUrl)
-    : undefined;
+  // aceeasi regula ca pagina cererii (imaginea nu se mai repeta la "Atașamente")
+  const snapshot = config3d ? roomSnapshotAttachment(room, attachments) : undefined;
   const dims = entries.find((e): e is Extract<AnswerSummaryEntry, { kind: 'dimensions' }> => e.kind === 'dimensions');
   // textele de tip "alt material" sunt deja in description-ul itemelor derivate
   const notes = entries.filter(
@@ -119,19 +128,22 @@ export function RoomSpecCard({
   };
 
   // antetul camerei (d1): metri liniari de mobilier (lengthM, pentru camere = suma fronturilor)
-  // si tavanul raspuns de client (slotul ceilingHeight), formatate dupa limba aplicatiei
+  // si tavanul raspuns de client (slotul ceilingHeight), formatate dupa limba aplicatiei.
+  // Metrii liniari si lungimea aproximativa raman in m (D2); dimensiunile — firma in cm,
+  // clientul in unitatea aleasa in formular (c4, PO c4-1).
   const fmtM = (v: number) => format.number(v, { maximumFractionDigits: 2 });
+  const dimOpts = { unit: dimUnit, locale };
   const isRoom = ROOM_KIND[room.roomType] === 'room';
   const ceiling = dims?.slots.find((s) => s.labelKey === CEILING_SLOT_LABEL)?.value;
   const headerParts: string[] = [];
   if (!designHelp && room.lengthM > 0) headerParts.push(t('roomSpec.furnitureLinear', { m: format.number(room.lengthM, { maximumFractionDigits: 1 }) }));
-  if (typeof ceiling === 'number' && ceiling > 0) headerParts.push(t('roomSpec.ceilingHeight', { m: fmtM(ceiling) }));
+  if (typeof ceiling === 'number' && ceiling > 0) headerParts.push(t('roomSpec.ceiling', { value: formatDimension(ceiling, dimOpts) }));
   // m4: cererile din formularul manual de dinainte de configurator (answers NULL) au
-  // lungimea / latimea / inaltimea scrise chiar de client → raman "L × l × H m".
+  // lungimea / latimea / inaltimea scrise chiar de client → raman "L × l × H".
   // O camera din configurator are mereu answers (cea cu ajutor: {} sau doar schitele).
   const legacy = room.answers == null;
   const legacyDims = room.lengthM > 0 && room.widthM > 0 && room.heightM > 0
-    ? `${fmtM(room.lengthM)} × ${fmtM(room.widthM)} × ${fmtM(room.heightM)} m`
+    ? formatDimensions([room.lengthM, room.widthM, room.heightM], dimOpts)
     : t('roomSpec.dimsUnknown');
   const showHeader = legacy || isRoom;
   const headerText = legacy
@@ -249,7 +261,7 @@ export function RoomSpecCard({
                 key={e.stepId}
                 className="inline-flex max-w-full items-baseline gap-1.5 rounded-full border border-border-2 bg-surface-2 px-2.5 py-1 text-xs"
               >
-                <span className="shrink-0 text-muted-2">{t(e.labelKey)}</span>
+                <span className="shrink-0 text-muted-2">{labelOf(e)}</span>
                 <span className="truncate font-medium">{chipValue(e)}</span>
               </span>
             ))}
@@ -305,7 +317,7 @@ export function RoomSpecCard({
         {/* dimensiunile raspunse (sloturile exacte) */}
         {dims && dims.slots.length > 0 && (
           <p className="font-mono text-xs text-muted-foreground">
-            {dims.slots.map((s) => `${t(s.labelKey)}: ${fmtM(s.value)} m`).join(' · ')}
+            {dims.slots.map((s) => `${t(s.labelKey)}: ${formatDimension(s.value, dimOpts)}`).join(' · ')}
           </p>
         )}
 
@@ -323,7 +335,7 @@ export function RoomSpecCard({
               <p key={e.stepId} className="flex items-start gap-1.5 text-sm text-muted-foreground">
                 <NotebookPen className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-2" />
                 <span>
-                  <span className="text-muted-2">{t(e.labelKey)}: </span>
+                  <span className="text-muted-2">{labelOf(e)}: </span>
                   <span className="whitespace-pre-wrap">
                     <ContactSafeText text={e.value} />
                   </span>

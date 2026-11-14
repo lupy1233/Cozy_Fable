@@ -34,7 +34,8 @@ vi.mock('@/hooks/use-requests', () => ({
     return hoisted.coverage;
   },
 }));
-vi.mock('@/i18n/routing', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
+const routerPush = vi.hoisted(() => vi.fn());
+vi.mock('@/i18n/routing', () => ({ useRouter: () => ({ push: routerPush, replace: vi.fn() }) }));
 vi.mock('./inspiration-picker', () => ({ InspirationPicker: () => null }));
 vi.mock('./review-room-card', () => ({ ReviewRoomCard: () => null }));
 
@@ -92,7 +93,7 @@ describe('ReviewStep — who can publish (f2)', () => {
   });
 
   // revizuire etapa 2: piesa din Studio bifata "cere ajutor" e refuzata de server
-  const studioText = (en.Configurator.validation as Record<string, string>).designHelpWithStudioPiece;
+  const studioText = (en.Configurator.validation as unknown as Record<string, string>).designHelpWithStudioPiece;
   it.skipIf(!studioText)('shows the Studio piece refusal like any validation error', () => {
     hoisted.me = { data: { email: 'ana@demo.ro', role: 'CLIENT' }, isPending: false };
     hoisted.publish.error = new ApiError('VALIDATION_ERROR' as never, 400, 'Studio', [
@@ -340,5 +341,100 @@ describe('ReviewStep — the budget must be chosen (b11)', () => {
     fireEvent.click(screen.getByRole('button', { name: en.Requests.publish }));
     await waitFor(() => expect(hoisted.publish.mutateAsync).toHaveBeenCalledTimes(2));
     expect((vi.mocked(hoisted.publish.mutateAsync).mock.calls[1][0] as Record<string, unknown>).addressDetails).toBeUndefined();
+  });
+});
+
+// b9 + j1 (etapa 8): sesiunea expirata la publicare; un singur buton "Publica" la orice latime
+describe('ReviewStep — expired session and the phone bar (etapa 8)', () => {
+  const completeDraft = () =>
+    useConfiguratorStore.getState().loadSnapshot({
+      ...useConfiguratorStore.getState().snapshot(),
+      startMode: 'STANDARD',
+      phase: 'review',
+      details: { budgetRange: 'UNDISCLOSED', budgetChosen: true, addressText: 'Str. 1', county: 'Cluj', city: 'Cluj', contactPreferences: [{ channel: 'EMAIL', value: 'ana@demo.ro' }] },
+      roomInstances: [{ localId: 'k', roomType: 'KITCHEN', flowVersion: 1, answers: {}, completed: true, needsDesignHelp: true }],
+    });
+  // matchMedia: true doar pentru interogarea data (restul raman false, ca in setup)
+  const phoneWidth = (on: boolean) => {
+    vi.mocked(window.matchMedia).mockImplementation((query: string) => ({
+      matches: on && query === '(max-width: 1023.98px)',
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+  };
+  beforeEach(() => {
+    localStorage.clear();
+    useConfiguratorStore.getState().reset();
+    completeDraft();
+    hoisted.me = { data: { email: 'ana@demo.ro', role: 'CLIENT' }, isPending: false };
+    hoisted.publish.error = null;
+    hoisted.attachments = { attachments: [], isSuccess: true, isFetching: false, dataUpdatedAt: 0 };
+    hoisted.coverage = { data: undefined };
+    routerPush.mockReset();
+  });
+  afterEach(() => phoneWidth(false));
+
+  it.each(['UNAUTHORIZED', 'SESSION_SUPERSEDED'])('%s: the expired-session message and a sign-in button back to the summary', (code) => {
+    hoisted.publish.error = new ApiError(code as never, 401, 'Unauthorized');
+    mount();
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent(en.Configurator.review.sessionExpired);
+    expect(alert).not.toHaveTextContent(en.Configurator.apiErrors.GENERIC);
+    fireEvent.click(screen.getByRole('button', { name: en.Configurator.review.sessionExpiredLogin }));
+    expect(routerPush).toHaveBeenCalledWith('/login?redirect=%2Frequests%2Fnew&reason=expired');
+  });
+
+  it('while editing, the sign-in goes back to the edit page', () => {
+    hoisted.publish.error = new ApiError('UNAUTHORIZED' as never, 401, 'Unauthorized');
+    mount(() => {}, 'req-7');
+    fireEvent.click(screen.getByRole('button', { name: en.Configurator.review.sessionExpiredLogin }));
+    expect(routerPush).toHaveBeenCalledWith('/login?redirect=%2Frequests%2Freq-7%2Fedit&reason=expired');
+  });
+
+  it('other errors keep their own text', () => {
+    hoisted.publish.error = new ApiError('REQUEST_PUBLISH_CLIENT_ONLY' as never, 403, 'Only clients');
+    mount();
+    expect(screen.getByRole('alert')).not.toHaveTextContent(en.Configurator.review.sessionExpired);
+    expect(screen.queryByRole('button', { name: en.Configurator.review.sessionExpiredLogin })).not.toBeInTheDocument();
+  });
+
+  it('desktop: one "Publish" and one "Back", no sticky bar', () => {
+    const { container } = mount();
+    expect(screen.getAllByRole('button', { name: en.Requests.publish })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: en.Configurator.nav.back })).toHaveLength(1);
+    expect(container.querySelector('[data-sticky-action-bar]')).toBeNull();
+  });
+
+  it('phone: the only "Publish" and "Back" sit in the sticky bar, the last element of the screen', async () => {
+    phoneWidth(true);
+    const onPublished = vi.fn();
+    hoisted.publish.mutateAsync = vi.fn(async () => ({ id: 'req-1', attachments: [] }));
+    const { container } = mount(onPublished);
+    const bar = container.querySelector('[data-sticky-action-bar]') as HTMLElement;
+    expect(bar).not.toBeNull();
+    expect(bar.className).toContain('sticky');
+    expect(bar.className).toContain('lg:static');
+    expect(bar.parentElement?.lastElementChild).toBe(bar);
+    const publishButtons = screen.getAllByRole('button', { name: en.Requests.publish });
+    expect(publishButtons).toHaveLength(1);
+    expect(bar).toContainElement(publishButtons[0]);
+    expect(screen.getAllByRole('button', { name: en.Configurator.nav.back })).toHaveLength(1);
+    fireEvent.click(publishButtons[0]);
+    await waitFor(() => expect(onPublished).toHaveBeenCalledWith('req-1'));
+  });
+
+  it('phone, guest: the sign-in-to-publish button is the one in the bar', () => {
+    phoneWidth(true);
+    hoisted.me = { data: undefined, isPending: false };
+    const { container } = mount();
+    const bar = container.querySelector('[data-sticky-action-bar]') as HTMLElement;
+    const login = screen.getAllByRole('button', { name: en.Configurator.review.loginToPublish });
+    expect(login).toHaveLength(1);
+    expect(bar).toContainElement(login[0]);
   });
 });

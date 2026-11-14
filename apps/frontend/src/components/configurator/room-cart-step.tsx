@@ -20,6 +20,7 @@ import { CartVisual } from './cart-visual';
 import { DesignHelpConfirmDialog } from './design-help-dialog';
 import { roomInstanceLabels } from './room-payload';
 import { useRoomRemoval } from './room-removal';
+import { StickyActionBar } from './sticky-action-bar';
 import type { AttachmentTarget } from '@/hooks/use-requests';
 
 // Grilele vin din ROOM_KIND (room-meta): camerele in tab-ul principal, piesele
@@ -393,19 +394,20 @@ export function RoomCartStep({
         }}
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6">
-        <Button type="button" variant="outline" size="xl" className="px-4 text-sm" onClick={onBack}>
+      {/* j1: pe telefon bara se lipeste jos — "{camere} · {piese} · Incepe →" mereu la indemana */}
+      <StickyActionBar className="flex-nowrap sm:flex-wrap">
+        <Button type="button" variant="outline" size="xl" className="shrink-0 px-4 text-sm" onClick={onBack}>
           <ArrowLeft aria-hidden />
           {t('nav.back')}
         </Button>
-        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
-          <span className="text-ui text-muted-foreground">{summary}</span>
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-4 gap-y-1 sm:gap-y-2">
+          <span className="min-w-0 text-right text-xs text-muted-foreground sm:text-ui" data-cart-summary>{summary}</span>
           <Button type="button" variant="walnut" size="xl" disabled={total === 0} onClick={onContinue}>
             {designHelp ? t('nav.continue') : t('nav.startQuestions')}
             <ArrowRight aria-hidden />
           </Button>
         </div>
-      </div>
+      </StickyActionBar>
     </div>
   );
 }

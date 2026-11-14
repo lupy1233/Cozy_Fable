@@ -95,7 +95,7 @@ describe('cosul de camere si piese', () => {
     expect(basket.getByText('2 camere · o piesă')).toBeInTheDocument();
     expect(basket.getByText('Dormitor')).toBeInTheDocument();
     expect(basket.getByText('Canapea')).toBeInTheDocument();
-    expect(basket.getAllByText(/secțiun/).length).toBe(2);
+    expect(basket.getAllByText(/câteva întrebări/).length).toBe(2);
 
     fireEvent.click(basket.getByRole('button', { name: 'Scoate Dormitor din coș' }));
     expect(types()).toEqual(['BEDROOM', 'PIECE_SOFA']);
@@ -281,5 +281,35 @@ describe('cos — nota pentru bifa veche de proiectare (m3)', () => {
     fireEvent.click(screen.getByRole('button', { name: ro.Configurator.cart.legacyPaidDesignClose }));
     expect(document.querySelector('[data-legacy-paid-design]')).toBeNull();
     expect(useConfiguratorStore.getState().legacyPaidDesignNote).toBe(false);
+  });
+});
+
+// j1 (etapa 8): bara de jos lipita pe telefon, cu "{camere} · {piese}" langa "Incepe"; titlul nou
+describe('cosul — bara de jos si titlul (etapa 8)', () => {
+  beforeEach(() => {
+    useConfiguratorStore.getState().reset();
+    useConfiguratorStore.getState().setStartMode('STANDARD');
+  });
+
+  it('titlul pomeneste camerele si piesele', () => {
+    show();
+    expect(screen.getByRole('heading', { name: ro.Configurator.cart.title })).toBeInTheDocument();
+    expect(ro.Configurator.cart.title).toBe('Ce vrei să mobilezi?');
+    expect(screen.getByText(ro.Configurator.cart.subtitle)).toBeInTheDocument();
+  });
+
+  it('"Înapoi", rezumatul cosului si "Începe" stau in bara lipita, ultimul element al ecranului', () => {
+    useConfiguratorStore.getState().addRoom('KITCHEN');
+    useConfiguratorStore.getState().addRoom('PIECE_DESK');
+    show();
+    const bar = document.querySelector<HTMLElement>('[data-sticky-action-bar]')!;
+    expect(bar).not.toBeNull();
+    expect(bar.parentElement?.lastElementChild).toBe(bar);
+    expect(bar).toContainElement(screen.getByRole('button', { name: ro.Configurator.nav.back }));
+    const start = within(bar).getByRole('button', { name: ro.Configurator.nav.startQuestions });
+    expect(start).toBeEnabled();
+    expect(within(bar).getByText(/o cameră/)).toBeInTheDocument();
+    expect(within(bar).getByText(/o piesă/)).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: ro.Configurator.nav.startQuestions })).toHaveLength(1);
   });
 });

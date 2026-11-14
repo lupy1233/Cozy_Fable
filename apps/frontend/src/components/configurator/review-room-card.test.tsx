@@ -9,10 +9,11 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>
     key === 'review.issueRoomStep' && values ? `${key}:${String(values.step)}` : key,
   useFormatter: () => ({ number: (value: number) => String(value) }),
+  useLocale: () => 'ro',
 }));
 
 describe('new furniture review contracts', () => {
-  it.each([['BED', 'PIECE_BED'], ['TABLE', 'PIECE_TABLE'], ['BENCH', 'PIECE_BENCH']] as const)('shows %s through the target config3d contract with full-answer disclosure', async (kind, roomType) => {
+  it.each([['BED', 'PIECE_BED'], ['TABLE', 'PIECE_TABLE'], ['BENCH', 'PIECE_BENCH']] as const)('shows %s through the target config3d contract, without an empty "see all" link', async (kind, roomType) => {
     const edit = vi.fn();
     render(<ReviewRoomCard room={{ localId: kind, roomType, flowVersion: CURRENT_FLOW_VERSION[roomType as RoomType], completed: true, answers: { config3d: defaultPieceConfig(kind), material: 'PAL' } }} attachments={[]} designHelp={false} onEdit={edit} />);
     expect(screen.getByRole('heading', { name: `rooms.type.${roomType}` })).toBeVisible();
@@ -21,11 +22,20 @@ describe('new furniture review contracts', () => {
     expect(screen.queryByText('review.roomIncomplete')).not.toBeInTheDocument();
     expect(screen.getAllByText('config3d.chips.size', { exact: false })[0]).toBeVisible();
     expect(screen.queryByText('config3d.chips.columns', { exact: false })).not.toBeInTheDocument();
-    const disclosure = screen.getByText('review.rooms.allAnswers');
-    await userEvent.click(disclosure);
-    expect(disclosure.closest('details')).toHaveAttribute('open');
+    // b10: 3D + material sunt in lista scurta; "Vezi toate" nu ar ascunde nimic → nu apare
+    expect(screen.queryByText('review.rooms.allAnswers')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'review.rooms.edit' }));
     expect(edit).toHaveBeenCalledOnce();
+  });
+  it('"see all" adds only the hidden rows', async () => {
+    render(<ReviewRoomCard room={{ localId: 'w', roomType: 'DRESSING', flowVersion: 4, completed: true, answers: { layout: 'LINEAR', doorType: 'SLIDING', interiorModules: ['HANGING_RODS'], material: 'PAL' } }} attachments={[]} designHelp={false} onEdit={() => {}} />);
+    const preview = document.querySelector('[data-review-room-preview]') as HTMLElement;
+    const more = document.querySelector('[data-review-room-more]') as HTMLElement;
+    const labels = (el: HTMLElement) => [...el.querySelectorAll('dt')].map((dt) => dt.textContent);
+    await userEvent.click(screen.getByText('review.rooms.allAnswers'));
+    expect(more).toHaveAttribute('open');
+    expect(labels(preview)).toEqual(expect.arrayContaining(['flows.DRESSING.layout.title', 'flows.DRESSING.v4.material.title']));
+    expect(labels(more)).toEqual(['flows.DRESSING.interiorModules.title']);
   });
   it('does not present derived defaults as chosen items for incomplete rooms', () => {
     render(<ReviewRoomCard room={{ localId: 'unfinished', roomType: 'PIECE_BED', flowVersion: 2, completed: false, answers: {} }} attachments={[]} designHelp={false} onEdit={() => {}} issue={{ problem: 'review.issueRoom' }} />);

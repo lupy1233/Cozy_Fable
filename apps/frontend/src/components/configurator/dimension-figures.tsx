@@ -1,6 +1,7 @@
 'use client';
 
 import type { AnswerMap, RoomType } from '@marketplace/shared';
+import { createContext, useContext, useSyncExternalStore } from 'react';
 
 // Figurile pasului de dimensiuni (feedback PO item 11): planse statice, desenate
 // de mana (coordonate fixe, ca o imagine), nu geometrie calculata la runtime.
@@ -10,31 +11,65 @@ import type { AnswerMap, RoomType } from '@marketplace/shared';
 // Stil: plansa de arhitect — pereti dubli, corpuri hasurate, cote cu sageti.
 
 const brass = 'hsl(var(--brass))';
+const crimson = 'hsl(var(--crimson))';
 const card = 'hsl(var(--card))';
 
 // Valorile per LITERA (formatate cu unitatea curenta in step-renderer);
 // undefined = fara valori pe desen (slot inca necompletat).
 export type FigureValues = Record<string, string>;
 
+// Literele cotelor gresite (38): insigna si valoarea lor se coloreaza rosu.
+const InvalidLetters = createContext<ReadonlySet<string>>(new Set());
+
+// Marimile cotelor in unitatile desenului (atribute SVG, nu clase de text). Sub sm (j1)
+// plansa se micsoreaza la ~0,6x, deci textul e mai mare ca sa ramana ~13 px pe ecran.
+interface FigureSizes {
+  value: number;
+  letter: number;
+  badgeR: number;
+  valueOffset: number;
+}
+const DESKTOP_SIZES: FigureSizes = { value: 10, letter: 12, badgeR: 11, valueOffset: 24 };
+const PHONE_SIZES: FigureSizes = { value: 21, letter: 17, badgeR: 14, valueOffset: 34 };
+const FigureSize = createContext<FigureSizes>(DESKTOP_SIZES);
+
+const PHONE_QUERY = '(max-width: 639.98px)';
+function subscribePhone(onChange: () => void) {
+  if (typeof window === 'undefined' || !window.matchMedia) return () => {};
+  const mq = window.matchMedia(PHONE_QUERY);
+  mq.addEventListener?.('change', onChange);
+  return () => mq.removeEventListener?.('change', onChange);
+}
+const isPhone = () => typeof window !== 'undefined' && Boolean(window.matchMedia?.(PHONE_QUERY).matches);
+
+function FigureSizeProvider({ children }: { children: React.ReactNode }) {
+  // pe server si la hidratare: marimile de desktop (ca azi)
+  const phone = useSyncExternalStore(subscribePhone, isPhone, () => false);
+  return <FigureSize.Provider value={phone ? PHONE_SIZES : DESKTOP_SIZES}>{children}</FigureSize.Provider>;
+}
+
 // ---------- primitive de cotare ----------
 
 // Eticheta de valoare de sub o insigna: text mic cu halou (paintOrder stroke)
-// ca sa nu se piarda peste hasuri sau linii de cota.
-function ValueLabel({ x, y, value }: { x: number; y: number; value?: string }) {
+// ca sa nu se piarda peste hasuri sau linii de cota. Sub sm (j1) textul e mai mare
+// in unitatile desenului, ca pe telefon sa ramana ~13 px dupa micsorarea plansei.
+function ValueLabel({ x, y, value, invalid }: { x: number; y: number; value?: string; invalid?: boolean }) {
+  const s = useContext(FigureSize);
   if (!value) return null;
   return (
     <text
       x={x}
       y={y}
       textAnchor="middle"
-      fontSize={10}
+      fontSize={s.value}
       fontWeight={600}
       fontFamily="var(--font-mono)"
-      fill={brass}
+      fill={invalid ? crimson : brass}
       stroke={card}
       strokeWidth={4}
       paintOrder="stroke"
       strokeLinejoin="round"
+      data-invalid={invalid || undefined}
     >
       {value}
     </text>
@@ -42,21 +77,26 @@ function ValueLabel({ x, y, value }: { x: number; y: number; value?: string }) {
 }
 
 function Badge({ x, y, letter, value }: { x: number; y: number; letter: string; value?: string }) {
+  const invalid = useContext(InvalidLetters).has(letter);
+  const s = useContext(FigureSize);
+  const color = invalid ? crimson : brass;
   return (
-    <g>
-      <circle cx={x} cy={y} r={11} fill={card} stroke={brass} strokeWidth={1.4} />
+    <g data-dimension-letter={letter} data-invalid={invalid || undefined}>
+      <circle cx={x} cy={y} r={s.badgeR} fill={card} stroke={color} strokeWidth={invalid ? 2 : 1.4} />
       <text
         x={x}
-        y={y + 4}
+        y={y}
+        dy="0.35em"
         textAnchor="middle"
-        fontSize={12}
+        fontSize={s.letter}
         fontWeight={700}
         fontFamily="var(--font-mono)"
-        fill={brass}
+        fill={color}
+        stroke={invalid ? crimson : undefined}
       >
         {letter}
       </text>
-      <ValueLabel x={x} y={y + 24} value={value} />
+      <ValueLabel x={x} y={y + s.valueOffset} value={value} invalid={invalid} />
     </g>
   );
 }
@@ -197,7 +237,8 @@ function RoomShell({ x, y, w, h }: { x: number; y: number; w: number; h: number 
 }
 
 const FIG = 'rounded-xl border border-border-2 bg-surface-2 p-4';
-const SVG = 'mx-auto w-full max-w-md';
+// overflow-visible: cotele mai mari de pe telefon pot iesi putin din chenarul desenului
+const SVG = 'mx-auto w-full max-w-md overflow-visible';
 
 // ---------- figurile per tip de intrebare ----------
 
@@ -1019,7 +1060,30 @@ export function getDimensionFigure(
   roomType: RoomType,
   answers: AnswerMap,
   slotIds: string[],
-  // valori formatate per slotId (ex. '2.4 m') — apar langa litere pe desen
+  // valori formatate per slotId (ex. '2,4 m') — apar langa litere pe desen
+  values?: Record<string, string>,
+  // sloturile gresite (in afara intervalului / goale dupa "Continua") — cota lor e rosie
+  invalidSlotIds?: readonly string[],
+): DimensionFigure | null {
+  const figure = figureFor(roomType, answers, slotIds, values);
+  if (!figure) return null;
+  const letters = new Set(
+    (invalidSlotIds ?? []).map((id) => figure.letters[id]).filter((l): l is string => Boolean(l)),
+  );
+  return {
+    ...figure,
+    node: (
+      <FigureSizeProvider>
+        <InvalidLetters.Provider value={letters}>{figure.node}</InvalidLetters.Provider>
+      </FigureSizeProvider>
+    ),
+  };
+}
+
+function figureFor(
+  roomType: RoomType,
+  answers: AnswerMap,
+  slotIds: string[],
   values?: Record<string, string>,
 ): DimensionFigure | null {
   switch (roomType) {

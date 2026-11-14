@@ -14,6 +14,7 @@ import {
 import { create } from 'zustand';
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 import { roomIssue } from '@/components/configurator/room-screens';
+import type { DimensionUnit } from '@/lib/dimension-format';
 import { CONFIGURATOR_STORAGE_KEY, editSessionKey, isAbandonedEditSnapshot } from './configurator-keys';
 import { prepareStudioTransfer, type StudioTransferResult } from './studio-transfer';
 import { piece3dOf, SNAPSHOT3D_STEP_ID, snapshot3dIds } from './snapshot3d';
@@ -122,8 +123,7 @@ export interface ConfiguratorSnapshot {
 }
 
 // Unitatea de afisare pentru inputurile de dimensiuni (valorile raman in metri
-// in answers — conversia e pur prezentationala, in StepRenderer).
-export type DimensionUnit = 'm' | 'cm' | 'mm';
+// in answers — conversia e pur prezentationala). Tipul sta in lib/dimension-format (etapa 8).
 
 interface ConfiguratorStore extends ConfiguratorSnapshot {
   transferStudio: (data: StudioDraftData) => StudioTransferResult;

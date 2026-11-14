@@ -6,7 +6,7 @@ import {
   columnStepperLimits,
   COLUMN_W_MAX,
   COLUMN_W_MIN,
-  defaultPieceConfig,
+  configHasFronts,
   DESK_TWO_PEDESTALS_FROM_W,
   DRAWER_H_MIN,
   DRAWERS_MAX_TOP,
@@ -16,6 +16,7 @@ import {
   HANGING_MIN_DEPTH,
   HANGING_MIN_ZONE_H,
   hangingCountFor,
+  initialPieceConfig,
   isPieceConfig3d,
   isFurnitureKind,
   normalizePieceConfig,
@@ -54,8 +55,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { formatDecimal } from '@/lib/decimal';
-import { cmRangeText, useDecimalField } from '../use-decimal-field';
+import { useDecimalField } from '../use-decimal-field';
 import { useDimensionField } from './use-dimension-field';
+import { DimensionFieldMessages, DimensionInputRow, PieceDimensionControl } from './dimension-control';
+import { configHasDoors, withFrontStyleRule, withHingedDoors } from './front-style';
 import { FINISH_SPECS } from './finishes';
 import { PieceCanvas, zoneKey, type SnapshotFn, type ZoneRef } from './piece-canvas';
 import { FurnitureControls } from './furniture-controls';
@@ -101,84 +104,10 @@ const cmExact = (v: number) => Math.round(v * 1000) / 10;
 const FILL_OPTIONS: (Piece3dZoneFill | undefined)[] = [undefined, 'SHELVES', 'HANGING'];
 const fillKey = (fill: Piece3dZoneFill | undefined) => fill ?? 'NONE';
 
-function DimensionControl({
-  label,
-  min,
-  max,
-  valueM,
-  onValueM,
-}: {
-  label: string;
-  min: number;
-  max: number;
-  valueM: number;
-  onValueM: (v: number) => void;
-}) {
-  // draft local pentru campul numeric: valoarea afisata NU se leaga direct de
-  // valueM cat timp userul editeaza — altfel clamp-ul din normalizePieceConfig
-  // se aplica la fiecare tasta si "sare" inapoi la minim inainte sa apuce sa
-  // scrie a doua cifra (ex: sterge 50, vrea 25, dar 2 < min => revine la min)
-  // b1: camp text cu virgula; b7: valoarea in afara intervalului se corecteaza
-  // la limita CU mesaj ("Minimul e 60 cm — am pus 60"), campul golit pastreaza
-  // valoarea veche cu mesaj, "1,2" se citeste ca metri (120 cm)
-  const locale = useLocale();
-  const range = cmRangeText(min, max, locale);
-  const field = useDimensionField({
-    valueCm: cmExact(valueM),
-    minCm: cmExact(min),
-    maxCm: cmExact(max),
-    onValueCm: (v) => onValueM(v / 100),
-  });
-  // intervalul permis sta LANGA eticheta (nu sub slider) — economiseste un rand
-  // per dimensiune, ca panoul lateral din modul 3D sa incapa pe ecran (U2)
-  return (
-    <div>
-      <div className="mb-1 flex items-baseline justify-between gap-2">
-        <span className="text-sm font-medium">{label}</span>
-        <span className="text-meta text-muted-foreground">{range}</span>
-      </div>
-      <div className="flex items-center gap-3">
-        <input
-          type="range"
-          min={cm(min)}
-          max={cm(max)}
-          step={1}
-          value={cm(valueM)}
-          onChange={(e) => {
-            field.reset();
-            onValueM(Number(e.target.value) / 100);
-          }}
-          className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-border-2 accent-walnut"
-          aria-label={label}
-        />
-        <div className="relative w-24 shrink-0">
-          <Input
-            {...field.inputProps}
-            aria-label={label}
-            className={field.error ? 'border-crimson pr-9 text-right' : 'pr-9 text-right'}
-          />
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-            cm
-          </span>
-        </div>
-      </div>
-      {field.error && (
-        <p role="alert" className="mt-1 text-meta text-crimson">
-          {field.error}
-        </p>
-      )}
-      {/* montat mereu (gol fara mesaj), ca anuntul sa fie citit cand apare */}
-      <p
-        id={field.noteId}
-        role="status"
-        aria-live="polite"
-        className={field.note ? 'mt-1 text-meta text-muted-foreground' : 'sr-only'}
-      >
-        {field.note}
-      </p>
-    </div>
-  );
-}
+// 40.1 (telefon): tintele tactile au cel putin 44 px sub lg; pe desktop raman compacte
+const TOUCH = 'max-lg:min-h-11 max-lg:min-w-11';
+const STEPPER_BUTTON = `grid h-7 w-7 ${TOUCH} place-items-center rounded-md text-foreground transition-colors hover:bg-walnut-soft disabled:opacity-30`;
+const PILL = `${TOUCH} rounded-full border px-2.5 py-1 text-xs font-medium transition-colors `;
 
 function Stepper({
   value,
@@ -202,7 +131,7 @@ function Stepper({
         onClick={() => onDelta(-1)}
         disabled={!canDec}
         aria-label={decLabel}
-        className="grid h-7 w-7 place-items-center rounded-md text-foreground transition-colors hover:bg-walnut-soft disabled:opacity-30"
+        className={STEPPER_BUTTON}
       >
         <Minus className="h-4 w-4" />
       </button>
@@ -212,7 +141,7 @@ function Stepper({
         onClick={() => onDelta(1)}
         disabled={!canInc}
         aria-label={incLabel}
-        className="grid h-7 w-7 place-items-center rounded-md text-foreground transition-colors hover:bg-walnut-soft disabled:opacity-30"
+        className={STEPPER_BUTTON}
       >
         <Plus className="h-4 w-4" />
       </button>
@@ -230,7 +159,8 @@ function TogglePills({
 }: {
   label: string;
   options: { value: string; label: string }[];
-  value: string;
+  // d2: lipsa = nicio optiune aleasa (de ex. "Batante" fara nicio usa)
+  value: string | undefined;
   onSelect: (value: string) => void;
 }) {
   return (
@@ -243,7 +173,7 @@ function TogglePills({
           aria-pressed={value === option.value}
           onClick={() => onSelect(option.value)}
           className={
-            'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ' +
+            PILL +
             (value === option.value
               ? 'border-walnut bg-walnut text-white'
               : 'border-border-2 bg-surface hover:border-walnut/50')
@@ -281,24 +211,16 @@ function LockableSize({
 }) {
   // valueCm e valoarea REZOLVATA (dupa clamp la minimul de 10/15cm etc.) —
   // draft local ca sa nu "sara" inapoi la minim la fiecare tasta stearsa,
-  // inainte ca userul sa apuce sa scrie noua valoare (vezi DimensionControl)
+  // inainte ca userul sa apuce sa scrie noua valoare (vezi PieceDimensionControl)
   // b1: virgula acceptata; 0 / text invalid → ramane valoarea veche, cu mesaj
   // b7: limitele cunoscute (coloana 22-100cm, rand min 10cm) se corecteaza cu
   // mesaj, la fel ca in normalizePieceConfig; campul golit → mesaj
+  // 41.4: acelasi camp "cm" si aceleasi mesaje ca dimensiunile piesei (dimension-control)
   const field = useDimensionField({ valueCm, minCm, maxCm, onValueCm });
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="relative w-20 shrink-0">
-        <Input
-          {...field.inputProps}
-          aria-label={label}
-          className={field.error ? 'h-8 border-crimson pr-7 text-right text-sm' : 'h-8 pr-7 text-right text-sm'}
-        />
-        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-micro text-muted-foreground">
-          cm
-        </span>
-      </div>
+      <DimensionInputRow field={field} label={label} compact />
       <button
         type="button"
         aria-pressed={locked}
@@ -306,7 +228,7 @@ function LockableSize({
         aria-label={locked ? unlockLabel : lockLabel}
         onClick={onToggleLock}
         className={
-          'grid h-8 w-8 shrink-0 place-items-center rounded-md border transition-colors ' +
+          `grid h-8 w-8 ${TOUCH} shrink-0 place-items-center rounded-md border transition-colors ` +
           (locked
             ? 'border-walnut/50 bg-walnut-soft text-walnut'
             : 'border-border-2 text-muted-foreground hover:text-foreground')
@@ -314,19 +236,7 @@ function LockableSize({
       >
         {locked ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
       </button>
-      {field.error && (
-        <p role="alert" className="basis-full text-meta text-crimson">
-          {field.error}
-        </p>
-      )}
-      <p
-        id={field.noteId}
-        role="status"
-        aria-live="polite"
-        className={field.note ? 'basis-full text-meta text-muted-foreground' : 'sr-only'}
-      >
-        {field.note}
-      </p>
+      <DimensionFieldMessages field={field} className="basis-full" />
     </div>
   );
 }
@@ -407,9 +317,16 @@ function CabinetControls({
   const config = isPieceConfig3d(value) ? value : null;
   const { openZones, setOpenZones, toggleZone, onFrontSettled } = useCabinetFronts(piece, config);
 
-  // raspunsul exista mereu dupa montare — configul implicit al piesei
+  // raspunsul exista mereu dupa montare — configul de pornire al piesei (etapa 8, PO d2-2:
+  // dulap cu usi, comoda TV cu sertare, "Push" scris cand are fronturi). O configuratie salvata
+  // care incalca regula deschiderii (ciornele vechi) se corecteaza o data (D5).
   useEffect(() => {
-    if (!config) onChange(defaultPieceConfig(piece));
+    if (!config) {
+      onChange(initialPieceConfig(piece));
+      return;
+    }
+    const fixed = withFrontStyleRule(piece, config);
+    if (fixed !== config) onChange(fixed);
   }, [config, onChange, piece]);
 
   // b7: "intentia" clientului = configuratia DINAINTE de curatare. Fiecare
@@ -431,7 +348,8 @@ function CabinetControls({
 
   const apply = useCallback(
     (next: PieceConfig3d) => {
-      const cleaned = normalizePieceConfig(piece, next);
+      // d2: deschiderea se scrie doar cand piesa are fronturi; intentia o pastreaza oricum
+      const cleaned = withFrontStyleRule(piece, normalizePieceConfig(piece, next), next);
       setIntentState({ piece, intent: next, cleanedKey: stableKey(cleaned) });
       onChange(cleaned);
     },
@@ -476,6 +394,20 @@ function CabinetControls({
     if (!column || activeZone.zone >= column.zones.length) return null;
     return activeZone;
   }, [config, activeZone]);
+
+  // 40.5 (telefon): dupa atingerea unei zone, panoul ei vine pe ecran sub scena lipita sus;
+  // pe desktop panoul sta deja langa scena
+  const zonePanelRef = useRef<HTMLDivElement | null>(null);
+  const [zoneTapped, setZoneTapped] = useState(0);
+  useEffect(() => {
+    if (zoneTapped === 0 || typeof window === 'undefined') return;
+    const small =
+      typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 1023.98px)').matches;
+    const panel = zonePanelRef.current;
+    if (small && panel && typeof panel.scrollIntoView === 'function') {
+      panel.scrollIntoView({ block: 'nearest' });
+    }
+  }, [zoneTapped]);
 
   // geometria rezolvata (latimi/inaltimi reale, cu blocaje) — pentru afisarea
   // dimensiunilor si regulile bara de haine / sertare (R5.3)
@@ -725,8 +657,11 @@ function CabinetControls({
     ),
   );
 
-  const zoneToolbar =validActiveZone && activeZoneData && activeResolved && (
-    <div className="flex flex-col gap-2 rounded-xl border border-walnut/40 bg-walnut-soft/60 p-3">
+  const zoneToolbar = validActiveZone && activeZoneData && activeResolved && (
+    <div
+      ref={zonePanelRef}
+      className="flex scroll-mb-4 flex-col gap-2 rounded-xl border border-walnut/40 bg-walnut-soft/60 p-3"
+    >
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-[0.08em] text-walnut">
           {t('config3d.zoneToolbarTitle', {
@@ -759,7 +694,7 @@ function CabinetControls({
               aria-pressed={activeZoneData.type === type}
               onClick={() => setZoneType(validActiveZone, type)}
               className={
-                'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ' +
+                PILL +
                 (activeZoneData.type === type
                   ? 'border-walnut bg-walnut text-white'
                   : 'border-border-2 bg-surface hover:border-walnut/50')
@@ -787,7 +722,7 @@ function CabinetControls({
               aria-pressed={activeZoneData.fill === fill}
               onClick={() => setZoneFill(validActiveZone, fill)}
               className={
-                'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ' +
+                PILL +
                 (activeZoneData.fill === fill
                   ? 'border-walnut bg-walnut text-white'
                   : 'border-border-2 bg-surface hover:border-walnut/50')
@@ -899,24 +834,24 @@ function CabinetControls({
   const dimensionControls = (
     <div className={mode === '3d' ? 'grid gap-3 sm:grid-cols-3 lg:grid-cols-1' : 'grid gap-3 sm:grid-cols-3'}>
       <CatalogControls kind={piece} config={config} apply={(patch) => apply({ ...b, ...patch })} />
-      <DimensionControl
+      <PieceDimensionControl
         label={t('config3d.width')}
-        min={rules.width.min}
-        max={rules.width.max}
+        minM={rules.width.min}
+        maxM={rules.width.max}
         valueM={config.widthM}
         onValueM={(v) => apply({ ...b, widthM: v })}
       />
-      <DimensionControl
+      <PieceDimensionControl
         label={t('config3d.height')}
-        min={rules.height.min}
-        max={rules.height.max}
+        minM={rules.height.min}
+        maxM={rules.height.max}
         valueM={config.heightM}
         onValueM={(v) => apply({ ...b, heightM: v })}
       />
-      <DimensionControl
+      <PieceDimensionControl
         label={t('config3d.depth')}
-        min={rules.depth.min}
-        max={rules.depth.max}
+        minM={rules.depth.min}
+        maxM={rules.depth.max}
         valueM={config.depthM}
         onValueM={(v) => apply({ ...b, depthM: v })}
       />
@@ -961,7 +896,7 @@ function CabinetControls({
               title={t(`config3d.finishes.${finish}`)}
               onClick={() => apply({ ...b, finish })}
               className={
-                'h-7 w-7 rounded-full border-2 transition-transform ' +
+                `h-7 w-7 ${TOUCH} rounded-full border-2 transition-transform ` +
                 (config.finish === finish
                   ? 'scale-110 border-walnut shadow-[0_0_0_2px_hsl(var(--walnut)/0.2)]'
                   : 'border-border-2 hover:scale-105')
@@ -974,7 +909,7 @@ function CabinetControls({
           <label
             title={t('config3d.finishes.CUSTOM')}
             className={
-              'relative h-7 w-7 cursor-pointer rounded-full border-2 transition-transform ' +
+              `relative h-7 w-7 ${TOUCH} cursor-pointer rounded-full border-2 transition-transform ` +
               (config.finish === 'CUSTOM'
                 ? 'scale-110 border-walnut shadow-[0_0_0_2px_hsl(var(--walnut)/0.2)]'
                 : 'border-border-2 hover:scale-105')
@@ -1003,7 +938,7 @@ function CabinetControls({
         size="sm"
         className="ml-auto text-muted-foreground"
         onClick={() => {
-          apply(defaultPieceConfig(piece));
+          apply(initialPieceConfig(piece));
           setActiveZone(null);
           setOpenZones(new Set());
         }}
@@ -1018,19 +953,25 @@ function CabinetControls({
   // piesele), soclu/picioare (comoda), usi batante/glisante (dulap)
   const canSlide =
     config.columns.length >= SLIDING_COLUMNS_MIN && config.columns.length <= SLIDING_COLUMNS_MAX;
+  // d2: deschiderea se alege doar la piesele cu fronturi; pilula arata valoarea salvata
+  // (dupa regula din front-style, "Push" e scris cand n-a ales nimic altceva)
+  const hasFronts = configHasFronts(piece, config);
+  const hasDoors = configHasDoors(config);
   const optionsControl = (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-      <TogglePills
-        label={t('config3d.frontStyleLabel')}
-        options={(['PUSH', 'HANDLE'] as const).map((style) => ({
-          value: style,
-          label: t(`config3d.frontStyles.${style}`),
-        }))}
-        value={config.frontStyle ?? 'PUSH'}
-        onSelect={(style) =>
-          apply({ ...b, frontStyle: style as PieceConfig3d['frontStyle'] })
-        }
-      />
+      {hasFronts && (
+        <TogglePills
+          label={t('config3d.frontStyleLabel')}
+          options={(['PUSH', 'HANDLE'] as const).map((style) => ({
+            value: style,
+            label: t(`config3d.frontStyles.${style}`),
+          }))}
+          value={config.frontStyle}
+          onSelect={(style) =>
+            apply({ ...b, frontStyle: style as PieceConfig3d['frontStyle'] })
+          }
+        />
+      )}
       {rules.legsOption && (
         <TogglePills
           label={t('config3d.baseLabel')}
@@ -1049,9 +990,10 @@ function CabinetControls({
             value: mode,
             label: t(`config3d.doorModes.${mode}`),
           }))}
-          value={sliding ? 'SLIDING' : 'HINGED'}
+          // D4b: "Batante" apare ales doar cand piesa are usi; apasat fara usi, le pune
+          value={sliding ? 'SLIDING' : hasDoors ? 'HINGED' : undefined}
           onSelect={(mode) => {
-            apply({ ...b, doorMode: mode === 'SLIDING' ? 'SLIDING' : undefined });
+            apply(mode === 'SLIDING' ? { ...b, doorMode: 'SLIDING' } : withHingedDoors(b));
             setOpenZones(new Set());
           }}
         />
@@ -1297,7 +1239,8 @@ function CabinetControls({
         // comenzile intr-o coloana in dreapta — panoul zonei selectate apare
         // LANGA model, nu sub el, ca totul sa incapa pe un singur ecran.
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_330px] lg:gap-5">
-          <div className="overflow-hidden rounded-xl border border-border-2 lg:sticky lg:top-20">
+          {/* 40.5: pe telefon scena sta lipita sus (~40% din ecran), comenzile curg dedesubt */}
+          <div className="sticky top-[var(--header-h,4rem)] z-10 overflow-hidden rounded-xl border border-border-2 bg-surface lg:top-20 lg:z-auto">
             <PieceCanvas
               kind={piece}
               config={config}
@@ -1309,11 +1252,12 @@ function CabinetControls({
                 // sau le inchide (NU mai cicleaza tipul — tipul se alege din bara)
                 setActiveZone(ref);
                 toggleZone(ref);
+                setZoneTapped((n) => n + 1);
               }}
               onSnapshotReady={(fn) => {
                 snapshotFn.current = fn;
               }}
-              className="h-[320px] w-full sm:h-[420px] lg:h-[500px]"
+              className="h-[40dvh] min-h-[220px] w-full lg:h-[500px] lg:min-h-0"
             />
           </div>
           <div className="flex min-w-0 flex-col gap-3">

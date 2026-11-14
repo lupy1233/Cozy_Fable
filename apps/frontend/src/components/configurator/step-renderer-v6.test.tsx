@@ -445,7 +445,8 @@ describe('etapa 6 — perechea Da / Nu pentru sameFinishAll (inline, obligatoriu
   });
 
   it('an untouched required question does not pass validation', () => {
-    expect(validateStep(same, { piecesNeeded: ['WARDROBE', 'DRESSER'] })).toBe('validation.answerRequired');
+    // etapa 8 (39): da / nu fara raspuns → "Alege o optiune"
+    expect(validateStep(same, { piecesNeeded: ['WARDROBE', 'DRESSER'] })).toBe('validation.chooseOne');
     expect(validateStep(same, { piecesNeeded: ['WARDROBE', 'DRESSER'], sameFinishAll: false })).toBeUndefined();
   });
 

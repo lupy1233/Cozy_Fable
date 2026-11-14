@@ -504,6 +504,28 @@ export function defaultPieceConfig(kind: Piece3dKind): PieceConfig3d {
   };
 }
 
+// Etapa 8 (d2-2, d2-3): configuratia cu care PORNESTE o piesa noua in interfata (si la
+// "De la capat"). defaultPieceConfig ramane neschimbat (fixturile si instantaneele il folosesc).
+// Dulap: zonele deschise devin usi batante, cu acelasi interior (sertarele raman); comoda TV:
+// un rand de sertare pe fiecare coloana; deschiderea "Push" scrisa explicit cand piesa are
+// fronturi (ce vede clientul ales ajunge la firma si se puncteaza).
+export function initialPieceConfig(kind: Piece3dKind): PieceConfig3d {
+  const base = defaultPieceConfig(kind);
+  if (isFurnitureKind(kind)) return normalizePieceConfig(kind, base);
+  let columns = base.columns;
+  if (kind === 'WARDROBE') {
+    columns = columns.map((column) => ({
+      ...column,
+      zones: column.zones.map((zone): Piece3dZone => (zone.type === 'OPEN' ? { ...zone, type: 'DOOR' } : zone)),
+    }));
+  }
+  if (kind === 'TV_UNIT') {
+    columns = columns.map(() => ({ zones: [{ type: 'DRAWERS', count: 1 }] }));
+  }
+  const next = normalizePieceConfig(kind, { ...base, columns });
+  return configHasFronts(kind, next) ? { ...next, frontStyle: 'PUSH' } : next;
+}
+
 const round3 = (v: number) => Math.round(v * 1000) / 1000;
 
 // Normalizeaza config-ul dupa o schimbare de gabarit/coloane: pastreaza zonele
