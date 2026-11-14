@@ -65,6 +65,26 @@ describe('useScrollToHashSection', () => {
     expect(scrollIntoView).not.toHaveBeenCalled();
   });
 
+  // verificarea in browser (etapa 11): la clic din cardul „Pregateste-ti firma” Next deruleaza
+  // singur la ancora inaintea efectului → pozitia ramane, dar focusul tot trece pe titlu
+  it('Next a derulat deja la ancora (sectiunea e sus) → fara derulare, cu focus pe titlu', () => {
+    Object.defineProperty(window, 'scrollY', { value: 640, configurable: true });
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ top: 72 } as DOMRect);
+    const { getByRole } = render(<Page />);
+    vi.runAllTimers();
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(getByRole('heading', { name: 'Portofoliu' })).toHaveFocus();
+  });
+
+  it('pozitie restaurata in alt loc al paginii (sectiunea nu e sus) → nici derulare, nici focus', () => {
+    Object.defineProperty(window, 'scrollY', { value: 640, configurable: true });
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ top: 1400 } as DOMRect);
+    const { getByRole } = render(<Page />);
+    vi.runAllTimers();
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(getByRole('heading', { name: 'Portofoliu' })).not.toHaveFocus();
+  });
+
   it('fara ancora sau cu ancora necunoscuta → nimic', () => {
     window.history.replaceState(null, '', '/ro/company');
     render(<Page />).unmount();

@@ -966,7 +966,9 @@
       "step1": "1. Your colleague creates their own Cozy Home account, as a Company, with their email address.",
       "step2": "2. Enter the same email here and pick a role. Your colleague gets a notification in the app; if your company is approved and their email is confirmed, they also get an email."
     },
-    "ownerAlwaysAllowed": "The owner can always edit every offer field, so the owner's boxes can't be unticked."
+    "ownerAlwaysAllowed": "The owner can always edit every offer field, so the owner's boxes can't be unticked.",
+    "lat": "Latitude",
+    "lng": "Longitude"
   },
   "AdminInspiration": {
     "title": "The Idea Book",
@@ -5979,7 +5981,7 @@
           },
           "bedLength": {
             "title": "How long is the mattress?",
-            "subtitle": "Most mattresses are 200 cm long; some are 190 cm.",
+            "subtitle": "Optional. Most mattresses are 200 cm long; some are 190 cm.",
             "options": {
               "L_200": {
                 "label": "200 cm",
@@ -5989,11 +5991,12 @@
                 "label": "190 cm",
                 "description": "A shorter mattress"
               }
-            }
+            },
+            "summaryLabel": "Mattress length"
           },
           "bedFabric": {
             "title": "Which fabric do you want for the bed?",
-            "subtitle": "The fabric that covers the upholstered bed.",
+            "subtitle": "Optional. The fabric that covers the upholstered bed.",
             "options": {
               "WOVEN": {
                 "label": "Woven fabric",
@@ -6007,11 +6010,12 @@
                 "label": "Velvet",
                 "description": "Fine fabric with a subtle sheen"
               }
-            }
+            },
+            "summaryLabel": "Bed fabric"
           },
           "wardrobeInterior": {
             "title": "What do you want inside the wardrobe?",
-            "subtitle": "Pick everything you'd use. If you're not sure, the company will suggest a layout.",
+            "subtitle": "Optional. Pick everything you'd use. If you're not sure, the company will suggest a layout.",
             "options": {
               "HANGING_RODS": {
                 "label": "Hanging rods",
@@ -6037,7 +6041,8 @@
                 "label": "LED lighting",
                 "description": "LED lighting inside the wardrobe"
               }
-            }
+            },
+            "summaryLabel": "Wardrobe interior"
           }
         }
       },
@@ -6509,7 +6514,7 @@
           },
           "basinType": {
             "title": "What kind of basin do you want?",
-            "subtitle": "The company builds the top and the unit around the basin. If you're not sure, pick \"Not sure\".",
+            "subtitle": "Optional. The company builds the top and the unit around the basin. If you're not sure, pick \"Not sure\".",
             "options": {
               "COUNTERTOP_BASIN": {
                 "label": "Countertop basin",
@@ -6523,11 +6528,12 @@
                 "label": "Top with integrated basin",
                 "description": "The top and the basin are one piece, with no joints."
               }
-            }
+            },
+            "summaryLabel": "Basin type"
           },
           "basinSupply": {
             "title": "Who supplies the basin?",
-            "subtitle": "So the company knows whether to include it in the offer.",
+            "subtitle": "Optional. So the company knows whether to include it in the offer.",
             "options": {
               "CLIENT": {
                 "label": "I'll bring it (I have one or will buy it)",
@@ -6537,7 +6543,8 @@
                 "label": "The company supplies it",
                 "description": "The company suggests a basin and includes it in the offer."
               }
-            }
+            },
+            "summaryLabel": "Who supplies the basin"
           }
         }
       },
@@ -6671,7 +6678,7 @@
           },
           "hallWidth": {
             "title": "How wide is the hallway?",
-            "subtitle": "It helps the company choose how deep the pieces should be.",
+            "subtitle": "Optional. It helps the company choose how deep the pieces should be.",
             "options": {
               "NARROW": {
                 "label": "Narrow hallway (under 1.2 m)",
@@ -6685,7 +6692,8 @@
                 "label": "Not sure — the company will measure it",
                 "description": "The company will measure the hallway when it comes to take measurements."
               }
-            }
+            },
+            "summaryLabel": "Hallway width"
           }
         }
       },
@@ -6844,7 +6852,7 @@
           },
           "washerLoading": {
             "title": "How does the washing machine load?",
-            "subtitle": "It changes how the cabinet around it is built.",
+            "subtitle": "Optional. It changes how the cabinet around it is built.",
             "options": {
               "FRONT": {
                 "label": "Front-loading",
@@ -6854,7 +6862,8 @@
                 "label": "Top-loading",
                 "description": "The lid opens upwards; it needs free space above."
               }
-            }
+            },
+            "summaryLabel": "Washing machine loading"
           }
         }
       },

@@ -17,6 +17,7 @@ export function useRepostWithChangesById(id: string) {
       }),
     onSuccess: (data) => {
       qc.setQueryData(['request', id], data);
+      qc.invalidateQueries({ queryKey: ['request', id, 'visibility'] });
       qc.invalidateQueries({ queryKey: ['requests', 'mine'] });
       qc.invalidateQueries({ queryKey: ['requests', 'dashboard-stats'] });
     },

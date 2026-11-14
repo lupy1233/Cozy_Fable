@@ -167,7 +167,9 @@ export function getQuestionTargets(
   // din cheile dedicate anchors.kitchenZones, nu din optiuni)
   const zone = roomType === 'KITCHEN' ? KITCHEN_ZONE_BY_STEP[step.id] : undefined;
   if (zone) {
-    const shown = ['BASE_UNITS', 'WALL_UNITS'];
+    // etapa 10 (v5): "Fara corpuri suspendate" scoate zona suspendatelor si din banda
+    const shown = ['BASE_UNITS'];
+    if (zone === 'WALL_UNITS' || answers.wallCabinets !== 'NO_WALL_CABINETS') shown.push('WALL_UNITS');
     if (zone === 'ISLAND_UNITS' || answers.hasIsland === true) shown.push('ISLAND_UNITS');
     const items = buildItems(roomType, flowVersion, 'cabinetZones', shown).map((it) => ({
       ...it,

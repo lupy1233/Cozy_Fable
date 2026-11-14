@@ -849,7 +849,8 @@ describe('g1: evenimente noi si destinatarii firmei', () => {
     expect(emailedIds(prisma)).toEqual(['u-client']);
     const [, subject, html] = mail.send.mock.calls[0];
     expect(subject).toContain('Firma A Mobila are o întrebare la cererea ta');
-    expect(html).toContain('/ro/requests/r1');
+    // raspunsul se da pe pagina ofertelor, nu pe pagina cererii
+    expect(html).toContain('/ro/requests/r1/offers');
   });
 
   it('clarification.answered / request.edited_after_claim / delivery.confirmed / review.created → legatura spre fisa preluarii', async () => {

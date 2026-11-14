@@ -966,7 +966,9 @@
       "step1": "1. Colegul își face singur cont pe Cozy Home, ca Firmă, cu adresa lui de e-mail.",
       "step2": "2. Scrii aici același e-mail și alegi rolul. Colegul primește o notificare în aplicație; dacă firma e aprobată și are e-mailul confirmat, primește și un e-mail."
     },
-    "ownerAlwaysAllowed": "Proprietarul poate modifica mereu toate câmpurile ofertei, așa că rubricile lui nu se pot debifa."
+    "ownerAlwaysAllowed": "Proprietarul poate modifica mereu toate câmpurile ofertei, așa că rubricile lui nu se pot debifa.",
+    "lat": "Latitudine",
+    "lng": "Longitudine"
   },
   "AdminInspiration": {
     "title": "Caietul de idei",
@@ -5979,7 +5981,7 @@
           },
           "bedLength": {
             "title": "Ce lungime are salteaua?",
-            "subtitle": "Cele mai multe saltele au 200 cm; unele au 190 cm.",
+            "subtitle": "Opțional. Cele mai multe saltele au 200 cm; unele au 190 cm.",
             "options": {
               "L_200": {
                 "label": "200 cm",
@@ -5989,11 +5991,12 @@
                 "label": "190 cm",
                 "description": "Saltea mai scurtă"
               }
-            }
+            },
+            "summaryLabel": "Lungime saltea"
           },
           "bedFabric": {
             "title": "Ce stofă vrei pentru pat?",
-            "subtitle": "Stofa cu care se îmbracă patul tapițat.",
+            "subtitle": "Opțional. Stofa cu care se îmbracă patul tapițat.",
             "options": {
               "WOVEN": {
                 "label": "Țesătură",
@@ -6007,11 +6010,12 @@
                 "label": "Catifea",
                 "description": "Stofă fină, cu luciu discret"
               }
-            }
+            },
+            "summaryLabel": "Stofă pat"
           },
           "wardrobeInterior": {
             "title": "Ce vrei în interiorul dulapului?",
-            "subtitle": "Alege tot ce ți-ar folosi. Dacă nu știi, firma îți propune o împărțire.",
+            "subtitle": "Opțional. Alege tot ce ți-ar folosi. Dacă nu știi, firma îți propune o împărțire.",
             "options": {
               "HANGING_RODS": {
                 "label": "Bare de agățat",
@@ -6037,7 +6041,8 @@
                 "label": "Iluminare LED",
                 "description": "Iluminare LED în interiorul dulapului"
               }
-            }
+            },
+            "summaryLabel": "Interior dulap"
           }
         }
       },
@@ -6509,7 +6514,7 @@
           },
           "basinType": {
             "title": "Ce fel de lavoar vrei?",
-            "subtitle": "Firma face blatul și corpul după lavoar. Dacă nu știi, alege „Nu știu”.",
+            "subtitle": "Opțional. Firma face blatul și corpul după lavoar. Dacă nu știi, alege „Nu știu”.",
             "options": {
               "COUNTERTOP_BASIN": {
                 "label": "Lavoar pe blat",
@@ -6523,11 +6528,12 @@
                 "label": "Blat cu lavoar integrat",
                 "description": "Blatul și cuva sunt o singură piesă, fără îmbinări."
               }
-            }
+            },
+            "summaryLabel": "Tip lavoar"
           },
           "basinSupply": {
             "title": "Cine aduce lavoarul?",
-            "subtitle": "Ca firma să știe dacă îl include în ofertă.",
+            "subtitle": "Opțional. Ca firma să știe dacă îl include în ofertă.",
             "options": {
               "CLIENT": {
                 "label": "Îl aduc eu (am deja sau îl cumpăr)",
@@ -6537,7 +6543,8 @@
                 "label": "Să-l aducă firma",
                 "description": "Firma propune lavoarul și îl include în ofertă."
               }
-            }
+            },
+            "summaryLabel": "Cine aduce lavoarul"
           }
         }
       },
@@ -6671,7 +6678,7 @@
           },
           "hallWidth": {
             "title": "Cât de lat e holul?",
-            "subtitle": "Ajută firma să aleagă adâncimea pieselor.",
+            "subtitle": "Opțional. Ajută firma să aleagă adâncimea pieselor.",
             "options": {
               "NARROW": {
                 "label": "Hol îngust (sub 1,2 m)",
@@ -6685,7 +6692,8 @@
                 "label": "Nu știu — o măsoară firma",
                 "description": "Firma măsoară holul când vine la măsurători."
               }
-            }
+            },
+            "summaryLabel": "Lățime hol"
           }
         }
       },
@@ -6844,7 +6852,7 @@
           },
           "washerLoading": {
             "title": "Cum se încarcă mașina de spălat?",
-            "subtitle": "Schimbă felul în care se face dulapul din jurul ei.",
+            "subtitle": "Opțional. Schimbă felul în care se face dulapul din jurul ei.",
             "options": {
               "FRONT": {
                 "label": "Încărcare frontală",
@@ -6854,7 +6862,8 @@
                 "label": "Încărcare de sus",
                 "description": "Capacul se deschide în sus; deasupra trebuie să rămână loc liber."
               }
-            }
+            },
+            "summaryLabel": "Încărcare mașină de spălat"
           }
         }
       },

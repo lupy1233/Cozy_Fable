@@ -12,11 +12,20 @@ export function useScrollToHashSection(delayMs = 50) {
   useEffect(() => {
     const id = window.location.hash.slice(1);
     if (!id) return;
-    if (isBackForward() || window.scrollY > 0) return;
+    if (isBackForward()) return;
+    // Pagina deja derulata: fie browserul a restaurat pozitia, fie Next a derulat singur la
+    // ancora (navigare din aplicatie, cu datele firmei deja incarcate). Pozitia nu se mai atinge;
+    // focusul trece pe titlu doar daca sectiunea chiar e sus in fereastra (cazul Next).
+    const alreadyScrolled = window.scrollY > 0;
     const timer = window.setTimeout(() => {
       const section = document.getElementById(id);
       if (!section) return;
-      section.scrollIntoView({ block: 'start' });
+      if (alreadyScrolled) {
+        const top = section.getBoundingClientRect().top;
+        if (top < -8 || top > window.innerHeight / 2) return;
+      } else {
+        section.scrollIntoView({ block: 'start' });
+      }
       const heading = section.querySelector<HTMLElement>('h1, h2, h3') ?? section;
       if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
       heading.focus({ preventScroll: true });

@@ -302,10 +302,12 @@ function DraftStatus({ saving, failed, savedAt, onRetry }: { saving: boolean; fa
 
 // Mod editare: a cata editare este si cate mai raman, din contoarele cererii
 // deja incarcate (preClaimEditsUsed / postClaimEditsUsed). Salvarea consuma una.
-function EditNotice({ request, className }: { request: RequestDto; className?: string }) {
+function EditNotice({ request, repost = false, className }: { request: RequestDto; repost?: boolean; className?: string }) {
   const t = useTranslations('Configurator');
-  // f6-2: cererea expirata — salvarea o republica; nu se numara la editari
-  if (request.status === 'EXPIRED' && !request.repostUsed) {
+  // f6-2: cererea expirata — salvarea o republica; nu se numara la editari. `repost` tine nota pe
+  // loc si in secundele de dupa republicare, cand cererea reincarcata e deja din nou in piata
+  // (altfel aparea „editarea 1 din 3… consuma una”, desi republicarea nu consuma editari).
+  if (repost || (request.status === 'EXPIRED' && !request.repostUsed)) {
     return (
       <div className={cn('flex flex-col gap-2 rounded-xl border border-amber/30 bg-amber-soft px-4 py-4 text-amber sm:px-5', className)}>
         <p className="font-semibold">{t('edit.repostTitle')}</p>
@@ -808,7 +810,7 @@ export function ConfiguratorWizard({ editId, repost = false }: { editId?: string
       {!isEdit && nonClient && <ClientOnlyNote />}
 
       {/* sub antet pe ecrane mici si in fazele fara coloana laterala; altfel sta in coloana */}
-      {editedRequest && <EditNotice request={editedRequest} className={cn(showSide && 'lg:hidden')} />}
+      {editedRequest && <EditNotice request={editedRequest} repost={repost} className={cn(showSide && 'lg:hidden')} />}
 
       <DesignHelpConfirmDialog
         open={modeConfirm !== null}
@@ -937,7 +939,7 @@ export function ConfiguratorWizard({ editId, repost = false }: { editId?: string
                 showBasket ? 'hidden lg:flex' : 'flex',
               )}
             >
-              {editedRequest && <EditNotice request={editedRequest} className="hidden lg:flex" />}
+              {editedRequest && <EditNotice request={editedRequest} repost={repost} className="hidden lg:flex" />}
               {showBasket ? (
                 <CartBasket uploadTarget={uploadTarget} />
               ) : (

@@ -269,6 +269,8 @@ export class ClaimsService {
         if (display?.clientUserId) targets.push(display.clientUserId);
         await this.outbox.record(tx, `claim.created:${slot.id}`, 'claim.created', {
           claimSlotId: slot.id, requestId: req.id, companyId: ctx.companyId, clientUserId: display?.clientUserId ?? null,
+          // g1 (etapa 9): cine preia nu primeste clopotel pentru propria preluare (withoutActor)
+          actorUserId: actingUserId,
         }, targets);
         await this.outbox.record(tx, `claim.created:${slot.id}:status`, 'request.status_changed', { requestId: req.id }, []);
 

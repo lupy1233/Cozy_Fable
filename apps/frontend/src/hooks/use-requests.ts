@@ -124,6 +124,8 @@ export function useRepostRequest(id: string) {
     mutationFn: () => api<RequestDto>(`/requests/${id}/repost`, { method: 'POST' }),
     onSuccess: (data) => {
       qc.setQueryData(['request', data.id], data);
+      // cardul „Cine vede cererea” spunea in continuare ca cererea a expirat, pana la reincarcare
+      qc.invalidateQueries({ queryKey: ['request', data.id, 'visibility'] });
       qc.invalidateQueries({ queryKey: MINE_KEY });
       qc.invalidateQueries({ queryKey: ['requests', 'dashboard-stats'] });
     },

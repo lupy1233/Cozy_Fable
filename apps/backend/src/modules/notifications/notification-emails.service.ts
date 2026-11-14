@@ -1217,10 +1217,11 @@ export class NotificationEmailsService {
             ? `Firma ${subjCompany} are o întrebare la cererea ta — ${subjTitle}`
             : `${subjCompany} has a question about your request — ${subjTitle}`,
           intro: ro
-            ? `Firma <strong>${companyName}</strong> are o întrebare la cererea „${requestTitle}”. Răspunde din pagina cererii, ca firma să poată pregăti oferta.`
-            : `The company <strong>${companyName}</strong> has a question about your request “${requestTitle}”. Answer it from the request page so the company can prepare its offer.`,
+            ? `Firma <strong>${companyName}</strong> are o întrebare la cererea „${requestTitle}”. Răspunde din pagina „Oferte și conversații” a cererii, ca firma să poată pregăti oferta.`
+            : `The company <strong>${companyName}</strong> has a question about your request “${requestTitle}”. Answer it on the request's “Offers and conversations” page so the company can prepare its offer.`,
           cta: ro ? 'Răspunde la întrebare' : 'Answer the question',
-          path: `/${lang}/requests/${requestId}`,
+          // intrebarea si campul de raspuns stau pe pagina ofertelor (ClientClarifications)
+          path: `/${lang}/requests/${requestId}/offers`,
         };
       // e3: raspunsul clientului → firma
       case 'clarification.answered':

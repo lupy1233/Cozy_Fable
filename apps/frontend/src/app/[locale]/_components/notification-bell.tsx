@@ -163,8 +163,7 @@ function hrefFor(type: string, payload: Payload, role: string | undefined): stri
     }
     // e4: o firma a renuntat → pagina cererii (caseta "Cine vede cererea")
     if (type === 'request.company_withdrew') return `/requests/${requestId}`;
-    // e3: intrebarea firmei → pagina cererii (raspunsul se da acolo)
-    if (type === 'clarification.asked') return `/requests/${requestId}`;
+    // e3: intrebarea firmei → pagina ofertelor (acolo sunt intrebarea si campul de raspuns)
     return `/requests/${requestId}/offers`;
   }
   if (role === 'COMPANY_USER') {

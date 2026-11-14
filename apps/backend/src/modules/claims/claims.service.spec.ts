@@ -246,6 +246,8 @@ describe('ClaimsService.create — drumul fericit (E-admin-platform-14)', () => 
     expect(keys).toEqual(['claim.created:slot1', 'claim.created:slot1:status']);
     expect(outbox.record.mock.calls[0][0]).toBe(tx);
     expect(outbox.record.mock.calls[0][4]).toEqual(['u1', 'cl1']);
+    // cine preia e trecut ca autor: procesorul il scoate dintre destinatari (withoutActor)
+    expect(outbox.record.mock.calls[0][3]).toMatchObject({ actorUserId: 'u1' });
 
     expect(assignQueue.add).toHaveBeenCalledWith(
       'assign-deadline',
