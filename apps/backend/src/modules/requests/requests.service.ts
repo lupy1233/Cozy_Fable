@@ -632,16 +632,18 @@ export class RequestsService {
   }
 
   private async repostRequest(request: RequestModel): Promise<RequestDto> {
-    if (request.status !== 'EXPIRED') {
-      throw new BadRequestException({
-        code: ERROR_CODES.REQUEST_NOT_EDITABLE,
-        message: 'Only expired requests can be reposted',
-      });
-    }
+    // Intai „deja republicata”: dupa o republicare reusita cererea nu mai e expirata, iar a doua
+    // incercare (dublu clic, alt dispozitiv) trebuie sa primeasca acelasi raspuns, oricand ajunge.
     if (request.repostUsed) {
       throw new BadRequestException({
         code: ERROR_CODES.REPOST_ALREADY_USED,
         message: 'Repost already used',
+      });
+    }
+    if (request.status !== 'EXPIRED') {
+      throw new BadRequestException({
+        code: ERROR_CODES.REQUEST_NOT_EDITABLE,
+        message: 'Only expired requests can be reposted',
       });
     }
 
@@ -1233,16 +1235,18 @@ export class RequestsService {
 
   // f6-2: aceleasi verificari ca repostul identic; nu numara nicio editare
   private assertRepostable(request: RequestModel): Record<string, never> {
-    if (request.status !== 'EXPIRED') {
-      throw new BadRequestException({
-        code: ERROR_CODES.REQUEST_NOT_EDITABLE,
-        message: 'Only expired requests can be reposted',
-      });
-    }
+    // Intai „deja republicata”: dupa o republicare reusita cererea nu mai e expirata, iar a doua
+    // incercare (dublu clic, alt dispozitiv) trebuie sa primeasca acelasi raspuns, oricand ajunge.
     if (request.repostUsed) {
       throw new BadRequestException({
         code: ERROR_CODES.REPOST_ALREADY_USED,
         message: 'Repost already used',
+      });
+    }
+    if (request.status !== 'EXPIRED') {
+      throw new BadRequestException({
+        code: ERROR_CODES.REQUEST_NOT_EDITABLE,
+        message: 'Only expired requests can be reposted',
       });
     }
     return {};

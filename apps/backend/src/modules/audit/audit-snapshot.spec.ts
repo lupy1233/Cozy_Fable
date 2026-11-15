@@ -120,6 +120,14 @@ describe('Audit snapshot for subscription plans', () => {
     expect(auditSnapshot({ unsuspendReason: 'Cont RO49 AAAA 1B31 0075 9384 0000, tel +40 722 123 456' })).toEqual({
       unsuspendReason: 'Cont [iban], tel [nr]',
     });
+    // adresa lipita de semne de punctuatie dispare cu tot cuvantul; „@” fara domeniu ramane text
+    expect(auditSnapshot({ unsuspendReason: 'scris la <ana@example.com>, apoi pe a@b.c; eticheta @firma si x@y raman' })).toEqual({
+      unsuspendReason: 'scris la [email] apoi pe [email] eticheta @firma si x@y raman',
+    });
+    // un text lung, fara „@”, se termina repede (inainte: timp patratic pe expresia de e-mail)
+    const started = Date.now();
+    expect(auditSnapshot({ unsuspendReason: '!'.repeat(200_000) })).toEqual({ unsuspendReason: '!'.repeat(1000) });
+    expect(Date.now() - started).toBeLessThan(1000);
     expect(auditSnapshot({ unsuspendReason: '   ' })).toBeUndefined();
     expect(auditSnapshot({ unsuspendReason: '\u0000\u0001\u0002' })).toBeUndefined();
     expect(auditSnapshot({ unsuspendReason: 42 })).toBeUndefined();

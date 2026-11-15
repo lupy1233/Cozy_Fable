@@ -149,6 +149,12 @@ describe('RequestsService.repostForClient', () => {
     await expectCode(service.repostForClient('A', EXP_ID), BadRequestException, ERROR_CODES.REPOST_ALREADY_USED);
   });
 
+  it('already reposted and back in the marketplace: still REPOST_ALREADY_USED (a late second click)', async () => {
+    const { service, prisma } = setup();
+    (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'IN_MARKETPLACE', repostUsed: true }));
+    await expectCode(service.repostForClient('A', EXP_ID), BadRequestException, ERROR_CODES.REPOST_ALREADY_USED);
+  });
+
   it('rejects a request that is not expired', async () => {
     const { service, prisma } = setup();
     (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'IN_MARKETPLACE' }));
@@ -990,6 +996,12 @@ describe('RequestsService.repostWithChangesForClient (f6-2)', () => {
     expect(keys).toContain(`request.reposted:${EXP_ID}`);
     expect(keys.some((k: string) => k.startsWith(`request.edited:${EXP_ID}`))).toBe(false);
     expect(queue.add.mock.calls.filter((c: unknown[]) => c[0] === 'expire')).toHaveLength(1);
+  });
+
+  it('deja republicata si din nou in piata (al doilea clic ajuns tarziu) → tot REPOST_ALREADY_USED', async () => {
+    const { service, prisma } = prepare({ repostUsed: true, status: 'IN_MARKETPLACE' });
+    await expectCode(service.repostWithChangesForClient('A', EXP_ID, content), BadRequestException, ERROR_CODES.REPOST_ALREADY_USED);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('repost deja folosit → REPOST_ALREADY_USED, fara tranzactie', async () => {

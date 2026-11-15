@@ -233,9 +233,13 @@ const DAY = 24 * 60 * 60 * 1000;
       ids.userIds.push(client);
       const id = await expiredRequest(client);
       const versionsBefore = await prisma.requestVersion.count({ where: { requestId: id } });
+      // Continutul se pregateste INAINTE: cu `await contentFor(...)` in lista, al doilea apel pornea
+      // abia dupa o citire din baza, iar pe un calculator incet (CI) primul apucase sa termine —
+      // atunci al doilea nu mai era „simultan” si primea REQUEST_NOT_EDITABLE (cererea nu mai e expirata).
+      const [contentA, contentB] = [await contentFor(client, 'Varianta A'), await contentFor(client, 'Varianta B')];
       const results = await Promise.allSettled([
-        service.repostWithChangesForClient(client, id, await contentFor(client, 'Varianta A')),
-        service.repostWithChangesForClient(client, id, await contentFor(client, 'Varianta B')),
+        service.repostWithChangesForClient(client, id, contentA),
+        service.repostWithChangesForClient(client, id, contentB),
       ]);
       expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
       const rejected = results.find((r) => r.status === 'rejected') as PromiseRejectedResult;
@@ -259,9 +263,11 @@ const DAY = 24 * 60 * 60 * 1000;
       ids.userIds.push(client);
       const id = await makePublishedRequest(prisma, client, { cost: 1, lat: 44.4, lng: 26.1, status: 'CLAIMED_PARTIAL' });
       ids.requestIds.push(id);
+      // continutul pregatit inainte, ca cele doua apeluri sa porneasca in acelasi moment (vezi mai sus)
+      const [editA, editB] = [await contentFor(client, 'Editare A'), await contentFor(client, 'Editare B')];
       const results = await Promise.allSettled([
-        service.editForClient(client, id, await contentFor(client, 'Editare A')),
-        service.editForClient(client, id, await contentFor(client, 'Editare B')),
+        service.editForClient(client, id, editA),
+        service.editForClient(client, id, editB),
       ]);
       expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
       const rejected = results.find((r) => r.status === 'rejected') as PromiseRejectedResult;

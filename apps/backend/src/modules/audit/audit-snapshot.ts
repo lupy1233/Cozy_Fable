@@ -28,13 +28,27 @@ const SECRET_VALUE = /(?:secret|token|password|bearer)[\s:=_-]/i;
 // existat: '[ascuns]'. Se mascheaza adresele de e-mail, IBAN-urile si numerele lungi (de la 9
 // cifre in sus: telefoane, conturi); datele („14.11.2026”) si sumele obisnuite raman citibile.
 const FREE_REASON_HIDDEN = '[ascuns]';
+// Textul vine de la un om (admin), dar tot text liber este: se citeste cel mult atat din el.
+const FREE_REASON_INPUT_MAX = 4000;
+
+// Adresele de e-mail se mascheaza cuvant cu cuvant, fara o expresie regulata ambigua, ca timpul
+// sa ramana liniar pe orice text (CodeQL: „polynomial regular expression used on uncontrolled data”).
+// Un cuvant e adresa daca are ceva inainte de ultimul „@”, iar dupa el „ceva.ceva”.
+function maskEmails(text: string): string {
+  return text.replace(/\S+/g, (word) => {
+    const at = word.lastIndexOf('@');
+    if (at <= 0) return word;
+    const dot = word.indexOf('.', at + 2);
+    return dot !== -1 && dot < word.length - 1 ? '[email]' : word;
+  });
+}
+
 export function freeReason(value: string): string | undefined {
   // eslint-disable-next-line no-control-regex
-  const clean = value.replace(/[\u0000-\u001F\u007F]+/g, ' ').trim();
+  const clean = value.slice(0, FREE_REASON_INPUT_MAX).replace(/[\u0000-\u001F\u007F]+/g, ' ').trim();
   if (!clean.length) return undefined;
   if (SECRET_VALUE.test(clean)) return FREE_REASON_HIDDEN;
-  return clean
-    .replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, '[email]')
+  return maskEmails(clean)
     .replace(/\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){3,7}(?:[ ]?[A-Z0-9]{1,3})?\b/g, '[iban]')
     .replace(/\+?\d[\d ().-]{6,}\d/g, (match) => (match.replace(/\D/g, '').length >= 9 ? '[nr]' : match))
     .slice(0, 1000);
