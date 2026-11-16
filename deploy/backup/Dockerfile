@@ -1,6 +1,6 @@
 # Imagine pentru joburile cron de backup (E-admin-platform-6): pg_dump/pg_restore 18 + age + rclone.
 # Aceeasi imagine, doua servicii Railway: railway.daily.json si railway.restore-test.json.
-FROM postgres:18-bookworm@sha256:3725f4e2499eef5134592b3b4ab79a543ed7f8e533b05b5b637af926630f6650
+FROM postgres:18-bookworm@sha256:5c4783a8cc3f0074912164f94dfa1be4e043438f0f707cf968d7af9a0d31a2c8
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends age rclone curl ca-certificates tzdata jq \
