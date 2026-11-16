@@ -10,6 +10,10 @@ import type { SettingsService } from '../../common/settings/settings.service';
 import type { AuditService } from '../audit/audit.service';
 import type { BillingReadinessService } from './billing-readiness.service';
 import type { ConfigService } from '@nestjs/config';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
+import { PaymentsController } from './payments.controller';
+import { CompanyManagerGuard } from '../../common/guards/company-manager.guard';
+import { AUDIT_ACTION_KEY } from '../audit/audit.decorator';
 
 // L0-D — plati Stripe + confirmare race-safe + abonament prelungit.
 
@@ -56,7 +60,9 @@ function baseOrder(over: Partial<any> = {}) {
 }
 
 // Prisma mock: un "rand" de comanda in memorie + tx care opereaza pe el (updateMany conditionat).
-function makePrisma(order: any | null, opts: { activeSub?: any } = {}) {
+// h2: `noActiveSubscription` = firma fara abonament activ (verificarea de la cumpararea de
+// credite citeste prin prisma.subscription, nu prin tx); implicit firma are abonament activ.
+function makePrisma(order: any | null, opts: { activeSub?: any; noActiveSubscription?: boolean } = {}) {
   const state = { order, sub: opts.activeSub ?? null, createdSub: null as any, events: new Set<string>() };
   const tx: any = {
     $executeRaw: jest.fn().mockResolvedValue(1),
@@ -107,6 +113,9 @@ function makePrisma(order: any | null, opts: { activeSub?: any } = {}) {
     },
     creditPackage: {
       findUnique: jest.fn().mockResolvedValue({ id: 'pkg1', credits: 10, priceRon: 100, isActive: true }),
+    },
+    subscription: {
+      findFirst: jest.fn(async () => (opts.noActiveSubscription ? null : { id: 'sub-active' })),
     },
     user: {
       findUnique: jest.fn().mockResolvedValue({ email: 'firma@demo.ro', languagePreference: 'RO' }),
@@ -254,6 +263,13 @@ describe('PaymentsService — purchase', () => {
     expect(service.toDto(baseOrder({ stripeSessionId: 'cs_1' }) as any, null, 3).transferExpiresAt).toBeNull();
     expect(service.toDto(baseOrder({ stripeCheckoutAttempt: { idempotencyKey: 'k' } }) as any, null, 3).transferExpiresAt).toBeNull();
     expect(service.toDto(baseOrder({ status: 'CONFIRMED' }) as any, null, 3).transferExpiresAt).toBeNull();
+  });
+
+  it('g4: proformaEmailedAt in DTO doar cand e-mailul cu proforma a plecat; comanda veche → null', async () => {
+    const { service } = build(makePrisma(null), makeStripe(false));
+    const at = new Date('2026-11-14T10:00:00.000Z');
+    expect(service.toDto(baseOrder({ proformaEmailedAt: at }) as any).proformaEmailedAt).toBe('2026-11-14T10:00:00.000Z');
+    expect(service.toDto(baseOrder() as any).proformaEmailedAt).toBeNull();
   });
 
   it('cu Stripe: creeaza sesiunea Checkout cu totalul CU TVA in bani si salveaza stripe_session_id', async () => {
@@ -771,6 +787,54 @@ describe('SubscriptionsService — admin grant', () => {
   });
 });
 
+// h2 (decizie PO h2-3): fara abonament activ, pachetele de credite sunt refuzate pe server.
+describe('PaymentsService — credite doar cu abonament activ (h2)', () => {
+  it('fara abonament activ → 403 CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION, fara comanda si fara Stripe', async () => {
+    const prisma = makePrisma(null, { noActiveSubscription: true });
+    const stripe = makeStripe(true);
+    const { service } = build(prisma, stripe);
+    await expect(service.purchaseCredits('c1', 'u1', { creditPackageId: 'pkg1' })).rejects.toMatchObject({
+      status: 403,
+      response: { code: 'CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION' },
+    });
+    expect(prisma.mockBillingOrder.create).not.toHaveBeenCalled();
+    expect(stripe.createCheckoutSession).not.toHaveBeenCalled();
+    expect(prisma.subscription.findFirst).toHaveBeenCalledWith({
+      where: { companyId: 'c1', status: 'ACTIVE', expiresAt: { gt: expect.any(Date) } },
+      select: { id: true },
+    });
+  });
+
+  it('cu abonament activ → comanda de credite se creeaza normal', async () => {
+    const prisma = makePrisma(null);
+    const { service } = build(prisma, makeStripe(false));
+    const res = await service.purchaseCredits('c1', 'u1', { creditPackageId: 'pkg1' });
+    expect(res.order.status).toBe('PENDING');
+  });
+
+  it('abonamentul se poate cumpara si fara abonament activ (asa se reactiveaza)', async () => {
+    const prisma = makePrisma(null, { noActiveSubscription: true });
+    const { service } = build(prisma, makeStripe(false));
+    const res = await service.purchaseSubscription('c1', 'u1', { planId: 'plan-gold' });
+    expect(res.order.orderType).toBe('SUBSCRIPTION');
+  });
+
+  it('"Continua plata" pe o comanda de credite PENDING, fara abonament activ → 403; pe abonament merge', async () => {
+    const credits = makePrisma(baseOrder({ stripeSessionId: 'cs_old' }), { noActiveSubscription: true });
+    const stripe = makeStripe(true);
+    await expect(build(credits, stripe).service.createCheckout('c1', 'u1', ORDER_ID)).rejects.toMatchObject({
+      status: 403,
+      response: { code: 'CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION' },
+    });
+    expect(stripe.createCheckoutSession).not.toHaveBeenCalled();
+
+    const plan = makePrisma(baseOrder({ orderType: 'SUBSCRIPTION', planId: 'plan-gold', creditPackageId: null }), {
+      noActiveSubscription: true,
+    });
+    await expect(build(plan, makeStripe(true)).service.createCheckout('c1', 'u1', ORDER_ID)).resolves.toBeDefined();
+  });
+});
+
 // E-admin-platform-58: plan de 0 lei necumparabil + totaluri cu TVA calculate in backend
 describe('PaymentsService — planuri ca date (E-admin-platform-58)', () => {
   it('plan de 0 lei → 409 PLAN_NOT_PURCHASABLE, fara comanda si fara Stripe', async () => {
@@ -824,5 +888,95 @@ describe('PaymentsService — planuri ca date (E-admin-platform-58)', () => {
     });
     expect(plans[1]).toMatchObject({ tier: 'SILVER', isFree: false, vatRon: 31.29, totalRon: 180.29, features: { MARKETPLACE_ACCESS: { enabled: true, limit: null } } });
     expect(plans[2]).toMatchObject({ tier: 'PLATINUM', vatRon: 188.79, totalRon: 1087.79 });
+  });
+});
+
+// h3 (etapa 9) — "Anuleaza comanda" ceruta de firma: acelasi drum ca anularea de admin, dar doar
+// pentru comanda proprie, PENDING si nemarcata "Am platit" (re-verificat sub FOR UPDATE).
+describe('PaymentsService — cancel by company', () => {
+  it('PENDING proprie (transfer bancar) → CANCELLED; repetarea e idempotenta', async () => {
+    const prisma = makePrisma(baseOrder());
+    const { service } = build(prisma, makeStripe(false));
+    const dto = await service.cancel(ORDER_ID, 'company', 'c1');
+    expect(dto.status).toBe('CANCELLED');
+    expect(prisma.tx.$executeRaw).toHaveBeenCalled(); // FOR UPDATE pe rand
+    expect(prisma.tx.mockBillingOrder.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: ORDER_ID, status: 'PENDING', paymentClaimedAt: null } }),
+    );
+    expect((await service.cancel(ORDER_ID, 'company', 'c1')).status).toBe('CANCELLED');
+    expect(prisma.tx.mockBillingOrder.updateMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('comanda Stripe proprie: expira sesiunea, ca la admin', async () => {
+    const prisma = makePrisma(baseOrder({ stripeSessionId: 'cs_x' }));
+    const stripe = makeStripe(true);
+    const { service } = build(prisma, stripe);
+    expect((await service.cancel(ORDER_ID, 'company', 'c1')).status).toBe('CANCELLED');
+    expect(stripe.ensureSessionExpired).toHaveBeenCalledWith('cs_x');
+  });
+
+  it('comanda altei firme → 404 PAYMENT_NOT_FOUND, fara scriere', async () => {
+    const prisma = makePrisma(baseOrder({ companyId: 'c-alta' }));
+    const { service } = build(prisma, makeStripe(false));
+    await expect(service.cancel(ORDER_ID, 'company', 'c1')).rejects.toMatchObject({
+      status: 404,
+      response: { code: 'PAYMENT_NOT_FOUND' },
+    });
+    expect(prisma.tx.mockBillingOrder.updateMany).not.toHaveBeenCalled();
+    expect(prisma.state.order.status).toBe('PENDING');
+  });
+
+  it('comanda platita (CONFIRMED) → 409 PAYMENT_ALREADY_CONFIRMED', async () => {
+    const prisma = makePrisma(baseOrder({ status: 'CONFIRMED', invoiceSeries: 'MM', invoiceNumber: 1 }));
+    const { service } = build(prisma, makeStripe(false));
+    await expect(service.cancel(ORDER_ID, 'company', 'c1')).rejects.toMatchObject({
+      status: 409,
+      response: { code: 'PAYMENT_ALREADY_CONFIRMED' },
+    });
+    expect(prisma.tx.mockBillingOrder.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('marcata "Am platit" → 409 PAYMENT_REPORTED_PAID (adminul poate anula in continuare)', async () => {
+    const prisma = makePrisma(baseOrder({ paymentClaimedAt: new Date('2026-11-10T09:00:00Z') }));
+    const { service } = build(prisma, makeStripe(false));
+    await expect(service.cancel(ORDER_ID, 'company', 'c1')).rejects.toMatchObject({
+      status: 409,
+      response: { code: 'PAYMENT_REPORTED_PAID' },
+    });
+    expect(prisma.state.order.status).toBe('PENDING');
+    expect((await service.cancel(ORDER_ID, 'admin')).status).toBe('CANCELLED');
+  });
+
+  it('"Am platit" apasat intre verificare si blocare → refuz sub lock, comanda ramane PENDING', async () => {
+    const prisma = makePrisma(baseOrder());
+    prisma.tx.$executeRaw.mockImplementation(async () => {
+      prisma.state.order.paymentClaimedAt = new Date();
+      return 1;
+    });
+    const { service } = build(prisma, makeStripe(false));
+    await expect(service.cancel(ORDER_ID, 'company', 'c1')).rejects.toMatchObject({
+      status: 409,
+      response: { code: 'PAYMENT_REPORTED_PAID' },
+    });
+    expect(prisma.tx.mockBillingOrder.updateMany).not.toHaveBeenCalled();
+    expect(prisma.state.order.status).toBe('PENDING');
+  });
+
+  it('anulata concurent intre verificare si blocare → acelasi raspuns, fara a doua scriere', async () => {
+    const prisma = makePrisma(baseOrder());
+    prisma.tx.$executeRaw.mockImplementation(async () => {
+      prisma.state.order.status = 'CANCELLED';
+      return 1;
+    });
+    const { service } = build(prisma, makeStripe(false));
+    expect((await service.cancel(ORDER_ID, 'company', 'c1')).status).toBe('CANCELLED');
+    expect(prisma.tx.mockBillingOrder.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('ruta firmei: doar OWNER/MANAGER (CompanyManagerGuard) si auditata PAYMENT_CANCELLED', () => {
+    const handler = (PaymentsController.prototype as any).cancelOrder;
+    expect(Reflect.getMetadata('path', handler)).toBe('orders/:id/cancel');
+    expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toContain(CompanyManagerGuard);
+    expect(Reflect.getMetadata(AUDIT_ACTION_KEY, handler)).toEqual({ action: 'PAYMENT_CANCELLED', entityType: 'mock_billing_order' });
   });
 });

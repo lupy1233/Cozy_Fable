@@ -1,3 +1,4 @@
+import { InjectQueue } from '@nestjs/bullmq';
 import {
   BadRequestException,
   ForbiddenException,
@@ -9,6 +10,10 @@ import {
   CLIENT_CASE_REASONS,
   COMPANY_CASE_REASONS,
   ERROR_CODES,
+  addMonthsUtc,
+  warrantyWindowMonths,
+  type OpenWarrantyCaseInput,
+  type WarrantyWindowDto,
   type AdminRequestDetailDto,
   type AdminRequestFilter,
   type AdminRequestListItemDto,
@@ -26,8 +31,15 @@ import { BusinessCalendarService } from '../../infra/calendar/business-calendar.
 import type { CompanyContext } from '../../common/company-context/company-context';
 import { OutboxService } from '../outbox/outbox.service';
 import { PROJECT_ACTIVE_STATUSES, toDateOnly } from './project-deadlines';
+import type { Queue } from 'bullmq';
+import { QUEUE_DELIVERY_AUTOCOMPLETE } from '../../infra/queues/queues.module';
+import { AUTO_COMPLETE_DAYS, autoCompleteJobId } from './fulfillment.service';
+import type { DeliveryAutocompleteJob } from './delivery-autocomplete.processor';
 
 type Tx = Prisma.TransactionClient;
+const DAY_MS = 24 * 60 * 60 * 1000;
+// e2-2: proiectul e finalizat (DISPUTED = recenzie sub 3 stele in analiza, tot dupa finalizare)
+const WARRANTY_STATUSES: RequestStatus[] = ['COMPLETED', 'DISPUTED'];
 
 export type ProjectCaseActor =
   | { kind: 'CLIENT'; userId: string }
@@ -70,23 +82,30 @@ export class ProjectCasesService {
     private readonly prisma: PrismaService,
     private readonly outbox: OutboxService,
     private readonly calendar: BusinessCalendarService,
+    @InjectQueue(QUEUE_DELIVERY_AUTOCOMPLETE)
+    private readonly autoCompleteQueue: Queue<DeliveryAutocompleteJob>,
   ) {}
 
   // --- client / firma ---
 
   async open(actor: ProjectCaseActor, requestId: string, dto: OpenProjectCaseInput): Promise<ProjectCaseDto> {
     const { request, winning } = await this.loadForActor(actor, requestId);
+    // WARRANTY_CLAIM nu e in listele de motive: are calea lui (openWarranty)
     const allowed: readonly string[] = actor.kind === 'CLIENT' ? CLIENT_CASE_REASONS : COMPANY_CASE_REASONS;
     if (!allowed.includes(dto.reason)) {
       throw new BadRequestException({ code: ERROR_CODES.VALIDATION_ERROR, message: 'Reason not allowed for this party' });
     }
     if (!winning) throw ProjectCasesService.notClosable();
+    // e2-1: clientul poate raporta si dupa ce firma a marcat livrarea ("Am o problema");
+    // cazul deschis opreste finalizarea automata pana il inchide adminul.
+    const allowedStatuses: RequestStatus[] = actor.kind === 'CLIENT' ? [...ACTIVE, 'DELIVERED_BY_COMPANY'] : ACTIVE;
     try {
       return await runTx(this.prisma, 'write', async (tx) => {
         const locked = await tx.$queryRaw<{ status: RequestStatus; deleted_at: Date | null }[]>`
           SELECT status, deleted_at FROM requests WHERE id = ${requestId} FOR UPDATE`;
         const row = locked[0];
-        if (!row || row.deleted_at !== null || !ACTIVE.includes(row.status)) throw ProjectCasesService.notClosable();
+        if (!row || row.deleted_at !== null || !allowedStatuses.includes(row.status)) throw ProjectCasesService.notClosable();
+        await ProjectCasesService.touchRequest(tx, requestId);
         const existing = await tx.requestProjectCase.findFirst({ where: { requestId, status: 'OPEN' }, select: { id: true } });
         if (existing) throw ProjectCasesService.alreadyOpen();
         const created = await tx.requestProjectCase.create({
@@ -136,7 +155,8 @@ export class ProjectCasesService {
       where: { requestId, status: 'OPEN', openedBy },
       orderBy: { createdAt: 'desc' },
     });
-    if (!open || !winning) {
+    // reclamatia in garantie nu are "confirm anularea / contest": o rezolva doar adminul
+    if (!open || !winning || open.reason === 'WARRANTY_CLAIM') {
       throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Project case not found' });
     }
     return runTx(this.prisma, 'write', async (tx) => {
@@ -183,6 +203,95 @@ export class ProjectCasesService {
     return latest ? toProjectCaseDto(latest) : null;
   }
 
+  // --- e2-2: reclamatie dupa finalizare (in garantie) ---
+
+  // Fereastra de raportare: garantia din oferta acceptata, minimum 24 de luni de la finalizare.
+  // null cand proiectul nu e finalizat (COMPLETED / DISPUTED).
+  async getWarrantyWindow(userId: string, requestId: string): Promise<WarrantyWindowDto | null> {
+    const request = await this.prisma.request.findUnique({
+      where: { id: requestId },
+      select: { clientUserId: true, status: true, completedAt: true, deliveredAt: true, updatedAt: true },
+    });
+    if (!request || request.clientUserId !== userId) {
+      throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Request not found' });
+    }
+    if (!WARRANTY_STATUSES.includes(request.status)) return null;
+    return this.warrantyWindow(this.prisma, requestId, request);
+  }
+
+  async openWarranty(userId: string, requestId: string, dto: OpenWarrantyCaseInput): Promise<ProjectCaseDto> {
+    const { request, winning } = await this.loadForActor({ kind: 'CLIENT', userId }, requestId);
+    if (!winning) throw ProjectCasesService.notClosable();
+    try {
+      return await runTx(this.prisma, 'write', async (tx) => {
+        const locked = await tx.$queryRaw<{ status: RequestStatus; deleted_at: Date | null }[]>`
+          SELECT status, deleted_at FROM requests WHERE id = ${requestId} FOR UPDATE`;
+        const row = locked[0];
+        if (!row || row.deleted_at !== null || !WARRANTY_STATUSES.includes(row.status)) throw ProjectCasesService.notClosable();
+        await ProjectCasesService.touchRequest(tx, requestId);
+        const dates = await tx.request.findUniqueOrThrow({
+          where: { id: requestId },
+          select: { completedAt: true, deliveredAt: true, updatedAt: true },
+        });
+        const window = await this.warrantyWindow(tx, requestId, dates);
+        if (!window.open) {
+          throw new HttpException(
+            { code: ERROR_CODES.WARRANTY_REPORT_WINDOW_CLOSED, message: 'Warranty report window has ended' },
+            409,
+          );
+        }
+        const existing = await tx.requestProjectCase.findFirst({ where: { requestId, status: 'OPEN' }, select: { id: true } });
+        if (existing) throw ProjectCasesService.alreadyOpen();
+        // NU schimba starea cererii si NU atinge creditele: doar un caz pentru admin
+        const created = await tx.requestProjectCase.create({
+          data: {
+            requestId,
+            claimSlotId: winning.claimSlotId,
+            openedBy: 'CLIENT',
+            openedByUserId: userId,
+            reason: 'WARRANTY_CLAIM',
+            note: dto.note.trim(),
+          },
+        });
+        // firma afla (clopotel, tintit membrilor) + adminii (clopotel → /admin/requests/:id)
+        await this.outbox.record(tx, `project.case_opened:${created.id}`,
+          'project.case_opened',
+          {
+            requestId,
+            claimSlotId: winning.claimSlotId,
+            companyId: winning.companyId,
+            caseId: created.id,
+            reason: 'WARRANTY_CLAIM',
+            openedBy: 'CLIENT',
+            clientUserId: request.clientUserId,
+          },
+          [...(await this.companyMemberIds(winning.companyId, tx)), ...(await this.adminIds(tx))],
+        );
+        return toProjectCaseDto(created);
+      });
+    } catch (e) {
+      if (isUniqueViolation(e)) throw ProjectCasesService.alreadyOpen();
+      throw e;
+    }
+  }
+
+  private async warrantyWindow(
+    db: Pick<Tx, 'quoteVersion'>,
+    requestId: string,
+    dates: { completedAt: Date | null; deliveredAt: Date | null; updatedAt: Date },
+  ): Promise<WarrantyWindowDto> {
+    // cererile finalizate inainte de completed_at: baza = livrarea (apoi ultima modificare)
+    const base = dates.completedAt ?? dates.deliveredAt ?? dates.updatedAt;
+    const latest = await db.quoteVersion.findFirst({
+      where: { quote: { requestId, status: 'ACCEPTED' } },
+      orderBy: { version: 'desc' },
+      select: { warranty: true },
+    });
+    const months = warrantyWindowMonths(latest?.warranty);
+    const endsAt = addMonthsUtc(base, months);
+    return { completedAt: base.toISOString(), months, endsAt: endsAt.toISOString(), open: Date.now() < endsAt.getTime() };
+  }
+
   // --- admin ---
 
   async dismiss(adminUserId: string, caseId: string, dto: DismissProjectCaseInput): Promise<ProjectCaseDto> {
@@ -191,10 +300,11 @@ export class ProjectCasesService {
       include: { request: { select: { clientUserId: true } }, claimSlot: { select: { companyId: true } } },
     });
     if (!existing) throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Project case not found' });
-    return runTx(this.prisma, 'write', async (tx) => {
+    const resolvedAt = new Date();
+    const result = await runTx(this.prisma, 'write', async (tx) => {
       const res = await tx.requestProjectCase.updateMany({
         where: { id: caseId, status: 'OPEN' },
-        data: { status: 'DISMISSED', resolvedByUserId: adminUserId, resolvedAt: new Date(), adminNote: dto.adminNote.trim() },
+        data: { status: 'DISMISSED', resolvedByUserId: adminUserId, resolvedAt, adminNote: dto.adminNote.trim() },
       });
       if (res.count === 0) throw ProjectCasesService.notOpen();
       const members = await this.companyMemberIds(existing.claimSlot.companyId, tx);
@@ -208,8 +318,32 @@ export class ProjectCasesService {
         },
         [...members, ...(existing.request.clientUserId ? [existing.request.clientUserId] : [])],
       );
-      return toProjectCaseDto(await tx.requestProjectCase.findUniqueOrThrow({ where: { id: caseId } }));
+      const req = await tx.request.findUnique({ where: { id: existing.requestId }, select: { status: true } });
+      return {
+        dto: toProjectCaseDto(await tx.requestProjectCase.findUniqueOrThrow({ where: { id: caseId } })),
+        resumeClock: req?.status === 'DELIVERED_BY_COMPANY',
+      };
     });
+    // e2-1: cazul inchis pe o cerere livrata → ceasul de finalizare automata reporneste de la
+    // inchidere (14 zile). Best-effort: sweep-ul de reconciliere re-inarmeaza jobul, iar
+    // procesorul re-verifica termenul (autoCompleteClockStart).
+    if (result.resumeClock) {
+      await this.autoCompleteQueue
+        .add(
+          'auto-complete',
+          { requestId: existing.requestId } satisfies DeliveryAutocompleteJob,
+          {
+            delay: AUTO_COMPLETE_DAYS * DAY_MS,
+            jobId: autoCompleteJobId(existing.requestId, resolvedAt),
+            removeOnComplete: true,
+            removeOnFail: 1000,
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 2000 },
+          },
+        )
+        .catch(() => undefined);
+    }
+    return result.dto;
   }
 
   async listAdmin(filter: AdminRequestFilter = 'accepted', page = 1): Promise<AdminRequestListPageDto> {
@@ -454,6 +588,14 @@ export class ProjectCasesService {
   private async adminIds(db: Tx): Promise<string[]> {
     const admins = await db.user.findMany({ where: { role: 'ADMIN', deletedAt: null }, select: { id: true } });
     return admins.map((a) => a.id);
+  }
+
+  // M1 (review etapa 1): deschiderea cazului SCRIE pe randul cererii, sub lock. Finalizarea
+  // automata (Serializable, instantaneu luat inainte sa astepte lock-ul) primeste astfel 40001
+  // la propriul FOR UPDATE, se reia (runTx 'claim') si vede cazul nou → nu mai finalizeaza.
+  // Fara scriere, ar citi request_project_cases cu instantaneul vechi si ar trece pe COMPLETED.
+  private static async touchRequest(tx: Tx, requestId: string): Promise<void> {
+    await tx.$executeRaw`UPDATE requests SET updated_at = now() WHERE id = ${requestId}`;
   }
 
   static notClosable(): HttpException {

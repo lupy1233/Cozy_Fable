@@ -6,6 +6,7 @@
 import { PrismaClient, type Prisma } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { randomBytes, createHash } from 'crypto';
+import { defaultOfferFieldPermissions } from '../src/modules/companies/companies.constants';
 
 const prisma = new PrismaClient();
 
@@ -113,15 +114,17 @@ async function main() {
       },
     });
     await prisma.companyCreditWallet.create({ data: { companyId: company.id, balance: s.credits ?? 0, reserved: 0 } });
-    // matrice permisiuni oferta pentru firmele APPROVED (ca demo-ul sa poata trimite oferte live)
-    if (s.status === 'APPROVED') {
-      for (const role of ['OWNER', 'MANAGER', 'EMPLOYEE_TRUSTED', 'EMPLOYEE_MANAGED'] as const) {
-        for (const fieldKey of ['PRICE', 'DELIVERY_TERM', 'DELIVERY_DATE', 'WARRANTY', 'DESCRIPTION'] as const) {
-          const canEdit = role === 'OWNER' || role === 'MANAGER' || (role === 'EMPLOYEE_TRUSTED' && fieldKey !== 'PRICE');
-          await prisma.companyOfferFieldPermission.create({ data: { companyId: company.id, role, fieldKey, canEdit } });
-        }
-      }
+    // h3 (etapa 9): miscarea soldului initial, ca istoricul portofelului sa ajunga la sold
+    if ((s.credits ?? 0) > 0) {
+      await prisma.creditTransaction.create({
+        data: { companyId: company.id, type: 'GRANT', amount: s.credits ?? 0, reason: 'OPENING_BALANCE', createdAt: daysAgo(40) },
+      });
     }
+    // h1 (etapa 11): matricea permisiunilor ofertei pentru TOATE firmele demo (ca la inscriere),
+    // nu doar pentru cele aprobate la incarcare — o firma aprobata ulterior poate oferta imediat
+    await prisma.companyOfferFieldPermission.createMany({
+      data: defaultOfferFieldPermissions().map((p) => ({ companyId: company.id, ...p })),
+    });
     if (s.plan) {
       await prisma.subscription.create({
         data: {
@@ -182,6 +185,8 @@ async function main() {
     await prisma.requestRoom.create({
       data: {
         requestId: req.id, roomType: opts.roomType, lengthM: 3, widthM: 2.5, heightM: 2.6,
+        // b8: cererea e "cu proiectare" doar daca macar o camera cere ajutor
+        needsDesignHelp: !!opts.paidDesign,
         items: { create: [{ name: 'Corp principal', material: 'PAL', systems: ['PUSH'], quantity: 3 }] },
       },
     });

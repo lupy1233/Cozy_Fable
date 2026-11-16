@@ -36,6 +36,42 @@ export interface ApplyPenaltyResult {
   suspendedUntil: Date | null;
 }
 
+export interface CancelledPenalty {
+  id: string;
+  ruleKey: string;
+  points: number;
+}
+
+// Etapa 12 (k2, raspuns PO k2-1): la ridicarea suspendarii de catre admin punctele ACTIVE ale
+// firmei se anuleaza — firma o ia de la zero. Evenimentele NU se sterg: expira acum (expires_at = now),
+// deci ies din suma punctelor active (expiresAt > now) si din lista firmei; urma (cine, cand, cate
+// puncte, ce evenimente, motivul) ramane in jurnalul de audit al ridicarii. Functie libera, rulata
+// in tranzactia apelantului (aceeasi cu schimbarea starii firmei), fara DI intre module.
+// SELECT ... FOR UPDATE pe firma: ordinea de blocare comuna pentru aplicarea penalizarii si
+// ridicarea suspendarii (revizuire m3).
+export async function lockCompanyRow(tx: Tx, companyId: string): Promise<void> {
+  await tx.$queryRaw`SELECT id FROM companies WHERE id = ${companyId} FOR UPDATE`;
+}
+
+export async function cancelActiveCompanyPenalties(
+  tx: Tx,
+  companyId: string,
+  now: Date = new Date(),
+): Promise<CancelledPenalty[]> {
+  const active = await tx.penaltyEvent.findMany({
+    where: { companyId, scope: 'COMPANY', expiresAt: { gt: now } },
+    select: { id: true, ruleKey: true, points: true },
+    orderBy: { appliedAt: 'asc' },
+  });
+  if (active.length === 0) return [];
+  // filtrul pe expiresAt > now ramane si la scriere: un eveniment expirat intre timp nu primeste alta data
+  await tx.penaltyEvent.updateMany({
+    where: { id: { in: active.map((e) => e.id) }, expiresAt: { gt: now } },
+    data: { expiresAt: now },
+  });
+  return active;
+}
+
 @Injectable()
 export class PenaltiesService {
   private readonly logger = new Logger(PenaltiesService.name);
@@ -51,6 +87,12 @@ export class PenaltiesService {
     const scope = input.scope ?? 'COMPANY';
     const points = await this.pointsFor(input.ruleKey, db);
     if (points <= 0) return { pointsApplied: 0, suspended: false, suspendedUntil: null };
+    // Etapa 12 (k2, revizuire m3): blocam randul firmei INAINTE de eveniment, suma si starea —
+    // aceeasi blocare pe care o ia ridicarea suspendarii (UPDATE pe companies). Asa o penalizare
+    // pornita in timpul ridicarii asteapta commitul ei si vede punctele deja anulate + firma APPROVED
+    // (READ COMMITTED), sau primeste serialization failure si se reia (Serializable). Fara tx nu
+    // exista tranzactie care sa tina blocarea, deci nu o luam.
+    if (scope === 'COMPANY' && tx) await lockCompanyRow(tx, input.companyId);
     const now = new Date();
     await db.penaltyEvent.create({
       data: {

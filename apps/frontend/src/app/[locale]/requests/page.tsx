@@ -4,9 +4,10 @@ import type { RequestListItemDto, RequestStatus } from '@marketplace/shared';
 import { ArrowRight, Plus, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useRouter } from '@/i18n/routing';
-import { useMe } from '@/hooks/use-auth';
-import { useMyRequests } from '@/hooks/use-requests';
+import { Link } from '@/i18n/routing';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
+import { useMyDrafts, useMyRequests } from '@/hooks/use-requests';
+import { MyDraftsList } from './my-drafts-list';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useRelativeTime } from '@/lib/relative-time';
@@ -27,11 +28,13 @@ import { RequestStatusBadge, isClientTurn, useRequestNextStep } from '../_compon
 
 const MAX_ROOM_CHIPS = 4;
 
-type RequestTab = 'ALL' | 'ACTIVE' | 'IN_PROGRESS' | 'DONE' | 'EXPIRED';
+// d5 (PO d5-1): DRAFTS = fila "Ciorne" (alta lista, din GET /requests/my-drafts); apare doar
+// cand contul are ciorne
+type RequestTab = 'ALL' | 'ACTIVE' | 'IN_PROGRESS' | 'DONE' | 'EXPIRED' | 'DRAFTS';
 
 const TABS: RequestTab[] = ['ALL', 'ACTIVE', 'IN_PROGRESS', 'DONE', 'EXPIRED'];
 
-const TAB_STATUSES: Record<Exclude<RequestTab, 'ALL'>, RequestStatus[]> = {
+const TAB_STATUSES: Record<Exclude<RequestTab, 'ALL' | 'DRAFTS'>, RequestStatus[]> = {
   // in piata: tot ce inca aduna firme/oferte (ciornele nu mai vin din API — PO r5)
   ACTIVE: [
     'IN_MARKETPLACE',
@@ -84,15 +87,13 @@ function cardCta(r: RequestListItemDto): CardCta {
 export default function MyRequestsPage() {
   const t = useTranslations('Requests');
   const tc = useTranslations('Configurator');
-  const router = useRouter();
-  const me = useMe();
+  // f4 (review m8): fara sesiune → login cu intoarcere; alt rol → ecranul „Pagina e doar pentru clienți”
+  const auth = useRequireAuth('CLIENT');
   const list = useMyRequests();
+  // d5: ciornele contului (fila separata; o eroare aici nu blocheaza lista cererilor)
+  const drafts = useMyDrafts();
   const relTime = useRelativeTime();
   const next = useRequestNextStep();
-
-  useEffect(() => {
-    if (me.isError) router.replace('/login');
-  }, [me.isError, router]);
 
   const [tab, setTab] = useState<RequestTab>('ALL');
   const [query, setQuery] = useState('');
@@ -105,9 +106,21 @@ export default function MyRequestsPage() {
     () => (needle ? all.filter((r) => fold(r.title).includes(needle) || fold(r.city).includes(needle)) : all),
     [all, needle],
   );
+  const draftList = useMemo(() => drafts.data ?? [], [drafts.data]);
+  const tabs: RequestTab[] = draftList.length > 0 ? [...TABS, 'DRAFTS'] : TABS;
+  const showDrafts = tab === 'DRAFTS' && draftList.length > 0;
+  // ultima ciorna stearsa → fila dispare, revenim la "Toate"
+  useEffect(() => {
+    if (tab === 'DRAFTS' && drafts.isSuccess && draftList.length === 0) setTab('ALL');
+  }, [tab, drafts.isSuccess, draftList.length]);
   const countFor = (tb: RequestTab) =>
-    tb === 'ALL' ? searched.length : searched.filter((r) => TAB_STATUSES[tb].includes(r.status)).length;
+    tb === 'ALL'
+      ? searched.length
+      : tb === 'DRAFTS'
+        ? draftList.length
+        : searched.filter((r) => TAB_STATUSES[tb].includes(r.status)).length;
   const rows = useMemo(() => {
+    if (tab === 'DRAFTS') return [];
     const inTab = tab === 'ALL' ? searched : searched.filter((r) => TAB_STATUSES[tab].includes(r.status));
     return [...inTab].sort((a, b) => {
       if (sort === 'ATTENTION') {
@@ -118,11 +131,12 @@ export default function MyRequestsPage() {
     });
   }, [searched, tab, sort]);
 
-  if (me.isPending || me.isError || list.isPending || list.isError) {
-    // me.isError → efectul de mai sus face redirect la /login; skeletonul ramane pana atunci
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="CLIENT" />;
+  if (auth.status === 'loading' || list.isPending || list.isError) {
+    // „cine sunt eu” in eroare → garda face redirect la /login; scheletul ramane pana atunci
     return (
       <QueryState
-        pending={me.isPending || me.isError || list.isPending}
+        pending={auth.status === 'loading' || list.isPending}
         error={list.error}
         onRetry={() => void list.refetch()}
         skeleton={<SkeletonPage variant="list" />}
@@ -138,22 +152,22 @@ export default function MyRequestsPage() {
       {/* „Cerere noua” sta in antetul aplicatiei; aici apare doar cand lista e goala */}
       <PageHeader title={t('myRequests')} subtitle={all.length > 0 ? t('myRequestsSubtitle') : undefined} />
 
-      {all.length > 0 && (
+      {(all.length > 0 || draftList.length > 0) && (
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-          {/* taburi de filtrare dupa stadiu (idee 2 PO r2) */}
+          {/* taburi de filtrare dupa stadiu (idee 2 PO r2) + fila "Ciorne" (d5) */}
           <FilterChips
             label={t('tabsLabel')}
             value={tab}
             onChange={(v) => v && setTab(v)}
             className="[&>button]:min-h-10"
-            options={TABS.map((tb) => ({
+            options={tabs.map((tb) => ({
               value: tb,
               label: t(`tabs.${tb}`),
               count: countFor(tb),
               dimmed: countFor(tb) === 0,
             }))}
           />
-          <div className="flex w-full flex-wrap items-center gap-2.5 sm:w-auto">
+          <div className={cn('flex w-full flex-wrap items-center gap-2.5 sm:w-auto', tab === 'DRAFTS' && 'hidden')}>
             <div className="relative min-w-0 flex-1 sm:w-60 sm:flex-none">
               <Search
                 aria-hidden
@@ -186,7 +200,9 @@ export default function MyRequestsPage() {
         </div>
       )}
 
-      {all.length > 0 && rows.length === 0 && (
+      {showDrafts && <MyDraftsList drafts={draftList} />}
+
+      {all.length > 0 && rows.length === 0 && !showDrafts && (
         <EmptyState
           variant="dashed"
           size="sm"
@@ -201,7 +217,7 @@ export default function MyRequestsPage() {
         />
       )}
 
-      {all.length === 0 && (
+      {all.length === 0 && !showDrafts && (
         <EmptyState
           variant="dashed"
           icon={Plus}

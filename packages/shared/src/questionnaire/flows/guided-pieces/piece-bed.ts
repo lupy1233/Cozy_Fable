@@ -16,7 +16,7 @@ const BED_WIDTH: Record<string, number> = {
 };
 
 const STORAGE_LABEL: Record<string, string> = {
-  LIFT_UP: 'lada cu mecanism rabatabil',
+  LIFT_UP: 'ladă cu mecanism rabatabil',
   DRAWERS: 'sertare laterale',
 };
 
@@ -82,7 +82,7 @@ export const pieceBedFlow: RoomFlow = {
     const size = answerString(answers, 'bedSize', 'Q_160');
     const storage = answerString(answers, 'storage', 'NONE');
     const upholstered = answers.upholstered === true;
-    const details: string[] = [`saltea ${size.replace(/^[A-Z]_/, '')}x200`];
+    const details: string[] = [`saltea ${size.replace(/^[A-Z]_/, '')} × 200`];
     if (STORAGE_LABEL[storage]) details.push(STORAGE_LABEL[storage]);
     return {
       lengthM: BED_WIDTH[size] ?? 1.6,
@@ -91,7 +91,7 @@ export const pieceBedFlow: RoomFlow = {
       heightM: 1.0,
       items: [
         {
-          name: upholstered ? 'Pat tapitat' : 'Pat',
+          name: upholstered ? 'Pat tapițat' : 'Pat',
           material: (answers.material as Material) ?? 'PAL',
           systems: [],
           description: details.join(', '),

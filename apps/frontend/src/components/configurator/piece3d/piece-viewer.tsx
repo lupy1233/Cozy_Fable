@@ -6,11 +6,12 @@ import {
   type PieceConfig3d,
 } from '@marketplace/shared';
 import { Eye, X } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDialogFocus } from '@/hooks/use-dialog-focus';
-import { config3dChips } from './config-chips';
+import { formatDimension } from '@/lib/dimension-format';
+import { config3dChipItems } from './config-chips';
 import { PieceCanvas, type ZoneRef } from './piece-canvas';
 import { useCabinetFronts } from './use-cabinet-fronts';
 
@@ -18,8 +19,6 @@ import { useCabinetFronts } from './use-cabinet-fronts';
 // clientul — roteste modelul, da click pe zone ca sa deschida usile/sertarele
 // si citeste dimensiunile fiecarei zone. Nicio posibilitate de editare:
 // singura stare locala e selectia si fronturile deschise, configul nu se atinge.
-
-const cm = (v: number) => Math.round(v * 100);
 
 function hasWebGl(): boolean {
   try {
@@ -40,6 +39,9 @@ export default function PieceViewer3dDialog({
   onClose: () => void;
 }) {
   const t = useTranslations('Configurator');
+  const locale = useLocale();
+  // firma vede mereu cm (41), dupa limba aplicatiei
+  const dim = (m: number) => formatDimension(m, { unit: 'cm', locale });
   const dialogRef = useDialogFocus(onClose);
   const [webgl] = useState(() => hasWebGl());
   const [activeZone, setActiveZone] = useState<ZoneRef | null>(null);
@@ -93,11 +95,11 @@ export default function PieceViewer3dDialog({
           : t('config3d.fills.NONE'),
       });
     }
-    zoneFacts.push({ label: t('config3d.rowHeight'), value: `${cm(resolved.height)} cm` });
+    zoneFacts.push({ label: t('config3d.rowHeight'), value: dim(resolved.height) });
     if (colWidth != null) {
-      zoneFacts.push({ label: t('config3d.columnWidth'), value: `${cm(colWidth)} cm` });
+      zoneFacts.push({ label: t('config3d.columnWidth'), value: dim(colWidth) });
     }
-    zoneFacts.push({ label: t('config3d.depth'), value: `${cm(config.depthM)} cm` });
+    zoneFacts.push({ label: t('config3d.depth'), value: dim(config.depthM) });
   }
 
   return createPortal(
@@ -173,12 +175,19 @@ export default function PieceViewer3dDialog({
                   </div>
                 )}
                 <div className="flex flex-wrap content-start gap-1.5">
-                  {config3dChips(t, config).map((chip, i) => (
+                  {config3dChipItems(t, config, piece, locale).map((chip, i) => (
                     <span
                       key={i}
-                      className="inline-flex items-baseline rounded-full border border-border-2 bg-surface-2 px-2.5 py-1 text-xs font-medium"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border-2 bg-surface-2 px-2.5 py-1 text-xs font-medium"
                     >
-                      {chip}
+                      {chip.swatch && (
+                        <span
+                          aria-hidden
+                          className="h-3 w-3 shrink-0 rounded-full border border-border-2"
+                          style={{ backgroundColor: chip.swatch }}
+                        />
+                      )}
+                      {chip.text}
                     </span>
                   ))}
                 </div>

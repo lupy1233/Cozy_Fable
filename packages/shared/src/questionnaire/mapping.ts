@@ -18,6 +18,23 @@ export function roomSizeBucket(linearM: number): RoomSizeBucket {
   return 'OVER_4M';
 }
 
+// d3 (PO d3-2): lungimea aproximativa data cu "Am deja un proiect" intra la ROOM_SIZE DOAR cand
+// lungimea derivata din dimensiuni e 0. Lipsa / nevalida = 0 ("sub 2 m", ca inainte).
+export const APPROX_LENGTH_MIN_M = 0.1;
+export const APPROX_LENGTH_MAX_M = 50;
+// coloana e NUMERIC(5,2): cel mult doua zecimale (aceeasi regula ca DTO-ul serverului)
+export const APPROX_LENGTH_DECIMALS = 2;
+
+export function hasAtMostDecimals(value: number, decimals: number): boolean {
+  const scaled = value * 10 ** decimals;
+  return Number.isFinite(scaled) && Math.abs(scaled - Math.round(scaled)) < 1e-6;
+}
+
+export function roomSizeLengthM(derivedLengthM: number, approxLengthM?: number | null): number {
+  if (derivedLengthM > 0) return derivedLengthM;
+  return typeof approxLengthM === 'number' && Number.isFinite(approxLengthM) && approxLengthM > 0 ? approxLengthM : 0;
+}
+
 // Bucket ITEM_QUANTITY pe totalul cantitatilor — identic cu SizingService.itemQuantityOption.
 export function itemQuantityBucket(totalQty: number): ItemQuantityBucket {
   if (totalQty <= 1) return 'QTY_1';

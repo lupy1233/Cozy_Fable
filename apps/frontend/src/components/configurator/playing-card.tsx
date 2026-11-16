@@ -52,7 +52,8 @@ export function PlayingCard({
   const showPrice = Boolean(info?.priceHintKey && has(info.priceHintKey));
 
   return (
-    <div data-choice-card className={cn('relative h-72 rounded-xl bg-surface', disabled && 'pointer-events-none opacity-50', className)}>
+    // j1: pe telefon cartonasele stau cate doua pe rand — mai scunde, cu imaginea mai mica
+    <div data-choice-card className={cn('relative h-60 rounded-xl bg-surface sm:h-72', disabled && 'pointer-events-none opacity-50', className)}>
       <div className="relative h-full w-full">
         {/* FATA */}
         {!flipped && (
@@ -73,11 +74,11 @@ export function PlayingCard({
               className="flex h-full w-full flex-col text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-walnut"
             >
               {/* zona vizuala */}
-              <span className={cn('flex min-h-0 flex-1 items-center justify-center px-8 pt-6', selected ? 'text-walnut' : 'text-muted-foreground')}>
-                <span className="h-full max-h-44 w-full [&_svg]:h-full [&_svg]:w-full">{visual}</span>
+              <span className={cn('flex min-h-0 flex-1 items-center justify-center px-4 pt-7 sm:px-8 sm:pt-6', selected ? 'text-walnut' : 'text-muted-foreground')}>
+                <span className="h-full max-h-28 w-full sm:max-h-44 [&_svg]:h-full [&_svg]:w-full">{visual}</span>
               </span>
               {/* eticheta centrata; pretul orientativ e decorativ aici (acelasi text e pe spate) */}
-              <span className="flex flex-col items-center gap-0.5 px-4 pb-3.5 pt-1.5 text-center">
+              <span className="flex flex-col items-center gap-0.5 px-2 pb-3 pt-1.5 text-center sm:px-4 sm:pb-3.5">
                 <span className="text-sm font-semibold">{title}</span>
                 {sub && <span className="text-xs leading-snug text-muted-foreground">{sub}</span>}
                 {showPrice && (
@@ -111,7 +112,8 @@ export function PlayingCard({
                 ref={infoButton}
                 type="button"
                 onClick={() => setFlipped(true)}
-                aria-label={t('info.showInfo')}
+                // m1 (etapa 12): numele spune a cui optiune e (ca la cartonasele mici)
+                aria-label={typeof title === 'string' ? t('info.showInfoFor', { option: title }) : t('info.showInfo')}
                 className="absolute right-2.5 top-2.5 grid h-7 w-7 place-items-center rounded-full bg-surface/80 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:bg-walnut-soft hover:text-walnut"
               >
                 <Info className="h-4 w-4" />
@@ -159,10 +161,18 @@ export function PlayingCard({
               </div>
             </div>
             {showPrice && (
-              <div className="flex items-center gap-2 border-t border-border-2 bg-surface-2 px-4 py-2 text-xs">
-                <Wallet className="h-3.5 w-3.5 text-walnut" />
-                <span className="text-muted-foreground">{t('info.avgPrice')}:</span>
-                <span className="font-medium">{t(info.priceHintKey!)}</span>
+              <div className="flex flex-col gap-0.5 border-t border-border-2 bg-surface-2 px-4 py-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-3.5 w-3.5 shrink-0 text-walnut" />
+                  <span className="text-muted-foreground">{t('info.avgPrice')}:</span>
+                  <span className="font-medium">{t(info.priceHintKey!)}</span>
+                </div>
+                {/* c12-1: metrul liniar e explicat si pe spatele cartonasului (verificarea in browser) */}
+                {/m liniar|linear metre/.test(t(info.priceHintKey!)) && (
+                  <span data-linear-metre-note className="text-meta leading-snug text-muted-foreground">
+                    {t('info.linearMetreShort')}
+                  </span>
+                )}
               </div>
             )}
           </div>

@@ -68,6 +68,17 @@ export interface EntitlementsDto {
   expiresAt: string | null;
   gatingDelayMinutes: number | null;
   features: PlanFeaturesDto;
+  // h2 (2026-11-13): fara abonament activ — ultimul abonament al firmei si data la care s-a
+  // incheiat (mesajul comun "Abonamentul X a expirat pe ..."). null cand exista abonament
+  // activ sau firma n-a avut niciodata abonament.
+  lastExpired: LastExpiredSubscriptionDto | null;
+}
+
+export interface LastExpiredSubscriptionDto {
+  planCode: PlanCode;
+  nameRo: string | null;
+  nameEn: string | null;
+  expiredAt: string;
 }
 
 // GET /billing/subscription — abonamentul activ + cate zile mai are.
@@ -146,6 +157,9 @@ export interface BillingOrderDto {
   // Chitantele de idempotenta vechi nu au campurile — FE trateaza undefined ca null.
   paymentClaimedAt: string | null;
   transferExpiresAt: string | null;
+  // g4 (etapa 7): primul e-mail cu proforma ATASATA a plecat; null/undefined (comanda sau
+  // chitanta veche) = pagina nu promite proforma pe e-mail
+  proformaEmailedAt?: string | null;
 }
 
 // Raspunsul la purchase / checkout: comanda + URL-ul Stripe Checkout (null = Stripe dezactivat,
@@ -203,4 +217,43 @@ export interface AdminSubscriptionItemDto {
   expiresAt: string;
   daysLeft: number;
   isCurrent: boolean; // ACTIVE si neexpirat
+}
+
+// h3 (etapa 9): istoricul miscarilor de credite al firmei (credit_transactions, doar citire).
+// kind = ce s-a intamplat, tradus din tip + motiv; motivele necunoscute → OTHER ("Alta miscare").
+export const CREDIT_HISTORY_KINDS = [
+  'PURCHASE',
+  'SUBSCRIPTION_CREDITS',
+  'TRIAL_BONUS',
+  'OPENING_BALANCE',
+  'CLAIM',
+  'REFUND',
+  'CONSUME',
+  'OTHER',
+] as const;
+export type CreditHistoryKind = (typeof CREDIT_HISTORY_KINDS)[number];
+
+export interface CreditHistoryItemDto {
+  id: string;
+  createdAt: string;
+  type: 'GRANT' | 'RESERVE' | 'REFUND' | 'CONSUME';
+  kind: CreditHistoryKind;
+  // motivul din registru, doar daca e unul cunoscut (CREDIT_REASONS / OPENING_BALANCE); altfel null
+  reason: string | null;
+  amount: number; // marimea miscarii (mereu pozitiva, ca in registru)
+  // schimbarea creditelor disponibile / rezervate (cu semn); CONSUME = 0 disponibile, -n rezervate
+  availableDelta: number;
+  reservedDelta: number;
+  // soldul dupa miscare, calculat din registru (suma miscarilor pana la ea, inclusiv)
+  availableAfter: number;
+  reservedAfter: number;
+  claimSlotId: string | null;
+  requestId: string | null;
+  requestTitle: string | null;
+}
+
+export interface CreditHistoryPageDto {
+  items: CreditHistoryItemDto[];
+  // id-ul ultimei miscari din pagina, daca mai urmeaza; null = sfarsitul istoricului
+  nextCursor: string | null;
 }

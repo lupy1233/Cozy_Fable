@@ -7,6 +7,7 @@ import { useId, useState } from 'react';
 import { Link } from '@/i18n/routing';
 import { useSubscription } from '@/hooks/use-marketplace';
 import { FirmRulesLink } from '../../_components/firm-rules-link';
+import { SubscriptionStatusNotice } from '../../marketplace/_components/subscription-status-notice';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ import { OfferPermissionsSection } from './offer-permissions-section';
 import { PortfolioSection } from './portfolio-section';
 import { SectionNav } from './section-nav';
 import { TeamSection } from './team-section';
+import { useScrollToHashSection } from './use-scroll-to-hash';
 
 // Starea verificarii firmei, la vedere in antet. Culoarea spune cine are mutarea:
 // info = asteapta verificarea adminului, sage = in regula, crimson = problema.
@@ -55,6 +57,9 @@ export function CompanyDashboard({ company }: { company: CompanyDto }) {
     { id: 'portfolio', label: t('portfolio') },
     { id: 'permissions', label: t('navPermissions') },
   ];
+
+  // h1 (etapa 11): legaturile din „Pregateste-ti firma” (Panou) → /company#sectiune
+  useScrollToHashSection();
 
   return (
     <div className="flex flex-col gap-7">
@@ -140,7 +145,8 @@ export function CompanyDashboard({ company }: { company: CompanyDto }) {
   );
 }
 
-// Banner abonament (L0-D): expira in <= 7 zile → amber, lipsa/expirat → crimson; link la portofel.
+// Banner abonament (L0-D): expira in <= 7 zile → amber; lipsa/expirat → mesajul comun h2
+// (acelasi ca pe Panou, Marketplace, Preluari si Portofel, cu data expirarii si creditele).
 const SUBSCRIPTION_WARN_DAYS = 7;
 
 function SubscriptionBanner() {
@@ -148,22 +154,22 @@ function SubscriptionBanner() {
   const subscription = useSubscription();
   if (subscription.isPending || subscription.isError) return null;
   const sub = subscription.data;
-  if (sub && sub.daysLeft > SUBSCRIPTION_WARN_DAYS) return null;
-  const cta = (
-    <Link
-      href="/marketplace/wallet#subscription"
-      className="shrink-0 self-center text-sm font-medium underline-offset-4 hover:underline"
+  if (!sub) return <SubscriptionStatusNotice />;
+  if (sub.daysLeft > SUBSCRIPTION_WARN_DAYS) return null;
+  return (
+    <Alert
+      tone="amber"
+      icon={<AlertTriangle />}
+      action={
+        <Link
+          href="/marketplace/wallet#subscription"
+          className="shrink-0 self-center text-sm font-medium underline-offset-4 hover:underline"
+        >
+          {t('subscriptionBanner.extend')} →
+        </Link>
+      }
     >
-      {sub ? t('subscriptionBanner.extend') : t('subscriptionBanner.choosePlan')} →
-    </Link>
-  );
-  return sub ? (
-    <Alert tone="amber" icon={<AlertTriangle />} action={cta}>
       {t('subscriptionBanner.expiring', { tier: sub.tier, n: sub.daysLeft })}
-    </Alert>
-  ) : (
-    <Alert tone="crimson" icon={<AlertTriangle />} action={cta}>
-      {t('subscriptionBanner.expired')}
     </Alert>
   );
 }

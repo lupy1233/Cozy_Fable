@@ -20,9 +20,10 @@ describe('new catalog dimensions, storage and quotation contract', () => {
     expect(panelsWithinBounds(config, panels)).toBe(true);
     expect(panels.every(p => [p.x, p.y, p.z, p.w, p.h, p.d].every(Number.isFinite) && Math.min(p.w, p.h, p.d) > 0)).toBe(true);
     expect(panels.length).toBeLessThan(150);
-    const flow = getFlow(`PIECE_${kind}`);
+    // etapa 6: contractul cu material "Altul" e al catalogului v1 (v2: tapitatele nu mai au intrebare de material)
+    const flow = getFlow(`PIECE_${kind}`, 1);
     const answers = { config3d: config, material: 'ALTUL', materialOther: 'Custom frame and upholstery sample' };
-    expect(validateRoomAnswers(flow.roomType, answers, { partial: false })).toEqual({ ok: true });
+    expect(validateRoomAnswers(flow.roomType, answers, { partial: false, version: 1 })).toEqual({ ok: true });
     const derived = flow.deriveRoom(answers);
     expect([derived.lengthM, derived.heightM, derived.widthM]).toEqual([config.widthM, config.heightM, config.depthM]);
     expect(derived.items[0].description).toContain(describePieceConfig(kind, config));

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  type ExecutionContext,
   Get,
   Param,
   ParseUUIDPipe,
@@ -11,7 +12,9 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { UserRole } from '@prisma/client';
+import { clientIpSourceOf, type ClientIpSource } from '../../common/http/client-ip';
 import { AccessTokenPayload } from '../auth/auth.constants';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
@@ -26,6 +29,41 @@ import {
   PresignAttachmentDto,
 } from './dto/request.dto';
 import { RequestsService } from './requests.service';
+
+// f6 / revizie M2 — limita la crearea ciornelor. 10/min pe IP doar cand IP-ul clientului vine din
+// antetul de incredere (TRUSTED_CLIENT_IP_HEADER configurat SI prezent, clientIpSource = 'header').
+// Altfel (antet nesetat: toti vizitatorii au IP-ul proxy-ului) un plafon larg, ca protectie
+// generala fara sa blocheze formularul pentru toata lumea. Limita globala (100/min) ramane.
+export const DRAFT_CREATE_LIMIT_PER_CLIENT_IP = 10;
+export const DRAFT_CREATE_LIMIT_SHARED_IP = 120;
+export function draftCreateLimit(context: ExecutionContext): number {
+  const req = context.switchToHttp().getRequest<{ clientIpSource?: ClientIpSource }>();
+  return clientIpSourceOf(req) === 'header' ? DRAFT_CREATE_LIMIT_PER_CLIENT_IP : DRAFT_CREATE_LIMIT_SHARED_IP;
+}
+
+// a6 — adresa ciornei pentru verificarea acoperirii, cu aceleasi reguli ca la publicare
+// (CreateRequestContentDto: addressText / county / city / country)
+export class DraftCoverageDto {
+  @IsString()
+  @MinLength(3)
+  @MaxLength(300)
+  addressText!: string;
+
+  @IsString()
+  @MinLength(2)
+  @MaxLength(100)
+  county!: string;
+
+  @IsString()
+  @MinLength(2)
+  @MaxLength(100)
+  city!: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Za-z]{2}$/)
+  country?: string;
+}
 
 @Controller('requests')
 @UseGuards(OptionalJwtAuthGuard)
@@ -43,10 +81,13 @@ export class RequestsController {
 
   // --- flux draft anonim cu token (Public; legat de client daca e logat) ---
 
+  // f6: fiecare apel creeaza un rand DRAFT (si poate primi fisiere) → 10/min pe IP, doar cand IP-ul
+  // clientului e sigur (revizie M2, vezi draftCreateLimit)
   @Public()
+  @Throttle({ default: { limit: draftCreateLimit, ttl: 60_000 } })
   @Post('drafts')
   createDraft(@CurrentUser() user: AccessTokenPayload | undefined, @Body() dto: PatchDraftDto) {
-    return this.requests.createDraft(user?.sub ?? null, dto);
+    return this.requests.createDraft(user?.sub ?? null, dto, user?.role ?? null);
   }
 
   @Public()
@@ -62,7 +103,7 @@ export class RequestsController {
     @Param('token') token: string,
     @Body() dto: PatchDraftDto,
   ) {
-    return this.requests.patchDraft(token, dto, user?.sub ?? null);
+    return this.requests.patchDraft(token, dto, user?.sub ?? null, user?.role ?? null);
   }
 
   // "Incepe o cerere noua": ciorna abandonata se arunca (soft delete). Tokenul
@@ -84,6 +125,20 @@ export class RequestsController {
     @Body() dto: CreateRequestContentDto,
   ) {
     return this.requests.publish(token, dto, user?.sub ?? null);
+  }
+
+  // a6 — Sumar: exista vreo firma in zona adresei? (COVERED / NONE / UNKNOWN, niciodata un numar).
+  // Geocodare pe server (apel extern). Doua frane: 10/min pe ciorna (in serviciu, peste limita →
+  // UNKNOWN) si 60/min pe IP aici (mai larga: pe productie IP-ul poate fi comun tuturor clientilor).
+  @Public()
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @Post('drafts/:token/coverage')
+  draftCoverage(
+    @CurrentUser() user: AccessTokenPayload | undefined,
+    @Param('token') token: string,
+    @Body() dto: DraftCoverageDto,
+  ) {
+    return this.requests.draftCoverage(token, dto, user?.sub ?? null);
   }
 
   // Tokenul deschide doar o CIORNA (SEC2-4): editarea si repostul dupa publicare
@@ -137,6 +192,13 @@ export class RequestsController {
     return this.requests.dashboardStatsForClient(user.sub);
   }
 
+  // d5 (PO d5-1): fila "Ciorne" — ciornele legate de cont (ruta statica, inainte de :id).
+  @Roles(UserRole.CLIENT)
+  @Get('my-drafts')
+  myDrafts(@CurrentUser() user: AccessTokenPayload) {
+    return this.requests.listDraftsForClient(user.sub);
+  }
+
   @Roles(UserRole.CLIENT)
   @Get(':id')
   getOne(@CurrentUser() user: AccessTokenPayload, @Param('id') id: string) {
@@ -148,6 +210,15 @@ export class RequestsController {
   @Get(':id/visibility')
   visibility(@CurrentUser() user: AccessTokenPayload, @Param('id', ParseUUIDPipe) id: string) {
     return this.requests.getVisibilityForClient(user.sub, id);
+  }
+
+  // d5: "Continua" o ciorna din cont, de pe orice dispozitiv — token nou (doar proprietarul,
+  // doar pe DRAFT). Fara audit: raspunsul contine tokenul ciornei.
+  @Roles(UserRole.CLIENT)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Post(':id/draft-token')
+  reissueDraftToken(@CurrentUser() user: AccessTokenPayload, @Param('id', ParseUUIDPipe) id: string) {
+    return this.requests.reissueDraftTokenForClient(user.sub, id);
   }
 
   // Editare autentificata (proprietar, orice device — tokenul draftului e doar hash).
@@ -170,6 +241,20 @@ export class RequestsController {
   @Post(':id/repost')
   repostById(@CurrentUser() user: AccessTokenPayload, @Param('id') id: string) {
     return this.requests.repostForClient(user.sub, id);
+  }
+
+  // f6-2: "Republica cu modificari" — continutul nou + republicarea intr-un singur pas, tot o
+  // singura data (REPOST_ALREADY_USED); nu consuma din editari. Audit ca la repost.
+  @Roles(UserRole.CLIENT)
+  @UseInterceptors(AuditInterceptor)
+  @Audit('REQUEST_REPOSTED', 'request')
+  @Post(':id/repost-with-changes')
+  repostWithChangesById(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateRequestContentDto,
+  ) {
+    return this.requests.repostWithChangesForClient(user.sub, id, dto);
   }
 
   // Atasamente pe cererea proprie (echivalentul autentificat al rutelor cu token).

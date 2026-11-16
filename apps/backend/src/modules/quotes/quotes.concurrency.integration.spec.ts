@@ -60,6 +60,8 @@ const url = testDatabaseUrl();
     queue as never,
     queue as never,
     queue as never,
+    queue as never, // a4: expirarea cererii re-publicate dupa refuz
+    { encrypt: (s: string | null) => s } as never, // a4: mesaje de sistem in clar
   );
 
   interface Seed {
@@ -150,7 +152,12 @@ const url = testDatabaseUrl();
   afterAll(async () => prisma.$disconnect());
 
   const ctxOf = (companyId: string): Any => ({ companyId, memberRole: 'OWNER', status: 'APPROVED' });
-  const offer = (claimSlotId: string): Any => ({ claimSlotId, price: 1000, description: 'EC2 oferta' });
+  // a3: rubricile structurate obligatorii la orice varianta noua
+  const structured = {
+    vatMode: 'VAT_INCLUDED', deliveryTermValue: 6, deliveryTermUnit: 'WEEKS', warrantyMonths: 24,
+    includesTransport: true, includesAssembly: true,
+  };
+  const offer = (claimSlotId: string): Any => ({ claimSlotId, price: 1000, description: 'EC2 oferta', ...structured });
 
   async function settlementsOf(slotId: string) {
     return prisma.creditTransaction.findMany({
@@ -258,7 +265,7 @@ const url = testDatabaseUrl();
     }
     latencyMs = 20;
     const [extra, accepted] = await Promise.allSettled([
-      service.extraVersion(ctxOf(s.companyA), s.ownerA, q.id, { price: 800, description: 'extra' } as Any),
+      service.extraVersion(ctxOf(s.companyA), s.ownerA, q.id, { price: 800, description: 'extra', ...structured } as Any),
       service.acceptQuote(s.clientId, q.id, v3Id),
     ]);
     latencyMs = 0;
@@ -294,7 +301,7 @@ const url = testDatabaseUrl();
       data: { quoteVersionId: v1, clientUserId: s.clientId, requestedText: 'mai ieftin' },
     });
     const revised = await service.reviseQuote(ctxOf(s.companyA), s.ownerA, q.id, {
-      changeRequestId: change.id, price: 900, description: 'v2',
+      changeRequestId: change.id, price: 900, description: 'v2', ...structured,
     } as Any);
     const v2 = revised.versions.find((v) => v.version === 2)!.id;
     const requestBefore = await prisma.request.findUniqueOrThrow({ where: { id: s.requestId } });
@@ -334,7 +341,7 @@ const url = testDatabaseUrl();
     const s = await seed();
     const q = await service.createQuote(ctxOf(s.companyA), s.ownerA, offer(s.slotA));
     await service.withdrawQuote(ctxOf(s.companyA), q.id);
-    const err: Any = await service.extraVersion(ctxOf(s.companyA), s.ownerA, q.id, { price: 1, description: 'x' } as Any).catch((e) => e);
+    const err: Any = await service.extraVersion(ctxOf(s.companyA), s.ownerA, q.id, { price: 1, description: 'x', ...structured } as Any).catch((e) => e);
     expect(err?.response?.code).toBe('QUOTE_NOT_MODIFIABLE');
     expect((await prisma.quote.findUniqueOrThrow({ where: { id: q.id } })).status).toBe('WITHDRAWN');
     // slotul redevine ACTIVE, fara decontare
@@ -375,7 +382,7 @@ const url = testDatabaseUrl();
     inTx = 0;
     latencyMs = latency;
     const revised = await withIdempotentOperation({ receiptId: reviseReceipt, responseStatus: 201, transactional: true }, () =>
-      service.reviseQuote(ctxOf(s.companyA), s.ownerA, q.id, { changeRequestId: change.id, price: 950, description: 'v2' } as Any),
+      service.reviseQuote(ctxOf(s.companyA), s.ownerA, q.id, { changeRequestId: change.id, price: 950, description: 'v2', ...structured } as Any),
     );
     latencyMs = 0;
     const reviseRt = inTx;

@@ -26,6 +26,7 @@ import {
   CloseProjectDto,
   DismissProjectCaseDto,
   OpenProjectCaseDto,
+  OpenWarrantyCaseDto,
   RespondProjectCaseDto,
 } from './dto/fulfillment.dto';
 
@@ -52,6 +53,23 @@ export class ClientProjectCaseController {
     @Body() dto: OpenProjectCaseDto,
   ) {
     return this.cases.open({ kind: 'CLIENT', userId: user.sub }, id, dto);
+  }
+
+  // e2-2: fereastra de raportare dupa finalizare (garantia din oferta, minimum 24 de luni)
+  @Get(':id/project-case/warranty')
+  warranty(@CurrentUser() user: AccessTokenPayload, @Param('id', ParseUUIDPipe) id: string) {
+    return this.cases.getWarrantyWindow(user.sub, id);
+  }
+
+  // e2-2: "Raporteaza o problema" dupa finalizare → caz WARRANTY_CLAIM la admin
+  @Post(':id/project-case/warranty')
+  @Audit('PROJECT_CASE_OPENED', 'project_case')
+  openWarranty(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: OpenWarrantyCaseDto,
+  ) {
+    return this.cases.openWarranty(user.sub, id, dto);
   }
 
   @Post(':id/project-case/respond')

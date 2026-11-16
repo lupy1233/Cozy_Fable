@@ -54,7 +54,7 @@ describe('AppHeader — header randat din indiciul de sesiune', () => {
     apiMock.mockReturnValue(new Promise(() => {})); // /auth/me nu raspunde inca
     renderHeader('COMPANY_USER');
     // nav-ul apare si in meniul mobil, asa ca acceptam mai multe aparitii
-    expect(screen.getAllByRole('link', { name: 'Marketplace' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('link', { name: ro.Nav.marketplace }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('link', { name: 'Portofel' }).length).toBeGreaterThan(0);
     expect(screen.getByTestId('bell-placeholder')).toBeInTheDocument();
     expect(screen.queryByTestId('bell')).toBeNull();
@@ -64,7 +64,7 @@ describe('AppHeader — header randat din indiciul de sesiune', () => {
   it('fara indiciu si pending: fara linkuri, fara meniu de cont', () => {
     apiMock.mockReturnValue(new Promise(() => {}));
     renderHeader(null);
-    expect(screen.queryByRole('link', { name: 'Marketplace' })).toBeNull();
+    expect(screen.queryByRole('link', { name: ro.Nav.marketplace })).toBeNull();
     expect(screen.queryByTestId('account')).toBeNull();
     expect(screen.queryByTestId('bell-placeholder')).toBeNull();
   });
@@ -73,7 +73,7 @@ describe('AppHeader — header randat din indiciul de sesiune', () => {
     apiMock.mockResolvedValue({ user: null }); // fetchMe → 401 local
     renderHeader('COMPANY_USER');
     await vi.waitFor(() => {
-      expect(screen.queryByRole('link', { name: 'Marketplace' })).toBeNull();
+      expect(screen.queryByRole('link', { name: ro.Nav.marketplace })).toBeNull();
     });
     expect(screen.queryByTestId('account')).toBeNull();
   });

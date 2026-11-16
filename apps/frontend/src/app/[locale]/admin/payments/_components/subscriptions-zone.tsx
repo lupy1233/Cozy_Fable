@@ -1,6 +1,7 @@
 'use client';
 
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { useId } from 'react';
 import { useAdminPlans } from '@/hooks/use-admin';
 import { useAdminSubscriptions } from '@/hooks/use-billing';
@@ -24,7 +25,7 @@ export function SubscriptionsZone() {
     const p = plans.data?.find((x) => x.id === planId);
     return p ? planDisplayName(p, locale) : code;
   };
-  const fmtDay = (iso: string) => format.dateTime(new Date(iso), { dateStyle: 'medium' });
+  const fmtDay = (iso: string) => format.dateTime(new Date(iso), { dateStyle: 'medium', timeZone: APP_TIME_ZONE });
 
   return (
     <section aria-labelledby={titleId} className="flex flex-col gap-4">

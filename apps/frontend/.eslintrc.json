@@ -15,6 +15,18 @@
       {
         "selector": "Literal[value=/\\bbg-card\\b/]",
         "message": "Foloseste bg-surface (tokenul unic pentru suprafete), nu bg-card."
+      },
+      {
+        "selector": "CallExpression[callee.property.name=/^toLocale(Date|Time)?String$/][arguments.length=0]",
+        "message": "g2: data / numarul se formateaza dupa limba APLICATIEI si ora Romaniei (useFormatter, useLongDate, useSlaDateFormat), nu dupa browser: toLocale*String() fara limba e interzis."
+      },
+      {
+        "selector": "CallExpression[callee.property.name=/^toLocale(Date|Time)?String$/][arguments.0.type='Identifier'][arguments.0.name='undefined']",
+        "message": "g2: toLocale*String(undefined, ...) foloseste limba browserului; da limba aplicatiei (useLocale) sau useFormatter."
+      },
+      {
+        "selector": ":matches(NewExpression, CallExpression)[callee.object.name='Intl'][callee.property.name='DateTimeFormat']:matches([arguments.length=0], [arguments.0.type='Identifier'][arguments.0.name='undefined'])",
+        "message": "g2: Intl.DateTimeFormat fara limba foloseste limba browserului; foloseste useFormatter / useLongDate sau da limba explicit."
       }
     ]
   }

@@ -5,8 +5,8 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
-  IsIn,
   IsInt,
+  IsNumber,
   IsObject,
   IsOptional,
   IsString,
@@ -20,9 +20,11 @@ import {
 } from 'class-validator';
 import { BudgetRange, ContactChannel, DesiredDeadlineBucket, RoomType } from '@prisma/client';
 import {
-  ALLOWED_ATTACHMENT_MIME,
+  ADDRESS_DETAILS_MAX,
+  APPROX_LENGTH_MAX_M,
+  APPROX_LENGTH_MIN_M,
+  BUDGET_SLIDER_STEP_RON,
   INSPIRATION_NOTE_MAX,
-  MAX_ATTACHMENT_BYTES,
   MAX_BUDGET_RON,
   MAX_REQUEST_INSPIRATION_PHOTOS,
   MAX_REQUEST_ROOMS,
@@ -50,6 +52,20 @@ export class ConfiguratorRoomInputDto {
 
   @IsObject()
   answers: Record<string, unknown>;
+
+  // b8 (PO g0-8): "La camera asta am nevoie de ajutor" — implicit false. Camera bifata se
+  // valideaza partial, iar la publicare/editare raspunsurile ei nu se pastreaza (b8-3).
+  @IsOptional()
+  @IsBoolean()
+  needsDesignHelp?: boolean;
+
+  // d3 (PO d3-2): lungimea aproximativa (m) a camerei, doar cu hasOwnProject (verificat in
+  // resolveApproxLength). Conteaza la ROOM_SIZE doar cand dimensiunile lipsesc.
+  @IsOptional()
+  @IsNumber({ allowNaN: false, allowInfinity: false, maxDecimalPlaces: 2 })
+  @Min(APPROX_LENGTH_MIN_M)
+  @Max(APPROX_LENGTH_MAX_M)
+  approxLengthM?: number;
 }
 
 // Canal restrans la EMAIL/PHONE; formatul valorii (email valid / telefon RO)
@@ -110,8 +126,12 @@ export class CreateRequestContentDto {
   @IsEnum(DesiredDeadlineBucket)
   deadlineBucket?: DesiredDeadlineBucket;
 
+  // b8: DERIVAT pe server (true daca macar o camera are needsDesignHelp). Ramane acceptat
+  // pentru interfata veche (blue/green) si e ignorat — exceptie: niciun camp needsDesignHelp
+  // pe camere + includesPaidDesign=true → toate camerele cu ajutor (comportamentul vechi).
+  @IsOptional()
   @IsBoolean()
-  includesPaidDesign: boolean;
+  includesPaidDesign?: boolean;
 
   @IsBoolean()
   hasOwnProject: boolean;
@@ -121,14 +141,22 @@ export class CreateRequestContentDto {
   @MaxLength(300)
   addressText: string;
 
+  // b12: "Bloc, scara, apartament" (optional), separat de strada
+  @IsOptional()
+  @IsString()
+  @MaxLength(ADDRESS_DETAILS_MAX)
+  addressDetails?: string;
+
   @IsString()
   @MinLength(2)
   @MaxLength(100)
   county: string;
 
+  // b12 (din b9): un oras doar din spatii nu trece (MinLength numara si spatiile)
   @IsString()
   @MinLength(2)
   @MaxLength(100)
+  @Matches(/\S/)
   city: string;
 
   // ISO2 (F5, item 19) — optional, serverul pune implicit RO
@@ -137,12 +165,18 @@ export class CreateRequestContentDto {
   @Matches(/^[A-Za-z]{2}$/)
   country?: string;
 
-  // bugetul ales pe sliderul estimat (F5, item 18)
+  // bugetul ales pe sliderul estimat (F5, item 18); m1: nu sub pasul glisorului (500 lei) —
+  // interfata nu trimite niciodata mai putin, iar o suma de 0 ar ajunge la firma ca "0 lei"
   @IsOptional()
   @IsInt()
-  @Min(0)
+  @Min(BUDGET_SLIDER_STEP_RON)
   @Max(MAX_BUDGET_RON)
   budgetEstimateRon?: number;
+
+  // b11: suma aleasa de client pe glisor (nu pusa de formular); pastrata doar langa o suma
+  @IsOptional()
+  @IsBoolean()
+  budgetDeclared?: boolean;
 
   // pozele din galerie alese ca inspiratie (F6, item 3)
   @IsOptional()
@@ -207,6 +241,12 @@ export class PatchDraftDto {
   @MaxLength(300)
   addressText?: string;
 
+  // b12: "Bloc, scara, apartament"
+  @IsOptional()
+  @IsString()
+  @MaxLength(ADDRESS_DETAILS_MAX)
+  addressDetails?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(100)
@@ -241,17 +281,19 @@ export class EstimateRequestDto {
   rooms: ConfiguratorRoomInputDto[];
 }
 
+// b5: DTO-ul verifica doar forma; tipul permis, fisierul gol si limita de 25 MB le verifica
+// UploadsService.presign (inainte de orice scriere), ca raspunsul sa poarte codurile dedicate
+// FILE_TYPE_NOT_ALLOWED / FILE_TOO_LARGE in loc de VALIDATION_ERROR.
 export class PresignAttachmentDto {
   @IsString()
   @MinLength(1)
   @MaxLength(255)
   filename: string;
 
-  @IsIn([...ALLOWED_ATTACHMENT_MIME])
-  mimeType: (typeof ALLOWED_ATTACHMENT_MIME)[number];
+  @IsString()
+  @MaxLength(100)
+  mimeType: string;
 
   @IsInt()
-  @Min(1)
-  @Max(MAX_ATTACHMENT_BYTES)
   sizeBytes: number;
 }

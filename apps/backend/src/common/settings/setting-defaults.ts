@@ -6,9 +6,9 @@ export const SETTING_DEFAULTS = {
   company_penalty_threshold: 12,
   company_suspension_months: 6,
   max_claims_per_request: 3,
-  // E-admin-platform-10: cererea ramane claimabila dupa prima oferta (varianta A) — OPRIT
-  // pana la decizia PO (invarianta 3.1 ramane literala).
-  claims_open_after_first_offer: false,
+  // E-admin-platform-10 / a1 (PO 2026-11-13): cererea ramane claimabila dupa prima oferta
+  // (varianta A) pana se ocupa locurile. Comutatorul ramane in Admin.
+  claims_open_after_first_offer: true,
   // E-company-3 (DECIZIE NECESARA PO): implicitele pastreaza W1 (contacte la claim) si I18
   // (gratia de 30 min). AFTER_GRACE ascunde contactele in gratie; 0 = fara prag dupa livrare.
   claim_contact_reveal_policy: 'ON_CLAIM',
@@ -36,4 +36,9 @@ export const SETTING_DEFAULTS = {
   // Hotfix 2026-10-04 (PO): re-acceptarea Termenilor/Politicii pentru conturile existente —
   // OPRITA pana la revizuirea avocatului (conturile noi accepta oricum la inregistrare)
   legal_reaccept_existing_users: false,
+  // e1-3 (PO 2026-11-13): "Marcheaza ca livrata" doar dupa N zile de la acceptare; 0 = fara limita
+  delivery_min_days_after_accept: 7,
+  // f6-1 (PO 2026-11-13): ciornele neatinse se sterg — vizitatori (fara cont) / clienti cu cont; minim 1
+  guest_draft_retention_days: 7,
+  client_draft_retention_days: 90,
 } as const;

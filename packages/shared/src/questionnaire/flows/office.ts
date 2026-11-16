@@ -15,7 +15,7 @@ const F = 'flows.OFFICE';
 
 const PIECES: PieceDef[] = [
   { value: 'DESK', icon: 'monitor', itemName: 'Birou' },
-  { value: 'BOOKSHELF', icon: 'library', itemName: 'Biblioteca' },
+  { value: 'BOOKSHELF', icon: 'library', itemName: 'Bibliotecă' },
   { value: 'STORAGE', icon: 'archive', itemName: 'Dulap depozitare' },
 ];
 

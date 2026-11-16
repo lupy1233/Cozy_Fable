@@ -18,9 +18,14 @@ import {
   Gavel,
   Handshake,
   Hourglass,
+  ListChecks,
   Mail,
+  MapPin,
+  MapPinOff,
+  MessageCircleQuestionMark,
   MessageSquare,
   PackageCheck,
+  PenLine,
   RefreshCw,
   ShieldAlert,
   Star,
@@ -85,15 +90,33 @@ const TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   'project.cancelled': Ban,
   'project.delivery_reminder': CalendarClock,
   'project.overdue': CalendarX,
+  // e1-2 (etapa 5): firma a bifat o etapa de executie (clientul ajunge pe pagina ofertelor)
+  'execution.stage_updated': ListChecks,
   'quote.expired': Hourglass,
   'quote.expired_closed': Undo2,
   'quote.extension_requested': RefreshCw,
+  // a4 (etapa 4): clientul a refuzat oferta
+  'quote.declined': XCircle,
   // E-admin-platform-44: termene apropiate
   'request.expiry_reminder': Hourglass,
   'claim.assign_warning': UserPlus,
   'sla.expiring_soon': AlarmClock,
   // E-admin-platform-15: verificarea zilnica ledger vs portofel (doar admini)
   'credits.ledger_mismatch': AlertTriangle,
+  // a6 (etapa 5): cerere publicata fara nicio firma in zona (doar admini)
+  'request.no_coverage': MapPinOff,
+  // e4 (etapa 7): o firma a renuntat la preluare (doar clientul)
+  'request.company_withdrew': Undo2,
+  // g4 (etapa 7): PDF-urile nu se pot genera (doar admini, o data pe zi)
+  'documents.pdf_failed': AlertTriangle,
+  // g1 (etapa 9): cerere noua in zona firmei (cand ii devine vizibila dupa plan)
+  'request.new_in_area': MapPin,
+  // e3 (etapa 9): intrebarea firmei (client), raspunsul clientului si editarea dupa preluare (firma)
+  'clarification.asked': MessageCircleQuestionMark,
+  'clarification.answered': MessageSquare,
+  'request.edited_after_claim': PenLine,
+  // h1 (etapa 11): colegul a fost adaugat in firma (doar colegul adaugat)
+  'company.member_added': UserPlus,
 };
 
 type Payload = Record<string, unknown> | null;
@@ -103,6 +126,19 @@ const str = (p: Payload, key: string): string | null => {
   return typeof v === 'string' && v.trim() ? v : null;
 };
 
+// m3 (revizie e5): „<Firma> a bifat etapa: Productie” — etapa (si firma, daca vine) din payload.
+// null = payload fara etapa cunoscuta → titlul de baza al tipului.
+type BellT = { (key: string, values?: Record<string, string>): string; has(key: string): boolean };
+export function executionStageTitle(t: BellT, payload: Payload): string | null {
+  const stage = str(payload, 'stage');
+  if (!stage || !t.has(`stageUpdated.stage.${stage}`)) return null;
+  const stageName = t(`stageUpdated.stage.${stage}`);
+  const company = str(payload, 'companyName');
+  return company
+    ? t('stageUpdated.withCompany', { company, stage: stageName })
+    : t('stageUpdated.noCompany', { stage: stageName });
+}
+
 // Varianta de titlu per payload (ex. motivul inchiderii claimului, decizia admin) —
 // cheia `type.<tip>_<varianta>` cu fallback pe `type.<tip>`.
 function titleVariant(type: string, payload: Payload): string | null {
@@ -111,6 +147,8 @@ function titleVariant(type: string, payload: Payload): string | null {
   if (type === 'dispute.decided') return payload?.dismissed === true ? 'DISMISSED' : 'RESOLVED';
   // E-company-13: reminderul de la inceputul gratiei (phase=GRACE); fara phase → eticheta de baza
   if (type === 'sla.expiring_soon') return str(payload, 'phase');
+  // a4: varianta noua (NEW_VERSION) sau cererea de modificare a clientului (CHANGE_REQUESTED)
+  if (type === 'quote.updated') return str(payload, 'kind');
   return null;
 }
 
@@ -123,11 +161,18 @@ function hrefFor(type: string, payload: Payload, role: string | undefined): stri
     if (type === 'request.status_changed' || type === 'request.expired' || type === 'request.expiry_reminder') {
       return `/requests/${requestId}`;
     }
+    // e4: o firma a renuntat → pagina cererii (caseta "Cine vede cererea")
+    if (type === 'request.company_withdrew') return `/requests/${requestId}`;
+    // e3: intrebarea firmei → pagina ofertelor (acolo sunt intrebarea si campul de raspuns)
     return `/requests/${requestId}/offers`;
   }
   if (role === 'COMPANY_USER') {
-    // mesajele (client sau echipa) duc in mesagerie
-    if (type === 'message.created') return '/marketplace/messages';
+    // g1: mesajul clientului duce pe fisa preluarii; chatul echipei ramane in mesagerie
+    if (type === 'message.created') {
+      return claimSlotId && payload?.teamChat !== true ? `/marketplace/claims/${claimSlotId}` : '/marketplace/messages';
+    }
+    // g1: cerere noua in zona → detaliul din marketplace
+    if (type === 'request.new_in_area') return requestId ? `/marketplace/${requestId}` : '/marketplace';
     if (
       type === 'payment.confirmed' ||
       type === 'subscription.expiring' ||
@@ -138,6 +183,8 @@ function hrefFor(type: string, payload: Payload, role: string | undefined): stri
       return '/marketplace/wallet';
     }
     if (type === 'company.approved' || type === 'company.unsuspended') return '/marketplace';
+    // h1: colegul adaugat → panoul firmei
+    if (type === 'company.member_added') return '/company';
     if (type === 'company.rejected' || type === 'company.suspended' || type === 'penalty.applied' || type === 'review.created' || type === 'dispute.decided') {
       return '/company';
     }
@@ -151,6 +198,10 @@ function hrefFor(type: string, payload: Payload, role: string | undefined): stri
     if (type === 'dispute.opened') return '/admin/disputes';
     // E-admin-platform-15: raportul zilnic de credite → pagina de joburi (operare)
     if (type === 'credits.ledger_mismatch') return '/admin/jobs';
+    // g4: PDF-urile pica → pagina de joburi / operare (jurnalul serverului)
+    if (type === 'documents.pdf_failed') return '/admin/jobs';
+    // a6: cererea fara nicio firma in zona → detaliul cererii din Admin
+    if (type === 'request.no_coverage' && requestId) return `/admin/requests/${requestId}`;
     // E-admin-platform-3: rapoartele pe proiecte acceptate → detaliul proiectului
     if ((type === 'project.case_opened' || type === 'project.case_responded') && requestId) {
       return `/admin/requests/${requestId}`;
@@ -246,6 +297,10 @@ export function NotificationBell() {
                     <span className="flex items-baseline justify-between gap-2">
                       <span className="font-medium">
                         {(() => {
+                          if (n.type === 'execution.stage_updated') {
+                            const stageTitle = executionStageTitle(t, n.payload);
+                            if (stageTitle) return stageTitle;
+                          }
                           const variant = titleVariant(n.type, n.payload);
                           if (variant && t.has(`type.${n.type}_${variant}`)) {
                             return t(`type.${n.type}_${variant}`);

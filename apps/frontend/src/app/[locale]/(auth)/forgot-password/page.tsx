@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Alert } from '@/components/ui/alert';
 import { AuthStateIcon, authFooterCls, authLinkCls, authTitleCls } from '../_components/auth-parts';
+import { useMounted } from '../_components/use-mounted';
 
 // L0-A: parola uitata — serverul raspunde uniform, deci mesajul de succes nu
 // confirma existenta contului (anti-enumerare).
@@ -23,6 +24,7 @@ export default function ForgotPasswordPage() {
   // adresa catre care s-a trimis: tine ecranul „Verifica-ti emailul" si la retrimitere
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [resent, setResent] = useState(false);
+  const mounted = useMounted();
 
   const {
     register,
@@ -75,7 +77,7 @@ export default function ForgotPasswordPage() {
         <p className="text-sm text-muted-foreground">{t('forgotBody')}</p>
       </div>
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+      <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
         <Field
           label={t('email')}
           error={errors.email && t(`validation.${errors.email.message}`)}
@@ -87,7 +89,7 @@ export default function ForgotPasswordPage() {
           <Alert tone="crimson">{t.has(apiErr.key) ? t(apiErr.key) : apiErr.fallback}</Alert>
         )}
 
-        <Button type="submit" variant="walnut" size="xl" disabled={forgot.isPending} className="w-full text-lead">
+        <Button type="submit" variant="walnut" size="xl" disabled={!mounted || forgot.isPending} className="w-full text-lead">
           {t('forgotSubmit')}
         </Button>
       </form>

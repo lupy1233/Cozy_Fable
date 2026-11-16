@@ -4,11 +4,30 @@ import type { MarketplaceDetailDto } from '@marketplace/shared';
 import { ArrowRight, Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
-import { ApiError } from '@/lib/api';
+import { ApiError, isUnauthorizedError } from '@/lib/api';
+import { RoleOnlyScreen } from '@/lib/require-auth';
+import { LoadError } from '@/components/ui/query-state';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
 import { useClaim, useMarketplaceDetail, useWallet } from '@/hooks/use-marketplace';
+import { useBudgetFormat } from '@/hooks/use-budget-format';
 import { isFirmRules, useFirmRules } from '@/hooks/use-legal';
+import { useMe } from '@/hooks/use-auth';
+import { useMyCompany } from '@/hooks/use-company';
+import { companyCan } from '@/lib/company-permissions';
+import { useSlaDateFormat } from '@/lib/sla-deadline';
+import { RequestGeneralFiles } from '@/components/configurator/request-general-files';
+import { ClosedRequestNotice, closedDetails } from './closed-request-notice';
+import { ClaimCostSource, claimBlockedByRole } from './claim-panel-notes';
+import { ClaimDialogGraceLine, ClaimDialogRulesNote, ClaimPanelSlaRule } from './claim-penalty-text';
+import { toast } from '@/components/ui/toaster';
+import {
+  ClaimDialogDetails,
+  assigneeToPayload,
+  defaultAssignee,
+  type AssigneeChoice,
+} from './claim-dialog-details';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -16,15 +35,18 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
 import { SkeletonPage } from '@/components/ui/skeleton';
 import { ContactSafeText } from '@/components/ui/contact-safe-text';
-import { FirmRulesLink, firmRulesChunk } from '../../_components/firm-rules-link';
+import { FirmRulesLink } from '../../_components/firm-rules-link';
 import { ActionConfirmDialog } from '../../_components/action-confirm-dialog';
 import { RoomSpecCard, RoomSpecNav } from '@/components/configurator/room-spec-card';
+import { useDisplayAddress } from '@/components/configurator/use-display-address';
 import { RequestInspirationByRoom } from '@/components/configurator/request-inspiration-by-room';
 import { StudioScenesButton } from '@/components/studio/scene-button';
 import { useRelativeTime } from '@/lib/relative-time';
 import { distanceLabel } from '@/lib/marketplace-distance';
 import { cn } from '@/lib/utils';
-import { AccessBlocked, isAccessBlocked } from '../_components/access-blocked';
+import { AccessBlocked, isAccessBlocked, isSubscriptionInactive } from '../_components/access-blocked';
+import { SubscriptionStatusNotice } from '../_components/subscription-status-notice';
+import { FirmBudgetValue } from '../firm-budget';
 import { RequestTag } from '../_components/request-tag';
 import { SlotBars } from '../_components/slot-bars';
 import { WorksheetButton } from '../_components/worksheet-button';
@@ -39,14 +61,47 @@ export default function MarketplaceDetailPage() {
   const id = params.id;
   const detail = useMarketplaceDetail(id);
   const relTime = useRelativeTime();
+  const budgetFormat = useBudgetFormat();
+  // b12: oras + judet fara dubluri ("Bucuresti, Bucuresti")
+  const displayAddress = useDisplayAddress();
+  // f3 (review M1): plasa de siguranta — 401 pe cerere SI „cine sunt eu” a esuat → login cu
+  // intoarcere, chiar daca semnalul global n-a dus acolo (pagina nu ramane pe schelet)
+  const me = useMe();
+  const toLogin = useLoginRedirect();
+  const unauthorized = isUnauthorizedError(detail.error);
+  useEffect(() => {
+    if (unauthorized && me.isError) toLogin();
+  }, [unauthorized, me.isError, toLogin]);
+  // f4: alt rol (ex. clientul pe un link de firma) → ecranul de acces, nu „Nicio cerere”
+  if (me.data && me.data.role !== 'COMPANY_USER') return <RoleOnlyScreen role="COMPANY_USER" />;
 
-  if (detail.isPending) {
+  // f3: 401 = sesiune pierduta, nu „nicio cerere”: incarcare, ascultatorul global duce la login
+  if (detail.isPending || unauthorized) {
     return <SkeletonPage variant="detail" />;
   }
   if (detail.isError || !detail.data) {
     // firma neverificata / suspendata / fara abonament → acelasi ecran de blocaj ca in lista
+    // h2: fara abonament — acelasi mesaj comun ca in lista (cu data expirarii si creditele)
+    if (isSubscriptionInactive(detail.error)) {
+      return (
+        <div className="flex flex-col gap-4">
+          <Link href="/marketplace" className="self-start text-sm text-walnut hover:underline">
+            ← {t('back')}
+          </Link>
+          <SubscriptionStatusNotice />
+        </div>
+      );
+    }
     if (isAccessBlocked(detail.error)) {
       return <AccessBlocked error={detail.error} onRetry={() => void detail.refetch()} />;
+    }
+    // a1: cererea s-a inchis (locuri ocupate / clientul a ales) — motivul, nu "Nicio cerere"
+    if (detail.error instanceof ApiError && detail.error.code === 'REQUEST_NO_LONGER_CLAIMABLE') {
+      return <ClosedRequestNotice details={closedDetails(detail.error.details)} />;
+    }
+    // f4: doar 403/404 inseamna „cererea nu mai e disponibila”; orice alta eroare se poate reincerca
+    if (detail.isError && !(detail.error instanceof ApiError && [403, 404].includes(detail.error.status))) {
+      return <LoadError onRetry={() => void detail.refetch()} />;
     }
     return (
       <EmptyState
@@ -70,7 +125,12 @@ export default function MarketplaceDetailPage() {
       <PageHeader
         back={{ href: '/marketplace', label: t('back') }}
         title={<ContactSafeText text={r.title} />}
-        subtitle={<span className="data-mono">{t('detailMeta', { when: relTime(r.publishedAt) })}</span>}
+        subtitle={
+          <span className="data-mono">
+            {/* a7: dupa preluare datele clientului sunt deja in fisa — fara „apar dupa preluare” */}
+            {t(r.alreadyClaimedByMyCompany ? 'detailMetaClaimed' : 'detailMeta', { when: relTime(r.publishedAt) })}
+          </span>
+        }
       />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
@@ -97,15 +157,21 @@ export default function MarketplaceDetailPage() {
               )}
             >
               {r.size && <Fact label={t('size')}>{tr(`sizeValue.${r.size}`)}</Fact>}
-              <Fact label={tr('field.budgetRange')}>{tr(`budget.${r.budgetRange}`)}</Fact>
+              {/* b11: suma in lei; 'declarat de client' doar cand a ales-o clientul; estimarea = reper */}
+              <Fact label={budgetFormat.firmLabel(r)}>
+                <FirmBudgetValue budget={r} estimateMinRon={r.budgetEstimateMinRon} />
+              </Fact>
               <Fact label={t('desiredDeadline')}>
                 {r.deadlineBucket ? tr(`deadline.${r.deadlineBucket}`) : tr('deadline.none')}
               </Fact>
               <Fact label={t('location')} title={t('distanceHint')}>
-                {r.city}, {r.county} · {distanceLabel(r, t)}
+                {displayAddress({ city: r.city, county: r.county })} · {distanceLabel(r, t)}
               </Fact>
             </dl>
           </Card>
+
+          {/* a2: "Am deja un proiect" → proiectul (PDF, planuri) imediat sub rezumat */}
+          {r.hasOwnProject && <RequestGeneralFiles rooms={r.rooms} attachments={r.attachments} />}
 
           {/* Camere (fara date de contact pre-claim, invarianta 4.2) — prezentare
               structurata per camera, cu navigare cand sunt multe (item 6).
@@ -121,6 +187,10 @@ export default function MarketplaceDetailPage() {
               <RoomSpecCard key={room.id} room={room} index={i + 1} attachments={r.attachments} />
             ))}
           </section>
+
+          {/* a2: fisierele cererii care nu tin de nicio camera (poze, planuri) — o singura data:
+              schitele de camera si imaginea 3D raman in cardurile camerelor */}
+          {!r.hasOwnProject && <RequestGeneralFiles rooms={r.rooms} attachments={r.attachments} />}
 
           {/* inspiratia aleasa de client din galerie (F6), grupata pe camere; notitele sunt mascate pre-claim */}
           <RequestInspirationByRoom photos={r.inspirationPhotos} rooms={r.rooms} />
@@ -169,6 +239,21 @@ function ClaimPanel({ request }: { request: MarketplaceDetailDto }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const firmRules = useFirmRules();
   const rules = isFirmRules(firmRules.data) ? firmRules.data : null;
+  // a5: cine preia devine responsabil; conducerea poate alege un coleg sau "Atribui mai tarziu"
+  const me = useMe();
+  const company = useMyCompany();
+  const fmtSla = useSlaDateFormat();
+  const meId = me.data?.id ?? null;
+  const canAssign = companyCan(company.data, 'CLAIMS_ASSIGN');
+  const selfBusy = request.viewerHasActiveClaimWithoutOffer === true;
+  const [assignee, setAssignee] = useState<AssigneeChoice | null>(null);
+  const chosen = assignee ?? defaultAssignee({ canAssign, meId, selfBusy });
+  // angajatul cu acces complet preia doar pentru el: ocupat → nu poate confirma
+  const selfBlocked = !canAssign && selfBusy;
+  // a7: angajatul fara acces complet nu preia — buton dezactivat, cu explicatia
+  const roleBlocked = claimBlockedByRole(company.data);
+  // a7: valoarea unui credit (optionala: un slot vechi nu o trimite)
+  const creditValueRon = rules?.claims.claimCost.creditValueRon;
 
   const full = request.activeClaims >= request.maxClaims;
   const insufficient =
@@ -230,12 +315,20 @@ function ClaimPanel({ request }: { request: MarketplaceDetailDto }) {
             </div>
           )}
         </dl>
+        <ClaimCostSource estimateMinRon={request.budgetEstimateMinRon} creditValueRon={creditValueRon} />
         <div className="flex items-center justify-between gap-3 text-ui">
           <span className="text-muted-foreground">
             {t('slots', { active: request.activeClaims, max: request.maxClaims })}
           </span>
           <SlotBars filled={request.activeClaims} total={request.maxClaims} />
         </div>
+        {/* a5: termenul de raspuns se stie inainte de preluare */}
+        {request.estimatedSlaDeadlineAt && (
+          <div className="flex items-baseline justify-between gap-3 text-ui">
+            <span className="text-muted-foreground">{t('claimPanel.deadline')}</span>
+            <span className="text-right font-mono">{fmtSla(request.estimatedSlaDeadlineAt)}</span>
+          </div>
+        )}
       </div>
 
       <Button
@@ -246,10 +339,16 @@ function ClaimPanel({ request }: { request: MarketplaceDetailDto }) {
           claim.reset();
           setConfirmOpen(true);
         }}
-        disabled={claim.isPending || full || insufficient}
+        disabled={claim.isPending || full || insufficient || roleBlocked}
+        aria-describedby={roleBlocked ? 'claim-role-blocked' : undefined}
       >
         {claim.isPending ? t('claiming') : full ? t('full') : t('claimPanel.cta')}
       </Button>
+      {roleBlocked && (
+        <p id="claim-role-blocked" className="text-sm text-muted-foreground">
+          {t('claimPanel.roleBlocked')}
+        </p>
+      )}
 
       <ActionConfirmDialog
         open={confirmOpen}
@@ -260,15 +359,17 @@ function ClaimPanel({ request }: { request: MarketplaceDetailDto }) {
         pendingLabel={t('claiming')}
         pending={claim.isPending}
         error={apiErrText}
-        confirmDisabled={full || insufficient}
+        confirmDisabled={full || insufficient || selfBlocked || roleBlocked}
         onConfirm={() =>
           claim.mutate(
-            { requestId: request.id },
+            { requestId: request.id, assignToUserId: assigneeToPayload(chosen) },
             // dupa preluare aterizezi direct in fisa de lucru (PO r6):
             // acolo atribui cererea unui angajat si vezi contactul clientului
             {
               onSuccess: (slot) => {
                 setConfirmOpen(false);
+                // a7: confirmarea o data, vizibila pe fisa (toaster-ul global supravietuieste navigarii)
+                toast.success(t('claimSuccessToast'));
                 router.push(`/marketplace/claims/${slot.id}`);
               },
             },
@@ -285,16 +386,21 @@ function ClaimPanel({ request }: { request: MarketplaceDetailDto }) {
               : t('claimConfirmCostNoWallet', { credits: tu('credit', { n: request.creditCost }) })}
           </p>
         )}
-        {rules && (
-          <p>
-            {t('claimConfirmGrace', {
-              minutes: tu('minute', { n: rules.withdrawals.voluntaryGraceMinutes }),
-              points: tu('point', { n: rules.penalties.points.VOLUNTARY_WITHDRAWAL }),
-            })}
-          </p>
-        )}
+        <ClaimDialogDetails
+          deadlineIso={request.estimatedSlaDeadlineAt}
+          canAssign={canAssign}
+          meId={meId}
+          members={company.data?.members ?? []}
+          selfBusy={selfBusy}
+          value={chosen}
+          onChange={setAssignee}
+          assignMinutesLabel={tu('minute', { n: rules?.claims.assignDeadlineMinutes ?? 60 })}
+          disabled={claim.isPending}
+        />
+        {/* i3 (etapa 12): aceleasi valori ca Regulile pentru firme; o regula cu 0 puncte nu pomeneste puncte */}
+        <ClaimDialogGraceLine rules={rules} />
         <p>{t('claimConfirmPayToPlay')}</p>
-        <p className="text-xs text-muted-foreground">{t.rich('claimRulesNote', { rules: firmRulesChunk('sla') })}</p>
+        <ClaimDialogRulesNote rules={rules} />
       </ActionConfirmDialog>
 
       {/* credite insuficiente: pasul urmator e portofelul, nu butonul de preluare */}
@@ -329,7 +435,9 @@ function ClaimPanel({ request }: { request: MarketplaceDetailDto }) {
             </>
           )}
         </RuleRow>
-        <RuleRow tone="warn">{t('claimPanel.ruleSla')}</RuleRow>
+        <RuleRow tone="warn">
+          <ClaimPanelSlaRule rules={rules} />
+        </RuleRow>
         <RuleRow tone="warn">{t('claimConfirmPayToPlay')}</RuleRow>
       </ul>
       <FirmRulesLink

@@ -24,7 +24,7 @@ const F = 'flows.OFFICE';
 
 const PIECES: PieceWithMaterialDef[] = [
   { value: 'DESK', icon: 'monitor', itemName: 'Birou', materialStepId: 'materialDesk', systemsStepId: 'systemsDesk' },
-  { value: 'BOOKSHELF', icon: 'library', itemName: 'Biblioteca', materialStepId: 'materialBookshelf', systemsStepId: 'systemsBookshelf' },
+  { value: 'BOOKSHELF', icon: 'library', itemName: 'Bibliotecă', materialStepId: 'materialBookshelf', systemsStepId: 'systemsBookshelf' },
   { value: 'STORAGE', icon: 'archive', itemName: 'Dulap depozitare', materialStepId: 'materialStorage', systemsStepId: 'systemsStorage' },
   { value: 'WALL_SHELVES', icon: 'rows-3', itemName: 'Rafturi perete', materialStepId: 'materialShelves', systemsStepId: 'systemsShelves' },
 ];

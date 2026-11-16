@@ -4,6 +4,7 @@ import type { Job } from 'bullmq';
 import { QUEUE_NOTIFICATIONS } from '../../infra/queues/queues.module';
 import { NotificationsService } from './notifications.service';
 import { NotificationEmailsService } from './notification-emails.service';
+import { withoutActor } from './notification-rules';
 
 // Consuma coada `notifications` (alimentata de EventBusService.publish). Daca jobul are
 // __targets (destinatari rezolvati la publish), persista cate o notificare per user (3.5/docs06)
@@ -25,7 +26,8 @@ export class NotificationsProcessor extends WorkerHost {
     if (!Array.isArray(targets) || targets.length === 0) return; // eveniment broadcast → fara persistenta
     const { __targets, __eventId, ...clean } = payload;
     void __targets;
-    const users = [...new Set(targets.filter((id): id is string => typeof id === 'string'))];
+    // g1 (etapa 9): cel care a facut actiunea (actorUserId) nu primeste nici clopotel, nici e-mail
+    const users = withoutActor([...new Set(targets.filter((id): id is string => typeof id === 'string'))], clean);
     const eventId = typeof __eventId === 'string' ? __eventId : undefined;
     await this.notifications.createForUsers(users, job.name, clean, eventId);
     if (eventId) {
@@ -41,6 +43,6 @@ export class NotificationsProcessor extends WorkerHost {
     }
     // best-effort (erorile de email sunt doar logate — nu re-executam jobul,
     // altfel notificarile in-app s-ar duplica la retry)
-    await this.emails.sendForEvent(job.name, targets as string[], clean);
+    await this.emails.sendForEvent(job.name, users, clean);
   }
 }

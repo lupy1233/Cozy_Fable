@@ -64,6 +64,8 @@ import {
   QUEUE_DOMAIN_EVENTS,
   QUEUE_OFFER_EXPIRY_SETTLEMENT,
   QUEUE_PROJECT_DEADLINES,
+  QUEUE_DRAFT_CLEANUP,
+  QUEUE_NEW_REQUESTS,
 } from '../../infra/queues/queues.module';
 import {
   SETTING_CLAIM_CONTACT_REVEAL_POLICY,
@@ -124,6 +126,11 @@ const SETTING_VALUE_RULES: Partial<Record<string, (value: string) => boolean>> =
   // E-company-24: comenzi prin transfer bancar — reminder / anulare automata; 0 = oprit (DECIZIE NECESARA PO)
   [SETTING_BANK_TRANSFER_REMINDER_DAYS]: (v) => DAY_COUNT.test(v) && Number(v) <= 365,
   [SETTING_BANK_TRANSFER_EXPIRY_DAYS]: (v) => DAY_COUNT.test(v) && Number(v) <= 365,
+  // e1-3 (PO 2026-11-13): zile minime de la acceptare pana la "livrat"; 0 = fara limita
+  delivery_min_days_after_accept: (v) => DAY_COUNT.test(v) && Number(v) <= 365,
+  // f6-1 (PO 2026-11-13): pastrarea ciornelor neatinse (zile); minim 1 — 0 ar sterge orice ciorna
+  guest_draft_retention_days: (v) => /^[1-9]\d{0,3}$/.test(v) && Number(v) <= 3650,
+  client_draft_retention_days: (v) => /^[1-9]\d{0,3}$/.test(v) && Number(v) <= 3650,
 };
 
 // escape minimal pentru valorile interpolate in HTML-ul emailurilor
@@ -154,6 +161,8 @@ export class AdminService {
     @InjectQueue(QUEUE_DOMAIN_EVENTS) domainEvents: Queue,
     @InjectQueue(QUEUE_OFFER_EXPIRY_SETTLEMENT) offerExpirySettlement: Queue,
     @InjectQueue(QUEUE_PROJECT_DEADLINES) projectDeadlines: Queue,
+    @InjectQueue(QUEUE_DRAFT_CLEANUP) draftCleanup: Queue,
+    @InjectQueue(QUEUE_NEW_REQUESTS) newRequests: Queue,
   ) {
     this.queues = {
       [QUEUE_NOTIFICATIONS]: notifications,
@@ -170,6 +179,8 @@ export class AdminService {
       [QUEUE_DOMAIN_EVENTS]: domainEvents,
       [QUEUE_OFFER_EXPIRY_SETTLEMENT]: offerExpirySettlement,
       [QUEUE_PROJECT_DEADLINES]: projectDeadlines,
+      [QUEUE_DRAFT_CLEANUP]: draftCleanup,
+      [QUEUE_NEW_REQUESTS]: newRequests,
     };
   }
 
@@ -218,7 +229,7 @@ export class AdminService {
     });
     if (res.count === 1) {
       await this.tokens.revokeAllForUser(id);
-      this.eventBus.emitAuthExpired(id);
+      await this.eventBus.emitAuthExpired(id);
       await this.sendBlockedEmail(user.email, user.name, user.languagePreference);
     }
     const fresh = await this.prisma.user.findUniqueOrThrow({

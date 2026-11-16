@@ -20,6 +20,11 @@ export function isAccessBlocked(error: unknown): boolean {
   return error instanceof ApiError && (KNOWN as readonly string[]).includes(error.code);
 }
 
+// h2: lipsa abonamentului activ (nu planul fara marketplace) — acoperita de mesajul comun
+export function isSubscriptionInactive(error: unknown): boolean {
+  return error instanceof ApiError && error.code === 'SUBSCRIPTION_INACTIVE';
+}
+
 export function AccessBlocked({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const t = useTranslations('Marketplace');
   const code = error instanceof ApiError ? error.code : null;

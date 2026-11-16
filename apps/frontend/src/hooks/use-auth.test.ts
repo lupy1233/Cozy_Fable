@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api';
-import { fetchMe } from './use-auth';
+import { fetchMe, registerBody } from './use-auth';
 
 // SEC2-11 (E-admin-platform-5): vizitatorul anonim primeste 200 { user: null } de la
 // /auth/me; fetchMe il transforma in 401 local, fara niciun apel /auth/refresh.
@@ -26,5 +26,27 @@ describe('fetchMe', () => {
     const user = { id: 'u1', email: 'ana@demo.ro', role: 'CLIENT' };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ user })));
     await expect(fetchMe()).resolves.toEqual(user);
+  });
+});
+
+describe('registerBody (b4)', () => {
+  const base = {
+    email: 'nou@example.com',
+    password: 'Parola123',
+    name: 'Nou',
+    role: 'CLIENT' as const,
+    termsAccepted: true as const,
+  };
+
+  it('trimite returnTo cand exista', () => {
+    expect(JSON.parse(registerBody({ ...base, returnTo: '/requests/new' }))).toMatchObject({
+      returnTo: '/requests/new',
+    });
+  });
+
+  it('fara returnTo / telefon gol → campurile lipsesc din corp', () => {
+    const body = JSON.parse(registerBody({ ...base, phone: '', returnTo: '' }));
+    expect(body).not.toHaveProperty('returnTo');
+    expect(body).not.toHaveProperty('phone');
   });
 });

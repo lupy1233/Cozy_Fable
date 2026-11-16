@@ -68,3 +68,41 @@ export function IlluNoVentilation({ className }: IllustrationProps) {
     </Svg>
   );
 }
+
+// --- Etapa 10: tipul lavoarului (sectiune prin blat + corp) ---
+
+export function IlluBasinOnTop({ className }: IllustrationProps) {
+  return (
+    <Svg className={className}>
+      {/* lavoar asezat pe blat */}
+      <path d="M38 44c0 10 10 14 22 14s22-4 22-14z" />
+      <rect x="22" y="58" width="76" height="6" rx="1.5" strokeWidth={2} />
+      <rect x="28" y="64" width="64" height="16" rx="2" strokeWidth={2} opacity={0.6} />
+      <path d="M60 44v-12h8" strokeWidth={2.5} />
+    </Svg>
+  );
+}
+
+export function IlluBasinInset({ className }: IllustrationProps) {
+  return (
+    <Svg className={className}>
+      {/* lavoar incastrat: buza pe blat, cuva sub el */}
+      <path d="M22 46h18M80 46h18" strokeWidth={4} />
+      <path d="M36 46h48" strokeWidth={2} />
+      <path d="M40 46c0 14 8 18 20 18s20-4 20-18" />
+      <rect x="28" y="52" width="64" height="26" rx="2" strokeWidth={2} opacity={0.6} />
+      <path d="M60 46v-14h8" strokeWidth={2.5} />
+    </Svg>
+  );
+}
+
+export function IlluBasinIntegrated({ className }: IllustrationProps) {
+  return (
+    <Svg className={className}>
+      {/* blat si cuva dintr-o singura bucata */}
+      <path d="M22 44h20c0 12 8 16 18 16s18-4 18-16h20v8H22z" />
+      <rect x="28" y="52" width="64" height="26" rx="2" strokeWidth={2} opacity={0.6} />
+      <path d="M60 44v-12h8" strokeWidth={2.5} />
+    </Svg>
+  );
+}

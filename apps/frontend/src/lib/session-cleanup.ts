@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { disconnectRealtime } from '@/hooks/use-socket';
+import { clearEditSessions, CONFIGURATOR_STORAGE_KEY, isAbandonedEditSnapshot } from '@/stores/configurator-keys';
 
 // Curatenia datelor locale ale unui user (SEC2-12, E-client-3): la logout si la
 // login cu alt cont nu ramane nimic din sesiunea anterioara in browser.
@@ -10,7 +11,7 @@ export const DRAFT_TOKEN_KEY = 'mm_draft_token';
 const REQUEST_TOKEN_PREFIX = 'mm_req_token_';
 // ultimul user logat in acest browser; schimbarea lui declanseaza curatenia
 export const LOCAL_OWNER_KEY = 'mm_local_owner';
-const CONFIGURATOR_KEY = 'mm_configurator_v1';
+const CONFIGURATOR_KEY = CONFIGURATOR_STORAGE_KEY;
 
 function safeGet(key: string): string | null {
   try {
@@ -51,6 +52,9 @@ export function hasUnpublishedLocalDraft(): boolean {
   try {
     const state = (JSON.parse(raw) as { state?: { roomInstances?: unknown[]; details?: Record<string, unknown> } })
       .state;
+    // b8: o editare a unei cereri publicate nu e "ciorna nepublicata". Editarile noi stau
+    // in sessionStorage; cele scrise aici de build-urile vechi se recunosc dupa camere.
+    if (isAbandonedEditSnapshot(state)) return false;
     const rooms = Array.isArray(state?.roomInstances) ? state.roomInstances.length : 0;
     const details = state?.details && typeof state.details === 'object' ? Object.keys(state.details).length : 0;
     return rooms > 0 || details > 0;
@@ -65,10 +69,14 @@ export async function clearUserLocalData(qc: QueryClient): Promise<void> {
   safeRemove(DRAFT_TOKEN_KEY);
   purgeLegacyRequestTokens();
   safeRemove(CONFIGURATOR_KEY);
+  // editarile cererilor publicate tinute in tab (b8)
+  clearEditSessions();
   disconnectRealtime();
 
-  const { useConfiguratorStore } = await import('@/stores/configurator-store');
-  useConfiguratorStore.getState().reset();
+  // m2: golire fara scriere — un reset cat timp memoria e a editarii ar rescrie in tab
+  // o editare goala (cheia tocmai stearsa), reluata apoi la redeschiderea cererii
+  const { clearConfiguratorMemory } = await import('@/stores/configurator-store');
+  clearConfiguratorMemory();
 
   // scenele/piesele Studio raman (intrebare PO deschisa); doar pointerul la ciorna
   // din contul anterior dispare. Storage-ul Studio e async: set-ul inainte de

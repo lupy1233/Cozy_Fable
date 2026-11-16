@@ -1,7 +1,7 @@
 import type { ItemSystem, Material } from '../../enums';
 import { dimensionValues, linearMeters, STANDARD_CABINET_DEPTH } from '../mapping';
 import type { AnswerMap, DimensionGroupStep, DimensionSlot, RoomFlow } from '../types';
-import { linearSlot, materialOptions, OFFERED_MATERIALS, otherMaterialStep } from './common';
+import { interiorModulesText, linearSlot, materialOptions, OFFERED_MATERIALS, otherMaterialStep } from './common';
 
 // Dressing v2 (uniformizare 2026-07, decizie PO):
 // - scoring pe layout (DRESSING_LAYOUT);
@@ -181,7 +181,7 @@ export const dressingFlowV2: RoomFlow = {
       ? (answers.interiorModules as string[])
       : [];
     const details: string[] = [];
-    if (modules.length > 0) details.push(`Interior: ${modules.join(', ')}`);
+    if (modules.length > 0) details.push(`Interior: ${interiorModulesText(modules)}`);
     if (material === 'ALTUL' && typeof answers.materialOther === 'string' && answers.materialOther.trim()) {
       details.push(`Material dorit: ${answers.materialOther.trim()}`);
     }

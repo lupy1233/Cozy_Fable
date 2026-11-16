@@ -95,9 +95,9 @@ export const pieceDeskFlow: RoomFlow = {
     const values = dimensionValues(answers, 'dimensions');
     const extras = Array.isArray(answers.storage) ? (answers.storage as string[]) : [];
     const notes: string[] = [];
-    if (extras.includes('DRAWER_UNIT')) notes.push('corp sertare');
-    if (extras.includes('SHELF_ABOVE')) notes.push('etajera');
-    if (answers.cableManagement === true) notes.push('canal cabluri');
+    if (extras.includes('DRAWER_UNIT')) notes.push('corp de sertare');
+    if (extras.includes('SHELF_ABOVE')) notes.push('etajeră deasupra');
+    if (answers.cableManagement === true) notes.push('canal pentru cabluri');
     return {
       lengthM: (values.widthA ?? 0) + (values.widthB ?? 0),
       widthM: values.depth ?? 0.6,

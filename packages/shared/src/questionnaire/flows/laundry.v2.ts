@@ -27,7 +27,7 @@ const PIECES: PieceWithMaterialDef[] = [
   {
     value: 'APPLIANCE_HOUSING',
     icon: 'washing-machine',
-    itemName: 'Dulap incastrare electrocasnice',
+    itemName: 'Dulap încastrare electrocasnice',
     materialStepId: 'materialApplianceHousing',
     systemsStepId: 'systemsApplianceHousing',
   },
@@ -48,7 +48,7 @@ const PIECES: PieceWithMaterialDef[] = [
   {
     value: 'SINK_UNIT',
     icon: 'droplets',
-    itemName: 'Corp cuva tehnica',
+    itemName: 'Corp cu cuvă',
     materialStepId: 'materialSinkUnit',
     systemsStepId: 'systemsSinkUnit',
   },
@@ -56,6 +56,9 @@ const PIECES: PieceWithMaterialDef[] = [
 
 // blatul nu are fronturi → intrebarea lui de sisteme se elimina din flow
 const NO_SYSTEMS_STEPS = new Set(['systemsCountertop']);
+
+// c6: blatul nu primeste badge-ul "Recomandat" (doar afisare, nu schimba ce se salveaza)
+const NO_BADGE_STEPS = new Set(['materialCountertop']);
 
 const dimensionsStep: DimensionGroupStep = {
   id: 'dimensions',
@@ -126,6 +129,7 @@ export const laundryFlowV2: RoomFlow = {
       pieceConfigSteps(F, PIECES).filter((s) => !NO_SYSTEMS_STEPS.has(s.id)),
       'MDF_INFOLIAT',
       mdfRecommended,
+      NO_BADGE_STEPS,
     ),
     {
       id: 'sketch',
@@ -140,6 +144,6 @@ export const laundryFlowV2: RoomFlow = {
     lengthM: linearMeters(dimensionsStep, answers),
     widthM: STANDARD_CABINET_DEPTH,
     heightM: dimensionValues(answers, 'dimensions').ceilingHeight ?? DEFAULT_CEILING_HEIGHT,
-    items: buildPerPieceItems(answers, PIECES, 'Mobilier spalatorie'),
+    items: buildPerPieceItems(answers, PIECES, 'Mobilier spălătorie'),
   }),
 };

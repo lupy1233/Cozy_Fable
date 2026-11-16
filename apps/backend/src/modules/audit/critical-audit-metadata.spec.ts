@@ -27,7 +27,7 @@ describe('Critical route audit wiring', () => {
     [ClientClarificationController, ['answer']],
     [QuotesController, ['create', 'revise', 'extra', 'reoffer', 'extend', 'withdraw', 'endNegotiation', 'rejectChange', 'invite']],
     [ClientQuotesController, ['requestChange', 'accept', 'respondInvite', 'requestExtension']],
-    [PaymentsController, ['buyCredits', 'buySubscription', 'checkout', 'markPaid']], // E-company-24: markPaid
+    [PaymentsController, ['buyCredits', 'buySubscription', 'checkout', 'markPaid', 'cancelOrder']], // E-company-24: markPaid; h3 (etapa 9): cancelOrder
     [InspirationAdminController, ['create', 'update', 'remove', 'confirmImage', 'completeImage']],
     [CompanyDeliveryController, ['deliver']],
     [ClientFulfillmentController, ['confirm', 'review']],

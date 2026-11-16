@@ -22,8 +22,8 @@ import { REDIS_CLIENT } from '../../infra/redis/redis.module';
 import { SETTING_DEFAULTS } from '../../common/settings/setting-defaults';
 import { SettingsService } from '../../common/settings/settings.service';
 import { SETTING_LEGAL_REACCEPT_EXISTING_USERS } from '../legal/legal.constants';
-import { authEmailHtml } from './auth-email';
-import { EMAIL_VERIFY_TTL_SEC, PASSWORD_RESET_TTL_SEC } from './auth.constants';
+import { authEmailHtml, bucharestDateTime, esc } from './auth-email';
+import { EMAIL_VERIFY_TTL_SEC, PASSWORD_RESET_TTL_SEC, VERIFY_EMAIL_RETURN_PATHS } from './auth.constants';
 import type { LoginDto } from './dto/login.dto';
 import type { RegisterDto } from './dto/register.dto';
 import { LoginLockoutService, type LoginAttemptContext } from './login-lockout.service';
@@ -60,6 +60,11 @@ export function needsLegalAcceptance(
 // /auth/me ruleaza la fiecare incarcare de pagina: setarea se tine in memorie 60 s (fara query
 // per cerere, ~150 ms cross-region). Comutarea din Admin -> Setari ajunge pe sloturi in max 60 s.
 export const LEGAL_REACCEPT_CACHE_MS = 60_000;
+
+// b4: potrivire exacta pe lista scurta (fara query, fara alte cai) → altfel null, in tacere
+export function allowedVerifyReturnPath(returnTo: unknown): string | null {
+  return typeof returnTo === 'string' && VERIFY_EMAIL_RETURN_PATHS.includes(returnTo) ? returnTo : null;
+}
 
 @Injectable()
 export class AuthService {
@@ -146,11 +151,15 @@ export class AuthService {
     return authEmailHtml({ user, body, link, ctaLabel, supportEmail: this.mail.supportEmail ?? null });
   }
 
-  // Email verify: token random in Redis (TTL 24h), link catre FE in limba userului
-  private async sendVerificationEmail(user: User): Promise<void> {
+  // Email verify: token random in Redis (TTL 24h), link catre FE in limba userului.
+  // b4: returnTo intra in link (?redirect=) doar daca e exact o cale din lista permisa.
+  private async sendVerificationEmail(user: User, returnTo?: string): Promise<void> {
     const raw = await this.issueOneTimeToken('email-verify', user.id, EMAIL_VERIFY_TTL_SEC);
     const origin = this.config.getOrThrow<string>('FRONTEND_ORIGIN');
-    const link = `${origin}/${user.languagePreference.toLowerCase()}/verify-email?token=${raw}`;
+    const back = allowedVerifyReturnPath(returnTo);
+    const link =
+      `${origin}/${user.languagePreference.toLowerCase()}/verify-email?token=${raw}` +
+      (back ? `&redirect=${encodeURIComponent(back)}` : '');
     const ro = user.languagePreference !== 'EN';
     await this.mail.send(
       user.email,
@@ -186,6 +195,51 @@ export class AuthService {
     );
   }
 
+  // f5 (etapa 12): anuntul „Parola ta a fost schimbata” dupa resetare si dupa schimbarea din cont.
+  // Fara parola, token sau IP in email; butonul duce la „Am uitat parola” (resetare noua).
+  private async sendPasswordChangedEmail(user: Pick<User, 'email' | 'name' | 'languagePreference'>, at: Date): Promise<void> {
+    const origin = this.config.getOrThrow<string>('FRONTEND_ORIGIN');
+    const lang = user.languagePreference === 'EN' ? 'en' : 'ro';
+    const ro = lang === 'ro';
+    const { date, time } = bucharestDateTime(at, lang);
+    // m19 (revizie): „scrie-ne” doar cand exista o adresa de suport, si atunci cu adresa
+    const support = this.mail.supportEmail ? esc(this.mail.supportEmail) : null;
+    const ifNotYou = ro
+      ? support
+        ? `Dacă nu ai fost tu, resetează parola și scrie-ne la ${support} (sau răspunde direct la acest email).`
+        : 'Dacă nu ai fost tu, resetează parola.'
+      : support
+        ? `If this wasn't you, reset your password and write to us at ${support} (or simply reply to this email).`
+        : "If this wasn't you, reset your password.";
+    await this.mail.send(
+      user.email,
+      ro ? 'Parola ta a fost schimbată — Cozy Home' : 'Your password was changed — Cozy Home',
+      authEmailHtml({
+        user,
+        body: ro
+          ? `Parola contului tău Cozy Home a fost schimbată pe ${date}, la ora ${time} (ora României). ${ifNotYou}`
+          : `The password for your Cozy Home account was changed on ${date} at ${time} (Romania time). ${ifNotYou}`,
+        link: `${origin}/${lang}/forgot-password`,
+        ctaLabel: ro ? 'Resetează parola' : 'Reset password',
+        supportEmail: this.mail.supportEmail ?? null,
+        footer: {
+          ro: 'Dacă tu ai schimbat parola, nu trebuie să faci nimic.',
+          en: 'If you changed your password, you do not need to do anything.',
+        },
+      }),
+      { replyToSupport: true },
+    );
+  }
+
+  // best-effort: o eroare SMTP doar se logheaza, schimbarea parolei ramane valabila
+  private async notifyPasswordChanged(user: Pick<User, 'id' | 'email' | 'name' | 'languagePreference'>): Promise<void> {
+    try {
+      await this.sendPasswordChangedEmail(user, new Date());
+    } catch (e) {
+      this.logger.warn(`emailul „parola schimbata” catre ${user.id} a esuat: ${safeErrorSummary(e)}`);
+    }
+  }
+
   // --- inregistrare / verificare ---
 
   async register(dto: RegisterDto): Promise<PublicUser> {
@@ -218,7 +272,7 @@ export class AuthService {
     });
     // best-effort: daca SMTP pica, contul exista si userul poate cere retrimiterea
     try {
-      await this.sendVerificationEmail(user);
+      await this.sendVerificationEmail(user, dto.returnTo);
     } catch (e) {
       this.logger.warn(`emailul de verificare catre ${user.id} a esuat: ${safeErrorSummary(e)}`);
     }
@@ -286,14 +340,16 @@ export class AuthService {
     });
     // toate sesiunile cad (parola compromisa); userul se autentifica din nou
     await this.tokens.revokeAllForUser(user.id);
-    this.eventBus.emitAuthExpired(user.id);
+    await this.eventBus.emitAuthExpired(user.id);
     // E-admin-platform-5: linkul dovedeste controlul adresei → ridica si pauza de login
     await this.lockout.clear(user.email, { includeLock: true });
+    // f5: anuntul pleaca dupa ce sesiunile au cazut
+    await this.notifyPasswordChanged(user);
   }
 
   // Schimbare parola autentificata: verifica parola curenta, revoca toate familiile
-  // de refresh tokens si emite una noua pentru dispozitivul curent (o singura sesiune
-  // activa, 3.13) — controllerul seteaza cookie-urile noi, userul ramane logat.
+  // de refresh tokens (toate dispozitivele) si emite una noua pentru dispozitivul curent
+  // — controllerul seteaza cookie-urile noi, userul ramane logat.
   async changePassword(
     userId: string,
     currentPassword: string,
@@ -315,9 +371,10 @@ export class AuthService {
       where: { id: user.id },
       data: { passwordHash: await bcrypt.hash(newPassword, BCRYPT_COST) },
     });
-    const { refreshToken, familyId } = await this.tokens.issueNewFamily(user.id, updated.passwordHash);
+    const { refreshToken, familyId } = await this.tokens.issueNewFamily(user.id, updated.passwordHash, { revokeAll: true });
     const accessToken = await this.tokens.signAccessToken(updated, familyId);
-    this.eventBus.emitAuthExpired(user.id);
+    await this.eventBus.emitAuthExpired(user.id);
+    await this.notifyPasswordChanged(updated);
     return { accessToken, refreshToken };
   }
 
@@ -383,10 +440,11 @@ export class AuthService {
       await this.lockout.clear(dto.email);
     }
 
-    // O singura sesiune activa (3.13): revoca tot, familie noua, auth_expired pe socketul vechi
-    const { refreshToken, familyId } = await this.tokens.issueNewFamily(user.id, user.passwordHash);
+    // f3 (3.13): cel mult 5 sesiuni active; familie noua, iar auth_expired ajunge DOAR la
+    // socketurile sesiunilor scoase (cele mai vechi peste limita), nu la toate ale contului.
+    const { refreshToken, familyId, revokedFamilyIds } = await this.tokens.issueNewFamily(user.id, user.passwordHash);
     const accessToken = await this.tokens.signAccessToken(user, familyId);
-    this.eventBus.emitAuthExpired(user.id);
+    await this.eventBus.emitAuthExpired(user.id, revokedFamilyIds);
 
     return { user: await this.toPublic(user), accessToken, refreshToken };
   }
@@ -416,8 +474,9 @@ export class AuthService {
 
   async logout(rawToken: string | undefined): Promise<void> {
     if (rawToken) {
-      const userId = await this.tokens.revokeByRawToken(rawToken);
-      if (userId) this.eventBus.emitAuthExpired(userId);
+      // f3: deconectarea inchide doar sesiunea curenta; celelalte dispozitive raman logate
+      const revoked = await this.tokens.revokeByRawToken(rawToken);
+      if (revoked) await this.eventBus.emitAuthExpired(revoked.userId, [revoked.familyId]);
     }
   }
 

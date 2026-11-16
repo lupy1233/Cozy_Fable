@@ -1,6 +1,5 @@
 import {
   BACK_T,
-  COLUMN_W_MAX,
   columnWidth,
   deskMaxColumns,
   DESK_PEDESTAL_W,
@@ -19,6 +18,7 @@ import {
 } from './config';
 import { isFurnitureKind } from './furniture-config';
 import { buildFurniturePanels } from './furniture-model';
+import { columnWidthMaxFor } from './edit-rules';
 
 // Modelul parametric (docs/10 §2): mobila e GENERATA din config — carcasa din
 // panouri, coloane, polite/sertare/usi per zona. Functiile sunt PURE si
@@ -578,5 +578,6 @@ export function canRemoveColumn(kind: Piece3dKind, config: PieceConfig3d): boole
   if (n <= Math.max(rules.minColumns, kind === 'DESK' ? 0 : 1)) return false;
   if (config.doorMode === 'SLIDING' && n <= SLIDING_COLUMNS_MIN) return false;
   if (kind === 'DESK') return true;
-  return columnWidth(config.widthM, n - 1) <= COLUMN_W_MAX;
+  // etapa 9 (l1-2): butonul urmeaza limita de editare (biblioteca 80 cm)
+  return columnWidth(config.widthM, n - 1) <= columnWidthMaxFor(kind);
 }

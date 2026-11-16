@@ -233,6 +233,8 @@ function wire(dbUrl: string) {
 
   it('(f) livrare confirmata de client → COMPLETED + un CONSUME "COMPLETED"; a doua confirmare → 409 fara al doilea consum', async () => {
     const s = await acceptWithLosers();
+    // e1-3: "livrat" doar dupa delivery_min_days_after_accept (7) zile de la acceptare
+    await w.prisma.quote.updateMany({ where: { requestId: s.requestId, status: 'ACCEPTED' }, data: { acceptedAt: new Date(Date.now() - 8 * DAY) } });
     await w.fulfillment.markDelivered(ownerCtx(s.a.companyId), s.requestId);
     await expect(w.fulfillment.confirmDelivery(s.clientId, s.requestId)).resolves.toEqual({ status: 'COMPLETED' });
 
@@ -250,6 +252,7 @@ function wire(dbUrl: string) {
 
   it('(f2) auto-confirmare la 14 zile de la livrare → un CONSUME; al doilea apel → false', async () => {
     const s = await acceptWithLosers();
+    await w.prisma.quote.updateMany({ where: { requestId: s.requestId, status: 'ACCEPTED' }, data: { acceptedAt: new Date(Date.now() - 8 * DAY) } });
     await w.fulfillment.markDelivered(ownerCtx(s.a.companyId), s.requestId);
     await backdateRequest(w.prisma, s.requestId, { deliveredAt: new Date(Date.now() - 15 * DAY) });
 

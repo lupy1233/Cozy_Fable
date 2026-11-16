@@ -132,6 +132,9 @@ export function makeService(opts: ServiceOpts = {}) {
   const tx: Any = {
     // E-admin-platform-10: recalculul citeste max_claims_per_request in tranzactie (null → fallback 3)
     systemSetting: { findUnique: jest.fn().mockResolvedValue(null) },
+    // a4: mesajul de sistem din conversatie (INSERT ... SELECT)
+    $executeRaw: jest.fn().mockResolvedValue(1),
+    requestCompanyExclusion: { upsert: jest.fn().mockResolvedValue(undefined) },
     $queryRaw: jest.fn((strings: TemplateStringsArray) => {
       const sql = strings.join('?');
       if (sql.includes('FROM idempotency_keys')) return Promise.resolve([{ response_status: 0 }]);
@@ -181,6 +184,8 @@ export function makeService(opts: ServiceOpts = {}) {
         }),
       ),
       update: jest.fn().mockResolvedValue(undefined),
+      // revizuire m6: moneda veche pe variantele fara moneda
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     quoteVersionRoomPrice: { createMany: jest.fn().mockResolvedValue({ count: 0 }) },
     quoteChangeRequest: {
@@ -212,6 +217,10 @@ export function makeService(opts: ServiceOpts = {}) {
       findMany: jest.fn().mockResolvedValue([]),
       update: jest.fn().mockResolvedValue(undefined),
       count: jest.fn().mockResolvedValue(1),
+      // a4: settle() fara slot citit de apelant (refuzul) reciteste slotul
+      findUniqueOrThrow: jest.fn().mockResolvedValue({
+        id: 'slot-win', companyId: 'c-win', requestId: 'r1', claimCostCreditsSnapshot: 2,
+      }),
     },
     request: {
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
@@ -247,6 +256,8 @@ export function makeService(opts: ServiceOpts = {}) {
       findMany: jest.fn().mockResolvedValue(
         ['PRICE', 'DESCRIPTION', 'DELIVERY_TERM', 'DELIVERY_DATE', 'WARRANTY'].map((fieldKey) => ({ fieldKey, canEdit: true })),
       ),
+      // h1-2: numarul randurilor firmei (0 = matricea de la inscriere)
+      count: jest.fn().mockResolvedValue(1),
     },
     quoteChangeRequest: { findUnique: jest.fn().mockResolvedValue(null) },
     quoteVersion: { findUnique: jest.fn().mockResolvedValue(null) },
@@ -256,10 +267,16 @@ export function makeService(opts: ServiceOpts = {}) {
     request: { findUnique: jest.fn().mockResolvedValue({ clientUserId: 'u-client' }) },
     companyMember: tx.companyMember,
   };
-  const settings: Any = { getInt: jest.fn().mockResolvedValue(14), getNumber: jest.fn().mockResolvedValue(5.2) };
+  // getNumber: eur_ron_rate 5.2, vat_rate 21 (a3)
+  const settings: Any = {
+    getInt: jest.fn().mockResolvedValue(14),
+    getNumber: jest.fn((key: string) => Promise.resolve(key === 'vat_rate' ? 21 : 5.2)),
+  };
   const outbox: Any = { record: jest.fn().mockResolvedValue(undefined) };
   const calendar: Any = {
     addWorkingDays: jest.fn((d: Date, n: number) => new Date(d.getTime() + n * DAY)),
+    workingDateBefore: jest.fn((d: Date) => d),
+    bucharestWallClock: jest.fn(() => ({ hour: 10, minute: 0 })),
   };
   const uploads: Any = {
     listForEntities: jest.fn().mockResolvedValue(new Map()),
@@ -285,9 +302,20 @@ export function makeService(opts: ServiceOpts = {}) {
     queue, // sla
     queue, // assign
     queue, // project deadlines
+    queue, // request expiration (a4: re-publicare dupa refuz)
+    { encrypt: (s: string | null) => s } as Any, // a4: mesaje de sistem in clar
   );
   return { service, tx, prisma, settings, outbox, calendar, uploads, credits, queue, snapshot, state };
 }
 
 export const companyCtx: Any = { companyId: 'c-win', memberRole: 'OWNER', status: 'APPROVED' };
-export const offerDto: Any = { price: 1200, description: 'v noua' };
+// a3: rubricile structurate obligatorii la orice varianta noua
+export const structuredFields: Any = {
+  vatMode: 'VAT_EXCLUDED',
+  deliveryTermValue: 6,
+  deliveryTermUnit: 'WEEKS',
+  warrantyMonths: 24,
+  includesTransport: true,
+  includesAssembly: false,
+};
+export const offerDto: Any = { price: 1200, description: 'v noua', ...structuredFields };

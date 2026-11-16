@@ -802,4 +802,52 @@ describe('WithdrawalsService — decontare prin ClaimSettlementService (E-admin-
       expect(() => autoWithdrawalCreditReason(r)).toThrow();
     }
   });
+
+  // e4: cand o firma renunta, clientul afla (clopotel + e-mail) — o singura data pe preluare
+  describe('e4: clientul afla cand o firma renunta', () => {
+    const clientEvents = (outbox: Any) =>
+      outbox.record.mock.calls.filter((c: Any[]) => c[2] === 'request.company_withdrew');
+
+    it('retragere voluntara → un singur eveniment catre client, fara numele firmei', async () => {
+      const { service, tx, outbox } = makeService(slot());
+      await service.request(ctx, 'u1', 's1', { reasonType: 'VOLUNTARY_NO_REASON' } as Any);
+      const events = clientEvents(outbox);
+      expect(events).toHaveLength(1);
+      expect(events[0]).toEqual([tx, 'request.company_withdrew:s1', 'request.company_withdrew', { requestId: 'r1', requestTitle: 'T' }, ['client1']]);
+    });
+
+    it('motiv validat automat → eveniment catre client', async () => {
+      const { service, outbox } = makeService(slot({ chatThread: { id: 't1', lastClientMessageAt: null } }), null, FIRM_MSG_72H);
+      await service.request(ctx, 'u1', 's1', { reasonType: 'CLIENT_UNRESPONSIVE_48H' } as Any);
+      expect(clientEvents(outbox)).toHaveLength(1);
+    });
+
+    it('cerere de retragere in asteptarea adminului → clientul NU e anuntat inca', async () => {
+      const { service, outbox } = makeService(slot());
+      await service.request(ctx, 'u1', 's1', { reasonType: 'CUSTOM', customReason: 'motiv' } as Any);
+      expect(clientEvents(outbox)).toHaveLength(0);
+    });
+
+    it('admin aproba → eveniment catre client; admin respinge → nimic', async () => {
+      const approved = makeService(slot());
+      approved.prisma.claimWithdrawal.findUnique.mockResolvedValue({
+        id: 'wd1', claimSlotId: 's1', status: 'PENDING_ADMIN_REVIEW', reasonType: 'CUSTOM', claimSlot: slot(),
+      });
+      await approved.service.adminReview('admin', 'wd1', { approve: true });
+      expect(clientEvents(approved.outbox).map((c: Any[]) => [c[1], c[4]])).toEqual([['request.company_withdrew:s1', ['client1']]]);
+
+      const rejected = makeService(slot());
+      rejected.prisma.claimWithdrawal.findUnique.mockResolvedValue({
+        id: 'wd1', claimSlotId: 's1', status: 'PENDING_ADMIN_REVIEW', reasonType: 'CUSTOM', claimSlot: slot(),
+      });
+      await rejected.service.adminReview('admin', 'wd1', { approve: false });
+      expect(clientEvents(rejected.outbox)).toHaveLength(0);
+    });
+
+    it('cerere fara client legat → niciun eveniment', async () => {
+      const { service, outbox } = makeService(slot({ request: { lastEditAt: null, status: 'CLAIMED_PARTIAL', title: 'T', clientUserId: null } }));
+      await service.request(ctx, 'u1', 's1', { reasonType: 'VOLUNTARY_NO_REASON' } as Any);
+      expect(clientEvents(outbox)).toHaveLength(0);
+    });
+  });
 });

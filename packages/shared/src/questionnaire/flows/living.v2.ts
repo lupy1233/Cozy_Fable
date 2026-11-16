@@ -26,13 +26,13 @@ import {
 const F = 'flows.LIVING';
 
 const PIECES: PieceWithMaterialDef[] = [
-  { value: 'TV_UNIT', icon: 'tv', itemName: 'Comoda TV', materialStepId: 'materialTvUnit', systemsStepId: 'systemsTvUnit' },
-  { value: 'BOOKSHELF', icon: 'library', itemName: 'Biblioteca', materialStepId: 'materialBookshelf', systemsStepId: 'systemsBookshelf' },
-  { value: 'DISPLAY_CABINET', icon: 'gallery-vertical-end', itemName: 'Vitrina', materialStepId: 'materialDisplay', systemsStepId: 'systemsDisplay' },
-  { value: 'COFFEE_TABLE', icon: 'table', itemName: 'Masuta cafea', materialStepId: 'materialCoffeeTable', systemsStepId: 'systemsCoffeeTable' },
+  { value: 'TV_UNIT', icon: 'tv', itemName: 'Comodă TV', materialStepId: 'materialTvUnit', systemsStepId: 'systemsTvUnit' },
+  { value: 'BOOKSHELF', icon: 'library', itemName: 'Bibliotecă', materialStepId: 'materialBookshelf', systemsStepId: 'systemsBookshelf' },
+  { value: 'DISPLAY_CABINET', icon: 'gallery-vertical-end', itemName: 'Vitrină', materialStepId: 'materialDisplay', systemsStepId: 'systemsDisplay' },
+  { value: 'COFFEE_TABLE', icon: 'table', itemName: 'Măsuță cafea', materialStepId: 'materialCoffeeTable', systemsStepId: 'systemsCoffeeTable' },
   { value: 'WALL_SHELVES', icon: 'rows-3', itemName: 'Rafturi suspendate', materialStepId: 'materialShelves', systemsStepId: 'systemsShelves' },
   // piesa libera (item 10.1): numele vine din textul clientului la derive
-  { value: 'OTHER', icon: 'plus', itemName: 'Alta piesa living', materialStepId: 'materialOtherPiece', systemsStepId: 'systemsOtherPiece' },
+  { value: 'OTHER', icon: 'plus', itemName: 'Altă piesă living', materialStepId: 'materialOtherPiece', systemsStepId: 'systemsOtherPiece' },
 ];
 
 // textul piesei libere — pe acelasi ecran cu lista de piese
@@ -75,8 +75,8 @@ const dimensionsStep: DimensionGroupStep = {
 
 // numele comodei TV dupa stilul zonei TV (item 10.2)
 const TV_ITEM_NAME: Record<string, string> = {
-  FLOATING: 'Comoda TV suspendata',
-  ON_FLOOR: 'Comoda TV',
+  FLOATING: 'Comodă TV suspendată',
+  ON_FLOOR: 'Comodă TV',
   COMPLEX_UNIT: 'Ansamblu TV cu dulapuri',
 };
 
@@ -155,10 +155,10 @@ export const livingFlowV2: RoomFlow = {
         ? answers.piecesOtherText.trim()
         : undefined;
     for (const item of items) {
-      if (item.name === 'Comoda TV' && tvStyle && TV_ITEM_NAME[tvStyle]) {
+      if (item.name === 'Comodă TV' && tvStyle && TV_ITEM_NAME[tvStyle]) {
         item.name = TV_ITEM_NAME[tvStyle];
       }
-      if (item.name === 'Alta piesa living' && otherName) {
+      if (item.name === 'Altă piesă living' && otherName) {
         item.name = otherName;
       }
       if (

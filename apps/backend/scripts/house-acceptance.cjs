@@ -108,7 +108,7 @@ async function main() {
     const roomPrices = published.rooms.map((room) => ({ requestRoomId: room.id, price: unitPrice[room.roomType] }));
     assert(roomPrices.every((entry) => Number.isFinite(entry.price)));
     const total = roomPrices.reduce((sum, entry) => sum + entry.price, 0);
-    const quoteInput = { claimSlotId: claim.id, currency: 'RON', price: total, roomPrices, description: 'Local acceptance offer, not a commercial quotation.', deliveryTerm: 'Test delivery', warranty: 'Test only', validityDays: 7 };
+    const quoteInput = { claimSlotId: claim.id, currency: 'RON', price: total, roomPrices, description: 'Local acceptance offer, not a commercial quotation.', vatMode: 'VAT_INCLUDED', deliveryTermValue: 6, deliveryTermUnit: 'WEEKS', warrantyMonths: 24, includesTransport: false, includesAssembly: false, validityDays: 7 };
     const quoteKey = randomUUID();
     const quote = await firm('/quotes', 'POST', quoteInput, 201, quoteKey);
     report.quoteId = quote.id;
@@ -127,6 +127,9 @@ async function main() {
     assert.deepEqual(await client(`/client/quotes/${quote.id}/accept`, 'POST', {}, 201, acceptKey), accepted);
     assert.equal((await client(`/requests/${draft.id}`)).status, 'ACCEPTED');
     await other(`/company/requests/${draft.id}/deliver`, 'POST', {}, 403);
+    // etapa 5 (e1-3): "livrat" merge doar dupa pragul de zile de la acceptare (implicit 7).
+    // Mut acceptarea in urma (doar pe baza locala de test), ca livrarea sa treaca indiferent de setare.
+    await prisma.quote.update({ where: { id: quote.id }, data: { acceptedAt: new Date(Date.now() - 30 * 86400000) } });
     const delivered = await firm(`/company/requests/${draft.id}/deliver`, 'POST', {}, 201);
     assert.equal(delivered.status, 'DELIVERED_BY_COMPANY');
     const completed = await client(`/requests/${draft.id}/confirm-delivery`, 'POST', {}, 201);

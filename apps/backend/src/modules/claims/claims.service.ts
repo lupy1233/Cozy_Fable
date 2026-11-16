@@ -105,10 +105,21 @@ export class ClaimsService {
     actingUserId: string,
     dto: CreateClaimInput,
   ): Promise<ClaimSlotDto> {
-    if (ctx.memberRole === 'EMPLOYEE_MANAGED') {
+    if (!can(ctx.memberRole, 'CLAIMS_CREATE')) {
+      // a7: cod propriu — FORBIDDEN generic ajungea la om ca mesaj despre atribuire
+      throw new ForbiddenException({
+        code: ERROR_CODES.CLAIM_ROLE_NOT_ALLOWED,
+        message: 'Managed employees cannot claim',
+      });
+    }
+    // a5 (PO 2026-11-13): fara CLAIMS_ASSIGN (angajatul cu acces complet) preluarea e mereu
+    // pentru tine — lipsa responsabilului = tu; alt coleg = interzis. Proprietarul/managerul
+    // pot alege un coleg sau "Atribui mai tarziu" (fara assignToUserId).
+    const selfOnly = !can(ctx.memberRole, 'CLAIMS_ASSIGN');
+    if (selfOnly && dto.assignToUserId && dto.assignToUserId !== actingUserId) {
       throw new ForbiddenException({
         code: ERROR_CODES.FORBIDDEN,
-        message: 'Managed employees cannot claim',
+        message: 'Only owner or manager can assign a claim to someone else',
       });
     }
     const [maxClaims, openAfterFirstOffer] = await Promise.all([
@@ -120,7 +131,7 @@ export class ClaimsService {
     ]);
     // E-admin-platform-10: 3.1 literal (flag oprit) sau + OFFERS_RECEIVED/NEGOTIATION (varianta A)
     const claimable = claimableStatuses(openAfterFirstOffer);
-    const assignToUserId = dto.assignToUserId ?? null;
+    const assignToUserId = selfOnly ? actingUserId : dto.assignToUserId ?? null;
 
     if (assignToUserId) {
       const member = await this.prisma.companyMember.findUnique({
@@ -258,6 +269,8 @@ export class ClaimsService {
         if (display?.clientUserId) targets.push(display.clientUserId);
         await this.outbox.record(tx, `claim.created:${slot.id}`, 'claim.created', {
           claimSlotId: slot.id, requestId: req.id, companyId: ctx.companyId, clientUserId: display?.clientUserId ?? null,
+          // g1 (etapa 9): cine preia nu primeste clopotel pentru propria preluare (withoutActor)
+          actorUserId: actingUserId,
         }, targets);
         await this.outbox.record(tx, `claim.created:${slot.id}:status`, 'request.status_changed', { requestId: req.id }, []);
 

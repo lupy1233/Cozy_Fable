@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  BUDGET_RANGES,
   CONTACT_CHANNELS,
   DEADLINE_BUCKETS,
   budgetRangeFromRon,
@@ -22,7 +23,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -34,13 +35,17 @@ import { ContactInTextHint } from './contact-in-text-hint';
 import { useMe } from '@/hooks/use-auth';
 import { useBudgetEstimate } from '@/hooks/use-requests';
 import { cn } from '@/lib/utils';
-import { useConfiguratorStore, type DetailsValues } from '@/stores/configurator-store';
+import { draftGenerationId, storageScopeId, useConfiguratorStore, type DetailsValues } from '@/stores/configurator-store';
 import { AddressAutocomplete } from './address-autocomplete';
 import { BudgetSlider } from './budget-slider';
+import { isBudgetChosen } from './budget-choice';
 import { PhoneInput } from './phone-input';
+import { StickyActionBar } from './sticky-action-bar';
+import { anyRoomNeedsDesignHelp, toServerRoom } from './room-payload';
 
 // Tarile oferite la livrare (F5, item 19) — RO implicit; etichetele vin din
-// Intl.DisplayNames in limba interfetei.
+// Intl.DisplayNames in limba interfetei. b12 (PO b12-1): lista ramane — exista firme care
+// lucreaza si cu clienti din alte tari (cum ajung la firme: g0-12, etapa ulterioara).
 const COUNTRIES = [
   'RO', 'MD', 'HU', 'BG', 'DE', 'AT', 'FR', 'IT', 'ES', 'BE', 'NL', 'CH',
   'GB', 'IE', 'PL', 'CZ', 'SK', 'GR', 'PT', 'SE', 'DK', 'NO', 'FI',
@@ -48,10 +53,58 @@ const COUNTRIES = [
 
 // Pasul de detalii generale (dupa fisiere, inainte de sumar).
 // Titlul NU se mai introduce: e generat automat pe server din camere + oras;
-// aici aratam doar o previzualizare localizata. Bugetul e slider cu 3 trepte
-// + "nu doresc sa spun"; termenul e ales pe carduri (interval, nu data exacta).
-const detailsSchema = configuratorContentSchema.omit({ rooms: true });
+// aici aratam doar o previzualizare localizata. Bugetul (b11): clientul alege o suma pe
+// glisor sau "Prefer sa nu spun" — nimic pus din oficiu, fara alegere nu se continua;
+// termenul e ales pe carduri (interval, nu data exacta).
+const detailsSchema = configuratorContentSchema
+  .omit({ rooms: true })
+  .extend({ budgetRange: z.enum(BUDGET_RANGES).optional() })
+  .superRefine((values, ctx) => {
+    if (!isBudgetChosen(values)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['budgetRange'], message: 'budgetRequired' });
+    }
+  });
 type DetailsFormValues = z.infer<typeof detailsSchema>;
+
+// b9: mesajul schemei → mesajul "Completeaza ..." cand campul e gol
+const EMPTY_FIELD_MESSAGE: Record<string, string> = {
+  addressTooShort: 'addressRequired',
+  countyTooShort: 'countyRequired',
+  cityTooShort: 'cityRequired',
+  cityRequired: 'cityRequired',
+  contactValueTooShort: 'contactRequired',
+  contactEmailInvalid: 'contactRequired',
+  contactPhoneInvalid: 'contactRequired',
+};
+
+// m1 (etapa 12): un numar de telefon scris pe canalul email → mesajul spune sa schimbe
+// canalul pe „Telefon” (regula din shared ramane: emailul tot se refuza)
+export function looksLikePhone(value: string | undefined): boolean {
+  if (!value || value.includes('@')) return false;
+  const v = value.trim();
+  return /^\+?[\d\s().\-/]+$/.test(v) && v.replace(/\D/g, '').length >= 6;
+}
+
+function contactErrorKey(message: string | undefined, channel: string, value: string | undefined): string | undefined {
+  if (message === 'contactEmailInvalid' && channel === 'EMAIL' && looksLikePhone(value)) return 'contactEmailIsPhone';
+  return message;
+}
+
+// mesajul pentru firme: aceeasi limita ca schema (descriptionTooLong), afisata pe camp
+export const MESSAGE_MAX_LENGTH = 5000;
+
+// b2: intarzierea salvarii automate in ciorna (ca la intrebarile camerelor)
+export const DETAILS_AUTOSAVE_MS = 400;
+
+// Valorile formularului, asa cum se scriu in ciorna: fara campurile derivate (modul si
+// proiectarea au sursa lor, b8), copiate ca RHF sa nu le mai poata modifica pe loc.
+function toDraftDetails(values: Partial<DetailsFormValues>): Partial<DetailsValues> {
+  const { includesPaidDesign: _paid, hasOwnProject: _own, ...rest } = values;
+  // structuredClone pastreaza cheile cu undefined (ex. termenul deselectat suprascrie valoarea veche)
+  // b11: marcajul "ales de client" — formularul nu mai pune bugetul singur, deci orice valoare
+  // de aici vine dintr-o alegere (budgetChosen deosebeste ciornele noi de cele vechi)
+  return { ...structuredClone(rest), budgetChosen: isBudgetChosen(values) } as Partial<DetailsValues>;
+}
 
 const DEADLINE_ICONS: Record<DeadlineBucket, React.ComponentType<{ className?: string }>> = {
   ASAP: Zap,
@@ -60,6 +113,34 @@ const DEADLINE_ICONS: Record<DeadlineBucket, React.ComponentType<{ className?: s
   SIX_PLUS_MONTHS: CalendarClock,
   FLEXIBLE: InfinityIcon,
 };
+
+// Valorile de pornire ale formularului, din ciorna (aceleasi pentru verificarea de la Forward)
+function detailsFormDefaults(stored: Partial<DetailsValues>, withDesign: boolean): DetailsFormValues {
+  return {
+    description: stored.description ?? '',
+    // b11: fara valoare din oficiu — gol pana alege clientul
+    budgetRange: (stored.budgetRange as DetailsFormValues['budgetRange']) || undefined,
+    budgetEstimateRon: stored.budgetEstimateRon ?? undefined,
+    deadlineBucket: (stored.deadlineBucket as DetailsFormValues['deadlineBucket']) || undefined,
+    // derivate (modul + camerele): doar ca schema sa treaca; nu se salveaza de aici
+    includesPaidDesign: withDesign,
+    hasOwnProject: stored.hasOwnProject ?? false,
+    addressText: stored.addressText ?? '',
+    addressDetails: stored.addressDetails ?? '',
+    county: stored.county ?? '',
+    city: stored.city ?? '',
+    country: stored.country ?? 'RO',
+    contactPreferences: stored.contactPreferences?.length
+      ? stored.contactPreferences
+      : [{ channel: 'EMAIL', value: '' }],
+  } as DetailsFormValues;
+}
+
+// m11 (etapa 12): Date generale din ciorna trec validarea de la „Continua la sumar”?
+// (Forward din browser nu trece de pas altfel)
+export function detailsPassValidation(stored: Partial<DetailsValues>, withDesign: boolean): boolean {
+  return detailsSchema.safeParse(detailsFormDefaults(stored, withDesign)).success;
+}
 
 export function DetailsStep({
   onBack,
@@ -75,39 +156,82 @@ export function DetailsStep({
   const stored = useConfiguratorStore((s) => s.details);
   const rooms = useConfiguratorStore((s) => s.roomInstances);
   const setDetails = useConfiguratorStore((s) => s.setDetails);
-  const designHelp = useConfiguratorStore((s) => s.startMode === 'DESIGN_HELP');
+  // b8: "cu proiectare" = macar o camera bifata "am nevoie de ajutor" (bifa de aici a disparut)
+  const withDesign = anyRoomNeedsDesignHelp(rooms);
 
-  // estimarea de buget din scorul camerelor completate (F5, item 18)
-  const estimate = useBudgetEstimate(rooms.filter((r) => r.completed));
+  // estimarea de buget din scorul camerelor completate (F5, item 18); camerele
+  // bifate pleaca fara raspunsuri, la fel ca la publicare
+  const estimate = useBudgetEstimate(rooms.filter((r) => r.completed).map(toServerRoom));
 
   const {
     register,
     control,
     handleSubmit,
     setValue,
+    getValues,
     watch,
     formState: { errors },
   } = useForm<DetailsFormValues>({
     resolver: zodResolver(detailsSchema),
-    defaultValues: {
-      description: stored.description ?? '',
-      budgetRange: (stored.budgetRange as DetailsFormValues['budgetRange']) ?? 'UNDER_5K',
-      budgetEstimateRon: stored.budgetEstimateRon ?? undefined,
-      deadlineBucket: (stored.deadlineBucket as DetailsFormValues['deadlineBucket']) || undefined,
-      includesPaidDesign: stored.includesPaidDesign ?? false,
-      hasOwnProject: stored.hasOwnProject ?? false,
-      addressText: stored.addressText ?? '',
-      county: stored.county ?? '',
-      city: stored.city ?? '',
-      country: stored.country ?? 'RO',
-      contactPreferences: stored.contactPreferences?.length
-        ? stored.contactPreferences
-        : [{ channel: 'EMAIL', value: '' }],
-    },
+    defaultValues: detailsFormDefaults(stored, withDesign),
   });
 
+  // m11 (etapa 12): Forward din browser oprit aici → aceeasi validare ca „Continua la sumar”
+  const continueRequest = useConfiguratorStore((s) => s.continueRequest);
+  const seenContinueRequest = useRef(continueRequest);
+
   const contacts = useFieldArray({ control, name: 'contactPreferences' });
-  const vmsg = (msg?: string) => (msg ? t(`validation.${msg}`) : undefined);
+
+  // b2: ce scrie clientul ajunge in ciorna la ~400 ms dupa ultima schimbare, fara
+  // validare (validarea stricta ramane la "Continua la sumar"). Ciorna e store-ul: in
+  // editare ajunge in memoria editarii; trimiterea la server o face wizard-ul, cu
+  // intarzierea lui si o singura salvare in curs. Declarat INAINTEA completarii
+  // automate a emailului contului, ca si ea sa fie salvata (bugetul nu se mai completeaza singur, b11).
+  // Scrierea compara cu ciorna, deci o valoare neschimbata nu porneste nimic (fara bucla).
+  const scopeAtMount = useRef(storageScopeId());
+  // M2: o golire a ciornei (deconectare, "Incepe una noua") intre tasta si salvare anuleaza salvarea
+  const generationAtMount = useRef(draftGenerationId());
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingValues = useRef<Partial<DetailsFormValues> | null>(null);
+  const flushDraft = useCallback(() => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    const values = pendingValues.current;
+    pendingValues.current = null;
+    // la iesirea din editare memoria s-a schimbat deja: nu scriem peste ciorna noua
+    if (!values || storageScopeId() !== scopeAtMount.current || draftGenerationId() !== generationAtMount.current) return;
+    const patch = toDraftDetails(values);
+    const current = useConfiguratorStore.getState().details;
+    if (JSON.stringify({ ...current, ...patch }) === JSON.stringify(current)) return;
+    setDetails(patch);
+  }, [setDetails]);
+  useEffect(() => {
+    const subscription = watch((values) => {
+      pendingValues.current = values as Partial<DetailsFormValues>;
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(flushDraft, DETAILS_AUTOSAVE_MS);
+    });
+    // reincarcare / inchiderea tabului inainte sa treaca intarzierea
+    window.addEventListener('pagehide', flushDraft);
+    window.addEventListener('beforeunload', flushDraft);
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('pagehide', flushDraft);
+      window.removeEventListener('beforeunload', flushDraft);
+      // parasirea pasului (Inapoi, bara de faze, schimbarea limbii): ultima tasta nu se pierde
+      flushDraft();
+    };
+  }, [watch, flushDraft]);
+  // b9 (etapa 8): un camp GOL nu e "prea scurt" — cere completarea lui; "prea scurt" ramane
+  // doar pentru 1–2 caractere. Doar textul se schimba, regulile din shared raman.
+  const vmsg = (msg?: string, value?: unknown) => {
+    if (!msg) return undefined;
+    const empty = typeof value === 'string' && value.trim() === '';
+    const requiredKey = empty ? EMPTY_FIELD_MESSAGE[msg] : undefined;
+    return t(`validation.${requiredKey ?? msg}`);
+  };
   const contactsRootError =
     errors.contactPreferences?.root?.message ?? errors.contactPreferences?.message;
 
@@ -115,6 +239,8 @@ export function DetailsStep({
   const budgetRon = watch('budgetEstimateRon');
   const deadline = watch('deadlineBucket');
   const city = watch('city');
+  const addressText = watch('addressText');
+  const county = watch('county');
   const country = watch('country') ?? 'RO';
   const contactValues = watch('contactPreferences');
   const description = watch('description');
@@ -139,27 +265,17 @@ export function DetailsStep({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountEmail]);
 
-  // cand soseste estimarea: initializeaza valoarea pe baza (sau clameaza una
-  // salvata care a iesit din interval dupa editarea camerelor). Bucket-ul se
-  // deriva mereu din RON (aceeasi regula ca serverul) — repara si drafturile
-  // vechi in care eticheta ramasese pe "Sub 5.000 RON" langa 33.000 RON.
-  useEffect(() => {
-    const est = estimate.data;
-    if (!est || est.minRon <= 0 || budget === 'UNDISCLOSED') return;
-    const current = budgetRon;
-    const setRon = (ron: number) => {
-      setValue('budgetEstimateRon', ron, { shouldValidate: true });
-      setValue('budgetRange', budgetRangeFromRon(ron), { shouldValidate: true });
-    };
-    if (typeof current !== 'number') {
-      setRon(est.minRon);
-    } else if (current < est.minRon || current > est.maxRon) {
-      setRon(Math.min(Math.max(current, est.minRon), est.maxRon));
-    } else if (budget !== budgetRangeFromRon(current)) {
-      setValue('budgetRange', budgetRangeFromRon(current), { shouldValidate: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [estimate.data]);
+  // b11 (PO 2026-11-13): estimarea e doar reper pe glisor — nu mai pune si nu mai muta suma.
+  // Suma aleasa ramane cum a ales-o clientul; treapta (doar pentru punctaj) se deriva din ea.
+  const chooseBudgetRon = (ron: number) => {
+    setValue('budgetEstimateRon', ron, { shouldValidate: true });
+    setValue('budgetRange', budgetRangeFromRon(ron), { shouldValidate: true });
+  };
+  const setBudgetUndisclosed = (checked: boolean) => {
+    // debifat = din nou neales (nu o suma pusa din oficiu)
+    setValue('budgetEstimateRon', undefined, { shouldValidate: true });
+    setValue('budgetRange', checked ? 'UNDISCLOSED' : undefined, { shouldValidate: true });
+  };
 
   // previzualizare titlu generat: "Bucatarie + 2 Bai — Cluj" (sursa de adevar = server)
   const counts = new Map<string, number>();
@@ -171,9 +287,20 @@ export function DetailsStep({
   const titlePreview = titleParts.join(' + ') + (city ? ` — ${city}` : '');
 
   const submit = handleSubmit((values) => {
-    setDetails(values as Partial<DetailsValues>);
+    // salvarea programata e inlocuita de valorile validate
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = null;
+    pendingValues.current = null;
+    // modul (hasOwnProject) si proiectarea (din camere) au sursa lor: nu le scrie formularul
+    setDetails(toDraftDetails(values));
     onContinue();
   });
+  useEffect(() => {
+    if (continueRequest === seenContinueRequest.current) return;
+    seenContinueRequest.current = continueRequest;
+    void submit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [continueRequest]);
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-7" noValidate>
@@ -192,20 +319,28 @@ export function DetailsStep({
         hint={t('messageHint')}
         error={vmsg(errors.description?.message)}
       >
-        <Textarea rows={4} {...register('description')} />
+        <Textarea
+          rows={4}
+          maxLength={MESSAGE_MAX_LENGTH}
+          aria-describedby="details-message-counter"
+          {...register('description')}
+        />
+        {/* b9: contorul de caractere, ca la celelalte campuri text cu limita */}
+        <p id="details-message-counter" className="text-right text-micro text-muted-foreground">
+          {t('messageCounter', { count: (description ?? '').length, max: MESSAGE_MAX_LENGTH })}
+        </p>
         <ContactInTextHint value={description} />
       </Field>
 
       <fieldset className="min-w-0">
         <legend className="heading-section mb-3">{t('field.budgetRange')}</legend>
         <BudgetSlider
-          value={budget}
-          onChange={(v) => setValue('budgetRange', v, { shouldValidate: true })}
+          valueRon={budget !== 'UNDISCLOSED' && typeof budgetRon === 'number' ? budgetRon : null}
+          undisclosed={budget === 'UNDISCLOSED'}
           estimate={estimate.data && estimate.data.minRon > 0 ? estimate.data : null}
-          valueRon={typeof budgetRon === 'number' ? budgetRon : null}
-          onChangeRon={(ron) =>
-            setValue('budgetEstimateRon', ron ?? undefined, { shouldValidate: true })
-          }
+          onChooseRon={chooseBudgetRon}
+          onUndisclosed={setBudgetUndisclosed}
+          error={vmsg(errors.budgetRange?.message)}
         />
       </fieldset>
 
@@ -238,9 +373,8 @@ export function DetailsStep({
         </div>
       </fieldset>
 
-      {designHelp ? (
-        // fluxul "am nevoie de ajutor": Proiectarea platita e parte din cerere,
-        // nu optiune — banner informativ in locul checkbox-ului
+      {/* b8 (PO g0-8): proiectarea se cere pe camera, din cos; aici doar se aminteste */}
+      {withDesign && (
         <div className="flex items-start gap-2 rounded-lg border border-brass/40 bg-brass/10 px-3 py-2.5 text-sm">
           <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brass-2" />
           <div>
@@ -248,11 +382,6 @@ export function DetailsStep({
             <p className="mt-0.5 text-xs text-muted-foreground">{t('designHelpIncludedHint')}</p>
           </div>
         </div>
-      ) : (
-        <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm">
-          <input type="checkbox" className="h-[18px] w-[18px] shrink-0 accent-walnut" {...register('includesPaidDesign')} />
-          {t('field.includesPaidDesign')}
-        </label>
       )}
 
       <div>
@@ -275,20 +404,33 @@ export function DetailsStep({
           </div>
           <AddressAutocomplete
             defaultValue={stored.addressText ?? ''}
-            error={vmsg(errors.addressText?.message)}
+            error={vmsg(errors.addressText?.message, addressText)}
             country={country}
             onText={(text) => setValue('addressText', text, { shouldValidate: true })}
             onResolved={(parts) => {
               setValue('addressText', parts.addressText, { shouldValidate: true });
               if (parts.county) setValue('county', parts.county, { shouldValidate: true });
               if (parts.city) setValue('city', parts.city, { shouldValidate: true });
+              // b12: blocul / apartamentul tastate in adresa trec in campul lor, fara sa
+              // suprascrie ce a scris clientul deja acolo
+              if (parts.addressDetails && !getValues('addressDetails')?.trim()) {
+                setValue('addressDetails', parts.addressDetails, { shouldValidate: true });
+              }
             }}
           />
+          {/* b12: separat de strada — alegerea unei sugestii nu il sterge */}
+          <Field
+            label={t('field.addressDetails')}
+            hint={t('addressDetailsHint')}
+            error={vmsg(errors.addressDetails?.message)}
+          >
+            <Input {...register('addressDetails')} autoComplete="address-line2" />
+          </Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label={t('field.county')} error={vmsg(errors.county?.message)}>
+            <Field label={t('field.county')} error={vmsg(errors.county?.message, county)}>
               <Input {...register('county')} />
             </Field>
-            <Field label={t('field.city')} error={vmsg(errors.city?.message)}>
+            <Field label={t('field.city')} error={vmsg(errors.city?.message, city)}>
               <Input {...register('city')} />
             </Field>
           </div>
@@ -343,7 +485,10 @@ export function DetailsStep({
                     locked ? t('field.accountEmail') : <span aria-hidden>&#8203;</span>
                   }
                   hint={locked ? t('accountEmailLockedHint') : undefined}
-                  error={vmsg(errors.contactPreferences?.[ci]?.value?.message)}
+                  error={vmsg(
+                    contactErrorKey(errors.contactPreferences?.[ci]?.value?.message, channel, contactValues?.[ci]?.value),
+                    contactValues?.[ci]?.value,
+                  )}
                 >
                   {/* key per varianta: inputul controlat (blocat) si cel
                       inregistrat RHF nu impart acelasi nod DOM — altfel React
@@ -395,8 +540,13 @@ export function DetailsStep({
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6">
-        <Button type="button" variant="outline" size="xl" className="px-4 text-sm" onClick={onBack}>
+      {/* j1: pe telefon bara se lipeste jos (ultimul copil al formularului) */}
+      <StickyActionBar>
+        <Button type="button" variant="outline" size="xl" className="px-4 text-sm" onClick={() => {
+          // b2: valorile curente ajung in ciorna inainte de plecare
+          flushDraft();
+          onBack();
+        }}>
           <ArrowLeft aria-hidden />
           {tc('nav.back')}
         </Button>
@@ -404,7 +554,7 @@ export function DetailsStep({
           {tc('nav.toReview')}
           <ArrowRight aria-hidden />
         </Button>
-      </div>
+      </StickyActionBar>
     </form>
   );
 }

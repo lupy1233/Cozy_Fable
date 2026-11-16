@@ -47,11 +47,35 @@ describe('SubscriptionActiveGuard (E-admin-platform-14 + 58)', () => {
     expect(findFirst).not.toHaveBeenCalled();
   });
 
-  it('fara abonament activ → 403 SUBSCRIPTION_INACTIVE', async () => {
+  it('fara abonament activ → 403 SUBSCRIPTION_INACTIVE (firma fara niciun abonament: lastExpired null)', async () => {
     const { guard, context } = setup(ctx(), null);
     await expect(guard.canActivate(context)).rejects.toMatchObject({
       status: 403,
-      response: { code: 'SUBSCRIPTION_INACTIVE' },
+      response: { code: 'SUBSCRIPTION_INACTIVE', details: { lastExpired: null } },
+    });
+  });
+
+  it('h2: abonament expirat → refuzul spune planul si data expirarii', async () => {
+    const { guard, context, findFirst } = setup(ctx(), null);
+    findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      id: 'sub-old',
+      status: 'ACTIVE',
+      expiresAt: new Date('2026-08-20T10:00:00Z'),
+      plan: { code: 'GOLD', nameRo: 'Aur', nameEn: 'Gold' },
+    });
+    await expect(guard.canActivate(context)).rejects.toMatchObject({
+      status: 403,
+      response: {
+        code: 'SUBSCRIPTION_INACTIVE',
+        details: {
+          lastExpired: { planCode: 'GOLD', nameRo: 'Aur', nameEn: 'Gold', expiredAt: '2026-08-20T10:00:00.000Z' },
+        },
+      },
+    });
+    expect(findFirst).toHaveBeenLastCalledWith({
+      where: { companyId: 'c1', expiresAt: { lte: now } },
+      include: { plan: true },
+      orderBy: { expiresAt: 'desc' },
     });
   });
 

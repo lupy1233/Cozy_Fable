@@ -65,10 +65,10 @@ const dimensionsStep: DimensionGroupStep = {
 // Zonele de corpuri → cate un item derivat (nume RO fara diacritice, doar fallback DB;
 // UI-ul randeaza mereu din answers cu chei i18n).
 const ZONE_ITEM_NAMES: Record<string, string> = {
-  BASE_UNITS: 'Corpuri baza',
+  BASE_UNITS: 'Corpuri de bază',
   WALL_UNITS: 'Corpuri suspendate',
-  TALL_PANTRY: 'Coloane / camara',
-  ISLAND_UNITS: 'Insula bucatarie',
+  TALL_PANTRY: 'Coloane / cămară',
+  ISLAND_UNITS: 'Insulă',
 };
 
 export const kitchenFlow: RoomFlow = {
@@ -224,7 +224,7 @@ export const kitchenFlow: RoomFlow = {
     }
     // garantie: request_rooms cere minim un item (requestRoomSchema.items min 1)
     if (items.length === 0) {
-      items.push({ name: 'Mobilier bucatarie', material, systems, quantity: 1 });
+      items.push({ name: 'Mobilier bucătărie', material, systems, quantity: 1 });
     }
 
     return { lengthM, widthM, heightM, items };

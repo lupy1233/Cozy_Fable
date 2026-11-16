@@ -77,7 +77,7 @@ export class AdminSizingService {
           id: true,
           budgetRange: true,
           includesPaidDesign: true,
-          rooms: { select: { roomType: true, flowVersion: true, answers: true } },
+          rooms: { select: { roomType: true, flowVersion: true, answers: true, needsDesignHelp: true, approxLengthM: true } },
         },
       }),
       // E-company-21: previzualizarea arata costul real, cu valoarea creditului si plafonul in vigoare
@@ -113,7 +113,14 @@ export class AdminSizingService {
       }
       let entries: ScoreEntry[];
       try {
-        entries = req.rooms.flatMap((r) => collectScoreEntries(r.roomType, r.answers as AnswerMap, r.flowVersion ?? undefined));
+        // d1-1: camerele cu "am nevoie de ajutor" nu mai aduc punctele pieselor puse din oficiu
+        entries = req.rooms.flatMap((r) =>
+          // d3: lungimea aproximativa (proiect propriu) conteaza la ROOM_SIZE cand dimensiunile lipsesc
+          collectScoreEntries(r.roomType, r.answers as AnswerMap, r.flowVersion ?? undefined, {
+            needsDesignHelp: r.needsDesignHelp,
+            approxLengthM: r.approxLengthM == null ? null : Number(r.approxLengthM),
+          }),
+        );
       } catch {
         result.skipped++;
         continue;

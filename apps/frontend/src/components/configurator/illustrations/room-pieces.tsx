@@ -662,3 +662,116 @@ export function IlluClosetLighting({ className }: IllustrationProps) {
     </Svg>
   );
 }
+
+// --- Etapa 10 (formularul v7): optiunile noi (§9) ---
+
+// Saltea 120 × 200 — intre 90 si 140 (aceeasi familie de desene ca S_90 … K_180)
+export function IlluBed120({ className }: IllustrationProps) {
+  return (
+    <Svg className={className}>
+      <rect x="38" y="14" width="44" height="62" rx="4" />
+      <rect x="43" y="20" width="34" height="12" rx="4" strokeWidth={2.25} />
+      <path d="M38 40h44" strokeWidth={2} opacity={0.5} />
+    </Svg>
+  );
+}
+
+// Lungimea saltelei: saltea vazuta de sus + cota pe lungime (200 lunga, 190 mai scurta)
+function MattressLength({ className, short }: IllustrationProps & { short: boolean }) {
+  const y2 = short ? 70 : 78;
+  return (
+    <Svg className={className}>
+      <rect x="40" y="10" width="40" height={y2 - 10} rx="4" />
+      <rect x="45" y="16" width="30" height="10" rx="4" strokeWidth={2} />
+      <path d={`M92 10v${y2 - 10}m0 0l-4-6m4 6l4-6M92 10l-4 6m4-6l4 6`} strokeWidth={2.25} />
+      {short && <path d="M40 78h40" strokeWidth={1.75} strokeDasharray="4 4" opacity={0.5} />}
+    </Svg>
+  );
+}
+export function IlluMattressLength200({ className }: IllustrationProps) {
+  return <MattressLength className={className} short={false} />;
+}
+export function IlluMattressLength190({ className }: IllustrationProps) {
+  return <MattressLength className={className} short />;
+}
+
+// Stofa patului tapitat: mostra de material cu textura (tesatura / bouclé / catifea)
+function FabricSwatch({ className, children }: IllustrationProps & { children: React.ReactNode }) {
+  return (
+    <Svg className={className}>
+      <path d="M26 16h68v52c-10 4-18-6-34 0s-24 6-34 0z" />
+      {children}
+    </Svg>
+  );
+}
+export function IlluFabricWoven({ className }: IllustrationProps) {
+  return (
+    <FabricSwatch className={className}>
+      <path d="M34 26h52M34 36h52M34 46h52M34 56h52M42 22v38M54 22v38M66 22v38M78 22v38" strokeWidth={1.5} opacity={0.55} />
+    </FabricSwatch>
+  );
+}
+export function IlluFabricBoucle({ className }: IllustrationProps) {
+  const loops: [number, number][] = [];
+  for (let y = 28; y <= 56; y += 12) for (let x = 36 + ((y / 12) % 2) * 6; x <= 84; x += 12) loops.push([x, y]);
+  return (
+    <FabricSwatch className={className}>
+      {loops.map(([x, y]) => (
+        <circle key={`${x}-${y}`} cx={x} cy={y} r={3.2} strokeWidth={1.5} opacity={0.6} />
+      ))}
+    </FabricSwatch>
+  );
+}
+export function IlluFabricVelvet({ className }: IllustrationProps) {
+  return (
+    <FabricSwatch className={className}>
+      {/* luciul catifelei: dungi moi pe diagonala */}
+      <path d="M34 54c10-8 20-22 26-32M48 58c10-8 20-24 26-34M64 58c8-6 14-16 18-24" strokeWidth={2} opacity={0.45} />
+    </FabricSwatch>
+  );
+}
+
+// Masina de spalat: incarcare frontala (hublou in fata) / de sus (capac deschis sus)
+export function IlluWasherFront({ className }: IllustrationProps) {
+  return (
+    <Svg className={className}>
+      <rect x="34" y="16" width="52" height="58" rx="4" />
+      <path d="M34 28h52" strokeWidth={2} opacity={0.6} />
+      <circle cx="60" cy="51" r="15" />
+      <path d="M45 51h-9" strokeWidth={2.5} />
+      <path d="M22 51h10m0 0l-5-4m5 4l-5 4" strokeWidth={2} opacity={0.7} />
+    </Svg>
+  );
+}
+export function IlluWasherTop({ className }: IllustrationProps) {
+  return (
+    <Svg className={className}>
+      <rect x="38" y="30" width="44" height="46" rx="4" />
+      {/* capacul ridicat */}
+      <path d="M38 30l10-16h34l-10 16" />
+      <ellipse cx="60" cy="38" rx="12" ry="3.5" strokeWidth={2} opacity={0.7} />
+      <path d="M60 4v8m0 0l-4-4m4 4l4-4" strokeWidth={2} opacity={0.7} />
+    </Svg>
+  );
+}
+
+// Holul vazut de sus: doi pereti apropiati (ingust) / departati (generos), cu cota de latime
+function HallPlan({ className, gap }: IllustrationProps & { gap: number }) {
+  const l = 60 - gap / 2;
+  const r = 60 + gap / 2;
+  return (
+    <Svg className={className}>
+      <path d={`M${l} 10v70M${r} 10v70`} />
+      <path d={`M${l - 5} 10v70M${r + 5} 10v70`} strokeWidth={1.5} opacity={0.45} />
+      {/* un corp de mobilier lipit de perete */}
+      <rect x={l + 2} y="24" width={Math.min(14, gap / 3)} height="30" rx="1.5" strokeWidth={2} opacity={0.7} />
+      <path d={`M${l + 3} 68H${r - 3}m0 0l-4-3m4 3l-4 3M${l + 3} 68l4-3m-4 3l4 3`} strokeWidth={2} />
+    </Svg>
+  );
+}
+export function IlluHallNarrow({ className }: IllustrationProps) {
+  return <HallPlan className={className} gap={34} />;
+}
+export function IlluHallWide({ className }: IllustrationProps) {
+  return <HallPlan className={className} gap={80} />;
+}

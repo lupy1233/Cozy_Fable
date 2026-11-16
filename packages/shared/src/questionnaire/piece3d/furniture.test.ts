@@ -14,12 +14,15 @@ describe('furniture families and legacy contracts', () => {
       expect(panelsWithinBounds(config, panels)).toBe(true);
       expect(panels.every((p) => [p.w, p.h, p.d].every((v) => Number.isFinite(v) && v > 0))).toBe(true);
       const answers = { config3d: config, material: 'PAL' };
-      const flow = getFlow('PIECE_BED');
-      expect(flow.version).toBe(3);
-      expect(flow.deriveRoom(answers).lengthM).toBe(BED_MATTRESS_WIDTH[mattressSize]);
-      expect(flow.deriveRoom(answers).widthM).toBe(2);
-      expect(flow.deriveRoom(answers).items).toHaveLength(1);
-      expect(collectScoreEntries('PIECE_BED', answers).some((e) => 'optionKey' in e && e.category === 'BED_STORAGE' && e.optionKey === storage)).toBe(storage !== 'NONE');
+      // etapa 6: contractul tine pe v3 (cererile vechi) si pe v4 (versiunea curenta)
+      for (const version of [3, 4]) {
+        const flow = getFlow('PIECE_BED', version);
+        expect(flow.version).toBe(version);
+        expect(flow.deriveRoom(answers).lengthM).toBe(BED_MATTRESS_WIDTH[mattressSize]);
+        expect(flow.deriveRoom(answers).widthM).toBe(2);
+        expect(flow.deriveRoom(answers).items).toHaveLength(1);
+        expect(collectScoreEntries('PIECE_BED', answers, version).some((e) => 'optionKey' in e && e.category === 'BED_STORAGE' && e.optionKey === storage)).toBe(storage !== 'NONE');
+      }
       expect(buildZoneBoxes(config, 'BED')).toEqual([]);
     });
   }

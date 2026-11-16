@@ -1,4 +1,5 @@
 import type { ApiErrorBody, ErrorCode } from '@marketplace/shared';
+import { signalSessionLost } from './session-lost';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
@@ -12,6 +13,12 @@ export class ApiError extends Error {
     super(message);
     this.name = 'ApiError';
   }
+}
+
+// f3: 401 = sesiune pierduta (nu „nu exista”): paginile arata starea de incarcare, iar
+// ascultatorul global (session-lost-listener) duce omul la login.
+export function isUnauthorizedError(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 401;
 }
 
 function rawFetch(path: string, init?: RequestInit): Promise<Response> {
@@ -57,6 +64,9 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   if (res.status === 401 && !NO_RETRY_PATHS.includes(path)) {
     const refreshed = await refreshSession();
     if (refreshed) res = await rawFetch(path, init);
+    // f3: sesiunea s-a pierdut (refresh esuat, sau cererea reluata primeste tot 401) → semnal
+    // global (o singura actiune); eroarea merge mai departe
+    if (!refreshed || res.status === 401) signalSessionLost({ source: 'api', path });
   }
 
   if (!res.ok) throw await parseError(res);
@@ -74,6 +84,7 @@ export async function apiBlob(path: string): Promise<Blob> {
   let res = await rawFetch(path);
   if (res.status === 401) {
     if (await refreshSession()) res = await rawFetch(path);
+    if (res.status === 401) signalSessionLost({ source: 'api', path });
   }
   if (!res.ok) throw await parseError(res);
   return res.blob();

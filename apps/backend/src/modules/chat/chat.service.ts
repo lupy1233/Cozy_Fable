@@ -271,6 +271,8 @@ export class ChatService {
       await this.outbox.record(tx, `message.created:${created.id}`, 'message.created', {
         threadId, messageId: created.id, senderUserId: userId, senderRole: role,
         requestId: ctx.requestId, companyId: ctx.companyId, teamChat: ctx.threadType === 'TEAM', clientUserId: ctx.clientUserId,
+        // g1 (etapa 9): autorul nu primeste notificare; legatura din e-mail duce la fisa preluarii
+        actorUserId: userId, claimSlotId: ctx.claimSlotId,
       }, targets);
       return created;
     });
@@ -312,7 +314,15 @@ export class ChatService {
   // --- mapping ---
 
   private async mapMessages(
-    messages: { id: string; chatThreadId: string; senderUserId: string; body: string | null; createdAt: Date }[],
+    messages: {
+      id: string;
+      chatThreadId: string;
+      senderUserId: string;
+      body: string | null;
+      createdAt: Date;
+      systemKind?: MessageDto['systemKind'];
+      systemPayload?: unknown;
+    }[],
     viewerUserId: string,
   ): Promise<MessageDto[]> {
     const senderIds = [...new Set(messages.map((m) => m.senderUserId))];
@@ -332,6 +342,9 @@ export class ChatService {
         body: this.crypto.decrypt(m.body),
         attachments: await this.uploads.listForEntity(ATTACHMENT_ENTITY, m.id),
         createdAt: m.createdAt.toISOString(),
+        // a4: mesaj de sistem (cerere de modificare / refuz); null = mesaj obisnuit
+        systemKind: m.systemKind ?? null,
+        systemPayload: (m.systemPayload as Record<string, unknown> | null | undefined) ?? null,
       })),
     );
   }

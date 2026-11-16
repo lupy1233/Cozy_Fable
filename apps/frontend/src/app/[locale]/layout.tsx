@@ -5,6 +5,7 @@ import { getMessages, getTranslations } from 'next-intl/server';
 import { cookies, headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
+import { APP_TIME_ZONE } from '@/lib/app-time-zone';
 import { Providers } from '@/lib/providers';
 import { SESSION_HINT_COOKIE, parseSessionHint } from '@/lib/session-hint';
 import { SessionHintProvider } from '@/lib/session-hint-context';
@@ -87,7 +88,8 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} className={`${sans.variable} ${serif.variable} ${mono.variable}`}>
       <body className="min-h-screen">
-        <NextIntlClientProvider messages={messages}>
+        {/* g2 (revizuire m6): ora Romaniei pentru orice format.dateTime fara timeZone */}
+        <NextIntlClientProvider messages={messages} timeZone={APP_TIME_ZONE}>
           <Providers>
             <SessionHintProvider initialRole={hint}>
               {children}

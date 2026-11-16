@@ -2,6 +2,8 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { randomUUID } from 'node:crypto';
+import { safeErrorSummary } from '../../common/logging/safe-error';
+import { maskFreeText } from '../../common/privacy/contact-masking';
 import { QUEUE_NOTIFICATIONS } from '../queues/queues.module';
 import { EventsGateway } from './events.gateway';
 
@@ -47,6 +49,8 @@ export type DomainEvent =
   | 'quote.expired'
   | 'quote.expired_closed'
   | 'quote.extension_requested'
+  // a4 (2026-11-13): clientul a refuzat oferta (doar membrii firmei; clopotel + e-mail)
+  | 'quote.declined'
   // E-admin-platform-44: termene apropiate
   | 'request.expiry_reminder'
   | 'claim.assign_warning'
@@ -57,7 +61,28 @@ export type DomainEvent =
   | 'payment.transfer_instructions'
   | 'payment.transfer_reminder'
   | 'payment.auto_cancelled'
-  | 'payment.marked_paid';
+  | 'payment.marked_paid'
+  // e1-2 (etapa 5): firma a bifat o etapa de executie (doar clientul; clopotel, fara e-mail)
+  | 'execution.stage_updated'
+  // a6 (etapa 5): cerere publicata fara nicio firma pe raza (doar adminii; clopotel + e-mail)
+  | 'request.no_coverage'
+  // g4 (etapa 7): un PDF (oferta / proforma / factura) nu s-a putut genera (doar adminii;
+  // clopotel o data pe zi, fara e-mail)
+  | 'documents.pdf_failed'
+  // e4 (etapa 7): o firma a renuntat la preluare — doar clientul (clopotel + e-mail)
+  | 'request.company_withdrew'
+  // g1 (etapa 9): cererea a fost publicata — doar clientul (e-mail, fara clopotel)
+  | 'request.published'
+  // g1 (etapa 9): cerere noua in zona firmei — membrii firmelor care o vad (clopotel cand
+  // le devine vizibila; e-mailul e rezumatul zilnic, nu acest eveniment)
+  | 'request.new_in_area'
+  // e3 (etapa 9): intrebarea firmei (→ clientul) si raspunsul clientului (→ firma);
+  // editarea cererii dupa preluare (→ firmele cu preluare activa). Clopotel + e-mail.
+  | 'clarification.asked'
+  | 'clarification.answered'
+  | 'request.edited_after_claim'
+  // h1 (etapa 11): un coleg a fost adaugat in firma — doar colegul adaugat (clopotel + e-mail)
+  | 'company.member_added';
 
 // Invarianta 3.5: TOATE evenimentele trec prin publish() —
 // emite pe Socket.IO si pune in coada de notificari. Controllerele nu emit direct.
@@ -83,6 +108,11 @@ export class EventBusService {
     // Singurul eveniment public este invalidarea listei de cereri. Lipsa
     // destinatarilor unui eveniment privat nu acorda drept de broadcast.
     if (!unique && event !== 'request.status_changed') return;
+    // g1 (etapa 9): anuntul „cerere noua in zona” ajunge la firme INAINTE de preluare → titlul
+    // (rehidratat brut de outbox) se mascheaza ca in lista din marketplace (fara date de contact)
+    if (event === 'request.new_in_area' && typeof payload.requestTitle === 'string') {
+      payload = { ...payload, requestTitle: maskFreeText(payload.requestTitle) };
+    }
     await this.gateway.publishToActiveSessions(event, payload, unique);
     // __targets calatoreste in job ca procesorul de notificari sa stie destinatarii (Sprint 9).
     const jobPayload = { ...payload, ...(unique ? { __targets: unique } : {}), ...(eventId ? { __eventId: eventId } : {}) };
@@ -98,10 +128,21 @@ export class EventBusService {
     this.logger.debug(`published ${event}`);
   }
 
-  // Semnal de sesiune (3.13): la login nou pe alt device, socketul vechi
-  // primeste auth_expired. Nu e eveniment de domeniu — nu intra in coada.
-  emitAuthExpired(userId: string): void {
-    this.gateway.server?.to(`user:${userId}`).emit('auth_expired');
-    this.gateway.server?.in(`user:${userId}`).disconnectSockets(true);
+  // Semnal de sesiune (3.13): socketurile sesiunilor revocate primesc auth_expired.
+  // Fara `sids` = toate socketurile contului (schimbare/resetare parola, blocare de admin);
+  // cu `sids` = doar socketurile acelor sesiuni (login peste limita de 5, logout).
+  // Nu e eveniment de domeniu — nu intra in coada. Nu arunca niciodata.
+  async emitAuthExpired(userId: string, sids?: string[]): Promise<void> {
+    if (!sids) {
+      this.gateway.server?.to(`user:${userId}`).emit('auth_expired');
+      this.gateway.server?.in(`user:${userId}`).disconnectSockets(true);
+      return;
+    }
+    if (sids.length === 0) return;
+    try {
+      await this.gateway.expireSessions(userId, sids);
+    } catch (e) {
+      this.logger.warn(`auth_expired pe sesiuni a esuat: ${safeErrorSummary(e)}`);
+    }
   }
 }

@@ -231,3 +231,94 @@ export function IlluMicrowave({ className }: IllustrationProps) {
     </Svg>
   );
 }
+
+// --- Etapa 10 (bucataria v5): optiunile noi (§9) ---
+
+// Fara corpuri suspendate: rand de corpuri jos, perete gol sus, cu linia suspendatelor taiata
+export function IlluNoWallCabinets({ className }: IllustrationProps) {
+  return (
+    <Svg className={className}>
+      <rect x="20" y="16" width="80" height="22" rx="2" strokeWidth={1.75} strokeDasharray="6 5" opacity={0.45} />
+      <path d="M26 40L94 14" strokeWidth={2.5} />
+      <path d="M16 44h88" strokeWidth={1.75} opacity={0.4} />
+      <rect x="20" y="48" width="80" height="26" rx="2" />
+      <path d="M46 48v26M72 48v26" strokeWidth={2} />
+      <path d="M30 58h8M54 58h8M80 58h8" strokeWidth={2.5} />
+    </Svg>
+  );
+}
+
+// Chiuveta incastrata: buza cuvei sta PESTE blat (sectiune)
+export function IlluSinkInset({ className }: IllustrationProps) {
+  return (
+    <Svg className={className}>
+      <path d="M14 46h22M84 46h22" strokeWidth={5} />
+      <path d="M32 42h56" strokeWidth={2.5} />
+      <path d="M38 42v20a6 6 0 0 0 6 6h32a6 6 0 0 0 6-6V42" />
+      <path d="M60 24v-6h10v6" strokeWidth={2.5} />
+    </Svg>
+  );
+}
+
+// Chiuveta montata sub blat: blatul acopera marginea cuvei (sectiune)
+export function IlluSinkUndermount({ className }: IllustrationProps) {
+  return (
+    <Svg className={className}>
+      <path d="M14 42h28M78 42h28" strokeWidth={5} />
+      <path d="M40 46v16a6 6 0 0 0 6 6h28a6 6 0 0 0 6-6V46" />
+      <path d="M38 46h44" strokeWidth={2} opacity={0.6} />
+      <path d="M60 24v-6h10v6" strokeWidth={2.5} />
+    </Svg>
+  );
+}
+
+// Materialul chiuvetei: aceeasi cuva vazuta de sus, cu textura materialului
+type SinkTone = 'stainless' | 'composite' | 'ceramic';
+function sinkIllustration(tone: SinkTone, name: string) {
+  function IlluSinkTone({ className }: IllustrationProps) {
+    return (
+      <Svg className={className}>
+        <rect x="22" y="16" width="76" height="58" rx="10" />
+        <rect x="32" y="26" width="56" height="38" rx="8" strokeWidth={2.25} />
+        <circle cx="60" cy="45" r="3" strokeWidth={2} />
+        {tone === 'stainless' && <path d="M38 34h44M38 40h44M38 50h44M38 56h44" strokeWidth={1.25} opacity={0.45} />}
+        {tone === 'composite' &&
+          [
+            [40, 34], [52, 31], [70, 33], [80, 38], [44, 50], [74, 52], [56, 57], [38, 42], [82, 48], [64, 38],
+          ].map(([x, y]) => <circle key={`${x}-${y}`} cx={x} cy={y} r={1.2} fill="currentColor" stroke="none" opacity={0.6} />)}
+        {tone === 'ceramic' && <path d="M38 52c2-10 8-18 18-20" strokeWidth={2.25} opacity={0.5} />}
+      </Svg>
+    );
+  }
+  IlluSinkTone.displayName = name;
+  return IlluSinkTone;
+}
+export const IlluSinkStainless = sinkIllustration('stainless', 'IlluSinkStainless');
+export const IlluSinkComposite = sinkIllustration('composite', 'IlluSinkComposite');
+export const IlluSinkCeramic = sinkIllustration('ceramic', 'IlluSinkCeramic');
+
+// Frigider incorporabil: corp de mobilier cu usa de front (fara aparat vizibil)
+export function IlluFridgeBuiltIn({ className }: IllustrationProps) {
+  return (
+    <Svg className={className}>
+      <rect x="36" y="8" width="48" height="74" rx="2" strokeWidth={2} opacity={0.55} />
+      <rect x="40" y="12" width="40" height="66" rx="1.5" />
+      <path d="M40 40h40" strokeWidth={2} />
+      <path d="M74 24v8M74 48v10" strokeWidth={2.5} />
+      <path d="M22 82h76" strokeWidth={1.75} opacity={0.4} />
+    </Svg>
+  );
+}
+
+// Frigider independent: aparat cu colturi rotunjite, pe picioruse, separat de mobilier
+export function IlluFridgeFreestanding({ className }: IllustrationProps) {
+  return (
+    <Svg className={className}>
+      <rect x="40" y="10" width="40" height="66" rx="7" />
+      <path d="M40 36h40" strokeWidth={2} />
+      <path d="M46 20v8M46 44v12" strokeWidth={2.5} />
+      <path d="M45 76v4M75 76v4" strokeWidth={2.5} />
+      <path d="M22 82h76" strokeWidth={1.75} opacity={0.4} />
+    </Svg>
+  );
+}

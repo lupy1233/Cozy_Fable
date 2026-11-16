@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { io, type Socket } from 'socket.io-client';
 import { refreshSession } from '@/lib/api';
+import { signalSessionLost } from '@/lib/session-lost';
 
 // Socket.IO pe acelasi cookie httpOnly (invarianta 3.5). La auth_expired → reconectare
 // (api.ts face refresh-ul pe requesturile REST). URL-ul = baza fara prefixul /api/v1.
@@ -63,6 +64,9 @@ export function useRealtimeSync(): void {
       if (disposed) return;
       if (refreshed) s.connect();
       else {
+        // f3: deconectarea de pe alt dispozitiv se anunta pe loc — acelasi semnal ca in api.ts
+        // (ascultatorul global duce la login). Intai semnalul: el verifica „cine sunt eu” din cache.
+        signalSessionLost({ source: 'socket' });
         qc.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' });
         void qc.invalidateQueries({ queryKey: ['auth'] });
       }
@@ -126,6 +130,20 @@ export function useRealtimeSync(): void {
       qc.invalidateQueries({ queryKey: ['notifications'] });
     };
 
+    const onNewInArea = () => {
+      qc.invalidateQueries({ queryKey: ['marketplace'] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
+    };
+    // prefixul ['lifecycle'] acopera ['lifecycle','clarifications',…] (client + fisa firmei) si
+    // ['lifecycle','request-changes',claimSlotId] (caseta „Cererea a fost modificata”)
+    const onClarification = () => {
+      qc.invalidateQueries({ queryKey: ['lifecycle'] });
+      qc.invalidateQueries({ queryKey: ['requests'] });
+      qc.invalidateQueries({ queryKey: ['request'] });
+      qc.invalidateQueries({ queryKey: ['claims'] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
+    };
+
     s.on('message.created', onMessage);
     s.on('quote.created', onQuote);
     s.on('quote.updated', onQuote);
@@ -140,8 +158,12 @@ export function useRealtimeSync(): void {
     s.on('delivery.autocompleted', onDelivery);
     s.on('review.created', onDelivery);
     s.on('dispute.decided', onDelivery);
+    // e1-2: firma a bifat o etapa de executie → panoul „Ce urmeaza” al clientului se reface
+    s.on('execution.stage_updated', onDelivery);
     s.on('request.expired', onRequestChange);
     s.on('request.expiry_reminder', onRequestChange);
+    // e4: o firma a renuntat — caseta "Cine vede cererea" si clopotelul clientului se refac
+    s.on('request.company_withdrew', onDelivery);
     s.on('claim.assign_warning', onClaimDeadline);
     s.on('sla.expiring_soon', onClaimDeadline);
     s.on('company.approved', onCompany);
@@ -149,6 +171,8 @@ export function useRealtimeSync(): void {
     s.on('company.suspended', onCompany);
     s.on('company.unsuspended', onCompany);
     s.on('penalty.applied', onCompany);
+    // h1 (etapa 11): colegul adaugat in firma → datele firmei, contul si clopotelul
+    s.on('company.member_added', onCompany);
     s.on('payment.confirmed', onBilling);
     s.on('subscription.expiring', onBilling);
     // E-company-24: transfer bancar (date de plata, reminder, anulare automata) + "Am platit" (admin)
@@ -161,15 +185,27 @@ export function useRealtimeSync(): void {
     s.on('dispute.opened', onBell);
     // E-admin-platform-15: alerta zilnica ledger vs portofel (admini)
     s.on('credits.ledger_mismatch', onBell);
+    // a6: cerere publicata fara nicio firma in zona (admini)
+    s.on('request.no_coverage', onBell);
+    // g4: PDF-urile nu se pot genera (admini, o data pe zi)
+    s.on('documents.pdf_failed', onBell);
     s.on('quote.expired', onQuote);
     s.on('quote.extension_requested', onQuote);
     s.on('quote.expired_closed', onClaimClosed);
+    // a4: refuzul clientului inchide locul firmei — oferta, preluarile, conversatia si clopotelul se refac
+    s.on('quote.declined', onClaimClosed);
     s.on('project.case_opened', onProject);
     s.on('project.case_responded', onProject);
     s.on('project.case_dismissed', onProject);
     s.on('project.cancelled', onProject);
     s.on('project.delivery_reminder', onProject);
     s.on('project.overdue', onProject);
+    // g1 (etapa 9): cerere noua in zona firmei → lista marketplace + clopotelul
+    s.on('request.new_in_area', onNewInArea);
+    // e3 (etapa 9): intrebare / raspuns / editare dupa preluare → fisa cererii, preluarea, clopotelul
+    s.on('clarification.asked', onClarification);
+    s.on('clarification.answered', onClarification);
+    s.on('request.edited_after_claim', onClarification);
     s.on('auth_expired', onAuthExpired);
 
     return () => {
@@ -188,8 +224,10 @@ export function useRealtimeSync(): void {
       s.off('delivery.autocompleted', onDelivery);
       s.off('review.created', onDelivery);
       s.off('dispute.decided', onDelivery);
+      s.off('execution.stage_updated', onDelivery);
       s.off('request.expired', onRequestChange);
       s.off('request.expiry_reminder', onRequestChange);
+      s.off('request.company_withdrew', onDelivery);
       s.off('claim.assign_warning', onClaimDeadline);
       s.off('sla.expiring_soon', onClaimDeadline);
       s.off('company.approved', onCompany);
@@ -197,6 +235,7 @@ export function useRealtimeSync(): void {
       s.off('company.suspended', onCompany);
       s.off('company.unsuspended', onCompany);
       s.off('penalty.applied', onCompany);
+      s.off('company.member_added', onCompany);
       s.off('payment.confirmed', onBilling);
       s.off('subscription.expiring', onBilling);
       s.off('payment.transfer_instructions', onBilling);
@@ -207,15 +246,22 @@ export function useRealtimeSync(): void {
       s.off('payment.pending', onBell);
       s.off('dispute.opened', onBell);
       s.off('credits.ledger_mismatch', onBell);
+      s.off('request.no_coverage', onBell);
+      s.off('documents.pdf_failed', onBell);
       s.off('quote.expired', onQuote);
       s.off('quote.extension_requested', onQuote);
       s.off('quote.expired_closed', onClaimClosed);
+      s.off('quote.declined', onClaimClosed);
       s.off('project.case_opened', onProject);
       s.off('project.case_responded', onProject);
       s.off('project.case_dismissed', onProject);
       s.off('project.cancelled', onProject);
       s.off('project.delivery_reminder', onProject);
       s.off('project.overdue', onProject);
+      s.off('request.new_in_area', onNewInArea);
+      s.off('clarification.asked', onClarification);
+      s.off('clarification.answered', onClarification);
+      s.off('request.edited_after_claim', onClarification);
       s.off('auth_expired', onAuthExpired);
     };
   }, [qc]);

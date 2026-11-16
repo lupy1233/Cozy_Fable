@@ -8,6 +8,7 @@ import { Audit } from '../audit/audit.decorator';
 import { AuditInterceptor } from '../audit/audit.interceptor';
 import { CompaniesService } from './companies.service';
 import { RejectCompanyDto } from './dto/company.dto';
+import { UnsuspendCompanyDto } from './dto/unsuspend-company.dto';
 
 // Filtru lista firme admin: status optional, validat cu IsEnum (L0-B).
 export class AdminCompaniesQueryDto {
@@ -53,10 +54,11 @@ export class AdminCompaniesController {
   }
 
   // Pasul 5 (audit 2026-08-23, F2): ridicarea suspendarii — auditata ca aprobarile.
+  // Etapa 12 (k2): motiv obligatoriu (min 3) → 400 fara el; punctele active se anuleaza.
   @Post(':id/unsuspend')
   @HttpCode(200)
   @Audit('COMPANY_UNSUSPENDED', 'company')
-  unsuspend(@Param('id') id: string) {
-    return this.companies.adminUnsuspend(id);
+  unsuspend(@Param('id') id: string, @Body() dto: UnsuspendCompanyDto) {
+    return this.companies.adminUnsuspend(id, dto);
   }
 }

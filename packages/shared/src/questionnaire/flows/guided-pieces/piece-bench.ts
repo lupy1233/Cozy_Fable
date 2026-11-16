@@ -9,9 +9,9 @@ import { answerString, pieceMaterialStep, pieceSketchStep } from './builder';
 const F = 'flows.PIECE_BENCH';
 
 const ITEM_NAME: Record<string, string> = {
-  WITH_STORAGE: 'Bancuta cu depozitare',
-  WITH_SHOE_SPACE: 'Bancuta cu spatiu pantofi',
-  SIMPLE: 'Bancuta',
+  WITH_STORAGE: 'Băncuță cu ladă',
+  WITH_SHOE_SPACE: 'Băncuță cu spațiu pantofi',
+  SIMPLE: 'Băncuță',
 };
 
 const dimensionsStep: DimensionGroupStep = {
@@ -77,7 +77,7 @@ export const pieceBenchFlow: RoomFlow = {
           name: ITEM_NAME[style] ?? ITEM_NAME.SIMPLE,
           material: (answers.material as Material) ?? 'PAL',
           systems: [],
-          description: answers.upholsteredSeat === true ? 'Sezut tapitat' : undefined,
+          description: answers.upholsteredSeat === true ? 'Șezut tapițat' : undefined,
           quantity: 1,
         },
       ],

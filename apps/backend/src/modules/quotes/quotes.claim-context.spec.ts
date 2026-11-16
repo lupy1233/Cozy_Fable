@@ -34,9 +34,11 @@ function makeSlot(over: Partial<Any> = {}, reqOver: Partial<Any> = {}): Any {
       description: 'descriere',
       budgetRange: 'RANGE_10_20K',
       budgetEstimateRon: 15000,
+      budgetDeclared: true,
       deadlineBucket: 'ONE_TO_THREE_MONTHS',
       hasOwnProject: false,
       addressText: 'Str. Clientului 1',
+      addressDetails: 'bl. A2, ap. 14',
       city: 'Cluj-Napoca',
       county: 'Cluj',
       country: 'RO',
@@ -68,8 +70,14 @@ function quoteDto(status = 'SENT'): Any {
   return {
     id: 'q1',
     status,
-    versions: [{ id: 'v1', version: 1, sentAt: new Date(Date.now() - 2 * HOUR).toISOString() }],
+    versions: [{
+      id: 'v1', version: 1, sentAt: new Date(Date.now() - 2 * HOUR).toISOString(),
+      changeRequest: { id: 'cr1', requestedText: 'mai ieftin, sunati 0722 123 456' },
+    }],
     consultationInvites: [{ id: 'inv1', locationAddress: 'Str. Clientului 1', status: 'PENDING_CLIENT' }],
+    // a4 / revizuire M2: istoricul cererilor de modificare (text liber al clientului)
+    changeRequests: [{ id: 'cr1', requestedText: 'mai ieftin, sunati 0722 123 456', requestedOnVersion: 1, answeredByVersion: null }],
+    declineNote: null,
   };
 }
 
@@ -90,7 +98,7 @@ function build(slot: Any, opts: { settings?: Record<string, string>; quoteStatus
   const uploads: Any = { listForEntity: jest.fn().mockResolvedValue([{ id: 'att1', url: 'https://signed' }]) };
   const calendar: Any = { addWorkingDays: jest.fn((d: Date, n: number) => new Date(d.getTime() + n * 24 * HOUR)) };
   const queue: Any = { add: jest.fn() };
-  const service = new QuotesService(prisma, settings, {} as Any, calendar, uploads, {} as Any, queue, queue, queue, queue, queue);
+  const service = new QuotesService(prisma, settings, {} as Any, calendar, uploads, {} as Any, queue, queue, queue, queue, queue, queue, { encrypt: (s: string | null) => s } as Any);
   jest.spyOn(service, 'getQuoteDto').mockResolvedValue(quoteDto(opts.quoteStatus ?? 'SENT'));
   return { service, prisma, uploads };
 }
@@ -122,10 +130,21 @@ describe('QuotesService.getClaimContext (E-company-3)', () => {
     expect(c.clientHiddenReason).toBe('NOT_ASSIGNED_TO_YOU');
     expect(c.client).toBeNull();
     expect(c.detail.addressText).toBe('');
+    // b12: blocul / apartamentul ascuns la fel ca strada
+    expect(c.detail.addressDetails).toBe('');
     expect(c.quote?.consultationInvites[0].locationAddress).toBe('');
     expect(c.detail.rooms).toHaveLength(1);
     expect(c.detail.attachments).toHaveLength(1);
+    // b11: suma si eticheta 'declarat de client' ajung pe fisa de lucru
+    expect(c.detail).toMatchObject({ budgetEstimateRon: 15000, budgetDeclared: true });
     expect(c.threadId).toBe('t1');
+  });
+
+  // M2 (coordonator): o suma nedeclarata (cerere veche) nu ajunge la firma nici pe fisa de lucru
+  it('b11: suma nedeclarata → fisa de lucru fara suma (Buget nedeclarat)', async () => {
+    const { service } = build(makeSlot({}, { budgetEstimateRon: 24000, budgetDeclared: false }));
+    const c = await service.getClaimContext(owner, 'u-owner', 'slot-1');
+    expect(c.detail).toMatchObject({ budgetEstimateRon: null, budgetDeclared: false });
   });
 
   it('(b) angajat limitat atribuit pe slot: contacte + adresa', async () => {
@@ -134,6 +153,7 @@ describe('QuotesService.getClaimContext (E-company-3)', () => {
     expect(c.clientHiddenReason).toBeNull();
     expect(c.client).toEqual({ name: 'Ana Client', contacts: [{ id: 'cp1', channel: 'PHONE', value: '0700000000' }] });
     expect(c.detail.addressText).toBe('Str. Clientului 1');
+    expect(c.detail.addressDetails).toBe('bl. A2, ap. 14');
     expect(c.quote?.consultationInvites[0].locationAddress).toBe('Str. Clientului 1');
   });
 
@@ -148,9 +168,11 @@ describe('QuotesService.getClaimContext (E-company-3)', () => {
     expect(c.detail.attachments).toEqual([]);
     expect(c.detail.studioScenes).toEqual([]);
     expect(c.detail.inspirationPhotoIds).toEqual([]);
+    expect(c.detail).toMatchObject({ budgetEstimateRon: null, budgetDeclared: false });
     expect(c.detail.inspirationPhotos).toEqual([]);
     expect(c.detail.description).toBe('');
     expect(c.detail.addressText).toBe('');
+    expect(c.detail.addressDetails).toBe('');
     expect(c.detail.city).toBe('Cluj-Napoca');
     expect(c.detail.county).toBe('Cluj');
     expect(c.client).toBeNull();
@@ -260,5 +282,21 @@ describe('QuotesService.getClaimContext free-text masking (E-admin-platform-45)'
     const { service } = build(makeSlot({ status: 'WITHDRAWN' }, { title: 'Hol 0722123456' }), { quoteStatus: 'WITHDRAWN' });
     const c = await service.getClaimContext(owner, 'u-owner', 'slot-1');
     expect(c.requestTitle).toBe(`Hol ${TOKEN}`);
+  });
+
+  // revizuire M2: firma refuzata (OFFER_DECLINED → REDACTED) nu primeste contactele din cererile
+  // de modificare ale clientului (istoricul si cererea de pe varianta)
+  it('vederea limitata (REDACTED, oferta refuzata) mascheaza textele cererilor de modificare', async () => {
+    const { service } = build(makeSlot({ status: 'OFFER_DECLINED' }), { quoteStatus: 'DECLINED' });
+    const c = await service.getClaimContext(owner, 'u-owner', 'slot-1');
+    expect(c.visibility).toBe('REDACTED');
+    expect(c.quote?.changeRequests[0].requestedText).toBe(`mai ieftin, sunati ${TOKEN}`);
+    expect(c.quote?.versions[0].changeRequest?.requestedText).toBe(`mai ieftin, sunati ${TOKEN}`);
+  });
+
+  it('vederea FULL fara acces la contacte (EMPLOYEE_MANAGED neatribuit) mascheaza si cererile de modificare', async () => {
+    const { service } = build(makeSlot());
+    const c = await service.getClaimContext(managed, 'u-managed', 'slot-1');
+    expect(JSON.stringify(c.quote)).not.toContain('0722 123 456');
   });
 });

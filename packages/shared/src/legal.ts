@@ -35,7 +35,8 @@ export type FirmRulesDto = {
     openAfterFirstOffer: boolean;
     contactRevealPolicy: 'ON_CLAIM' | 'AFTER_GRACE';
     completedContactRetentionDays: number;
-    claimCost: { min: number; max: number | null };
+    // a7: creditValueRon = cati lei din bugetul minim estimat valoreaza un credit (optional: slot vechi)
+    claimCost: { min: number; max: number | null; creditValueRon?: number };
   };
   sla: {
     workingDays: { SMALL: number; MEDIUM: number; LARGE: number };

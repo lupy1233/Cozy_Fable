@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { ERROR_CODES } from '@marketplace/shared';
+import { CURRENT_FLOW_VERSION, ERROR_CODES } from '@marketplace/shared';
 import { RequestsService } from './requests.service';
 
 // E-client-3: repost autentificat (updateMany conditionat) + tokenul de draft
@@ -28,9 +28,31 @@ function setup() {
       update: jest.fn().mockResolvedValue({}),
     },
     requestContactDetection: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
+    // f6: publicarea reverifica ciorna sub lock (FOR UPDATE) in tranzactie; revizie A m2: editarea
+    // reverifica starea + contoarele sub lock → implicit, randul blocat = cererea citita de findUnique
+    $queryRaw: jest.fn(async () => {
+      const r = (await prisma.request.findUnique()) as Record<string, unknown> | null;
+      return r
+        ? [{
+            status: r.status,
+            deleted_at: r.deletedAt ?? null,
+            pre_claim_edits_used: r.preClaimEditsUsed ?? 0,
+            post_claim_edits_used: r.postClaimEditsUsed ?? 0,
+          }]
+        : [];
+    }),
   };
   const prisma = {
     request: { findUnique: jest.fn(), update: jest.fn().mockResolvedValue({}) },
+    // f2: rolul celui care publica se citeste din baza; a6: adminii anuntati (inainte de tranzactie)
+    user: {
+      findUnique: jest.fn().mockResolvedValue({ role: 'CLIENT' }),
+      findMany: jest.fn().mockResolvedValue([{ id: 'admin-1' }, { id: 'admin-2' }]),
+    },
+    // a6: acoperirea zonei (implicit exista o firma pe raza), citita in afara tranzactiei
+    $queryRaw: jest.fn().mockResolvedValue([{ covered: true }]),
+    // b8 / M3: camerele bifate ale cererii editate (reprezentarea veche a proiectarii)
+    requestRoom: { count: jest.fn().mockResolvedValue(0) },
     requestContactDetection: {
       createMany: jest.fn().mockResolvedValue({ count: 1 }),
       count: jest.fn().mockResolvedValue(0),
@@ -43,6 +65,7 @@ function setup() {
   const configurator = {
     processRooms: jest.fn().mockReturnValue({ rooms: [], scoreEntries: [] }),
     collectUploadAttachmentIds: jest.fn().mockReturnValue([]),
+    passesStrictValidation: jest.fn().mockReturnValue(false),
   };
   const inspiration = { assertSelectable: jest.fn().mockResolvedValue(undefined) };
   const calendar = {
@@ -105,8 +128,12 @@ describe('RequestsService.repostForClient', () => {
         data: expect.objectContaining({ status: 'IN_MARKETPLACE', repostUsed: true }),
       }),
     );
-    expect(outbox.record).toHaveBeenCalledTimes(1);
+    // + g1 (etapa 9): e-mailul „Cererea ta e publicata” catre client (o singura data)
+    expect(outbox.record).toHaveBeenCalledTimes(2);
     expect(outbox.record.mock.calls[0][1]).toBe(`request.reposted:${EXP_ID}`);
+    expect(outbox.record.mock.calls[1].slice(1, 3)).toEqual([`request.published:${EXP_ID}:repost`, 'request.published']);
+    expect(outbox.record.mock.calls[1][3]).toMatchObject({ requestId: EXP_ID, clientUserId: 'A', expiresAt: '2026-10-20T10:00:00.000Z' });
+    expect(outbox.record.mock.calls[1][4]).toEqual(['A']);
     expect(queue.add.mock.calls.filter((c: unknown[]) => c[0] === 'expire')).toHaveLength(1);
     // E-admin-platform-44: + reminderul catre client (4.4), cu jobId determinist
     expect(queue.add).toHaveBeenCalledWith(
@@ -119,6 +146,12 @@ describe('RequestsService.repostForClient', () => {
   it('rejects when the repost was already used', async () => {
     const { service, prisma } = setup();
     (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ repostUsed: true }));
+    await expectCode(service.repostForClient('A', EXP_ID), BadRequestException, ERROR_CODES.REPOST_ALREADY_USED);
+  });
+
+  it('already reposted and back in the marketplace: still REPOST_ALREADY_USED (a late second click)', async () => {
+    const { service, prisma } = setup();
+    (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'IN_MARKETPLACE', repostUsed: true }));
     await expectCode(service.repostForClient('A', EXP_ID), BadRequestException, ERROR_CODES.REPOST_ALREADY_USED);
   });
 
@@ -181,21 +214,67 @@ describe('RequestsService draft token (DRAFT-only, owner check)', () => {
     expect(configurator.processRooms).not.toHaveBeenCalled();
   });
 
-  it('patchDraft binds an anonymous draft to the logged-in caller, never rewrites an owner', async () => {
+  it('patchDraft binds an anonymous draft to the logged-in client, never rewrites an owner', async () => {
     const { service, prisma, tx } = setup();
     (prisma.request.findUnique as AnyMock).mockResolvedValue(draft({ clientUserId: null }));
-    await service.patchDraft('tok', { city: 'Cluj' } as never, 'B');
-    expect(tx.request.update.mock.calls[0][0].data.clientUserId).toBe('B');
+    await service.patchDraft('tok', { city: 'Cluj' } as never, 'B', 'CLIENT');
+    expect(tx.request.updateMany.mock.calls[0][0].data.clientUserId).toBe('B');
 
-    tx.request.update.mockClear();
+    tx.request.updateMany.mockClear();
     (prisma.request.findUnique as AnyMock).mockResolvedValue(draft({ clientUserId: 'B' }));
-    await service.patchDraft('tok', { city: 'Cluj' } as never, 'B');
-    expect(tx.request.update.mock.calls[0][0].data).not.toHaveProperty('clientUserId');
+    await service.patchDraft('tok', { city: 'Cluj' } as never, 'B', 'CLIENT');
+    expect(tx.request.updateMany.mock.calls[0][0].data).not.toHaveProperty('clientUserId');
 
-    tx.request.update.mockClear();
+    tx.request.updateMany.mockClear();
     (prisma.request.findUnique as AnyMock).mockResolvedValue(draft({ clientUserId: null }));
     await service.patchDraft('tok', { city: 'Cluj' } as never, null);
-    expect(tx.request.update.mock.calls[0][0].data).not.toHaveProperty('clientUserId');
+    expect(tx.request.updateMany.mock.calls[0][0].data).not.toHaveProperty('clientUserId');
+  });
+
+  // f6 / revizie m2: scrierea e conditionata pe DRAFT + nesters; ciorna marcata intre timp → 404
+  it('patchDraft on a draft marked by the cleanup job meanwhile → DRAFT_TOKEN_INVALID, nothing else written', async () => {
+    const { service, prisma, tx } = setup();
+    (prisma.request.findUnique as AnyMock).mockResolvedValue(draft({ clientUserId: null }));
+    tx.request.updateMany.mockResolvedValueOnce({ count: 0 });
+    const spy = jest.spyOn(service as never, 'writeContactPreferences' as never).mockResolvedValue(undefined as never);
+    await expectCode(
+      service.patchDraft('tok', { city: 'Cluj', contactPreferences: [{ channel: 'EMAIL', value: 'a@b.ro' }] } as never, null),
+      NotFoundException,
+      ERROR_CODES.DRAFT_TOKEN_INVALID,
+    );
+    expect(tx.request.updateMany.mock.calls[0][0].where).toEqual({ id: EXP_ID, status: 'DRAFT', deletedAt: null });
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('f2: patchDraft / createDraft never bind a draft to a company or admin account', async () => {
+    const { service, prisma, tx } = setup();
+    for (const role of ['COMPANY_USER', 'ADMIN'] as const) {
+      tx.request.updateMany.mockClear();
+      (prisma.request.findUnique as AnyMock).mockResolvedValue(draft({ clientUserId: null }));
+      await service.patchDraft('tok', { city: 'Cluj' } as never, 'F', role);
+      expect(tx.request.updateMany.mock.calls[0][0].data).not.toHaveProperty('clientUserId');
+    }
+    const create = jest.fn().mockResolvedValue({ id: 'new' });
+    (prisma.request as Record<string, unknown>).create = create;
+    await service.createDraft('F', undefined, 'COMPANY_USER');
+    expect(create.mock.calls[0][0].data.clientUserId).toBeNull();
+    await service.createDraft('C', undefined, 'CLIENT');
+    expect(create.mock.calls[1][0].data.clientUserId).toBe('C');
+  });
+
+  it('f2: publish from a company or admin account → 403 REQUEST_PUBLISH_CLIENT_ONLY before the draft is touched', async () => {
+    const { service, prisma, configurator } = setup();
+    for (const role of ['COMPANY_USER', 'ADMIN']) {
+      (prisma.user.findUnique as AnyMock).mockResolvedValue({ role });
+      (prisma.request.findUnique as AnyMock).mockResolvedValue(draft({ clientUserId: null }));
+      await expectCode(
+        service.publish('tok', { rooms: [] } as never, 'F'),
+        ForbiddenException,
+        ERROR_CODES.REQUEST_PUBLISH_CLIENT_ONLY,
+      );
+    }
+    expect(prisma.request.findUnique).not.toHaveBeenCalled();
+    expect(configurator.processRooms).not.toHaveBeenCalled();
   });
 
   it('discardDraft soft-deletes and clears the token hash', async () => {
@@ -225,6 +304,280 @@ describe('RequestsService draft token (DRAFT-only, owner check)', () => {
     expect(data.draftTokenHash).toBeNull();
     expect(data.clientUserId).toBe('A');
     expect(data.status).toBe('IN_MARKETPLACE');
+  });
+});
+
+// a6 (PO a6-2): publicarea trece si fara firma in zona; adminii sunt anuntati o singura data.
+describe('RequestsService publish — acoperirea zonei (a6)', () => {
+  function prepare(covered: boolean) {
+    const ctx = setup();
+    (ctx.prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'DRAFT', clientUserId: 'A' }));
+    ctx.prisma.$queryRaw.mockResolvedValue([{ covered }]);
+    const s = ctx.service as unknown as Record<string, unknown>;
+    for (const m of ['withAccountEmail', 'assertRoomAttachments', 'writeContactPreferences', 'writeInspirationPhotos', 'writeStudioScenes', 'writeVersion']) {
+      jest.spyOn(s as never, m as never).mockResolvedValue([] as never);
+    }
+    jest.spyOn(s as never, 'assertContactFormats' as never).mockReturnValue(undefined as never);
+    jest.spyOn(s as never, 'scalarData' as never).mockReturnValue({} as never);
+    jest.spyOn(s as never, 'resolveTitle' as never).mockReturnValue('Bucatarie Cluj' as never);
+    jest.spyOn(s as never, 'writeRooms' as never).mockResolvedValue(new Map() as never);
+    return ctx;
+  }
+  const content = { rooms: [], hasOwnProject: false, studioScenes: [], addressText: 'Str. X 1', city: 'Cluj-Napoca', county: 'Cluj' } as never;
+  const noCoverageCalls = (outbox: { record: AnyMock }) =>
+    outbox.record.mock.calls.filter((c: unknown[]) => c[2] === 'request.no_coverage');
+
+  it('NONE → un singur eveniment request.no_coverage catre admini, in tranzactie; publicarea trece', async () => {
+    const { service, outbox, tx, prisma } = prepare(false);
+    await expect(service.publish('tok', content, 'A')).resolves.toEqual({ id: EXP_ID });
+    expect(tx.request.update.mock.calls[0][0].data.status).toBe('IN_MARKETPLACE');
+    const calls = noCoverageCalls(outbox);
+    expect(calls).toHaveLength(1);
+    const [txArg, key, , payload, targets] = calls[0];
+    expect(txArg).toBe(tx);
+    expect(key).toBe(`request.no_coverage:${EXP_ID}`);
+    expect(payload).toEqual({ requestId: EXP_ID, requestTitle: 'Bucatarie Cluj', city: 'Cluj-Napoca', county: 'Cluj' });
+    expect(targets).toEqual(['admin-1', 'admin-2']);
+    // m1: acoperirea se citeste in afara tranzactiei (inaintea ei)
+    expect(prisma.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(prisma.$transaction.mock.invocationCallOrder[0]);
+  });
+
+  // m5: doar adminii activi (nestersi, neblocati, neanonimizati)
+  it('destinatarii sunt doar adminii activi', async () => {
+    const { service, prisma } = prepare(false);
+    await service.publish('tok', content, 'A');
+    expect(prisma.user.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { role: 'ADMIN', deletedAt: null, blockedAt: null, anonymizedAt: null },
+    }));
+  });
+
+  it('NONE fara admini activi → niciun eveniment', async () => {
+    const { service, outbox, prisma } = prepare(false);
+    prisma.user.findMany.mockResolvedValue([]);
+    await service.publish('tok', content, 'A');
+    expect(noCoverageCalls(outbox)).toHaveLength(0);
+  });
+
+  it('COVERED → niciun eveniment request.no_coverage', async () => {
+    const { service, outbox, prisma } = prepare(true);
+    await service.publish('tok', content, 'A');
+    expect(noCoverageCalls(outbox)).toHaveLength(0);
+    expect(prisma.user.findMany).not.toHaveBeenCalled();
+  });
+
+  // m1: o eroare a interogarii de acoperire nu strica publicarea
+  it('interogarea de acoperire arunca → publicarea reuseste, fara eveniment', async () => {
+    const { service, outbox, prisma, tx } = prepare(false);
+    prisma.$queryRaw.mockRejectedValue(new Error('statement timeout'));
+    await expect(service.publish('tok', content, 'A')).resolves.toEqual({ id: EXP_ID });
+    expect(tx.request.update.mock.calls[0][0].data.status).toBe('IN_MARKETPLACE');
+    expect(noCoverageCalls(outbox)).toHaveLength(0);
+    expect(outbox.record.mock.calls.map((c: unknown[]) => c[1])).toContain(`request.published:${EXP_ID}`);
+    // g1 (etapa 9): clientul primeste e-mailul de publicare, cu data expirarii
+    const published = outbox.record.mock.calls.find((c: unknown[]) => c[2] === 'request.published');
+    expect(published?.[1]).toBe(`request.published:${EXP_ID}:client`);
+    expect(published?.[3]).toMatchObject({ requestId: EXP_ID, clientUserId: 'A', expiresAt: expect.any(String) });
+    expect(published?.[4]).toEqual(['A']);
+  });
+
+  it('interogarea primeste punctul geocodat al cererii', async () => {
+    const { service, prisma } = prepare(true);
+    await service.publish('tok', content, 'A');
+    const values = prisma.$queryRaw.mock.calls[0].slice(1);
+    expect(values).toEqual(expect.arrayContaining([44.4, 26.1]));
+  });
+});
+
+// a6 — Sumar: POST drafts/:token/coverage
+describe('RequestsService.draftCoverage (a6)', () => {
+  const address = { addressText: 'Str. X 1', city: 'Cluj-Napoca', county: 'Cluj' };
+
+  it('ciorna proprie + firma pe raza → COVERED; fara firma → NONE', async () => {
+    const { service, prisma, geo } = setup();
+    (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'DRAFT', clientUserId: 'A' }));
+    const raw = prisma.$queryRaw;
+    await expect(service.draftCoverage('tok', address, 'A')).resolves.toEqual({ coverage: 'COVERED' });
+    expect(geo.geocode).toHaveBeenCalledWith('Str. X 1', 'Cluj-Napoca', 'Cluj', undefined);
+    raw.mockResolvedValue([{ covered: false }]);
+    await expect(service.draftCoverage('tok', address, 'A')).resolves.toEqual({ coverage: 'NONE' });
+  });
+
+  it('geocodarea esueaza → UNKNOWN, nu eroare', async () => {
+    const { service, prisma, geo } = setup();
+    (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'DRAFT', clientUserId: null }));
+    geo.geocode.mockRejectedValue(new Error('geocoding failed'));
+    await expect(service.draftCoverage('tok', address, null)).resolves.toEqual({ coverage: 'UNKNOWN' });
+  });
+
+  it('interogarea de acoperire arunca → UNKNOWN, nu eroare', async () => {
+    const { service, prisma } = setup();
+    (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'DRAFT', clientUserId: 'A' }));
+    prisma.$queryRaw.mockRejectedValue(new Error('db down'));
+    await expect(service.draftCoverage('tok', address, 'A')).resolves.toEqual({ coverage: 'UNKNOWN' });
+  });
+
+  // m6: cel mult 10 intrebari pe minut pe ciorna; peste limita UNKNOWN, fara geocodare
+  it('limita pe ciorna: a 11-a intrebare in 60 s → UNKNOWN fara geocodare; dupa fereastra merge iar', async () => {
+    jest.useFakeTimers({
+      now: new Date('2026-11-14T10:00:00Z'),
+      doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'],
+    });
+    try {
+      const { service, prisma, geo } = setup();
+      (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'DRAFT', clientUserId: 'A' }));
+      for (let i = 0; i < 10; i++) {
+        await expect(service.draftCoverage('tok', address, 'A')).resolves.toEqual({ coverage: 'COVERED' });
+      }
+      await expect(service.draftCoverage('tok', address, 'A')).resolves.toEqual({ coverage: 'UNKNOWN' });
+      expect(geo.geocode).toHaveBeenCalledTimes(10);
+      // alta ciorna are contorul ei
+      (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ id: 'req-2', status: 'DRAFT', clientUserId: 'A' }));
+      await expect(service.draftCoverage('tok2', address, 'A')).resolves.toEqual({ coverage: 'COVERED' });
+      (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'DRAFT', clientUserId: 'A' }));
+      jest.setSystemTime(new Date('2026-11-14T10:01:00Z'));
+      await expect(service.draftCoverage('tok', address, 'A')).resolves.toEqual({ coverage: 'COVERED' });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('ciorna altui cont → 404 DRAFT_TOKEN_INVALID, fara geocodare', async () => {
+    const { service, prisma, geo } = setup();
+    (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'DRAFT', clientUserId: 'B' }));
+    await expectCode(service.draftCoverage('tok', address, 'A'), NotFoundException, ERROR_CODES.DRAFT_TOKEN_INVALID);
+    expect(geo.geocode).not.toHaveBeenCalled();
+  });
+});
+
+// b8 (PO g0-8): ajutor pe camera; includesPaidDesign derivat din camere, valoarea clientului ignorata.
+describe('RequestsService publish — needsDesignHelp pe camera', () => {
+  const room = (over: Record<string, unknown> = {}) => ({ roomType: 'KITCHEN', flowVersion: 1, answers: {}, ...over });
+  const content = (over: Record<string, unknown> = {}) =>
+    ({
+      hasOwnProject: false,
+      budgetRange: 'UNDER_5K',
+      studioScenes: [],
+      addressText: 'Str. X 1',
+      city: 'Cluj-Napoca',
+      county: 'Cluj',
+      ...over,
+    }) as never;
+
+  function prepare() {
+    const ctx = setup();
+    (ctx.prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'DRAFT', clientUserId: 'A' }));
+    const s = ctx.service as unknown as Record<string, unknown>;
+    for (const m of ['withAccountEmail', 'assertRoomAttachments', 'writeContactPreferences', 'writeInspirationPhotos', 'writeStudioScenes', 'writeVersion']) {
+      jest.spyOn(s as never, m as never).mockResolvedValue([] as never);
+    }
+    jest.spyOn(s as never, 'assertContactFormats' as never).mockReturnValue(undefined as never);
+    jest.spyOn(s as never, 'resolveTitle' as never).mockReturnValue('Titlu' as never);
+    jest.spyOn(s as never, 'writeRooms' as never).mockResolvedValue(new Map() as never);
+    return ctx;
+  }
+
+  it('o camera cu ajutor din doua → includesPaidDesign=true (scris si trimis la sizing), chiar daca clientul trimite false', async () => {
+    const { service, configurator, sizing, tx } = prepare();
+    await service.publish('tok', content({ includesPaidDesign: false, rooms: [room({ needsDesignHelp: true }), room()] }), 'A');
+    const [rooms, opts] = configurator.processRooms.mock.calls[0];
+    expect(rooms.map((r: { needsDesignHelp: boolean }) => r.needsDesignHelp)).toEqual([true, false]);
+    expect(opts).toEqual({ ownProject: false });
+    expect(sizing.compute).toHaveBeenCalledWith(expect.objectContaining({ includesPaidDesign: true }));
+    expect(tx.request.update.mock.calls[0][0].data.includesPaidDesign).toBe(true);
+  });
+
+  it('nicio camera cu ajutor → includesPaidDesign=false, chiar daca clientul trimite true', async () => {
+    const { service, tx } = prepare();
+    await service.publish('tok', content({ includesPaidDesign: true, rooms: [room({ needsDesignHelp: false })] }), 'A');
+    expect(tx.request.update.mock.calls[0][0].data.includesPaidDesign).toBe(false);
+  });
+
+  it('interfata veche (fara needsDesignHelp pe camere) + includesPaidDesign=true → camerele care nu trec validarea stricta primesc ajutor', async () => {
+    const { service, configurator, tx } = prepare();
+    await service.publish('tok', content({ includesPaidDesign: true, rooms: [room(), room({ roomType: 'BATHROOM' })] }), 'A');
+    const [rooms] = configurator.processRooms.mock.calls[0];
+    expect(rooms.map((r: { needsDesignHelp: boolean }) => r.needsDesignHelp)).toEqual([true, true]);
+    expect(tx.request.update.mock.calls[0][0].data.includesPaidDesign).toBe(true);
+  });
+
+  it('M2: piesa din Studio bifata → VALIDATION_ERROR designHelpWithStudioPiece, inaintea verificarilor Studio', async () => {
+    const { service, configurator } = prepare();
+    // scena din ciorna (payload fara studioScenes) leaga piesa p1 de o asezare din Studio
+    jest.spyOn(service as never, 'extractStudioScenes' as never).mockReturnValue([{ requestEntryIds: { pl1: 'p1' } }] as never);
+    const err = await service
+      .publish('tok', content({ studioScenes: undefined, rooms: [room({ sourceLocalId: 'p1', roomType: 'PIECE_DRESSER', needsDesignHelp: true })] }), 'A')
+      .catch((e: unknown) => e);
+    expect((err as BadRequestException).getResponse()).toMatchObject({
+      code: ERROR_CODES.VALIDATION_ERROR,
+      details: [expect.objectContaining({ roomIndex: 0, messageKey: 'validation.designHelpWithStudioPiece' })],
+    });
+    expect(configurator.processRooms).not.toHaveBeenCalled();
+  });
+
+  it('M3: editarea unei cereri vechi cu proiectare, fara camere bifate, pastreaza includesPaidDesign', async () => {
+    const { service, prisma, tx } = prepare();
+    (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'IN_MARKETPLACE', preClaimEditsUsed: 0, includesPaidDesign: true }));
+    await service.editForClient('A', EXP_ID, content({ rooms: [room({ needsDesignHelp: false })] }));
+    expect(prisma.requestRoom.count).toHaveBeenCalledWith({ where: { requestId: EXP_ID, needsDesignHelp: true } });
+    expect(tx.request.update.mock.calls[0][0].data.includesPaidDesign).toBe(true);
+
+    // cererea avea deja camere bifate (reprezentarea noua) → derivare stricta
+    tx.request.update.mockClear();
+    (prisma.requestRoom.count as AnyMock).mockResolvedValue(1);
+    await service.editForClient('A', EXP_ID, content({ rooms: [room({ needsDesignHelp: false })] }));
+    expect(tx.request.update.mock.calls[0][0].data.includesPaidDesign).toBe(false);
+  });
+
+  it('M1: fisierele aruncate dintr-o camera cu ajutor (snapshot3d) se sterg de pe cerere dupa publicare', async () => {
+    const { service, configurator } = prepare();
+    const remove = jest.fn().mockResolvedValue(undefined);
+    (service as unknown as { uploads: unknown }).uploads = { remove };
+    const SNAP = '22222222-2222-4222-8222-222222222222';
+    configurator.processRooms.mockReturnValue({ rooms: [{ answers: {} }], scoreEntries: [] });
+    await service.publish('tok', content({
+      rooms: [room({ roomType: 'PIECE_DRESSER', flowVersion: CURRENT_FLOW_VERSION.PIECE_DRESSER, answers: { snapshot3d: [SNAP] }, needsDesignHelp: true })],
+    }), 'A');
+    expect(remove).toHaveBeenCalledWith('REQUEST', EXP_ID, SNAP);
+  });
+
+  // b11: suma aleasa pe glisor → budget_declared; aceeasi treapta (deci acelasi punctaj) la sizing
+  it('b11: budgetDeclared se scrie doar langa suma; treapta trimisa la sizing nu se schimba', async () => {
+    const { service, sizing, tx } = prepare();
+    await service.publish('tok', content({ budgetRange: 'UNDER_5K', budgetEstimateRon: 12000, budgetDeclared: true, rooms: [room()] }), 'A');
+    expect(tx.request.update.mock.calls[0][0].data).toMatchObject({ budgetRange: 'FROM_5K_TO_15K', budgetEstimateRon: 12000, budgetDeclared: true });
+    expect(sizing.compute).toHaveBeenLastCalledWith(expect.objectContaining({ budgetRange: 'FROM_5K_TO_15K' }));
+
+    // interfata veche (fara camp) → suma fara "declarat"; aceeasi treapta la sizing
+    tx.request.update.mockClear();
+    (service as unknown as { prisma: { request: { findUnique: AnyMock } } }).prisma.request.findUnique.mockResolvedValue(baseRequest({ status: 'DRAFT', clientUserId: 'A' }));
+    await service.publish('tok', content({ budgetRange: 'UNDER_5K', budgetEstimateRon: 12000, rooms: [room()] }), 'A');
+    expect(tx.request.update.mock.calls[0][0].data).toMatchObject({ budgetRange: 'FROM_5K_TO_15K', budgetEstimateRon: 12000, budgetDeclared: false });
+    expect(sizing.compute).toHaveBeenLastCalledWith(expect.objectContaining({ budgetRange: 'FROM_5K_TO_15K' }));
+  });
+
+  // M3: o suma declarata sub estimare nu coboara marimea; treapta salvata = cea folosita la marime
+  it('M3: suma sub estimare → marimea si treapta salvata pornesc de la minimul estimarii', async () => {
+    const { service, sizing, tx } = prepare();
+    sizing.compute.mockImplementation(async ({ budgetRange }: { budgetRange: string }) => ({ score: budgetRange === 'OVER_15K' ? 34 : 29, size: budgetRange === 'OVER_15K' ? 'LARGE' : 'MEDIUM', creditCost: 24, baseScore: 24 }));
+    await service.publish('tok', content({ budgetRange: 'FROM_5K_TO_15K', budgetEstimateRon: 8000, budgetDeclared: true, rooms: [room()] }), 'A');
+    expect(sizing.compute.mock.calls.map((c: [{ budgetRange: string }]) => c[0].budgetRange)).toEqual(['FROM_5K_TO_15K', 'OVER_15K']);
+    expect(tx.request.update.mock.calls[0][0].data).toMatchObject({ budgetRange: 'OVER_15K', budgetEstimateRon: 8000, budgetDeclared: true, projectSize: 'LARGE', creditCost: 24 });
+  });
+
+  it('m1: budgetDeclared fara suma → 400 VALIDATION_ERROR, fara publicare', async () => {
+    const { service, tx } = prepare();
+    await expectCode(service.publish('tok', content({ budgetRange: 'UNDER_5K', budgetDeclared: true, rooms: [room()] }), 'A'), BadRequestException, ERROR_CODES.VALIDATION_ERROR);
+    expect(tx.request.update).not.toHaveBeenCalled();
+  });
+
+  it('proiect propriu + camera cu ajutor → VALIDATION_ERROR, fara procesarea camerelor', async () => {
+    const { service, configurator } = prepare();
+    await expectCode(
+      service.publish('tok', content({ hasOwnProject: true, rooms: [room({ needsDesignHelp: true })] }), 'A'),
+      BadRequestException,
+      ERROR_CODES.VALIDATION_ERROR,
+    );
+    expect(configurator.processRooms).not.toHaveBeenCalled();
   });
 });
 
@@ -449,7 +802,7 @@ describe('RequestsService contact screening in free text', () => {
 describe('RequestsService.dashboardStatsForClient — actions', () => {
   const day = 24 * 60 * 60 * 1000;
 
-  function dashboardSetup(reminderAt: Date) {
+  function dashboardSetup(reminderAt: Date, openCase = false) {
     const now = Date.now();
     const expiresAt = new Date(now + 6 * 60 * 60 * 1000);
     const deliveredAt = new Date(now - 2 * day);
@@ -464,6 +817,8 @@ describe('RequestsService.dashboardStatsForClient — actions', () => {
       request: { count: jest.fn().mockResolvedValue(4), groupBy: jest.fn().mockResolvedValue([]), findMany },
       quote: { count: jest.fn().mockResolvedValue(2) },
       claimSlot: { count: jest.fn().mockResolvedValue(1) },
+      // e2-1: termenul confirmarii automate tine cont de rapoartele de proiect
+      requestProjectCase: { findFirst: jest.fn().mockResolvedValue(openCase ? { id: 'case-1' } : null) },
       clarificationRequest: {
         findMany: jest.fn().mockResolvedValue([
           { claimSlot: { requestId: 'r-clar', request: { title: 'Bucatarie' } } },
@@ -502,6 +857,13 @@ describe('RequestsService.dashboardStatsForClient — actions', () => {
       expect((call[0] as { where: { clientUserId: string } }).where.clientUserId).toBe('A');
     }
     expect(prisma.clarificationRequest.findMany.mock.calls[0][0].where.claimSlot.request.clientUserId).toBe('A');
+  });
+
+  it('e2-1: cu raport de proiect deschis, livrarea de confirmat nu are termen (finalizarea automata e oprita)', async () => {
+    const { service } = dashboardSetup(new Date(Date.now() - 60_000), true);
+    const stats = await service.dashboardStatsForClient('A');
+    const delivery = stats.actions.find((a) => a.kind === 'DELIVERY_TO_CONFIRM');
+    expect(delivery).toMatchObject({ requestId: 'r-deliv', dueAt: null });
   });
 
   it('cererea inca in afara ferestrei reminderului nu apare ca REQUEST_EXPIRING', async () => {
@@ -573,5 +935,157 @@ describe('RequestsService.deleteForClient — decontare prin ClaimSettlementServ
       ['request.deleted:claim:s-c', false],
     ]);
     expect(tx.request.update).toHaveBeenCalledWith({ where: { id: EXP_ID }, data: { deletedAt: expect.any(Date) } });
+  });
+});
+
+// f6-2 (PO): "Republica cu modificari" — continutul nou + republicarea intr-un singur pas,
+// o singura data, fara sa consume o editare
+describe('RequestsService.repostWithChangesForClient (f6-2)', () => {
+  const content = {
+    hasOwnProject: false,
+    budgetRange: 'UNDER_5K',
+    studioScenes: [],
+    rooms: [{ roomType: 'KITCHEN', flowVersion: 1, answers: {} }],
+    addressText: 'Str. X 1',
+    city: 'Cluj-Napoca',
+    county: 'Cluj',
+    description: 'Text nou',
+  } as never;
+
+  beforeEach(() => {
+    jest.useFakeTimers({
+      now: new Date('2026-10-06T10:00:00Z'),
+      doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'],
+    });
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  function prepare(over: Record<string, unknown> = {}) {
+    const ctx = setup();
+    (ctx.prisma.request.findUnique as AnyMock).mockResolvedValue(
+      baseRequest({ addressText: 'Str. X 1', city: 'Cluj-Napoca', county: 'Cluj', country: 'RO', lat: 1, lng: 2, preClaimEditsUsed: 2, postClaimEditsUsed: 0, title: 'Vechi', ...over }),
+    );
+    const s = ctx.service as unknown as Record<string, unknown>;
+    for (const m of ['withAccountEmail', 'assertRoomAttachments', 'writeContactPreferences', 'writeInspirationPhotos', 'writeStudioScenes', 'writeVersion']) {
+      jest.spyOn(s as never, m as never).mockResolvedValue([] as never);
+    }
+    jest.spyOn(s as never, 'assertContactFormats' as never).mockReturnValue(undefined as never);
+    jest.spyOn(s as never, 'resolveTitle' as never).mockReturnValue('Titlu nou' as never);
+    jest.spyOn(s as never, 'writeRooms' as never).mockResolvedValue(new Map() as never);
+    return ctx;
+  }
+
+  it('EXPIRED → IN_MARKETPLACE cu datele noi, in aceeasi tranzactie; contoarele de editare raman', async () => {
+    const { service, tx, outbox, queue, prisma } = prepare();
+    await expect(service.repostWithChangesForClient('A', EXP_ID, content)).resolves.toEqual({ id: EXP_ID });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(tx.request.updateMany).toHaveBeenCalledWith({
+      where: { id: EXP_ID, status: 'EXPIRED', repostUsed: false, deletedAt: null },
+      data: expect.objectContaining({ status: 'IN_MARKETPLACE', repostUsed: true, publishedAt: expect.any(Date), expiresAt: new Date('2026-10-20T10:00:00Z') }),
+    });
+    const data = tx.request.update.mock.calls[0][0].data;
+    expect(data).toMatchObject({ description: 'Text nou', title: 'Titlu nou' });
+    expect(data).not.toHaveProperty('preClaimEditsUsed');
+    expect(data).not.toHaveProperty('postClaimEditsUsed');
+    expect(data).not.toHaveProperty('lastEditAt');
+    // garda repostului ruleaza inaintea scrierii continutului
+    expect(tx.request.updateMany.mock.invocationCallOrder[0]).toBeLessThan(tx.request.update.mock.invocationCallOrder[0]);
+    const keys = outbox.record.mock.calls.map((c: unknown[]) => c[1] as string);
+    expect(keys).toContain(`request.reposted:${EXP_ID}`);
+    expect(keys.some((k: string) => k.startsWith(`request.edited:${EXP_ID}`))).toBe(false);
+    expect(queue.add.mock.calls.filter((c: unknown[]) => c[0] === 'expire')).toHaveLength(1);
+  });
+
+  it('deja republicata si din nou in piata (al doilea clic ajuns tarziu) → tot REPOST_ALREADY_USED', async () => {
+    const { service, prisma } = prepare({ repostUsed: true, status: 'IN_MARKETPLACE' });
+    await expectCode(service.repostWithChangesForClient('A', EXP_ID, content), BadRequestException, ERROR_CODES.REPOST_ALREADY_USED);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('repost deja folosit → REPOST_ALREADY_USED, fara tranzactie', async () => {
+    const { service, prisma } = prepare({ repostUsed: true });
+    await expectCode(service.repostWithChangesForClient('A', EXP_ID, content), BadRequestException, ERROR_CODES.REPOST_ALREADY_USED);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('cursa (dublu clic): garda din tranzactie nu mai gaseste randul → REPOST_ALREADY_USED, fara continut scris', async () => {
+    const { service, tx, outbox } = prepare();
+    tx.request.updateMany.mockResolvedValue({ count: 0 });
+    await expectCode(service.repostWithChangesForClient('A', EXP_ID, content), BadRequestException, ERROR_CODES.REPOST_ALREADY_USED);
+    expect(tx.request.update).not.toHaveBeenCalled();
+    expect(outbox.record).not.toHaveBeenCalled();
+  });
+
+  it('o cerere care nu e expirata → REQUEST_NOT_EDITABLE', async () => {
+    const { service } = prepare({ status: 'IN_MARKETPLACE' });
+    await expectCode(service.repostWithChangesForClient('A', EXP_ID, content), BadRequestException, ERROR_CODES.REQUEST_NOT_EDITABLE);
+  });
+
+  it('cererea altcuiva → FORBIDDEN', async () => {
+    const { service } = prepare({ clientUserId: 'B' });
+    await expectCode(service.repostWithChangesForClient('A', EXP_ID, content), ForbiddenException, ERROR_CODES.FORBIDDEN);
+  });
+});
+
+// f6: publicarea reverifica ciorna sub lock — curatarea o poate fi marcat stearsa intre timp
+describe('RequestsService publish — ciorna marcata stearsa de curatare (f6)', () => {
+  it('lock-ul gaseste ciorna stearsa → DRAFT_TOKEN_INVALID, nimic scris', async () => {
+    const { service, prisma, tx } = setup();
+    (prisma.request.findUnique as AnyMock).mockResolvedValue(baseRequest({ status: 'DRAFT', clientUserId: 'A' }));
+    const s = service as unknown as Record<string, unknown>;
+    for (const m of ['withAccountEmail', 'assertRoomAttachments']) jest.spyOn(s as never, m as never).mockResolvedValue([] as never);
+    jest.spyOn(s as never, 'assertContactFormats' as never).mockReturnValue(undefined as never);
+    jest.spyOn(s as never, 'resolveTitle' as never).mockReturnValue('T' as never);
+    tx.$queryRaw.mockResolvedValue([{ status: 'DRAFT', deleted_at: new Date(), pre_claim_edits_used: 0, post_claim_edits_used: 0 }]);
+    await expectCode(
+      service.publish('tok', { rooms: [], hasOwnProject: false, studioScenes: [], addressText: 'Str. X 1', city: 'Cluj', county: 'Cluj' } as never, 'A'),
+      NotFoundException,
+      ERROR_CODES.DRAFT_TOKEN_INVALID,
+    );
+    expect(tx.request.update).not.toHaveBeenCalled();
+  });
+});
+
+// revizie A m2: limita de editare dupa preluare se reverifica sub lock, in tranzactie
+describe('RequestsService.editForClient — limita reverificata sub lock', () => {
+  const content = {
+    hasOwnProject: false,
+    budgetRange: 'UNDER_5K',
+    studioScenes: [],
+    rooms: [{ roomType: 'KITCHEN', flowVersion: 1, answers: {} }],
+    addressText: 'Str. X 1',
+    city: 'Cluj-Napoca',
+    county: 'Cluj',
+  } as never;
+  function prepare() {
+    const ctx = setup();
+    (ctx.prisma.request.findUnique as AnyMock).mockResolvedValue(
+      baseRequest({ status: 'CLAIMED_PARTIAL', postClaimEditsUsed: 0, preClaimEditsUsed: 1, addressText: 'Str. X 1', city: 'Cluj-Napoca', county: 'Cluj', country: 'RO', lat: 1, lng: 2 }),
+    );
+    const s = ctx.service as unknown as Record<string, unknown>;
+    for (const m of ['withAccountEmail', 'assertRoomAttachments', 'writeContactPreferences', 'writeInspirationPhotos', 'writeStudioScenes', 'writeVersion']) {
+      jest.spyOn(s as never, m as never).mockResolvedValue([] as never);
+    }
+    jest.spyOn(s as never, 'assertContactFormats' as never).mockReturnValue(undefined as never);
+    jest.spyOn(s as never, 'resolveTitle' as never).mockReturnValue('T' as never);
+    jest.spyOn(s as never, 'writeRooms' as never).mockResolvedValue(new Map() as never);
+    (ctx.tx as Record<string, unknown>).claimSlot = { findMany: jest.fn().mockResolvedValue([]) };
+    return ctx;
+  }
+
+  it('o salvare concurenta a consumat deja editarea (vazut sub lock) → EDIT_LIMIT_POST_CLAIM_REACHED, nimic scris', async () => {
+    const { service, tx } = prepare();
+    tx.$queryRaw.mockResolvedValueOnce([{ status: 'CLAIMED_PARTIAL', deleted_at: null, pre_claim_edits_used: 1, post_claim_edits_used: 1 }]);
+    await expectCode(service.editForClient('A', EXP_ID, content), BadRequestException, ERROR_CODES.EDIT_LIMIT_POST_CLAIM_REACHED);
+    expect(tx.request.update).not.toHaveBeenCalled();
+  });
+
+  it('contorul scris vine din randul blocat (nu din citirea de dinainte)', async () => {
+    const { service, tx } = prepare();
+    await service.editForClient('A', EXP_ID, content);
+    expect(String((tx.$queryRaw.mock.calls[0] as unknown[])[0])).toContain('FOR UPDATE');
+    expect(tx.request.update.mock.calls[0][0].data.postClaimEditsUsed).toBe(1);
   });
 });

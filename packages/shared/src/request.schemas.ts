@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { requestStudioSceneDataSchema, REQUEST_STUDIO_SCENES_MAX, type RequestStudioSceneDto } from './studio.schemas';
 import type { DashboardActionItemDto } from './dashboard.schemas';
 import { INSPIRATION_NOTE_MAX, MAX_REQUEST_INSPIRATION_PHOTOS } from './inspiration.schemas';
+import { APPROX_LENGTH_DECIMALS, APPROX_LENGTH_MAX_M, APPROX_LENGTH_MIN_M, hasAtMostDecimals } from './questionnaire/mapping';
 import {
   ATTACHMENT_STATUSES,
   BUDGET_RANGES,
@@ -98,6 +99,73 @@ export function resolveBudgetFields(
   return { budgetRange: range, budgetEstimateRon: null };
 }
 
+// b11 (PO 2026-11-13): treptele nu se mai arata pe ecrane — peste tot apare suma aleasa sau
+// "Buget nedeclarat". DECLARED = suma aleasa de client (budget_declared); INDICATIVE = suma
+// unei cereri vechi, despre care nu se stie daca a ales-o clientul sau a pus-o formularul.
+// O cerere veche cu treapta dar fara suma = nedeclarat (treapta era pusa din oficiu).
+export type BudgetViewKind = 'DECLARED' | 'INDICATIVE' | 'UNDISCLOSED';
+export interface BudgetView {
+  kind: BudgetViewKind;
+  amountRon: number | null;
+}
+
+export function budgetView(input: {
+  budgetRange: BudgetRange | string | null | undefined;
+  budgetEstimateRon?: number | null;
+  budgetDeclared?: boolean | null;
+}): BudgetView {
+  const ron = input.budgetEstimateRon;
+  if (input.budgetRange === 'UNDISCLOSED' || typeof ron !== 'number') return { kind: 'UNDISCLOSED', amountRon: null };
+  return { kind: input.budgetDeclared === true ? 'DECLARED' : 'INDICATIVE', amountRon: ron };
+}
+
+// b11 / M2 (coordonator 2026-11-13): firma vede doar o suma aleasa de client. INDICATIVE (cerere
+// veche, suma posibil pusa de formular) o vad doar clientul si adminul; firma vede "Buget
+// nedeclarat". Serverul nici nu trimite firmei suma nedeclarata.
+export function firmBudgetView(input: Parameters<typeof budgetView>[0]): BudgetView {
+  const v = budgetView(input);
+  return v.kind === 'DECLARED' ? v : { kind: 'UNDISCLOSED', amountRon: null };
+}
+
+// b11 / M3 (aleasa de coordonator 2026-11-13, de confirmat de PO): marimea proiectului (S/M/L →
+// SLA, filtrul de marime) nu scade cand clientul declara un buget sub estimare. Inainte formularul
+// pornea de la minimul estimarii si urca doar daca clientul alegea mai mult, deci treapta pentru
+// marime = treapta lui max(suma, minimul estimarii din raspunsuri). "Prefer sa nu spun" ramane
+// UNDISCLOSED; fara suma (interfata veche) ramane treapta trimisa. Costul in credite nu depinde
+// de treapta (vine din scorul de baza).
+export function sizingBudgetRange(
+  range: BudgetRange,
+  ron: number | null | undefined,
+  estimateMinRon: number | null | undefined,
+): BudgetRange {
+  if (range === 'UNDISCLOSED') return 'UNDISCLOSED';
+  if (typeof ron !== 'number') return range;
+  const floor = typeof estimateMinRon === 'number' && estimateMinRon > 0 ? estimateMinRon : 0;
+  return budgetRangeFromRon(Math.max(ron, floor));
+}
+
+// b11-2: glisorul coboara pana la o treime din estimare (rotunjit la pas), urca pana la plafonul
+// estimarii. Fara estimare (modul "Am nevoie de ajutor", scor 0): scara fixa de mai jos.
+// DECIZIE NECESARA PO: scara fara estimare (1.000 – 100.000 lei) e aleasa provizoriu.
+export const BUDGET_SLIDER_STEP_RON = 500;
+export const BUDGET_SLIDER_FALLBACK = { minRon: 1000, maxRon: 100_000 } as const;
+
+export function budgetSliderBounds(estimate: { minRon: number; maxRon: number } | null | undefined): {
+  minRon: number;
+  maxRon: number;
+} {
+  if (!estimate || estimate.minRon <= 0) return { ...BUDGET_SLIDER_FALLBACK };
+  const step = BUDGET_SLIDER_STEP_RON;
+  const minRon = Math.max(step, Math.floor(estimate.minRon / 3 / step) * step);
+  const maxRon = Math.max(minRon + step, Math.ceil(estimate.maxRon / step) * step);
+  return { minRon, maxRon };
+}
+
+// Suma declarata e sub estimarea din raspunsuri (nota la client si la firma)
+export function isBudgetBelowEstimate(amountRon: number | null | undefined, estimateMinRon: number | null | undefined): boolean {
+  return typeof amountRon === 'number' && typeof estimateMinRon === 'number' && estimateMinRon > 0 && amountRon < estimateMinRon;
+}
+
 // Un item dintr-o camera (corp de mobilier).
 export const requestItemSchema = z.object({
   name: z.string().trim().min(2, 'itemNameTooShort').max(150),
@@ -185,6 +253,9 @@ export function mergeAccountEmail(
   return { contacts: kept, dropped };
 }
 
+// b12: lungimea maxima pentru "Bloc, scara, apartament" (requests.address_details VARCHAR(100))
+export const ADDRESS_DETAILS_MAX = 100;
+
 // Continutul complet al unei cereri — validat strict la publicare.
 // description = mesaj liber optional (fara minim); termenul dorit = interval, nu data.
 export const requestContentSchema = z.object({
@@ -195,8 +266,11 @@ export const requestContentSchema = z.object({
   includesPaidDesign: z.boolean(),
   hasOwnProject: z.boolean(),
   addressText: z.string().trim().min(3, 'addressTooShort').max(300),
+  // b12: "Bloc, scara, apartament" (optional), separat de strada; gol = nimic completat
+  addressDetails: z.string().trim().max(ADDRESS_DETAILS_MAX, 'addressDetailsTooLong').optional(),
   county: z.string().trim().min(2, 'countyTooShort').max(100),
-  city: z.string().trim().min(2, 'cityTooShort').max(100),
+  // b12 (din b9): un oras gol sau doar din spatii primeste "Completeaza orasul"
+  city: z.string().trim().min(1, 'cityRequired').min(2, 'cityTooShort').max(100),
   rooms: z.array(requestRoomSchema).min(1, 'needsRoom').max(MAX_REQUEST_ROOMS),
   contactPreferences: contactPreferencesSchema,
 });
@@ -209,6 +283,17 @@ export const configuratorRoomSchema = z.object({
   roomType: z.enum(ROOM_TYPES),
   flowVersion: z.number().int().positive(),
   answers: z.record(z.string(), z.unknown()),
+  // b8 (PO g0-8): "La camera asta am nevoie de ajutor" — validare relaxata doar pentru
+  // camera bifata; serverul ii arunca raspunsurile la publicare/editare (pastreaza fisierele)
+  needsDesignHelp: z.boolean().optional(),
+  // d3 (PO d3-2): lungimea aproximativa (m), in afara raspunsurilor; permisa doar cand cererea
+  // are hasOwnProject (verificat pe server). Gol = "sub 2 m" la marime, ca inainte.
+  approxLengthM: z
+    .number()
+    .min(APPROX_LENGTH_MIN_M, 'approxLengthOutOfRange')
+    .max(APPROX_LENGTH_MAX_M, 'approxLengthOutOfRange')
+    .refine((v) => hasAtMostDecimals(v, APPROX_LENGTH_DECIMALS), 'approxLengthTooManyDecimals')
+    .optional(),
 });
 
 // Continutul complet al unei cereri create prin configurator (payload publish/edit).
@@ -227,9 +312,16 @@ export const configuratorContentSchema = requestContentSchema
   .omit({ rooms: true, title: true })
   .extend({
     rooms: z.array(configuratorRoomSchema).min(1, 'needsRoom').max(MAX_REQUEST_ROOMS),
+    // b8: derivat pe server din camere (true daca macar o camera are needsDesignHelp);
+    // acceptat doar pentru compatibilitate cu interfata veche (blue/green), altfel ignorat
+    includesPaidDesign: z.boolean().optional(),
     studioScenes: z.array(requestStudioSceneDataSchema).max(REQUEST_STUDIO_SCENES_MAX).optional(),
     // bugetul ales pe sliderul estimat (item 18); bucket-ul ramane sursa filtrelor
-    budgetEstimateRon: z.number().int().min(0).max(MAX_BUDGET_RON).optional(),
+    // m1: nu sub pasul glisorului (interfata nu trimite niciodata mai putin)
+    budgetEstimateRon: z.number().int().min(BUDGET_SLIDER_STEP_RON).max(MAX_BUDGET_RON).optional(),
+    // b11: true = suma a fost aleasa de client pe glisor (nu pusa de formular); serverul o
+    // pastreaza doar langa o suma. Lipsa (interfata veche) = false → "Buget orientativ".
+    budgetDeclared: z.boolean().optional(),
     // tara ISO2 (item 19) — implicit RO pe server; livram si international
     country: z
       .string()
@@ -257,6 +349,7 @@ export const requestDraftPatchSchema = z.object({
   includesPaidDesign: z.boolean().optional(),
   hasOwnProject: z.boolean().optional(),
   addressText: z.string().trim().max(300).optional(),
+  addressDetails: z.string().trim().max(ADDRESS_DETAILS_MAX).optional(),
   county: z.string().trim().max(100).optional(),
   city: z.string().trim().max(100).optional(),
   rooms: z.array(requestRoomSchema).max(MAX_REQUEST_ROOMS).optional(),
@@ -280,8 +373,24 @@ export const ALLOWED_ATTACHMENT_MIME = [
   'application/x-zip-compressed',
 ] as const;
 
-// Valoarea pentru atributul accept al inputurilor de fisiere (FE).
-export const ATTACHMENT_ACCEPT = ALLOWED_ATTACHMENT_MIME.join(',');
+export type AllowedAttachmentMime = (typeof ALLOWED_ATTACHMENT_MIME)[number];
+
+// Extensiile acceptate, mapate pe MIME-urile de mai sus (NU largesc lista serverului).
+// Folosite doar cand browserul nu da tipul (Windows: tip gol / octet-stream).
+export const ATTACHMENT_EXTENSION_MIME: Readonly<Record<string, AllowedAttachmentMime>> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  pdf: 'application/pdf',
+  zip: 'application/zip',
+};
+
+// Valoarea pentru atributul accept al inputurilor de fisiere (FE): MIME + extensii.
+export const ATTACHMENT_ACCEPT = [
+  ...ALLOWED_ATTACHMENT_MIME,
+  ...Object.keys(ATTACHMENT_EXTENSION_MIME).map((ext) => `.${ext}`),
+].join(',');
 
 // Clasificare MIME pentru afisare (thumbnail vs iconita de tip).
 export function attachmentKind(mimeType: string): 'image' | 'pdf' | 'zip' | 'other' {
@@ -304,6 +413,36 @@ export const MAX_SKETCH_FILES_PER_ROOM = 7;
 export function maxAttachmentsForRequest(roomCount: number): number {
   const rooms = Math.min(Math.max(roomCount, 0), MAX_REQUEST_ROOMS);
   return MAX_ATTACHMENTS_PER_REQUEST + (MAX_SKETCH_FILES_PER_ROOM + 1) * rooms;
+}
+
+// Locurile ramase pe cerere (niciodata negativ).
+export function remainingAttachmentSlots(roomCount: number, used: number): number {
+  return Math.max(0, maxAttachmentsForRequest(roomCount) - used);
+}
+
+// MIME-ul cu care se trimite fisierul: tipul dat de browser daca e permis; daca browserul
+// nu da tip (gol / octet-stream), extensia. Altfel null (tip nepermis).
+export function resolveAttachmentMime(filename: string, browserType: string): AllowedAttachmentMime | null {
+  const type = browserType.trim().toLowerCase();
+  if ((ALLOWED_ATTACHMENT_MIME as readonly string[]).includes(type)) return type as AllowedAttachmentMime;
+  if (type !== '' && type !== 'application/octet-stream') return null;
+  const dot = filename.lastIndexOf('.');
+  if (dot < 0) return null;
+  return ATTACHMENT_EXTENSION_MIME[filename.slice(dot + 1).toLowerCase()] ?? null;
+}
+
+export type AttachmentFileRejectReason = 'TYPE' | 'EMPTY' | 'SIZE';
+export type AttachmentFileCheck =
+  | { ok: true; mimeType: AllowedAttachmentMime }
+  | { ok: false; reason: AttachmentFileRejectReason };
+
+// Verificarea unui fisier inainte de presign — aceleasi limite ca presignUploadSchema/serverul.
+export function checkAttachmentFile(file: { name: string; type: string; size: number }): AttachmentFileCheck {
+  const mimeType = resolveAttachmentMime(file.name, file.type);
+  if (!mimeType) return { ok: false, reason: 'TYPE' };
+  if (file.size <= 0) return { ok: false, reason: 'EMPTY' };
+  if (file.size > MAX_ATTACHMENT_BYTES) return { ok: false, reason: 'SIZE' };
+  return { ok: true, mimeType };
 }
 
 export const presignUploadSchema = z.object({
@@ -333,6 +472,11 @@ export interface RequestRoomDto {
   // raspunsuri brute configurator; null = cerere legacy (creata inainte de configurator)
   answers: Record<string, unknown> | null;
   flowVersion: number | null;
+  // b8 (PO g0-8): clientul a cerut ajutor la camera asta — pleaca fara raspunsuri
+  // (doar tipul, schitele si mesajul); cererea e "cu proiectare" daca macar o camera e bifata
+  needsDesignHelp: boolean;
+  // d3 (PO d3-2): lungimea aproximativa (m) data cu "Am deja un proiect"; null = nedata
+  approxLengthM?: number | null;
 }
 
 // E-client-34: poza de inspiratie a cererii cu notita si camera
@@ -374,10 +518,16 @@ export interface RequestDto {
   budgetRange: (typeof BUDGET_RANGES)[number];
   // bugetul ales pe sliderul estimat din scor (F5); null la cererile vechi
   budgetEstimateRon: number | null;
+  // b11: suma aleasa de client (false la cererile vechi si la "Prefer sa nu spun");
+  // optional doar pentru un slot vechi / fixture-uri — serverul il trimite mereu
+  budgetDeclared?: boolean;
   deadlineBucket: (typeof DEADLINE_BUCKETS)[number] | null;
   includesPaidDesign: boolean;
   hasOwnProject: boolean;
   addressText: string;
+  // b12: "Bloc, scara, apartament"; '' cand lipseste (cereri vechi). Optional doar pentru
+  // un slot vechi / fixture-uri — serverul il trimite mereu
+  addressDetails?: string;
   county: string;
   city: string;
   // ISO2, implicit RO (F5)
@@ -410,6 +560,9 @@ export interface RequestListItemDto {
   status: (typeof REQUEST_STATUSES)[number];
   title: string;
   budgetRange: (typeof BUDGET_RANGES)[number];
+  // b11: suma aleasa (afisata in loc de treapta); optionale pentru un slot vechi
+  budgetEstimateRon?: number | null;
+  budgetDeclared?: boolean;
   city: string;
   county: string;
   size: (typeof PROJECT_SIZES)[number] | null;
@@ -421,6 +574,17 @@ export interface RequestListItemDto {
   roomTypes: (typeof ROOM_TYPES)[number][];
   activeClaims: number;
   quotesCount: number;
+}
+
+// d5 (PO d5-1): fila "Ciorne" din "Cererile mele" — doar ciornele legate de cont
+// (GET /requests/my-drafts). Camerele vin din starea formularului salvata pe ciorna.
+export interface RequestDraftListItemDto {
+  id: string;
+  title: string;
+  city: string;
+  roomTypes: (typeof ROOM_TYPES)[number][];
+  createdAt: string;
+  updatedAt: string;
 }
 
 // E-client-9 — cardul "Cine vede cererea" (GET /requests/:id/visibility, doar clientul).
@@ -438,6 +602,20 @@ export interface RequestVisibilityDto {
   requestId: string;
   projectVisibleInMarketplace: boolean;
   contactHolders: RequestVisibilityContactHolderDto[];
+  // a6: exista vreo firma care acopera punctul aproximat al cererii (doar da / nu, niciodata
+  // un numar). UNKNOWN = cererea nu are coordonate.
+  coverage: RequestCoverage;
+  // e4: firmele care AU AVUT contactele si nu le mai au (preluare inchisa) — fara numele
+  // firmei, doar pana cand ("O firma a avut acces la datele tale pana pe …"). Optional pentru
+  // un slot vechi.
+  pastContactAccess?: { until: string }[];
+}
+
+// a6 — acoperirea zonei (cardul "Cine vede cererea" + Sumar: POST /requests/drafts/:token/coverage)
+export const REQUEST_COVERAGE_VALUES = ['COVERED', 'NONE', 'UNKNOWN'] as const;
+export type RequestCoverage = (typeof REQUEST_COVERAGE_VALUES)[number];
+export interface RequestCoverageDto {
+  coverage: RequestCoverage;
 }
 
 // Raspuns la crearea unui draft anonim (tokenul e secretul de editare).

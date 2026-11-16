@@ -4,9 +4,9 @@ import { PLAN_CODE_RE, PLAN_FEATURE_KEYS } from '@marketplace/shared';
 // Invarianta 3.9: schema explicita pentru snapshots, nu blacklist de secrete.
 // Campurile noi nu intra automat in audit; adaugarea lor cere review de sensibilitate.
 const IDS = new Set(['id', 'userId', 'companyId', 'requestId', 'claimSlotId', 'threadId', 'chatThreadId', 'messageId', 'quoteId', 'quoteVersionId', 'acceptedVersionId', 'attachmentId', 'withdrawalId', 'reviewId', 'disputeId', 'orderId', 'paymentId', 'planId', 'packageId', 'subscriptionId', 'invoiceId', 'createdByUserId', 'requestedByUserId', 'reviewedByUserId', 'resolvedByUserId', 'assignedToUserId', 'clientUserId', 'paymentIntentId', 'stripePaymentIntentId', 'stripeSessionId', 'anafUploadId', 'anafDownloadId']);
-const CODES = new Set(['status', 'role', 'memberRole', 'type', 'orderType', 'tier', 'planTier', 'currency', 'roomType', 'size', 'reasonType', 'ruleKey', 'paymentSource', 'source', 'invoiceSeries', 'invoiceLabel', 'queue', 'creditOutcome', 'reason', 'openedBy', 'response', 'termsVersion', 'privacyVersion', 'eInvoiceStatus', 'field', 'stripeMode', 'code']);
+const CODES = new Set(['status', 'role', 'memberRole', 'type', 'orderType', 'tier', 'planTier', 'currency', 'roomType', 'size', 'reasonType', 'ruleKey', 'paymentSource', 'source', 'invoiceSeries', 'invoiceLabel', 'queue', 'creditOutcome', 'reason', 'openedBy', 'response', 'termsVersion', 'privacyVersion', 'eInvoiceStatus', 'field', 'stripeMode', 'code', 'stage']);
 const NUMBERS = new Set(['amount', 'amountRon', 'price', 'priceRon', 'baseAmountRon', 'vatRate', 'vatAmountRon', 'totalRon', 'credits', 'includedCredits', 'bonusCredits', 'reservedCredits', 'availableCredits', 'claimCostCreditsSnapshot', 'points', 'pointsApplied', 'penaltyPoints', 'minScore', 'maxScore', 'gatingDelayMinutes', 'marketplaceGatingDelayMin', 'daysLeft', 'durationDays', 'sizeBytes', 'version', 'extraVersionsCount', 'count', 'invoiceNumber', 'rating', 'maxClaims', 'attempts', 'eInvoicePendingCount', 'weight', 'previousWeight', 'coverageRadiusKm', 'limit', 'limitValue']);
-const FLAGS = new Set(['ok', 'success', 'isActive', 'active', 'isTrial', 'published', 'featured', 'refunded', 'approved', 'suspended', 'disputed', 'dismissed', 'autoCompleted', 'hasStripeSession', 'stripeEnabled', 'readOnly', 'replayed', 'testMode', 'ready', 'isWorkingDay', 'isVatPayer', 'isFree', 'enabled']);
+const FLAGS = new Set(['ok', 'success', 'isActive', 'active', 'isTrial', 'published', 'featured', 'refunded', 'approved', 'suspended', 'disputed', 'dismissed', 'autoCompleted', 'hasStripeSession', 'stripeEnabled', 'readOnly', 'replayed', 'testMode', 'ready', 'isWorkingDay', 'isVatPayer', 'isFree', 'enabled', 'done']);
 const DATES = new Set(['createdAt', 'updatedAt', 'startedAt', 'expiresAt', 'confirmedAt', 'paidAt', 'reviewedAt', 'resolvedAt', 'acceptedAt', 'withdrawnAt', 'deliveredAt', 'suspendedAt', 'suspendedUntil', 'blockedAt', 'deletedAt', 'sentAt', 'validUntil', 'slaDeadlineAt', 'assignDeadlineAt', 'cancelledAt', 'termsAcceptedAt', 'eInvoiceUpdatedAt', 'date', 'paymentClaimedAt', 'transferExpiresAt']);
 // E-admin-platform-25: 'date' (zi din calendarul de lucru), 'isWorkingDay', 'weight' + 'previousWeight' (puncte marime proiect, inainte/dupa); 'name' ramane afara (text liber).
 // E-admin-platform-4: 'problems' (readiness) pastreaza doar field/reason — valorile seller_* nu intra in audit.
@@ -17,11 +17,42 @@ const DATES = new Set(['createdAt', 'updatedAt', 'startedAt', 'expiresAt', 'conf
 // E-admin-platform-58: planuri ca date — 'code' (codul planului), 'features' + cheile din registru
 // (PLAN_FEATURE_KEYS) cu enabled/limit, 'isFree'; nameRo/nameEn raman afara (text liber, ca 'name').
 const CONTAINERS = new Set(['order', 'subscription', 'plan', 'package', 'company', 'user', 'request', 'quote', 'versions', 'attachments', 'withdrawal', 'review', 'dispute', 'result', 'items', 'metadata', 'problems', 'locations', 'features', ...PLAN_FEATURE_KEYS]);
-const NUMERIC_SETTINGS = new Set(['quote_validity_default_days', 'consultation_invite_expiry_days', 'company_penalty_threshold', 'company_suspension_months', 'eur_ron_rate', 'vat_rate', 'trial_duration_days', 'trial_bonus_credits', 'max_claims_per_request', 'expired_offer_autoclose_days', 'delivery_reminder_days_before', 'completed_claim_contact_retention_days', 'company_locations_max', 'company_location_changes_per_day', 'credit_value_ron', 'claim_cost_min', 'claim_cost_max', 'bank_transfer_reminder_days', 'bank_transfer_expiry_days']);
+const NUMERIC_SETTINGS = new Set(['quote_validity_default_days', 'consultation_invite_expiry_days', 'company_penalty_threshold', 'company_suspension_months', 'eur_ron_rate', 'vat_rate', 'trial_duration_days', 'trial_bonus_credits', 'max_claims_per_request', 'expired_offer_autoclose_days', 'delivery_reminder_days_before', 'completed_claim_contact_retention_days', 'company_locations_max', 'company_location_changes_per_day', 'credit_value_ron', 'claim_cost_min', 'claim_cost_max', 'bank_transfer_reminder_days', 'bank_transfer_expiry_days', 'delivery_min_days_after_accept', 'guest_draft_retention_days', 'client_draft_retention_days']);
 const SETTING_KEYS = new Set([...NUMERIC_SETTINGS, 'trial_enabled', 'trial_plan', 'invoice_series', 'expired_offer_autoclose_enabled', 'claims_open_after_first_offer', 'expired_offer_autoclose_credit_outcome', 'seller_name', 'seller_cui', 'seller_reg_com', 'seller_address', 'seller_iban', 'legal_contact_email', 'legal_identity_published', 'legal_reaccept_existing_users', 'claim_contact_reveal_policy', 'pre_claim_contact_text_policy', 'marketplace_distance_display']);
 const OPAQUE = /^[a-zA-Z0-9_-]{1,128}$/;
 const NUMBER = /^-?\d{1,15}(?:\.\d{1,8})?$/;
 const SECRET_VALUE = /(?:secret|token|password|bearer)[\s:=_-]/i;
+
+// k2 (etapa 12): text liber scris de admin — fara date de contact, fara caractere de control.
+// Un motiv care pare sa contina un secret (parola / token) nu se pastreaza, dar ramane urma ca a
+// existat: '[ascuns]'. Se mascheaza adresele de e-mail, IBAN-urile si numerele lungi (de la 9
+// cifre in sus: telefoane, conturi); datele („14.11.2026”) si sumele obisnuite raman citibile.
+const FREE_REASON_HIDDEN = '[ascuns]';
+// Textul vine de la un om (admin), dar tot text liber este: se citeste cel mult atat din el.
+const FREE_REASON_INPUT_MAX = 4000;
+
+// Adresele de e-mail se mascheaza cuvant cu cuvant, fara o expresie regulata ambigua, ca timpul
+// sa ramana liniar pe orice text (CodeQL: „polynomial regular expression used on uncontrolled data”).
+// Un cuvant e adresa daca are ceva inainte de ultimul „@”, iar dupa el „ceva.ceva”.
+function maskEmails(text: string): string {
+  return text.replace(/\S+/g, (word) => {
+    const at = word.lastIndexOf('@');
+    if (at <= 0) return word;
+    const dot = word.indexOf('.', at + 2);
+    return dot !== -1 && dot < word.length - 1 ? '[email]' : word;
+  });
+}
+
+export function freeReason(value: string): string | undefined {
+  // eslint-disable-next-line no-control-regex
+  const clean = value.slice(0, FREE_REASON_INPUT_MAX).replace(/[\u0000-\u001F\u007F]+/g, ' ').trim();
+  if (!clean.length) return undefined;
+  if (SECRET_VALUE.test(clean)) return FREE_REASON_HIDDEN;
+  return maskEmails(clean)
+    .replace(/\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){3,7}(?:[ ]?[A-Z0-9]{1,3})?\b/g, '[iban]')
+    .replace(/\+?\d[\d ().-]{6,}\d/g, (match) => (match.replace(/\D/g, '').length >= 9 ? '[nr]' : match))
+    .slice(0, 1000);
+}
 
 function numeric(value: unknown): number | string | null | undefined {
   if (value === null) return null;
@@ -66,6 +97,10 @@ export function auditSnapshot(input: unknown): Prisma.InputJsonValue | undefined
       } else if (key === 'mimeType' && typeof item === 'string' && /^[a-z0-9.+-]+\/[a-z0-9.+-]+$/i.test(item)) safe = item;
       else if (key === 'key' && typeof item === 'string' && SETTING_KEYS.has(item)) safe = item;
       else if (key === 'value') safe = settingValue(source.key, item);
+      // k2 (etapa 12, plan aprobat de PO): motivul ridicarii suspendarii e singurul text liber din
+      // audit. Il scrie un admin; aici se mascheaza inca o data adresele de e-mail si numerele lungi
+      // (telefon / IBAN), se scot caracterele de control si se taie la 1000 de caractere.
+      else if (key === 'unsuspendReason' && typeof item === 'string') safe = freeReason(item);
       else if (CONTAINERS.has(key)) safe = visit(item, depth + 1);
       if (safe !== undefined) output[key] = safe;
     }

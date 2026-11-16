@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FirmRulesDto } from '@marketplace/shared';
+import en from '../../../messages/en.json';
 import ro from '../../../messages/ro.json';
 import { FirmRulesArticle } from './firm-rules-article';
 import { FIRM_RULES_SECTIONS } from './legal-sections';
@@ -43,9 +44,9 @@ const FIXTURE: FirmRulesDto = {
   delivery: { autoCompleteDays: 14 },
 };
 
-function renderArticle() {
+function renderArticle(locale: 'ro' | 'en' = 'ro') {
   return render(
-    <NextIntlClientProvider locale="ro" messages={ro}>
+    <NextIntlClientProvider locale={locale} messages={locale === 'ro' ? ro : en}>
       <FirmRulesArticle />
     </NextIntlClientProvider>,
   );
@@ -87,7 +88,7 @@ describe('FirmRulesArticle', () => {
       refetch: vi.fn(),
     };
     renderArticle();
-    expect(screen.getByText(/rămâne disponibilă pentru preluare și după prima ofertă, până când o preiau 2 firme/)).toBeInTheDocument();
+    expect(screen.getByText(/rămâne deschisă pentru preluare și după prima ofertă, până când se ocupă toate cele 2 locuri/)).toBeInTheDocument();
     expect(screen.queryByText(/nu mai poate fi preluată de alte firme/)).not.toBeInTheDocument();
   });
 
@@ -187,5 +188,68 @@ describe('FirmRulesArticle', () => {
     // fara date: nici rezumat, nici cuprins spre sectiuni care nu exista
     expect(container.querySelector('#summary')).toBeNull();
     expect(screen.queryByRole('navigation', { name: 'Cuprins' })).not.toBeInTheDocument();
+  });
+  // i3 (etapa 12): fara „0 puncte” in propozitii si fara termene repetate
+  const withRules = (patch: { sla?: Partial<FirmRulesDto['sla']['workingDays']>; points?: Partial<FirmRulesDto['penalties']['points']> }) => {
+    state.rules = {
+      data: {
+        ...FIXTURE,
+        sla: { ...FIXTURE.sla, workingDays: { ...FIXTURE.sla.workingDays, ...patch.sla } },
+        penalties: { ...FIXTURE.penalties, points: { ...FIXTURE.penalties.points, ...patch.points } },
+      },
+      isPending: false,
+      refetch: vi.fn(),
+    };
+  };
+  const text = (c: HTMLElement) => (c.textContent ?? '').replace(/\s+/g, ' ');
+
+  it('i3: mic = mediu → o singura mentiune; retragerea cu 0 puncte nu pomeneste puncte', () => {
+    const { container } = renderArticle();
+    const all = text(container);
+    expect(all).toContain('oferta: 3 zile lucrătoare pentru proiectele mici și medii, 5 zile lucrătoare pentru cele mari.');
+    expect(all).not.toContain('pentru cele medii și');
+    expect(all).toContain('Retragere voluntară după 30 de minute: creditele se consumă și locul se eliberează pentru alte firme.');
+    expect(all).toContain('preluarea expiră, creditele rezervate se consumă și firma primește 3 puncte de penalizare.');
+    expect(all).not.toMatch(/\b0 (de )?puncte/);
+  });
+
+  it('i3: toate termenele egale si 0 puncte peste tot → „pentru orice proiect”, fara „0 puncte”', () => {
+    withRules({ sla: { SMALL: 3, MEDIUM: 3, LARGE: 3 }, points: { SLA_MISS: 0, VOLUNTARY_WITHDRAWAL: 0 } });
+    const { container } = renderArticle();
+    const all = text(container);
+    expect(all).toContain('oferta: 3 zile lucrătoare pentru orice proiect.');
+    expect(all).not.toContain('pentru proiectele mici');
+    expect(all).toContain('preluarea expiră, creditele rezervate se consumă. Dacă cererea revine');
+    expect(all).not.toMatch(/\b0 (de )?puncte/);
+    expect(all).not.toContain('firma primește 0');
+  });
+
+  it.each([
+    [{ SMALL: 2, MEDIUM: 4, LARGE: 4 }, '2 zile lucrătoare pentru proiectele mici, 4 zile lucrătoare pentru cele medii și mari'],
+    [{ SMALL: 2, MEDIUM: 4, LARGE: 2 }, '2 zile lucrătoare pentru proiectele mici și mari, 4 zile lucrătoare pentru cele medii'],
+    [{ SMALL: 1, MEDIUM: 3, LARGE: 5 }, '1 zi lucrătoare pentru proiectele mici, 3 zile lucrătoare pentru cele medii și 5 zile lucrătoare pentru cele mari'],
+  ])('i3: termenele %o → „%s”', (sla, expected) => {
+    withRules({ sla });
+    const { container } = renderArticle();
+    expect(text(container)).toContain(`oferta: ${expected}.`);
+  });
+
+  it('i3 (EN): termene egale + 0 puncte → fara „0 points” si fara repetitii', () => {
+    withRules({ sla: { SMALL: 5, MEDIUM: 5, LARGE: 5 }, points: { SLA_MISS: 0, VOLUNTARY_WITHDRAWAL: 0 } });
+    const { container } = renderArticle('en');
+    const all = text(container);
+    expect(all).toContain('deadline to send the offer: 5 working days for any project.');
+    expect(all).toContain('the claim expires, the reserved credits are consumed. If the request');
+    expect(all).toContain('Voluntary withdrawal after 30 minutes: the credits are consumed and the slot is freed for other firms.');
+    expect(all).not.toMatch(/\b0 (penalty )?points?/);
+  });
+
+  it('i3 (EN): puncte > 0 → „penalty points” cu pluralul corect; mic = mediu', () => {
+    withRules({ points: { SLA_MISS: 1, VOLUNTARY_WITHDRAWAL: 2 } });
+    const { container } = renderArticle('en');
+    const all = text(container);
+    expect(all).toContain('3 working days for small and medium projects, 5 working days for large ones.');
+    expect(all).toContain('the firm receives 1 penalty point.');
+    expect(all).toContain('the slot is freed for other firms and the firm receives 2 penalty points.');
   });
 });

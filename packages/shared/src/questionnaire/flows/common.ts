@@ -97,6 +97,51 @@ export function systemOptions(values: readonly ItemSystem[] = LEGACY_SYSTEMS): C
   }));
 }
 
+// d1 (etapa 3): textele generate pentru firma folosesc cuvintele din chestionar (aceleasi
+// etichete pe care le vede clientul in ro.json), niciodata codurile interne.
+const INTERIOR_MODULE_TEXT: Record<string, string> = {
+  HANGING_RODS: 'bare de agățat',
+  SHELVES: 'rafturi',
+  DRAWERS: 'sertare',
+  SHOE_RACK: 'suport de pantofi',
+  ACCESSORIES: 'accesorii',
+  LED_LIGHTING: 'iluminare LED',
+};
+
+// un cod necunoscut nu ajunge niciodata brut la firma
+function humanizeCode(code: string): string {
+  return code.toLowerCase().replace(/_/g, ' ');
+}
+
+export function interiorModulesText(modules: readonly string[]): string {
+  return modules.map((m) => INTERIOR_MODULE_TEXT[m] ?? humanizeCode(m)).join(', ');
+}
+
+const TV_SETUP_TEXT: Record<string, string> = {
+  TV_ON_WALL: 'TV pe perete',
+  TV_ON_UNIT: 'TV pe comodă',
+  UNDECIDED: 'TV: nedecis',
+};
+
+export function tvSetupText(setup: string): string {
+  return TV_SETUP_TEXT[setup] ?? `TV: ${humanizeCode(setup)}`;
+}
+
+const SEATS_TEXT: Record<string, string> = {
+  FOUR: '4 locuri',
+  SIX: '6 locuri',
+  EIGHT_PLUS: '8+ locuri',
+};
+
+export function seatsText(seats: string): string {
+  return SEATS_TEXT[seats] ?? `${humanizeCode(seats)} locuri`;
+}
+
+// dimensiuni pentru firma: "90 × 200" (semnul inmultirii, nu litera x)
+export function dimsText(...values: (number | string)[]): string {
+  return values.join(' × ');
+}
+
 export function ceilingHeightSlot(): DimensionSlot {
   return {
     id: 'ceilingHeight',

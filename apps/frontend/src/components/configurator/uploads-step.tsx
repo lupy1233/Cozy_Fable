@@ -1,20 +1,23 @@
 'use client';
 
-import { ATTACHMENT_ACCEPT, type AttachmentDto } from '@marketplace/shared';
+import { ATTACHMENT_ACCEPT, remainingAttachmentSlots, type AttachmentDto } from '@marketplace/shared';
 import { ArrowLeft, ArrowRight, Ruler } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Dropzone } from '@/components/ui/dropzone';
 import {
   useAttachmentsFor,
+  useAttachmentUploadQueue,
   useRemoveAttachmentFor,
-  useUploadAttachmentFor,
   type AttachmentTarget,
 } from '@/hooks/use-requests';
-import { useConfiguratorStore } from '@/stores/configurator-store';
+import { localRejectReason } from '@/lib/attachment-upload';
+import { excludedFileIds, useConfiguratorStore } from '@/stores/configurator-store';
 import { AttachmentRow } from './attachment-item';
+import { UploadFeedback } from './upload-feedback';
 import { InspirationPicker } from './inspiration-picker';
 import { roomIssue, screenIndexForStep } from './room-screens';
+import { StickyActionBar } from './sticky-action-bar';
 
 export function UploadsStep({
   target,
@@ -27,14 +30,23 @@ export function UploadsStep({
 }) {
   const t = useTranslations('Configurator');
   const attachments = useAttachmentsFor(target);
-  const upload = useUploadAttachmentFor(target);
+  const queue = useAttachmentUploadQueue(target);
   const remove = useRemoveAttachmentFor(target);
   const rooms = useConfiguratorStore((s) => s.roomInstances);
   const ownProject = useConfiguratorStore((s) => s.details.hasOwnProject === true);
   const forgetAttachment = useConfiguratorStore((s) => s.forgetAttachment);
+  const discardedFiles = useConfiguratorStore((s) => s.discardedFiles);
 
-  const onFiles = (files: FileList) => {
-    Array.from(files).forEach((file) => upload.mutate(file));
+  // b5: locurile ramase pe cerere (oglinda capului de pe server: 10 + 8 pe camera)
+  // (fisierele aflate inca pe drum ocupa deja un loc)
+  // b6 + M1 + m8: fisierele camerelor scoase si poza 3D a camerelor bifate nu sunt ale
+  // proiectului si nu ocupa locuri (pe ciorna se sterg, la editare dupa salvare)
+  const discarded = excludedFileIds(rooms, discardedFiles);
+  const liveCount = attachments.filter((a) => !discarded.has(a.id)).length;
+  const slotsLeft = remainingAttachmentSlots(rooms.length, liveCount + queue.pending.length);
+  // fisierele se trimit pe rand, fiecare cu starea lui (vezi useAttachmentUploadQueue)
+  const onAccept = (files: File[]) => {
+    void queue.uploadFiles(files, slotsLeft);
   };
 
   // Fisierele referite de o camera (schite, snapshot 3D) se gestioneaza din
@@ -43,7 +55,9 @@ export function UploadsStep({
   const referencedIds = new Set(rooms.flatMap((room) => Object.values(room.answers).flatMap((value) =>
     Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : [],
   )));
-  const projectFiles = attachments.filter((a) => !referencedIds.has(a.id));
+  // b6: fisierele camerelor scoase din cos (la editare inca pe cerere, pana la salvare) nu
+  // sunt fisiere ale proiectului
+  const projectFiles = attachments.filter((a) => !referencedIds.has(a.id) && !discarded.has(a.id));
   const byId = new Map(attachments.map((a) => [a.id, a]));
   const typeCount = new Map<string, number>();
   const roomFiles = rooms.flatMap((room) => {
@@ -66,10 +80,10 @@ export function UploadsStep({
   // "Nu am proiectul la indemana": revine la formularul complet si deschide
   // prima camera careia ii lipsesc raspunsuri (de regula dimensiunile)
   const switchToGuided = () => {
+    // b8: modul e singura sursa — setStartMode scoate si "am proiect"
     const state = useConfiguratorStore.getState();
-    state.setDetails({ hasOwnProject: false });
-    if (state.startMode === 'OWN_PROJECT') state.setStartMode('STANDARD');
-    if (state.startMode === 'DESIGN_HELP') return;
+    if (state.startMode !== 'OWN_PROJECT') return;
+    state.setStartMode('STANDARD');
     state.syncCompletion(false);
     const current = useConfiguratorStore.getState().roomInstances;
     const index = current.findIndex((room) => roomIssue(room, { ownProject: false }) !== null);
@@ -92,13 +106,25 @@ export function UploadsStep({
         </p>
       </div>
 
-      <Dropzone
-        onFiles={onFiles}
-        accept={ATTACHMENT_ACCEPT}
-        label={t('uploads.dropLabel')}
-        hint={t('uploads.dropHint')}
-      />
-      {upload.isPending && <p className="text-xs text-muted-foreground">{t('uploads.uploading')}</p>}
+      <div className="flex flex-col gap-2">
+        <Dropzone
+          validate={localRejectReason}
+          onAccept={onAccept}
+          onReject={queue.reject}
+          accept={ATTACHMENT_ACCEPT}
+          label={t('uploads.dropLabel')}
+          hint={t('uploads.dropHint')}
+        />
+        <p className="text-xs text-muted-foreground" data-upload-slots>
+          {t('uploads.slotsLeft', { count: slotsLeft })}
+        </p>
+        <UploadFeedback
+          pending={queue.pending}
+          rejected={queue.rejected}
+          onDismiss={queue.dismiss}
+          onRetry={(id) => queue.retry(id, slotsLeft)}
+        />
+      </div>
 
       {/* inspiratie din galeria firmelor (F6, item 3) */}
       <InspirationPicker />
@@ -137,18 +163,21 @@ export function UploadsStep({
 
       {blocked && <p className="text-sm text-amber" role="status">{t('uploads.projectRequired')}</p>}
 
-      <div className="flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+      {/* j1: pe telefon bara se lipeste jos. Inapoi + Continua pe acelasi rand; butonul
+          "Nu am proiectul la indemana" (doar la proiect propriu) pe randul de deasupra */}
+      <StickyActionBar>
         <Button type="button" variant="outline" size="xl" className="px-4 text-sm" onClick={onBack}>
           <ArrowLeft aria-hidden />
           {t('nav.back')}
         </Button>
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+        {/* sub sm grupul se "topeste" in bara (contents), ca butoanele lui sa se aseze pe randuri */}
+        <div className="contents sm:flex sm:flex-row sm:items-center sm:gap-3">
           {ownProject && (
             <Button
               type="button"
               variant="outline"
               size="xl"
-              className="h-auto min-h-12 whitespace-normal px-4 py-2 text-sm"
+              className="order-first h-auto min-h-12 w-full whitespace-normal px-4 py-2 text-sm sm:order-none sm:w-auto"
               onClick={switchToGuided}
             >
               <Ruler aria-hidden />
@@ -160,7 +189,7 @@ export function UploadsStep({
             <ArrowRight aria-hidden />
           </Button>
         </div>
-      </div>
+      </StickyActionBar>
     </div>
   );
 }

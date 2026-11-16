@@ -20,12 +20,15 @@ const url = testDatabaseUrl();
   const events = { publish: jest.fn().mockRejectedValue(new Error('Redis unavailable')) };
   const outbox = new OutboxService(prisma, events as never);
   const service = new PaymentsService(prisma, settings as never, credits, new SubscriptionsService(prisma, settings as never, credits), stripe as never, { getOrThrow: () => 'https://example.invalid' } as never, { log: jest.fn() } as never, outbox, readiness as never);
-  let companyId: string, userId: string, packageId: string, receiptId: string;
+  let companyId: string, userId: string, packageId: string, receiptId: string, planId: string;
   beforeEach(async () => {
     stripe.isEnabled.mockReturnValue(false); stripe.createCheckoutSession.mockReset();
     const company = await prisma.company.create({ data: { name: 'Checkout test', cui: randomUUID(), regComNumber: 'test', addressText: 'test', county: 'test', city: 'test', lat: 0, lng: 0 } }); companyId = company.id;
     const user = await prisma.user.create({ data: { email: `${randomUUID()}@example.invalid`, name: 'Checkout test', role: 'COMPANY_USER', passwordHash: 'test' } }); userId = user.id;
     await prisma.companyMember.create({ data: { companyId, userId, role: 'OWNER' } });
+    // h2-3: pachetele de credite se cumpara doar cu abonament activ
+    const plan = await prisma.subscriptionPlan.create({ data: { code: `TEST-${randomUUID()}`, priceRon: 0, includedCredits: 0, marketplaceGatingDelayMin: 0 } }); planId = plan.id;
+    await prisma.subscription.create({ data: { companyId, planId, status: 'ACTIVE', expiresAt: new Date('9999-12-31') } });
     const pkg = await prisma.creditPackage.create({ data: { credits: 10, priceRon: 100 } }); packageId = pkg.id;
     const receipt = await prisma.idempotencyKey.create({ data: { key: randomUUID(), endpoint: 'POST /billing/credits/purchase', userId, requestHash: 'test', responseStatus: 0, responseBody: {}, expiresAt: new Date('9999-12-31') } }); receiptId = receipt.id;
   });
@@ -33,6 +36,7 @@ const url = testDatabaseUrl();
     await prisma.domainEventOutbox.deleteMany({ where: { payload: { path: ['companyId'], equals: companyId } } });
     await prisma.idempotencyKey.deleteMany({ where: { userId } });
     await prisma.company.delete({ where: { id: companyId } });
+    await prisma.subscriptionPlan.delete({ where: { id: planId } });
     await prisma.user.delete({ where: { id: userId } });
     await prisma.creditPackage.delete({ where: { id: packageId } });
   });

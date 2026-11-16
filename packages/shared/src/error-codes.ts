@@ -34,6 +34,8 @@ export const ERROR_CODES = {
   COMPANY_REAPPLY_BLOCKED: 'COMPANY_REAPPLY_BLOCKED',
   CUI_ALREADY_REGISTERED: 'CUI_ALREADY_REGISTERED',
   MEMBER_ALREADY_EXISTS: 'MEMBER_ALREADY_EXISTS',
+  // h1-1 (etapa 11): e-mailul nu are cont de tip Firma (inexistent sau cont de client — acelasi raspuns)
+  MEMBER_NO_COMPANY_ACCOUNT: 'MEMBER_NO_COMPANY_ACCOUNT',
   LAST_OWNER_CANNOT_LEAVE: 'LAST_OWNER_CANNOT_LEAVE',
 
   // Cereri
@@ -62,6 +64,12 @@ export const ERROR_CODES = {
   ASSIGNED_USER_HAS_ACTIVE_CLAIM: 'ASSIGNED_USER_HAS_ACTIVE_CLAIM',
   ASSIGNED_USER_PENALTY_BLOCKED: 'ASSIGNED_USER_PENALTY_BLOCKED',
   CLAIM_ALREADY_EXISTS: 'CLAIM_ALREADY_EXISTS',
+  // a1: cererea nu mai poate fi preluata (details: RequestNoLongerClaimableDetails)
+  REQUEST_NO_LONGER_CLAIMABLE: 'REQUEST_NO_LONGER_CLAIMABLE',
+  // a7: rolul din firma nu poate prelua (angajatul fara acces complet, EMPLOYEE_MANAGED)
+  CLAIM_ROLE_NOT_ALLOWED: 'CLAIM_ROLE_NOT_ALLOWED',
+  // g4: documentul PDF (oferta, proforma, factura) nu s-a putut genera acum (503)
+  DOCUMENT_RENDER_FAILED: 'DOCUMENT_RENDER_FAILED',
 
   // Retrageri
   WITHDRAWAL_REASON_NOT_VALIDATED: 'WITHDRAWAL_REASON_NOT_VALIDATED',
@@ -108,6 +116,10 @@ export const ERROR_CODES = {
   // Livrare / finalizare
   DELIVERY_NOT_ALLOWED: 'DELIVERY_NOT_ALLOWED',
   COMPLETION_NOT_ALLOWED: 'COMPLETION_NOT_ALLOWED',
+  // e1-3: "livrat" doar dupa delivery_min_days_after_accept zile de la acceptare
+  DELIVERY_TOO_EARLY: 'DELIVERY_TOO_EARLY',
+  // e1-2: etapele se bifeaza doar pe oferta acceptata, in ACCEPTED / IN_EXECUTION / DELIVERED_BY_COMPANY
+  EXECUTION_STAGE_NOT_EDITABLE: 'EXECUTION_STAGE_NOT_EDITABLE',
 
   // Review / dispute
   REVIEW_NOT_ALLOWED_YET: 'REVIEW_NOT_ALLOWED_YET',
@@ -140,10 +152,14 @@ export const ERROR_CODES = {
   // Plati Stripe (L0-D)
   PAYMENT_PROVIDER_UNAVAILABLE: 'PAYMENT_PROVIDER_UNAVAILABLE',
   PAYMENT_NOT_PENDING: 'PAYMENT_NOT_PENDING',
+  // h3 (etapa 9) — firma nu mai poate anula comanda dupa ce a apasat "Am platit" (409)
+  PAYMENT_REPORTED_PAID: 'PAYMENT_REPORTED_PAID',
   // E-admin-platform-3 — proiect acceptat blocat / oferte expirate (409)
   PROJECT_NOT_CLOSABLE: 'PROJECT_NOT_CLOSABLE',
   PROJECT_CASE_ALREADY_OPEN: 'PROJECT_CASE_ALREADY_OPEN',
   PROJECT_CASE_NOT_OPEN: 'PROJECT_CASE_NOT_OPEN',
+  // e2-2 — raportarea dupa finalizare e permisa doar in fereastra de garantie (409)
+  WARRANTY_REPORT_WINDOW_CLOSED: 'WARRANTY_REPORT_WINDOW_CLOSED',
   QUOTE_EXTENSION_NOT_REQUESTABLE: 'QUOTE_EXTENSION_NOT_REQUESTABLE',
   // E-admin-platform-2 - versiune texte juridice depasita (409)
   LEGAL_VERSION_MISMATCH: 'LEGAL_VERSION_MISMATCH',
@@ -168,11 +184,21 @@ export const ERROR_CODES = {
   // locatii in ultimele 24h (429)
   COMPANY_LOCATION_LIMIT_REACHED: 'COMPANY_LOCATION_LIMIT_REACHED',
   COMPANY_LOCATION_CHANGE_LIMIT: 'COMPANY_LOCATION_CHANGE_LIMIT',
+  // h1 (etapa 11) - plafonul de lucrari din portofoliul firmei atins (409, details.max)
+  COMPANY_PORTFOLIO_LIMIT_REACHED: 'COMPANY_PORTFOLIO_LIMIT_REACHED',
   // E-admin-platform-58 - planul abonamentului activ nu include functia ceruta (403,
   // details.feature) / plan gratuit (0 lei) cumparat online (409) / cod de plan deja folosit (409)
   PLAN_FEATURE_REQUIRED: 'PLAN_FEATURE_REQUIRED',
   PLAN_NOT_PURCHASABLE: 'PLAN_NOT_PURCHASABLE',
   PLAN_CODE_TAKEN: 'PLAN_CODE_TAKEN',
+  // h2 (2026-11-13) - cumparare de credite fara abonament activ (403); creditele se pot
+  // folosi doar cu abonament, deci pachetele sunt oprite pana la reactivare
+  CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION: 'CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION',
+  // f2 (2026-11-13) - publicarea unei cereri dintr-un cont care nu e de client (firma / admin) (403)
+  REQUEST_PUBLISH_CLIENT_ONLY: 'REQUEST_PUBLISH_CLIENT_ONLY',
+  // a4 (2026-11-13) - refuz pe o oferta care nu mai e SENT (acceptata / retrasa / expirata /
+  // inlocuita / deja refuzata) sau pe o cerere inchisa (409)
+  QUOTE_NOT_DECLINABLE: 'QUOTE_NOT_DECLINABLE',
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];

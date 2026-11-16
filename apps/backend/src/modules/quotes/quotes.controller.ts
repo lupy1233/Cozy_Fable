@@ -4,7 +4,6 @@ import {
   Body,
   Controller,
   Get,
-  Header,
   HttpCode,
   Param,
   ParseUUIDPipe,
@@ -29,6 +28,7 @@ import {
   AcceptQuoteDto,
   CreateConsultationInviteDto,
   CreateQuoteDto,
+  DeclineQuoteDto,
   ExtendValidityDto,
   ExtraQuoteVersionDto,
   PresignQuoteAttachmentDto,
@@ -37,6 +37,12 @@ import {
   ReviseQuoteDto,
   WithdrawQuoteDto,
 } from './dto/quote.dto';
+
+// g4: raspunsul PDF reusit; la eroare StreamableFile nu se creeaza, deci filtrul global
+// raspunde cu JSON-ul obisnuit ({ error: { code, ... } }), nu cu un „PDF” stricat.
+export function quotePdfFile(pdf: Buffer): StreamableFile {
+  return new StreamableFile(pdf, { type: 'application/pdf', disposition: 'attachment; filename="oferta.pdf"' });
+}
 
 // Ofertare — firma (4.13). Membru non-managed; permisiunile pe campuri se verifica in service.
 @Controller('quotes')
@@ -82,11 +88,10 @@ export class QuotesController {
     return this.quotes.getQuoteForCompany(ctx, id);
   }
 
+  // g4: tipul si numele fisierului doar pe raspunsul reusit (ca la factura) — eroarea ramane JSON
   @Get(':id/pdf')
-  @Header('Content-Type', 'application/pdf')
-  @Header('Content-Disposition', 'attachment; filename="oferta.pdf"')
   async pdfFor(@CurrentCompany() ctx: CompanyContext, @Param('id', ParseUUIDPipe) id: string) {
-    return new StreamableFile(await this.pdf.generateForCompany(ctx, id));
+    return quotePdfFile(await this.pdf.generateForCompany(ctx, id));
   }
 
   @Post(':id/revise')
@@ -219,11 +224,10 @@ export class ClientQuotesController {
     return this.quotes.getQuoteForClient(user.sub, id);
   }
 
+  // g4: ca la ruta firmei — headerele PDF doar pe raspunsul reusit
   @Get(':id/pdf')
-  @Header('Content-Type', 'application/pdf')
-  @Header('Content-Disposition', 'attachment; filename="oferta.pdf"')
   async pdfFor(@CurrentUser() user: AccessTokenPayload, @Param('id', ParseUUIDPipe) id: string) {
-    return new StreamableFile(await this.pdf.generateForClient(user.sub, id));
+    return quotePdfFile(await this.pdf.generateForClient(user.sub, id));
   }
 
   @Post('changes')
@@ -243,6 +247,20 @@ export class ClientQuotesController {
   ) {
     // E-client-1: clientul confirma exact versiunea vazuta (409 QUOTE_VERSION_CHANGED altfel)
     return this.quotes.acceptQuote(user.sub, id, dto.quoteVersionId);
+  }
+
+  // a4 (2026-11-13): refuz definitiv al unei oferte SENT — muta credite si inchide un loc, deci
+  // POST critic cu Idempotency-Key (3.2), ca acceptarea. 409 QUOTE_NOT_DECLINABLE altfel.
+  @Post(':id/decline')
+  @Audit('QUOTE_DECLINED', 'quote')
+  @Idempotent({ transactional: true })
+  @UseInterceptors(IdempotencyInterceptor)
+  decline(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: DeclineQuoteDto,
+  ) {
+    return this.quotes.declineQuote(user.sub, id, dto);
   }
 
   // E-admin-platform-3: clientul cere firmei prelungirea unei oferte EXPIRED (idempotent).

@@ -67,7 +67,7 @@ export const pieceDresserFlow: RoomFlow = {
       heightM: values.height ?? 0.9,
       items: [
         {
-          name: 'Comoda',
+          name: 'Comodă',
           material: (answers.material as Material) ?? 'PAL',
           systems,
           quantity: 1,

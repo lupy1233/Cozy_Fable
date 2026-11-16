@@ -1,5 +1,9 @@
 import { expect, test } from '@playwright/test';
 import fixture from '../../../docs/implementation/house-demo-fixture.json';
+import en from '../src/messages/en.json';
+
+// etapa 12: engleza britanica (Minimise); numele butoanelor se citesc din en.json
+const W = en.Studio.workspace;
 
 test('cancelled palette drags do not add openings and expanded selection stays in the workspace', async ({ page }) => {
   test.setTimeout(120_000);
@@ -23,28 +27,28 @@ test('cancelled palette drags do not add openings and expanded selection stays i
   await page.mouse.move(x, y, { steps: 3 });
   await page.mouse.up();
   await expect.poll(countOpenings).toBe(before);
-  await expect(page.getByRole('complementary', { name: 'Room settings', exact: true })).toBeVisible();
+  await expect(page.getByRole('complementary', { name: W.roomTools, exact: true })).toBeVisible();
   await opening.press('Enter');
   await expect.poll(countOpenings).toBe(before + 1);
 
-  const minimize = page.getByRole('button', { name: 'Minimize selection tools', exact: true });
+  const minimize = page.getByRole('button', { name: W.minimizeSelection, exact: true });
   await expect(minimize).toBeVisible();
   await minimize.click();
-  await expect(page.getByRole('complementary', { name: 'Room settings', exact: true })).toBeVisible();
+  await expect(page.getByRole('complementary', { name: W.roomTools, exact: true })).toBeVisible();
   await opening.press('Enter');
   await expect.poll(countOpenings).toBe(before + 2);
-  const expand = page.getByRole('button', { name: 'Expand selection tools', exact: true });
+  const expand = page.getByRole('button', { name: W.expandSelection, exact: true });
   await expect(expand).toBeVisible();
   if (page.viewportSize()!.width < 1024) {
-    const tools = (await page.getByRole('complementary', { name: 'Room settings', exact: true }).boundingBox())!;
+    const tools = (await page.getByRole('complementary', { name: W.roomTools, exact: true }).boundingBox())!;
     const selection = (await expand.locator('../..').boundingBox())!;
     expect(tools.y + tools.height).toBeLessThan(selection.y);
   }
-  await page.getByRole('button', { name: 'Hide tools', exact: true }).click();
-  await page.getByRole('button', { name: 'Show tools', exact: true }).click();
+  await page.getByRole('button', { name: W.hideTools, exact: true }).click();
+  await page.getByRole('button', { name: W.showTools, exact: true }).click();
   await expect(expand).toBeVisible();
-  await expect(page.getByRole('complementary', { name: 'Room settings', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Minimize panel', exact: true }).click();
+  await expect(page.getByRole('complementary', { name: W.roomTools, exact: true })).toBeVisible();
+  await page.getByRole('button', { name: W.minimizePanel, exact: true }).click();
   const grip = page.getByRole('button', { name: /^Drag to move the panel/ });
   const gripBounds = (await grip.boundingBox())!;
   const area = (await workspace.boundingBox())!;
@@ -52,7 +56,7 @@ test('cancelled palette drags do not add openings and expanded selection stays i
   await page.mouse.down();
   await page.mouse.move(area.x + area.width - 16, area.y + area.height - 95, { steps: 8 });
   await page.mouse.up();
-  await page.getByRole('button', { name: 'Expand selection tools', exact: true }).click();
+  await page.getByRole('button', { name: W.expandSelection, exact: true }).click();
   await expect(minimize).toBeVisible();
   await expect.poll(async () => {
     const panel = (await grip.locator('..').boundingBox())!;

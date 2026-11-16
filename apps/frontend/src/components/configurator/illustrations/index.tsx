@@ -3,7 +3,17 @@
 // Rezolvare: harta per camera (roomType.stepId.optionValue) → harta comuna per
 // valoare (materiale/sisteme, valabile in orice camera) → null (fallback icon lucide).
 import type { RoomType } from '@marketplace/shared';
-import { IlluNo, IlluYes, type IllustrationProps } from './common';
+import {
+  IlluFirmDecides,
+  IlluMirrorFrameless,
+  IlluMirrorMetal,
+  IlluNo,
+  IlluNoFronts,
+  IlluSupplyClient,
+  IlluSupplyFirm,
+  IlluYes,
+  type IllustrationProps,
+} from './common';
 import { showroomPhoto, type ShowroomConcept } from './showroom-atlas';
 import { optionPhoto } from './option-photo';
 import {
@@ -19,6 +29,9 @@ import {
   PhotoPush,
 } from './photo';
 import {
+  IlluBasinInset,
+  IlluBasinIntegrated,
+  IlluBasinOnTop,
   IlluFan,
   IlluMirrorCabinet,
   IlluNoVentilation,
@@ -34,6 +47,8 @@ import {
   IlluCountertopWood,
   IlluDishwasher,
   IlluFridge,
+  IlluFridgeBuiltIn,
+  IlluFridgeFreestanding,
   IlluHob,
   IlluHood,
   IlluIsland,
@@ -43,7 +58,13 @@ import {
   IlluLayoutStraight,
   IlluLayoutU,
   IlluMicrowave,
+  IlluNoWallCabinets,
   IlluOven,
+  IlluSinkCeramic,
+  IlluSinkComposite,
+  IlluSinkInset,
+  IlluSinkStainless,
+  IlluSinkUndermount,
   IlluTallPantry,
   IlluWallUnits,
 } from './kitchen';
@@ -54,6 +75,7 @@ import {
   IlluBalconyEnclosed,
   IlluBalconyOpen,
   IlluBed,
+  IlluBed120,
   IlluBedCustom,
   IlluBedDouble140,
   IlluBedDrawers,
@@ -74,9 +96,16 @@ import {
   IlluDeskU,
   IlluDisplayCabinet,
   IlluDresser,
+  IlluFabricBoucle,
+  IlluFabricVelvet,
+  IlluFabricWoven,
+  IlluHallNarrow,
+  IlluHallWide,
   IlluHangingRods,
   IlluLaundryStorage,
   IlluLedLighting,
+  IlluMattressLength190,
+  IlluMattressLength200,
   IlluMirrorShelf,
   IlluMixedStorage,
   IlluNightstand,
@@ -99,6 +128,8 @@ import {
   IlluWallShelves,
   IlluWardrobe,
   IlluWasher,
+  IlluWasherFront,
+  IlluWasherTop,
   IlluWorktop,
 } from './room-pieces';
 import {
@@ -195,6 +226,8 @@ export const ROOM_OPTION_PHOTOS: Partial<Record<RoomType, StepMap>> = {
     bedSize: MATTRESS_PHOTOS,
     bedStorage: optionPhotos({ DRAWERS: 'bed-side-drawers' }),
     nightstandsCount: optionPhotos({ TWO: 'nightstands-pair' }),
+    // etapa 10 (dormitor v4): interiorul dulapului = aceleasi module ca dressingul
+    wardrobeInterior: optionPhotos({ LED_LIGHTING: 'wardrobe-led' }),
   },
   OFFICE: {
     piecesNeeded: optionPhotos({ WALL_SHELVES: 'wall-shelves' }),
@@ -212,6 +245,8 @@ export const ROOM_OPTION_PHOTOS: Partial<Record<RoomType, StepMap>> = {
     enclosed: optionPhotos({ ENCLOSED: 'balcony-enclosed', OPEN: 'balcony-open' }),
     piecesNeeded: optionPhotos({ WORKTOP: 'balcony-worktop' }),
   },
+  // etapa 6: holul v2 intreaba tipul usilor dulapului, ca dormitorul
+  HALLWAY: { wardrobeDoorType: WARDROBE_DOOR_PHOTOS },
   PIECE_WARDROBE: { doorType: WARDROBE_DOOR_PHOTOS },
   PIECE_DESK: { shape: DESK_SHAPE_PHOTOS },
   PIECE_BED: { bedSize: MATTRESS_PHOTOS, storage: optionPhotos({ DRAWERS: 'bed-side-drawers' }) },
@@ -250,6 +285,25 @@ const KITCHEN_MAP: StepMap = {
     FRIDGE: IlluFridge,
     MICROWAVE: IlluMicrowave,
   },
+  // etapa 10 (v5): corpuri suspendate da / nu, chiuveta, frigiderul. Valorile generice
+  // (INSET, …) stau doar aici, nu in COMMON_BY_VALUE (coliziuni intre camere).
+  wallCabinets: {
+    WALL_CABINETS: IlluWallUnits,
+    NO_WALL_CABINETS: IlluNoWallCabinets,
+  },
+  sinkMounting: {
+    INSET: IlluSinkInset,
+    UNDERMOUNT: IlluSinkUndermount,
+  },
+  sinkMaterial: {
+    STAINLESS: IlluSinkStainless,
+    COMPOSITE: IlluSinkComposite,
+    CERAMIC: IlluSinkCeramic,
+  },
+  fridgeType: {
+    BUILT_IN: IlluFridgeBuiltIn,
+    FREESTANDING: IlluFridgeFreestanding,
+  },
 };
 
 const BATHROOM_MAP: StepMap = {
@@ -262,6 +316,16 @@ const BATHROOM_MAP: StepMap = {
     WINDOW: IlluWindow,
     FAN: IlluFan,
     NONE: IlluNoVentilation,
+  },
+  // etapa 10 (v4): lavoarul (ecranul piece:VANITY_UNIT:details)
+  basinType: {
+    COUNTERTOP_BASIN: IlluBasinOnTop,
+    INSET_BASIN: IlluBasinInset,
+    INTEGRATED_BASIN: IlluBasinIntegrated,
+  },
+  basinSupply: {
+    CLIENT: IlluSupplyClient,
+    FIRM: IlluSupplyFirm,
   },
 };
 
@@ -330,11 +394,24 @@ const BEDROOM_MAP: StepMap = {
   },
   bedSize: {
     S_90: IlluBedSingle,
+    // etapa 10 (v4): 120 × 200
+    D_120: IlluBed120,
     M_140: IlluBedDouble140,
     Q_160: IlluBedQueen,
     K_180: IlluBedKing,
     CUSTOM: IlluBedCustom,
   },
+  // etapa 10 (v4): lungimea saltelei, stofa patului tapitat, interiorul dulapului
+  bedLength: {
+    L_200: IlluMattressLength200,
+    L_190: IlluMattressLength190,
+  },
+  bedFabric: {
+    WOVEN: IlluFabricWoven,
+    BOUCLE: IlluFabricBoucle,
+    VELVET: IlluFabricVelvet,
+  },
+  wardrobeInterior: DRESSING_MAP.interiorModules!,
   bedStorage: {
     NONE: IlluBedNoStorage,
     LIFT_UP: IlluBedLiftUp,
@@ -369,6 +446,11 @@ const HALLWAY_MAP: StepMap = {
     BENCH: IlluBench,
     MIRROR: IlluMirrorShelf,
   },
+  // etapa 10 (v3): latimea holului
+  hallWidth: {
+    NARROW: IlluHallNarrow,
+    WIDE: IlluHallWide,
+  },
 };
 
 const LAUNDRY_MAP: StepMap = {
@@ -376,6 +458,11 @@ const LAUNDRY_MAP: StepMap = {
     WASHER_ONLY: IlluWasher,
     STACKED: IlluStacked,
     SIDE_BY_SIDE: showroomPhoto('side-by-side-washer-dryer'),
+  },
+  // etapa 10 (v4): incarcarea masinii de spalat
+  washerLoading: {
+    FRONT: IlluWasherFront,
+    TOP: IlluWasherTop,
   },
   piecesNeeded: {
     APPLIANCE_HOUSING: IlluApplianceHousing,
@@ -570,6 +657,21 @@ const COMMON_BY_VALUE: Record<string, Illustration> = {
   MANER: PhotoManer,
   GOLA: PhotoGola,
   AVENTOS: PhotoAventos,
+  // etapa 6 — valorile speciale din seturile noi (finish-sets.ts); prefixele
+  // MIRROR_ / WORKTOP_ nu se ciocnesc cu valorile blatului de bucatarie
+  FIRM_DECIDES: IlluFirmDecides,
+  NO_FRONTS: IlluNoFronts,
+  PISTONS: PhotoAventos,
+  MDF_INTEGRAL: PhotoMdfVopsit,
+  MIRROR_FRAMELESS: IlluMirrorFrameless,
+  MIRROR_FRAME_WOOD: PhotoLemnMasiv,
+  MIRROR_FRAME_MDF: PhotoMdfVopsit,
+  MIRROR_FRAME_METAL: IlluMirrorMetal,
+  WORKTOP_PAL_POSTFORMED: optionPhoto('countertop-pal'),
+  WORKTOP_HPL: optionPhoto('countertop-hpl'),
+  WORKTOP_HPL_COMPACT: IlluCountertopHpl,
+  WORKTOP_QUARTZ: optionPhoto('countertop-quartz'),
+  WORKTOP_SOLID_WOOD: IlluCountertopWood,
 };
 
 export function getIllustration(

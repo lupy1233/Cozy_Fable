@@ -17,7 +17,7 @@ describe('AdminService.updateSetting - validare chei noi', () => {
       {} as never,
       {} as never,
       {} as never,
-      queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue,
+      queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue,
     );
     return { service, prisma };
   };
@@ -175,7 +175,7 @@ describe('AdminService.updateSetting - intervalul claim_cost_min/claim_cost_max'
       {} as never,
       {} as never,
       {} as never,
-      queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue,
+      queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue,
     );
     return { service, prisma };
   };
@@ -228,7 +228,7 @@ describe('AdminService.updateSetting - trial_plan', () => {
       {} as never,
       {} as never,
       {} as never,
-      queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue,
+      queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue, queue,
     );
     return { service, prisma };
   };

@@ -5,8 +5,9 @@ import type { AuthUser, LoginInput, RegisterInput } from '@marketplace/shared';
 import { api, ApiError } from '@/lib/api';
 import { adoptLocalOwner, clearUserLocalData, forgetLocalOwner } from '@/lib/session-cleanup';
 import { useSessionHint, useSetSessionHint } from '@/lib/session-hint-context';
+import { AUTH_QUERY_KEY, clearSessionLost } from '@/lib/session-lost';
 
-const AUTH_KEY = ['auth', 'me'] as const;
+const AUTH_KEY = AUTH_QUERY_KEY;
 
 // SEC2-11 (E-admin-platform-5): fara cookie-uri de sesiune serverul raspunde 200 { user: null },
 // deci vizitatorul anonim nu mai declanseaza un /auth/refresh esuat. Transformam null intr-un
@@ -22,6 +23,17 @@ export function useMe() {
     queryKey: AUTH_KEY,
     queryFn: fetchMe,
     retry: false,
+    // D1 (bucla pe /marketplace): fara asta, fiecare componenta noua cu useMe (de ex. mesajul
+    // de abonament, randat doar cand me NU e pending) relua /auth/me dupa eroare → me redevenea
+    // pending → pagina ascundea componenta → eroare → o randa iar → … sute de cereri pe secunda,
+    // iar garda (me.isError → login) se reapela si repornea navigarea la nesfarsit.
+    // Dupa eroare, „cine sunt eu” se reface doar explicit: login (setQueryData), logout
+    // (qc.clear), ascultatorul de sesiune / socketul (reset / invalidate), refetch.
+    retryOnMount: false,
+    // review M1: tabul ramas „vizitator” afla de login-ul facut in alt tab (ex. confirmarea
+    // e-mailului): DOAR cat e in eroare, la revenirea in tab, o singura cerere (retry: false).
+    // Cu sesiune buna nu se reia nimic (providers.tsx: refetchOnWindowFocus false in rest).
+    refetchOnWindowFocus: (query) => query.state.status === 'error',
     staleTime: 60_000,
   });
 }
@@ -46,6 +58,7 @@ export function useLogin() {
       api<{ user: AuthUser }>('/auth/login', { method: 'POST', body: JSON.stringify(input) }),
     // alt cont logat anterior in acest browser → curatenie INAINTE de setarea noului user
     onSuccess: ({ user }) => {
+      clearSessionLost();
       void adoptLocalOwner(qc, user.id);
       qc.setQueryData(AUTH_KEY, user);
       setHint(user.role);
@@ -53,13 +66,18 @@ export function useLogin() {
   });
 }
 
+// returnTo: adresa de intoarcere (b4) — serverul o pune in linkul de confirmare doar
+// daca e in lista lui scurta de cai permise; altfel o ignora in tacere.
+export type RegisterRequest = RegisterInput & { returnTo?: string };
+
+export function registerBody(input: RegisterRequest): string {
+  return JSON.stringify({ ...input, phone: input.phone || undefined, returnTo: input.returnTo || undefined });
+}
+
 export function useRegister() {
   return useMutation({
-    mutationFn: (input: RegisterInput) =>
-      api<{ user: AuthUser }>('/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({ ...input, phone: input.phone || undefined }),
-      }),
+    mutationFn: (input: RegisterRequest) =>
+      api<{ user: AuthUser }>('/auth/register', { method: 'POST', body: registerBody(input) }),
   });
 }
 
@@ -71,6 +89,7 @@ export function useLogout() {
     // onSettled: si un logout esuat pe un calculator partajat sterge datele locale.
     // qc.clear acopera si ['auth']; guard-urile redirectioneaza pe me.isError (401).
     onSettled: () => {
+      clearSessionLost();
       void clearUserLocalData(qc);
       forgetLocalOwner();
       // altfel, dupa qc.clear(), me redevine pending si indiciul vechi ar reaparea o clipa

@@ -4,6 +4,7 @@ import { useThree } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import type { Camera, Vector3 } from 'three';
 import { fitShowroomCamera } from './showroom-camera';
+import { boundsOutOfView, shouldReframe, type PieceBounds } from './camera-reframe';
 
 type OrbitControlsLike = {
   target: Vector3;
@@ -21,27 +22,51 @@ type CameraFit = {
 
 // Pozitia apartine utilizatorului dupa incadrarea initiala; editarile extind
 // doar limitele de zoom, fara sa modifice orbita, tinta sau distanta curenta.
-export function StableOrbitCamera({ sceneId, fit }: { sceneId: string; fit: CameraFit }) {
+// Etapa 9 (l1): cand primeste `bounds` (piesa din configurator), camera se reincadreaza singura
+// daca piesa iese din cadru dupa o schimbare de gabarit sau creste peste ~20% (shouldReframe);
+// `reframeKey` schimbat = butonul „Reincadreaza”.
+export function StableOrbitCamera({
+  sceneId,
+  fit,
+  bounds,
+  reframeKey = 0,
+}: {
+  sceneId: string;
+  fit: CameraFit;
+  bounds?: PieceBounds;
+  reframeKey?: number;
+}) {
   const camera = useThree((s) => s.camera);
   const controls = useThree((s) => s.controls) as unknown as OrbitControlsLike | null;
   const invalidate = useThree((s) => s.invalidate);
   const size = useThree((s) => s.size);
   const initialized = useRef<{ camera: Camera; controls: OrbitControlsLike; sceneId: string } | null>(null);
+  // gabaritul la ultima incadrare + ultimul gabarit vazut + butonul apasat la ultima incadrare
+  const framed = useRef<{ bounds: PieceBounds; last: PieceBounds; key: number } | null>(null);
   const [px, py, pz] = fit.position;
   const [tx, ty, tz] = fit.target;
+  const bw = bounds?.width;
+  const bh = bounds?.height;
+  const bd = bounds?.depth;
 
   useEffect(() => {
     if (!controls || size.width <= 0 || size.height <= 0) return;
-    const previous = initialized.current;
-    if (!previous || previous.camera !== camera || previous.sceneId !== sceneId) {
+    const current: PieceBounds | null =
+      bw !== undefined && bh !== undefined && bd !== undefined ? { width: bw, height: bh, depth: bd } : null;
+    const frame = () => {
       controls.minDistance = fit.minDistance;
       controls.maxDistance = fit.maxDistance;
       camera.position.set(px, py, pz);
       controls.target.set(tx, ty, tz);
       camera.lookAt(controls.target);
       initialized.current = { camera, controls, sceneId };
+      framed.current = current ? { bounds: current, last: current, key: reframeKey } : null;
       controls.update();
       invalidate();
+    };
+    const previous = initialized.current;
+    if (!previous || previous.camera !== camera || previous.sceneId !== sceneId) {
+      frame();
       return;
     }
 
@@ -51,17 +76,52 @@ export function StableOrbitCamera({ sceneId, fit }: { sceneId: string; fit: Came
       controls.maxDistance = previous.controls.maxDistance;
       initialized.current = { camera, controls, sceneId };
     }
+    if (current) {
+      const state = framed.current;
+      if (!state || state.key !== reframeKey) {
+        frame();
+        return;
+      }
+      const last = state.last;
+      const changed = last.width !== current.width || last.height !== current.height || last.depth !== current.depth;
+      if (changed) {
+        // piesa care era deja in afara cadrului (omul a apropiat camera) nu declanseaza mutarea
+        const outOfView = boundsOutOfView(camera, current) && !boundsOutOfView(camera, last);
+        if (shouldReframe({ framed: state.bounds, next: current, outOfView })) {
+          frame();
+          return;
+        }
+        framed.current = { ...state, last: current };
+      }
+    }
     const distance = camera.position.distanceTo(controls.target);
     controls.minDistance = Math.min(controls.minDistance, fit.minDistance, distance);
     controls.maxDistance = Math.max(controls.maxDistance, fit.maxDistance, distance);
-  }, [camera, controls, invalidate, sceneId, size.width, size.height, px, py, pz, tx, ty, tz, fit.minDistance, fit.maxDistance]);
+  }, [camera, controls, invalidate, sceneId, size.width, size.height, px, py, pz, tx, ty, tz, fit.minDistance, fit.maxDistance, bw, bh, bd, reframeKey]);
   return null;
 }
 
-export function PieceCameraRig({ width, height, depth }: { width: number; height: number; depth: number }) {
+export function PieceCameraRig({
+  width,
+  height,
+  depth,
+  reframeKey = 0,
+}: {
+  width: number;
+  height: number;
+  depth: number;
+  reframeKey?: number;
+}) {
   const size = useThree((s) => s.size);
   const fit = fitShowroomCamera(width, height, depth, size.width / Math.max(size.height, 1));
-  return <StableOrbitCamera sceneId="piece" fit={{ ...fit, minDistance: Math.max(0.8, Math.max(width, height, depth) * 0.7) }} />;
+  return (
+    <StableOrbitCamera
+      sceneId="piece"
+      fit={{ ...fit, minDistance: Math.max(0.8, Math.max(width, height, depth) * 0.7) }}
+      bounds={{ width, height, depth }}
+      reframeKey={reframeKey}
+    />
+  );
 }
 
 export function RoomCameraRig({ w, d, sceneId }: { w: number; d: number; sceneId: string }) {

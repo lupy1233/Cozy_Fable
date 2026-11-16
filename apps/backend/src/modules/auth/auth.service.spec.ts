@@ -8,7 +8,7 @@ import type { MailService } from '../../infra/mail/mail.service';
 import type { PrismaService } from '../../infra/prisma/prisma.service';
 import { SettingsService } from '../../common/settings/settings.service';
 import { AuthController } from './auth.controller';
-import { AuthService, LEGAL_REACCEPT_CACHE_MS, needsLegalAcceptance } from './auth.service';
+import { AuthService, LEGAL_REACCEPT_CACHE_MS, allowedVerifyReturnPath, needsLegalAcceptance } from './auth.service';
 import type { LoginLockoutService } from './login-lockout.service';
 import type { TokenService } from './token.service';
 import type { TwoFactorService } from './two-factor.service';
@@ -89,7 +89,8 @@ function makeService(user: Record<string, unknown> | null = makeUser(), systemSe
   } as any;
   const tokens = {
     revokeAllForUser: jest.fn().mockResolvedValue(undefined),
-    issueNewFamily: jest.fn().mockResolvedValue({ refreshToken: 'raw-refresh', familyId: 'session-family' }),
+    issueNewFamily: jest.fn().mockResolvedValue({ refreshToken: 'raw-refresh', familyId: 'session-family', revokedFamilyIds: [] }),
+    revokeByRawToken: jest.fn().mockResolvedValue({ userId: 'u1', familyId: 'session-family' }),
     signAccessToken: jest.fn().mockResolvedValue('access-jwt'),
     rotate: jest.fn().mockResolvedValue({ userId: 'u1', refreshToken: 'raw-refresh-2', familyId: 'session-family' }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -171,6 +172,59 @@ describe('register (termeni + email best-effort)', () => {
     const html = mail.send.mock.calls[0][2] as string;
     expect(html).not.toContain('<img');
     expect(html).toContain('&lt;img src=x&gt;');
+  });
+});
+
+// b4: intoarcerea la ciorna dupa confirmarea emailului
+describe('register cu returnTo (b4)', () => {
+  const linkOf = (mail: { send: jest.Mock }) => {
+    const html = mail.send.mock.calls.at(-1)?.[2] as string;
+    const m = /href="([^"]*\/verify-email\?[^"]*)"/.exec(html);
+    if (!m) throw new Error('link lipsa din email');
+    return new URL(m[1].replace(/&amp;/g, '&'));
+  };
+
+  it('cale permisa (/requests/new) → linkul de confirmare are ?redirect=/requests/new', async () => {
+    const { service, mail } = makeService(null);
+    await service.register({ ...registerDto, returnTo: '/requests/new' });
+    const url = linkOf(mail);
+    expect(url.pathname).toBe('/ro/verify-email');
+    expect(url.searchParams.get('token')).toMatch(/^[0-9a-f]{64}$/);
+    expect(url.searchParams.get('redirect')).toBe('/requests/new');
+    // in HTML, & e escapat
+    expect(mail.send.mock.calls[0][2]).toContain('&amp;redirect=%2Frequests%2Fnew');
+  });
+
+  it.each([
+    '//evil.com',
+    'https://evil.com/requests/new',
+    '/requests/new?x=1',
+    '/requests/abc',
+    '/dashboard',
+    '/\\evil.com',
+    '/..//evil.com',
+    '/requests/../requests/new',
+    '/requests/%6Eew',
+    '/requests//new',
+    '',
+  ])('cale nepermisa %j → ignorata in tacere, linkul are doar tokenul', async (returnTo) => {
+    const { service, mail } = makeService(null);
+    await expect(service.register({ ...registerDto, returnTo })).resolves.toMatchObject({ email: 'nou@demo.ro' });
+    const url = linkOf(mail);
+    expect([...url.searchParams.keys()]).toEqual(['token']);
+  });
+
+  it('fara returnTo → linkul de azi (doar tokenul)', async () => {
+    const { service, mail } = makeService(null);
+    await service.register(registerDto);
+    expect([...linkOf(mail).searchParams.keys()]).toEqual(['token']);
+  });
+
+  it('allowedVerifyReturnPath: potrivire exacta', () => {
+    expect(allowedVerifyReturnPath('/requests/new')).toBe('/requests/new');
+    expect(allowedVerifyReturnPath('/requests/new/')).toBeNull();
+    expect(allowedVerifyReturnPath(undefined)).toBeNull();
+    expect(allowedVerifyReturnPath(42)).toBeNull();
   });
 });
 
@@ -285,8 +339,46 @@ describe('change-password', () => {
     expect(out).toEqual({ accessToken: 'access-jwt', refreshToken: 'raw-refresh' });
     const data = prisma.user.update.mock.calls[0][0].data;
     expect(await bcrypt.compare('NouaParola1', data.passwordHash)).toBe(true);
-    expect(tokens.issueNewFamily).toHaveBeenCalledWith('u1', data.passwordHash);
+    expect(tokens.issueNewFamily).toHaveBeenCalledWith('u1', data.passwordHash, { revokeAll: true });
     expect(tokens.signAccessToken).toHaveBeenCalledWith(expect.objectContaining({ id: 'u1' }), 'session-family');
+  });
+
+  it('schimbarea parolei inchide socketurile tuturor sesiunilor contului (fara lista de sid)', async () => {
+    const { service, eventBus } = makeService();
+    await service.changePassword('u1', 'Parola123', 'NouaParola1');
+    expect(eventBus.emitAuthExpired).toHaveBeenCalledWith('u1');
+  });
+});
+
+// f3 (PO f3-1): cel mult 5 sesiuni; login-ul anunta doar sesiunile scoase.
+describe('sesiuni multiple (f3)', () => {
+  it('login: auth_expired doar catre familiile revocate peste limita, nu catre tot contul', async () => {
+    const { service, tokens, eventBus } = makeService();
+    tokens.issueNewFamily.mockResolvedValueOnce({ refreshToken: 'raw-refresh', familyId: 'f-new', revokedFamilyIds: ['f-oldest'] });
+    await service.login({ email: 'ana@demo.ro', password: 'Parola123' } as never);
+    expect(tokens.issueNewFamily).toHaveBeenCalledWith('u1', expect.any(String));
+    expect(eventBus.emitAuthExpired).toHaveBeenCalledTimes(1);
+    expect(eventBus.emitAuthExpired).toHaveBeenCalledWith('u1', ['f-oldest']);
+  });
+
+  it('login sub limita: lista goala, niciun socket deconectat', async () => {
+    const { service, eventBus } = makeService();
+    await service.login({ email: 'ana@demo.ro', password: 'Parola123' } as never);
+    expect(eventBus.emitAuthExpired).toHaveBeenCalledWith('u1', []);
+  });
+
+  it('logout: revoca si anunta doar sesiunea curenta', async () => {
+    const { service, tokens, eventBus } = makeService();
+    await service.logout('raw-refresh');
+    expect(tokens.revokeByRawToken).toHaveBeenCalledWith('raw-refresh');
+    expect(eventBus.emitAuthExpired).toHaveBeenCalledWith('u1', ['session-family']);
+  });
+
+  it('logout cu token necunoscut nu deconecteaza pe nimeni', async () => {
+    const { service, tokens, eventBus } = makeService();
+    tokens.revokeByRawToken.mockResolvedValueOnce(undefined);
+    await service.logout('necunoscut');
+    expect(eventBus.emitAuthExpired).not.toHaveBeenCalled();
   });
 });
 
@@ -511,5 +603,112 @@ describe('blocare login per email (E-admin-platform-5)', () => {
     const raw = tokenFromMail(mail, '/ro/reset-password');
     await service.resetPassword(raw, 'ParolaNoua1');
     expect(lockout.clear).toHaveBeenCalledWith('ana@demo.ro', { includeLock: true });
+  });
+});
+
+// f5 (etapa 12): anuntul „Parola ta a fost schimbata” dupa resetare si dupa schimbarea din cont.
+describe('e-mailul „Parola ta a fost schimbată” (f5)', () => {
+  const changedMail = (mail: { send: jest.Mock }) =>
+    mail.send.mock.calls.find((c) => /Parola ta a fost schimbată|Your password was changed/.test(String(c[1])));
+
+  afterEach(() => jest.useRealTimers());
+
+  it('reset valid → al doilea e-mail = confirmarea, cu data si ora Romaniei, reply-to suport, fara token', async () => {
+    jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] });
+    // 14.11.2026 13:05 UTC = 15:05 in Romania (EET, UTC+2)
+    jest.setSystemTime(new Date('2026-11-14T13:05:00Z'));
+    const { service, mail, tokens } = makeService();
+    mail.supportEmail = 'suport@cozyhome.ro';
+    await service.forgotPassword('ana@demo.ro');
+    const raw = tokenFromMail(mail, '/ro/reset-password');
+    await service.resetPassword(raw, 'NouaParola1');
+    expect(mail.send).toHaveBeenCalledTimes(2);
+    const [to, subject, html, opts] = mail.send.mock.calls[1];
+    expect(to).toBe('ana@demo.ro');
+    expect(subject).toBe('Parola ta a fost schimbată — Cozy Home');
+    expect(opts).toEqual({ replyToSupport: true });
+    expect(html).toContain('pe 14 noiembrie 2026, la ora 15:05 (ora României)');
+    // m19: cu adresa de suport configurata, „scrie-ne” vine cu adresa
+    expect(html).toContain('Dacă nu ai fost tu, resetează parola și scrie-ne la suport@cozyhome.ro (sau răspunde direct la acest email).');
+    expect(html).toContain('http://localhost:3000/ro/forgot-password');
+    expect(html).toContain('Ana &lt;b&gt;Popescu&lt;/b&gt;');
+    expect(html).not.toContain(raw);
+    expect(html).not.toContain('NouaParola1');
+    // sesiunile se revoca la fel ca inainte
+    expect(tokens.revokeAllForUser).toHaveBeenCalledWith('u1');
+  });
+
+  it('SMTP cazut la confirmare → resetarea reuseste totusi (parola schimbata, sesiuni revocate)', async () => {
+    const { service, mail, prisma, tokens, eventBus } = makeService();
+    await service.forgotPassword('ana@demo.ro');
+    const raw = tokenFromMail(mail, '/ro/reset-password');
+    mail.send.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+    await expect(service.resetPassword(raw, 'NouaParola1')).resolves.toBeUndefined();
+    expect(prisma.user.update).toHaveBeenCalledTimes(1);
+    expect(tokens.revokeAllForUser).toHaveBeenCalledWith('u1');
+    expect(eventBus.emitAuthExpired).toHaveBeenCalledWith('u1');
+  });
+
+  it('schimbarea din cont → trimite confirmarea; contul EN primeste textul in engleza', async () => {
+    jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] });
+    jest.setSystemTime(new Date('2026-07-01T21:30:00Z')); // 02.07 00:30 in Romania (EEST, UTC+3)
+    const { service, mail } = makeService(makeUser({ languagePreference: 'EN' }));
+    await service.changePassword('u1', 'Parola123', 'NouaParola1');
+    const call = changedMail(mail);
+    expect(call).toBeDefined();
+    const [to, subject, html, opts] = call ?? [];
+    expect(to).toBe('ana@demo.ro');
+    expect(subject).toBe('Your password was changed — Cozy Home');
+    expect(html).toContain('on 2 July 2026 at 00:30 (Romania time)');
+    // m19: fara SUPPORT_EMAIL nu promitem „write to us” fara adresa
+    expect(html).toContain("If this wasn't you, reset your password.");
+    expect(html).not.toContain('write to us');
+    expect(html).toContain('/en/forgot-password');
+    expect(opts).toEqual({ replyToSupport: true });
+    expect(html).not.toContain('NouaParola1');
+  });
+
+  it('schimbarea din cont cu SMTP cazut → raspunsul ramane cel de azi (sesiunea curenta noua)', async () => {
+    const { service, mail, tokens } = makeService();
+    mail.send.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+    await expect(service.changePassword('u1', 'Parola123', 'NouaParola1')).resolves.toEqual({
+      accessToken: 'access-jwt',
+      refreshToken: 'raw-refresh',
+    });
+    expect(tokens.issueNewFamily).toHaveBeenCalledWith('u1', expect.any(String), { revokeAll: true });
+  });
+
+  it('parola curenta gresita → niciun e-mail', async () => {
+    const { service, mail } = makeService();
+    await expect(service.changePassword('u1', 'Gresita123', 'NouaParola1')).rejects.toBeInstanceOf(BadRequestException);
+    expect(mail.send).not.toHaveBeenCalled();
+  });
+
+  it('token invalid sau expirat → niciun e-mail de confirmare (revizie)', async () => {
+    const { service, mail, redis } = makeService();
+    await expect(service.resetPassword('f'.repeat(64), 'NouaParola1')).rejects.toBeInstanceOf(BadRequestException);
+    expect(mail.send).not.toHaveBeenCalled();
+    await service.forgotPassword('ana@demo.ro');
+    const raw = tokenFromMail(mail, '/ro/reset-password');
+    redis.store.clear(); // TTL expirat
+    await expect(service.resetPassword(raw, 'NouaParola1')).rejects.toBeInstanceOf(BadRequestException);
+    // doar e-mailul cu linkul, fara confirmare
+    expect(mail.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('m19: fara adresa de suport (RO) → „Dacă nu ai fost tu, resetează parola.” fara „scrie-ne”', async () => {
+    const { service, mail } = makeService();
+    await service.changePassword('u1', 'Parola123', 'NouaParola1');
+    const [, , html] = changedMail(mail) ?? [];
+    expect(html).toContain('Dacă nu ai fost tu, resetează parola.');
+    expect(html).not.toContain('scrie-ne');
+  });
+
+  it('m19: cu adresa de suport (EN) → adresa apare in text, escapata', async () => {
+    const { service, mail } = makeService(makeUser({ languagePreference: 'EN' }));
+    mail.supportEmail = 'help+a&b@cozyhome.ro';
+    await service.changePassword('u1', 'Parola123', 'NouaParola1');
+    const [, , html] = changedMail(mail) ?? [];
+    expect(html).toContain("If this wasn't you, reset your password and write to us at help+a&amp;b@cozyhome.ro (or simply reply to this email).");
   });
 });

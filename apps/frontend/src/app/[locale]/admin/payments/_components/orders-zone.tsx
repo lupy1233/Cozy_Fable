@@ -2,6 +2,7 @@
 
 import type { AdminBillingOrderItemDto, EInvoiceStatus } from '@marketplace/shared';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { useMemo, useState } from 'react';
 import { useMoney } from '@/hooks/use-money';
 import { formatAmount } from '@/lib/money';
@@ -97,7 +98,7 @@ export function OrdersZone({
   const primaryId = rows.find(isBankPending)?.id;
   const hasInvoiceCol = rows.some((o) => o.status === 'CONFIRMED' || !!o.invoiceLabel);
 
-  const fmtDate = (iso: string) => format.dateTime(new Date(iso), { dateStyle: 'medium', timeStyle: 'short' });
+  const fmtDate = (iso: string) => format.dateTime(new Date(iso), { dateStyle: 'medium', timeStyle: 'short', timeZone: APP_TIME_ZONE });
   const detailOf = (o: AdminBillingOrderItemDto) =>
     o.orderType === 'SUBSCRIPTION'
       ? t('planLabel', { tier: o.planTier ?? '' })

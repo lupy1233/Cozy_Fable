@@ -14,7 +14,7 @@ import type {
   ScoreEntry,
   UploadStep,
 } from '../../types';
-import { otherMaterialStep } from '../common';
+import { otherMaterialStep, tvSetupText } from '../common';
 import { answerString, pieceMaterialStep, pieceSketchStep, pieceSystemsStep } from './builder';
 
 // Versiunile 3 ale pieselor-carcasa (docs/10 R3+R5): step-ul configurator-3d
@@ -22,7 +22,9 @@ import { answerString, pieceMaterialStep, pieceSketchStep, pieceSystemsStep } fr
 // storage); raman intrebarile ortogonale (material cu "Altul", doorType la
 // dulap, tvSetup, cableManagement, count la noptiere) si schita. v1/v2 raman
 // FROZEN — cererile publicate pe ele se valideaza contra definitiei originale.
-// Piesele care nu sunt corpuri (pat, masa, bancuta) raman pe v2.
+// Piesele care nu sunt corpuri (pat, masa, bancuta) NU sunt aici: v3-ul lor e in
+// furniture-v3.ts, v4 in furniture-v4.ts (etapa 6), iar v5 (furniture-v5.ts, etapa 10)
+// e versiunea curenta.
 
 // Snapshotul PNG al scenei (R4): step upload ASCUNS, scris programatic la
 // publish; trece prin acelasi flux presigned + verificare de ownership ca
@@ -141,7 +143,7 @@ export const pieceBookcaseFlowV3: RoomFlow = piece3dFlow({
   kind: 'BOOKCASE',
   withSystems: true,
   derive: (_config, answers) => ({
-    name: 'Biblioteca',
+    name: 'Bibliotecă',
     systems: openingSystems(answers),
     quantity: 1,
   }),
@@ -189,7 +191,7 @@ export const pieceWardrobeFlowV3: RoomFlow = (() => {
       config.heightM >= 2.5 ? [{ category: 'WARDROBE_TO_CEILING', optionKey: 'YES' }] : [],
     derive: (config, answers) => ({
       name:
-        config && config.heightM >= 2.5 ? 'Dulap pana in tavan (tip dressing)' : 'Dulap',
+        config && config.heightM >= 2.5 ? 'Dulap până în tavan (tip dressing)' : 'Dulap',
       systems:
         config?.doorMode === 'SLIDING'
           ? ['GLISANTE']
@@ -217,10 +219,10 @@ export const pieceTvUnitFlowV3: RoomFlow = (() => {
     extraSteps: [tvSetupStep],
     withSystems: true,
     derive: (_config, answers) => ({
-      name: 'Comoda TV',
+      name: 'Comodă TV',
       systems: openingSystems(answers),
       quantity: 1,
-      extraDescription: `TV: ${answerString(answers, 'tvSetup', 'UNDECIDED')}`,
+      extraDescription: tvSetupText(answerString(answers, 'tvSetup', 'UNDECIDED')),
     }),
   });
 })();
@@ -236,7 +238,7 @@ export const pieceDresserFlowV3: RoomFlow = piece3dFlow({
   kind: 'DRESSER',
   withSystems: true,
   derive: (_config, answers) => ({
-    name: 'Comoda',
+    name: 'Comodă',
     systems: openingSystems(answers),
     quantity: 1,
   }),
@@ -260,7 +262,7 @@ export const pieceNightstandFlowV3: RoomFlow = (() => {
     extraSteps: [countStep],
     derive: (_config, answers) => {
       const quantity = answerString(answers, 'count', 'TWO') === 'ONE' ? 1 : 2;
-      return { name: quantity === 1 ? 'Noptiera' : 'Noptiere', systems: [], quantity };
+      return { name: quantity === 1 ? 'Noptieră' : 'Noptiere', systems: [], quantity };
     },
   });
 })();
@@ -286,7 +288,7 @@ export const pieceDeskFlowV3: RoomFlow = (() => {
       systems: [],
       quantity: 1,
       extraDescription:
-        answers.cableManagement === true ? 'Cu management de cabluri' : undefined,
+        answers.cableManagement === true ? 'Cu canal pentru cabluri' : undefined,
     }),
   });
 })();

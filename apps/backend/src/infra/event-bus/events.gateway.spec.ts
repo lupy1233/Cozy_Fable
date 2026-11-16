@@ -46,6 +46,24 @@ describe('socket session authorization', () => {
     expect(socket.emit).not.toHaveBeenCalledWith('message.created', expect.anything());
   });
 
+  it('f3: expireSessions deconecteaza doar socketurile sesiunilor revocate (dupa sid)', async () => {
+    const { gateway } = setup(true);
+    const mk = (sid?: string) => ({ data: { accessPayload: sid ? { ...payload, sid } : undefined }, emit: jest.fn(), disconnect: jest.fn() });
+    const oldest = mk('family-old');
+    const other = mk('family-keep');
+    const legacy = mk();
+    const inRoom = jest.fn().mockReturnValue({ fetchSockets: jest.fn().mockResolvedValue([oldest, other, legacy]) });
+    gateway.server = { in: inRoom } as never;
+    await gateway.expireSessions('u1', ['family-old']);
+    expect(inRoom).toHaveBeenCalledWith('user:u1');
+    expect(oldest.emit).toHaveBeenCalledWith('auth_expired');
+    expect(oldest.disconnect).toHaveBeenCalledWith(true);
+    for (const s of [other, legacy]) {
+      expect(s.emit).not.toHaveBeenCalled();
+      expect(s.disconnect).not.toHaveBeenCalled();
+    }
+  });
+
   it('delivers only to active sessions and expires connected sockets', async () => {
     jest.useFakeTimers();
     try {

@@ -71,6 +71,9 @@ export const STATUS_TONE: Record<string, Tone> = {
   CANCELLED_REQUEST_ACCEPTED: 'muted',
   CANCELLED_PROJECT: 'muted',
   CANCELLED_OFFER_EXPIRED: 'muted',
+  // a4: clientul a refuzat oferta (locul OFFER_DECLINED, oferta DECLINED) — inchis, inactiv
+  OFFER_DECLINED: 'muted',
+  DECLINED: 'muted',
   SMALL: 'muted',
   MEDIUM: 'walnut',
   LARGE: 'ink',

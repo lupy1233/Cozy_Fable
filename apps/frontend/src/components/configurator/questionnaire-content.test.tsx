@@ -2,6 +2,7 @@ import { CURRENT_FLOW_VERSION, getFlow, evalCondition, type AnswerMap, type Cond
 import { describe, expect, it } from 'vitest';
 import en from '@/messages/en.json';
 import ro from '@/messages/ro.json';
+import { PRICE_HINTS_REMOVED } from '@/messages/flow-text-keys';
 import { ROOM_ICONS } from '@/lib/room-icons';
 import { resolveConfiguratorIcon } from '@/lib/configurator-icons';
 import { getDimensionFigure } from './dimension-figures';
@@ -10,6 +11,12 @@ function satisfy(condition: Condition | undefined, answers: AnswerMap) {
   if (!condition) return;
   if ('all' in condition) condition.all.forEach((child) => satisfy(child, answers));
   else if ('any' in condition) satisfy(condition.any[0], answers);
+  // etapa 6: `{ not }` — booleanul pe dos, altfel raspunsul lipsa nu satisface conditia interioara
+  else if ('not' in condition) {
+    const inner = condition.not;
+    if ('equals' in inner && typeof inner.equals === 'boolean') answers[inner.questionId] = !inner.equals;
+    else if ('equals' in inner || 'in' in inner) delete answers[inner.questionId];
+  }
   else if ('equals' in condition) answers[condition.questionId] = condition.equals;
   else answers[condition.questionId] = Array.isArray(answers[condition.questionId]) ? condition.in : condition.in[0];
 }
@@ -18,8 +25,9 @@ describe('current questionnaire content', () => {
   it('resolves every title, description, dimension label and info text in RO and EN', () => {
     const failures: string[] = [];
     const iconNames = new Set<string>(Object.values(ROOM_ICONS));
+    // c13 (etapa 12): preturi scoase intentionat — lista unica in messages/flow-text-keys.ts
     const check = (key: string | undefined) => {
-      if (!key) return;
+      if (!key || PRICE_HINTS_REMOVED.has(key)) return;
       for (const [locale, messages] of Object.entries({ en, ro })) {
         const value = key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown>)?.[part], messages.Configurator);
         if (typeof value !== 'string' || !value.trim()) failures.push(`${locale}:${key}`);

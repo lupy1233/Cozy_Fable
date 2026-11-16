@@ -6,6 +6,7 @@ import type {
   ClaimQuoteContextDto,
   CreateConsultationInviteInput,
   CreateQuoteInput,
+  DeclineQuoteInput,
   ExtendValidityInput,
   ExtraQuoteVersionInput,
   QuoteDto,
@@ -17,6 +18,11 @@ import type {
 } from '@marketplace/shared';
 import { api, ApiError } from '@/lib/api';
 import { useIdempotentApi } from './use-idempotent-api';
+
+// a3 (etapa 4): interfata noua nu mai trimite textele libere deliveryTerm / warranty — doar
+// rubricile structurate (vatMode, deliveryTermValue/Unit, warrantyMonths, bifele); serverul le
+// completeaza singur pentru PDF, e-mailuri si codul vechi.
+type WithoutFreeText<T> = Omit<T, 'deliveryTerm' | 'warranty'>;
 
 const QUOTES_KEY = ['quotes'] as const;
 
@@ -43,7 +49,7 @@ export function useCreateQuote() {
   const qc = useQueryClient();
   const request = useIdempotentApi();
   return useMutation({
-    mutationFn: (input: CreateQuoteInput) =>
+    mutationFn: (input: WithoutFreeText<CreateQuoteInput>) =>
       request<QuoteDto>('/quotes', { method: 'POST', body: JSON.stringify(input) }),
     onSuccess: () => invalidate(qc),
   });
@@ -53,7 +59,7 @@ export function useReviseQuote(quoteId: string) {
   const qc = useQueryClient();
   const request = useIdempotentApi();
   return useMutation({
-    mutationFn: (input: ReviseQuoteInput) =>
+    mutationFn: (input: WithoutFreeText<ReviseQuoteInput>) =>
       request<QuoteDto>(`/quotes/${quoteId}/revise`, {
         method: 'POST',
         body: JSON.stringify(input),
@@ -66,7 +72,7 @@ export function useExtraVersion(quoteId: string) {
   const qc = useQueryClient();
   const request = useIdempotentApi();
   return useMutation({
-    mutationFn: (input: ExtraQuoteVersionInput) =>
+    mutationFn: (input: WithoutFreeText<ExtraQuoteVersionInput>) =>
       request<QuoteDto>(`/quotes/${quoteId}/extra`, {
         method: 'POST',
         body: JSON.stringify(input),
@@ -88,7 +94,7 @@ export function useReoffer(quoteId: string) {
   const qc = useQueryClient();
   const request = useIdempotentApi();
   return useMutation({
-    mutationFn: (input: ExtraQuoteVersionInput) =>
+    mutationFn: (input: WithoutFreeText<ExtraQuoteVersionInput>) =>
       request<QuoteDto>(`/quotes/${quoteId}/reoffer`, {
         method: 'POST',
         body: JSON.stringify(input),
@@ -188,6 +194,29 @@ export function useAcceptQuote() {
       if (e instanceof ApiError && e.code === 'QUOTE_VERSION_CHANGED') invalidate(qc);
     },
   });
+}
+
+// a4 (etapa 4): clientul refuza definitiv o oferta SENT; cheie de idempotenta ca la acceptare.
+// Raspunsul e oferta adusa la zi; altfel 409 QUOTE_NOT_DECLINABLE.
+export function useDeclineQuote() {
+  const qc = useQueryClient();
+  const request = useIdempotentApi();
+  return useMutation({
+    mutationFn: ({ quoteId, reason, note }: { quoteId: string } & DeclineQuoteInput) =>
+      request<QuoteDto>(`/client/quotes/${quoteId}/decline`, {
+        method: 'POST',
+        body: JSON.stringify({ ...(reason ? { reason } : {}), ...(note ? { note } : {}) }),
+      }),
+    onSuccess: () => invalidate(qc),
+    // m11: la eroare oferta NU se reimprospateaza aici — dialogul ramane deschis cu explicatia,
+    // iar reimprospatarea vine la inchiderea lui (useRefreshQuotes)
+  });
+}
+
+// Reimprospatarea ofertelor (si a cererii / conversatiei), pentru componentele care o amana
+export function useRefreshQuotes() {
+  const qc = useQueryClient();
+  return () => invalidate(qc);
 }
 
 // E-admin-platform-3: clientul cere firmei prelungirea unei oferte EXPIRED (repetarea e no-op).

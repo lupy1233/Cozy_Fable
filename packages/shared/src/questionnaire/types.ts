@@ -1,6 +1,7 @@
 import type { RoomType } from '../enums';
 import type { RequestItemInput } from '../request.schemas';
 import type { Piece3dKind, PieceConfig3d } from './piece3d/config';
+import type { Piece3dFeature } from './piece3d/features';
 
 // Motorul de chestionar al configuratorului de cereri.
 // Definitiile flow-urilor sunt typed TS config (decizie user, 2026-07-04) — NU DB.
@@ -25,11 +26,15 @@ export type AnswerMap = Record<string, AnswerValue>;
 // Conditii serializabile (date, nu functii) — evaluate identic FE/BE, testabile.
 // `equals`: egalitate stricta cu un primitiv.
 // `in`: pentru raspuns primitiv = apartenenta; pentru raspuns string[] = intersectie nevida.
+// Etapa 6 (optionale, folosite doar de versiunile noi):
+// - `atLeast` pe `in`: pe raspuns string[] cere cel putin N potriviri (implicit 1); ignorat pe primitiv;
+// - `not`: negatia unei conditii (ex. "intrebarea comuna NU e Da").
 export type Condition =
   | { questionId: string; equals: AnswerPrimitive }
-  | { questionId: string; in: string[] }
+  | { questionId: string; in: string[]; atLeast?: number }
   | { all: Condition[] }
-  | { any: Condition[] };
+  | { any: Condition[] }
+  | { not: Condition };
 
 // Pointer catre o optiune de scoring din project_sizing_config (key + option).
 export interface ScoringRef {
@@ -66,6 +71,10 @@ export interface ChoiceOption {
   // (ex. MDF recomandat cand baia nu e ventilata). Nu afecteaza validarea.
   recommendedIf?: Condition;
   scoring?: ScoringRef;
+  // etapa 6, doar la multi-choice: optiunea se poate alege DOAR singura
+  // ("Nu stiu — vreau recomandarea firmei", "Fara usi sau sertare");
+  // validarea respinge combinatia cu alte optiuni (validation.exclusiveOption).
+  exclusive?: boolean;
 }
 
 export interface DimensionSlot {
@@ -77,6 +86,12 @@ export interface DimensionSlot {
   step?: number;
   // intra in suma de metri liniari (front de mobilier) → lengthM + bucket ROOM_SIZE
   countsTowardLinear?: boolean;
+  // etapa 10 (c5): slotul poate ramane gol la publicare; lipsa = "clientul nu stie" (nu se inventeaza nimic).
+  // Fluxurile vechi nu il pun → slotul ramane obligatoriu, ca inainte.
+  optional?: boolean;
+  // etapa 10 (c5): valoarea tipica, in metri, aratata doar ca indiciu ("de obicei 240 cm");
+  // NU se salveaza, NU intra in calcul
+  typicalM?: number;
 }
 
 interface BaseStep {
@@ -126,7 +141,14 @@ export type DimensionGroupStep = BaseStep & {
 };
 export type NumberStep = BaseStep & { type: 'number'; min: number; max: number; step?: number };
 export type TextStep = BaseStep & { type: 'text'; maxLength: number; multiline?: boolean };
-export type PiecesStep = BaseStep & { type: 'pieces'; minPieces: number; maxPieces: number };
+// rowVersion 2 (etapa 6, "Alta piesa" v2): randurile se valideaza cu pieceRowV2Schema
+// (dimensiuni in cm, "decide firma", "fara usi sau sertare"); lipsa = requestItemSchema (ca inainte).
+export type PiecesStep = BaseStep & {
+  type: 'pieces';
+  minPieces: number;
+  maxPieces: number;
+  rowVersion?: 2;
+};
 // Upload schita/proiect per camera. Raspunsul = string[] de attachment id-uri
 // (uuid) deja create prin fluxul presign/confirm; backend-ul verifica la publish
 // ca id-urile apartin cererii. Step-urile upload sunt intotdeauna optionale.
@@ -140,6 +162,9 @@ export type Configurator3dStep = BaseStep & {
   type: 'configurator-3d';
   piece: Piece3dKind;
   scoreEntries?: (config: PieceConfig3d) => ScoreEntry[];
+  // etapa 10: campurile 3D optionale pe care pasul le accepta (piece3d/features.ts);
+  // lipsa = niciunul (fluxurile vechi) → configuratia cu campurile noi e respinsa (validation.unknownAnswer)
+  features?: readonly Piece3dFeature[];
 };
 
 export type QuestionStep =
@@ -161,6 +186,17 @@ export interface DerivedRoom {
   widthM: number;
   heightM: number;
   items: RequestItemInput[];
+  // etapa 6 (optional; fluxurile vechi nu il pun): piesele la care clientul a ales
+  // "Nu stiu — vreau recomandarea firmei". NU se salveaza in baza de date — fisa firmei
+  // il re-deriva din raspunsuri (firmRecommendations din engine).
+  firmRecommendations?: FirmRecommendation[];
+}
+
+// Marcajul "recomandarea firmei" pe o piesa derivata (potrivire dupa itemName = item.name).
+export interface FirmRecommendation {
+  itemName: string;
+  material: boolean;
+  opening: boolean;
 }
 
 export interface RoomFlow {
@@ -180,6 +216,8 @@ export type AnswerSummaryEntry =
       stepId: string;
       labelKey: string;
       slots: { labelKey: string; value: number }[];
+      // etapa 10: sloturile optionale lasate goale (lipsa pe fluxurile vechi si cand nu exista)
+      missing?: { labelKey: string; typicalM?: number }[];
     }
   | { kind: 'number'; stepId: string; labelKey: string; value: number }
   | { kind: 'text'; stepId: string; labelKey: string; value: string }

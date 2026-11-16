@@ -22,4 +22,48 @@ describe('event delivery identity', () => {
     expect(queue.add).toHaveBeenCalledWith('payment.confirmed', { orderId: 'order-1', __targets: ['owner'], __eventId: 'event-1' }, expect.objectContaining({ jobId: 'event-event-1', attempts: 3 }));
     expect(job.retry).toHaveBeenCalledTimes(1);
   });
+  // g1 (etapa 9): anuntul catre firme inainte de preluare nu poarta date de contact in titlu
+  it('request.new_in_area: titlul (rehidratat brut de outbox) se mascheaza pe socket si in job', async () => {
+    const gateway = { publishToActiveSessions: jest.fn().mockResolvedValue(undefined) };
+    const job = { getState: jest.fn().mockResolvedValue('waiting') };
+    const queue = { add: jest.fn().mockResolvedValue(job) };
+    const bus = new EventBusService(gateway as unknown as EventsGateway, queue as unknown as Queue);
+    await bus.publish('request.new_in_area', { requestId: 'r1', companyId: 'c1', requestTitle: 'Dulap, sunati 0722 123 456' }, ['m1'], 'e1');
+    const socketPayload = gateway.publishToActiveSessions.mock.calls[0][1];
+    const jobPayload = queue.add.mock.calls[0][1];
+    expect(socketPayload.requestTitle).not.toContain('0722');
+    expect(jobPayload.requestTitle).not.toContain('0722');
+    expect(socketPayload.requestTitle).toContain('Dulap');
+    // celelalte evenimente nu se ating
+    await bus.publish('quote.accepted', { requestTitle: 'Dulap 0722 123 456' }, ['m1'], 'e2');
+    expect(gateway.publishToActiveSessions.mock.calls[1][1].requestTitle).toBe('Dulap 0722 123 456');
+  });
+});
+
+describe('auth_expired (f3)', () => {
+  function setup() {
+    const room = { emit: jest.fn(), disconnectSockets: jest.fn() };
+    const server = { to: jest.fn().mockReturnValue(room), in: jest.fn().mockReturnValue(room) };
+    const gateway = { server, expireSessions: jest.fn().mockResolvedValue(undefined) };
+    const bus = new EventBusService(gateway as unknown as EventsGateway, {} as unknown as Queue);
+    return { bus, gateway, room };
+  }
+  it('fara sid-uri: toate socketurile contului (parola, blocare)', async () => {
+    const { bus, gateway, room } = setup();
+    await bus.emitAuthExpired('u1');
+    expect(room.emit).toHaveBeenCalledWith('auth_expired');
+    expect(room.disconnectSockets).toHaveBeenCalledWith(true);
+    expect(gateway.expireSessions).not.toHaveBeenCalled();
+  });
+  it('cu sid-uri: doar sesiunile date; lista goala nu atinge nimic; o eroare nu se propaga', async () => {
+    const { bus, gateway, room } = setup();
+    await bus.emitAuthExpired('u1', ['f-old']);
+    expect(gateway.expireSessions).toHaveBeenCalledWith('u1', ['f-old']);
+    expect(room.emit).not.toHaveBeenCalled();
+    gateway.expireSessions.mockClear();
+    await bus.emitAuthExpired('u1', []);
+    expect(gateway.expireSessions).not.toHaveBeenCalled();
+    gateway.expireSessions.mockRejectedValueOnce(new Error('adapter down'));
+    await expect(bus.emitAuthExpired('u1', ['f-old'])).resolves.toBeUndefined();
+  });
 });

@@ -30,11 +30,12 @@ beforeEach(() => {
 });
 afterEach(() => restoreClock());
 
-function makeService(lockedRow: Any, openAfterFirstOffer = false) {
+// openAfterFirstOffer nedat = valoarea implicita din cod (SETTING_DEFAULTS, a1: true)
+function makeService(lockedRow: Any, openAfterFirstOffer?: boolean) {
   const tx = makeClaimsTx();
   tx.$queryRaw.mockResolvedValue(lockedRow ? [lockedRow] : []);
   const deps = makeClaimsService({}, tx);
-  deps.settings.getBool.mockResolvedValue(openAfterFirstOffer);
+  if (openAfterFirstOffer !== undefined) deps.settings.getBool.mockResolvedValue(openAfterFirstOffer);
   return deps;
 }
 
@@ -107,7 +108,7 @@ describe('ClaimsService.create — claim dupa prima oferta (E-admin-platform-10)
       status: 409,
       response: { code: 'CLAIM_NOT_ALLOWED' },
     });
-    expect(settings.getBool).toHaveBeenCalledWith('claims_open_after_first_offer', false);
+    expect(settings.getBool).toHaveBeenCalledWith('claims_open_after_first_offer', true);
     expect(tx.claimSlot.count).not.toHaveBeenCalled();
     expect(tx.claimSlot.create).not.toHaveBeenCalled();
     expect(credits.reserve).not.toHaveBeenCalled();
@@ -132,6 +133,28 @@ describe('ClaimsService.create — claim dupa prima oferta (E-admin-platform-10)
       status: 409,
       response: { code: 'CLAIM_SLOTS_FULL' },
     });
+  });
+
+  // a1 (PO 2026-11-13): fara rand in system_settings cererea ramane deschisa dupa prima oferta
+  // si dupa o cerere de modificare (NEGOTIATION, SA-15) cat are locuri libere
+  it.each(['OFFERS_RECEIVED', 'NEGOTIATION'])('setarea implicita: %s cu 1/3 sloturi trece de status si de sloturi', async (status) => {
+    const { service, tx } = makeService(baseRow({ status }));
+    tx.claimSlot.count.mockResolvedValue(1);
+    tx.claimSlot.findFirst.mockResolvedValue({ id: 'own' });
+    await expect(service.create(ctx, 'u1', dto)).rejects.toMatchObject({
+      response: { code: 'CLAIM_ALREADY_EXISTS' },
+    });
+    expect(tx.claimSlot.count).toHaveBeenCalledTimes(1);
+  });
+
+  it('setarea implicita: a 4-a preluare pe OFFERS_RECEIVED (3/3) → CLAIM_SLOTS_FULL', async () => {
+    const { service, tx, credits } = makeService(baseRow({ status: 'OFFERS_RECEIVED' }));
+    tx.claimSlot.count.mockResolvedValue(3);
+    await expect(service.create(ctx, 'u1', dto)).rejects.toMatchObject({
+      status: 409,
+      response: { code: 'CLAIM_SLOTS_FULL' },
+    });
+    expect(credits.reserve).not.toHaveBeenCalled();
   });
 
   it.each(['CLAIMED_FULL', 'ACCEPTED'])('flag pornit: %s ramane neclaimabil', async (status) => {
@@ -223,6 +246,8 @@ describe('ClaimsService.create — drumul fericit (E-admin-platform-14)', () => 
     expect(keys).toEqual(['claim.created:slot1', 'claim.created:slot1:status']);
     expect(outbox.record.mock.calls[0][0]).toBe(tx);
     expect(outbox.record.mock.calls[0][4]).toEqual(['u1', 'cl1']);
+    // cine preia e trecut ca autor: procesorul il scoate dintre destinatari (withoutActor)
+    expect(outbox.record.mock.calls[0][3]).toMatchObject({ actorUserId: 'u1' });
 
     expect(assignQueue.add).toHaveBeenCalledWith(
       'assign-deadline',
@@ -245,5 +270,78 @@ describe('ClaimsService.create — drumul fericit (E-admin-platform-14)', () => 
     });
     expect(assignQueue.add).not.toHaveBeenCalled();
     expect(slaQueue.add).not.toHaveBeenCalled();
+  });
+});
+
+// a5 (PO 2026-11-13) — cine preia devine responsabil: UI-ul trimite implicit id-ul celui care
+// preia; proprietarul/managerul pot lasa fara responsabil ("Atribui mai tarziu", ceas de 1h);
+// angajatul cu acces complet preia mereu pentru el.
+describe('ClaimsService.create — responsabilul implicit (a5)', () => {
+  function ready(memberRole: string) {
+    const row = baseRow({ credit_cost: 2 });
+    const deps = makeService(row);
+    const p = snapToPrivacyGrid(row.lat, row.lng);
+    deps.tx.companyLocation.findMany.mockResolvedValue([{ lat: p.lat, lng: p.lng, coverageRadiusKm: 5 }]);
+    deps.tx.companyMember.findMany.mockResolvedValue([{ userId: 'u1', companyId: 'c1' }]);
+    deps.tx.claimSlot.create.mockImplementation(({ data }: Any) =>
+      Promise.resolve({ id: 'slot1', ...data, quoteId: null, slaPausedAt: null, withdrawnAt: null, createdAt: now, updatedAt: now }),
+    );
+    deps.tx.request.findUnique.mockResolvedValue({ clientUserId: 'cl1' });
+    deps.prisma.companyMember.findUnique.mockImplementation(async ({ where }: Any) => ({ userId: where.userId, companyId: 'c1' }));
+    const ctx: Any = { companyId: 'c1', memberRole, status: 'APPROVED', gatingDelayMinutes: 0 };
+    return { ...deps, ctx };
+  }
+
+  it('preluare cu responsabil = cel care preia → fara ceas de o ora si fara job de anulare', async () => {
+    const { service, tx, ctx, assignQueue } = ready('OWNER');
+    await service.create(ctx, 'u1', { requestId: 'r1', assignToUserId: 'u1' } as Any);
+    const created = tx.claimSlot.create.mock.calls[0][0].data;
+    expect(created).toMatchObject({ claimedByUserId: 'u1', assignedToUserId: 'u1', assignDeadlineAt: null });
+    expect(assignQueue.add).not.toHaveBeenCalled();
+  });
+
+  it('cel care preia are deja o preluare fara oferta → ACTIVE_CLAIM_WITHOUT_OFFER_EXISTS, fara credite', async () => {
+    const { service, tx, ctx, credits } = ready('OWNER');
+    // 1) firma nu are deja claim pe cerere; 2) responsabilul (tu) are o preluare activa fara oferta
+    tx.claimSlot.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'busy' });
+    await expect(service.create(ctx, 'u1', { requestId: 'r1', assignToUserId: 'u1' } as Any)).rejects.toMatchObject({
+      status: 409,
+      response: { code: 'ACTIVE_CLAIM_WITHOUT_OFFER_EXISTS' },
+    });
+    expect(credits.reserve).not.toHaveBeenCalled();
+  });
+
+  it('proprietar fara responsabil ("Atribui mai tarziu") → neatribuit, cu ceasul de o ora', async () => {
+    const { service, tx, ctx, assignQueue } = ready('MANAGER');
+    await service.create(ctx, 'u1', dto);
+    const created = tx.claimSlot.create.mock.calls[0][0].data;
+    expect(created.assignedToUserId).toBeNull();
+    expect(created.assignDeadlineAt).toEqual(plusMs(now, ASSIGN_DEADLINE_MS));
+    expect(assignQueue.add).toHaveBeenCalledWith('assign-deadline', { claimSlotId: 'slot1' }, expect.anything());
+  });
+
+  it('angajat cu acces complet fara responsabil → preia pentru el (fara ceas de o ora)', async () => {
+    const { service, tx, ctx, assignQueue } = ready('EMPLOYEE_TRUSTED');
+    await service.create(ctx, 'u1', dto);
+    const created = tx.claimSlot.create.mock.calls[0][0].data;
+    expect(created).toMatchObject({ assignedToUserId: 'u1', assignDeadlineAt: null });
+    expect(assignQueue.add).not.toHaveBeenCalled();
+  });
+
+  it('angajat cu acces complet care alege alt coleg → 403 FORBIDDEN, fara slot', async () => {
+    const { service, tx, ctx } = ready('EMPLOYEE_TRUSTED');
+    await expect(service.create(ctx, 'u1', { requestId: 'r1', assignToUserId: 'u2' } as Any)).rejects.toMatchObject({
+      status: 403,
+      response: { code: 'FORBIDDEN' },
+    });
+    expect(tx.claimSlot.create).not.toHaveBeenCalled();
+  });
+
+  it('a7: angajat fara acces complet → 403 CLAIM_ROLE_NOT_ALLOWED (nu FORBIDDEN despre atribuire)', async () => {
+    const { service, ctx } = ready('EMPLOYEE_MANAGED');
+    await expect(service.create(ctx, 'u1', dto)).rejects.toMatchObject({
+      status: 403,
+      response: { code: 'CLAIM_ROLE_NOT_ALLOWED' },
+    });
   });
 });

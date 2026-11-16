@@ -3,11 +3,21 @@
 import type { RequestStatus } from '@marketplace/shared';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { discardPendingEditSession } from '@/stores/configurator-store';
+import { takePublishNotice } from '@/components/configurator/publish-notice';
+import { toast } from '@/components/ui/toaster';
 import { Link, useRouter } from '@/i18n/routing';
-import { ApiError } from '@/lib/api';
+import { ApiError, isUnauthorizedError } from '@/lib/api';
+import { useLoginRedirect } from '@/lib/use-login-redirect';
+import { RoleOnlyScreen } from '@/lib/require-auth';
+import { useMe } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { useDeleteRequest, useRepostRequest, useRequest, useRequestVisibility } from '@/hooks/use-requests';
+import { useClientFulfillment } from '@/hooks/use-fulfillment';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
+import { useLongDate } from '../../_components/use-long-date';
+import { useBudgetFormat } from '@/hooks/use-budget-format';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -16,6 +26,8 @@ import { LoadError, QueryState } from '@/components/ui/query-state';
 import { SkeletonPage } from '@/components/ui/skeleton';
 import { AttachmentThumb } from '@/components/configurator/attachment-item';
 import { RoomSpecCard, RoomSpecNav } from '@/components/configurator/room-spec-card';
+import { roomSnapshotAttachment } from '@/components/configurator/room-snapshot';
+import { useDisplayAddress } from '@/components/configurator/use-display-address';
 import { RequestInspirationByRoom } from '@/components/configurator/request-inspiration-by-room';
 import { StudioScenesButton } from '@/components/studio/scene-button';
 import {
@@ -29,9 +41,10 @@ import {
 } from '../../_components/request-progress';
 import { RequestVisibilitySection } from '../../_components/request-visibility-card';
 
-// Limitele de editare (docs/03 §4.3): 3 inainte de prima preluare, 1 dupa.
-const MAX_PRE_CLAIM_EDITS = 3;
-const MAX_POST_CLAIM_EDITS = 1;
+// Limitele de editare (docs/03 §4.3) + regula comuna cu garda paginii de editare
+import { MAX_POST_CLAIM_EDITS, MAX_PRE_CLAIM_EDITS, requestEditability } from './request-editability';
+import { ActionConfirmDialog } from '../../_components/action-confirm-dialog';
+import { requestStartMode } from '@/components/configurator/review-facts-card';
 
 // Starile in care cererea are (sau a avut) firme, oferte si conversatii de deschis.
 const STATUSES_WITH_OFFERS: RequestStatus[] = [
@@ -45,6 +58,16 @@ const STATUSES_WITH_OFFERS: RequestStatus[] = [
   'COMPLETED',
   'DISPUTED',
   // E-admin-platform-3: proiect anulat — ofertele si conversatiile raman ca istoric
+  'CANCELLED',
+];
+
+// e1: starile de dupa acceptarea unei oferte (pentru „Acceptată pe …”)
+const STATUSES_AFTER_ACCEPT: RequestStatus[] = [
+  'ACCEPTED',
+  'IN_EXECUTION',
+  'DELIVERED_BY_COMPANY',
+  'COMPLETED',
+  'DISPUTED',
   'CANCELLED',
 ];
 
@@ -70,6 +93,9 @@ const BAND_TEXT: Record<NextStepTone, string> = {
 export default function RequestDetailPage() {
   const t = useTranslations('Requests');
   const format = useFormatter();
+  const budgetFormat = useBudgetFormat();
+  // b12: adresa fara dubluri (oras = judet), tara doar cand nu e Romania
+  const displayAddress = useDisplayAddress();
   const params = useParams<{ id: string }>();
   const id = params.id;
   const detail = useRequest(id);
@@ -77,8 +103,42 @@ export default function RequestDetailPage() {
   // si cate dintre ele au trimis oferta (pentru banda „pasul urmator”)
   const visibility = useRequestVisibility(id, !!detail.data && detail.data.status !== 'DRAFT');
   const next = useRequestNextStep();
+  const fmtLongDate = useLongDate();
+  // e1: data acceptarii vine din panoul de dupa acceptare (doar dupa ce exista o oferta acceptata)
+  const fulfillment = useClientFulfillment(id, !!detail.data && STATUSES_AFTER_ACCEPT.includes(detail.data.status));
+  // m1: intoarcerea la cerere inchide editarea lasata in asteptare (fereastra de reluare
+  // e doar pentru schimbarea limbii pe pagina de editare); "Editeaza" porneste de la server
+  useEffect(() => {
+    discardPendingEditSession();
+  }, []);
+  // b3: mesajul de reusita lasat de formular inainte de navigare — o singura data, doar
+  // pentru aceasta cerere (semnul se sterge la citire)
+  const tConfigurator = useTranslations('Configurator');
+  useEffect(() => {
+    const notice = takePublishNotice(id);
+    if (notice) {
+      toast.success(
+        tConfigurator(
+          notice === 'reposted' ? 'review.repostedToast' : notice === 'editSaved' ? 'review.editSavedToast' : 'review.publishedToast',
+        ),
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+  // f3 (review M1): plasa de siguranta — 401 pe cerere SI „cine sunt eu” a esuat → login cu
+  // intoarcere, chiar daca semnalul global n-a dus acolo (pagina nu ramane pe schelet)
+  const me = useMe();
+  const toLogin = useLoginRedirect();
+  const unauthorized = isUnauthorizedError(detail.error);
+  useEffect(() => {
+    if (unauthorized && me.isError) toLogin();
+  }, [unauthorized, me.isError, toLogin]);
+  // f4: mesajele „nu exista sau nu e a ta” si ecranul de acces pentru alt rol
+  const tAccess = useTranslations('Access');
+  if (me.data && me.data.role !== 'CLIENT') return <RoleOnlyScreen role="CLIENT" />;
 
-  if (detail.isPending) {
+  // e1 / f3: sesiunea a expirat (401) → ramanem pe incarcare; ascultatorul global duce omul la login
+  if (detail.isPending || (detail.error instanceof ApiError && detail.error.status === 401)) {
     return (
       <QueryState pending onRetry={() => void detail.refetch()} skeleton={<SkeletonPage variant="detail" />} />
     );
@@ -91,7 +151,9 @@ export default function RequestDetailPage() {
     return (
       <EmptyState
         variant="card"
-        title={t('empty')}
+        tone="warning"
+        title={tAccess('requestNotYours')}
+        hint={tAccess('requestNotYoursHint')}
         action={
           <Button asChild variant="outline">
             <Link href="/requests">← {t('myRequests')}</Link>
@@ -105,6 +167,16 @@ export default function RequestDetailPage() {
   const hasOffers = STATUSES_WITH_OFFERS.includes(r.status);
   const yourTurn = isClientTurn(r.status);
   const tone = NEXT_STEP_TONE[r.status] ?? 'muted';
+  // d5: un singur rand "Cum ai pornit cererea", cu aceeasi regula ca editarea (b8)
+  const startMode = requestStartMode(r);
+  const helpRooms = r.rooms
+    .filter((room) => room.needsDesignHelp)
+    .map((room) => tConfigurator(`rooms.type.${room.roomType}`));
+  // imaginile 3D aratate deja in cardul piesei (aceeasi regula ca RoomSpecCard)
+  const shownSnapshots = new Set(
+    r.rooms.map((room) => roomSnapshotAttachment(room, r.attachments)?.id).filter((id): id is string => !!id),
+  );
+  const listedAttachments = r.attachments.filter((a) => !shownSnapshots.has(a.id));
 
   const holders = visibility.data?.contactHolders ?? null;
   const facts: RequestProgressFacts = {
@@ -176,18 +248,45 @@ export default function RequestDetailPage() {
                 r.description && 'border-t border-border',
               )}
             >
-              <SheetCell label={t('field.budgetRange')}>{t(`budget.${r.budgetRange}`)}</SheetCell>
+              {/* b11: suma aleasa in lei (acelasi format ca in Sumar si la firma) sau 'Buget nedeclarat' */}
+              <SheetCell label={t('field.budgetRange')}>{budgetFormat.amount(r)}</SheetCell>
               {r.deadlineBucket && (
                 <SheetCell label={t('field.desiredDeadline')}>{t(`deadline.${r.deadlineBucket}`)}</SheetCell>
               )}
               <SheetCell label={t('field.addressText')}>
-                {r.addressText}, {r.city}, {r.county}
+                {displayAddress(r)}
               </SheetCell>
-              {r.expiresAt && (
+              {/* d5: aceleasi randuri ca in Sumar — contactele transmise firmelor si modul de pornire */}
+              <SheetCell label={tConfigurator('review.facts.contact')}>
+                {r.contactPreferences.length > 0
+                  ? r.contactPreferences.map((c) => (
+                      <span key={c.id} className="block break-all">
+                        {t(`contactChannel.${c.channel}`)}: {c.value}
+                      </span>
+                    ))
+                  : tConfigurator('review.facts.notProvided')}
+              </SheetCell>
+              <SheetCell label={tConfigurator('review.facts.mode')}>
+                {tConfigurator(`start.${startMode}.title`)}
+                {startMode === 'STANDARD' && helpRooms.length > 0 && (
+                  <span className="mt-0.5 block text-ui font-normal text-muted-foreground">
+                    {tConfigurator('review.facts.helpRooms', { rooms: helpRooms.join(', ') })}
+                  </span>
+                )}
+              </SheetCell>
+              {/* e1: termenul de expirare conteaza doar cat cererea asteapta in piata */}
+              {r.expiresAt && r.status === 'IN_MARKETPLACE' && (
                 <SheetCell label={t('expiresAt')} mono>
-                  {/* data localizata, fara secunde */}
-                  {format.dateTime(new Date(r.expiresAt), { dateStyle: 'medium', timeStyle: 'short' })}
+                  {/* data localizata, fara secunde, in ora Romaniei */}
+                  {format.dateTime(new Date(r.expiresAt), {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                    timeZone: APP_TIME_ZONE,
+                  })}
                 </SheetCell>
+              )}
+              {STATUSES_AFTER_ACCEPT.includes(r.status) && fulfillment.data?.acceptedAt && (
+                <SheetCell label={t('acceptedOn')}>{fmtLongDate(fulfillment.data.acceptedAt)}</SheetCell>
               )}
             </dl>
           </Card>
@@ -203,18 +302,19 @@ export default function RequestDetailPage() {
             </div>
             <RoomSpecNav rooms={r.rooms} />
             {r.rooms.map((room, i) => (
-              <RoomSpecCard key={room.id} room={room} index={i + 1} attachments={r.attachments} />
+              <RoomSpecCard key={room.id} room={room} index={i + 1} attachments={r.attachments} audience="client" />
             ))}
           </section>
 
-          {/* Atasamente — statusul de scanare nu se afiseaza; doar eroarea (item 10) */}
-          {r.attachments.length > 0 && (
+          {/* Atasamente — statusul de scanare nu se afiseaza; doar eroarea (item 10).
+              Imaginea 3D a piesei e deja in cardul piesei: nu se repeta aici. */}
+          {listedAttachments.length > 0 && (
             <section aria-labelledby="request-attachments-title" className="flex flex-col gap-3">
               <h2 id="request-attachments-title" className="font-serif text-2xl">
                 {t('sectionAttachments')}
               </h2>
               <div className="flex flex-wrap gap-2">
-                {r.attachments.map((a) => (
+                {listedAttachments.map((a) => (
                   <AttachmentThumb key={a.id} attachment={a} />
                 ))}
               </div>
@@ -238,7 +338,7 @@ export default function RequestDetailPage() {
             />
           )}
 
-          {DELETABLE_STATUSES.includes(r.status) && <DeleteRequestCard id={id} />}
+          {DELETABLE_STATUSES.includes(r.status) && <DeleteRequestCard id={id} status={r.status} />}
         </aside>
       </div>
     </div>
@@ -272,18 +372,13 @@ function EditsCard({
   const t = useTranslations('Requests');
   const router = useRouter();
 
-  const preClaim = status === 'IN_MARKETPLACE';
-  const postClaim = status === 'CLAIMED_PARTIAL' || status === 'CLAIMED_FULL';
-  const remaining = preClaim ? MAX_PRE_CLAIM_EDITS - preUsed : postClaim ? MAX_POST_CLAIM_EDITS - postUsed : 0;
-  const canEdit = (preClaim || postClaim) && remaining > 0;
-
-  const note = canEdit
-    ? preClaim
-      ? t('edits.preClaim', { remaining })
-      : t('edits.postClaim')
-    : preClaim || postClaim
-      ? t('edits.noneLeft')
-      : t('edits.locked');
+  // aceeasi regula ca garda paginii de editare (request-editability.ts)
+  const { postClaim, remaining, canEdit, noteKey } = requestEditability({
+    status,
+    preClaimEditsUsed: preUsed,
+    postClaimEditsUsed: postUsed,
+  });
+  const note = t(`edits.${noteKey}`, { remaining });
 
   const go = () => {
     if (postClaim && !confirm(t('editPostClaimWarning'))) return;
@@ -319,10 +414,17 @@ function EditsCard({
 }
 
 // Î17 — stergerea cererii, cu confirmare; preluarile active ale firmelor se anuleaza.
-function DeleteRequestCard({ id }: { id: string }) {
+// e4: confirmarea e un dialog al aplicatiei care spune consecintele (definitiv, ofertele se
+// anuleaza, conversatiile raman doar de citit, firmele isi primesc creditele inapoi); dupa
+// stergere, mesajul de reusita apare pe lista de cereri (toast global, supravietuieste navigarii).
+function DeleteRequestCard({ id, status }: { id: string; status: RequestStatus }) {
   const t = useTranslations('Requests');
   const router = useRouter();
   const del = useDeleteRequest();
+  const [open, setOpen] = useState(false);
+  const apiErr = del.error instanceof ApiError ? del.error.code : del.error ? 'INTERNAL_ERROR' : null;
+  // ciorna n-a ajuns la firme: fara oferte / conversatii / credite de explicat
+  const draft = status === 'DRAFT';
   return (
     <Card
       as="section"
@@ -334,19 +436,50 @@ function DeleteRequestCard({ id }: { id: string }) {
       <h2 id="request-delete-title" className="text-sm font-semibold">
         {t('deleteSection.title')}
       </h2>
-      <p className="text-ui text-muted-foreground">{t('deleteSection.hint')}</p>
+      {/* f6 / e4: ciorna si cererea expirata nu au preluari active de anulat */}
+      <p className="text-ui text-muted-foreground">
+        {draft || status === 'EXPIRED' ? t('deleteSection.hintNoClaims') : t('deleteSection.hint')}
+      </p>
       <button
         type="button"
         onClick={() => {
-          if (confirm(t('deleteConfirm'))) {
-            del.mutate(id, { onSuccess: () => router.replace('/requests') });
-          }
+          del.reset();
+          setOpen(true);
         }}
         disabled={del.isPending}
         className="inline-flex min-h-11 items-center self-start text-sm font-medium text-crimson hover:underline disabled:opacity-50"
       >
         {t('deleteRequest')}…
       </button>
+      <ActionConfirmDialog
+        open={open}
+        onOpenChange={setOpen}
+        title={t('deleteDialog.title')}
+        tone="danger"
+        confirmLabel={t('deleteDialog.confirm')}
+        cancelLabel={t('deleteDialog.cancel')}
+        pendingLabel={t('deleteDialog.pending')}
+        pending={del.isPending}
+        error={apiErr ? (t.has(`apiErrors.${apiErr}`) ? t(`apiErrors.${apiErr}`) : t('apiErrors.INTERNAL_ERROR')) : null}
+        onConfirm={() =>
+          del.mutate(id, {
+            onSuccess: () => {
+              setOpen(false);
+              toast.success(t('deleteDialog.done'));
+              router.replace('/requests');
+            },
+          })
+        }
+      >
+        <p>{t('deleteDialog.permanent')}</p>
+        {!draft && (
+          <ul className="list-disc space-y-1 pl-5">
+            <li>{t('deleteDialog.offers')}</li>
+            <li>{t('deleteDialog.chats')}</li>
+            <li>{t('deleteDialog.credits')}</li>
+          </ul>
+        )}
+      </ActionConfirmDialog>
     </Card>
   );
 }
@@ -399,16 +532,22 @@ function RepostSection({ id, status, repostUsed }: { id: string; status: Request
           </p>
         )}
       </div>
-      <Button
-        type="button"
-        variant="walnut"
-        size="xl"
-        className="w-full px-6 text-sm sm:w-auto"
-        onClick={() => repost.mutate()}
-        disabled={repost.isPending}
-      >
-        {t('repost')}
-      </Button>
+      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+        {/* f6-2: formularul precompletat; salvarea aplica modificarile si republica (tot o singura data) */}
+        <Button asChild variant="outline" size="xl" className="w-full px-6 text-sm sm:w-auto">
+          <Link href={`/requests/${id}/edit`}>{t('repostWithChanges')}</Link>
+        </Button>
+        <Button
+          type="button"
+          variant="walnut"
+          size="xl"
+          className="w-full px-6 text-sm sm:w-auto"
+          onClick={() => repost.mutate()}
+          disabled={repost.isPending}
+        >
+          {t('repost')}
+        </Button>
+      </div>
     </Card>
   );
 }

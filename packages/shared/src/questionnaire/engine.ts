@@ -1,14 +1,18 @@
 import { z } from 'zod';
 import type { RoomType } from '../enums';
 import { requestItemSchema, type RequestItemInput } from '../request.schemas';
+import { evalCondition } from './condition';
 import { CURRENT_FLOW_VERSION, FLOW_REGISTRY } from './flows';
-import { itemQuantityBucket, roomSizeBucket } from './mapping';
+import { itemQuantityBucket, roomSizeBucket, roomSizeLengthM } from './mapping';
+import { pieceRowV2Schema } from './pieces-row';
 import { isPieceConfig3d, pieceConfig3dSchema } from './piece3d/config';
+import { piece3dFeaturesUsed } from './piece3d/features';
 import type {
   AnswerMap,
   AnswerSummaryEntry,
   ChoiceOption,
-  Condition,
+  DerivedRoom,
+  FirmRecommendation,
   QuestionStep,
   RoomFlow,
   ScoreEntry,
@@ -36,18 +40,9 @@ export function isFlowVersionRegistered(roomType: RoomType, version: number): bo
   return FLOW_REGISTRY[roomType]?.[version] !== undefined;
 }
 
-export function evalCondition(cond: Condition, answers: AnswerMap): boolean {
-  if ('all' in cond) return cond.all.every((c) => evalCondition(c, answers));
-  if ('any' in cond) return cond.any.some((c) => evalCondition(c, answers));
-
-  const answer = answers[cond.questionId];
-  if ('equals' in cond) return answer === cond.equals;
-  // `in`: primitiv → apartenenta; string[] → intersectie nevida
-  if (Array.isArray(answer)) {
-    return answer.some((v) => typeof v === 'string' && cond.in.includes(v));
-  }
-  return typeof answer === 'string' && cond.in.includes(answer);
-}
+// evalCondition sta in ./condition (folosita si de constructorul fluxurilor noi, fara
+// import circular); re-exportata aici — API public neschimbat.
+export { evalCondition };
 
 export function isStepVisible(step: QuestionStep, answers: AnswerMap): boolean {
   return step.visibleIf ? evalCondition(step.visibleIf, answers) : true;
@@ -78,7 +73,7 @@ export function stepAnswerSchema(step: QuestionStep, answers: AnswerMap): z.ZodT
       const values = visibleOptions(step, answers).map((o) => o.value);
       const min = step.minSelected ?? (step.optional ? 0 : 1);
       const max = step.maxSelected ?? values.length;
-      return z
+      const schema = z
         .array(
           z.enum(values as [string, ...string[]], {
             errorMap: () => ({ message: 'validation.optionInvalid' }),
@@ -87,6 +82,13 @@ export function stepAnswerSchema(step: QuestionStep, answers: AnswerMap): z.ZodT
         .min(min, 'validation.minOneOption')
         .max(max, 'validation.tooManyOptions')
         .refine((arr) => new Set(arr).size === arr.length, 'validation.optionInvalid');
+      // etapa 6: optiunile exclusive se aleg doar singure (lipsa lor = schema de dinainte)
+      const exclusive = new Set(step.options.filter((o) => o.exclusive).map((o) => o.value));
+      if (exclusive.size === 0) return schema;
+      return schema.refine(
+        (arr) => !arr.some((v) => exclusive.has(v)) || arr.length === 1,
+        'validation.exclusiveOption',
+      );
     }
     case 'boolean':
       return z.boolean({ errorMap: () => ({ message: 'validation.answerInvalid' }) });
@@ -94,10 +96,16 @@ export function stepAnswerSchema(step: QuestionStep, answers: AnswerMap): z.ZodT
       const slots = step.slots(answers);
       const shape: Record<string, z.ZodTypeAny> = {};
       for (const slot of slots) {
-        shape[slot.id] = z
-          .number({ errorMap: () => ({ message: 'validation.dimensionOutOfRange' }) })
+        // slot lipsa → "completeaza toate dimensiunile"; alt tip / NaN → in afara intervalului (ca inainte)
+        const num = z
+          .number({
+            required_error: 'validation.dimensionRequired',
+            invalid_type_error: 'validation.dimensionOutOfRange',
+          })
           .min(slot.min, 'validation.dimensionOutOfRange')
           .max(slot.max, 'validation.dimensionOutOfRange');
+        // etapa 10 (c5): slotul optional poate lipsi (cheia absenta); o valoare data se valideaza la fel
+        shape[slot.id] = slot.optional === true ? num.optional() : num;
       }
       // strict: sloturi care nu exista in configuratia curenta sunt respinse
       return z.object(shape).strict('validation.unknownAnswer');
@@ -115,7 +123,7 @@ export function stepAnswerSchema(step: QuestionStep, answers: AnswerMap): z.ZodT
     }
     case 'pieces':
       return z
-        .array(requestItemSchema)
+        .array(step.rowVersion === 2 ? pieceRowV2Schema : requestItemSchema)
         .min(step.minPieces, 'validation.minPieces')
         .max(step.maxPieces, 'validation.maxPieces');
     case 'upload':
@@ -124,9 +132,16 @@ export function stepAnswerSchema(step: QuestionStep, answers: AnswerMap): z.ZodT
         .array(z.string().uuid('validation.answerInvalid'))
         .max(step.maxFiles, 'validation.tooManyFiles')
         .refine((arr) => new Set(arr).size === arr.length, 'validation.answerInvalid');
-    case 'configurator-3d':
+    case 'configurator-3d': {
       // config serializabil validat contra regulilor piesei (docs/10 R2)
-      return pieceConfig3dSchema(step.piece);
+      // etapa 10 (E10-N1): campurile 3D noi trec doar pe pasii care le declara (`features`);
+      // fluxurile vechi nu declara nimic → le resping, ca inainte
+      const allowed = new Set(step.features ?? []);
+      return pieceConfig3dSchema(step.piece).refine(
+        (c) => piece3dFeaturesUsed(c).every((f) => allowed.has(f)),
+        'validation.unknownAnswer',
+      );
+    }
   }
 }
 
@@ -281,12 +296,22 @@ export function summarizeAnswers(
         break;
       case 'dimension-group': {
         const values = answer as Record<string, number>;
-        const slots = step
-          .slots(answers)
+        const all = step.slots(answers);
+        const slots = all
           .filter((s) => typeof values[s.id] === 'number')
           .map((s) => ({ labelKey: s.labelKey, value: values[s.id] }));
-        if (slots.length > 0) {
-          entries.push({ kind: 'dimensions', stepId: step.id, labelKey: step.titleKey, slots });
+        // etapa 10: sloturile optionale lasate goale (doar ele; cele obligatorii lipsa nu apar)
+        const missing = all
+          .filter((s) => s.optional === true && typeof values[s.id] !== 'number')
+          .map((s) => (s.typicalM !== undefined ? { labelKey: s.labelKey, typicalM: s.typicalM } : { labelKey: s.labelKey }));
+        if (slots.length > 0 || missing.length > 0) {
+          entries.push({
+            kind: 'dimensions',
+            stepId: step.id,
+            labelKey: step.titleKey,
+            slots,
+            ...(missing.length > 0 ? { missing } : {}),
+          });
         }
         break;
       }
@@ -347,17 +372,75 @@ export function summarizeAnswers(
 // per camera; MATERIAL + max SYSTEM per item) si adauga referintele declarate
 // pe optiuni (scoring) si pe boolean (scoringWhenTrue). Pur, fara DB —
 // punctele sunt rezolvate de SizingService din project_sizing_config.
+// d1 (PO d1-1, 2026-11-13): camera cu "am nevoie de ajutor" pleaca fara raspunsuri — firma nu
+// primeste piese, materiale sau dimensiuni puse din oficiu, deci nici punctele lor. Raman doar
+// intrarile de camera (tip, marime 0 m, cantitate 0); costul reflecta doar ce a spus clientul.
+// d3 (PO d3-2): approxLengthM = lungimea aproximativa (proiect propriu); conteaza la ROOM_SIZE
+// doar cand lungimea derivata e 0 (roomSizeLengthM). Ignorata la camera cu ajutor.
+export interface DeriveOptions {
+  needsDesignHelp?: boolean;
+  approxLengthM?: number | null;
+}
+
+// d3 (PO d3-2 + revizuire etapa 5): lungimea aproximativa are sens DOAR cand fluxul camerei are
+// (cu raspunsurile de acum) un pas de dimensiuni cu metri liniari, iar lungimea derivata din
+// dimensiuni e 0. Altfel valoarea se ignora (la scor, la salvare, la afisare). Dimensiunile date
+// (si cele ramase ascunse dupa trecerea pe "Am deja un proiect") au prioritate.
+export function approxLengthApplies(roomType: RoomType, answers: AnswerMap, version?: number): boolean {
+  let flow: RoomFlow;
+  try {
+    flow = getFlow(roomType, version);
+  } catch {
+    return false;
+  }
+  const hasLinearStep = visibleSteps(flow, answers).some(
+    (s) => s.type === 'dimension-group' && !s.hidden && s.slots(answers).some((slot) => slot.countsTowardLinear),
+  );
+  return hasLinearStep && flow.deriveRoom(answers).lengthM <= 0;
+}
+
+export function emptyDerivedRoom(): DerivedRoom {
+  return { lengthM: 0, widthM: 0, heightM: 0, items: [] };
+}
+
+// Forma derivata care pleaca la firme: camera cu ajutor = fara piese / dimensiuni inventate.
+export function deriveRoomForFirms(
+  roomType: RoomType,
+  answers: AnswerMap,
+  version?: number,
+  opts: DeriveOptions = {},
+): DerivedRoom {
+  const flow = getFlow(roomType, version);
+  return opts.needsDesignHelp === true ? emptyDerivedRoom() : flow.deriveRoom(answers);
+}
+
+// Etapa 6: piesele la care clientul a ales "Nu stiu — vreau recomandarea firmei" (material
+// si/sau deschidere). Re-derivat din raspunsuri (nu se salveaza); fluxurile vechi → [].
+export function firmRecommendations(
+  roomType: RoomType,
+  answers: AnswerMap,
+  version?: number,
+  opts: DeriveOptions = {},
+): FirmRecommendation[] {
+  return deriveRoomForFirms(roomType, answers, version, opts).firmRecommendations ?? [];
+}
+
 export function collectScoreEntries(
   roomType: RoomType,
   answers: AnswerMap,
   version?: number,
+  opts: DeriveOptions = {},
 ): ScoreEntry[] {
   const flow = getFlow(roomType, version);
-  const derived = flow.deriveRoom(answers);
+  const derived = deriveRoomForFirms(roomType, answers, version, opts);
   const entries: ScoreEntry[] = [];
 
   entries.push({ category: 'ROOM_TYPE', optionKey: roomType });
-  entries.push({ category: 'ROOM_SIZE', optionKey: roomSizeBucket(derived.lengthM) });
+  const approx =
+    opts.needsDesignHelp === true || opts.approxLengthM == null || !approxLengthApplies(roomType, answers, version)
+      ? null
+      : opts.approxLengthM;
+  entries.push({ category: 'ROOM_SIZE', optionKey: roomSizeBucket(roomSizeLengthM(derived.lengthM, approx)) });
 
   const totalQty = derived.items.reduce((acc, it) => acc + it.quantity, 0);
   entries.push({ category: 'ITEM_QUANTITY', optionKey: itemQuantityBucket(totalQty) });

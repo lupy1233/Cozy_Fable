@@ -61,6 +61,8 @@ export const SETTING_CATALOG: readonly SettingDef[] = [
   { key: 'consultation_invite_expiry_days', group: 'quotes', spec: int('days', 0, null) },
   { key: 'eur_ron_rate', group: 'quotes', spec: { kind: 'decimal', unit: 'ronPerEur' } },
   { key: 'delivery_reminder_days_before', group: 'quotes', spec: int('days', 0, 365) },
+  // e1-3 (etapa 5): zile minime intre acceptare si „Marcheaza ca livrata” (0 = fara limita)
+  { key: 'delivery_min_days_after_accept', group: 'quotes', spec: int('days', 0, 365) },
   { key: 'expired_offer_autoclose_enabled', group: 'quotes', spec: { kind: 'bool' } },
   { key: 'expired_offer_autoclose_days', group: 'quotes', spec: int('days', 0, 365) },
   {
@@ -83,6 +85,9 @@ export const SETTING_CATALOG: readonly SettingDef[] = [
   { key: 'marketplace_distance_display', group: 'contact', spec: { kind: 'enum', options: MARKETPLACE_DISTANCE_DISPLAY_MODES } },
   { key: 'company_locations_max', group: 'contact', spec: int('locations', 1, 100) },
   { key: 'company_location_changes_per_day', group: 'contact', spec: int('changes', 1, 1000) },
+  // f6-1 (etapa 9): cat se pastreaza o ciorna neatinsa (vizitator / client cu cont); minim 1
+  { key: 'guest_draft_retention_days', group: 'contact', spec: int('days', 1, 3650) },
+  { key: 'client_draft_retention_days', group: 'contact', spec: int('days', 1, 3650) },
   // termeni si identitate juridica
   { key: 'legal_contact_email', group: 'legal', spec: { kind: 'email' } },
   { key: 'legal_identity_published', group: 'legal', spec: { kind: 'bool' } },

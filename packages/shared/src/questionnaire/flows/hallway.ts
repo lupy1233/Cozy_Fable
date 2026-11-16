@@ -19,9 +19,9 @@ const F = 'flows.HALLWAY';
 const PIECES: PieceWithMaterialDef[] = [
   { value: 'SHOE_CABINET', icon: 'footprints', itemName: 'Pantofar', materialStepId: 'materialShoeCabinet', systemsStepId: 'systemsShoeCabinet' },
   { value: 'COAT_UNIT', icon: 'shirt', itemName: 'Cuier cu panou', materialStepId: 'materialCoatUnit', systemsStepId: 'systemsCoatUnit' },
-  { value: 'WARDROBE', icon: 'door-closed', itemName: 'Dulap hol', materialStepId: 'materialWardrobe', systemsStepId: 'systemsWardrobe' },
-  { value: 'BENCH', icon: 'armchair', itemName: 'Bancuta hol', materialStepId: 'materialBench', systemsStepId: 'systemsBench' },
-  { value: 'MIRROR', icon: 'square', itemName: 'Oglinda cu polita', materialStepId: 'materialMirror', systemsStepId: 'systemsMirror' },
+  { value: 'WARDROBE', icon: 'door-closed', itemName: 'Dulap de hol', materialStepId: 'materialWardrobe', systemsStepId: 'systemsWardrobe' },
+  { value: 'BENCH', icon: 'armchair', itemName: 'Băncuță hol', materialStepId: 'materialBench', systemsStepId: 'systemsBench' },
+  { value: 'MIRROR', icon: 'square', itemName: 'Oglindă cu poliță', materialStepId: 'materialMirror', systemsStepId: 'systemsMirror' },
 ];
 
 const PIECE_WIDTH_SLOTS: Record<string, () => DimensionSlot> = {

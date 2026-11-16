@@ -24,15 +24,20 @@ import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.int
 import { ClaimsService } from './claims.service';
 import { AssignClaimDto, CreateClaimDto } from './dto/claim.dto';
 
+// h2 (2026-11-13, decizie PO h2-1): firma cu abonament expirat isi termina preluarile in curs
+// (lista, atribuire, oferte, conversatie, livrare). Abonamentul activ se cere DOAR la preluarea
+// unei cereri noi — garda sta pe POST /claims, nu pe tot controllerul.
 @Controller('claims')
 @Roles(UserRole.COMPANY_USER)
-@UseGuards(CompanyApprovedGuard, SubscriptionActiveGuard)
+@UseGuards(CompanyApprovedGuard)
 @UseInterceptors(AuditInterceptor)
 export class ClaimsController {
   constructor(private readonly claims: ClaimsService) {}
 
   // POST critic — Idempotency-Key (3.2) + rate limit 10/min (3.13).
+  // SubscriptionActiveGuard pune si gating-ul planului pe context (folosit de claims.create).
   @Post()
+  @UseGuards(SubscriptionActiveGuard)
   @Audit('CLAIM_CREATED', 'claim_slot')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Idempotent({ transactional: true })

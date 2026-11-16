@@ -1,19 +1,27 @@
 'use client';
 
-import { ATTACHMENT_ACCEPT, maxAttachmentsForRequest } from '@marketplace/shared';
+import {
+  ATTACHMENT_ACCEPT,
+  maxAttachmentsForRequest,
+  remainingAttachmentSlots,
+  type AttachmentDto,
+} from '@marketplace/shared';
 import { Info } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useRef } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Dropzone } from '@/components/ui/dropzone';
 import {
   useAttachmentsFor,
+  useAttachmentUploadQueue,
   useRemoveAttachmentFor,
-  useUploadAttachmentFor,
   type AttachmentTarget,
 } from '@/hooks/use-requests';
+import { localRejectReason } from '@/lib/attachment-upload';
 import { useConfiguratorStore } from '@/stores/configurator-store';
 import { AttachmentRow } from './attachment-item';
 import { SketchGuide } from './sketch-guide';
+import { UploadFeedback } from './upload-feedback';
 
 // Uploader-ul pasului "schita/proiect" al unei camere. Fisierele merg prin acelasi
 // flux presign/confirm ca pasul global de fisiere; raspunsul step-ului = lista de
@@ -38,14 +46,21 @@ export function RoomSketchUpload({
 }) {
   const t = useTranslations('Configurator');
   const allAttachments = useAttachmentsFor(target);
-  const upload = useUploadAttachmentFor(target);
+  const queue = useAttachmentUploadQueue(target);
   const remove = useRemoveAttachmentFor(target);
   const forgetAttachment = useConfiguratorStore((s) => s.forgetAttachment);
+  // acumulator pentru incarcarile pe rand: fiecare fisier reusit se adauga la lista cea mai
+  // noua, nu la valoarea veche prinsa in closure (altfel s-ar suprascrie reciproc)
+  const idsRef = useRef(value);
+  idsRef.current = value;
 
   const mine = allAttachments.filter((a) => value.includes(a.id));
-  const globalRemaining = maxAttachmentsForRequest(roomCount) - allAttachments.length;
-  const localRemaining = maxFiles - mine.length;
+  // b5: fisierele aflate inca pe drum ocupa deja un loc
+  const inFlight = queue.pending.length;
+  const globalRemaining = remainingAttachmentSlots(roomCount, allAttachments.length + inFlight);
+  const localRemaining = Math.max(0, maxFiles - mine.length - inFlight);
   const canUpload = globalRemaining > 0 && localRemaining > 0;
+  const slotsLeft = Math.min(localRemaining, globalRemaining);
 
   if (hasOwnProject) {
     return (
@@ -58,41 +73,53 @@ export function RoomSketchUpload({
     );
   }
 
-  // secvential, cu acumulator local: upload-urile paralele ar suprascrie
-  // reciproc lista de id-uri (closure pe aceeasi valoare veche)
-  const onFiles = async (files: FileList) => {
-    const room = Math.min(localRemaining, globalRemaining);
+  const onUploaded = (att: AttachmentDto) => {
+    const next = [...idsRef.current, att.id];
+    idsRef.current = next;
+    onChange(next);
+  };
+  const startBatch = () => {
     // id-urile unor fisiere sterse intre timp nu se mai poarta mai departe
     // (lista incarcata = sursa de adevar; goala = inca necunoscuta)
-    let ids = allAttachments.length > 0
-      ? value.filter((id) => allAttachments.some((a) => a.id === id))
-      : value;
-    for (const file of Array.from(files).slice(0, Math.max(0, room))) {
-      try {
-        const att = await upload.mutateAsync(file);
-        ids = [...ids, att.id];
-        onChange(ids);
-      } catch {
-        // eroarea individuala e reflectata de upload.isError; continuam cu restul
-      }
+    if (allAttachments.length > 0) {
+      idsRef.current = idsRef.current.filter((id) => allAttachments.some((a) => a.id === id));
     }
+  };
+  // refuzurile (tip, marime, gol, limita, scanare, retea) apar in „Nu am putut adăuga” (b5)
+  const onAccept = (files: File[]) => {
+    startBatch();
+    void queue.uploadFiles(files, slotsLeft, onUploaded);
+  };
+  const onRetry = (id: string) => {
+    startBatch();
+    queue.retry(id, slotsLeft, onUploaded);
   };
 
   return (
     <div className="flex flex-col gap-4">
       {canUpload ? (
         <Dropzone
-          onFiles={onFiles}
+          validate={localRejectReason}
+          onAccept={onAccept}
+          onReject={queue.reject}
           accept={ATTACHMENT_ACCEPT}
           label={t('uploads.dropLabel')}
           hint={t('sketchUpload.hint', { local: localRemaining, global: globalRemaining })}
         />
-      ) : (
-        <Alert tone="amber">{t('sketchUpload.limitReached')}</Alert>
+      ) : inFlight > 0 ? null : (
+        <Alert tone="amber">
+          {/* b5 pas 6: spune care limita s-a atins si cat e ea (camera sau toata cererea) */}
+          {localRemaining <= 0
+            ? t('sketchUpload.limitReachedRoom', { max: maxFiles })
+            : t('sketchUpload.limitReached', { max: maxAttachmentsForRequest(roomCount) })}
+        </Alert>
       )}
-      {upload.isPending && (
-        <p className="text-xs text-muted-foreground">{t('uploads.uploading')}</p>
-      )}
+      <UploadFeedback
+        pending={queue.pending}
+        rejected={queue.rejected}
+        onDismiss={queue.dismiss}
+        onRetry={onRetry}
+      />
 
       {mine.length > 0 && (
         <ul className="flex flex-col gap-1.5 text-sm">

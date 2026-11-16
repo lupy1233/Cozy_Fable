@@ -1,4 +1,4 @@
-import { HttpException, Injectable, NotFoundException, type OnModuleDestroy } from '@nestjs/common';
+import { HttpException, Injectable, Logger, NotFoundException, type OnModuleDestroy } from '@nestjs/common';
 import { ERROR_CODES } from '@marketplace/shared';
 import type { MockBillingOrder } from '@prisma/client';
 import type { Browser } from 'puppeteer';
@@ -10,11 +10,14 @@ import { BillingReadinessService } from './billing-readiness.service';
 import type { SellerSnapshot } from './billing-readiness';
 import { SettingsService } from '../../common/settings/settings.service';
 import { SETTING_BANK_TRANSFER_EXPIRY_DAYS, transferExpiresAt } from './bank-transfer.constants';
-
-// puppeteer 25 e ESM-only; pastram import-ul dinamic real (vezi quote-pdf.service).
-const loadPuppeteer = new Function('return import("puppeteer")') as () => Promise<
-  typeof import('puppeteer')
->;
+import { OutboxService } from '../outbox/outbox.service';
+import {
+  PdfBrowserHolder,
+  documentRenderFailed,
+  launchPdfBrowser,
+  reportPdfRenderFailure,
+  type PdfDocumentKind,
+} from './pdf-browser';
 
 export interface InvoiceBuyer {
   name: string;
@@ -316,17 +319,20 @@ export function buildProformaHtml(
 // din buyer_snapshot (E-admin-platform-4), ambele inghetate la emitere.
 @Injectable()
 export class InvoicePdfService implements OnModuleDestroy {
-  private browser: Browser | null = null;
+  private readonly logger = new Logger(InvoicePdfService.name);
+  // g4: pornire comuna (fara doua procese la cereri simultane), inchis dupa o randare ratata
+  private readonly browsers = new PdfBrowserHolder(() => launchPdfBrowser(this.logger));
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly payments: PaymentsService,
     private readonly readiness: BillingReadinessService,
     private readonly settings: SettingsService,
+    private readonly outbox: OutboxService,
   ) {}
 
   async onModuleDestroy(): Promise<void> {
-    await this.browser?.close().catch(() => undefined);
+    await this.browsers.close();
   }
 
   async generate(companyId: string, orderId: string): Promise<{ pdf: Buffer; fileName: string }> {
@@ -364,7 +370,7 @@ export class InvoicePdfService implements OnModuleDestroy {
 
   async proformaForOrder(order: MockBillingOrder): Promise<{ pdf: Buffer; fileName: string }> {
     const html = await this.proformaHtml(order);
-    return { pdf: await this.renderHtml(html), fileName: proformaFileName(order.id) };
+    return { pdf: await this.renderHtml(html, 'proforma'), fileName: proformaFileName(order.id) };
   }
 
   async invoiceForOrder(order: MockBillingOrder): Promise<{ pdf: Buffer; fileName: string }> {
@@ -402,29 +408,35 @@ export class InvoicePdfService implements OnModuleDestroy {
 
   private async render(order: MockBillingOrder): Promise<{ pdf: Buffer; fileName: string }> {
     const html = await this.invoiceHtml(order);
-    return { pdf: await this.renderHtml(html), fileName: invoiceFileName(order) };
+    return { pdf: await this.renderHtml(html, 'invoice'), fileName: invoiceFileName(order) };
   }
 
-  private async renderHtml(html: string): Promise<Buffer> {
-    const browser = await this.getBrowser();
-    const page = await browser.newPage();
+  // g4 (etapa 7): Chrome lipsa / cazut → avertisment + clopotelul adminilor (o data pe zi) +
+  // 503 DOCUMENT_RENDER_FAILED (mesaj clar in portofel / admin), nu 500 generic.
+  private async renderHtml(html: string, kind: PdfDocumentKind): Promise<Buffer> {
     try {
-      await page.setContent(html, { waitUntil: 'load' });
-      const pdf = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: { top: '18mm', bottom: '18mm', left: '16mm', right: '16mm' },
-      });
-      return Buffer.from(pdf);
-    } finally {
-      await page.close().catch(() => undefined);
+      const browser = await this.getBrowser();
+      const page = await browser.newPage();
+      try {
+        await page.setContent(html, { waitUntil: 'load' });
+        const pdf = await page.pdf({
+          format: 'A4',
+          printBackground: true,
+          margin: { top: '18mm', bottom: '18mm', left: '16mm', right: '16mm' },
+        });
+        return Buffer.from(pdf);
+      } finally {
+        await page.close().catch(() => undefined);
+      }
+    } catch (err) {
+      await this.browsers.reset();
+      await reportPdfRenderFailure({ prisma: this.prisma, outbox: this.outbox, logger: this.logger }, kind, err);
+      throw documentRenderFailed();
     }
   }
 
   private async getBrowser(): Promise<Browser> {
-    if (this.browser && this.browser.connected) return this.browser;
-    const puppeteer = (await loadPuppeteer()).default;
-    this.browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-    return this.browser;
+    // g4: local, fara Chrome-ul versiunii puppeteer → Chrome / Edge instalat (doar in afara productiei)
+    return this.browsers.get();
   }
 }

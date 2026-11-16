@@ -4,6 +4,7 @@ import { AuthModule } from '../auth/auth.module';
 import { OutboxModule } from '../outbox/outbox.module';
 import { BillingModule } from '../billing/billing.module';
 import { UploadsModule } from '../uploads/uploads.module';
+import { ChatModule } from '../chat/chat.module';
 import {
   QUEUE_CONSULTATION_EXPIRY,
   QUEUE_OFFER_EXPIRY_SETTLEMENT,
@@ -25,6 +26,8 @@ import { activeOnlyProviders } from '../../config/deployment-mode';
     OutboxModule,
     BillingModule,
     UploadsModule,
+    // a4: MessageCryptoService pentru mesajele de sistem din conversatie
+    ChatModule,
     BullModule.registerQueue({ name: QUEUE_QUOTE_VALIDITY }),
     BullModule.registerQueue({ name: QUEUE_CONSULTATION_EXPIRY }),
     BullModule.registerQueue({ name: QUEUE_OFFER_EXPIRY_SETTLEMENT }),

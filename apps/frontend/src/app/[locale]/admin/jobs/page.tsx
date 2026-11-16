@@ -3,6 +3,7 @@
 import type { JobDto } from '@marketplace/shared';
 import { AlertTriangle, Check } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { useState, type ReactNode } from 'react';
 import { useAdminJobs, useRetryJob } from '@/hooks/use-admin';
 import { useRelativeTime } from '@/lib/relative-time';
@@ -147,7 +148,7 @@ export default function AdminJobsPage() {
               {j.timestamp && (
                 <div className="whitespace-nowrap font-mono text-xs">
                   <span className="sr-only">{t('jobs.queuedAt')} </span>
-                  {format.dateTime(new Date(j.timestamp), { dateStyle: 'medium', timeStyle: 'short' })}
+                  {format.dateTime(new Date(j.timestamp), { dateStyle: 'medium', timeStyle: 'short', timeZone: APP_TIME_ZONE })}
                 </div>
               )}
               <div className="text-xs text-muted-foreground">

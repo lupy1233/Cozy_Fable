@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils';
 import { useConfiguratorStore } from '@/stores/configurator-store';
 import { CartVisual } from './cart-visual';
 import { roomScreens } from './room-screens';
+import { useRoomRemoval } from './room-removal';
+import type { AttachmentTarget } from '@/hooks/use-requests';
 
 // Cosul cererii (pasul "Camere"): ce a adaugat clientul, grupat pe tip.
 // Doua infatisari ale acelorasi date:
@@ -22,6 +24,8 @@ interface BasketLine {
   count: number;
   // cate sectiuni are chestionarul unei instante (0 = flux necunoscut)
   sections: number;
+  // b8: toate camerele de acest tip sunt bifate "am nevoie de ajutor"
+  allHelp: boolean;
 }
 
 function useBasketLines(): { rooms: BasketLine[]; pieces: BasketLine[]; total: number } {
@@ -33,6 +37,7 @@ function useBasketLines(): { rooms: BasketLine[]; pieces: BasketLine[]; total: n
       const line = lines.get(room.roomType);
       if (line) {
         line.count += 1;
+        line.allHelp = line.allHelp && room.needsDesignHelp === true;
         continue;
       }
       let sections = 0;
@@ -41,7 +46,7 @@ function useBasketLines(): { rooms: BasketLine[]; pieces: BasketLine[]; total: n
       } catch {
         sections = 0;
       }
-      lines.set(room.roomType, { roomType: room.roomType, count: 1, sections });
+      lines.set(room.roomType, { roomType: room.roomType, count: 1, sections, allHelp: room.needsDesignHelp === true });
     }
     const all = [...lines.values()];
     return {
@@ -72,11 +77,12 @@ const appear = {
   transition: { duration: 0.16, ease: 'easeOut' as const },
 };
 
-export function CartBasket({ className }: { className?: string }) {
+export function CartBasket({ className, uploadTarget }: { className?: string; uploadTarget?: AttachmentTarget }) {
   const t = useTranslations('Configurator');
   const { rooms, pieces, total } = useBasketLines();
   const summary = useCartSummary();
-  const removeLastOfType = useConfiguratorStore((s) => s.removeLastOfType);
+  // b6: "×" scoate intai o camera goala; una cu raspunsuri cere confirmare
+  const removal = useRoomRemoval(uploadTarget);
   const designHelp = useConfiguratorStore((s) => s.startMode === 'DESIGN_HELP');
 
   const groups = [
@@ -124,10 +130,10 @@ export function CartBasket({ className }: { className?: string }) {
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">{name}</span>
                         <span className="block truncate text-ui text-muted-foreground">
-                          {designHelp
+                          {designHelp || line.allHelp
                             ? t('sheet.withDesigner')
                             : line.sections > 0
-                              ? t('sheet.sections', { count: line.sections })
+                              ? t('sheet.someQuestions')
                               : t(`rooms.desc.${line.roomType}`)}
                         </span>
                       </span>
@@ -139,7 +145,7 @@ export function CartBasket({ className }: { className?: string }) {
                       <button
                         type="button"
                         aria-label={t('cart.basketRemove', { type: name })}
-                        onClick={() => removeLastOfType(line.roomType)}
+                        onClick={() => removal.requestRemove(line.roomType)}
                         className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-walnut-soft hover:text-walnut focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-walnut"
                       >
                         <X aria-hidden className="h-4 w-4" />
@@ -153,6 +159,8 @@ export function CartBasket({ className }: { className?: string }) {
         </div>
       )}
 
+      {removal.dialog}
+
       {total > 0 && !designHelp && (
         <p className="border-t border-dashed border-muted-2 pt-4 text-xs leading-relaxed text-muted-foreground">
           {t('cart.basketNext')}
@@ -162,11 +170,11 @@ export function CartBasket({ className }: { className?: string }) {
   );
 }
 
-export function CartBasketStrip({ className }: { className?: string }) {
+// onRemove vine de la pasul de cos (acelasi dialog de confirmare, b6)
+export function CartBasketStrip({ className, onRemove }: { className?: string; onRemove: (roomType: RoomType) => void }) {
   const t = useTranslations('Configurator');
   const { rooms, pieces, total } = useBasketLines();
   const summary = useCartSummary();
-  const removeLastOfType = useConfiguratorStore((s) => s.removeLastOfType);
   const lines = [...rooms, ...pieces];
 
   return (
@@ -201,7 +209,7 @@ export function CartBasketStrip({ className }: { className?: string }) {
                 <button
                   type="button"
                   aria-label={t('cart.basketRemove', { type: name })}
-                  onClick={() => removeLastOfType(line.roomType)}
+                  onClick={() => onRemove(line.roomType)}
                   className="grid h-8 w-8 place-items-center rounded-full text-walnut/70 transition-colors hover:bg-walnut/15 hover:text-walnut focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-walnut"
                 >
                   <X aria-hidden className="h-3.5 w-3.5" />

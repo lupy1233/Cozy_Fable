@@ -1,23 +1,30 @@
 'use client';
-import { useId, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { NEW_PIECE_RULES, UPHOLSTERY_FABRICS, SEAT_FIRMNESSES, SEATING_BASES, SOFA_LAYOUTS, type Piece3dKind, type PieceConfig3d } from '@marketplace/shared';
-import { Input } from '@/components/ui/input';
+import { NEW_PIECE_RULES, UPHOLSTERY_FABRICS, SEAT_FIRMNESSES, SEATING_BASES, SOFA_LAYOUTS, type Piece3dFeature, type Piece3dKind, type PieceConfig3d, type Sofa3d } from '@marketplace/shared';
 import { Select } from '@/components/ui/select';
+import { PieceDimensionControl } from './dimension-control';
 
-export function CatalogSize({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (n: number) => void }) {
-  const id = useId();
-  const [draft, setDraft] = useState<string | null>(null);
-  return <div className="space-y-1"><label htmlFor={id} className="text-sm font-medium">{label} <span className="text-muted-foreground">(cm)</span></label>
-    <div className="flex items-center gap-3"><input type="range" aria-label={label} min={Math.round(min * 100)} max={Math.round(max * 100)} step={1}
-      value={Math.round(value * 100)} onChange={e => { setDraft(null); onChange(Number(e.target.value) / 100); }} className="h-11 min-w-0 flex-1 accent-walnut" />
-      <Input id={id} type="number" inputMode="decimal" className="w-24" min={Math.round(min * 100)} max={Math.round(max * 100)} step={1} value={draft ?? Math.round(value * 100)}
-        onChange={e => setDraft(e.target.value)} onBlur={() => { if (draft?.trim() && Number.isFinite(Number(draft))) onChange(Math.max(min, Math.min(max, Number(draft) / 100))); setDraft(null); }}
-        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setDraft(null); }} /></div>
-  </div>;
+// 41.4: fostul CatalogSize — acum componenta unica de dimensiune (dimension-control.tsx)
+function CatalogSize({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (n: number) => void }) {
+  return <PieceDimensionControl label={label} valueM={value} minM={min} maxM={max} onValueM={onChange} />;
 }
 
-export function CatalogControls({ kind, config, apply }: { kind: Piece3dKind; config: PieceConfig3d; apply: (patch: Partial<PieceConfig3d>) => void }) {
+// etapa 10: comutatoarele canapelei — bifat = true, debifat = cheia scoasa (lipsa = "nu", ca azi)
+function sofaFlag(sofa: Sofa3d, key: 'sleeper' | 'storage', on: boolean): Sofa3d {
+  const next = { ...sofa };
+  if (on) next[key] = true;
+  else delete next[key];
+  return next;
+}
+
+export function CatalogControls({ kind, config, apply, features }: {
+  kind: Piece3dKind;
+  config: PieceConfig3d;
+  apply: (patch: Partial<PieceConfig3d>) => void;
+  // etapa 10: campurile noi declarate de pas (Configurator3dStep.features); lipsa = niciunul
+  features?: readonly Piece3dFeature[];
+}) {
+  const has = (f: Piece3dFeature) => features?.includes(f) === true;
   const t = useTranslations('Configurator');
   const label = (key: string) => t(`config3d.catalog.${key}`);
   const choice = (key: string, value: string | number, options: readonly (string | number)[], set: (v: string) => void) =>
@@ -42,6 +49,8 @@ export function CatalogControls({ kind, config, apply }: { kind: Piece3dKind; co
       {sofa.layout !== 'STRAIGHT' && <CatalogSize label={label('chaiseDepth')} value={sofa.chaiseDepthM} min={1.35} max={2} onChange={chaiseDepthM => apply({ sofa: { ...sofa, chaiseDepthM } })} />}
       {choice('arms', sofa.arms, ['SLIM', 'WIDE'], v => apply({ sofa: { ...sofa, arms: v as typeof sofa.arms } }))}
       {sofa.layout === 'STRAIGHT' && choice('cushions', sofa.cushions, ['SPLIT', 'BENCH'], v => apply({ sofa: { ...sofa, cushions: v as typeof sofa.cushions } }))}
+      {has('SOFA_SLEEPER') && toggle('sleeper', sofa.sleeper === true, on => apply({ sofa: sofaFlag(sofa, 'sleeper', on) }))}
+      {has('SOFA_STORAGE') && toggle('sofaStorage', sofa.storage === true, on => apply({ sofa: sofaFlag(sofa, 'storage', on) }))}
     </>}
     {armchair && choice('arms', armchair.arms, ['SLIM', 'WIDE'], v => apply({ armchair: { arms: v as typeof armchair.arms } }))}
     {ottoman && <>

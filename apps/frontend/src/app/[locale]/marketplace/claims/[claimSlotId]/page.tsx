@@ -1,30 +1,31 @@
 'use client';
 
-import type { AttachmentDto, ClaimQuoteContextDto } from '@marketplace/shared';
+import type { ClaimQuoteContextDto } from '@marketplace/shared';
 import { Mail, MapPin, Paperclip, Phone, Timer, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { Link, useRouter } from '@/i18n/routing';
+import { useId, useRef, useState, type ReactNode } from 'react';
+import { Link } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
 import { companyCan } from '@/lib/company-permissions';
 import { latestVersion } from '@/lib/quote-version';
 import { cn } from '@/lib/utils';
-import { useMe } from '@/hooks/use-auth';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
+import { LoadError } from '@/components/ui/query-state';
 import { useMessages, useThreads } from '@/hooks/use-chat';
 import { useMyCompany } from '@/hooks/use-company';
 import { useAssignClaim } from '@/hooks/use-marketplace';
 import { useClaimContext } from '@/hooks/use-quotes';
-import { useMarkDelivered } from '@/hooks/use-fulfillment';
-import { isFirmRules, useFirmRules } from '@/hooks/use-legal';
 import { useRealtimeSync } from '@/hooks/use-socket';
 import { useNow } from '@/hooks/use-now';
 import { useRelativeTime } from '@/lib/relative-time';
 import { slaPhase, useDurationLeft, useSlaDateFormat } from '@/lib/sla-deadline';
-import { AttachmentThumb } from '@/components/configurator/attachment-item';
+import { RequestGeneralFiles } from '@/components/configurator/request-general-files';
 import { RequestInspirationByRoom } from '@/components/configurator/request-inspiration-by-room';
 import { RoomSpecCard, RoomSpecNav } from '@/components/configurator/room-spec-card';
+import { useDisplayAddress } from '@/components/configurator/use-display-address';
 import { StudioScenesButton } from '@/components/studio/scene-button';
+import { Alert } from '@/components/ui/alert';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge, StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -37,11 +38,22 @@ import { Tabs } from '@/components/ui/tabs';
 import { ChatPanel } from '../../../_components/chat-panel';
 import { AgreementCard } from '../../../_components/agreement-card';
 import { ClaimLifecyclePanel } from '../../../_components/claim-lifecycle-panel';
-import { ActionConfirmDialog } from '../../../_components/action-confirm-dialog';
 import { FirmRulesLink } from '../../../_components/firm-rules-link';
 import { ProjectCasePanel } from '../../../_components/project-case-panel';
+import {
+  canEditExecutionStages,
+  ClaimCompletionCard,
+  DeliverProjectButton,
+  ExecutionStagesPanel,
+  FirmProjectBadge,
+  FirmProjectStatus,
+  firmProjectState,
+} from '../../../_components/claim-completion-card';
+import { SubscriptionStatusNotice } from '../../_components/subscription-status-notice';
 import { OfferBuilder } from '../../../_components/offer-builder';
 import { OfferCard } from '../../../_components/offer-card';
+import { useBudgetFormat } from '@/hooks/use-budget-format';
+import { RequestChangesNotice } from './request-changes-notice';
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -75,26 +87,33 @@ export default function CompanyClaimPage() {
   const t = useTranslations('Quotes');
   const params = useParams<{ claimSlotId: string }>();
   const claimSlotId = params.claimSlotId;
-  const router = useRouter();
-  const me = useMe();
+  const ta = useTranslations('Access');
+  // f4: fara sesiune → login cu intoarcere („Deschide lucrarea” din e-mail); alt rol → ecranul de acces
+  const auth = useRequireAuth('COMPANY_USER');
   const ctx = useClaimContext(claimSlotId);
   const company = useMyCompany();
   useRealtimeSync();
 
-  useEffect(() => {
-    if (me.isError) router.replace('/login');
-    else if (me.data && me.data.role !== 'COMPANY_USER') router.replace('/dashboard');
-  }, [me.isError, me.data, router]);
-
-  if (ctx.isPending) {
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="COMPANY_USER" />;
+  // e1 / f3: sesiunea a expirat (401) → ramanem pe incarcare; garda / ascultatorul duc la login.
+  // f4: o eroare inainte sa stim cine e omul tot incarcare (vizitatorul nu vede „nu exista”)
+  if (
+    ctx.isPending ||
+    (ctx.error instanceof ApiError && ctx.error.status === 401) ||
+    (ctx.isError && auth.status === 'loading')
+  ) {
     return <SkeletonPage variant="detail" />;
   }
   if (ctx.isError || !ctx.data) {
+    // f4: 403/404 = preluarea nu exista sau e a altei firme; orice alta eroare se poate reincerca
+    const missing = !ctx.isError || (ctx.error instanceof ApiError && [403, 404].includes(ctx.error.status));
+    if (!missing) return <LoadError onRetry={() => void ctx.refetch()} />;
     return (
       <EmptyState
         variant="card"
-        tone="error"
-        title={t('notFound')}
+        tone="warning"
+        title={ta('claimNotYours')}
+        hint={ta('claimNotYoursHint')}
         action={
           <Link href="/marketplace/claims" className="text-sm text-walnut hover:underline">
             ← {t('backToClaims')}
@@ -110,10 +129,22 @@ export default function CompanyClaimPage() {
   if (c.visibility === 'REDACTED' || c.visibility === 'TOMBSTONE') {
     return <ClosedClaimSummary ctx={c} />;
   }
-  return <ClaimWorkspace ctx={c} isManager={isManager} />;
+  // e1-2: aceeasi regula ca serverul (setExecutionStage = accesul la fisa de lucru): fisa completa
+  // (aici visibility e FULL) si nu „angajat limitat pe preluarea altcuiva” (NOT_ASSIGNED_TO_YOU).
+  // Restul cazurilor le prinde mesajul de la 403.
+  const canEditStages = canEditExecutionStages(c);
+  return <ClaimWorkspace ctx={c} isManager={isManager} canEditStages={canEditStages} />;
 }
 
-function ClaimWorkspace({ ctx: c, isManager }: { ctx: ClaimQuoteContextDto; isManager: boolean }) {
+function ClaimWorkspace({
+  ctx: c,
+  isManager,
+  canEditStages,
+}: {
+  ctx: ClaimQuoteContextDto;
+  isManager: boolean;
+  canEditStages: boolean;
+}) {
   const t = useTranslations('Quotes');
   const tm = useTranslations('Marketplace');
   const threads = useThreads('company');
@@ -175,8 +206,13 @@ function ClaimWorkspace({ ctx: c, isManager }: { ctx: ClaimQuoteContextDto; isMa
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <ClaimHeader ctx={c} />
+      {/* h2: fara abonament preluarea in curs se poate termina; mesajul spune ce s-a schimbat */}
+      <SubscriptionStatusNotice />
 
       <WorkBar ctx={c} />
+
+      {/* e3: clientul a editat cererea dupa preluare — ce s-a schimbat (doar daca e cazul) */}
+      <RequestChangesNotice claimSlotId={c.claimSlotId} />
 
       <div ref={tabsRef} className="scroll-mt-24">
         <Tabs
@@ -211,6 +247,8 @@ function ClaimWorkspace({ ctx: c, isManager }: { ctx: ClaimQuoteContextDto; isMa
                 rooms={c.rooms}
                 firmActions={c.firmActions}
                 slaPaused={c.slaPaused}
+                // a7: dialogul de retragere arata termenul de pe aceeasi sursa ca fisa
+                slaDeadlineAt={c.slaDeadlineAt}
                 headingLevel="h2"
               />
             ) : (
@@ -221,11 +259,15 @@ function ClaimWorkspace({ ctx: c, isManager }: { ctx: ClaimQuoteContextDto; isMa
                 rooms={c.rooms}
               />
             )}
+            {/* e1-2: „Ce urmeaza” pentru firma — etapele informative, vazute de client */}
+            {isWinner && (
+              <ExecutionStagesPanel requestId={c.requestId} requestStatus={c.requestStatus} canEdit={canEditStages} />
+            )}
             {/* E-company-1: livrarea o marcheaza doar OWNER/MANAGER, pe castigator inca deschis */}
             {c.quote?.status === 'ACCEPTED' &&
               c.claimStatus === 'OFFER_SENT' &&
               (c.requestStatus === 'ACCEPTED' || c.requestStatus === 'IN_EXECUTION') &&
-              isManager && <DeliverButton requestId={c.requestId} />}
+              isManager && <DeliverProjectButton requestId={c.requestId} />}
             {isWinner && (projectActive || c.projectCase?.status === 'CLOSED_PROJECT_CANCELLED') && (
               <ProjectCasePanel
                 requestId={c.requestId}
@@ -234,6 +276,8 @@ function ClaimWorkspace({ ctx: c, isManager }: { ctx: ClaimQuoteContextDto; isMa
                 canAct={isManager && projectActive}
               />
             )}
+            {/* e2: dupa finalizare — livrare confirmata + recenzia primita */}
+            {isWinner && <ClaimCompletionCard requestId={c.requestId} requestStatus={c.requestStatus} />}
           </div>
 
           {c.threadId && (
@@ -262,7 +306,8 @@ function ClaimWorkspace({ ctx: c, isManager }: { ctx: ClaimQuoteContextDto; isMa
             {/* inspiratia clientului, grupata pe camere, langa camere (E-client-34) */}
             <RequestInspirationByRoom photos={c.detail.inspirationPhotos} rooms={c.detail.rooms} />
 
-            <GeneralFiles ctx={c} />
+            {/* a2: aceeasi componenta ca pe pagina din piata (fisierele nereferite de camere) */}
+            <RequestGeneralFiles rooms={c.detail.rooms} attachments={c.detail.attachments} />
           </div>
 
           <div className={current === 'lifecycle' ? 'flex flex-col' : 'hidden'}>
@@ -284,6 +329,8 @@ function ClaimWorkspace({ ctx: c, isManager }: { ctx: ClaimQuoteContextDto; isMa
 function ClaimHeader({ ctx, subtitle }: { ctx: ClaimQuoteContextDto; subtitle?: ReactNode }) {
   const t = useTranslations('Quotes');
   const tm = useTranslations('Marketplace');
+  // e1: pe castigator insigna arata starea proiectului, nu „Ofertă trimisă”
+  const project = ctx.quote?.status === 'ACCEPTED' ? firmProjectState(ctx.requestStatus) : null;
   return (
     <header className="flex flex-col gap-2">
       <Link
@@ -296,7 +343,11 @@ function ClaimHeader({ ctx, subtitle }: { ctx: ClaimQuoteContextDto; subtitle?: 
         <h1 className="page-title min-w-0 break-words">
           <ContactSafeText text={ctx.requestTitle} />
         </h1>
-        <StatusBadge status={ctx.claimStatus} label={tm(`claimStatus.${ctx.claimStatus}`)} />
+        {project ? (
+          <FirmProjectBadge state={project} />
+        ) : (
+          <StatusBadge status={ctx.claimStatus} label={tm(`claimStatus.${ctx.claimStatus}`)} />
+        )}
       </div>
       {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
     </header>
@@ -309,7 +360,8 @@ function ClaimHeader({ ctx, subtitle }: { ctx: ClaimQuoteContextDto; subtitle?: 
 function ClosedClaimSummary({ ctx: c }: { ctx: ClaimQuoteContextDto }) {
   const t = useTranslations('Quotes');
   const isWinner = c.quote?.status === 'ACCEPTED';
-  const place = [c.detail.city, c.detail.county].filter(Boolean).join(', ');
+  // b12: fara "Bucuresti, Bucuresti"
+  const place = useDisplayAddress()({ city: c.detail.city, county: c.detail.county });
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <ClaimHeader
@@ -338,6 +390,10 @@ function ClosedClaimSummary({ ctx: c }: { ctx: ClaimQuoteContextDto }) {
             includesPaidDesign={c.includesPaidDesign}
             rooms={c.rooms}
             readOnly
+            // e4: oferta retrasa pentru ca clientul a sters cererea — spunem motivul, nu doar „Retrasă”
+            statusLabel={
+              c.visibility === 'TOMBSTONE' && c.quote.status === 'WITHDRAWN' ? t('requestDeletedByClient') : undefined
+            }
           />
         ) : (
           <p className="text-sm text-muted-foreground">{t('workspace.noOwnOffer')}</p>
@@ -409,8 +465,19 @@ function WorkBar({ ctx }: { ctx: ClaimQuoteContextDto }) {
       ? slaPhase(ctx.slaDeadlineAt, ctx.firmActions.slaBreachAt, now)
       : null;
   const late = phase === 'GRACE' || phase === 'BREACHED';
-  const slaTone: SlaTone =
-    !active || !ctx.slaDeadlineAt ? 'idle' : ctx.slaPaused ? 'info' : late ? 'crimson' : 'amber';
+  // e1: pe castigator celula termenului arata starea proiectului (livrata = se asteapta clientul)
+  const project = !active && ctx.quote?.status === 'ACCEPTED' ? firmProjectState(ctx.requestStatus) : null;
+  const slaTone: SlaTone = project
+    ? project === 'delivered'
+      ? 'info'
+      : 'idle'
+    : !active || !ctx.slaDeadlineAt
+      ? 'idle'
+      : ctx.slaPaused
+        ? 'info'
+        : late
+          ? 'crimson'
+          : 'amber';
 
   return (
     <Card
@@ -466,10 +533,12 @@ function WorkBar({ ctx }: { ctx: ClaimQuoteContextDto }) {
               : t('workspace.autoCancel', { time: relTime(ctx.assignment.assignDeadlineAt) })}
           </p>
         )}
+        {/* a5: atribuirea esuata = alerta vizibila langa lista, cu textul codului primit; lista e
+            controlata de ctx, deci arata in continuare responsabilul real */}
         {err && (
-          <p className="text-xs text-crimson">
+          <Alert tone="crimson" role="alert" title={t('workspace.assignFailedTitle')} className="mt-1 p-3">
             {tm.has(`apiErrors.${err}`) ? tm(`apiErrors.${err}`) : tm('apiErrors.INTERNAL_ERROR')}
-          </p>
+          </Alert>
         )}
         {ctx.assignment.claimedBy && (
           <p className="text-xs text-muted-foreground">
@@ -478,6 +547,11 @@ function WorkBar({ ctx }: { ctx: ClaimQuoteContextDto }) {
         )}
       </div>
 
+      {project ? (
+      <div className={cn('flex flex-col gap-1.5 px-5 py-4 sm:px-6', SLA_CELL[slaTone])}>
+        <FirmProjectStatus requestId={ctx.requestId} state={project} />
+      </div>
+      ) : (
       <div className={cn('flex flex-col gap-1.5 px-5 py-4 sm:px-6', SLA_CELL[slaTone])}>
         <span className={cn('label', slaTone !== 'idle' && 'text-current')}>{t('workspace.slaLabel')}</span>
         {!active ? (
@@ -516,9 +590,9 @@ function WorkBar({ ctx }: { ctx: ClaimQuoteContextDto }) {
           </>
         )}
       </div>
+      )}
 
       <div className="flex flex-col gap-1.5 bg-surface px-5 py-4 sm:px-6">
-        <span className="label">{t('workspace.budgetLabel')}</span>
         <BudgetLine ctx={ctx} />
       </div>
     </Card>
@@ -529,13 +603,13 @@ function BudgetLine({ ctx }: { ctx: ClaimQuoteContextDto }) {
   const t = useTranslations('Quotes');
   const tr = useTranslations('Requests');
   const d = ctx.detail;
+  // b11 / M2: 'Bugetul declarat de client' doar cand clientul a ales suma; suma in lei, acelasi
+  // format ca in Sumar si in piata, sau 'Buget nedeclarat' (fara trepte)
+  const budgetFormat = useBudgetFormat();
   return (
     <>
-      <p className="font-serif text-2xl leading-tight">
-        {d.budgetEstimateRon != null
-          ? `${new Intl.NumberFormat('ro-RO').format(d.budgetEstimateRon)} lei`
-          : tr(`budget.${d.budgetRange}`)}
-      </p>
+      <span className="label">{budgetFormat.firmLabel(d)}</span>
+      <p className="font-serif text-2xl leading-tight">{budgetFormat.firmAmount(d)}</p>
       <p className="text-xs text-muted-foreground">
         {d.deadlineBucket
           ? t('workspace.deadlineLine', { deadline: tr(`deadline.${d.deadlineBucket}`) })
@@ -549,6 +623,8 @@ function BudgetLine({ ctx }: { ctx: ClaimQuoteContextDto }) {
 // vizibile DOAR cat timp claim-ul e activ pe cerere si doar membrilor care au voie (E-company-3).
 function ClientCard({ ctx }: { ctx: ClaimQuoteContextDto }) {
   const t = useTranslations('Quotes');
+  // b12: oras / judet / tara fara dubluri
+  const displayAddress = useDisplayAddress();
   const relTime = useRelativeTime();
   const titleId = useId();
   if (!ctx.client) {
@@ -615,9 +691,10 @@ function ClientCard({ ctx }: { ctx: ClaimQuoteContextDto }) {
           <li className="flex items-start gap-2 pt-2 text-ink-2">
             <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
             <span>
-              {ctx.detail.addressText}
+              {/* b12: blocul / apartamentul vin goale fara acces, ca strada */}
+              {[ctx.detail.addressText, ctx.detail.addressDetails].filter(Boolean).join(', ')}
               <span className="block text-xs text-muted-foreground">
-                {ctx.detail.city}, {ctx.detail.county}
+                {displayAddress({ city: ctx.detail.city, county: ctx.detail.county, country: ctx.detail.country })}
               </span>
             </span>
           </li>
@@ -709,76 +786,5 @@ function ClientNote({ ctx }: { ctx: ClaimQuoteContextDto }) {
         </div>
       )}
     </Card>
-  );
-}
-
-// Fisierele generale ale cererii (planuri/poze incarcate la nivel de cerere,
-// nereferite de nicio camera — schitele per camera apar in spec-carduri).
-function GeneralFiles({ ctx }: { ctx: ClaimQuoteContextDto }) {
-  const t = useTranslations('Quotes');
-  const referenced = new Set<string>();
-  for (const room of ctx.detail.rooms) {
-    for (const v of Object.values(room.answers ?? {})) {
-      if (Array.isArray(v)) for (const x of v) if (typeof x === 'string') referenced.add(x);
-    }
-  }
-  const general: AttachmentDto[] = ctx.detail.attachments.filter((a) => !referenced.has(a.id));
-  if (general.length === 0) return null;
-  return (
-    <section className="flex flex-col gap-2">
-      <h2 className="heading-section">{t('workspace.filesSection')}</h2>
-      <div className="flex flex-wrap gap-2">
-        {general.map((a) => (
-          <AttachmentThumb key={a.id} attachment={a} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function DeliverButton({ requestId }: { requestId: string }) {
-  const t = useTranslations('Fulfillment');
-  const tu = useTranslations('Legal.firmRules.units');
-  const deliver = useMarkDelivered();
-  // E-company-6: marcarea e ireversibila din aplicatie → dialog cu consecintele (D-L1-1)
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const firmRules = useFirmRules();
-  const rules = isFirmRules(firmRules.data) ? firmRules.data : null;
-  const err = deliver.error instanceof ApiError ? deliver.error.code : null;
-  const errText = err ? (t.has(`apiErrors.${err}`) ? t(`apiErrors.${err}`) : t('apiErrors.INTERNAL_ERROR')) : null;
-  return (
-    <div className="flex flex-col gap-2">
-      <Button
-        variant="walnut"
-        size="lg"
-        className="self-start"
-        onClick={() => {
-          deliver.reset();
-          setConfirmOpen(true);
-        }}
-        disabled={deliver.isPending || deliver.isSuccess}
-      >
-        {deliver.isSuccess ? t('markedDelivered') : t('markDelivered')}
-      </Button>
-      {errText && <p className="text-sm text-crimson">{errText}</p>}
-      <ActionConfirmDialog
-        open={confirmOpen}
-        onOpenChange={setConfirmOpen}
-        title={t('deliverConfirmTitle')}
-        confirmLabel={t('deliverConfirmCta')}
-        cancelLabel={t('deliverConfirmCancel')}
-        pendingLabel={t('deliverConfirmPending')}
-        pending={deliver.isPending}
-        error={errText}
-        onConfirm={() => deliver.mutate(requestId, { onSuccess: () => setConfirmOpen(false) })}
-      >
-        <p>
-          {rules
-            ? t('deliverConfirmBody', { days: tu('day', { n: rules.delivery.autoCompleteDays }) })
-            : t('deliverConfirmBodyNoDays')}
-        </p>
-        <p className="font-medium">{t('deliverConfirmIrreversible')}</p>
-      </ActionConfirmDialog>
-    </div>
   );
 }

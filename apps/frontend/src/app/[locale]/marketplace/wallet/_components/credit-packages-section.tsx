@@ -25,7 +25,7 @@ export function CreditPackagesSection({
   loaded: boolean;
   packages: CreditPackageDto[] | undefined;
   stripeEnabled: boolean;
-  /** E-company-21: creditele se folosesc doar cu abonament activ — nota informativa */
+  /** h2: fara abonament activ pachetele sunt dezactivate, cu "Reactiveaza abonamentul" alaturi */
   noSubscription: boolean;
   payDisabled: boolean;
   onBuy: (pkg: CreditPackageDto) => void;
@@ -48,10 +48,20 @@ export function CreditPackagesSection({
         </p>
       </div>
 
-      {/* cumpararea ramane permisa fara abonament (SubscriptionActiveGuard e doar pe preluare) */}
+      {/* h2 (decizie PO h2-3): fara abonament activ pachetele sunt oprite (si refuzate de server,
+          CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION); reactivarea e chiar langa ele */}
       {noSubscription && (
-        <Alert tone="amber" icon={<AlertTriangle />}>
-          {tb('noSubscriptionCreditsNote')}
+        <Alert
+          tone="amber"
+          icon={<AlertTriangle />}
+          className="flex-wrap [&>div.flex-1]:min-w-[14rem]"
+          action={
+            <Button asChild variant="walnut" className="shrink-0 self-center">
+              <a href="#subscription">{t('subscriptionStatus.reactivate')}</a>
+            </Button>
+          }
+        >
+          {tb('packagesNeedSubscription')}
         </Alert>
       )}
 
@@ -90,7 +100,7 @@ export function CreditPackagesSection({
                   type="button"
                   variant="outline"
                   className="h-11 border-foreground px-[18px]"
-                  disabled={payDisabled}
+                  disabled={payDisabled || noSubscription}
                   aria-label={tb('buyPackageAria', { n: p.credits })}
                   onClick={() => onBuy(p)}
                 >

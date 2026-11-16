@@ -1,6 +1,8 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { resolveAttachmentMime } from '@marketplace/shared';
 import type {
   AnswerMap,
   AttachmentDto,
@@ -9,7 +11,9 @@ import type {
   ConfiguratorContentInput,
   PresignUploadInput,
   PresignUploadResultDto,
+  RequestCoverageDto,
   RequestDraftCreatedDto,
+  RequestDraftListItemDto,
   RequestDraftPatchInput,
   RequestDto,
   RequestListItemDto,
@@ -18,10 +22,19 @@ import type {
 } from '@marketplace/shared';
 import { track } from '@/lib/analytics';
 import { api } from '@/lib/api';
+import {
+  blockedAttachmentId,
+  rejection,
+  rejectReasonFromError,
+  splitFiles,
+  type RejectedUpload,
+  type UploadRejectReason,
+} from '@/lib/attachment-upload';
 import { waitForSafeUpload } from '@/lib/upload-scan';
 
 const draftKey = (token: string) => ['request', 'draft', token] as const;
 const MINE_KEY = ['requests', 'mine'] as const;
+const MY_DRAFTS_KEY = ['requests', 'my-drafts'] as const;
 
 // Tinta operatiilor pe atasamente: draft (secret = token) sau cererea proprie
 // (autentificat, dupa publish — editare de pe orice device).
@@ -49,7 +62,7 @@ export function useCreateDraft() {
 export function useDraft(token: string | null) {
   return useQuery({
     queryKey: draftKey(token ?? ''),
-    queryFn: () => api<RequestDto>(`/requests/drafts/${token}`),
+    queryFn: async () => withoutRemoved(await api<RequestDto>(`/requests/drafts/${token}`)),
     // doar cat e CIORNA: dupa publicare tokenul da 404, polling-ul ar pica
     refetchInterval: (query) => {
       const data = query.state.data;
@@ -68,7 +81,8 @@ export function usePatchDraft(token: string) {
         method: 'PATCH',
         body: JSON.stringify(patch),
       }),
-    onSuccess: (data) => qc.setQueryData(draftKey(token), data),
+    // b5: o salvare pornita inainte de „Elimină” nu readuce fisierul sters
+    onSuccess: (data) => qc.setQueryData(draftKey(token), withoutRemoved(data)),
   });
 }
 
@@ -110,6 +124,8 @@ export function useRepostRequest(id: string) {
     mutationFn: () => api<RequestDto>(`/requests/${id}/repost`, { method: 'POST' }),
     onSuccess: (data) => {
       qc.setQueryData(['request', data.id], data);
+      // cardul „Cine vede cererea” spunea in continuare ca cererea a expirat, pana la reincarcare
+      qc.invalidateQueries({ queryKey: ['request', data.id, 'visibility'] });
       qc.invalidateQueries({ queryKey: MINE_KEY });
       qc.invalidateQueries({ queryKey: ['requests', 'dashboard-stats'] });
     },
@@ -122,9 +138,12 @@ export function useUploadAttachmentFor(target: AttachmentTarget) {
   const base = attachmentsBase(target);
   return useMutation({
     mutationFn: async (file: File): Promise<AttachmentDto> => {
+      // b5: pe Windows unele fisiere vin fara tip → MIME-ul din extensie (aceeasi lista ca serverul);
+      // acelasi MIME la presign si la PUT, altfel confirmarea il respinge ca nepotrivit
+      const mimeType = resolveAttachmentMime(file.name, file.type) ?? file.type;
       const input: PresignUploadInput = {
         filename: file.name,
-        mimeType: file.type as PresignUploadInput['mimeType'],
+        mimeType: mimeType as PresignUploadInput['mimeType'],
         sizeBytes: file.size,
       };
       const presign = await api<PresignUploadResultDto>(base, {
@@ -133,7 +152,7 @@ export function useUploadAttachmentFor(target: AttachmentTarget) {
       });
       const put = await fetch(presign.uploadUrl, {
         method: 'PUT',
-        headers: { 'Content-Type': file.type },
+        headers: { 'Content-Type': mimeType },
         body: file,
       });
       if (!put.ok) throw new Error('upload failed');
@@ -143,13 +162,97 @@ export function useUploadAttachmentFor(target: AttachmentTarget) {
   });
 }
 
+// b5 pas 5: id-urile sterse in sesiunea curenta. Un raspuns pornit inainte de stergere (salvarea
+// ciornei, polling-ul de scanare) nu are voie sa readuca randul in lista. Id-urile sunt UUID-uri
+// nerefolosite, deci setul doar creste (mic, cat tine pagina).
+const removedAttachmentIds = new Set<string>();
+
+function withoutRemoved<T extends { attachments: AttachmentDto[] } | undefined>(data: T): T {
+  if (!data || removedAttachmentIds.size === 0) return data;
+  if (!data.attachments.some((a) => removedAttachmentIds.has(a.id))) return data;
+  return { ...data, attachments: data.attachments.filter((a) => !removedAttachmentIds.has(a.id)) };
+}
+
 export function useRemoveAttachmentFor(target: AttachmentTarget) {
   const qc = useQueryClient();
+  const key = targetQueryKey(target);
   return useMutation({
     mutationFn: (attachmentId: string) =>
       api<void>(`${attachmentsBase(target)}/${attachmentId}`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: targetQueryKey(target) }),
+    // randul dispare imediat; un fetch aflat pe drum e anulat ca sa nu readuca lista veche
+    onMutate: async (attachmentId) => {
+      removedAttachmentIds.add(attachmentId);
+      await qc.cancelQueries({ queryKey: key, exact: true });
+      const previous = qc.getQueryData<RequestDto>(key);
+      if (previous) qc.setQueryData<RequestDto>(key, withoutRemoved(previous));
+      return { previous };
+    },
+    onError: (_err, attachmentId, context) => {
+      removedAttachmentIds.delete(attachmentId);
+      if (context?.previous) qc.setQueryData(key, context.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: key, exact: true }),
   });
+}
+
+// b5 pas 2-3: incarcare pe rand, fiecare fisier cu starea lui; refuzurile (locale si de la server)
+// se aduna intr-o lista cu motiv, ca un fisier respins sa nu-l ascunda pe altul.
+export interface PendingUpload {
+  id: string;
+  name: string;
+}
+
+export function useAttachmentUploadQueue(target: AttachmentTarget) {
+  const upload = useUploadAttachmentFor(target);
+  const remove = useRemoveAttachmentFor(target);
+  const [pending, setPending] = useState<PendingUpload[]>([]);
+  const [rejected, setRejected] = useState<RejectedUpload[]>([]);
+
+  // onUploaded se cheama dupa fiecare fisier reusit (ex. schita camerei isi adauga id-ul)
+  const uploadFiles = async (
+    files: readonly File[],
+    slotsLeft: number,
+    onUploaded?: (attachment: AttachmentDto) => void,
+  ): Promise<void> => {
+    const { accepted, rejected: local } = splitFiles(files, slotsLeft);
+    if (local.length > 0) setRejected((list) => [...list, ...local]);
+    const queue = accepted.map((file, i) => ({ file, id: `up-${Date.now()}-${i}-${file.name}` }));
+    setPending((list) => [...list, ...queue.map(({ id, file }) => ({ id, name: file.name }))]);
+    for (const item of queue) {
+      try {
+        const attachment = await upload.mutateAsync(item.file);
+        onUploaded?.(attachment);
+      } catch (err) {
+        // fisierul respins la scanare nu mai ramane in lista si nu ocupa un loc
+        const blockedId = blockedAttachmentId(err);
+        if (blockedId) remove.mutate(blockedId);
+        const reason = rejectReasonFromError(err);
+        // PENDING: fisierul e salvat si apare in lista cu „se verifică...”, nu e un refuz
+        if (reason !== 'PENDING') {
+          const failed = rejection(item.file, reason);
+          setRejected((list) => [...list, failed]);
+        }
+      } finally {
+        setPending((list) => list.filter((p) => p.id !== item.id));
+      }
+    }
+  };
+
+  // refuzurile aflate deja in zona de incarcare (Dropzone validate)
+  const reject = (items: readonly { file: File; reason: UploadRejectReason }[]) =>
+    setRejected((list) => [...list, ...items.map(({ file, reason }) => rejection(file, reason))]);
+
+  const dismiss = (id: string) => setRejected((list) => list.filter((r) => r.id !== id));
+
+  // doar pentru erorile de retea (fisierul e pastrat in memorie)
+  const retry = (id: string, slotsLeft: number, onUploaded?: (attachment: AttachmentDto) => void) => {
+    const item = rejected.find((r) => r.id === id);
+    if (!item?.file) return;
+    dismiss(id);
+    void uploadFiles([item.file], slotsLeft, onUploaded);
+  };
+
+  return { uploadFiles, reject, pending, rejected, dismiss, retry };
 }
 
 // Lista de atasamente a tintei (draft sau cerere), din query-ul potrivit.
@@ -180,14 +283,22 @@ export function useAttachmentsStateFor(target: AttachmentTarget): {
 
 // Estimarea de buget din scorul camerelor (F5, item 18) — cheia de query e
 // continutul camerelor: se recalculeaza doar cand raspunsurile chiar se schimba.
-export function useBudgetEstimate(
-  rooms: { roomType: RoomType; flowVersion: number; answers: AnswerMap }[],
-) {
-  const payload = rooms.map((r) => ({
+type EstimateRoom = { roomType: RoomType; flowVersion: number; answers: AnswerMap; needsDesignHelp?: boolean; approxLengthM?: number };
+
+// b8: bifa de ajutor pe camera calatoreste doar cand e pusa (cheia de query ramane stabila);
+// d3: la fel lungimea aproximativa (proiect propriu)
+export function budgetEstimatePayload(rooms: EstimateRoom[]) {
+  return rooms.map((r) => ({
     roomType: r.roomType,
     flowVersion: r.flowVersion,
     answers: r.answers,
+    ...(r.needsDesignHelp ? { needsDesignHelp: true } : {}),
+    ...(typeof r.approxLengthM === 'number' ? { approxLengthM: r.approxLengthM } : {}),
   }));
+}
+
+export function useBudgetEstimate(rooms: EstimateRoom[]) {
+  const payload = budgetEstimatePayload(rooms);
   const key = JSON.stringify(payload);
   return useQuery({
     queryKey: ['requests', 'estimate', key],
@@ -207,7 +318,27 @@ export function useDeleteRequest() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api<{ ok: true }>(`/requests/${id}`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: MINE_KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: MINE_KEY });
+      // d5: aceeasi stergere serveste si fila "Ciorne"
+      qc.invalidateQueries({ queryKey: MY_DRAFTS_KEY });
+    },
+  });
+}
+
+// d5 (PO d5-1): fila "Ciorne" din "Cererile mele" — ciornele legate de cont.
+export function useMyDrafts() {
+  return useQuery({
+    queryKey: MY_DRAFTS_KEY,
+    queryFn: async () => (await api<RequestDraftListItemDto[]>('/requests/my-drafts')) ?? [],
+    retry: false,
+  });
+}
+
+// d5: "Continua" o ciorna din cont — serverul emite un token nou (doar proprietarul, doar ciorna).
+export function useContinueDraft() {
+  return useMutation({
+    mutationFn: (id: string) => api<RequestDraftCreatedDto>(`/requests/${id}/draft-token`, { method: 'POST' }),
   });
 }
 
@@ -223,7 +354,7 @@ export function useMyRequests() {
 export function useRequest(id: string) {
   return useQuery({
     queryKey: ['request', id],
-    queryFn: () => api<RequestDto>(`/requests/${id}`),
+    queryFn: async () => withoutRemoved(await api<RequestDto>(`/requests/${id}`)),
     refetchInterval: (query) => query.state.data?.attachments.some((a) => a.status === 'PENDING_SCAN') ? 2000 : false,
     enabled: !!id,
   });
@@ -237,6 +368,31 @@ export function useRequestVisibility(id: string, enabled = true) {
     queryFn: () => api<RequestVisibilityDto>(`/requests/${id}/visibility`),
     enabled: !!id && enabled,
     staleTime: 30_000,
+  });
+}
+
+// a6 — Sumar: exista vreo firma in zona adresei ciornei? (COVERED / NONE / UNKNOWN, niciodata un
+// numar). Se intreaba doar cand adresa e completa (aceleasi minime ca la publicare); cheia e
+// adresa, deci o adresa noua inseamna o intrebare noua. Eroarea / limita de apeluri → fara date.
+export function useDraftCoverage(
+  token: string | null,
+  address: { addressText?: string | null; city?: string | null; county?: string | null; country?: string | null },
+) {
+  const addressText = address.addressText?.trim() ?? '';
+  const city = address.city?.trim() ?? '';
+  const county = address.county?.trim() ?? '';
+  const country = address.country?.trim() || undefined;
+  const complete = addressText.length >= 3 && city.length >= 2 && county.length >= 2;
+  return useQuery({
+    queryKey: ['requests', 'draft-coverage', token ?? '', addressText, city, county, country ?? ''],
+    queryFn: async () =>
+      (await api<RequestCoverageDto>(`/requests/drafts/${token}/coverage`, {
+        method: 'POST',
+        body: JSON.stringify({ addressText, city, county, ...(country ? { country } : {}) }),
+      })) ?? null,
+    enabled: !!token && complete,
+    staleTime: 10 * 60_000,
+    retry: false,
   });
 }
 

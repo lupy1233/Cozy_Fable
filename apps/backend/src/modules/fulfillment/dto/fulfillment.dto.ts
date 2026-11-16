@@ -13,6 +13,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -41,6 +42,12 @@ export class ResolveDisputeDto {
   resolutionNote?: string;
 }
 
+// e1-2: PUT company/requests/:id/stages/:stage
+export class UpdateExecutionStageDto {
+  @IsBoolean()
+  done: boolean;
+}
+
 // E-admin-platform-3 — proiect acceptat blocat (raport / raspuns / inchidere admin).
 export class OpenProjectCaseDto {
   @IsIn(PROJECT_CASE_REASONS)
@@ -50,6 +57,14 @@ export class OpenProjectCaseDto {
   @IsString()
   @MaxLength(1000)
   note?: string;
+}
+
+// e2-2 — reclamatia clientului dupa finalizare: descrierea problemei e obligatorie.
+export class OpenWarrantyCaseDto {
+  @IsString()
+  @Matches(/\S/)
+  @MaxLength(1000)
+  note: string;
 }
 
 export class RespondProjectCaseDto {

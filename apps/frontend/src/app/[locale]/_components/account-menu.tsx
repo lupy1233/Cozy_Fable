@@ -45,8 +45,8 @@ export function AccountMenu({ role }: { role: SessionRole }) {
         >
           {user?.name ? <Avatar name={user.name} size={28} /> : <CircleUserRound className="mx-1.5 size-4" />}
           <span className="hidden min-w-0 flex-col items-start text-left leading-tight xl:flex">
-            <span className="max-w-[9.5rem] truncate text-ui font-medium">{user?.name ?? roleLabel}</span>
-            <span className="max-w-[9.5rem] truncate text-meta font-normal text-muted-foreground">
+            <span className="max-w-[7rem] truncate text-ui font-medium">{user?.name ?? roleLabel}</span>
+            <span className="max-w-[7rem] truncate text-meta font-normal text-muted-foreground">
               {role === 'COMPANY_USER' && company.data ? company.data.name : roleLabel}
             </span>
           </span>

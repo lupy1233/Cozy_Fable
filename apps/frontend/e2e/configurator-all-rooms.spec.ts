@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
-import { configuratorContentSchema } from '../../../packages/shared/src';
-import { AUDIT_ROOM_TYPES, completeAllRoomRequest, GREEN_AUDIT_ORIGIN, mockGuestDraft, reloadAndPublishGreenAudit, textFor, uploadSyntheticAuditPng } from './helpers/guided-request';
+import { configuratorContentSchema, CURRENT_FLOW_VERSION, ETAPA10_FLOW_VERSION, FLOW_VERSIONS_BEFORE_ETAPA10, type RoomType } from '../../../packages/shared/src';
+import { AUDIT_BUDGET_RON, AUDIT_ROOM_TYPES, completeAllRoomRequest, GREEN_AUDIT_ORIGIN, mockGuestDraft, reloadAndPublishGreenAudit, SAME_FINISH_ANSWER, textFor, uploadSyntheticAuditPng } from './helpers/guided-request';
 
 const realGreen = process.env.GREEN_FORM_AUDIT === '1';
 if (realGreen && process.env.GREEN_BASE_URL !== GREEN_AUDIT_ORIGIN) throw new Error('GREEN_BASE_URL must exactly match the isolated app-green audit origin.');
@@ -23,8 +23,13 @@ for (const locale of ['en', 'ro'] as const) {
     }, realGreen ? () => uploadSyntheticAuditPng(page, locale) : undefined);
     expect(audit.rooms).toHaveLength(10);
     const dressingPreview = page.locator('[data-review-room-preview="DRESSING"]');
-    await expect(dressingPreview).toContainText(textFor(locale, 'Configurator.flows.DRESSING.interiorModules.options.HANGING_RODS.label'));
-    await expect(dressingPreview).not.toContainText(/HANGING_RODS|SHOE_RACK|Material dorit:/);
+    // etapa 8: modulele interioare sunt sub "Vezi toate raspunsurile" (randurile 'extra'), nu in lista scurta
+    const dressingMore = dressingPreview.locator('xpath=ancestor::section[1]').locator('[data-review-room-more]');
+    await expect(dressingMore.locator('summary')).toHaveText(textFor(locale, 'Configurator.review.rooms.allAnswers'));
+    await dressingMore.locator('summary').click();
+    await expect(dressingMore).toContainText(textFor(locale, 'Configurator.flows.DRESSING.interiorModules.options.HANGING_RODS.label'));
+    await expect(dressingPreview).not.toContainText(textFor(locale, 'Configurator.flows.DRESSING.interiorModules.options.HANGING_RODS.label'));
+    for (const block of [dressingPreview, dressingMore]) await expect(block).not.toContainText(/HANGING_RODS|SHOE_RACK|Material dorit:/);
     const dressingReviewPath = testInfo.outputPath('localized-dressing-review.png');
     await dressingPreview.locator('..').screenshot({ path: dressingReviewPath });
     await testInfo.attach('localized-dressing-review', { path: dressingReviewPath, contentType: 'image/png' });
@@ -32,6 +37,44 @@ for (const locale of ['en', 'ro'] as const) {
     // Artefactul pastreaza doar continutul introdus in UI, nici tokenul draftului, nici cookie-uri.
     const snapshot = lastSnapshot as { roomInstances?: { roomType: string; completed: boolean; answers: unknown; flowVersion: number }[]; details?: unknown };
     expect(snapshot.roomInstances?.filter((room) => room.completed).map((room) => room.roomType).sort()).toEqual([...AUDIT_ROOM_TYPES].sort());
+    // etapa 3: ciorna pastreaza alegerea de buget facuta pe Date generale (EN = suma, RO = "Prefer sa nu spun")
+    const savedDetails = snapshot.details as { budgetRange?: string; budgetEstimateRon?: number | null; budgetChosen?: boolean };
+    if (locale === 'en') expect(savedDetails).toMatchObject({ budgetEstimateRon: AUDIT_BUDGET_RON, budgetChosen: true });
+    else expect(savedDetails.budgetRange).toBe('UNDISCLOSED');
+    // etapa 10: camerele noi pornesc pe versiunile etapei 10 (nu pe una dinainte de etapa 10)
+    for (const room of snapshot.roomInstances ?? []) {
+      const type = room.roomType as RoomType;
+      expect(room.flowVersion, `${type} flowVersion`).toBe(CURRENT_FLOW_VERSION[type]);
+      expect(room.flowVersion, `${type} etapa 10 version`).toBe(ETAPA10_FLOW_VERSION[type]);
+      expect(FLOW_VERSIONS_BEFORE_ETAPA10[type], `${type} new version`).not.toContain(room.flowVersion);
+    }
+    // etapa 6: "Acelasi material si aceeasi deschidere?" — EN "Da" (ecranul comun), RO "Nu" (ecran pe fiecare piesa)
+    const visited = new Map(audit.rooms.map((room) => [room.type, room.questions]));
+    const savedAnswers = new Map((snapshot.roomInstances ?? []).map((room) => [room.roomType as RoomType, room.answers as Record<string, unknown>]));
+    const withSameFinish = audit.rooms.filter((room) => room.questions.includes('sameFinishAll')).map((room) => room.type);
+    expect(withSameFinish.length, 'rooms asking sameFinishAll').toBeGreaterThan(0);
+    for (const type of withSameFinish) expect(savedAnswers.get(type)?.sameFinishAll, `${type}.sameFinishAll`).toBe(SAME_FINISH_ANSWER[locale]);
+    const commonScreen = audit.rooms.filter((room) => room.questions.includes('materialAll')).map((room) => room.type);
+    if (locale === 'en') expect(commonScreen.sort()).toEqual([...withSameFinish].sort());
+    else expect(commonScreen).toEqual([]);
+    // usile batante: tipul usilor apare, iar deschiderea dulapului / dressingului se cere
+    for (const type of ['BEDROOM', 'HALLWAY'] as const) {
+      expect(savedAnswers.get(type)?.wardrobeDoorType, `${type}.wardrobeDoorType`).toBe('HINGED');
+      if (locale === 'ro') expect(visited.get(type), `${type} wardrobe opening`).toContain('systemsWardrobe');
+      // titlurile de material pe piesa (RO: un ecran pe fiecare piesa)
+      if (locale === 'ro') expect(visited.get(type), `${type} wardrobe material`).toContain('materialWardrobe');
+    }
+    expect(savedAnswers.get('DRESSING')?.doorType).toBe('HINGED');
+    // etapa 10: inaltimea dulapului din dormitor e optionala — completata in EN, goala in RO
+    const bedroomDims = savedAnswers.get('BEDROOM')?.dimensions as Record<string, number> | undefined;
+    expect(bedroomDims?.wardrobeWidth, 'BEDROOM.wardrobeWidth').toBeGreaterThan(0);
+    if (locale === 'en') expect(bedroomDims?.wardrobeHeight, 'BEDROOM.wardrobeHeight').toBeGreaterThan(0);
+    else expect(bedroomDims ?? {}, 'BEDROOM.wardrobeHeight goala').not.toHaveProperty('wardrobeHeight');
+    // etapa 10: ecranele noi ale bucatariei, dormitorului, baii si spalatoriei au fost parcurse
+    for (const [type, id] of [['KITCHEN', 'sinkMounting'], ['KITCHEN', 'fridgeType'], ['KITCHEN', 'wallCabinets'], ['BEDROOM', 'wardrobeInterior'], ['BATHROOM', 'basinType'], ['LAUNDRY', 'washerLoading']] as const) {
+      expect(visited.get(type), `${type}.${id}`).toContain(id);
+    }
+    expect(visited.get('DRESSING'), 'hinged dressing opening').toContain('openingSystems');
     const content = { rooms: snapshot.roomInstances?.map(({ roomType, answers, flowVersion }) => ({ roomType, answers, flowVersion })), ...snapshot.details as object };
     expect(configuratorContentSchema.safeParse(content).success).toBe(true);
     for (const [name, value] of Object.entries({ 'all-room-question-audit': audit, 'all-room-ui-content': content })) {

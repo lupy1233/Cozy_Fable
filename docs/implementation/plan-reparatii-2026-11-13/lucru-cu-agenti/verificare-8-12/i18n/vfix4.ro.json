@@ -1,0 +1,7 @@
+{
+  "Fulfillment": {
+    "warranty": {
+      "intro": "Poți raporta o problemă până pe {date} (garanție de {months, plural, one {# lună} few {# luni} other {# de luni}}). Raportul ajunge la echipa Cozy Home, iar firma este anunțată."
+    }
+  }
+}

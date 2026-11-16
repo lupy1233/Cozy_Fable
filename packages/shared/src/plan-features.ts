@@ -1,6 +1,6 @@
 // E-admin-platform-58 — planurile de abonament ca date: registrul functiilor per plan.
 // Doar MARKETPLACE_ACCESS e inregistrat (= ce verifica SubscriptionActiveGuard: lista/detaliu
-// marketplace + preluari). Functiile uneltelor (Ofertare Rapida, citiri AI) se adauga doar dupa
+// marketplace + preluarea unei cereri noi; h2: lucrul pe preluarile existente nu il cere). Functiile uneltelor (Ofertare Rapida, citiri AI) se adauga doar dupa
 // decizia PO; coloana limit_value e pregatita pentru cote.
 
 export const PLAN_FEATURE_KEYS = ['MARKETPLACE_ACCESS'] as const;

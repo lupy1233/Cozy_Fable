@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { NEW_PIECE_RULES, upholsterySchema, sofaSchema, armchairSchema, ottomanSchema, vanitySchema, entrywaySchema, validCatalogOptions, describeCatalogOptions, type Upholstery3d, type Sofa3d, type Armchair3d, type Ottoman3d, type Vanity3d, type Entryway3d } from './catalog-config';
-import { bedOptionsSchema, tableOptionsSchema, benchOptionsSchema, defaultFurnitureConfig, isFurnitureKind, normalizeFurnitureConfig, validFurnitureConfig, type BedOptions3d, type TableOptions3d, type BenchOptions3d } from './furniture-config';
+import { bedOptionsSchema, tableOptionsSchema, benchOptionsSchema, defaultFurnitureConfig, describeFurnitureOptions, isFurnitureKind, normalizeFurnitureConfig, validFurnitureConfig, type BedOptions3d, type TableOptions3d, type BenchOptions3d } from './furniture-config';
+// ciclu de import sigur: edit-rules foloseste config.ts doar in functii (nimic la incarcare)
+import { applyPieceEditRules } from './edit-rules';
 
 // Configuratorul 3D de piese (stil Tylko) — docs/10, sprinturile R1-R6.
 // Config-ul e serializabil si intra in answers ca orice raspuns de step;
@@ -215,26 +217,30 @@ const col = (...zones: Piece3dZone[]): Piece3dColumn => ({ zones });
 
 export const PIECE3D_RULES: Record<Piece3dKind, Piece3dRules> = {
   ...NEW_PIECE_RULES,
+  // etapa 10: plaja schemei largita pentru "Alta marime" (saltea 0,7-2,2 x 1,6-2,4 m + cadru);
+  // configuratiile fara customSize raman fixate pe gabaritul standard de validFurnitureConfig
   BED: {
-    width: { min: 1.03, max: 2.02, default: 1.73 },
+    width: { min: 0.83, max: 2.42, default: 1.73 },
     height: { min: 1, max: 1, default: 1 },
-    depth: { min: 2.2, max: 2.2, default: 2.2 },
+    depth: { min: 1.8, max: 2.6, default: 2.2 },
     zoneTypes: [], maxZonesPerColumn: 0, maxColumns: 0, minColumns: 0,
     hasPlinth: false, itemName: 'Pat', defaultColumn: () => col(),
   },
   TABLE: {
     width: { min: 0.5, max: 3, default: 1.4 },
-    height: { min: 0.45, max: 0.8, default: 0.75 },
+    // etapa 10: plaja schemei largita pentru inaltimea aleasa (TABLE_CUSTOM_HEIGHT, 0,3-0,9 m)
+    height: { min: 0.3, max: 0.9, default: 0.75 },
     depth: { min: 0.4, max: 1.8, default: 0.8 },
     zoneTypes: [], maxZonesPerColumn: 0, maxColumns: 0, minColumns: 0,
-    hasPlinth: false, itemName: 'Masa', defaultColumn: () => col(),
+    hasPlinth: false, itemName: 'Masă', defaultColumn: () => col(),
   },
   BENCH: {
     width: { min: 0.6, max: 2, default: 1.2 },
-    height: { min: 0.45, max: 0.45, default: 0.45 },
+    // etapa 10: plaja schemei largita pentru inaltimea aleasa (BENCH_CUSTOM_HEIGHT, 0,35-0,55 m)
+    height: { min: 0.35, max: 0.55, default: 0.45 },
     depth: { min: 0.4, max: 0.4, default: 0.4 },
     zoneTypes: [], maxZonesPerColumn: 0, maxColumns: 0, minColumns: 0,
-    hasPlinth: false, itemName: 'Bancuta', defaultColumn: () => col(),
+    hasPlinth: false, itemName: 'Băncuță', defaultColumn: () => col(),
   },
   BOOKCASE: {
     width: { min: 0.4, max: 4, default: 1.6 },
@@ -245,7 +251,7 @@ export const PIECE3D_RULES: Record<Piece3dKind, Piece3dRules> = {
     maxColumns: 6,
     minColumns: 1,
     hasPlinth: true,
-    itemName: 'Biblioteca',
+    itemName: 'Bibliotecă',
     defaultColumn: () => col({ type: 'OPEN', fill: 'SHELVES', count: 4 }),
   },
   WARDROBE: {
@@ -270,7 +276,7 @@ export const PIECE3D_RULES: Record<Piece3dKind, Piece3dRules> = {
     maxColumns: 6,
     minColumns: 1,
     hasPlinth: true,
-    itemName: 'Comoda TV',
+    itemName: 'Comodă TV',
     defaultColumn: () => col({ type: 'OPEN' }),
   },
   SHOE_CABINET: {
@@ -295,7 +301,7 @@ export const PIECE3D_RULES: Record<Piece3dKind, Piece3dRules> = {
     minColumns: 1,
     hasPlinth: true,
     legsOption: true,
-    itemName: 'Comoda',
+    itemName: 'Comodă',
     defaultColumn: () => col({ type: 'DRAWERS', count: 3 }),
   },
   NIGHTSTAND: {
@@ -307,7 +313,7 @@ export const PIECE3D_RULES: Record<Piece3dKind, Piece3dRules> = {
     maxColumns: 1,
     minColumns: 1,
     hasPlinth: true,
-    itemName: 'Noptiera',
+    itemName: 'Noptieră',
     defaultColumn: () => col({ type: 'DRAWERS', count: 1 }, { type: 'OPEN' }),
   },
   DESK: {
@@ -502,6 +508,29 @@ export function defaultPieceConfig(kind: Piece3dKind): PieceConfig3d {
     finish: 'STEJAR',
     ...(kind === 'WALL_CABINET' ? { mountingHeightM: 1.2 } : {}),
   };
+}
+
+// Etapa 8 (d2-2, d2-3): configuratia cu care PORNESTE o piesa noua in interfata (si la
+// "De la capat"). defaultPieceConfig ramane neschimbat (fixturile si instantaneele il folosesc).
+// Dulap: zonele deschise devin usi batante, cu acelasi interior (sertarele raman); comoda TV:
+// un rand de sertare pe fiecare coloana; deschiderea "Push" scrisa explicit cand piesa are
+// fronturi (ce vede clientul ales ajunge la firma si se puncteaza).
+export function initialPieceConfig(kind: Piece3dKind): PieceConfig3d {
+  const base = defaultPieceConfig(kind);
+  if (isFurnitureKind(kind)) return applyPieceEditRules(kind, normalizePieceConfig(kind, base));
+  let columns = base.columns;
+  if (kind === 'WARDROBE') {
+    columns = columns.map((column) => ({
+      ...column,
+      zones: column.zones.map((zone): Piece3dZone => (zone.type === 'OPEN' ? { ...zone, type: 'DOOR' } : zone)),
+    }));
+  }
+  if (kind === 'TV_UNIT') {
+    columns = columns.map(() => ({ zones: [{ type: 'DRAWERS', count: 1 }] }));
+  }
+  // etapa 9 (l1): regulile noi de editare (front de sertar max 50 cm etc.) se aplica si la pornire
+  const next = applyPieceEditRules(kind, normalizePieceConfig(kind, { ...base, columns }));
+  return configHasFronts(kind, next) ? { ...next, frontStyle: 'PUSH' } : next;
 }
 
 const round3 = (v: number) => Math.round(v * 1000) / 1000;
@@ -919,6 +948,21 @@ export function pieceConfigTotals(config: PieceConfig3d): Piece3dTotals {
   return totals;
 }
 
+// Etapa 6 (c2, o singura sursa): piesa configurata 3D are fronturi (usi / sertare)?
+// Adevarat la o zona DOOR / DRAWERS / TILT_OUT, la usi glisante, la lavoarul cu depozitare
+// inchisa sau la pantofarul cu usi. Pur; nu schimba derivarile versiunilor vechi.
+// `kind` e pastrat in semnatura pentru regulile viitoare pe tip de piesa.
+export function configHasFronts(kind: Piece3dKind, config: PieceConfig3d): boolean {
+  void kind;
+  if (config.doorMode === 'SLIDING') return true;
+  if (config.columns.some((c) => c.zones.some((z) => z.type === 'DOOR' || z.type === 'DRAWERS' || z.type === 'TILT_OUT'))) {
+    return true;
+  }
+  if (config.vanity && config.vanity.storage !== 'OPEN') return true;
+  if (config.entryway?.shoeStorage === 'DOORS') return true;
+  return false;
+}
+
 const FINISH_LABEL_RO: Record<Piece3dFinish, string> = {
   ALB: 'alb',
   CREM: 'crem',
@@ -928,27 +972,29 @@ const FINISH_LABEL_RO: Record<Piece3dFinish, string> = {
   NEGRU: 'negru',
   VERDE_SALVIE: 'verde salvie',
   ALBASTRU: 'albastru',
-  TERACOTA: 'teracota',
+  TERACOTA: 'teracotă',
   CUSTOM: 'personalizat',
 };
 
 const cm = (v: number) => Math.round(v * 100);
 
-// Descrierea generata a itemului derivat (RO fara diacritice, ca restul
-// descrierilor derivate) — "atelierele vad EXACT aceeasi structura ca azi".
+// Descrierea generata a itemului derivat, pentru firma (d1, etapa 3: romana cu diacritice,
+// "×" in dimensiuni; "deschis" inseamna doar "fara usi", culoarea are eticheta ei).
 export function describePieceConfig(kind: Piece3dKind, config: PieceConfig3d): string {
   const totals = pieceConfigTotals(config);
   const parts = [
-    `Configurat 3D: ${cm(config.widthM)} x ${cm(config.heightM)} x ${cm(config.depthM)} cm`,
+    `Configurat 3D: ${cm(config.widthM)} × ${cm(config.heightM)} × ${cm(config.depthM)} cm (lățime × înălțime × adâncime)`,
     ...describeCatalogOptions(config),
+    // etapa 10: campurile noi ale patului / mesei / bancutei (nimic cand lipsesc)
+    ...describeFurnitureOptions(config),
   ];
   if (!isFurnitureKind(kind) && (kind !== 'DESK' || totals.columns > 0)) {
-    parts.push(totals.columns === 1 ? '1 coloana' : `${totals.columns} coloane`);
+    parts.push(totals.columns === 1 ? '1 coloană' : `${totals.columns} coloane`);
   }
   if (totals.hanging > 0) {
-    parts.push(totals.hanging === 1 ? '1 bara de haine' : `${totals.hanging} bare de haine`);
+    parts.push(totals.hanging === 1 ? '1 bară de haine' : `${totals.hanging} bare de haine`);
   }
-  if (totals.shelves > 0) parts.push(totals.shelves === 1 ? '1 polita' : `${totals.shelves} polite`);
+  if (totals.shelves > 0) parts.push(totals.shelves === 1 ? '1 poliță' : `${totals.shelves} polițe`);
   if (totals.drawers > 0) {
     parts.push(totals.drawers === 1 ? '1 sertar' : `${totals.drawers} sertare`);
   }
@@ -962,16 +1008,16 @@ export function describePieceConfig(kind: Piece3dKind, config: PieceConfig3d): s
     parts.push(
       totals.doors === 1
         ? sliding
-          ? '1 usa glisanta'
-          : '1 usa'
-        : `${totals.doors} usi${sliding ? ' glisante' : ''}`,
+          ? '1 ușă glisantă'
+          : '1 ușă'
+        : `${totals.doors} uși${sliding ? ' glisante' : ''}`,
     );
   }
   if (totals.open > 0) {
-    parts.push(totals.open === 1 ? '1 zona deschisa' : `${totals.open} zone deschise`);
+    parts.push(totals.open === 1 ? '1 compartiment deschis (fără ușă)' : `${totals.open} compartimente deschise (fără uși)`);
   }
   if (config.legs) parts.push('pe picioare');
-  if (config.frontStyle === 'HANDLE') parts.push('fronturi cu maner');
+  if (config.frontStyle === 'HANDLE') parts.push('fronturi cu mâner');
   else if (config.frontStyle === 'PUSH') parts.push('deschidere push');
   if (!config.upholstery) parts.push(
     config.finish === 'CUSTOM' && config.customColor

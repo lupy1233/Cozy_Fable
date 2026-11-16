@@ -15,6 +15,7 @@ import { Field } from '@/components/ui/field';
 import { Alert } from '@/components/ui/alert';
 import { AuthStateIcon, authFooterCls, authLinkCls, authTitleCls } from '../_components/auth-parts';
 import { PasswordInput } from '../_components/password-input';
+import { useMounted } from '../_components/use-mounted';
 
 // L0-A: parola noua pe baza tokenului din link (one-time, 60 min).
 function ResetPasswordInner() {
@@ -28,6 +29,7 @@ function ResetPasswordInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const reset = useResetPassword();
+  const mounted = useMounted();
 
   const {
     register,
@@ -60,7 +62,10 @@ function ResetPasswordInner() {
         <h1 className={authTitleCls}>{t('resetDoneTitle')}</h1>
         <p className="text-sm text-muted-foreground">{t('resetDoneBody')}</p>
         <Button asChild variant="walnut" size="xl" className="w-full text-lead">
-          <Link href="/login">{t('goToLogin')}</Link>
+          {/* f5: fara autentificare automata (parola noua se foloseste o data constient). E-mailul NU
+              se precompleteaza: pagina are doar tokenul, iar un endpoint care il dezvaluie din token
+              nu se adauga (DECIZIE NECESARA in raportul etapei 12); fara date personale in URL. */}
+          <Link href="/login">{t('resetDoneCta')}</Link>
         </Button>
       </div>
     );
@@ -87,7 +92,7 @@ function ResetPasswordInner() {
         <p className="text-sm text-muted-foreground">{t('resetBody')}</p>
       </div>
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+      <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
         <input type="hidden" {...register('token')} />
 
         <Field
@@ -109,7 +114,7 @@ function ResetPasswordInner() {
           <Alert tone="crimson">{t.has(apiErr.key) ? t(apiErr.key) : apiErr.fallback}</Alert>
         )}
 
-        <Button type="submit" variant="walnut" size="xl" disabled={reset.isPending} className="w-full text-lead">
+        <Button type="submit" variant="walnut" size="xl" disabled={!mounted || reset.isPending} className="w-full text-lead">
           {t('resetSubmit')}
         </Button>
       </form>

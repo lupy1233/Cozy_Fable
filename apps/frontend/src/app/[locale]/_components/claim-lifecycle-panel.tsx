@@ -289,7 +289,7 @@ export function ClaimLifecyclePanel({ ctx }: { ctx: ClaimQuoteContextDto }) {
 
 // E-company-6: corpul dialogului de retragere — ce pierde firma pentru motivul ales. Numerele vin
 // din previzualizarea serverului (GET /claims/:id/withdraw-preview), niciodata din UI.
-function WithdrawConsequences({
+export function WithdrawConsequences({
   reason,
   outcome,
   preview,
@@ -346,9 +346,16 @@ function WithdrawConsequences({
       {outcome === 'CONSUME_AND_PENALTY' && (
         <>
           <p className="font-serif text-xl text-crimson tabular-nums">
-            {t('confirm.costLine', { credits, points: tu('point', { n: points }) })}
+            {/* i3 (etapa 12): regula cu 0 puncte nu afiseaza „+0 puncte” si nu pomeneste puncte */}
+            {points > 0
+              ? t('confirm.costLine', { credits, points: tu('point', { n: points }) })
+              : t('confirm.costLineNoPoints', { credits })}
           </p>
-          <p>{t('confirm.lateBody', { minutes: tu('minute', { n: graceMinutes }) })}</p>
+          <p>
+            {points > 0
+              ? t('confirm.lateBody', { minutes: tu('minute', { n: graceMinutes }) })
+              : t('confirm.lateBodyNoPoints', { minutes: tu('minute', { n: graceMinutes }) })}
+          </p>
           <p className="text-muted-foreground">
             {t('confirm.pointsStatus', {
               current: activePoints,
@@ -395,7 +402,7 @@ function notEligibleLabel(
   }
 }
 
-function withdrawOutcomeHint(
+export function withdrawOutcomeHint(
   t: ReturnType<typeof useTranslations<'Lifecycle'>>,
   tu: ReturnType<typeof useTranslations<'Legal.firmRules.units'>>,
   rules: FirmRulesDto,
@@ -407,10 +414,12 @@ function withdrawOutcomeHint(
     case 'VOLUNTARY_NO_REASON':
       return withinGrace
         ? t('withdrawOutcome.voluntaryInGrace', { minutes: minutesText(rules.withdrawals.voluntaryGraceMinutes) })
-        : t('withdrawOutcome.voluntaryLate', {
-            minutes: minutesText(rules.withdrawals.voluntaryGraceMinutes),
-            points: tu('point', { n: rules.penalties.points.VOLUNTARY_WITHDRAWAL }),
-          });
+        : rules.penalties.points.VOLUNTARY_WITHDRAWAL > 0
+          ? t('withdrawOutcome.voluntaryLate', {
+              minutes: minutesText(rules.withdrawals.voluntaryGraceMinutes),
+              points: tu('point', { n: rules.penalties.points.VOLUNTARY_WITHDRAWAL }),
+            })
+          : t('withdrawOutcome.voluntaryLateNoPoints', { minutes: minutesText(rules.withdrawals.voluntaryGraceMinutes) });
     case 'CLIENT_UNRESPONSIVE_48H':
       return t('withdrawOutcome.clientUnresponsive', {
         hours: tu('hour', { n: rules.withdrawals.clientUnresponsiveHours }),

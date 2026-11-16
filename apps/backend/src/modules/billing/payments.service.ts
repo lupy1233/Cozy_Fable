@@ -28,6 +28,7 @@ import { CHECKOUT_EXPIRES_MINUTES, StripeService, type CreateCheckoutSessionInpu
 import { randomUUID } from 'node:crypto';
 import { loadIdempotentCheckpoint, lockIdempotentOperation, saveIdempotentCheckpoint, saveIdempotentResult } from '../../common/idempotency/idempotent-operation';
 import { SubscriptionsService } from './subscriptions.service';
+import { activeSubscriptionWhere } from '../entitlements/entitlements.service';
 import { BillingReadinessService } from './billing-readiness.service';
 import { withDeletedRecords } from '../../infra/prisma/soft-delete';
 import { billingManagerIds } from './billing-recipients';
@@ -116,6 +117,7 @@ export class PaymentsService {
     await this.readiness.assertReady(); // aparare in adancime (garda HTTP acopera deja)
     const recovered = await this.recoverPurchase(companyId, userId);
     if (recovered) return recovered;
+    await this.assertCanBuyCredits(companyId);
     const pkg = await this.prisma.creditPackage.findUnique({ where: { id: input.creditPackageId } });
     if (!pkg || !pkg.isActive) {
       throw new HttpException(
@@ -189,8 +191,29 @@ export class PaymentsService {
         409,
       );
     }
+    // h2: o comanda de credite ramasa PENDING nu se plateste dupa expirarea abonamentului
+    if (order.orderType === 'CREDIT_PACKAGE') await this.assertCanBuyCredits(companyId);
     const tier = order.planId ? ((await this.planCodes()).get(order.planId) ?? null) : null;
     return this.attachCheckout(order, userId, tier);
+  }
+
+  // h2 (decizie PO h2-3): fara abonament activ pachetele de credite sunt oprite — creditele
+  // nu se pot folosi pana la reactivare, deci nu primim plati fara folos. Abonamentul se
+  // cumpara in continuare (asa se reactiveaza).
+  private async assertCanBuyCredits(companyId: string): Promise<void> {
+    const active = await this.prisma.subscription.findFirst({
+      where: { companyId, ...activeSubscriptionWhere() },
+      select: { id: true },
+    });
+    if (!active) {
+      throw new HttpException(
+        {
+          code: ERROR_CODES.CREDITS_REQUIRE_ACTIVE_SUBSCRIPTION,
+          message: 'Credits can be bought only with an active subscription',
+        },
+        403,
+      );
+    }
   }
 
   private async recoverPurchase(companyId: string, userId: string): Promise<PurchaseResultDto | null> {
@@ -469,25 +492,38 @@ export class PaymentsService {
 
   // Anulare comanda PENDING (admin sau sesiune Stripe expirata). Idempotent pe CANCELLED;
   // CONFIRMED → 409 (nu se anuleaza o factura emisa — 4.17, storno post-MVP).
-  async cancel(orderId: string, source: 'admin' | 'stripe'): Promise<BillingOrderDto> {
+  // h3 (etapa 9): `companyId` = anularea ceruta de firma (proprietar/manager) — doar comanda
+  // proprie, PENDING si nemarcata "Am platit"; verificarea se repeta sub acelasi FOR UPDATE.
+  async cancel(orderId: string, source: 'admin' | 'stripe' | 'company', companyId?: string): Promise<BillingOrderDto> {
+    const byCompany = source === 'company';
+    if (byCompany && !companyId) throw new Error('cancel by company requires companyId');
     const existing = await this.prisma.mockBillingOrder.findUnique({ where: { id: orderId } });
-    if (!existing) {
+    if (!existing || (byCompany && existing.companyId !== companyId)) {
       throw new NotFoundException({ code: ERROR_CODES.PAYMENT_NOT_FOUND, message: 'Order not found' });
     }
     const tier = existing.planId ? ((await this.planCodes()).get(existing.planId) ?? null) : null;
     if (existing.status === 'CANCELLED') return this.toDto(existing, tier);
+    const reportedPaid = () =>
+      new HttpException({ code: ERROR_CODES.PAYMENT_REPORTED_PAID, message: 'Order was reported as paid' }, 409);
+    if (byCompany && existing.status !== 'PENDING') {
+      throw new HttpException({ code: ERROR_CODES.PAYMENT_ALREADY_CONFIRMED, message: 'Order already confirmed' }, 409);
+    }
+    if (byCompany && existing.paymentClaimedAt) throw reportedPaid();
     const unresolved = (order: MockBillingOrder) => {
       const attempt = order.stripeCheckoutAttempt as Prisma.JsonObject | null;
       return attempt && (!order.stripeSessionId || attempt.previousSessionId === order.stripeSessionId);
     };
     if (unresolved(existing)) throw new HttpException({ code: ERROR_CODES.PAYMENT_NOT_PENDING, message: 'Checkout outcome must be reconciled before cancellation' }, 409);
-    if (source === 'admin' && existing.stripeSessionId) await this.stripe.ensureSessionExpired(existing.stripeSessionId);
+    if (source !== 'stripe' && existing.stripeSessionId) await this.stripe.ensureSessionExpired(existing.stripeSessionId);
     const order = await runTx(this.prisma, 'write', async (tx) => {
       await tx.$executeRaw`SELECT id FROM mock_billing_orders WHERE id = ${orderId} FOR UPDATE`;
       const fresh = await tx.mockBillingOrder.findUniqueOrThrow({ where: { id: orderId } });
       if (unresolved(fresh) || fresh.stripeSessionId !== existing.stripeSessionId) throw new HttpException({ code: ERROR_CODES.PAYMENT_NOT_PENDING, message: 'Checkout changed during cancellation; retry after checking its state' }, 409);
+      // "Am platit" apasat intre timp (markPaid tine acelasi lock) → firma nu mai anuleaza
+      if (byCompany && fresh.status === 'CANCELLED') return fresh; // dublu-clic concurent: idempotent
+      if (byCompany && fresh.paymentClaimedAt) throw reportedPaid();
       const res = await tx.mockBillingOrder.updateMany({
-      where: { id: orderId, status: 'PENDING' },
+      where: { id: orderId, status: 'PENDING', ...(byCompany ? { paymentClaimedAt: null } : {}) },
       data: { status: 'CANCELLED', cancelledAt: new Date() },
     });
     if (res.count === 0) {
@@ -721,6 +757,8 @@ export class PaymentsService {
       testMode: o.testMode,
       paymentClaimedAt: o.paymentClaimedAt?.toISOString() ?? null,
       transferExpiresAt: transferExpiresAt(o, expiryDays)?.toISOString() ?? null,
+      // g4: proforma a plecat atasata pe e-mail (null = nu / comanda veche)
+      proformaEmailedAt: o.proformaEmailedAt?.toISOString() ?? null,
     };
   }
 }

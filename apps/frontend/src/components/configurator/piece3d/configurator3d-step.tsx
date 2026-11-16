@@ -1,26 +1,46 @@
 'use client';
 
 import {
+  applyPieceEditRules,
   canAddColumn,
   canRemoveColumn,
-  defaultPieceConfig,
+  columnStepperLimits,
+  columnWidthMaxFor,
+  COLUMN_W_MIN,
+  configHasFronts,
+  DESK_TWO_PEDESTALS_FROM_W,
+  DRAWER_FRONT_H_MAX,
+  DRAWER_H_MIN,
+  drawerCountMinFor,
+  editPieceConfig,
+  releaseRuleDrawerLocks,
+  pieceHeightMinFor,
+  TV_UNIT_HEIGHT_MIN,
+  zoneTypesInDisplayOrder,
   DRAWERS_MAX_TOP,
+  explainPieceCleanup,
   drawersCountFor,
   GEOM_EPS,
   HANGING_MIN_DEPTH,
   HANGING_MIN_ZONE_H,
   hangingCountFor,
+  initialPieceConfig,
   isPieceConfig3d,
   isFurnitureKind,
   normalizePieceConfig,
   PIECE3D_FINISHES,
   PIECE3D_RULES,
   resolvePieceLayout,
+  SHELF_GAP_MIN,
   shelvesCountFor,
   SLIDING_COLUMNS_MAX,
   SLIDING_COLUMNS_MIN,
   zoneCountMax,
+  ZONE_H_MIN,
+  type Piece3dCleanupNote,
   type Piece3dColumn,
+  type Piece3dColumnLimit,
+  type Piece3dFeature,
   type Piece3dKind,
   type Piece3dSlideDirection,
   type Piece3dZone,
@@ -38,16 +58,25 @@ import {
   RotateCcw,
   SlidersHorizontal,
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { formatDecimal } from '@/lib/decimal';
+import { useDecimalField } from '../use-decimal-field';
+import { useDimensionField } from './use-dimension-field';
+import { DimensionFieldMessages, DimensionInputRow, PieceDimensionControl } from './dimension-control';
+import { configHasDoors, withFrontStyleRule, withHingedDoors } from './front-style';
 import { FINISH_SPECS } from './finishes';
 import { PieceCanvas, zoneKey, type SnapshotFn, type ZoneRef } from './piece-canvas';
 import { FurnitureControls } from './furniture-controls';
 import { CatalogControls } from './catalog-controls';
 import { useCabinetFronts } from './use-cabinet-fronts';
+import { Snapshot3dAutoUpload } from '../snapshot3d-sync';
+import { stableKey } from '@/stores/snapshot3d';
+import { isInEditSession } from '@/stores/configurator-store';
+import { sceneBottomAfterScroll, useStickyHeaderHeight, zonePanelScrollDelta } from './sticky-scene';
 
 // Step-ul configurator-3d (R2/R3): model 3D live + controale directe.
 // D-3D-2 (aprobat): 3D si "campurile clasice" COEXISTA ca doua moduri de UI
@@ -60,6 +89,9 @@ interface Configurator3dStepUIProps {
   onChange: (value: PieceConfig3d) => void;
   // primeste PNG-ul scenei (debounced) — folosit la publish pentru snapshot (R4)
   onSnapshot?: (dataUrl: string | null) => void;
+  // etapa 10: campurile 3D optionale declarate de pasul curent (Configurator3dStep.features);
+  // lipsa = niciunul → comenzile noi nu apar (versiunile vechi, Studio)
+  features?: readonly Piece3dFeature[];
 }
 
 function hasWebGl(): boolean {
@@ -76,78 +108,20 @@ const DEFAULT_DRAWERS = 2;
 const DEFAULT_SHELVES = 3;
 
 const cm = (v: number) => Math.round(v * 100);
+// cm cu o zecimala (precizie mm) pentru campurile editabile: 40,5 ramane 40,5 (b1)
+const cmExact = (v: number) => Math.round(v * 1000) / 10;
+
+// b7: stableKey (din stores/snapshot3d) = cheie de comparatie independenta de ordinea
+// cheilor (raspunsul salvat poate trece prin validare / store, care pot reordona campurile)
 
 // optiunile de interior pentru zonele usa/deschis (undefined = gol)
 const FILL_OPTIONS: (Piece3dZoneFill | undefined)[] = [undefined, 'SHELVES', 'HANGING'];
 const fillKey = (fill: Piece3dZoneFill | undefined) => fill ?? 'NONE';
 
-function DimensionControl({
-  label,
-  min,
-  max,
-  valueM,
-  onValueM,
-}: {
-  label: string;
-  min: number;
-  max: number;
-  valueM: number;
-  onValueM: (v: number) => void;
-}) {
-  // draft local pentru campul numeric: valoarea afisata NU se leaga direct de
-  // valueM cat timp userul editeaza — altfel clamp-ul din normalizePieceConfig
-  // se aplica la fiecare tasta si "sare" inapoi la minim inainte sa apuce sa
-  // scrie a doua cifra (ex: sterge 50, vrea 25, dar 2 < min => revine la min)
-  const [draft, setDraft] = useState<string | null>(null);
-  const commit = (raw: string) => {
-    const v = Number(raw);
-    // camp golit / text invalid → ramane valoarea veche (nu sare la minim)
-    if (raw.trim() !== '' && Number.isFinite(v) && v > 0) onValueM(v / 100);
-    setDraft(null);
-  };
-  // intervalul permis sta LANGA eticheta (nu sub slider) — economiseste un rand
-  // per dimensiune, ca panoul lateral din modul 3D sa incapa pe ecran (U2)
-  return (
-    <div>
-      <div className="mb-1 flex items-baseline justify-between gap-2">
-        <span className="text-sm font-medium">{label}</span>
-        <span className="text-meta text-muted-foreground">
-          {cm(min)}–{cm(max)} cm
-        </span>
-      </div>
-      <div className="flex items-center gap-3">
-        <input
-          type="range"
-          min={cm(min)}
-          max={cm(max)}
-          step={1}
-          value={cm(valueM)}
-          onChange={(e) => onValueM(Number(e.target.value) / 100)}
-          className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-border-2 accent-walnut"
-          aria-label={label}
-        />
-        <div className="relative w-24 shrink-0">
-          <Input
-            type="number"
-            inputMode="numeric"
-            aria-label={label}
-            value={draft ?? cm(valueM)}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={(e) => commit(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') e.currentTarget.blur();
-              else if (e.key === 'Escape') setDraft(null);
-            }}
-            className="pr-9 text-right"
-          />
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-            cm
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
+// 40.1 (telefon): tintele tactile au cel putin 44 px sub lg; pe desktop raman compacte
+const TOUCH = 'max-lg:min-h-11 max-lg:min-w-11';
+const STEPPER_BUTTON = `grid h-7 w-7 ${TOUCH} place-items-center rounded-md text-foreground transition-colors hover:bg-walnut-soft disabled:opacity-30`;
+const PILL = `${TOUCH} rounded-full border px-2.5 py-1 text-xs font-medium transition-colors `;
 
 function Stepper({
   value,
@@ -171,7 +145,7 @@ function Stepper({
         onClick={() => onDelta(-1)}
         disabled={!canDec}
         aria-label={decLabel}
-        className="grid h-7 w-7 place-items-center rounded-md text-foreground transition-colors hover:bg-walnut-soft disabled:opacity-30"
+        className={STEPPER_BUTTON}
       >
         <Minus className="h-4 w-4" />
       </button>
@@ -181,7 +155,7 @@ function Stepper({
         onClick={() => onDelta(1)}
         disabled={!canInc}
         aria-label={incLabel}
-        className="grid h-7 w-7 place-items-center rounded-md text-foreground transition-colors hover:bg-walnut-soft disabled:opacity-30"
+        className={STEPPER_BUTTON}
       >
         <Plus className="h-4 w-4" />
       </button>
@@ -199,7 +173,8 @@ function TogglePills({
 }: {
   label: string;
   options: { value: string; label: string }[];
-  value: string;
+  // d2: lipsa = nicio optiune aleasa (de ex. "Batante" fara nicio usa)
+  value: string | undefined;
   onSelect: (value: string) => void;
 }) {
   return (
@@ -212,7 +187,7 @@ function TogglePills({
           aria-pressed={value === option.value}
           onClick={() => onSelect(option.value)}
           className={
-            'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ' +
+            PILL +
             (value === option.value
               ? 'border-walnut bg-walnut text-white'
               : 'border-border-2 bg-surface hover:border-walnut/50')
@@ -235,6 +210,8 @@ function LockableSize({
   onToggleLock,
   lockLabel,
   unlockLabel,
+  minCm,
+  maxCm,
 }: {
   label: string;
   valueCm: number;
@@ -243,37 +220,21 @@ function LockableSize({
   onToggleLock: () => void;
   lockLabel: string;
   unlockLabel: string;
+  minCm?: number;
+  maxCm?: number;
 }) {
   // valueCm e valoarea REZOLVATA (dupa clamp la minimul de 10/15cm etc.) —
   // draft local ca sa nu "sara" inapoi la minim la fiecare tasta stearsa,
-  // inainte ca userul sa apuce sa scrie noua valoare (vezi DimensionControl)
-  const [draft, setDraft] = useState<string | null>(null);
-  const commit = (raw: string) => {
-    const v = Number(raw);
-    if (Number.isFinite(v) && v > 0) onValueCm(v);
-    setDraft(null);
-  };
+  // inainte ca userul sa apuce sa scrie noua valoare (vezi PieceDimensionControl)
+  // b1: virgula acceptata; 0 / text invalid → ramane valoarea veche, cu mesaj
+  // b7: limitele cunoscute (coloana 22-100cm, rand min 10cm) se corecteaza cu
+  // mesaj, la fel ca in normalizePieceConfig; campul golit → mesaj
+  // 41.4: acelasi camp "cm" si aceleasi mesaje ca dimensiunile piesei (dimension-control)
+  const field = useDimensionField({ valueCm, minCm, maxCm, onValueCm });
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex flex-wrap items-center gap-1.5">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="relative w-20 shrink-0">
-        <Input
-          type="number"
-          inputMode="numeric"
-          value={draft ?? valueCm}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={(e) => commit(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') e.currentTarget.blur();
-            else if (e.key === 'Escape') setDraft(null);
-          }}
-          aria-label={label}
-          className="h-8 pr-7 text-right text-sm"
-        />
-        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-micro text-muted-foreground">
-          cm
-        </span>
-      </div>
+      <DimensionInputRow field={field} label={label} compact />
       <button
         type="button"
         aria-pressed={locked}
@@ -281,7 +242,7 @@ function LockableSize({
         aria-label={locked ? unlockLabel : lockLabel}
         onClick={onToggleLock}
         className={
-          'grid h-8 w-8 shrink-0 place-items-center rounded-md border transition-colors ' +
+          `grid h-8 w-8 ${TOUCH} shrink-0 place-items-center rounded-md border transition-colors ` +
           (locked
             ? 'border-walnut/50 bg-walnut-soft text-walnut'
             : 'border-border-2 text-muted-foreground hover:text-foreground')
@@ -289,6 +250,7 @@ function LockableSize({
       >
         {locked ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
       </button>
+      <DimensionFieldMessages field={field} className="basis-full" />
     </div>
   );
 }
@@ -296,44 +258,63 @@ function LockableSize({
 // Numarul de sertare/polite din modul "campuri clasice": acelasi tipar draft —
 // clamp-ul la [1, max] se aplica DOAR la commit (blur/Enter), nu la fiecare tasta.
 function ZoneCountInput({
+  min = 1,
   max,
   value,
   onValue,
   label,
 }: {
+  // etapa 9 (revizuire m3): minimul de sertare cand frontul ar trece de 50 cm
+  min?: number;
   max: number;
   value: number;
   onValue: (v: number) => void;
   label: string;
 }) {
-  const [draft, setDraft] = useState<string | null>(null);
-  const commit = (raw: string) => {
-    const v = Number(raw);
-    if (raw.trim() !== '' && Number.isFinite(v) && v > 0) {
-      onValue(Math.max(1, Math.min(max, Math.round(v))));
-    }
-    setDraft(null);
-  };
+  // b1: numar intreg intre 1 si max; altfel ramane valoarea veche, cu mesaj
+  // (nu se mai taie pe tacute la max)
+  const t = useTranslations('Configurator');
+  const field = useDecimalField({
+    value,
+    commitOn: 'blur',
+    maxFractionDigits: 0,
+    validate: (v) =>
+      !Number.isInteger(v)
+        ? t('validation.wholeNumber')
+        : v < min || v > max
+          ? t('validation.outOfRangeKept', { range: `${min}–${max}` })
+          : null,
+    onValue: (v) => {
+      if (v !== undefined) onValue(v);
+    },
+  });
   return (
-    <Input
-      type="number"
-      inputMode="numeric"
-      title={label}
-      aria-label={label}
-      value={draft ?? value}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={(e) => commit(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') e.currentTarget.blur();
-        else if (e.key === 'Escape') setDraft(null);
-      }}
-      className="w-16 text-right"
-    />
+    <span className="inline-flex flex-col">
+      <Input
+        {...field.inputProps}
+        inputMode="numeric"
+        title={label}
+        aria-label={label}
+        className={field.error ? 'w-16 border-crimson text-right' : 'w-16 text-right'}
+      />
+      {field.error && (
+        <span role="alert" className="mt-1 max-w-48 text-meta text-crimson">
+          {field.error}
+        </span>
+      )}
+    </span>
   );
 }
 
 export default function Configurator3dStepUI(props: Configurator3dStepUIProps) {
-  return isFurnitureKind(props.piece) ? <FurnitureControls {...props} /> : <CabinetControls {...props} />;
+  return (
+    <>
+      {isFurnitureKind(props.piece) ? <FurnitureControls {...props} /> : <CabinetControls {...props} />}
+      {/* d4: in formular (onSnapshot dat) imaginea urca imediat ca fisier al ciornei; montat
+          dupa controale, ca la iesirea de pe ecran sa gaseasca si captura facuta atunci */}
+      {props.onSnapshot && <Snapshot3dAutoUpload />}
+    </>
+  );
 }
 
 function CabinetControls({
@@ -343,6 +324,7 @@ function CabinetControls({
   onSnapshot,
 }: Configurator3dStepUIProps) {
   const t = useTranslations('Configurator');
+  const locale = useLocale();
   const rules = PIECE3D_RULES[piece];
   const [webgl] = useState(() => hasWebGl());
   const [mode, setMode] = useState<'3d' | 'fields'>(webgl ? '3d' : 'fields');
@@ -352,24 +334,123 @@ function CabinetControls({
   const config = isPieceConfig3d(value) ? value : null;
   const { openZones, setOpenZones, toggleZone, onFrontSettled } = useCabinetFronts(piece, config);
 
-  // raspunsul exista mereu dupa montare — configul implicit al piesei
+  // raspunsul exista mereu dupa montare — configul de pornire al piesei (etapa 8, PO d2-2:
+  // dulap cu usi, comoda TV cu sertare, "Push" scris cand are fronturi). O configuratie salvata
+  // care incalca regula deschiderii (ciornele vechi) se corecteaza o data (D5) — DOAR pe ciorne.
+  // Revizuire M1: la editarea unei cereri publicate configuratia ramane exact cum a fost
+  // publicata (costul in credite si imaginea nu se schimba) pana cand omul schimba ceva la
+  // piesa; atunci regula se aplica prin `apply`.
+  const [fixSavedConfig] = useState(() => !isInEditSession());
+  // etapa 9 (l1-1, l1-2): o ciorna in afara limitelor noi (sertar peste 50 cm, coloana de
+  // biblioteca peste 80 cm, comoda TV sub 35 cm) se ajusteaza O DATA la redeschidere, cu motiv
+  // (intentia = ciorna salvata). Tot doar pe ciorne, nu la editarea unei cereri publicate.
+  const editRulesCheckedFor = useRef<Piece3dKind | null>(null);
   useEffect(() => {
-    if (!config) onChange(defaultPieceConfig(piece));
-  }, [config, onChange, piece]);
+    if (!config) {
+      editRulesCheckedFor.current = piece;
+      onChange(initialPieceConfig(piece));
+      return;
+    }
+    if (!fixSavedConfig) return;
+    const fixed = withFrontStyleRule(piece, config);
+    if (editRulesCheckedFor.current !== piece) {
+      editRulesCheckedFor.current = piece;
+      const normalized = normalizePieceConfig(piece, fixed);
+      const ruled = applyPieceEditRules(piece, normalized);
+      if (ruled !== normalized) {
+        const cleaned = withFrontStyleRule(piece, ruled, fixed);
+        // revizuire m1: intentia "ciorna dinainte" e doar pentru motivul afisat acum (oneShot);
+        // urmatoarea editare porneste de la ce s-a salvat, deci motivul nu mai revine
+        setIntentState({ piece, intent: config, cleanedKey: stableKey(cleaned), oneShot: true, prevSaved: config });
+        onChange(cleaned);
+        return;
+      }
+    }
+    if (fixed !== config) onChange(fixed);
+  }, [config, onChange, piece, fixSavedConfig]);
+
+  // b7: "intentia" clientului = configuratia DINAINTE de curatare. Fiecare
+  // schimbare se aplica peste ea; curatarea (normalizePieceConfig) se face doar
+  // pentru ce se afiseaza si se SALVEAZA (onChange primeste mereu varianta
+  // curatata). Asa, la 40 → 60 cm adancime barele revin. Intentia traieste
+  // doar aici: e valabila cat timp raspunsul salvat e exact cel produs din ea
+  // (altfel — reincarcare, alt pas, alta piesa — pornim de la cel salvat).
+  const [intentState, setIntentState] = useState<{
+    piece: Piece3dKind;
+    intent: PieceConfig3d;
+    cleanedKey: string;
+    // etapa 9: intentia pusa la ajustarea de la redeschidere — doar pentru motiv, nu pentru editari
+    oneShot?: boolean;
+    // configuratia salvata inainte de aceasta editare (pentru motivul sertarelor, revizuire m1)
+    prevSaved?: PieceConfig3d;
+  } | null>(null);
+  const configKey = useMemo(() => (config ? stableKey(config) : ''), [config]);
+  const intentValid =
+    !!config && !!intentState && intentState.piece === piece && intentState.cleanedKey === configKey;
+  const intent: PieceConfig3d | null = intentValid ? intentState!.intent : config;
+  // intentia tinuta de pas (fara blocajele puse de regula); altfel editarile pornesc de la ce e salvat
+  const intentHeld = intentValid && !intentState!.oneShot;
+  // configuratia salvata din care porneste editarea cand intentia nu e tinuta (revizuire M1)
+  const previousRef = useRef<PieceConfig3d | undefined>(undefined);
+  previousRef.current = intentHeld ? undefined : config ?? undefined;
+  const configRef = useRef<PieceConfig3d | null>(config);
+  configRef.current = config;
 
   const apply = useCallback(
-    (next: PieceConfig3d) => onChange(normalizePieceConfig(piece, next)),
+    (next: PieceConfig3d) => {
+      // revizuire M1: pornind de la ce e salvat, blocajele puse atunci de regula pe sertare
+      // (count x 50 cm, neschimbate de om) ies din intentie; cele puse de om raman
+      const base = previousRef.current ? releaseRuleDrawerLocks(next, previousRef.current) : next;
+      // d2: deschiderea se scrie doar cand piesa are fronturi; intentia o pastreaza oricum
+      // etapa 9 (l1): curatarea + regulile noi de editare (front de sertar max 50 cm etc.)
+      const cleaned = withFrontStyleRule(piece, editPieceConfig(piece, base), base);
+      setIntentState({ piece, intent: base, cleanedKey: stableKey(cleaned), prevSaved: configRef.current ?? undefined });
+      onChange(cleaned);
+    },
     [onChange, piece],
   );
 
+  // ce a scos curatarea din intentie si de ce (linie scurta in panou)
+  // revizuire m1: motivul "front de cel mult 50 cm" doar cand zona chiar s-a schimbat fata de
+  // configuratia salvata dinainte (altfel ar reveni la fiecare editare)
+  const prevSaved = intentValid ? intentState!.prevSaved : undefined;
+  const cleanupNotes = useMemo(
+    () =>
+      config && intent
+        ? explainPieceCleanup(piece, intent, config).filter((note) => {
+            if (note.reason !== 'DRAWER_FRONT_MAX' || note.col === undefined || note.zone === undefined) return true;
+            const before = prevSaved?.columns[note.col]?.zones[note.zone];
+            const after = config.columns[note.col]?.zones[note.zone];
+            return !before || !after || before.type !== after.type || before.count !== after.count || before.heightM !== after.heightM;
+          })
+        : [],
+    [piece, intent, config, prevSaved],
+  );
+
   // snapshot PNG debounced dupa fiecare schimbare (R4); doar in modul 3D
+  // d4: o captura inca neluata cand clientul paraseste ecranul se ia la iesire (altfel
+  // "Continua" apasat repede lasa piesa fara imagine)
+  const capturePending = useRef(false);
+  const onSnapshotRef = useRef(onSnapshot);
+  onSnapshotRef.current = onSnapshot;
   useEffect(() => {
-    if (!config || !onSnapshot || mode !== '3d') return;
+    if (!config || !onSnapshot || mode !== '3d') {
+      capturePending.current = false;
+      return;
+    }
+    capturePending.current = true;
     const timer = setTimeout(() => {
+      capturePending.current = false;
       onSnapshot(snapshotFn.current ? snapshotFn.current() : null);
     }, 800);
     return () => clearTimeout(timer);
   }, [config, mode, onSnapshot]);
+  useEffect(() => () => {
+    if (!capturePending.current || !snapshotFn.current) return;
+    capturePending.current = false;
+    const dataUrl = snapshotFn.current();
+    if (dataUrl) onSnapshotRef.current?.(dataUrl);
+  }, []);
 
   // zona activa ramane valida dupa orice modificare de structura
   const validActiveZone = useMemo(() => {
@@ -378,6 +459,32 @@ function CabinetControls({
     if (!column || activeZone.zone >= column.zones.length) return null;
     return activeZone;
   }, [config, activeZone]);
+
+  // 40.5 (telefon): dupa atingerea unei zone, panoul ei vine pe ecran sub scena lipita sus;
+  // pe desktop panoul sta deja langa scena. Revizuire M2: derulare calculata, ca panoul sa
+  // stea INTREG sub scena lipita (opaca, ~40% din ecran), nu sub ea / sub antet.
+  const zonePanelRef = useRef<HTMLDivElement | null>(null);
+  const sceneRef = useRef<HTMLDivElement | null>(null);
+  const [zoneTapped, setZoneTapped] = useState(0);
+  useEffect(() => {
+    if (zoneTapped === 0 || typeof window === 'undefined') return;
+    const small =
+      typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 1023.98px)').matches;
+    const panel = zonePanelRef.current;
+    const scene = sceneRef.current;
+    if (!small || !panel || !scene) return;
+    // scena inca nelipita (pagina e sus): limita e pozitia ei de dupa derulare, sub antet
+    const sceneStyle = window.getComputedStyle(scene);
+    const stickyTop = sceneStyle.position === 'sticky' ? parseFloat(sceneStyle.top) : null;
+    const delta = zonePanelScrollDelta(
+      panel.getBoundingClientRect(),
+      sceneBottomAfterScroll(scene.getBoundingClientRect(), stickyTop),
+      window.innerHeight,
+    );
+    if (delta !== 0) window.scrollBy({ top: delta });
+  }, [zoneTapped]);
+  // m6: inaltimea reala a antetului lipit (scena sta imediat sub el pe telefon)
+  const headerH = useStickyHeaderHeight();
 
   // geometria rezolvata (latimi/inaltimi reale, cu blocaje) — pentru afisarea
   // dimensiunilor si regulile bara de haine / sertare (R5.3)
@@ -388,18 +495,35 @@ function CabinetControls({
 
   if (!config) return null;
 
+  // intentia completata cu ce a adaugat curatarea (coloane / zone implicite),
+  // ca indicii din UI (luati din config-ul curatat) sa existe si in intentie
+  const src = intentHeld && intent ? intent : config;
+  const b: PieceConfig3d = {
+    ...src,
+    columns: [
+      ...config.columns.map((column, i) => {
+        const own = src.columns[i];
+        if (!own) return column;
+        return own.zones.length < column.zones.length
+          ? { ...own, zones: [...own.zones, ...column.zones.slice(own.zones.length)] }
+          : own;
+      }),
+      ...src.columns.slice(config.columns.length),
+    ],
+  };
+
   const setColumns = (n: number) => {
     const columns = Array.from(
       { length: Math.max(rules.minColumns, n) },
-      (_, i) => config.columns[i] ?? rules.defaultColumn(),
+      (_, i) => b.columns[i] ?? rules.defaultColumn(),
     );
-    apply({ ...config, columns });
+    apply({ ...b, columns });
     setActiveZone(null);
     setOpenZones(new Set());
   };
 
   const updateZone = (ref: ZoneRef, patch: Partial<Piece3dZone>) => {
-    const columns = config.columns.map((column, ci) =>
+    const columns = b.columns.map((column, ci) =>
       ci === ref.col
         ? {
             ...column,
@@ -409,18 +533,18 @@ function CabinetControls({
           }
         : column,
     );
-    apply({ ...config, columns });
+    apply({ ...b, columns });
   };
 
   const updateColumn = (col: number, patch: Partial<Piece3dColumn>) => {
-    const columns = config.columns.map((column, ci) =>
+    const columns = b.columns.map((column, ci) =>
       ci === col ? { ...column, ...patch } : column,
     );
-    apply({ ...config, columns });
+    apply({ ...b, columns });
   };
 
   const setZoneType = (ref: ZoneRef, type: Piece3dZoneType) => {
-    const zone = config.columns[ref.col].zones[ref.zone];
+    const zone = b.columns[ref.col].zones[ref.zone];
     if (type === 'DRAWERS') {
       // sertarele nu au interior; count = numarul de sertare
       updateZone(ref, { type, fill: undefined, count: DEFAULT_DRAWERS });
@@ -454,22 +578,22 @@ function CabinetControls({
     // zona noua porneste pe tipul implicit al piesei (sertarele cu count)
     const type = rules.zoneTypes[0];
     const fresh: Piece3dZone = type === 'DRAWERS' ? { type, count: DEFAULT_DRAWERS } : { type };
-    const columns = config.columns.map((column, ci) =>
+    const columns = b.columns.map((column, ci) =>
       ci === col && column.zones.length < rules.maxZonesPerColumn
         ? { ...column, zones: [...column.zones, fresh] }
         : column,
     );
-    apply({ ...config, columns });
-    setActiveZone({ col, zone: Math.min(config.columns[col].zones.length, rules.maxZonesPerColumn - 1) });
+    apply({ ...b, columns });
+    setActiveZone({ col, zone: Math.min(b.columns[col].zones.length, rules.maxZonesPerColumn - 1) });
   };
 
   const removeZone = (ref: ZoneRef) => {
-    const columns = config.columns.map((column, ci) =>
+    const columns = b.columns.map((column, ci) =>
       ci === ref.col
         ? { ...column, zones: column.zones.filter((_, zi) => zi !== ref.zone) }
         : column,
     );
-    apply({ ...config, columns });
+    apply({ ...b, columns });
     // selectia ramane pe coloana (zona vecina) — bara nu dispare la stergere
     const remaining = columns[ref.col].zones.length;
     setActiveZone(remaining > 0 ? { col: ref.col, zone: Math.min(ref.zone, remaining - 1) } : null);
@@ -510,8 +634,129 @@ function CabinetControls({
             : activeMax
       : activeMax;
 
+  // etapa 9 (revizuire m3): minimul de sertare cand zona nu are vecina libera (front <= 50 cm)
+  const activeCountMin =
+    validActiveZone && activeZoneData?.type === 'DRAWERS'
+      ? drawerCountMinFor(piece, config, validActiveZone.col, validActiveZone.zone)
+      : 1;
+
+  // b7: optiunile ascunse ale zonei active au motivul sub ele (o linie scurta);
+  // bara de haine se explica doar la piesele care o pot avea vreodata
+  // b7: inaltimea interioara a unei coloane = maximul unui rand ("8,5" la
+  // rand nu se mai citeste ca 850 cm, ci ca 8,5 cm → corectat la minim)
+  const columnInnerH = (ci: number) =>
+    (layout?.[ci]?.zones ?? []).reduce((sum, z) => sum + z.height, 0);
+
+  // b7: textele de motiv primesc pragurile din ACELEASI constante ca regula
+  const cmText = (m: number) => formatDecimal(cmExact(m), locale, 1);
+  // etapa 9 (l1-2): latimea maxima a coloanei la editare (biblioteca 80 cm) si ordinea fixa
+  // de afisare a tipurilor de zona (Deschis · Sertare · Usa)
+  const columnWMax = columnWidthMaxFor(piece);
+  const zoneTypesShown = zoneTypesInDisplayOrder(piece);
+  const msg = {
+    drawersTooHigh: t('config3d.drawersTooHigh', { cm: cmText(DRAWERS_MAX_TOP) }),
+    drawersTooShort: t('config3d.drawersTooShort', { cm: cmText(DRAWER_H_MIN) }),
+    hangingNeeds: t('config3d.hangingNeeds', {
+      depth: cmText(HANGING_MIN_DEPTH),
+      height: cmText(HANGING_MIN_ZONE_H),
+    }),
+    shelvesNeedSpace: t('config3d.shelvesNeedSpace', { cm: cmText(SHELF_GAP_MIN) }),
+    slidingNeeds: t('config3d.slidingNeeds', { min: SLIDING_COLUMNS_MIN, max: SLIDING_COLUMNS_MAX }),
+    slidingLost: t('config3d.slidingLost', { min: SLIDING_COLUMNS_MIN, max: SLIDING_COLUMNS_MAX }),
+    pedestalsNeedWidth: t('config3d.pedestalsNeedWidth', { width: cmText(DESK_TWO_PEDESTALS_FROM_W) }),
+  };
+
+  const hangingPossible =
+    rules.depth.max >= HANGING_MIN_DEPTH - GEOM_EPS &&
+    rules.height.max >= HANGING_MIN_ZONE_H + 0.1;
+  const zoneHiddenReasons: string[] =
+    activeZoneData && activeResolved
+      ? [
+          ...(!drawersAllowed && activeZoneData.type !== 'DRAWERS' && rules.zoneTypes.includes('DRAWERS')
+            ? [
+                activeResolved.top > DRAWERS_MAX_TOP + GEOM_EPS
+                  ? msg.drawersTooHigh
+                  : msg.drawersTooShort,
+              ]
+            : []),
+          ...(activeZoneData.type !== 'DRAWERS' &&
+          hangingPossible &&
+          !hangingAllowed &&
+          activeZoneData.fill !== 'HANGING'
+            ? [msg.hangingNeeds]
+            : []),
+          ...(activeZoneData.type !== 'DRAWERS' && !shelvesAllowed && activeZoneData.fill !== 'SHELVES'
+            ? [msg.shelvesNeedSpace]
+            : []),
+        ]
+      : [];
+
+  // b7: ce a scos curatarea din intentia clientului (mesaje unice)
+  const cleanupMessage = ({ reason, kept = 1 }: Piece3dCleanupNote): string => {
+    switch (reason) {
+      case 'HANGING_COUNT':
+        return t('config3d.hangingReduced', { n: kept, cm: cmText(HANGING_MIN_ZONE_H) });
+      case 'SHELVES_COUNT':
+        return t('config3d.shelvesReduced', { n: kept, cm: cmText(SHELF_GAP_MIN) });
+      case 'DRAWERS_COUNT':
+        return t('config3d.drawersReduced', { n: kept, cm: cmText(DRAWER_H_MIN) });
+      case 'HANGING_DEPTH':
+      case 'HANGING_HEIGHT':
+        return msg.hangingNeeds;
+      case 'DRAWERS_TOO_HIGH':
+        return msg.drawersTooHigh;
+      case 'DRAWERS_TOO_SHORT':
+        return msg.drawersTooShort;
+      case 'SHELVES_SPACE':
+        return msg.shelvesNeedSpace;
+      case 'PEDESTALS_WIDTH':
+        return msg.pedestalsNeedWidth;
+      case 'COLUMNS_WIDTH':
+        return t('config3d.columnsFitWidth', { min: cm(COLUMN_W_MIN), max: cm(columnWMax) });
+      case 'SLIDING_COLUMNS':
+        return msg.slidingLost;
+      // etapa 9 (l1): regulile noi de editare
+      case 'DRAWER_FRONT_MAX':
+        return t('config3d.drawerFrontMax', { cm: cmText(DRAWER_FRONT_H_MAX) });
+      case 'BOOKCASE_COLUMN_WIDTH':
+        // revizuire m7: spune ce s-a schimbat, nu doar regula
+        return t('config3d.bookcaseColumnLowered', { max: cm(columnWMax) });
+      case 'TV_UNIT_HEIGHT':
+        return t('config3d.tvUnitMinHeight', { cm: cmText(TV_UNIT_HEIGHT_MIN) });
+    }
+  };
+  const cleanupLines = Array.from(new Set(cleanupNotes.map(cleanupMessage)));
+  const slidingLost = cleanupNotes.some((n) => n.reason === 'SLIDING_COLUMNS');
+
+  // b7: de ce Coloane "−" / "+" sunt dezactivate
+  const columnLimits = columnStepperLimits(piece, config);
+  const columnLimitMessage = (limit: Piece3dColumnLimit): string => {
+    switch (limit) {
+      case 'MAX_COLUMNS':
+        return piece === 'DESK'
+          ? t('config3d.pedestalsMaxReached', { n: rules.maxColumns })
+          : t('config3d.columnsMaxReached', { n: rules.maxColumns });
+      case 'SLIDING_COLUMNS':
+        return msg.slidingNeeds;
+      case 'PEDESTALS_WIDTH':
+        return msg.pedestalsNeedWidth;
+      case 'COLUMN_WIDTH':
+        return t('config3d.columnWidthRange', { min: cm(COLUMN_W_MIN), max: cm(columnWMax) });
+    }
+  };
+  const columnLimitLines = Array.from(
+    new Set(
+      [columnLimits.remove, columnLimits.add]
+        .filter((l): l is Piece3dColumnLimit => l !== null)
+        .map(columnLimitMessage),
+    ),
+  );
+
   const zoneToolbar = validActiveZone && activeZoneData && activeResolved && (
-    <div className="flex flex-col gap-2 rounded-xl border border-walnut/40 bg-walnut-soft/60 p-3">
+    <div
+      ref={zonePanelRef}
+      className="flex flex-col gap-2 rounded-xl border border-walnut/40 bg-walnut-soft/60 p-3"
+    >
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-[0.08em] text-walnut">
           {t('config3d.zoneToolbarTitle', {
@@ -532,7 +777,7 @@ function CabinetControls({
           (feedback PO 2026-07-13); cea selectata ramane mereu vizibila;
           T1: usa per zona nu exista in spatele usilor glisante */}
       <div className="flex flex-wrap gap-1.5">
-        {rules.zoneTypes
+        {zoneTypesShown
           .filter(
             (type) => !(type === 'DRAWERS' && !drawersAllowed && activeZoneData.type !== type),
           )
@@ -544,7 +789,7 @@ function CabinetControls({
               aria-pressed={activeZoneData.type === type}
               onClick={() => setZoneType(validActiveZone, type)}
               className={
-                'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ' +
+                PILL +
                 (activeZoneData.type === type
                   ? 'border-walnut bg-walnut text-white'
                   : 'border-border-2 bg-surface hover:border-walnut/50')
@@ -572,7 +817,7 @@ function CabinetControls({
               aria-pressed={activeZoneData.fill === fill}
               onClick={() => setZoneFill(validActiveZone, fill)}
               className={
-                'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ' +
+                PILL +
                 (activeZoneData.fill === fill
                   ? 'border-walnut bg-walnut text-white'
                   : 'border-border-2 bg-surface hover:border-walnut/50')
@@ -582,6 +827,13 @@ function CabinetControls({
             </button>
           ))}
         </div>
+      )}
+      {zoneHiddenReasons.length > 0 && (
+        <ul className="flex flex-col gap-0.5 text-meta text-muted-foreground" data-testid="zone-hidden-reasons">
+          {zoneHiddenReasons.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
       )}
       {/* T1: directia usii glisante a coloanei — doar unde exista vecine pe
           ambele parti (capetele gliseaza mereu spre interior) */}
@@ -608,12 +860,18 @@ function CabinetControls({
                 count: Math.max(1, Math.min(activeCountMax, (activeZoneData.count ?? 1) + d)),
               })
             }
-            canDec={(activeZoneData.count ?? 1) > 1}
+            canDec={(activeZoneData.count ?? 1) > activeCountMin}
             canInc={(activeZoneData.count ?? 1) < activeCountMax}
             decLabel={t('config3d.fewer')}
             incLabel={t('config3d.more')}
           />
         </div>
+      )}
+      {/* revizuire m3: "−" dezactivat cand mai putine sertare ar avea fronturi peste 50 cm */}
+      {activeCountMin > 1 && (activeZoneData.count ?? 1) <= activeCountMin && (
+        <p className="text-meta text-muted-foreground" data-testid="drawers-min-reason">
+          {t('config3d.drawersMinForFront', { cm: cmText(DRAWER_FRONT_H_MAX) })}
+        </p>
       )}
       {/* randurile (zonele) coloanei selectate: + adauga jos, − scoate de jos */}
       <div className="flex items-center gap-3">
@@ -635,7 +893,9 @@ function CabinetControls({
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <LockableSize
           label={t('config3d.rowHeight')}
-          valueCm={cm(activeResolved.height)}
+          minCm={cmExact(ZONE_H_MIN)}
+          maxCm={cmExact(columnInnerH(validActiveZone.col))}
+          valueCm={cmExact(activeResolved.height)}
           locked={activeZoneData.heightM !== undefined}
           onValueCm={(v) => updateZone(validActiveZone, { heightM: v / 100 })}
           onToggleLock={() =>
@@ -649,7 +909,9 @@ function CabinetControls({
         {piece !== 'DESK' && activeColWidth != null && (
           <LockableSize
             label={t('config3d.columnWidth')}
-            valueCm={cm(activeColWidth)}
+            minCm={cmExact(COLUMN_W_MIN)}
+            maxCm={cmExact(columnWMax)}
+            valueCm={cmExact(activeColWidth)}
             locked={config.columns[validActiveZone.col].widthM !== undefined}
             onValueCm={(v) => updateColumn(validActiveZone.col, { widthM: v / 100 })}
             onToggleLock={() =>
@@ -672,27 +934,27 @@ function CabinetControls({
   // in modul cu campuri raman 3 pe rand ca inainte
   const dimensionControls = (
     <div className={mode === '3d' ? 'grid gap-3 sm:grid-cols-3 lg:grid-cols-1' : 'grid gap-3 sm:grid-cols-3'}>
-      <CatalogControls kind={piece} config={config} apply={(patch) => apply({ ...config, ...patch })} />
-      <DimensionControl
+      <CatalogControls kind={piece} config={config} apply={(patch) => apply({ ...b, ...patch })} />
+      <PieceDimensionControl
         label={t('config3d.width')}
-        min={rules.width.min}
-        max={rules.width.max}
+        minM={rules.width.min}
+        maxM={rules.width.max}
         valueM={config.widthM}
-        onValueM={(v) => apply({ ...config, widthM: v })}
+        onValueM={(v) => apply({ ...b, widthM: v })}
       />
-      <DimensionControl
+      <PieceDimensionControl
         label={t('config3d.height')}
-        min={rules.height.min}
-        max={rules.height.max}
+        minM={pieceHeightMinFor(piece)}
+        maxM={rules.height.max}
         valueM={config.heightM}
-        onValueM={(v) => apply({ ...config, heightM: v })}
+        onValueM={(v) => apply({ ...b, heightM: v })}
       />
-      <DimensionControl
+      <PieceDimensionControl
         label={t('config3d.depth')}
-        min={rules.depth.min}
-        max={rules.depth.max}
+        minM={rules.depth.min}
+        maxM={rules.depth.max}
         valueM={config.depthM}
-        onValueM={(v) => apply({ ...config, depthM: v })}
+        onValueM={(v) => apply({ ...b, depthM: v })}
       />
     </div>
   );
@@ -702,18 +964,26 @@ function CabinetControls({
       {/* piesele cu o singura coloana posibila (noptiera) nu afiseaza deloc
           controlul — nu doar dezactivat (feedback PO 2026-07-13) */}
       {rules.maxColumns > 1 && (
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium">
-            {piece === 'DESK' ? t('config3d.pedestals') : t('config3d.columns')}
-          </span>
-          <Stepper
-            value={config.columns.length}
-            onDelta={(d) => setColumns(config.columns.length + d)}
-            canDec={canRemoveColumn(piece, config)}
-            canInc={canAddColumn(piece, config)}
-            decLabel={t('config3d.fewer')}
-            incLabel={t('config3d.more')}
-          />
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">
+              {piece === 'DESK' ? t('config3d.pedestals') : t('config3d.columns')}
+            </span>
+            <Stepper
+              value={config.columns.length}
+              onDelta={(d) => setColumns(config.columns.length + d)}
+              canDec={canRemoveColumn(piece, config)}
+              canInc={canAddColumn(piece, config)}
+              decLabel={t('config3d.fewer')}
+              incLabel={t('config3d.more')}
+            />
+          </div>
+          {/* b7: motivul butoanelor dezactivate, sub ele */}
+          {columnLimitLines.map((line) => (
+            <p key={line} className="max-w-64 text-meta text-muted-foreground" data-testid="column-limit-reason">
+              {line}
+            </p>
+          ))}
         </div>
       )}
       <div className="flex items-center gap-2">
@@ -725,9 +995,9 @@ function CabinetControls({
               type="button"
               aria-pressed={config.finish === finish}
               title={t(`config3d.finishes.${finish}`)}
-              onClick={() => apply({ ...config, finish })}
+              onClick={() => apply({ ...b, finish })}
               className={
-                'h-7 w-7 rounded-full border-2 transition-transform ' +
+                `h-7 w-7 ${TOUCH} rounded-full border-2 transition-transform ` +
                 (config.finish === finish
                   ? 'scale-110 border-walnut shadow-[0_0_0_2px_hsl(var(--walnut)/0.2)]'
                   : 'border-border-2 hover:scale-105')
@@ -740,7 +1010,7 @@ function CabinetControls({
           <label
             title={t('config3d.finishes.CUSTOM')}
             className={
-              'relative h-7 w-7 cursor-pointer rounded-full border-2 transition-transform ' +
+              `relative h-7 w-7 ${TOUCH} cursor-pointer rounded-full border-2 transition-transform ` +
               (config.finish === 'CUSTOM'
                 ? 'scale-110 border-walnut shadow-[0_0_0_2px_hsl(var(--walnut)/0.2)]'
                 : 'border-border-2 hover:scale-105')
@@ -755,7 +1025,7 @@ function CabinetControls({
               type="color"
               value={config.customColor ?? '#b08d57'}
               onChange={(e) =>
-                apply({ ...config, finish: 'CUSTOM', customColor: e.target.value })
+                apply({ ...b, finish: 'CUSTOM', customColor: e.target.value })
               }
               aria-label={t('config3d.finishes.CUSTOM')}
               className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
@@ -769,7 +1039,7 @@ function CabinetControls({
         size="sm"
         className="ml-auto text-muted-foreground"
         onClick={() => {
-          apply(defaultPieceConfig(piece));
+          apply(initialPieceConfig(piece));
           setActiveZone(null);
           setOpenZones(new Set());
         }}
@@ -784,19 +1054,25 @@ function CabinetControls({
   // piesele), soclu/picioare (comoda), usi batante/glisante (dulap)
   const canSlide =
     config.columns.length >= SLIDING_COLUMNS_MIN && config.columns.length <= SLIDING_COLUMNS_MAX;
+  // d2: deschiderea se alege doar la piesele cu fronturi; pilula arata valoarea salvata
+  // (dupa regula din front-style, "Push" e scris cand n-a ales nimic altceva)
+  const hasFronts = configHasFronts(piece, config);
+  const hasDoors = configHasDoors(config);
   const optionsControl = (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-      <TogglePills
-        label={t('config3d.frontStyleLabel')}
-        options={(['PUSH', 'HANDLE'] as const).map((style) => ({
-          value: style,
-          label: t(`config3d.frontStyles.${style}`),
-        }))}
-        value={config.frontStyle ?? 'PUSH'}
-        onSelect={(style) =>
-          apply({ ...config, frontStyle: style as PieceConfig3d['frontStyle'] })
-        }
-      />
+      {hasFronts && (
+        <TogglePills
+          label={t('config3d.frontStyleLabel')}
+          options={(['PUSH', 'HANDLE'] as const).map((style) => ({
+            value: style,
+            label: t(`config3d.frontStyles.${style}`),
+          }))}
+          value={config.frontStyle}
+          onSelect={(style) =>
+            apply({ ...b, frontStyle: style as PieceConfig3d['frontStyle'] })
+          }
+        />
+      )}
       {rules.legsOption && (
         <TogglePills
           label={t('config3d.baseLabel')}
@@ -805,7 +1081,7 @@ function CabinetControls({
             { value: 'LEGS', label: t('config3d.baseLegs') },
           ]}
           value={config.legs ? 'LEGS' : 'PLINTH'}
-          onSelect={(base) => apply({ ...config, legs: base === 'LEGS' ? true : undefined })}
+          onSelect={(base) => apply({ ...b, legs: base === 'LEGS' ? true : undefined })}
         />
       )}
       {rules.slidingDoors && (sliding || canSlide) && (
@@ -815,17 +1091,36 @@ function CabinetControls({
             value: mode,
             label: t(`config3d.doorModes.${mode}`),
           }))}
-          value={sliding ? 'SLIDING' : 'HINGED'}
+          // D4b: "Batante" apare ales doar cand piesa are usi; apasat fara usi, le pune
+          value={sliding ? 'SLIDING' : hasDoors ? 'HINGED' : undefined}
           onSelect={(mode) => {
-            apply({ ...config, doorMode: mode === 'SLIDING' ? 'SLIDING' : undefined });
+            apply(mode === 'SLIDING' ? { ...b, doorMode: 'SLIDING' } : withHingedDoors(b));
             setOpenZones(new Set());
           }}
         />
       )}
       {/* la 1 sau 4+ coloane optiunea de glisare nu exista — explicam de ce */}
-      {rules.slidingDoors && !sliding && !canSlide && (
-        <p className="text-meta text-muted-foreground">{t('config3d.slidingNeeds')}</p>
+      {rules.slidingDoors && !sliding && !canSlide && !slidingLost && (
+        <p className="text-meta text-muted-foreground">{msg.slidingNeeds}</p>
       )}
+      {/* b7: ce s-a scos din alegerile clientului si de ce; revine singur
+          cand regula nu mai e incalcata (intentia se pastreaza) */}
+      {/* regiunea live sta montata mereu (goala fara motive), ca motivele
+          noi sa fie anuntate de cititoarele de ecran */}
+      <div
+        role="status"
+        aria-live="polite"
+        className={cleanupLines.length > 0 ? 'basis-full text-meta text-muted-foreground' : 'sr-only'}
+        data-testid="cleanup-reasons"
+      >
+        {cleanupLines.length > 0 && (
+          <ul className="flex flex-col gap-0.5">
+            {cleanupLines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 
@@ -846,7 +1141,9 @@ function CabinetControls({
                 {piece !== 'DESK' && layout?.[ci] && (
                   <LockableSize
                     label={t('config3d.columnWidth')}
-                    valueCm={cm(layout[ci].width)}
+                    minCm={cmExact(COLUMN_W_MIN)}
+                    maxCm={cmExact(columnWMax)}
+                    valueCm={cmExact(layout[ci].width)}
                     locked={column.widthM !== undefined}
                     onValueCm={(v) => updateColumn(ci, { widthM: v / 100 })}
                     onToggleLock={() =>
@@ -917,7 +1214,7 @@ function CabinetControls({
                       }
                     >
                       {/* optiunile indisponibile geometric se ascund (PO 2026-07-13) */}
-                      {rules.zoneTypes
+                      {zoneTypesShown
                         .filter(
                           (type) =>
                             !(type === 'DRAWERS' && !zoneDrawersOk && zone.type !== type),
@@ -962,6 +1259,7 @@ function CabinetControls({
                   )}
                   {max !== undefined && (
                     <ZoneCountInput
+                      min={zone.type === 'DRAWERS' ? Math.min(max, drawerCountMinFor(piece, config, ci, zi)) : 1}
                       max={max}
                       value={zone.count ?? 1}
                       label={t('config3d.countLabel')}
@@ -971,7 +1269,9 @@ function CabinetControls({
                   {resolved && (
                     <LockableSize
                       label={t('config3d.rowHeight')}
-                      valueCm={cm(resolved.height)}
+                      minCm={cmExact(ZONE_H_MIN)}
+                      maxCm={cmExact(columnInnerH(ci))}
+                      valueCm={cmExact(resolved.height)}
                       locked={zone.heightM !== undefined}
                       onValueCm={(v) => updateZone({ col: ci, zone: zi }, { heightM: v / 100 })}
                       onToggleLock={() =>
@@ -1041,7 +1341,13 @@ function CabinetControls({
         // comenzile intr-o coloana in dreapta — panoul zonei selectate apare
         // LANGA model, nu sub el, ca totul sa incapa pe un singur ecran.
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_330px] lg:gap-5">
-          <div className="overflow-hidden rounded-xl border border-border-2 lg:sticky lg:top-20">
+          {/* 40.5: pe telefon scena sta lipita sus (~40% din ecran), comenzile curg dedesubt */}
+          <div
+            ref={sceneRef}
+            data-testid="scene-3d"
+            style={headerH === null ? undefined : ({ '--header-h': `${headerH}px` } as CSSProperties)}
+            className="sticky top-[var(--header-h,4rem)] z-10 overflow-hidden rounded-xl border border-border-2 bg-surface lg:top-20 lg:z-auto"
+          >
             <PieceCanvas
               kind={piece}
               config={config}
@@ -1053,11 +1359,14 @@ function CabinetControls({
                 // sau le inchide (NU mai cicleaza tipul — tipul se alege din bara)
                 setActiveZone(ref);
                 toggleZone(ref);
+                setZoneTapped((n) => n + 1);
               }}
               onSnapshotReady={(fn) => {
                 snapshotFn.current = fn;
               }}
-              className="h-[320px] w-full sm:h-[420px] lg:h-[500px]"
+              // etapa 9 (l1, pasul 6): pe desktop scena e mai inalta (comenzile raman 330 px);
+              // pe ecrane scunde nu trece de inaltimea ferestrei de sub antet
+              className="h-[40dvh] min-h-[220px] w-full lg:h-[min(640px,calc(100dvh_-_7rem))] lg:min-h-[500px]"
             />
           </div>
           <div className="flex min-w-0 flex-col gap-3">

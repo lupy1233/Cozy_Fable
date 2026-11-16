@@ -1,41 +1,54 @@
 'use client';
 
 import {
-  BED_MATTRESS_SIZES, BED_STORAGES, BENCH_STYLES, TABLE_TYPES, TABLE_SHAPES, TABLE_SEATS,
-  TABLE_LENGTH_LIMITS, PIECE3D_FINISHES, defaultPieceConfig, normalizePieceConfig,
-  pieceConfig3dSchema, type Piece3dKind, type PieceConfig3d,
+  BED_MATTRESS_SIZES, BED_STORAGES, BENCH_STYLES, TABLE_TYPES, TABLE_SEATS,
+  TABLE_LENGTH_LIMITS, TABLE_ROUND_DIAMETER, PIECE3D_FINISHES, applyPieceEditRules, editPieceConfig, initialPieceConfig,
+  pieceConfig3dSchema, tableDepthAfterRound, tableSeatsShortfall, type Piece3dFeature, type Piece3dKind, type PieceConfig3d,
+  BED_CUSTOM_SIZE_LIMITS, BENCH_CUSTOM_HEIGHT, TABLE_CUSTOM_HEIGHT, TABLE_HEIGHT, tableOpenLengthRange,
 } from '@marketplace/shared';
-import { useTranslations } from 'next-intl';
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { formatDecimal } from '@/lib/decimal';
+import { formatDimension } from '@/lib/dimension-format';
+import { isInEditSession } from '@/stores/configurator-store';
+import { useLocale, useTranslations } from 'next-intl';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Select } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { PieceCanvas, type SnapshotFn } from './piece-canvas';
-import { config3dChips } from './config-chips';
+import { config3dChipItems } from './config-chips';
 import { CatalogControls } from './catalog-controls';
+import { PieceDimensionControl } from './dimension-control';
+
+// etapa 9 (l1-3): formele afisate (EXTENDABLE ramane valoare salvata, aratata ca dreptunghi + bifa)
+const TABLE_FORMS = ['RECTANGULAR', 'ROUND'] as const;
+// etapa 10: valoarea din lista de saltele pentru "Altă mărime" (nu se salveaza: se salveaza bed.customSize)
+const BED_CUSTOM = 'CUSTOM';
+// "Altă mărime" porneste de la 120 × 200 (DESIGN §6)
+const BED_CUSTOM_START = { widthM: 1.2, lengthM: 2 } as const;
 
 interface Props {
   piece: Piece3dKind;
   value: unknown;
   onChange: (value: PieceConfig3d) => void;
   onSnapshot?: (value: string | null) => void;
+  // etapa 10: campurile noi declarate de pas; fara ele comenzile noi nu apar
+  features?: readonly Piece3dFeature[];
 }
 
-function SizeInput({ label, value, min, max, onChange }: {
-  label: string; value: number; min: number; max: number; onChange: (n: number) => void;
-}) {
-  const [draft, setDraft] = useState<string | null>(null);
-  const id = useId();
-  return <label htmlFor={id} className="grid gap-1 text-sm font-medium">{label}
-    <Input id={id} type="number" inputMode="decimal" min={Math.round(min * 100)} max={Math.round(max * 100)} step={1}
-      value={draft ?? Math.round(value * 100)} onChange={(e) => setDraft(e.target.value)}
-      onBlur={() => { if (draft?.trim() && Number.isFinite(Number(draft))) onChange(Number(draft) / 100); setDraft(null); }}
-      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setDraft(null); }} />
-    <span className="text-xs font-normal text-muted-foreground">{Math.round(min * 100)}–{Math.round(max * 100)} cm</span>
-  </label>;
+const round3 = (v: number) => Math.round(v * 1000) / 1000;
+const clampM = (v: number, r: { min: number; max: number }) => round3(Math.max(r.min, Math.min(r.max, v)));
+
+// fara cheia (lipsa = comportamentul de azi), nu cu `undefined` in obiect
+function without<T extends object, K extends keyof T>(obj: T, key: K): Omit<T, K> {
+  const next = { ...obj };
+  delete next[key];
+  return next;
 }
 
-export function FurnitureControls({ piece, value, onChange, onSnapshot }: Props) {
+// 41.4: dimensiunile mesei / bancutei folosesc componenta unica PieceDimensionControl
+// (aceeasi eticheta, acelasi "cm", aceleasi mesaje de corectare ca dulapul)
+export function FurnitureControls({ piece, value, onChange, onSnapshot, features }: Props) {
+  const has = (f: Piece3dFeature) => features?.includes(f) === true;
   const t = useTranslations('Configurator');
+  const locale = useLocale();
   const parsed = useMemo(() => pieceConfig3dSchema(piece).safeParse(value), [piece, value]);
   const config = parsed.success ? parsed.data : null;
   const snapshot = useRef<SnapshotFn | null>(null);
@@ -44,14 +57,73 @@ export function FurnitureControls({ piece, value, onChange, onSnapshot }: Props)
     catch { return false; }
   });
   const [mode, setMode] = useState<'3d' | 'fields'>(webgl ? '3d' : 'fields');
-  useEffect(() => { if (value == null) onChange(defaultPieceConfig(piece)); }, [piece, value, onChange]);
+  useEffect(() => { if (value == null) onChange(initialPieceConfig(piece)); }, [piece, value, onChange]);
+  const rectDepth = useRef<number | undefined>(undefined);
+  const wantExtendable = useRef(false);
+  const wantOpenLength = useRef<number | undefined>(undefined);
+  const openLengthCleared = useRef(false);
+  const [diameterNote, setDiameterNote] = useState<{ type: keyof typeof TABLE_ROUND_DIAMETER; value: number } | null>(null);
   useEffect(() => {
     if (!onSnapshot || !config || mode !== '3d') return;
     const timer = setTimeout(() => onSnapshot(snapshot.current?.() ?? null), 800);
     return () => clearTimeout(timer);
   }, [config, mode, onSnapshot]);
+  // revizuire m5: ca la biblioteca si comoda TV, o ciorna cu masa in afara intervalului nou de
+  // diametru se ajusteaza O DATA la redeschidere, cu motiv; la editarea unei cereri publicate
+  // configuratia ramane cum a fost publicata pana cand omul schimba ceva.
+  const [fixSavedConfig] = useState(() => !isInEditSession());
+  const editRulesChecked = useRef(false);
+  useEffect(() => {
+    if (!config || editRulesChecked.current) return;
+    editRulesChecked.current = true;
+    if (!fixSavedConfig || piece !== 'TABLE') return;
+    const ruled = applyPieceEditRules(piece, config);
+    if (ruled === config) return;
+    if (ruled.table?.shape === 'ROUND') setDiameterNote({ type: ruled.table.type, value: ruled.widthM });
+    onChange(ruled);
+  }, [config, fixSavedConfig, onChange, piece]);
+  // etapa 9 (l1-3): adancimea dreptunghiulara de dinainte de trecerea la rotund
+  if (config?.table && config.table.shape !== 'ROUND') rectDepth.current = config.depthM;
+  // revizuire m6: bifa "Extensibilă" se tine minte la ocolul prin alt tip / rotund
+  if (config?.table?.shape === 'EXTENDABLE') wantExtendable.current = true;
+  // etapa 10 (revizuire m2): lungimea deschisa aleasa de om se tine minte la ocolul prin alt tip /
+  // rotund / o masa mai scurta (ca bifa "Extensibilă"); se SALVEAZA doar cand masa e extensibila.
+  // Dupa ce omul o scoate (debifeaza), nu mai revine.
+  if (wantOpenLength.current === undefined && !openLengthCleared.current && config?.table?.openLengthM !== undefined) {
+    wantOpenLength.current = config.table.openLengthM;
+  }
   if (!config) return value == null ? null : <p role="alert">{t('config3d.furniture.invalidSavedConfig')}</p>;
-  const apply = (patch: Partial<PieceConfig3d>) => onChange(normalizePieceConfig(piece, { ...config, ...patch }));
+  // etapa 9 (l1): curatarea + regulile noi de editare (diametrul mesei rotunde pe tip); trecerea
+  // de la rotund la dreptunghi nu mai pune tacit adancimea pe maxim; diametrul corectat are motiv
+  const apply = (patch: Partial<PieceConfig3d>, opts?: { extendable?: boolean; openLength?: number | null }) => {
+    if (opts?.extendable !== undefined) wantExtendable.current = opts.extendable;
+    if (opts?.openLength !== undefined) {
+      wantOpenLength.current = opts.openLength ?? undefined;
+      openLengthCleared.current = opts.openLength === null;
+    }
+    let merged: PieceConfig3d = { ...config, ...patch };
+    if (merged.table && config.table?.shape === 'ROUND' && merged.table.shape !== 'ROUND') {
+      merged = { ...merged, depthM: tableDepthAfterRound(merged.table.type, rectDepth.current) };
+    }
+    let next = editPieceConfig(piece, merged);
+    if (
+      opts?.extendable === undefined &&
+      wantExtendable.current &&
+      next.table?.type === 'DINING' &&
+      next.table.shape === 'RECTANGULAR'
+    ) {
+      next = editPieceConfig(piece, { ...next, table: { ...next.table, shape: 'EXTENDABLE' } });
+    }
+    // revizuire m2: lungimea deschisa tinuta minte revine (adusa in intervalul lungimii de acum)
+    const rememberedOpen = wantOpenLength.current;
+    if (has('TABLE_OPEN_LENGTH') && rememberedOpen !== undefined && next.table?.shape === 'EXTENDABLE') {
+      next = editPieceConfig(piece, { ...next, table: { ...next.table, openLengthM: rememberedOpen } });
+    }
+    const clamped = next.table?.shape === 'ROUND' && Math.abs(next.widthM - merged.widthM) > 1e-6;
+    setDiameterNote(clamped && next.table ? { type: next.table.type, value: next.widthM } : null);
+    onChange(next);
+  };
+  const seatsShort = tableSeatsShortfall(config);
   const choice = (label: string, current: string, options: readonly string[], labelFor: (v: string) => string, set: (v: string) => void) =>
     <label className="grid gap-1 text-sm font-medium">{label}<Select className="min-h-11" value={current} onChange={(e) => set(e.target.value)}>
       {options.map((v) => <option key={v} value={v}>{labelFor(v)}</option>)}
@@ -70,31 +142,102 @@ export function FurnitureControls({ piece, value, onChange, onSnapshot }: Props)
     <div className={mode === '3d' ? 'grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]' : ''}>
       {mode === '3d' && <PieceCanvas kind={piece} config={config} onSnapshotReady={(fn) => { snapshot.current = fn; }} className="h-[320px] overflow-hidden rounded-2xl border border-border-2 sm:h-[420px]" />}
       <div className="space-y-4">
-        <CatalogControls kind={piece} config={config} apply={apply} />
+        <CatalogControls kind={piece} config={config} apply={apply} features={features} />
         {bed && <>
-          {choice(t('flows.PIECE_BED.bedSize.title'), bed.mattressSize, BED_MATTRESS_SIZES, (v) => t(`flows.PIECE_BED.bedSize.options.${v}.label`), (v) => apply({ bed: { ...bed, mattressSize: v as typeof bed.mattressSize } }))}
+          {/* etapa 10 (BED_CUSTOM_SIZE): "Altă mărime" ca a cincea alegere, doar pe pasii care o declara;
+              o marime standard sterge customSize */}
+          {choice(t('flows.PIECE_BED.bedSize.title'), bed.customSize ? BED_CUSTOM : bed.mattressSize,
+            has('BED_CUSTOM_SIZE') ? [...BED_MATTRESS_SIZES, BED_CUSTOM] : BED_MATTRESS_SIZES,
+            (v) => (v === BED_CUSTOM ? t('config3d.furniture.customSize') : t(`flows.PIECE_BED.bedSize.options.${v}.label`)),
+            (v) => apply({ bed: v === BED_CUSTOM
+              ? { ...bed, customSize: bed.customSize ?? { ...BED_CUSTOM_START } }
+              : { ...without(bed, 'customSize'), mattressSize: v as typeof bed.mattressSize } }))}
+          {has('BED_CUSTOM_SIZE') && bed.customSize && <>
+            <PieceDimensionControl label={t('config3d.furniture.mattressWidth')} valueM={bed.customSize.widthM}
+              minM={BED_CUSTOM_SIZE_LIMITS.widthM.min} maxM={BED_CUSTOM_SIZE_LIMITS.widthM.max}
+              onValueM={(widthM) => apply({ bed: { ...bed, customSize: { ...bed.customSize!, widthM: clampM(widthM, BED_CUSTOM_SIZE_LIMITS.widthM) } } })} />
+            <PieceDimensionControl label={t('config3d.furniture.mattressLength')} valueM={bed.customSize.lengthM}
+              minM={BED_CUSTOM_SIZE_LIMITS.lengthM.min} maxM={BED_CUSTOM_SIZE_LIMITS.lengthM.max}
+              onValueM={(lengthM) => apply({ bed: { ...bed, customSize: { ...bed.customSize!, lengthM: clampM(lengthM, BED_CUSTOM_SIZE_LIMITS.lengthM) } } })} />
+          </>}
           {choice(t('flows.PIECE_BED.storage.title'), bed.storage, BED_STORAGES, (v) => t(`flows.PIECE_BED.storage.options.${v}.label`), (v) => apply({ bed: { ...bed, storage: v as typeof bed.storage } }))}
           {toggle(t('flows.PIECE_BED.upholstered.title'), bed.upholstered, (v) => apply({ bed: { ...bed, upholstered: v } }))}
           <p className="text-xs leading-relaxed text-muted-foreground">{t('config3d.furniture.beddingContext')}</p>
         </>}
         {table && <>
-          {choice(t('flows.PIECE_TABLE.tableType.title'), table.type, TABLE_TYPES, (v) => t(`flows.PIECE_TABLE.tableType.options.${v}.label`), (v) => apply({ table: { ...table, type: v as typeof table.type } }))}
-          {choice(t('flows.PIECE_TABLE.shape.title'), table.shape, TABLE_SHAPES.filter((v) => v !== 'EXTENDABLE' || table.type === 'DINING'), (v) => t(`flows.PIECE_TABLE.shape.options.${v}.label`), (v) => apply({ table: { ...table, shape: v as typeof table.shape } }))}
+          {choice(t('flows.PIECE_TABLE.tableType.title'), table.type, TABLE_TYPES, (v) => t(`flows.PIECE_TABLE.tableType.options.${v}.label`), (v) => {
+            // etapa 10 (revizuire m1): la schimbarea tipului, inaltimea aleasa se sterge MEREU — revine
+            // cea obisnuita a tipului nou, iar bifa "Vreau altă înălțime" se debifeaza
+            if (v !== table.type) apply({ table: { ...without(table, 'customHeightM'), type: v as typeof table.type } });
+          })}
+          {/* etapa 9 (l1-3): doua forme + "Extensibilă" da/nu doar la masa dreptunghiulara de dining.
+              Se SALVEAZA tot ca shape 'EXTENDABLE' (fluxurile inghetate puncteaza si descriu dupa el) */}
+          {choice(t('flows.PIECE_TABLE.shape.title'), table.shape === 'ROUND' ? 'ROUND' : 'RECTANGULAR', TABLE_FORMS, (v) => t(`flows.PIECE_TABLE.shape.options.${v}.label`), (v) => {
+            if ((v === 'ROUND') !== (table.shape === 'ROUND')) apply({ table: { ...table, shape: v as typeof table.shape } });
+          })}
+          {table.type === 'DINING' && table.shape !== 'ROUND' && toggle(t('flows.PIECE_TABLE.shape.options.EXTENDABLE.label'), table.shape === 'EXTENDABLE',
+            (v) => apply({ table: { ...table, shape: v ? 'EXTENDABLE' : 'RECTANGULAR' } }, { extendable: v }))}
           {table.type === 'DINING' && choice(t('flows.PIECE_TABLE.seats.title'), table.seats ?? 'SIX', TABLE_SEATS, (v) => t(`flows.PIECE_TABLE.seats.options.${v}.label`), (v) => apply({ table: { ...table, seats: v as NonNullable<typeof table.seats> } }))}
-          <SizeInput label={table.shape === 'ROUND' ? t('flows.PIECE_TABLE.dimensions.slots.diameter') : t('config3d.width')} value={config.widthM}
-            min={table.shape === 'ROUND' ? 0.7 : TABLE_LENGTH_LIMITS[table.type].min} max={table.shape === 'ROUND' ? 1.8 : TABLE_LENGTH_LIMITS[table.type].max} onChange={(widthM) => apply({ widthM })} />
-          {table.shape !== 'ROUND' && <SizeInput label={t('config3d.depth')} value={config.depthM} min={0.4} max={1.2} onChange={(depthM) => apply({ depthM })} />}
+          <PieceDimensionControl label={table.shape === 'ROUND' ? t('flows.PIECE_TABLE.dimensions.slots.diameter') : t('config3d.width')} valueM={config.widthM}
+            minM={table.shape === 'ROUND' ? TABLE_ROUND_DIAMETER[table.type].min : TABLE_LENGTH_LIMITS[table.type].min} maxM={table.shape === 'ROUND' ? TABLE_ROUND_DIAMETER[table.type].max : TABLE_LENGTH_LIMITS[table.type].max} onValueM={(widthM) => apply({ widthM })} />
+          {/* motivul corectarii diametrului (b7) si avertismentul de persoane */}
+          <div role="status" aria-live="polite" data-testid="table-reasons" className="flex flex-col gap-1 text-meta text-muted-foreground">
+            {diameterNote && <p>{t('config3d.furniture.diameterClamped', {
+              min: formatDecimal(TABLE_ROUND_DIAMETER[diameterNote.type].min * 100, locale, 0),
+              max: formatDecimal(TABLE_ROUND_DIAMETER[diameterNote.type].max * 100, locale, 0),
+              value: formatDecimal(Math.round(diameterNote.value * 1000) / 10, locale, 1),
+            })}</p>}
+            {seatsShort && <p className="text-amber-800 dark:text-amber-300" data-testid="table-seats-warning">{t('config3d.furniture.seatsTooSmall', {
+              seats: t(`flows.PIECE_TABLE.seats.options.${seatsShort.seats}.label`),
+              cm: formatDecimal(seatsShort.minM * 100, locale, 0),
+            })}</p>}
+          </div>
+          {table.shape !== 'ROUND' && <PieceDimensionControl label={t('config3d.depth')} valueM={config.depthM} minM={0.4} maxM={1.2} onValueM={(depthM) => apply({ depthM })} />}
+          {/* etapa 10 (TABLE_OPEN_LENGTH): doar la masa extensibila; intervalul urmeaza lungimea inchisa */}
+          {has('TABLE_OPEN_LENGTH') && table.shape === 'EXTENDABLE' && (() => {
+            const range = tableOpenLengthRange(config.widthM);
+            return <>
+              {toggle(t('config3d.furniture.openLengthToggle'), table.openLengthM !== undefined, (v) => {
+                const start = clampM(config.widthM + 0.6, range);
+                apply({ table: v ? { ...table, openLengthM: start } : without(table, 'openLengthM') }, { openLength: v ? start : null });
+              })}
+              {table.openLengthM !== undefined && <PieceDimensionControl label={t('config3d.furniture.openLength')} valueM={table.openLengthM}
+                minM={range.min} maxM={range.max} onValueM={(openLengthM) => {
+                  const v = clampM(openLengthM, range);
+                  apply({ table: { ...table, openLengthM: v } }, { openLength: v });
+                }} />}
+            </>;
+          })()}
+          {/* etapa 10 (TABLE_CUSTOM_HEIGHT): inaltimea pe tipul mesei; lipsa = inaltimea obisnuita */}
+          {has('TABLE_CUSTOM_HEIGHT') && <>
+            {toggle(t('config3d.furniture.customHeightToggle', { value: formatDimension(TABLE_HEIGHT[table.type], { unit: 'cm', locale }) }),
+              table.customHeightM !== undefined,
+              (v) => apply({ table: v ? { ...table, customHeightM: TABLE_HEIGHT[table.type] } : without(table, 'customHeightM') }))}
+            {table.customHeightM !== undefined && <PieceDimensionControl label={t('config3d.height')} valueM={table.customHeightM}
+              minM={TABLE_CUSTOM_HEIGHT[table.type].min} maxM={TABLE_CUSTOM_HEIGHT[table.type].max}
+              onValueM={(customHeightM) => apply({ table: { ...table, customHeightM: clampM(customHeightM, TABLE_CUSTOM_HEIGHT[table.type]) } })} />}
+          </>}
         </>}
         {bench && <>
           {choice(t('flows.PIECE_BENCH.style.title'), bench.style, BENCH_STYLES, (v) => t(`flows.PIECE_BENCH.style.options.${v}.label`), (v) => apply({ bench: { ...bench, style: v as typeof bench.style } }))}
           {toggle(t('flows.PIECE_BENCH.upholsteredSeat.title'), bench.upholsteredSeat, (v) => apply({ bench: { ...bench, upholsteredSeat: v } }))}
-          <SizeInput label={t('config3d.width')} value={config.widthM} min={0.6} max={2} onChange={(widthM) => apply({ widthM })} />
+          <PieceDimensionControl label={t('config3d.width')} valueM={config.widthM} minM={0.6} maxM={2} onValueM={(widthM) => apply({ widthM })} />
+          {/* etapa 10 (BENCH_CUSTOM_HEIGHT): lipsa = 45 cm */}
+          {has('BENCH_CUSTOM_HEIGHT') && <>
+            {toggle(t('config3d.furniture.customHeightToggle', { value: formatDimension(0.45, { unit: 'cm', locale }) }),
+              bench.customHeightM !== undefined,
+              (v) => apply({ bench: v ? { ...bench, customHeightM: 0.45 } : without(bench, 'customHeightM') }))}
+            {bench.customHeightM !== undefined && <PieceDimensionControl label={t('config3d.height')} valueM={bench.customHeightM}
+              minM={BENCH_CUSTOM_HEIGHT.min} maxM={BENCH_CUSTOM_HEIGHT.max}
+              onValueM={(customHeightM) => apply({ bench: { ...bench, customHeightM: clampM(customHeightM, BENCH_CUSTOM_HEIGHT) } })} />}
+          </>}
         </>}
         {!config.upholstery && choice(t('config3d.furniture.visualFinish'), config.finish, PIECE3D_FINISHES, (v) => t(`config3d.finishes.${v}`), (v) => apply({ finish: v as PieceConfig3d['finish'], ...(v === 'CUSTOM' && !config.customColor ? { customColor: '#c9aa80' } : {}) }))}
         {!config.upholstery && config.finish === 'CUSTOM' && <label className="flex min-h-11 items-center justify-between text-sm">{t('config3d.finishes.CUSTOM')}
           <input type="color" className="h-11 w-16" value={config.customColor ?? '#c9aa80'} onChange={(e) => apply({ customColor: e.target.value })} />
         </label>}
-        <div className="flex flex-wrap gap-1.5">{config3dChips(t, config).map((chip, i) => <span key={i} className="rounded-full border border-border-2 bg-surface-2 px-2.5 py-1 text-xs">{chip}</span>)}</div>
+        <div className="flex flex-wrap gap-1.5">{config3dChipItems(t, config, piece, locale).map((chip, i) => <span key={i} className="inline-flex items-center gap-1.5 rounded-full border border-border-2 bg-surface-2 px-2.5 py-1 text-xs">
+          {chip.swatch && <span aria-hidden className="h-3 w-3 shrink-0 rounded-full border border-border-2" style={{ backgroundColor: chip.swatch }} />}{chip.text}</span>)}</div>
       </div>
     </div>
   </div>;

@@ -1,7 +1,7 @@
 import type { ItemSystem, Material } from '../../../enums';
 import { DEFAULT_CEILING_HEIGHT, dimensionValues, STANDARD_CABINET_DEPTH } from '../../mapping';
 import type { DimensionGroupStep, RoomFlow } from '../../types';
-import { ceilingHeightSlot, linearSlot } from '../common';
+import { ceilingHeightSlot, linearSlot, tvSetupText } from '../common';
 import { answerString, pieceMaterialWithSystems, pieceSketchStep } from './builder';
 
 // Piesa ghidata: Comoda TV / perete media. Chei i18n sub 'flows.PIECE_TV_UNIT.*'.
@@ -77,10 +77,10 @@ export const pieceTvUnitFlow: RoomFlow = {
       heightM: isMediaWall ? (values.ceilingHeight ?? DEFAULT_CEILING_HEIGHT) : 0.6,
       items: [
         {
-          name: isMediaWall ? 'Perete media TV' : 'Comoda TV',
+          name: isMediaWall ? 'Perete media TV' : 'Comodă TV',
           material: (answers.material as Material) ?? 'PAL',
           systems,
-          description: `TV: ${answerString(answers, 'tvSetup', 'UNDECIDED')}`,
+          description: tvSetupText(answerString(answers, 'tvSetup', 'UNDECIDED')),
           quantity: 1,
         },
       ],

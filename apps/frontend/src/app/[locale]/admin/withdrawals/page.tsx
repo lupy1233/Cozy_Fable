@@ -2,10 +2,10 @@
 
 import type { AdminWithdrawalItemDto } from '@marketplace/shared';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
-import { useRouter } from '@/i18n/routing';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
+import { useState } from 'react';
 import { ApiError } from '@/lib/api';
-import { useMe } from '@/hooks/use-auth';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
 import { useAdminWithdrawals, useReviewWithdrawal } from '@/hooks/use-claims-lifecycle';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -34,8 +34,8 @@ export default function AdminWithdrawalsPage() {
   const t = useTranslations('AdminWithdrawals');
   const tl = useTranslations('Lifecycle');
   const format = useFormatter();
-  const router = useRouter();
-  const me = useMe();
+  // f4: fara sesiune → login cu intoarcere; alt rol → ecranul de acces
+  const auth = useRequireAuth('ADMIN');
   const list = useAdminWithdrawals();
   const review = useReviewWithdrawal();
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -48,14 +48,10 @@ export default function AdminWithdrawalsPage() {
       : tl('apiErrors.INTERNAL_ERROR')
     : null;
 
-  useEffect(() => {
-    if (me.isError) router.replace('/login');
-    else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
-  }, [me.isError, me.data, router]);
-
-  if (me.isPending) {
+  if (auth.status === 'loading') {
     return <SkeletonPage variant="list" />;
   }
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="ADMIN" />;
 
   const decisionNote = decision ? (notes[decision.item.id] ?? '').trim() : '';
   // dialog nou → fara eroarea ramasa de la incercarea anterioara
@@ -103,7 +99,7 @@ export default function AdminWithdrawalsPage() {
               {w.requestTitle && <p className="text-sm text-muted-foreground">{w.requestTitle}</p>}
             </div>
             <span className="whitespace-nowrap font-mono text-xs text-muted-foreground">
-              {format.dateTime(new Date(w.createdAt), { dateStyle: 'medium', timeStyle: 'short' })}
+              {format.dateTime(new Date(w.createdAt), { dateStyle: 'medium', timeStyle: 'short', timeZone: APP_TIME_ZONE })}
             </span>
           </div>
 

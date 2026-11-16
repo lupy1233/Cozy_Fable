@@ -7,7 +7,7 @@ import {
   type OfferFieldPermissionEntry,
 } from '@marketplace/shared';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { TBody, TD, TH, THead, TR, Table } from '@/components/ui/table';
@@ -19,9 +19,12 @@ export function OfferPermissionsSection({ company, isOwner }: { company: Company
   const t = useTranslations('Company');
   const update = useUpdateOfferPermissions();
 
+  const ownerHintId = useId();
   // Index local editabil: role|field → canEdit
   const initial: Record<string, boolean> = {};
   for (const p of company.offerFieldPermissions) initial[`${p.role}|${p.fieldKey}`] = p.canEdit;
+  // h1-2 (PO): proprietarul are mereu toate drepturile — coloana lui e bifata si needitabila
+  for (const field of OFFER_FIELD_KEYS) initial[`OWNER|${field}`] = true;
   const [matrix, setMatrix] = useState<Record<string, boolean>>(initial);
 
   // dirty = matricea locala difera de cea salvata (buton Save activ + avertizare)
@@ -32,13 +35,15 @@ export function OfferPermissionsSection({ company, isOwner }: { company: Company
   );
 
   const toggle = (role: string, field: string) => {
-    if (!isOwner) return;
+    if (!isOwner || role === 'OWNER') return;
     setMatrix((m) => ({ ...m, [`${role}|${field}`]: !m[`${role}|${field}`] }));
   };
 
   const save = () => {
     const permissions: OfferFieldPermissionEntry[] = [];
     for (const role of COMPANY_MEMBER_ROLES) {
+      // drepturile proprietarului nu se trimit (serverul le ignora oricum)
+      if (role === 'OWNER') continue;
       for (const fieldKey of OFFER_FIELD_KEYS) {
         permissions.push({ role, fieldKey, canEdit: matrix[`${role}|${fieldKey}`] ?? false });
       }
@@ -78,8 +83,9 @@ export function OfferPermissionsSection({ company, isOwner }: { company: Company
                     <input
                       type="checkbox"
                       className="size-[18px] accent-walnut disabled:cursor-not-allowed disabled:opacity-60"
-                      disabled={!isOwner}
-                      checked={matrix[`${role}|${field}`] ?? false}
+                      disabled={!isOwner || role === 'OWNER'}
+                      checked={role === 'OWNER' ? true : (matrix[`${role}|${field}`] ?? false)}
+                      aria-describedby={role === 'OWNER' ? ownerHintId : undefined}
                       aria-label={t('permissionAria', {
                         field: t(`fieldValue.${field}`),
                         role: t(`roleValue.${role}`),
@@ -93,6 +99,9 @@ export function OfferPermissionsSection({ company, isOwner }: { company: Company
           </TBody>
         </Table>
       </Card>
+      <p id={ownerHintId} className="text-ui text-muted-foreground">
+        {t('ownerAlwaysAllowed')}
+      </p>
 
       {isOwner && (
         <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2.5">

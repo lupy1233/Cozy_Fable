@@ -7,13 +7,15 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from '@/i18n/routing';
-import { useMe } from '@/hooks/use-auth';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
 import { useMyCompany } from '@/hooks/use-company';
 import { useSubscription, useWallet } from '@/hooks/use-marketplace';
 import { companyCan } from '@/lib/company-permissions';
 import { usePenaltyStatus } from '@/hooks/use-penalties';
 import {
   useBillingOrders,
+  useCancelOrder,
+  useCreditHistory,
   useCreditPackages,
   useEntitlements,
   useMarkOrderPaid,
@@ -32,7 +34,10 @@ import { SkeletonPage } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/toaster';
 import { SectionNav } from '../../company/_components/section-nav';
 import { AccessBlocked } from '../_components/access-blocked';
+import { SubscriptionStatusNotice } from '../_components/subscription-status-notice';
 import { BankTransferPanel } from './_components/bank-transfer-panel';
+import { CancelOrderDialog } from './_components/cancel-order-dialog';
+import { CreditHistorySection } from './_components/credit-history-section';
 import { CreditPackagesSection } from './_components/credit-packages-section';
 import { CreditWalletSection } from './_components/credit-wallet-section';
 import { shortRef } from './_components/order-ref';
@@ -48,7 +53,9 @@ export default function WalletPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const searchParams = useSearchParams();
-  const me = useMe();
+  // f4: fara sesiune → login cu intoarcere; alt rol → ecranul de acces
+  const auth = useRequireAuth('COMPANY_USER');
+  const me = auth.me;
   const company = useMyCompany();
   // doar OWNER/MANAGER cumpara si vad comenzile (CompanyManagerGuard); cat timp rolul se incarca = doar citire
   const canBuy = companyCan(company.data, 'BILLING_MANAGE');
@@ -65,6 +72,10 @@ export default function WalletPage() {
   const purchasePlan = usePurchaseSubscription();
   const checkout = useOrderCheckout();
   const markPaid = useMarkOrderPaid();
+  // h3 (etapa 9): istoricul creditelor (aceleasi roluri ca soldul) + anularea comenzii in asteptare
+  const history = useCreditHistory(auth.status === 'ok');
+  const cancelOrder = useCancelOrder();
+  const [orderToCancel, setOrderToCancel] = useState<BillingOrderDto | null>(null);
 
   const [pending, setPending] = useState<PendingPurchase | null>(null);
   // comanda plasata fara Stripe → panou cu datele de transfer bancar
@@ -98,11 +109,6 @@ export default function WalletPage() {
   const handledReturn = useRef(false);
   const pollTimers = useRef<number[]>([]);
 
-  useEffect(() => {
-    if (me.isError) router.replace('/login');
-    else if (me.data && me.data.role !== 'COMPANY_USER') router.replace('/dashboard');
-  }, [me.isError, me.data, router]);
-
   // Intoarcerea din Stripe Checkout (?payment=success|cancelled&order=...): toast + poll scurt
   // (webhook-ul ajunge la cateva secunde dupa redirect) + curatam query-ul din URL.
   // Timerele stau intr-un ref: router.replace schimba searchParams si ar rula cleanup-ul
@@ -129,9 +135,10 @@ export default function WalletPage() {
     return () => timers.current.forEach((id) => window.clearTimeout(id));
   }, []);
 
-  if (me.isPending) {
+  if (auth.status === 'loading') {
     return <QueryState pending onRetry={() => void me.refetch()} skeleton={<SkeletonPage variant="list" />} />;
   }
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="COMPANY_USER" />;
 
   // E-admin-platform-58: TVA-ul si totalurile vin calculate din backend (Decimal half-up, ca pe comanda)
   const stripeEnabled = instructions.data?.stripeEnabled ?? true;
@@ -185,6 +192,21 @@ export default function WalletPage() {
     });
   };
 
+  // h3 (etapa 9): "Anuleaza comanda" dupa confirmare; panoul de transfer al comenzii se inchide
+  const openCancelOrder = (order: BillingOrderDto) => {
+    cancelOrder.reset();
+    setOrderToCancel(order);
+  };
+  const confirmCancelOrder = (order: BillingOrderDto) => {
+    cancelOrder.mutate(order.id, {
+      onSuccess: () => {
+        setOrderToCancel(null);
+        if (bankOrder?.id === order.id) setBankOrder(null);
+        toast.success(tb('cancelOrder.done'));
+      },
+    });
+  };
+
   const errorText = (err: unknown) => {
     const code = err instanceof ApiError ? err.code : 'INTERNAL_ERROR';
     return tb.has(`apiErrors.${code}`) ? tb(`apiErrors.${code}`) : tb('apiErrors.INTERNAL_ERROR');
@@ -211,6 +233,7 @@ export default function WalletPage() {
   // sectiunile randate acum = intrarile din navigarea paginii (aceleasi conditii ca mai jos)
   const navItems = [
     { id: 'credits', label: t('wallet.navCredits') },
+    { id: 'history', label: tb('history.title') },
     { id: 'subscription', label: t('subscription.title') },
     ...(canBuy
       ? [
@@ -227,6 +250,8 @@ export default function WalletPage() {
         {pageHeader}
         <SectionNav variant="tabs" label={t('wallet.sectionsNav')} items={navItems} />
       </div>
+
+      <SubscriptionStatusNotice />
 
       {(stripeTestMode || (instructions.data && !billingReady)) && (
         <div className="flex flex-col gap-3">
@@ -248,6 +273,15 @@ export default function WalletPage() {
         wallet={wallet.data}
         canBuy={canBuy}
         readOnlyNote={!canBuy && !company.isPending}
+      />
+
+      <CreditHistorySection
+        pending={history.isPending}
+        error={history.isError}
+        items={history.data?.pages.flatMap((p) => p.items)}
+        hasMore={history.hasNextPage}
+        loadingMore={history.isFetchingNextPage}
+        onLoadMore={() => void history.fetchNextPage()}
       />
 
       <SubscriptionSection
@@ -305,6 +339,8 @@ export default function WalletPage() {
               onContinuePayment={continuePayment}
               onShowBankDetails={showBankOrder}
               onDownloadInvoice={(o) => void downloadInvoice(o)}
+              onCancelOrder={openCancelOrder}
+              cancelPendingId={cancelOrder.isPending ? (cancelOrder.variables ?? null) : null}
             />
           )}
           {penalties.data && <PenaltiesSection status={penalties.data} className="flex-[1_1_320px]" />}
@@ -321,6 +357,16 @@ export default function WalletPage() {
           error={dialogError ? errorText(dialogError) : null}
           onClose={() => setPending(null)}
           onConfirm={confirmPurchase}
+        />
+      )}
+
+      {canBuy && (
+        <CancelOrderDialog
+          order={orderToCancel}
+          busy={cancelOrder.isPending}
+          error={cancelOrder.error ? errorText(cancelOrder.error) : null}
+          onClose={() => setOrderToCancel(null)}
+          onConfirm={confirmCancelOrder}
         />
       )}
     </div>

@@ -18,6 +18,10 @@ export const QUEUE_DOMAIN_EVENTS = 'domain-events';
 export const QUEUE_OFFER_EXPIRY_SETTLEMENT = 'offer-expiry-settlement';
 // E-admin-platform-3: reminder firma inainte de data livrarii + anunt de termen depasit
 export const QUEUE_PROJECT_DEADLINES = 'project-deadlines';
+// f6 (etapa 9): curatarea zilnica a ciornelor vechi
+export const QUEUE_DRAFT_CLEANUP = 'draft-cleanup';
+// g1-2 (etapa 9): anuntul de cereri noi in zona firmei + rezumatul zilnic pe e-mail
+export const QUEUE_NEW_REQUESTS = 'new-requests';
 
 @Global()
 @Module({
@@ -48,6 +52,8 @@ export const QUEUE_PROJECT_DEADLINES = 'project-deadlines';
     BullModule.registerQueue({ name: QUEUE_DOMAIN_EVENTS }),
     BullModule.registerQueue({ name: QUEUE_OFFER_EXPIRY_SETTLEMENT }),
     BullModule.registerQueue({ name: QUEUE_PROJECT_DEADLINES }),
+    BullModule.registerQueue({ name: QUEUE_DRAFT_CLEANUP }),
+    BullModule.registerQueue({ name: QUEUE_NEW_REQUESTS }),
   ],
   exports: [BullModule],
 })

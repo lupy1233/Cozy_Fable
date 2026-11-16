@@ -105,7 +105,8 @@ describe('QuotesService.createQuote — sub lock (E-company-2)', () => {
       tx,
       expect.stringMatching(new RegExp(`^quote\\.created:${quoteId}:`)),
       'quote.created',
-      { quoteId, requestId: 'r1', companyId: 'c-win', clientUserId: 'u-client' },
+      // g1 (revizie m5): autorul ofertei (actorUserId) nu primeste clopotel pentru ea
+      { quoteId, requestId: 'r1', companyId: 'c-win', clientUserId: 'u-client', claimSlotId: 'slot-win', actorUserId: 'u1' },
       ['m1', 'u-client'],
     );
     expect(queue.add).toHaveBeenCalledWith('expire', expect.anything(), expect.objectContaining({ jobId: expect.stringMatching(/^qv-/) }));
@@ -146,5 +147,82 @@ describe('QuotesService.createQuote — sub lock (E-company-2)', () => {
       response: { code: 'CONCURRENT_MODIFICATION' },
     });
     expect(prisma.$transaction).toHaveBeenCalledTimes(4);
+  });
+});
+
+// a3 / a4 / g0-11 (2026-11-13) — rubricile structurate, moneda variantei, proiectarea cu plata
+describe('QuotesService.createQuote — rubrici structurate (a3) si proiectare (g0-11)', () => {
+  const structured: Any = {
+    ...dto,
+    currency: 'EUR',
+    vatMode: 'VAT_EXCLUDED',
+    deliveryTermValue: 6,
+    deliveryTermUnit: 'WEEKS',
+    warrantyMonths: 24,
+    includesTransport: true,
+    includesAssembly: false,
+    deliveryTerm: 'text vechi ignorat',
+  };
+
+  it('scrie rubricile + moneda pe varianta; textul vechi e generat din rubrici; valorile calculate in chitanta', async () => {
+    const { service, tx } = makeService({ lockedRequest: { status: 'CLAIMED_PARTIAL' } });
+    const out = await service.createQuote(companyCtx, 'u1', structured);
+    expect(tx.quoteVersion.create.mock.calls[0][0].data).toMatchObject({
+      currency: 'EUR',
+      vatMode: 'VAT_EXCLUDED',
+      deliveryTermValue: 6,
+      deliveryTermUnit: 'WEEKS',
+      deliveryTerm: '6 săptămâni',
+      warrantyMonths: 24,
+      warranty: '24 de luni',
+      includesTransport: true,
+      includesAssembly: false,
+      designFee: null,
+      designIncludes: null,
+    });
+    expect(tx.quote.create.mock.calls[0][0].data.currency).toBe('EUR');
+    const v = out.versions[0];
+    expect(out.currency).toBe('EUR');
+    expect(v).toMatchObject({
+      currency: 'EUR',
+      vatMode: 'VAT_EXCLUDED',
+      vatRatePercent: 21,
+      priceWithVat: 1210,
+      totalWithVat: 1210,
+      deliveryWorkingDays: 30,
+      warrantyMonths: 24,
+      includesTransport: true,
+      includesAssembly: false,
+      priceRon: 5200,
+    });
+  });
+
+  it('cerere cu proiectare cu plata fara pretul / continutul proiectarii → 400 cu campurile lipsa', async () => {
+    const slot = { ...slotWith('CLAIMED_PARTIAL'), request: { ...slotWith('CLAIMED_PARTIAL').request, includesPaidDesign: true } };
+    const { service, prisma } = makeService({ slot });
+    await expect(service.createQuote(companyCtx, 'u1', structured)).rejects.toMatchObject({
+      status: 400,
+      response: { code: 'VALIDATION_ERROR', details: { fields: ['designFee', 'designIncludes'] } },
+    });
+    await expect(service.createQuote(companyCtx, 'u1', { ...structured, designFee: 500 })).rejects.toMatchObject({
+      response: { code: 'VALIDATION_ERROR', details: { fields: ['designIncludes'] } },
+    });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('cerere cu proiectare cu plata, cu pret + ce include → varianta le pastreaza', async () => {
+    const slot = { ...slotWith('CLAIMED_PARTIAL'), request: { ...slotWith('CLAIMED_PARTIAL').request, includesPaidDesign: true } };
+    const { service, tx } = makeService({ slot, lockedRequest: { status: 'CLAIMED_PARTIAL' } });
+    const out = await service.createQuote(companyCtx, 'u1', { ...structured, designFee: 500, designIncludes: ' 2 randari 3D ' });
+    expect(tx.quoteVersion.create.mock.calls[0][0].data).toMatchObject({ designIncludes: '2 randari 3D' });
+    expect(out.versions[0]).toMatchObject({ designIncludes: '2 randari 3D', total: 1500, totalWithVat: 1815 });
+  });
+
+  it('cerere fara proiectare cu plata: ce include proiectarea e interzis (ca designFee)', async () => {
+    const { service } = makeService();
+    await expect(service.createQuote(companyCtx, 'u1', { ...structured, designIncludes: 'ceva' })).rejects.toMatchObject({
+      status: 400,
+      response: { code: 'VALIDATION_ERROR', details: { fields: ['designIncludes'] } },
+    });
   });
 });

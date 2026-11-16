@@ -14,6 +14,16 @@ export function esc(s: string): string {
     .replace(/'/g, '&#39;');
 }
 
+// f5 (etapa 12): data si ora in ora Romaniei (invarianta 3.3), in limba contului
+export function bucharestDateTime(at: Date, lang: 'ro' | 'en'): { date: string; time: string } {
+  const locale = lang === 'ro' ? 'ro-RO' : 'en-GB';
+  return {
+    // m18 (revizie): forma lunga, ca in restul aplicatiei („14 noiembrie 2026” / „14 November 2026”)
+    date: at.toLocaleDateString(locale, { timeZone: 'Europe/Bucharest', day: 'numeric', month: 'long', year: 'numeric' }),
+    time: at.toLocaleTimeString(locale, { timeZone: 'Europe/Bucharest', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }),
+  };
+}
+
 export function authEmailHtml(opts: {
   user: Pick<User, 'name' | 'languagePreference'>;
   body: string;
@@ -23,7 +33,9 @@ export function authEmailHtml(opts: {
   // subsolul implicit spune "daca nu ai cerut tu, ignora"; alertele de securitate il inlocuiesc
   footer?: { ro: string; en: string };
 }): string {
-  const { user, body, link, ctaLabel, supportEmail, footer } = opts;
+  const { user, body, ctaLabel, supportEmail, footer } = opts;
+  // linkul poate avea mai multi parametri (b4: &redirect=) → & devine &amp; in HTML
+  const link = esc(opts.link);
   const ro = user.languagePreference !== 'EN';
   const footerText = footer
     ? ro

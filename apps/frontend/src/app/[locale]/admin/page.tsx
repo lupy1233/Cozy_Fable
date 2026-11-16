@@ -3,9 +3,8 @@
 import { REQUEST_STATUSES, type AdminKpiDto } from '@marketplace/shared';
 import { ArrowRight } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useEffect } from 'react';
-import { Link, useRouter } from '@/i18n/routing';
-import { useMe } from '@/hooks/use-auth';
+import { Link } from '@/i18n/routing';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
 import { useKpi } from '@/hooks/use-admin';
 import { STATUS_TONE } from '@/components/ui/badge';
 import { Card, CardSection } from '@/components/ui/card';
@@ -19,14 +18,12 @@ import { cn } from '@/lib/utils';
 // cifrele platformei. Fiecare cifra e link catre lista ei. Totul vine din /admin/kpi.
 export default function AdminDashboardPage() {
   const t = useTranslations('Admin');
-  const router = useRouter();
-  const me = useMe();
+  // f4: fara sesiune → login cu intoarcere; alt rol → ecranul de acces
+  const auth = useRequireAuth('ADMIN');
   const kpi = useKpi();
 
-  useEffect(() => {
-    if (me.isError) router.replace('/login');
-    else if (me.data && me.data.role !== 'ADMIN') router.replace('/dashboard');
-  }, [me.isError, me.data, router]);
+  if (auth.status === 'loading') return <SkeletonStatGrid count={3} />;
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="ADMIN" />;
 
   return (
     <div className="flex w-full max-w-[1180px] flex-col gap-7">
@@ -226,11 +223,10 @@ function Breakdown({ title, rows }: { title: string; rows: BreakdownRow[] }) {
               <span className="flex items-baseline justify-between gap-2.5 text-ui">
                 <span className="min-w-0">
                   {r.label ? (
-                    <>
+                    // codul tehnic doar in tooltip (etapa 12, k2)
+                    <span title={r.code} data-code={r.code}>
                       {r.label}
-                      {/* codul tehnic, mic, langa eticheta tradusa */}
-                      <span className="ml-1.5 font-mono text-micro text-muted-foreground">{r.code}</span>
-                    </>
+                    </span>
                   ) : (
                     <span className="font-mono text-xs">{r.code}</span>
                   )}

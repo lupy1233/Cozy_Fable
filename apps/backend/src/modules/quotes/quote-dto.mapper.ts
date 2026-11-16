@@ -2,6 +2,7 @@ import {
   MAX_QUOTE_VERSIONS,
   type AttachmentDto,
   type ConsultationInviteDto,
+  type QuoteChangeRequestHistoryDto,
   type QuoteDto,
   type QuoteVersionDto,
 } from '@marketplace/shared';
@@ -11,11 +12,14 @@ import {
   type PhysicalConsultationInviteStatus,
   type QuoteChangeRequest,
   type QuoteChangeRequestStatus,
+  type QuoteCurrency,
+  type QuoteDeclineReason,
   type QuoteStatus,
   type QuoteValidityExtension,
   type QuoteVersion,
 } from '@prisma/client';
-import { convertCurrency } from './quotes.helpers';
+import { VAT_RATE_DEFAULT } from '../billing/vat';
+import { amountWithVat, convertCurrency, deliveryWorkingDays } from './quotes.helpers';
 
 // E-company-2: maparea QuoteDto e pura (fara I/O) — chitanta idempotenta si raspunsul
 // actiunilor pe oferta se construiesc in memorie, fara recitiri in tranzactie (~150 ms/query
@@ -56,20 +60,51 @@ export function pendingChangeCount(full: QuoteFull): number {
   );
 }
 
+// a4: moneda variantei; variantele scrise de codul vechi (fereastra blue/green) nu o au → oferta
+export function versionCurrency(v: { currency?: QuoteCurrency | null }, quoteCurrency: QuoteCurrency): QuoteCurrency {
+  return v.currency ?? quoteCurrency;
+}
+
+// a4: numarul variantei care a raspuns unei cereri FULFILLED. Randurile noi au
+// answered_by_version_id; cele vechi (fara coloana completata) → prima varianta in limita
+// trimisa dupa varianta cererii, la momentul raspunsului (revise e singurul drum care
+// indeplineste o cerere si creeaza varianta in aceeasi tranzactie).
+function answeredByVersionNumber(full: QuoteFull, c: QuoteChangeRequest, requestedOn: number): number | null {
+  if (c.status !== 'FULFILLED') return null;
+  if (c.answeredByVersionId) {
+    const byId = full.versions.find((v) => v.id === c.answeredByVersionId);
+    if (byId) return byId.version;
+  }
+  const after = full.versions
+    .filter((v) => v.version > requestedOn && !v.isExtra)
+    .sort((a, b) => a.version - b.version);
+  if (after.length === 0) return null;
+  const respondedAt = c.respondedAt?.getTime();
+  if (respondedAt != null) {
+    // toleranta: sent_at = now() al tranzactiei (putin inainte de respondedAt din aplicatie)
+    const near = after.find((v) => Math.abs(v.sentAt.getTime() - respondedAt) < 60_000);
+    if (near) return near.version;
+  }
+  return after[0].version;
+}
+
 export function toQuoteDto(
   full: QuoteFull,
   attachmentsByVersion: Map<string, AttachmentDto[]>,
   rate: number,
   now: number = Date.now(),
+  vatRatePercent: number = VAT_RATE_DEFAULT,
 ): QuoteDto {
   const versions: QuoteVersionDto[] = full.versions.map((v) => {
+    const currency = versionCurrency(v, full.currency);
     const price = Number(v.price);
     const designFee = v.designFee != null ? Number(v.designFee) : null;
-    const p = convertCurrency(price, full.currency, rate);
-    const d = designFee != null ? convertCurrency(designFee, full.currency, rate) : null;
-    // E-client-1: totalul acceptat = pret + proiectare (docs/03, D-v6-11), in moneda ofertei
+    const p = convertCurrency(price, currency, rate);
+    const d = designFee != null ? convertCurrency(designFee, currency, rate) : null;
+    // E-client-1: totalul acceptat = pret + proiectare (docs/03, D-v6-11), in moneda variantei
     const total = Math.round((price + (designFee ?? 0)) * 100) / 100;
-    const tc = convertCurrency(total, full.currency, rate);
+    const tc = convertCurrency(total, currency, rate);
+    const versionVat = v.vatRatePercent != null ? Number(v.vatRatePercent) : vatRatePercent;
     const pendingChange =
       v.changeRequests.find((c) => c.status === 'PENDING') ??
       v.changeRequests[v.changeRequests.length - 1] ??
@@ -80,7 +115,7 @@ export function toQuoteDto(
       isExtra: v.isExtra,
       price,
       designFee,
-      currency: full.currency,
+      currency,
       priceRon: p.ron,
       priceEur: p.eur,
       designFeeRon: d?.ron ?? null,
@@ -92,8 +127,21 @@ export function toQuoteDto(
       deliveryDate: v.deliveryDate ? v.deliveryDate.toISOString().slice(0, 10) : null,
       warranty: v.warranty,
       description: v.description,
+      // a3 — rubrici structurate (null pe variantele vechi) + valorile calculate
+      vatMode: v.vatMode ?? null,
+      deliveryTermValue: v.deliveryTermValue ?? null,
+      deliveryTermUnit: v.deliveryTermUnit ?? null,
+      warrantyMonths: v.warrantyMonths ?? null,
+      includesTransport: v.includesTransport ?? null,
+      includesAssembly: v.includesAssembly ?? null,
+      designIncludes: v.designIncludes ?? null,
+      // revizuire M1: cota inghetata pe varianta; cota curenta doar pentru variantele vechi (NULL)
+      vatRatePercent: versionVat,
+      priceWithVat: amountWithVat(price, v.vatMode, versionVat),
+      totalWithVat: amountWithVat(total, v.vatMode, versionVat),
+      deliveryWorkingDays: deliveryWorkingDays(v.deliveryTermValue, v.deliveryTermUnit),
       validUntil: v.validUntil.toISOString(),
-      // E-admin-platform-3: o oferta ACCEPTED/SUPERSEDED/WITHDRAWN nu mai e "expirata"
+      // E-admin-platform-3: o oferta ACCEPTED/SUPERSEDED/WITHDRAWN/DECLINED nu mai e "expirata"
       isExpired: (full.status === 'SENT' || full.status === 'EXPIRED') && v.validUntil.getTime() < now,
       validityExtensionsUsed: v.validityExtensions.length,
       extensionRequestedAt: v.extensionRequestedAt?.toISOString() ?? null,
@@ -136,13 +184,30 @@ export function toQuoteDto(
     createdAt: i.createdAt.toISOString(),
   }));
   const versionsUsed = nonExtraCount(full.versions);
+  const changeRequests: QuoteChangeRequestHistoryDto[] = full.versions
+    .flatMap((v) => v.changeRequests.map((c) => ({ c, requestedOn: v.version })))
+    .sort((a, b) => a.c.createdAt.getTime() - b.c.createdAt.getTime())
+    .map(({ c, requestedOn }) => ({
+      id: c.id,
+      quoteVersionId: c.quoteVersionId,
+      requestedText: c.requestedText,
+      status: c.status,
+      createdAt: c.createdAt.toISOString(),
+      respondedAt: c.respondedAt?.toISOString() ?? null,
+      requestedOnVersion: requestedOn,
+      answeredByVersion: answeredByVersionNumber(full, c, requestedOn),
+    }));
+  const latest = full.versions.length > 0
+    ? full.versions.reduce((a, b) => (b.version > a.version ? b : a))
+    : null;
   return {
     id: full.id,
     claimSlotId: full.claimSlotId,
     requestId: full.requestId,
     companyId: full.companyId,
     companyName: full.company.name,
-    currency: full.currency,
+    // a4: moneda variantei curente
+    currency: latest ? versionCurrency(latest, full.currency) : full.currency,
     status: full.status,
     extraVersionsCount: full.extraVersionsCount,
     versionsUsed,
@@ -153,6 +218,10 @@ export function toQuoteDto(
     createdAt: full.createdAt.toISOString(),
     acceptedAt: full.acceptedAt?.toISOString() ?? null,
     acceptedVersionId: full.acceptedVersionId ?? null,
+    declinedAt: full.declinedAt?.toISOString() ?? null,
+    declineReason: full.declineReason ?? null,
+    declineNote: full.declineNote ?? null,
+    changeRequests,
   };
 }
 
@@ -198,11 +267,17 @@ export function withStatus(
     extraVersionsCountDelta?: number;
     updatedAt?: Date;
     acceptedVersionId?: string;
+    currency?: QuoteCurrency;
+    declined?: { at: Date; reason: QuoteDeclineReason | null; note: string | null };
   } = {},
 ): QuoteFull {
   return {
     ...full,
     status,
+    currency: extra.currency ?? full.currency,
+    ...(extra.declined
+      ? { declinedAt: extra.declined.at, declineReason: extra.declined.reason, declineNote: extra.declined.note }
+      : {}),
     acceptedAt: extra.acceptedAt ?? full.acceptedAt,
     acceptedVersionId: extra.acceptedVersionId ?? full.acceptedVersionId,
     withdrawnAt: extra.withdrawnAt ?? full.withdrawnAt,
@@ -220,12 +295,15 @@ export function withChangeStatus(
   changeId: string,
   status: QuoteChangeRequestStatus,
   respondedAt: Date,
+  answeredByVersionId: string | null = null,
 ): QuoteFull {
   return {
     ...full,
     versions: full.versions.map((v) => ({
       ...v,
-      changeRequests: v.changeRequests.map((c) => (c.id === changeId ? { ...c, status, respondedAt } : c)),
+      changeRequests: v.changeRequests.map((c) =>
+        c.id === changeId ? { ...c, status, respondedAt, answeredByVersionId: answeredByVersionId ?? c.answeredByVersionId } : c,
+      ),
     })),
   };
 }

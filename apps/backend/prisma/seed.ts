@@ -32,6 +32,15 @@ const SIZING_CONFIG: { key: string; option: string; weight: number }[] = [
   { key: 'ROOM_TYPE', option: 'PIECE_SHOE_CABINET', weight: 1 },
   { key: 'ROOM_TYPE', option: 'PIECE_NIGHTSTAND', weight: 1 },
   { key: 'ROOM_TYPE', option: 'PIECE_BENCH', weight: 1 },
+  // d3 (PO g0-10, 2026-11-13): cele 7 piese noi — ponderi provizorii; aceleasi randuri in
+  // migrarea 20261114100000 (pe productie adminul poate doar edita randuri existente)
+  { key: 'ROOM_TYPE', option: 'PIECE_SOFA', weight: 3 },
+  { key: 'ROOM_TYPE', option: 'PIECE_SIDEBOARD', weight: 2 },
+  { key: 'ROOM_TYPE', option: 'PIECE_BATHROOM_VANITY', weight: 2 },
+  { key: 'ROOM_TYPE', option: 'PIECE_ENTRYWAY', weight: 2 },
+  { key: 'ROOM_TYPE', option: 'PIECE_WALL_CABINET', weight: 1 },
+  { key: 'ROOM_TYPE', option: 'PIECE_ARMCHAIR', weight: 1 },
+  { key: 'ROOM_TYPE', option: 'PIECE_OTTOMAN', weight: 1 },
   // ROOM_SIZE (metri liniari = length_m)
   { key: 'ROOM_SIZE', option: 'UNDER_2M', weight: 1 },
   { key: 'ROOM_SIZE', option: 'FROM_2_TO_4M', weight: 3 },
@@ -81,6 +90,55 @@ const SIZING_CONFIG: { key: string; option: string; weight: number }[] = [
   // optiunile v2 din 2026-07-08 (PAL/HPL); LAMINATE/WOOD raman pentru kitchen v1
   { key: 'KITCHEN_COUNTERTOP', option: 'PAL', weight: 0 },
   { key: 'KITCHEN_COUNTERTOP', option: 'HPL', weight: 0 },
+  // etapa 6 (kitchen v4): blatul "decide firma" — 0 puncte (PO c6-1); acelasi rand in migrarea 20261114120000
+  { key: 'KITCHEN_COUNTERTOP', option: 'FIRM_DECIDES', weight: 0 },
+  // etapa 10 (formularul v7): valorile noi — 0 puncte (PO c9-3), cu exceptia canapelei (d3 + c9-3:
+  // locuri 2/3/4 = 0/1/2, sezlong 1, extensibila 2, lada 0); aceleasi randuri in migrarea 20261115100000
+  { key: 'KITCHEN_WALL_CABINETS', option: 'WALL_CABINETS', weight: 0 },
+  { key: 'KITCHEN_WALL_CABINETS', option: 'NO_WALL_CABINETS', weight: 0 },
+  { key: 'KITCHEN_WALL_CABINETS', option: 'FIRM_DECIDES', weight: 0 },
+  { key: 'KITCHEN_SINK_MOUNTING', option: 'INSET', weight: 0 },
+  { key: 'KITCHEN_SINK_MOUNTING', option: 'UNDERMOUNT', weight: 0 },
+  { key: 'KITCHEN_SINK_MOUNTING', option: 'FIRM_DECIDES', weight: 0 },
+  { key: 'KITCHEN_SINK_MATERIAL', option: 'STAINLESS', weight: 0 },
+  { key: 'KITCHEN_SINK_MATERIAL', option: 'COMPOSITE', weight: 0 },
+  { key: 'KITCHEN_SINK_MATERIAL', option: 'CERAMIC', weight: 0 },
+  { key: 'KITCHEN_SINK_MATERIAL', option: 'FIRM_DECIDES', weight: 0 },
+  { key: 'KITCHEN_FRIDGE', option: 'BUILT_IN', weight: 0 },
+  { key: 'KITCHEN_FRIDGE', option: 'FREESTANDING', weight: 0 },
+  { key: 'KITCHEN_FRIDGE', option: 'FIRM_DECIDES', weight: 0 },
+  { key: 'BED_FABRIC', option: 'WOVEN', weight: 0 },
+  { key: 'BED_FABRIC', option: 'BOUCLE', weight: 0 },
+  { key: 'BED_FABRIC', option: 'VELVET', weight: 0 },
+  { key: 'BED_FABRIC', option: 'FIRM_DECIDES', weight: 0 },
+  { key: 'WARDROBE_INTERIOR', option: 'HANGING_RODS', weight: 0 },
+  { key: 'WARDROBE_INTERIOR', option: 'SHELVES', weight: 0 },
+  { key: 'WARDROBE_INTERIOR', option: 'DRAWERS', weight: 0 },
+  { key: 'WARDROBE_INTERIOR', option: 'SHOE_RACK', weight: 0 },
+  { key: 'WARDROBE_INTERIOR', option: 'ACCESSORIES', weight: 0 },
+  { key: 'WARDROBE_INTERIOR', option: 'LED_LIGHTING', weight: 0 },
+  { key: 'WARDROBE_INTERIOR', option: 'FIRM_DECIDES', weight: 0 },
+  { key: 'BATHROOM_BASIN_TYPE', option: 'COUNTERTOP_BASIN', weight: 0 },
+  { key: 'BATHROOM_BASIN_TYPE', option: 'INSET_BASIN', weight: 0 },
+  { key: 'BATHROOM_BASIN_TYPE', option: 'INTEGRATED_BASIN', weight: 0 },
+  { key: 'BATHROOM_BASIN_TYPE', option: 'FIRM_DECIDES', weight: 0 },
+  { key: 'BATHROOM_BASIN_SUPPLY', option: 'CLIENT', weight: 0 },
+  { key: 'BATHROOM_BASIN_SUPPLY', option: 'FIRM', weight: 0 },
+  { key: 'BATHROOM_BASIN_SUPPLY', option: 'FIRM_DECIDES', weight: 0 },
+  { key: 'LAUNDRY_LOADING', option: 'FRONT', weight: 0 },
+  { key: 'LAUNDRY_LOADING', option: 'TOP', weight: 0 },
+  { key: 'LAUNDRY_LOADING', option: 'FIRM_DECIDES', weight: 0 },
+  { key: 'HALLWAY_WIDTH', option: 'NARROW', weight: 0 },
+  { key: 'HALLWAY_WIDTH', option: 'WIDE', weight: 0 },
+  { key: 'HALLWAY_WIDTH', option: 'FIRM_DECIDES', weight: 0 },
+  { key: 'SOFA_SEATS', option: 'SEATS_2', weight: 0 },
+  { key: 'SOFA_SEATS', option: 'SEATS_3', weight: 1 },
+  { key: 'SOFA_SEATS', option: 'SEATS_4', weight: 2 },
+  { key: 'SOFA_LAYOUT', option: 'STRAIGHT', weight: 0 },
+  { key: 'SOFA_LAYOUT', option: 'CHAISE_LEFT', weight: 1 },
+  { key: 'SOFA_LAYOUT', option: 'CHAISE_RIGHT', weight: 1 },
+  { key: 'SOFA_SLEEPER', option: 'YES', weight: 2 },
+  { key: 'SOFA_STORAGE', option: 'YES', weight: 0 },
   // BUDGET
   { key: 'BUDGET', option: 'UNDER_5K', weight: 1 },
   { key: 'BUDGET', option: 'FROM_5K_TO_15K', weight: 3 },
@@ -112,8 +170,10 @@ const SUBSCRIPTION_PLANS: {
   includedCredits: number;
   marketplaceGatingDelayMin: number;
 }[] = [
-  { tier: 'SILVER', priceRon: 149, includedCredits: 15, marketplaceGatingDelayMin: 60 },
-  { tier: 'GOLD', priceRon: 399, includedCredits: 50, marketplaceGatingDelayMin: 30 },
+  // a1 (PO 2026-11-13): fara intarziere pe plan — toate planurile vad cererile imediat;
+  // coloana + setarea din Admin raman (mecanismul din marketplace e no-op la 0)
+  { tier: 'SILVER', priceRon: 149, includedCredits: 15, marketplaceGatingDelayMin: 0 },
+  { tier: 'GOLD', priceRon: 399, includedCredits: 50, marketplaceGatingDelayMin: 0 },
   { tier: 'PLATINUM', priceRon: 899, includedCredits: 120, marketplaceGatingDelayMin: 0 },
 ];
 
@@ -162,9 +222,10 @@ const SYSTEM_SETTINGS: Record<string, string> = {
   trial_duration_days: '30',
   trial_bonus_credits: '10',
   max_claims_per_request: '3',
-  // E-admin-platform-10: cererea ramane claimabila dupa prima oferta — OPRIT pana la decizia
-  // PO (invarianta 3.1).
-  claims_open_after_first_offer: 'false',
+  // E-admin-platform-10 / a1 (PO 2026-11-13): cererea ramane claimabila dupa prima oferta,
+  // pana se ocupa locurile. Comutatorul ramane in Admin. (update gol: o baza existenta
+  // pastreaza valoarea veche — se schimba din Admin)
+  claims_open_after_first_offer: 'true',
   // E-company-3: contactele clientului la claim (W1) si fara prag dupa livrare — pana la
   // decizia PO (DECIZIE NECESARA).
   claim_contact_reveal_policy: 'ON_CLAIM',
@@ -192,6 +253,11 @@ const SYSTEM_SETTINGS: Record<string, string> = {
   // E-company-24 DECIZIE NECESARA PO: 0 = oprit (reminder / anulare automata comenzi transfer bancar)
   bank_transfer_reminder_days: '0',
   bank_transfer_expiry_days: '0',
+  // e1-3 (PO 2026-11-13): "livrat" doar dupa N zile de la acceptare; 0 = fara limita
+  delivery_min_days_after_accept: '7',
+  // f6-1 (PO 2026-11-13): ciornele neatinse se sterg dupa N zile (vizitatori / clienti cu cont)
+  guest_draft_retention_days: '7',
+  client_draft_retention_days: '90',
 };
 
 async function main() {

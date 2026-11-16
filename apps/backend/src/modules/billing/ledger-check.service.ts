@@ -3,11 +3,12 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { runTx } from '../../infra/prisma/tx';
 import { OutboxService } from '../outbox/outbox.service';
+import { DEMO_EMAIL_SUFFIX } from '../companies/demo-companies';
 
 // plafon per lista in raport (totalurile raman exacte)
 const LIST_CAP = 100;
-// conventia din prisma/cleanup-demo.ts
-const DEMO_EMAIL_PATTERN = '%@demo.ro';
+// conventia comuna a conturilor demo (companies/demo-companies.ts)
+const DEMO_EMAIL_PATTERN = `%${DEMO_EMAIL_SUFFIX}`;
 
 export interface LedgerWalletMismatch {
   companyId: string;

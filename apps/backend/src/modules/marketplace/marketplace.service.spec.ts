@@ -11,6 +11,8 @@ const ROW = {
   title: 'Bucatarie',
   description: 'desc',
   budget_range: 'FROM_5K_TO_15K',
+  budget_estimate_ron: 12000,
+  budget_declared: true,
   city: 'Bucuresti',
   county: 'Bucuresti',
   project_size: 'MEDIUM',
@@ -24,16 +26,19 @@ const ROW = {
   already_claimed: false,
 };
 
-function makeService(opts: { maxClaims?: number; openAfterFirstOffer?: boolean; distanceDisplay?: string } = {}) {
+function makeService(opts: { maxClaims?: number; openAfterFirstOffer?: boolean; distanceDisplay?: string; estimateMinRon?: number | null } = {}) {
   const prisma: Any = { $queryRaw: jest.fn().mockResolvedValue([ROW]) };
   const settings: Any = {
     getInt: jest.fn().mockResolvedValue(opts.maxClaims ?? 2),
-    getBool: jest.fn().mockResolvedValue(opts.openAfterFirstOffer ?? false),
+    // nedat = valoarea implicita primita de la apelant (SETTING_DEFAULTS)
+    getBool: jest.fn(async (_k: string, f: boolean) => opts.openAfterFirstOffer ?? f),
     getString: jest.fn().mockResolvedValue(opts.distanceDisplay ?? 'KM'),
   };
   const uploads: Any = { listForEntity: jest.fn().mockResolvedValue([]) };
-  const service = new MarketplaceService(prisma, settings, uploads);
-  return { service, prisma, settings, uploads };
+  const calendar: Any = { addWorkingDays: jest.fn((d: Date, n: number) => new Date(d.getTime() + n * 86_400_000)) };
+  const budgetEstimator: Any = { estimateMinRon: jest.fn().mockResolvedValue(opts.estimateMinRon ?? null) };
+  const service = new MarketplaceService(prisma, settings, uploads, calendar, budgetEstimator);
+  return { service, prisma, settings, uploads, calendar, budgetEstimator };
 }
 
 // Valorile interpolate in SQL (inclusiv fragmentul Prisma.sql cu statusurile claimabile).
@@ -47,7 +52,15 @@ describe('MarketplaceService.list (E-admin-platform-10)', () => {
     expect(item.activeClaims).toBe(1);
     expect(item.distanceKm).toBe(5);
     expect(settings.getInt).toHaveBeenCalledWith('max_claims_per_request', 3);
-    expect(settings.getBool).toHaveBeenCalledWith('claims_open_after_first_offer', false);
+    expect(settings.getBool).toHaveBeenCalledWith('claims_open_after_first_offer', true);
+  });
+
+  // a1 (PO 2026-11-13): fara rand in system_settings, SQL-ul include OFFERS_RECEIVED/NEGOTIATION
+  it('setarea implicita → cererea ramane in piata dupa prima oferta', async () => {
+    const { service, prisma } = makeService();
+    await service.list('c1', 0);
+    expect(sqlOf(prisma)).toContain('OFFERS_RECEIVED');
+    expect(sqlOf(prisma)).toContain('NEGOTIATION');
   });
 
   it('flag oprit → SQL-ul filtreaza doar IN_MARKETPLACE/CLAIMED_PARTIAL (invarianta 3.1)', async () => {
@@ -206,5 +219,160 @@ describe('MarketplaceService contact masking (E-admin-platform-45)', () => {
     expect(detail.inspirationPhotos[0].note).not.toContain('0722 123 456');
     expect(detail.inspirationPhotos[0].requestRoomId).toBe('r-1');
     expect(detail.inspirationPhotos[1]).toEqual({ photoId: 'p2', note: null, requestRoomId: null });
+  });
+});
+
+// a1 / a5 (PO 2026-11-13) — pagina din piata: motivul inchiderii (doar pentru firma care acopera
+// cererea), termenul de raspuns estimat si regula "o preluare fara oferta de persoana".
+describe('MarketplaceService.detail — cerere inchisa si dialogul de preluare (a1, a5)', () => {
+  function withDetailMocks(prisma: Any) {
+    prisma.requestRoom = { findMany: jest.fn().mockResolvedValue([]) };
+    prisma.requestInspirationPhoto = { findMany: jest.fn().mockResolvedValue([]) };
+    prisma.requestStudioScene = { findMany: jest.fn().mockResolvedValue([]) };
+    prisma.claimSlot = { findFirst: jest.fn().mockResolvedValue(null) };
+  }
+
+  it('cerere cu locurile ocupate, acoperita pe raza → 409 REQUEST_NO_LONGER_CLAIMABLE cu motivul', async () => {
+    const { service, prisma } = makeService({ maxClaims: 3 });
+    prisma.$queryRaw
+      .mockResolvedValueOnce([]) // interogarea principala: nu mai e in piata
+      .mockResolvedValueOnce([{ status: 'OFFERS_RECEIVED', occupied: 3n, my_claim_slot_id: null }]);
+    const err: Any = await service.detail('c1', 0, 'r1').catch((e: unknown) => e);
+    expect(err.getStatus()).toBe(409);
+    expect(err.getResponse()).toMatchObject({
+      code: 'REQUEST_NO_LONGER_CLAIMABLE',
+      details: { reason: 'SLOTS_FULL', myClaimSlotId: null },
+    });
+    // a doua interogare cere acoperirea pe raza si firma neexclusa
+    const probeSql = (prisma.$queryRaw.mock.calls[1][0] as string[]).join('?');
+    expect(probeSql).toContain('coverage_radius_km');
+    expect(probeSql).toContain('request_company_exclusions');
+  });
+
+  it('oferta acceptata, firma avea o preluare → motivul + linkul spre fisa', async () => {
+    const { service, prisma } = makeService();
+    prisma.$queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([{ status: 'ACCEPTED', occupied: 1n, my_claim_slot_id: 'slot-9' }]);
+    const err: Any = await service.detail('c1', 0, 'r1').catch((e: unknown) => e);
+    expect(err.getResponse()).toMatchObject({ details: { reason: 'OFFER_ACCEPTED', myClaimSlotId: 'slot-9' } });
+  });
+
+  it('firma care nu acopera cererea (sau cerere inexistenta) → tot 404 NOT_FOUND', async () => {
+    const { service, prisma } = makeService();
+    prisma.$queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+    const err: Any = await service.detail('c1', 0, 'r1').catch((e: unknown) => e);
+    expect(err.getStatus()).toBe(404);
+    expect(err.getResponse()).toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('detaliul are termenul estimat (zile lucratoare dupa marime) si starea celui care se uita', async () => {
+    const { service, prisma, calendar } = makeService();
+    withDetailMocks(prisma);
+    prisma.claimSlot.findFirst.mockResolvedValue({ id: 'busy' });
+    const detail = await service.detail('c1', 0, 'r1', 'u1');
+    expect(calendar.addWorkingDays).toHaveBeenCalledWith(expect.any(Date), 3); // MEDIUM = 3 zile
+    expect(typeof detail.estimatedSlaDeadlineAt).toBe('string');
+    expect(detail.viewerHasActiveClaimWithoutOffer).toBe(true);
+    expect(prisma.claimSlot.findFirst).toHaveBeenCalledWith({
+      where: { assignedToUserId: 'u1', status: 'ACTIVE', quoteId: null },
+      select: { id: true },
+    });
+  });
+});
+
+// b11 (PO 2026-11-13): firma vede suma (nu treapta), filtreaza cu glisorul de buget minim
+// pe server si vede estimarea din raspunsuri doar ca reper.
+describe('MarketplaceService buget (b11)', () => {
+  const detailMocks = (prisma: Any) => {
+    prisma.requestRoom = { findMany: jest.fn().mockResolvedValue([]) };
+    prisma.requestInspirationPhoto = { findMany: jest.fn().mockResolvedValue([]) };
+    prisma.requestStudioScene = { findMany: jest.fn().mockResolvedValue([]) };
+    prisma.claimSlot = { findFirst: jest.fn().mockResolvedValue(null) };
+  };
+
+  it('lista trimite suma si daca a ales-o clientul', async () => {
+    const { service } = makeService();
+    const [item] = await service.list('c1', 0);
+    expect(item.budgetEstimateRon).toBe(12000);
+    expect(item.budgetDeclared).toBe(true);
+  });
+
+  it('"Prefer sa nu spun" → fara suma, niciodata "declarat"', async () => {
+    const { service, prisma } = makeService();
+    prisma.$queryRaw.mockResolvedValue([{ ...ROW, budget_range: 'UNDISCLOSED', budget_estimate_ron: 9000, budget_declared: true }]);
+    const [item] = await service.list('c1', 0);
+    expect(item.budgetEstimateRon).toBeNull();
+    expect(item.budgetDeclared).toBe(false);
+  });
+
+  // M2 (coordonator): o suma nedeclarata nu pleaca deloc spre firma
+  it('cerere veche cu suma pusa automat → firma nu primeste suma (Buget nedeclarat)', async () => {
+    const { service, prisma } = makeService();
+    prisma.$queryRaw.mockResolvedValue([{ ...ROW, budget_estimate_ron: 33000, budget_declared: false }]);
+    const [item] = await service.list('c1', 0);
+    expect(item.budgetEstimateRon).toBeNull();
+    expect(item.budgetDeclared).toBe(false);
+    expect(JSON.stringify(item)).not.toContain('33000');
+  });
+
+  it('fara filtru: SQL-ul nu are conditie pe buget', async () => {
+    const { service, prisma } = makeService();
+    await service.list('c1', 0);
+    expect(sqlOf(prisma)).not.toContain('budget_estimate_ron >=');
+    await service.list('c1', 0, { minBudgetRon: 0 });
+    expect(JSON.stringify(prisma.$queryRaw.mock.calls[1])).not.toContain('budget_estimate_ron >=');
+  });
+
+  it('glisorul de buget minim filtreaza pe server (suma >= minim, fara cererile nedeclarate)', async () => {
+    const { service, prisma } = makeService();
+    await service.list('c1', 0, { minBudgetRon: 15000 });
+    const sql = sqlOf(prisma);
+    expect(sql).toContain('budget_estimate_ron >=');
+    expect(sql).toContain("budget_range::text <> 'UNDISCLOSED'");
+    // M2: doar sumele declarate intra in filtru
+    expect(sql).toContain('budget_declared = true');
+    // valoarea merge ca parametru legat (fragmentul Prisma.sql), nu concatenata in text
+    expect(sql).toContain('"values":[15000]');
+  });
+
+  it('detaliul are estimarea din raspunsuri (reper) langa suma', async () => {
+    const { service, prisma, budgetEstimator } = makeService({ estimateMinRon: 25000 });
+    detailMocks(prisma);
+    const detail = await service.detail('c1', 0, 'r1');
+    expect(detail.budgetEstimateRon).toBe(12000);
+    expect(detail.budgetEstimateMinRon).toBe(25000);
+    expect(budgetEstimator.estimateMinRon).toHaveBeenCalledWith([]);
+  });
+
+  it('detaliul unei cereri cu suma nedeclarata: fara suma si fara estimare (M2)', async () => {
+    const { service, prisma, budgetEstimator } = makeService({ estimateMinRon: 25000 });
+    detailMocks(prisma);
+    prisma.$queryRaw.mockResolvedValue([{ ...ROW, budget_estimate_ron: 24000, budget_declared: false }]);
+    const detail = await service.detail('c1', 0, 'r1');
+    expect(detail.budgetEstimateRon).toBeNull();
+    expect(detail.budgetEstimateMinRon).toBeNull();
+    expect(budgetEstimator.estimateMinRon).not.toHaveBeenCalled();
+  });
+
+  // m3: estimarea pleaca in acelasi Promise.all cu celelalte citiri
+  it('estimarea porneste odata cu atasamentele, nu inaintea lor (m3)', async () => {
+    const { service, prisma, uploads, budgetEstimator } = makeService();
+    detailMocks(prisma);
+    let release: (v: number) => void = () => {};
+    budgetEstimator.estimateMinRon.mockReturnValue(new Promise<number>((r) => { release = r; }));
+    const pending = service.detail('c1', 0, 'r1');
+    await new Promise((r) => setImmediate(r));
+    expect(budgetEstimator.estimateMinRon).toHaveBeenCalled();
+    expect(uploads.listForEntity).toHaveBeenCalled();
+    release(25000);
+    await expect(pending).resolves.toMatchObject({ budgetEstimateMinRon: 25000 });
+  });
+
+  it('detaliul fara suma nu calculeaza estimarea', async () => {
+    const { service, prisma, budgetEstimator } = makeService({ estimateMinRon: 25000 });
+    detailMocks(prisma);
+    prisma.$queryRaw.mockResolvedValue([{ ...ROW, budget_range: 'UNDISCLOSED', budget_estimate_ron: null, budget_declared: false }]);
+    const detail = await service.detail('c1', 0, 'r1');
+    expect(detail.budgetEstimateMinRon).toBeNull();
+    expect(budgetEstimator.estimateMinRon).not.toHaveBeenCalled();
   });
 });

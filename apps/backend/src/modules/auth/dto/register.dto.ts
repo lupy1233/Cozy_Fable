@@ -9,6 +9,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { Language, UserRole } from '@prisma/client';
+import { RETURN_TO_MAX_LENGTH } from '../auth.constants';
 
 export class RegisterDto {
   @IsEmail()
@@ -42,4 +43,11 @@ export class RegisterDto {
   // (tipul e validat aici; valoarea, cu cod dedicat, in AuthService.register)
   @IsBoolean()
   termsAccepted: boolean;
+
+  // b4: intoarcerea dupa confirmarea emailului; AuthService o pastreaza doar daca e in
+  // VERIFY_EMAIL_RETURN_PATHS, altfel o ignora (fara eroare)
+  @IsOptional()
+  @IsString()
+  @MaxLength(RETURN_TO_MAX_LENGTH)
+  returnTo?: string;
 }

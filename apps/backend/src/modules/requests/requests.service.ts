@@ -15,15 +15,18 @@ import {
   type ContactDetectionTrigger,
   SETTING_PRE_CLAIM_CONTACT_TEXT_POLICY,
   type PresignUploadResultDto,
+  type RequestCoverageDto,
   type RequestDraftCreatedDto,
+  type RequestDraftListItemDto,
   type RequestDto,
   type RequestListItemDto,
   type RequestStudioSceneData,
   type RequestVisibilityContactHolderDto,
   type RequestVisibilityDto,
+  type RequestVisibilityClosedReasonDto,
   sortByRoomOrder,
 } from '@marketplace/shared';
-import { ConfiguratorService, type ProcessedRoom } from './configurator.service';
+import { ConfiguratorService, droppedDesignHelpUploadIds, type ProcessedRoom } from './configurator.service';
 import {
   assertInspirationRooms,
   inspirationNotesForScreening,
@@ -32,7 +35,7 @@ import {
   type InspirationSelection,
 } from './inspiration-selection';
 import { assertStudioNightstands, parsePublicationScenes, resolvePublicationScenes } from './studio-publication';
-import { normalizeBudget, projectFileCount } from './publish-rules';
+import { normalizeBudget, projectFileCount, resolveDesignHelp, sizeWithBudgetFloor, studioSourceIds } from './publish-rules';
 import { screenRequestText, type ContactScreeningRow } from './contact-screening';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
@@ -43,7 +46,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { ClaimSlotStatus, Prisma } from '@prisma/client';
 import type { Request as RequestModel, RequestStatus, RoomType } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { createHash, randomBytes, randomUUID } from 'crypto';
@@ -55,6 +58,7 @@ import { QUEUE_REQUEST_EXPIRATION } from '../../infra/queues/queues.module';
 import { SizingService } from '../sizing/sizing.service';
 import { InspirationService } from '../inspiration/inspiration.service';
 import { GeoService } from '../geo/geo.service';
+import { requestCoverage } from '../marketplace/area-coverage';
 import { UploadsService } from '../uploads/uploads.service';
 import { ClaimSettlementService } from '../billing/claim-settlement.service';
 import { SettingsService } from '../../common/settings/settings.service';
@@ -64,9 +68,10 @@ import {
   OCCUPYING_CLAIM_STATUSES,
   SETTING_CLAIMS_OPEN_AFTER_FIRST_OFFER,
   claimableStatuses,
+  marketplaceClosedReason as closedReasonFor,
 } from '../claims/claims.constants';
 import { readClaimContactAccessSettings, resolveClaimContextAccess } from '../quotes/claim-context-access';
-import { AUTO_COMPLETE_DAYS } from '../fulfillment/fulfillment.service';
+import { AUTO_COMPLETE_DAYS, autoCompleteClockStart } from '../fulfillment/fulfillment.service';
 import {
   ConfiguratorRoomInputDto,
   CreateRequestContentDto,
@@ -80,7 +85,10 @@ import {
   MAX_PRE_CLAIM_EDITS,
 } from './requests.constants';
 import type { RequestExpirationJob } from './request-expiration.processor';
+import type { AccessTokenPayload } from '../auth/auth.constants';
 import { requestExpiryReminderAt, scheduleRequestExpiryReminder } from './request-expiry-reminder';
+import { addressDetailsValue } from './address-details';
+import { draftCityText, knownRoomTypes, MAX_LISTED_DRAFTS, MAX_LISTED_ROOMS } from './draft-list';
 
 // Statusuri in care editarea e blocata pentru ca exista deja oferte/negociere.
 const OFFER_LOCKED_STATUSES: RequestStatus[] = [
@@ -91,6 +99,10 @@ const OFFER_LOCKED_STATUSES: RequestStatus[] = [
   'DELIVERED_BY_COMPANY',
 ];
 const POST_CLAIM_STATUSES: RequestStatus[] = ['CLAIMED_PARTIAL', 'CLAIMED_FULL'];
+// e4: preluarile care nu mai ocupa locul (firma nu mai vede contactele)
+const CLOSED_CLAIM_STATUSES: ClaimSlotStatus[] = Object.values(ClaimSlotStatus).filter(
+  (s) => !OCCUPYING_CLAIM_STATUSES.includes(s),
+);
 
 // E-admin-platform-44 — lista "De facut acum" a clientului
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -171,13 +183,15 @@ export class RequestsService {
   // ---- creare / draft ----
 
   async createDraft(
-    clientUserId: string | null,
+    callerId: string | null,
     patch?: PatchDraftDto,
+    callerRole: AccessTokenPayload['role'] | null = null,
   ): Promise<RequestDraftCreatedDto> {
     const token = randomBytes(32).toString('hex');
     const request = await this.prisma.request.create({
       data: {
-        clientUserId,
+        // f2: doar un client devine proprietarul ciornei; firma / adminul raman pe ciorna anonima
+        clientUserId: callerId && callerRole === 'CLIENT' ? callerId : null,
         draftTokenHash: this.hashToken(token),
         status: 'DRAFT',
         title: patch?.title,
@@ -187,6 +201,7 @@ export class RequestsService {
         includesPaidDesign: patch?.includesPaidDesign ?? false,
         hasOwnProject: patch?.hasOwnProject ?? false,
         addressText: patch?.addressText,
+        addressDetails: addressDetailsValue(patch?.addressDetails),
         county: patch?.county,
         city: patch?.city,
         configuratorState: this.serializeConfiguratorState(patch?.configuratorState),
@@ -224,7 +239,12 @@ export class RequestsService {
     return { ok: true };
   }
 
-  async patchDraft(token: string, dto: PatchDraftDto, callerId: string | null): Promise<RequestDto> {
+  async patchDraft(
+    token: string,
+    dto: PatchDraftDto,
+    callerId: string | null,
+    callerRole: AccessTokenPayload['role'] | null = null,
+  ): Promise<RequestDto> {
     const request = await this.findByToken(token, callerId);
     if (request.status !== 'DRAFT') {
       throw new BadRequestException({
@@ -234,8 +254,10 @@ export class RequestsService {
     }
     const configuratorState = this.serializeConfiguratorState(dto.configuratorState);
     await runTx(this.prisma, 'write', async (tx) => {
-      await tx.request.update({
-        where: { id: request.id },
+      // f6 / revizie m2: scriere conditionata — o ciorna marcata intre timp de curatare (sau publicata)
+      // nu mai primeste salvarea; omul afla (404 DRAFT_TOKEN_INVALID), formularul porneste o ciorna noua
+      const res = await tx.request.updateMany({
+        where: { id: request.id, status: 'DRAFT', deletedAt: null },
         data: {
           title: dto.title,
           description: dto.description,
@@ -244,13 +266,18 @@ export class RequestsService {
           includesPaidDesign: dto.includesPaidDesign,
           hasOwnProject: dto.hasOwnProject,
           addressText: dto.addressText,
+          addressDetails: addressDetailsValue(dto.addressDetails),
           county: dto.county,
           city: dto.city,
           configuratorState,
-          // ciorna anonima salvata de un user logat devine a lui (fill as guest, login to publish)
-          ...(callerId && !request.clientUserId ? { clientUserId: callerId } : {}),
+          // ciorna anonima salvata de un CLIENT logat devine a lui (fill as guest, login to publish);
+          // f2: un cont de firma / admin nu isi insuseste ciorna (nu poate publica oricum)
+          ...(callerId && callerRole === 'CLIENT' && !request.clientUserId ? { clientUserId: callerId } : {}),
         },
       });
+      if (res.count !== 1) {
+        throw new NotFoundException({ code: ERROR_CODES.DRAFT_TOKEN_INVALID, message: 'Draft token invalid' });
+      }
       // draftul nu materializeaza camere; doar contact preferences se pot salva incremental
       if (dto.contactPreferences) {
         await this.writeContactPreferences(tx, request.id, dto.contactPreferences);
@@ -274,6 +301,15 @@ export class RequestsService {
         message: 'Authentication required to publish a request',
       });
     }
+    // f2: doar un cont de client publica (o firma si-ar putea prelua propria cerere). Rolul se
+    // citeste din baza, nu din token, si se verifica inainte sa atingem ciorna.
+    const publisher = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    if (publisher?.role !== 'CLIENT') {
+      throw new ForbiddenException({
+        code: ERROR_CODES.REQUEST_PUBLISH_CLIENT_ONLY,
+        message: 'Only client accounts can publish requests',
+      });
+    }
     const request = await this.findByToken(token, userId);
     if (request.status !== 'DRAFT') {
       throw new BadRequestException({
@@ -282,14 +318,18 @@ export class RequestsService {
       });
     }
     // bucket-ul de buget derivat din estimarea RON (acelasi dto merge in
-    // scalarData, sizing si snapshotul de versiune)
-    const dto = normalizeBudget(rawDto);
+    // scalarData, sizing si snapshotul de versiune); b8: needsDesignHelp pe fiecare camera
+    // + includesPaidDesign derivat din camere.
+    // Payloadul live evita cursa cu autosave; vechii clienti folosesc draftul. Scenele Studio se
+    // parseaza primele: o piesa din Studio nu poate cere ajutor (b8), iar o scena invalida nu
+    // costa apeluri externe.
+    const studioScenes = rawDto.studioScenes === undefined
+      ? this.extractStudioScenes(request.configuratorState) : parsePublicationScenes(rawDto.studioScenes);
+    const dto = this.resolveRoomsDesignHelp(normalizeBudget(rawDto), studioScenes, false);
 
-    // valideaza raspunsurile + deriva camere/items/scoring (sursa de adevar server)
-    const processed = this.configurator.processRooms(dto.rooms, {
-      ownProject: dto.hasOwnProject,
-      designBrief: dto.includesPaidDesign,
-    });
+    // valideaza raspunsurile + deriva camere/items/scoring (sursa de adevar server);
+    // camerele cu ajutor pierd raspunsurile la chestionar (b8-3)
+    const processed = this.configurator.processRooms(dto.rooms, { ownProject: dto.hasOwnProject });
     // emailul contului e mereu prima cale de comunicare (PO r5) — FE il blocheaza,
     // serverul il garanteaza (prepend + dedupe + plafoane) inainte de validarea formatelor
     const contacts = await this.withAccountEmail(userId, dto.contactPreferences);
@@ -303,10 +343,6 @@ export class RequestsService {
       await this.assertProjectFile(request.id, new Set(this.configurator.collectUploadAttachmentIds(processed.rooms)));
     }
 
-    // Payloadul live evita cursa cu autosave; vechii clienti folosesc draftul.
-    // Parsat inainte de geocodare/sizing: o scena invalida nu costa apeluri externe.
-    const studioScenes = dto.studioScenes === undefined
-      ? this.extractStudioScenes(request.configuratorState) : parsePublicationScenes(dto.studioScenes);
     assertStudioNightstands(studioScenes, processed.rooms);
     // E-admin-platform-45: contacte in texte libere — inainte de geocodare (BLOCK nu costa apeluri externe)
     const contactScreen = await this.screenContacts(
@@ -318,21 +354,32 @@ export class RequestsService {
     );
 
     const geo = await this.geo.geocode(dto.addressText, dto.city, dto.county, dto.country);
-    const sizing = await this.sizing.compute({
-      scoreEntries: processed.scoreEntries,
-      budgetRange: dto.budgetRange,
-      includesPaidDesign: dto.includesPaidDesign,
-    });
+    // b11 / M3: treapta pentru marime (si cea salvata) nu coboara sub minimul estimarii
+    const { sizing, budgetRange: sizedBudgetRange } = await sizeWithBudgetFloor(dto, (budgetRange) =>
+      this.sizing.compute({ scoreEntries: processed.scoreEntries, budgetRange, includesPaidDesign: dto.includesPaidDesign }),
+    );
+    const saved = { ...dto, budgetRange: sizedBudgetRange };
 
     const now = new Date();
     const expiresAt = this.calendar.addWorkingDays(now, EXPIRATION_WORKING_DAYS);
 
+    const title = this.resolveTitle(dto, processed.rooms, contactScreen.titleHasContact);
+    // a6 / m1: acoperirea si adminii se citesc INAINTE de tranzactie, cu orice eroare = fara anunt
+    // (o instructiune esuata in tranzactie ar strica toata publicarea)
+    const noCoverageAdminIds = await this.noCoverageRecipients(geo.lat, geo.lng);
     await runTx(this.prisma, 'write', async (tx) => {
+      // f6: re-verificare sub lock — curatarea ciornelor vechi poate fi marcat-o stearsa intre
+      // citirea prin token si aceasta tranzactie (aceeasi blocare ca DraftCleanupService)
+      const [locked] = await tx.$queryRaw<{ status: RequestStatus; deleted_at: Date | null }[]>`
+        SELECT status, deleted_at FROM requests WHERE id = ${request.id} FOR UPDATE`;
+      if (!locked || locked.status !== 'DRAFT' || locked.deleted_at !== null) {
+        throw new NotFoundException({ code: ERROR_CODES.DRAFT_TOKEN_INVALID, message: 'Draft token invalid' });
+      }
       await tx.request.update({
         where: { id: request.id },
         data: {
-          ...this.scalarData(dto),
-          title: this.resolveTitle(dto, processed.rooms, contactScreen.titleHasContact),
+          ...this.scalarData(saved),
+          title,
           // leaga draftul (posibil anonim) de contul care publica
           clientUserId: userId,
           lat: geo.lat,
@@ -353,16 +400,59 @@ export class RequestsService {
       await this.writeContactPreferences(tx, request.id, contacts);
       await this.writeInspirationPhotos(tx, request.id, inspirationSelection, roomIds);
       await this.writeStudioScenes(tx, request.id, resolvePublicationScenes(studioScenes, processed.rooms, roomIds));
-      await this.writeVersion(tx, request.id, dto);
+      await this.writeVersion(tx, request.id, saved, processed.rooms);
       if (contactScreen.rows.length > 0) {
         await tx.requestContactDetection.createMany({ data: contactScreen.rows });
       }
       await this.outbox.record(tx, `request.published:${request.id}`, 'request.status_changed', { requestId: request.id, status: 'IN_MARKETPLACE' }, []);
+      // g1 (etapa 9): e-mail catre client „Cererea ta e publicata” (fara clopotel)
+      await this.outbox.record(tx, `request.published:${request.id}:client`, 'request.published',
+        { requestId: request.id, requestTitle: title, clientUserId: userId, expiresAt: expiresAt.toISOString() },
+        [userId],
+      );
+      // a6-2: publicarea trece si fara nicio firma in zona; echipa Cozy Home e anuntata
+      // (clopotel + e-mail adminilor) ca sa caute o firma acolo
+      if (noCoverageAdminIds.length > 0) {
+        await this.outbox.record(
+          tx,
+          `request.no_coverage:${request.id}`,
+          'request.no_coverage',
+          { requestId: request.id, requestTitle: title, city: dto.city, county: dto.county },
+          noCoverageAdminIds,
+        );
+      }
     });
 
     await this.scheduleExpiration(request.id, expiresAt);
+    await this.removeDroppedDesignHelpUploads(request.id, dto.rooms, processed.rooms);
 
     return this.toDto(request.id);
+  }
+
+  // b8: needsDesignHelp pe camere + includesPaidDesign (reguli in resolveDesignHelp).
+  private resolveRoomsDesignHelp<T extends CreateRequestContentDto>(
+    dto: T,
+    studioScenes: RequestStudioSceneData[],
+    legacyPaidDesign: boolean,
+  ) {
+    return resolveDesignHelp(dto, {
+      passesStrict: (room) => this.configurator.passesStrictValidation(room, { ownProject: dto.hasOwnProject }),
+      studioSourceIds: studioSourceIds(studioScenes),
+      legacyPaidDesign,
+    });
+  }
+
+  // b8 / M1: fisierele aruncate din camerele cu ajutor (snapshot3d = poza piesei configurate) nu
+  // raman pe cerere, altfel ar aparea la firme ca "fisiere ale proiectului". Dupa commit,
+  // best-effort: poza se regenereaza din config3d la urmatoarea publicare fara ajutor.
+  private async removeDroppedDesignHelpUploads(
+    requestId: string,
+    rawRooms: ConfiguratorRoomInputDto[],
+    processed: ProcessedRoom[],
+  ): Promise<void> {
+    for (const attachmentId of droppedDesignHelpUploadIds(rawRooms, processed)) {
+      await this.uploads.remove(ENTITY_TYPE_REQUEST, requestId, attachmentId).catch(() => undefined);
+    }
   }
 
   // ---- editare post-publicare (3 pre-claim / 1 post-claim) ----
@@ -373,14 +463,33 @@ export class RequestsService {
     return this.editRequest(request, dto);
   }
 
-  private async editRequest(request: RequestModel, rawDto: CreateRequestContentDto): Promise<RequestDto> {
-    const editCounters = this.assertEditableAndCount(request);
-    const dto = normalizeBudget(rawDto);
+  // f6-2 (PO): "Republica cu modificari" — cererea EXPIRED primeste continutul nou SI revine in
+  // piata intr-un singur pas (aceeasi tranzactie), cu regula repostului unic (REPOST_ALREADY_USED).
+  // NU consuma una dintre editari (contoarele raman neschimbate).
+  async repostWithChangesForClient(userId: string, id: string, dto: CreateRequestContentDto): Promise<RequestDto> {
+    const request = await this.findOwnedRequest(userId, id);
+    return this.editRequest(request, dto, 'repost');
+  }
 
-    const processed = this.configurator.processRooms(dto.rooms, {
-      ownProject: dto.hasOwnProject,
-      designBrief: dto.includesPaidDesign,
-    });
+  private async editRequest(
+    request: RequestModel,
+    rawDto: CreateRequestContentDto,
+    mode: 'edit' | 'repost' = 'edit',
+  ): Promise<RequestDto> {
+    const repost = mode === 'repost';
+    // f6-2: republicarea nu atinge contoarele de editare; verificarea repostului se refac in tranzactie
+    const editCounters = repost ? this.assertRepostable(request) : this.assertEditableAndCount(request);
+    const repostAt = new Date();
+    const repostExpiresAt = repost ? this.calendar.addWorkingDays(repostAt, EXPIRATION_WORKING_DAYS) : null;
+    const studioScenes = rawDto.studioScenes === undefined
+      ? parsePublicationScenes((await this.prisma.requestStudioScene.findMany({ where: { requestId: request.id } })).map((s) => s.data))
+      : parsePublicationScenes(rawDto.studioScenes);
+    // b8 / M3: cererea veche cu proiectare si fara camere bifate nu-si pierde proiectarea pe tacute
+    const legacyPaidDesign = request.includesPaidDesign
+      && (await this.prisma.requestRoom.count({ where: { requestId: request.id, needsDesignHelp: true } })) === 0;
+    const dto = this.resolveRoomsDesignHelp(normalizeBudget(rawDto), studioScenes, legacyPaidDesign);
+
+    const processed = this.configurator.processRooms(dto.rooms, { ownProject: dto.hasOwnProject });
     const contacts = await this.withAccountEmail(request.clientUserId, dto.contactPreferences);
     this.assertContactFormats(contacts);
     const inspirationSelection = readInspirationSelection(dto);
@@ -390,9 +499,6 @@ export class RequestsService {
     if (dto.hasOwnProject === true) {
       await this.assertProjectFile(request.id, new Set(this.configurator.collectUploadAttachmentIds(processed.rooms)));
     }
-    const studioScenes = dto.studioScenes === undefined
-      ? parsePublicationScenes((await this.prisma.requestStudioScene.findMany({ where: { requestId: request.id } })).map((s) => s.data))
-      : parsePublicationScenes(dto.studioScenes);
     assertStudioNightstands(studioScenes, processed.rooms);
     // E-admin-platform-45: BLOCK refuza inainte de geocodare si fara sa consume editarea
     const contactScreen = await this.screenContacts(
@@ -411,37 +517,108 @@ export class RequestsService {
     const geo = addressChanged
       ? await this.geo.geocode(dto.addressText, dto.city, dto.county, dto.country)
       : { lat: request.lat, lng: request.lng };
-    const sizing = await this.sizing.compute({
-      scoreEntries: processed.scoreEntries,
-      budgetRange: dto.budgetRange,
-      includesPaidDesign: dto.includesPaidDesign,
-    });
+    // b11 / M3: treapta pentru marime (si cea salvata) nu coboara sub minimul estimarii
+    const { sizing, budgetRange: sizedBudgetRange } = await sizeWithBudgetFloor(dto, (budgetRange) =>
+      this.sizing.compute({ scoreEntries: processed.scoreEntries, budgetRange, includesPaidDesign: dto.includesPaidDesign }),
+    );
+    const saved = { ...dto, budgetRange: sizedBudgetRange };
 
+    const savedTitle = this.resolveTitle(dto, processed.rooms, contactScreen.titleHasContact);
     await runTx(this.prisma, 'write', async (tx) => {
+      // revizie A m2: limitele de editare se reverifica sub blocarea randului cererii (FOR UPDATE +
+      // scrierea contoarelor pe acelasi rand, mai jos) — doua salvari simultane (dublu clic) nu pot
+      // trece amandoua; a doua vede contorul deja crescut si primeste codul limitei atinse
+      let current = request;
+      let counters = editCounters;
+      if (!repost) {
+        const [locked] = await tx.$queryRaw<{
+          status: RequestStatus;
+          deleted_at: Date | null;
+          pre_claim_edits_used: number;
+          post_claim_edits_used: number;
+        }[]>`SELECT status, deleted_at, pre_claim_edits_used, post_claim_edits_used FROM requests WHERE id = ${request.id} FOR UPDATE`;
+        if (!locked || locked.deleted_at !== null) {
+          throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: 'Request not found' });
+        }
+        current = {
+          ...request,
+          status: locked.status,
+          preClaimEditsUsed: locked.pre_claim_edits_used,
+          postClaimEditsUsed: locked.post_claim_edits_used,
+        };
+        counters = this.assertEditableAndCount(current);
+      }
+      if (repostExpiresAt) {
+        // f6-2: aceeasi garda ca repostul identic — dublu-clic / doua dispozitive → un singur repost
+        const res = await tx.request.updateMany({
+          where: { id: request.id, status: 'EXPIRED', repostUsed: false, deletedAt: null },
+          data: { status: 'IN_MARKETPLACE', repostUsed: true, publishedAt: repostAt, expiresAt: repostExpiresAt },
+        });
+        if (res.count !== 1) {
+          throw new BadRequestException({ code: ERROR_CODES.REPOST_ALREADY_USED, message: 'Repost already used' });
+        }
+      }
       await tx.request.update({
         where: { id: request.id },
         data: {
-          ...this.scalarData(dto),
-          title: this.resolveTitle(dto, processed.rooms, contactScreen.titleHasContact),
+          ...this.scalarData(saved),
+          title: savedTitle,
           lat: geo.lat,
           lng: geo.lng,
           sizeScore: sizing.score,
           projectSize: sizing.size,
           creditCost: sizing.creditCost,
-          lastEditAt: new Date(),
-          ...editCounters,
+          ...(repost ? {} : { lastEditAt: new Date() }),
+          ...counters,
         },
       });
       const roomIds = await this.writeRooms(tx, request.id, processed.rooms);
       await this.writeStudioScenes(tx, request.id, resolvePublicationScenes(studioScenes, processed.rooms, roomIds));
       await this.writeContactPreferences(tx, request.id, contacts);
       await this.writeInspirationPhotos(tx, request.id, inspirationSelection, roomIds);
-      await this.writeVersion(tx, request.id, dto);
+      await this.writeVersion(tx, request.id, saved, processed.rooms);
       if (contactScreen.rows.length > 0) {
         await tx.requestContactDetection.createMany({ data: contactScreen.rows });
       }
-      await this.outbox.record(tx, `request.edited:${request.id}:${randomUUID()}`, 'request.status_changed', { requestId: request.id, status: request.status, edited: true }, []);
+      if (repostExpiresAt) {
+        // f6-2: aceleasi evenimente ca repostul identic (cheile sunt unice: repostul e o singura data)
+        await this.outbox.record(tx, `request.reposted:${request.id}`, 'request.status_changed', { requestId: request.id, status: 'IN_MARKETPLACE', reposted: true, edited: true }, []);
+        if (request.clientUserId) {
+          await this.outbox.record(tx, `request.published:${request.id}:repost`, 'request.published',
+            { requestId: request.id, requestTitle: savedTitle, clientUserId: request.clientUserId, expiresAt: repostExpiresAt.toISOString() },
+            [request.clientUserId],
+          );
+        }
+      } else {
+        await this.outbox.record(tx, `request.edited:${request.id}:${randomUUID()}`, 'request.status_changed', { requestId: request.id, status: current.status, edited: true }, []);
+        // e3 (etapa 9): editarea DUPA preluare anunta fiecare firma cu preluare deschisa
+        // (OPEN_CLAIM_STATUSES: ACTIVE / OFFER_SENT) — toti membrii; nu cele retrase / anulate / expirate
+        // starea si contoarele citite sub lock (current), nu cele de dinaintea tranzactiei
+        if (POST_CLAIM_STATUSES.includes(current.status) && request.clientUserId) {
+          const openClaims = await tx.claimSlot.findMany({
+            where: { requestId: request.id, status: { in: ['ACTIVE', 'OFFER_SENT'] } },
+            select: { id: true, companyId: true, company: { select: { name: true, members: { select: { userId: true } } } } },
+          });
+          for (const slot of openClaims) {
+            await this.outbox.record(tx, `request.edited_after_claim:${slot.id}:${current.postClaimEditsUsed + 1}`,
+              'request.edited_after_claim',
+              {
+                requestId: request.id,
+                requestTitle: savedTitle,
+                claimSlotId: slot.id,
+                companyId: slot.companyId,
+                companyName: slot.company.name,
+                clientUserId: request.clientUserId,
+                actorUserId: request.clientUserId,
+              },
+              slot.company.members.map((m) => m.userId),
+            );
+          }
+        }
+      }
     });
+    if (repostExpiresAt) await this.scheduleExpiration(request.id, repostExpiresAt);
+    await this.removeDroppedDesignHelpUploads(request.id, dto.rooms, processed.rooms);
 
     return this.toDto(request.id);
   }
@@ -455,16 +632,18 @@ export class RequestsService {
   }
 
   private async repostRequest(request: RequestModel): Promise<RequestDto> {
-    if (request.status !== 'EXPIRED') {
-      throw new BadRequestException({
-        code: ERROR_CODES.REQUEST_NOT_EDITABLE,
-        message: 'Only expired requests can be reposted',
-      });
-    }
+    // Intai „deja republicata”: dupa o republicare reusita cererea nu mai e expirata, iar a doua
+    // incercare (dublu clic, alt dispozitiv) trebuie sa primeasca acelasi raspuns, oricand ajunge.
     if (request.repostUsed) {
       throw new BadRequestException({
         code: ERROR_CODES.REPOST_ALREADY_USED,
         message: 'Repost already used',
+      });
+    }
+    if (request.status !== 'EXPIRED') {
+      throw new BadRequestException({
+        code: ERROR_CODES.REQUEST_NOT_EDITABLE,
+        message: 'Only expired requests can be reposted',
       });
     }
 
@@ -479,6 +658,13 @@ export class RequestsService {
       });
       if (res.count !== 1) return false;
       await this.outbox.record(tx, `request.reposted:${request.id}`, 'request.status_changed', { requestId: request.id, status: 'IN_MARKETPLACE', reposted: true }, []);
+      // g1 (etapa 9): republicarea anunta clientul la fel ca publicarea (o singura data: repost unic)
+      if (request.clientUserId) {
+        await this.outbox.record(tx, `request.published:${request.id}:repost`, 'request.published',
+          { requestId: request.id, requestTitle: request.title ?? '', clientUserId: request.clientUserId, expiresAt: expiresAt.toISOString() },
+          [request.clientUserId],
+        );
+      }
       return true;
     });
     if (!reposted) {
@@ -495,9 +681,8 @@ export class RequestsService {
 
   // ---- liste client autenticat ----
 
-  // Ciornele NU apar in "Cererile mele" (PO r5): sunt goale, fara actiuni, si se
-  // acumuleaza la fiecare "Incepe o cerere noua". Reluarea unei ciorne se face
-  // din configurator (dialogul de resume, token in localStorage), nu din lista.
+  // Ciornele NU apar in lista cererilor (PO r5); d5: au fila lor ("Ciorne"),
+  // listDraftsForClient, doar cu ciornele legate de cont si cu macar o camera.
   async listForClient(userId: string): Promise<RequestListItemDto[]> {
     const rows = await this.prisma.request.findMany({
       where: { clientUserId: userId, deletedAt: null, status: { not: 'DRAFT' } },
@@ -513,6 +698,8 @@ export class RequestsService {
       status: r.status,
       title: r.title ?? '',
       budgetRange: r.budgetRange ?? 'UNDISCLOSED',
+      budgetEstimateRon: r.budgetEstimateRon,
+      budgetDeclared: r.budgetDeclared,
       city: r.city ?? '',
       county: r.county ?? '',
       // marimea proiectului nu se afiseaza clientului (doar firmelor)
@@ -521,10 +708,81 @@ export class RequestsService {
       expiresAt: r.expiresAt?.toISOString() ?? null,
       createdAt: r.createdAt.toISOString(),
       roomTypes: r.rooms.map((room) => room.roomType),
-      activeClaims: r.claims.filter((c) => c.status === 'ACTIVE' || c.status === 'OFFER_SENT')
-        .length,
+      // d5: firmele cu loc ocupat — si castigatoarea dupa finalizare (slot COMPLETED), altfel
+      // o cerere finalizata arata "Nicio firma"
+      activeClaims: r.claims.filter((c) => OCCUPYING_CLAIM_STATUSES.includes(c.status)).length,
       quotesCount: r.quotes.filter((q) => q.status !== 'DRAFT').length,
     }));
+  }
+
+  // d5 (PO d5-1): fila "Ciorne" — DOAR ciornele legate de contul clientului (ciorna anonima se
+  // leaga la prima salvare dupa autentificare, vezi patchDraft). Ciornele fara nicio camera
+  // (create din oficiu la deschiderea formularului) nu se arata: n-au nimic de continuat.
+  // revizie m4: cele mai recente MAX_LISTED_DRAFTS, iar din starea formularului se citesc in SQL
+  // doar tipurile de camera si orasul (nu tot JSON-ul). CASE pastreaza ordinea verificarilor:
+  // jsonb_array_length doar pe un array.
+  async listDraftsForClient(userId: string): Promise<RequestDraftListItemDto[]> {
+    const rows = await this.prisma.$queryRaw<{
+      id: string;
+      title: string | null;
+      city: string | null;
+      draft_city: string | null;
+      room_types: (string | null)[] | null;
+      created_at: Date;
+      updated_at: Date;
+    }[]>`
+      SELECT id, title, city, created_at, updated_at,
+        configurator_state -> 'details' ->> 'city' AS draft_city,
+        ARRAY(
+          SELECT e ->> 'roomType'
+          FROM jsonb_array_elements(configurator_state -> 'roomInstances') AS e
+          LIMIT ${MAX_LISTED_ROOMS}
+        ) AS room_types
+      FROM requests
+      WHERE client_user_id = ${userId}
+        AND deleted_at IS NULL
+        AND status = 'DRAFT'
+        AND CASE WHEN jsonb_typeof(configurator_state -> 'roomInstances') = 'array'
+              THEN jsonb_array_length(configurator_state -> 'roomInstances') > 0
+              ELSE false END
+      ORDER BY updated_at DESC
+      LIMIT ${MAX_LISTED_DRAFTS}`;
+    const items: RequestDraftListItemDto[] = [];
+    for (const r of rows) {
+      const roomTypes = knownRoomTypes(r.room_types);
+      if (roomTypes.length === 0) continue;
+      items.push({
+        id: r.id,
+        title: r.title ?? '',
+        city: r.city ?? draftCityText(r.draft_city),
+        roomTypes,
+        createdAt: r.created_at.toISOString(),
+        updatedAt: r.updated_at.toISOString(),
+      });
+    }
+    return items;
+  }
+
+  // d5: "Continua" din fila de ciorne, de pe orice dispozitiv. Tokenul ciornei e pastrat doar ca
+  // hash, deci emitem unul nou (cel vechi, din alt browser, nu mai deschide ciorna — acolo
+  // formularul porneste o ciorna noua, iar ciorna asta ramane in lista). Doar proprietarul,
+  // doar pe o ciorna; scrierea e conditionata (stearsa / publicata intre timp → 400).
+  async reissueDraftTokenForClient(userId: string, id: string): Promise<RequestDraftCreatedDto> {
+    const request = await this.findOwnedRequest(userId, id);
+    const token = randomBytes(32).toString('hex');
+    const res = request.status === 'DRAFT'
+      ? await this.prisma.request.updateMany({
+          where: { id, clientUserId: userId, status: 'DRAFT', deletedAt: null },
+          data: { draftTokenHash: this.hashToken(token) },
+        })
+      : { count: 0 };
+    if (res.count !== 1) {
+      throw new BadRequestException({
+        code: ERROR_CODES.REQUEST_NOT_EDITABLE,
+        message: 'Only drafts can be continued',
+      });
+    }
+    return { id, draftToken: token };
   }
 
   async getForClient(userId: string, id: string): Promise<RequestDto> {
@@ -537,9 +795,12 @@ export class RequestsService {
   // stie firmele din zona); contactele le au doar firmele cu slot ocupant, evaluate cu exact
   // functia fisei de lucru (resolveClaimContextAccess) → cardul nu poate contrazice ce primesc
   // firmele. Doar citire (GET, sigur pe slotul standby).
-  async getVisibilityForClient(userId: string, id: string): Promise<RequestVisibilityDto> {
+  async getVisibilityForClient(
+    userId: string,
+    id: string,
+  ): Promise<RequestVisibilityDto & RequestVisibilityClosedReasonDto> {
     const request = await this.findOwnedRequest(userId, id);
-    const [openAfterFirstOffer, maxClaims, [revealPolicy], slots] = await Promise.all([
+    const [openAfterFirstOffer, maxClaims, [revealPolicy], slots, closedSlots, coverage] = await Promise.all([
       this.settings.getBool(SETTING_CLAIMS_OPEN_AFTER_FIRST_OFFER, SETTING_DEFAULTS.claims_open_after_first_offer),
       this.settings.getInt('max_claims_per_request', SETTING_DEFAULTS.max_claims_per_request),
       readClaimContactAccessSettings(this.settings),
@@ -548,6 +809,16 @@ export class RequestsService {
         include: { company: { select: { name: true } } },
         orderBy: { createdAt: 'asc' },
       }),
+      // e4: preluarile inchise (firma a renuntat, termen depasit, alta oferta aleasa…) — pentru
+      // istoricul "O firma a avut acces la datele tale pana pe …"; fara numele firmei
+      this.prisma.claimSlot.findMany({
+        where: { requestId: id, status: { in: CLOSED_CLAIM_STATUSES } },
+        select: { status: true, createdAt: true, updatedAt: true, withdrawnAt: true, claimedByUserId: true, assignedToUserId: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+      // a6: doar da / nu (fara numar de firme); UNKNOWN = cererea nu are coordonate.
+      // Interfata il foloseste doar cat proiectul e in piata.
+      requestCoverage(this.prisma, request.lat, request.lng),
     ]);
     const projectVisibleInMarketplace =
       claimableStatuses(openAfterFirstOffer).includes(request.status) &&
@@ -582,7 +853,95 @@ export class RequestsService {
         contactsVisibleFrom: access.clientVisibleFrom?.toISOString() ?? null,
       });
     }
-    return { requestId: id, projectVisibleInMarketplace, contactHolders };
+    // a1: motivul cand proiectul nu mai e in piata (locuri ocupate / oferta acceptata / regula
+    // primei oferte, doar cu comutatorul oprit / expirata); null cat e vizibil
+    const marketplaceClosedReason = projectVisibleInMarketplace
+      ? null
+      : (closedReasonFor({ status: request.status, occupied: slots.length, maxClaims, openAfterFirstOffer }) ?? 'CLOSED');
+    // e4: firma a avut contactele daca, in clipa inchiderii (withdrawnAt, scris de decontare;
+    // updatedAt doar pentru randurile vechi), fisa de lucru i le-ar fi aratat — aceeasi functie,
+    // evaluata pe slotul inca deschis. Limitare (pentru PO): politica de dezvaluire e cea de azi.
+    const pastContactAccess = closedSlots
+      .map((slot) => ({ slot, closedAt: slot.withdrawnAt ?? slot.updatedAt }))
+      .filter(({ slot, closedAt }) => resolveClaimContextAccess({
+        slotStatus: 'ACTIVE',
+        requestDeletedAt: null,
+        slotCreatedAt: slot.createdAt,
+        slotUpdatedAt: closedAt,
+        requestDeliveredAt: null,
+        claimedByUserId: slot.claimedByUserId,
+        assignedToUserId: slot.assignedToUserId,
+        memberRole: 'OWNER',
+        actingUserId: slot.claimedByUserId,
+        revealPolicy,
+        retentionDays: 0,
+        now: closedAt.getTime(),
+      }).clientVisible)
+      .sort((a, b) => a.closedAt.getTime() - b.closedAt.getTime())
+      .map(({ closedAt }) => ({ until: closedAt.toISOString() }));
+    return { requestId: id, projectVisibleInMarketplace, contactHolders, marketplaceClosedReason, coverage, pastContactAccess };
+  }
+
+  // a6 — Sumar: exista vreo firma care acopera adresa ciornei? Aceleasi verificari de acces ca
+  // celelalte rute de ciorna (tokenul + proprietarul); adresa vine in forma de la publicare si se
+  // geocodeaza pe server. Geocodare esuata → UNKNOWN (nu eroare). Doar da / nu, niciodata un numar.
+  async draftCoverage(
+    token: string,
+    address: { addressText: string; city: string; county: string; country?: string },
+    callerId: string | null,
+  ): Promise<RequestCoverageDto> {
+    const draft = await this.findByToken(token, callerId);
+    // m6: limita pe ciorna (nu doar pe IP, care pe productie poate fi comun tuturor) — peste
+    // limita raspundem UNKNOWN, fara geocodare: Sumarul nu arata nimic
+    if (!this.takeDraftCoverageSlot(draft.id)) return { coverage: 'UNKNOWN' };
+    try {
+      // geo.geocode citeste / scrie geocoding_cache: aceeasi adresa nu se geocodeaza a doua oara
+      const geo = await this.geo.geocode(address.addressText, address.city, address.county, address.country);
+      return { coverage: await requestCoverage(this.prisma, geo.lat, geo.lng) };
+    } catch {
+      return { coverage: 'UNKNOWN' };
+    }
+  }
+
+  // m6: fereastra fixa de 60 s, cel mult DRAFT_COVERAGE_LIMIT intrebari pe ciorna. Contor in
+  // memoria procesului (un singur slot activ blue/green; la repornire se goleste — e doar o frana).
+  private static readonly DRAFT_COVERAGE_LIMIT = 10;
+  private static readonly DRAFT_COVERAGE_WINDOW_MS = 60_000;
+  private readonly draftCoverageHits = new Map<string, { windowStart: number; count: number }>();
+
+  private takeDraftCoverageSlot(draftId: string, now = Date.now()): boolean {
+    const windowMs = RequestsService.DRAFT_COVERAGE_WINDOW_MS;
+    // curatenie: intrarile cu fereastra expirata nu mai conteaza
+    if (this.draftCoverageHits.size > 1000) {
+      for (const [id, hit] of this.draftCoverageHits) {
+        if (now - hit.windowStart >= windowMs) this.draftCoverageHits.delete(id);
+      }
+    }
+    const hit = this.draftCoverageHits.get(draftId);
+    if (!hit || now - hit.windowStart >= windowMs) {
+      this.draftCoverageHits.set(draftId, { windowStart: now, count: 1 });
+      return true;
+    }
+    if (hit.count >= RequestsService.DRAFT_COVERAGE_LIMIT) return false;
+    hit.count += 1;
+    return true;
+  }
+
+  // a6-2 / m1 / m5 — cine primeste anuntul "cerere fara nicio firma in zona": adminii activi
+  // (nestersi, neblocati, neanonimizati), doar cand acoperirea e NONE. Se cheama INAINTE de
+  // tranzactia publicarii; orice eroare = lista goala (UNKNOWN), publicarea nu pica.
+  private async noCoverageRecipients(lat: number, lng: number): Promise<string[]> {
+    try {
+      if ((await requestCoverage(this.prisma, lat, lng)) !== 'NONE') return [];
+      const admins = await this.prisma.user.findMany({
+        where: { role: 'ADMIN', deletedAt: null, blockedAt: null, anonymizedAt: null },
+        select: { id: true },
+      });
+      return admins.map((a) => a.id);
+    } catch (e) {
+      this.logger.warn(`coverage check failed at publish: ${e instanceof Error ? e.name : 'error'}`);
+      return [];
+    }
   }
 
   // Cererea exista, nu e stearsa si apartine clientului curent (ownership).
@@ -677,7 +1036,9 @@ export class RequestsService {
       actions.push({ kind: 'OFFERS_TO_REVIEW', requestId: r.id, claimSlotId: null, title: r.title ?? '', count: r._count.quotes, dueAt: null });
     }
     for (const r of toConfirm) {
-      const dueAt = r.deliveredAt ? new Date(r.deliveredAt.getTime() + AUTO_COMPLETE_DAYS * DAY_MS).toISOString() : null;
+      // e2-1: cu raport deschis nu exista termen; dupa inchiderea lui, cele 14 zile pornesc din nou
+      const clockStart = r.deliveredAt ? await autoCompleteClockStart(this.prisma, r.id, r.deliveredAt) : null;
+      const dueAt = clockStart ? new Date(clockStart.getTime() + AUTO_COMPLETE_DAYS * DAY_MS).toISOString() : null;
       actions.push({ kind: 'DELIVERY_TO_CONFIRM', requestId: r.id, claimSlotId: null, title: r.title ?? '', count: null, dueAt });
     }
     const byRequest = new Map<string, DashboardActionItemDto>();
@@ -861,12 +1222,34 @@ export class RequestsService {
   }
 
   private assertAttachmentEditableStatus(request: RequestModel): void {
-    if (!ATTACHMENT_EDITABLE_STATUSES.includes(request.status)) {
+    // f6-2: cererea expirata cu repostul nefolosit se poate republica cu modificari — formularul
+    // urca / scoate fisierele (schite, imaginea 3D) inainte si dupa salvare
+    const repostable = request.status === 'EXPIRED' && !request.repostUsed;
+    if (!ATTACHMENT_EDITABLE_STATUSES.includes(request.status) && !repostable) {
       throw new BadRequestException({
         code: ERROR_CODES.REQUEST_NOT_EDITABLE,
         message: 'Attachments cannot be changed in this state',
       });
     }
+  }
+
+  // f6-2: aceleasi verificari ca repostul identic; nu numara nicio editare
+  private assertRepostable(request: RequestModel): Record<string, never> {
+    // Intai „deja republicata”: dupa o republicare reusita cererea nu mai e expirata, iar a doua
+    // incercare (dublu clic, alt dispozitiv) trebuie sa primeasca acelasi raspuns, oricand ajunge.
+    if (request.repostUsed) {
+      throw new BadRequestException({
+        code: ERROR_CODES.REPOST_ALREADY_USED,
+        message: 'Repost already used',
+      });
+    }
+    if (request.status !== 'EXPIRED') {
+      throw new BadRequestException({
+        code: ERROR_CODES.REQUEST_NOT_EDITABLE,
+        message: 'Only expired requests can be reposted',
+      });
+    }
+    return {};
   }
 
   private assertEditableAndCount(
@@ -904,15 +1287,20 @@ export class RequestsService {
 
   // Campuri scalare comune publish/edit. Titlul NU e aici: e rezolvat separat
   // (auto-generat cand lipseste din payload — fluxul configurator nu il trimite).
-  private scalarData(dto: CreateRequestContentDto) {
+  // includesPaidDesign vine DERIVAT din camere (resolveDesignHelp, b8)
+  private scalarData(dto: CreateRequestContentDto & { includesPaidDesign: boolean }) {
     return {
       description: dto.description ?? '',
       budgetRange: dto.budgetRange,
       budgetEstimateRon: dto.budgetEstimateRon ?? null,
+      // b11: normalizeBudget l-a pastrat doar langa o suma
+      budgetDeclared: dto.budgetDeclared === true,
       deadlineBucket: dto.deadlineBucket ?? null,
       includesPaidDesign: dto.includesPaidDesign,
       hasOwnProject: dto.hasOwnProject,
       addressText: dto.addressText,
+      // b12: publicare / editare scriu mereu campul (gol → NULL), ca stergerea lui sa ramana
+      addressDetails: addressDetailsValue(dto.addressDetails) ?? null,
       county: dto.county,
       city: dto.city,
       country: dto.country ?? 'RO',
@@ -928,7 +1316,8 @@ export class RequestsService {
     maxRon: number;
   }> {
     // designBrief=true (validare partiala): estimarea e informativa, nu punctul
-    // de publish — camerele fara dimensiuni (proiect propriu) nu o blocheaza
+    // de publish — camerele fara dimensiuni (proiect propriu) nu o blocheaza. b8: camerele cu
+    // needsDesignHelp intra fara raspunsuri, exact cum se publica (acelasi cost ca la publicare)
     const processed = this.configurator.processRooms(rooms, { designBrief: true });
     const sizing = await this.sizing.compute({
       scoreEntries: processed.scoreEntries,
@@ -951,7 +1340,8 @@ export class RequestsService {
     LIVING: { one: 'Living', many: 'Living-uri' },
     OFFICE: { one: 'Birou', many: 'Birouri' },
     DRESSING: { one: 'Dressing', many: 'Dressing-uri' },
-    PIECES: { one: 'Piese individuale', many: 'Piese individuale' },
+    // c11 (etapa 12): aceleasi nume ca in glosarul de piese din formular
+    PIECES: { one: 'Altă piesă', many: 'Alte piese' },
     HALLWAY: { one: 'Hol', many: 'Holuri' },
     PANTRY: { one: 'Debara', many: 'Debarale' },
     LAUNDRY: { one: 'Spălătorie', many: 'Spălătorii' },
@@ -960,11 +1350,12 @@ export class RequestsService {
     PIECE_TV_UNIT: { one: 'Comodă TV', many: 'Comode TV' },
     PIECE_BOOKCASE: { one: 'Bibliotecă', many: 'Biblioteci' },
     PIECE_BED: { one: 'Pat', many: 'Paturi' },
-    PIECE_DESK: { one: 'Birou', many: 'Birouri' },
+    // PO c11-1: camera „Birou”, piesa „Birou de lucru”
+    PIECE_DESK: { one: 'Birou de lucru', many: 'Birouri de lucru' },
     PIECE_DRESSER: { one: 'Comodă', many: 'Comode' },
     PIECE_TABLE: { one: 'Masă', many: 'Mese' },
     PIECE_SHOE_CABINET: { one: 'Pantofar', many: 'Pantofare' },
-    PIECE_NIGHTSTAND: { one: 'Noptiere', many: 'Noptiere' },
+    PIECE_NIGHTSTAND: { one: 'Noptieră', many: 'Noptiere' },
     PIECE_BENCH: { one: 'Băncuță', many: 'Băncuțe' },
     PIECE_SIDEBOARD: { one: 'Bufet', many: 'Bufete' },
     PIECE_WALL_CABINET: { one: 'Corp suspendat', many: 'Corpuri suspendate' },
@@ -975,9 +1366,20 @@ export class RequestsService {
     PIECE_OTTOMAN: { one: 'Taburet tapițat', many: 'Taburete tapițate' },
   };
 
+  // Cate bucati numara o camera in titlu: noptierele dupa raspunsul „Câte noptiere?” (implicit
+  // doua, ca in flux), „Altă piesă” dupa randurile completate; restul — o bucata pe camera.
+  private static titleUnits(room: ProcessedRoom): number {
+    if (room.roomType === 'PIECE_NIGHTSTAND') return room.answers?.count === 'ONE' ? 1 : 2;
+    if (room.roomType === 'PIECES') {
+      const rows = room.answers?.pieces;
+      return Array.isArray(rows) && rows.length > 0 ? rows.length : 1;
+    }
+    return 1;
+  }
+
   private buildRequestTitle(rooms: ProcessedRoom[], city: string): string {
     const counts = new Map<string, number>();
-    for (const room of rooms) counts.set(room.roomType, (counts.get(room.roomType) ?? 0) + 1);
+    for (const room of rooms) counts.set(room.roomType, (counts.get(room.roomType) ?? 0) + RequestsService.titleUnits(room));
     const parts = [...counts.entries()].map(([type, n]) => {
       const label = RequestsService.ROOM_TITLE_LABELS[type] ?? { one: type, many: type };
       return n === 1 ? label.one : `${n} ${label.many}`;
@@ -1163,6 +1565,9 @@ export class RequestsService {
         heightM: room.derived.heightM,
         answers: room.answers as Prisma.InputJsonValue,
         flowVersion: room.flowVersion,
+        needsDesignHelp: room.needsDesignHelp === true,
+        // d3: lungimea aproximativa (proiect propriu) — editarea o pastreaza
+        approxLengthM: room.approxLengthM ?? null,
       };
       if (existingId) toUpdate.push({ id, data });
       else toCreate.push({ id, requestId, ...data });
@@ -1227,11 +1632,18 @@ export class RequestsService {
     tx: Prisma.TransactionClient,
     requestId: string,
     dto: CreateRequestContentDto,
+    rooms: ProcessedRoom[],
   ): Promise<void> {
     const count = await tx.requestVersion.count({ where: { requestId } });
+    // b8-3: snapshotul pastreaza raspunsurile PROCESATE (camerele cu ajutor fara chestionar),
+    // nu payloadul brut — raspunsurile aruncate raman doar in ciorna clientului
+    const snapshot = {
+      ...dto,
+      rooms: dto.rooms.map((room, i) => ({ ...room, answers: rooms[i]?.answers ?? room.answers })),
+    };
     // createMany: fara SELECT-ul de citire inapoi pe care il face create (un round-trip mai putin)
     await tx.requestVersion.createMany({
-      data: [{ requestId, version: count + 1, snapshot: dto as unknown as Prisma.InputJsonValue }],
+      data: [{ requestId, version: count + 1, snapshot: snapshot as unknown as Prisma.InputJsonValue }],
     });
   }
 
@@ -1295,10 +1707,12 @@ export class RequestsService {
       description: request.description ?? '',
       budgetRange: request.budgetRange ?? 'UNDISCLOSED',
       budgetEstimateRon: request.budgetEstimateRon,
+      budgetDeclared: request.budgetDeclared,
       deadlineBucket: request.deadlineBucket,
       includesPaidDesign: request.includesPaidDesign,
       hasOwnProject: request.hasOwnProject,
       addressText: request.addressText ?? '',
+      addressDetails: request.addressDetails ?? '',
       county: request.county ?? '',
       city: request.city ?? '',
       country: request.country,
@@ -1325,6 +1739,8 @@ export class RequestsService {
         heightM: r.heightM,
         answers: (r.answers ?? null) as Record<string, unknown> | null,
         flowVersion: r.flowVersion,
+        needsDesignHelp: r.needsDesignHelp,
+        approxLengthM: r.approxLengthM === null || r.approxLengthM === undefined ? null : Number(r.approxLengthM),
         items: r.items.map((it) => ({
           id: it.id,
           name: it.name,

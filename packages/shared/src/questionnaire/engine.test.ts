@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   collectScoreEntries,
   evalCondition,
+  firmRecommendations,
   getFlow,
   isFlowVersionRegistered,
   pruneAnswers,
@@ -16,7 +17,12 @@ import { defaultPieceConfig } from './piece3d';
 import type { AnswerMap, ScoringRef } from './types';
 import { ROOM_TYPES, type RoomType } from '../enums';
 import { ROOM_KIND, ROOM_ORDER, sortByRoomOrder } from '../room-meta';
-import { CURRENT_FLOW_VERSION, FLOW_REGISTRY } from './flows';
+import { CURRENT_FLOW_VERSION, ETAPA6_FLOW_VERSION, FLOW_REGISTRY, FLOW_VERSIONS_BEFORE_ETAPA6 } from './flows';
+// etapa 10 (describe-ul de la final)
+import { ETAPA10_FLOW_VERSION, FLOW_VERSIONS_BEFORE_ETAPA10 } from './flows';
+import { allFixtureFlows, fixtureAnswers, FIXTURE_VARIANTS } from './firm-text.fixtures';
+import { optionalHeightSlot, pieceWidthSlot } from './flows/measure-sets';
+import type { Configurator3dStep, DimensionGroupStep, RoomFlow } from './types';
 
 // Un set complet valid de raspunsuri pentru bucatarie L cu insula.
 function kitchenLIslandAnswers(): AnswerMap {
@@ -254,7 +260,7 @@ describe('summarizeAnswers', () => {
 
 describe('deriveRoom pentru toate flow-urile → forma valida', () => {
   it('fiecare flow deriva o camera cu minim un item si dimensiuni pozitive', () => {
-    // raspunsuri minime pentru VERSIUNEA CURENTA a fiecarui flow.
+    // raspunsuri minime pentru versiunea ETAPEI 6 a fiecarui flow (fixata explicit la comutarea etapei 10).
     // Record<RoomType, ...> — exhaustiv la compilare: un RoomType nou fara
     // raspunsuri minimale aici nu compileaza.
     const minimal: Record<(typeof ROOM_TYPES)[number], AnswerMap> = {
@@ -262,9 +268,10 @@ describe('deriveRoom pentru toate flow-urile → forma valida', () => {
       PIECE_WALL_CABINET: { config3d: defaultPieceConfig('WALL_CABINET'), material: 'PAL' },
       PIECE_BATHROOM_VANITY: { config3d: defaultPieceConfig('BATHROOM_VANITY'), material: 'MDF_VOPSIT' },
       PIECE_ENTRYWAY: { config3d: defaultPieceConfig('ENTRYWAY'), material: 'PAL' },
-      PIECE_SOFA: { config3d: defaultPieceConfig('SOFA'), material: 'LEMN_MASIV' },
-      PIECE_ARMCHAIR: { config3d: defaultPieceConfig('ARMCHAIR'), material: 'LEMN_MASIV' },
-      PIECE_OTTOMAN: { config3d: defaultPieceConfig('OTTOMAN'), material: 'LEMN_MASIV' },
+      // etapa 6: tapitatele de catalog (v2) nu mai au intrebare de material — cadrul il alege firma
+      PIECE_SOFA: { config3d: defaultPieceConfig('SOFA') },
+      PIECE_ARMCHAIR: { config3d: defaultPieceConfig('ARMCHAIR') },
+      PIECE_OTTOMAN: { config3d: defaultPieceConfig('OTTOMAN') },
       KITCHEN: {
         layout: 'STRAIGHT',
         hasIsland: false,
@@ -300,17 +307,20 @@ describe('deriveRoom pentru toate flow-urile → forma valida', () => {
         piecesNeeded: ['WARDROBE'],
         wardrobeDoorType: 'SLIDING',
         dimensions: { wardrobeWidth: 2.4, ceilingHeight: 2.6 },
+        // etapa 6 (v3): la usi glisante nu mai exista intrebarea de deschidere (GLISANTE vine din tipul de usi)
         materialWardrobe: 'MDF_INFOLIAT',
-        systemsWardrobe: ['GLISANTE'],
       },
       BATHROOM: {
         piecesNeeded: ['VANITY_UNIT'],
         dimensions: { vanityWidth: 0.8, ceilingHeight: 2.6 },
         ventilation: 'WINDOW',
         materialVanity: 'MDF_INFOLIAT',
+        // etapa 6 (v3): deschidere pe fiecare piesa
+        systemsVanity: ['MANER'],
       },
       PIECES: {
-        pieces: [{ name: 'Dulap hol', material: 'PAL', systems: [], quantity: 1 }],
+        // etapa 6 (v2): deschiderea e obligatorie pe rand
+        pieces: [{ name: 'Dulap hol', material: 'PAL', systems: ['MANER'], quantity: 1 }],
       },
       HALLWAY: {
         piecesNeeded: ['SHOE_CABINET'],
@@ -340,9 +350,9 @@ describe('deriveRoom pentru toate flow-urile → forma valida', () => {
         systemsStorageBench: ['MANER'],
       },
       // piesele-carcasa sunt pe v3: config3d + material (+ ortogonalele cerute)
+      // etapa 6 (v4): deschiderea si tipul de usi vin doar din 3D (pasul ascuns doorType a disparut)
       PIECE_WARDROBE: {
         config3d: defaultPieceConfig('WARDROBE'),
-        doorType: 'HINGED',
         material: 'PAL',
       },
       PIECE_TV_UNIT: {
@@ -386,10 +396,10 @@ describe('deriveRoom pentru toate flow-urile → forma valida', () => {
     };
 
     for (const roomType of ROOM_TYPES) {
-      const flow = getFlow(roomType);
+      const flow = getFlow(roomType, ETAPA6_FLOW_VERSION[roomType]);
       const answers = minimal[roomType];
       // sanity: raspunsurile minime trec validarea la publish
-      const valid = validateRoomAnswers(roomType, answers, { partial: false });
+      const valid = validateRoomAnswers(roomType, answers, { partial: false, version: ETAPA6_FLOW_VERSION[roomType] });
       expect(valid, `${roomType} answers valide`).toEqual({ ok: true });
 
       const derived = flow.deriveRoom(answers);
@@ -479,7 +489,7 @@ describe('kitchen v2 — insula ca add-on, intrebari per zona', () => {
     withOther.frontMaterialBaseOther = 'sticla mata';
     expect(validateRoomAnswers('KITCHEN', withOther, { partial: false, version: 2 })).toEqual({ ok: true });
     const derived = getFlow('KITCHEN', 2).deriveRoom(withOther);
-    const base = derived.items.find((it) => it.name === 'Corpuri baza');
+    const base = derived.items.find((it) => it.name === 'Corpuri de bază');
     expect(base?.material).toBe('ALTUL');
     expect(base?.description).toBe('Material dorit: sticla mata');
   });
@@ -509,10 +519,10 @@ describe('kitchen v2 — insula ca add-on, intrebari per zona', () => {
     const derived = getFlow('KITCHEN', 2).deriveRoom(kitchenV2Answers());
     expect(derived.items).toHaveLength(3);
     const byName = Object.fromEntries(derived.items.map((it) => [it.name, it]));
-    expect(byName['Corpuri baza'].material).toBe('PAL');
+    expect(byName['Corpuri de bază'].material).toBe('PAL');
     expect(byName['Corpuri suspendate'].material).toBe('MDF_VOPSIT');
-    expect(byName['Insula bucatarie'].material).toBe('LEMN_MASIV');
-    expect(byName['Insula bucatarie'].systems).toEqual(['GOLA']);
+    expect(byName['Insulă'].material).toBe('LEMN_MASIV');
+    expect(byName['Insulă'].systems).toEqual(['GOLA']);
     // metri liniari: runA + runB + islandLength = 6.2
     expect(derived.lengthM).toBeCloseTo(6.2, 5);
   });
@@ -547,9 +557,10 @@ describe('kitchen v3 — 6 sectiuni fixe, acelasi material implicit (PO 2026-11-
     return groups;
   };
 
-  it('bucataria noua porneste pe v3', () => {
-    expect(CURRENT_FLOW_VERSION.KITCHEN).toBe(3);
-    expect(getFlow('KITCHEN').version).toBe(3);
+  it('bucataria noua a pornit pe v3 pana la etapa 6; acum porneste pe v4, iar v3 ramane inregistrata', () => {
+    expect(ETAPA6_FLOW_VERSION.KITCHEN).toBe(4);
+    expect(getFlow('KITCHEN', 4).version).toBe(4);
+    expect(getFlow('KITCHEN', 3).version).toBe(3);
   });
 
   it('6 ecrane, indiferent de insula sau de materialele pe zone', () => {
@@ -582,9 +593,9 @@ describe('kitchen v3 — 6 sectiuni fixe, acelasi material implicit (PO 2026-11-
     const full: AnswerMap = { ...separate, frontMaterialWall: 'PAL', frontMaterialIsland: 'LEMN_MASIV' };
     expect(validateRoomAnswers('KITCHEN', full, { partial: false, version: 3 })).toEqual({ ok: true });
     const byName = Object.fromEntries(getFlow('KITCHEN', 3).deriveRoom(full).items.map((it) => [it.name, it]));
-    expect(byName['Corpuri baza'].material).toBe('MDF_VOPSIT');
+    expect(byName['Corpuri de bază'].material).toBe('MDF_VOPSIT');
     expect(byName['Corpuri suspendate'].material).toBe('PAL');
-    expect(byName['Insula bucatarie'].material).toBe('LEMN_MASIV');
+    expect(byName['Insulă'].material).toBe('LEMN_MASIV');
   });
 
   it('debifarea sterge materialele pe zone (pruneAnswers), "Altul" de baza se aplica peste tot', () => {
@@ -609,7 +620,7 @@ describe('kitchen v3 — 6 sectiuni fixe, acelasi material implicit (PO 2026-11-
 
 describe('bathroom v2 — ventilatie + dimensiuni/material per piesa', () => {
   it('sloturile de dimensiuni urmeaza piesele selectate', () => {
-    const flow = getFlow('BATHROOM');
+    const flow = getFlow('BATHROOM', 2);
     expect(flow.version).toBe(2);
     const dimStep = flow.steps.find((s) => s.id === 'dimensions');
     if (dimStep?.type !== 'dimension-group') throw new Error('missing dim step');
@@ -620,7 +631,7 @@ describe('bathroom v2 — ventilatie + dimensiuni/material per piesa', () => {
   });
 
   it('intrebarea de material apare doar pentru piesele selectate', () => {
-    const flow = getFlow('BATHROOM');
+    const flow = getFlow('BATHROOM', 2);
     const answers: AnswerMap = { piecesNeeded: ['MIRROR_CABINET'] };
     const ids = visibleSteps(flow, answers).map((s) => s.id);
     expect(ids).toContain('materialMirror');
@@ -629,7 +640,7 @@ describe('bathroom v2 — ventilatie + dimensiuni/material per piesa', () => {
   });
 
   it('MDF infoliat are recommendedIf pe ventilation=NONE (badge, nu restrictie)', () => {
-    const flow = getFlow('BATHROOM');
+    const flow = getFlow('BATHROOM', 2);
     const step = flow.steps.find((s) => s.id === 'materialVanity');
     if (step?.type !== 'single-choice') throw new Error('missing material step');
     const mdf = step.options.find((o) => o.value === 'MDF_INFOLIAT');
@@ -646,11 +657,11 @@ describe('bathroom v2 — ventilatie + dimensiuni/material per piesa', () => {
       materialVanity: 'MDF_INFOLIAT',
       materialMirror: 'PAL',
     };
-    expect(validateRoomAnswers('BATHROOM', answers, { partial: false })).toEqual({ ok: true });
-    const derived = getFlow('BATHROOM').deriveRoom(answers);
+    expect(validateRoomAnswers('BATHROOM', answers, { partial: false, version: 2 })).toEqual({ ok: true });
+    const derived = getFlow('BATHROOM', 2).deriveRoom(answers);
     const byName = Object.fromEntries(derived.items.map((it) => [it.name, it]));
     expect(byName['Corp lavoar'].material).toBe('MDF_INFOLIAT');
-    expect(byName['Dulap oglinda'].material).toBe('PAL');
+    expect(byName['Dulap oglindă'].material).toBe('PAL');
     expect(derived.lengthM).toBeCloseTo(1.4, 5);
     expect(derived.heightM).toBe(2.5);
   });
@@ -755,24 +766,21 @@ describe('collectScoreEntries — regresie fata de semantica SizingService', () 
 });
 
 describe('v2 pentru dressing/living/bedroom/office — versiuni si compatibilitate FROZEN', () => {
-  it('versiunile curente; hallway ramane conform la 1', () => {
-    // dressing si living au avansat la v3 (feedback PO 2026-07-13, docs/12 S3)
-    expect(CURRENT_FLOW_VERSION.DRESSING).toBe(3);
-    expect(CURRENT_FLOW_VERSION.LIVING).toBe(3);
-    expect(CURRENT_FLOW_VERSION.BEDROOM).toBe(2);
-    expect(CURRENT_FLOW_VERSION.OFFICE).toBe(2);
-    // hallway a fost scris de la inceput pe modelul per-piesa → ramane v1
-    expect(CURRENT_FLOW_VERSION.HALLWAY).toBe(1);
-    expect(CURRENT_FLOW_VERSION.PANTRY).toBe(2);
-    expect(CURRENT_FLOW_VERSION.LAUNDRY).toBe(2);
-    expect(CURRENT_FLOW_VERSION.BALCONY).toBe(2);
-    // piesele-carcasa au avansat la v3 (configurator 3D, docs/10)
-    expect(CURRENT_FLOW_VERSION.PIECE_WARDROBE).toBe(3);
-    expect(CURRENT_FLOW_VERSION.PIECE_BED).toBe(3);
-    expect(CURRENT_FLOW_VERSION.PIECE_TABLE).toBe(3);
-    expect(CURRENT_FLOW_VERSION.PIECE_BENCH).toBe(3);
-    // "Alta piesa" ramane pe flow-ul v1 neschimbat
-    expect(CURRENT_FLOW_VERSION.PIECES).toBe(1);
+  it('versiunile curente (etapa 6: toate pe versiunea noua)', () => {
+    // inainte de etapa 6: DRESSING/LIVING 3, BEDROOM/OFFICE/PANTRY/LAUNDRY/BALCONY 2, HALLWAY/PIECES 1, piesele ghidate 3
+    expect(ETAPA6_FLOW_VERSION.DRESSING).toBe(4);
+    expect(ETAPA6_FLOW_VERSION.LIVING).toBe(4);
+    expect(ETAPA6_FLOW_VERSION.BEDROOM).toBe(3);
+    expect(ETAPA6_FLOW_VERSION.OFFICE).toBe(3);
+    expect(ETAPA6_FLOW_VERSION.HALLWAY).toBe(2);
+    expect(ETAPA6_FLOW_VERSION.PANTRY).toBe(3);
+    expect(ETAPA6_FLOW_VERSION.LAUNDRY).toBe(3);
+    expect(ETAPA6_FLOW_VERSION.BALCONY).toBe(3);
+    expect(ETAPA6_FLOW_VERSION.PIECE_WARDROBE).toBe(4);
+    expect(ETAPA6_FLOW_VERSION.PIECE_BED).toBe(4);
+    expect(ETAPA6_FLOW_VERSION.PIECE_TABLE).toBe(4);
+    expect(ETAPA6_FLOW_VERSION.PIECE_BENCH).toBe(4);
+    expect(ETAPA6_FLOW_VERSION.PIECES).toBe(2);
   });
 
   it('raspunsurile v1 raman valide contra versiunii 1 (FROZEN), dar nu contra v2', () => {
@@ -799,14 +807,14 @@ describe('v2 pentru dressing/living/bedroom/office — versiuni si compatibilita
     expect(validateRoomAnswers('LIVING', livingV1, { partial: false }).ok).toBe(false);
   });
 
-  it('flow-ul PIECES (Alta piesa) ramane neatins: pieces + sketch', () => {
-    const flow = getFlow('PIECES');
+  it('flow-ul PIECES (Alta piesa) v1 ramane neatins: pieces + sketch', () => {
+    const flow = getFlow('PIECES', 1);
     expect(flow.version).toBe(1);
     expect(flow.steps.map((s) => s.id)).toEqual(['pieces', 'sketch']);
   });
 
   it('config per piesa in v2 (F4): material + sisteme, ecran propriu per piesa', () => {
-    const flow = getFlow('BEDROOM');
+    const flow = getFlow('BEDROOM', 2);
     const answers: AnswerMap = { piecesNeeded: ['WARDROBE', 'DRESSER'] };
     const ids = visibleSteps(flow, answers).map((s) => s.id);
     expect(ids).toContain('materialWardrobe');
@@ -829,7 +837,7 @@ describe('v2 pentru dressing/living/bedroom/office — versiuni si compatibilita
 
 describe('v2 pentru pantry/laundry/balcony + piese ghidate (item 1, aliniere bucatarie)', () => {
   it('pantry v2: material per zona, sisteme doar la dulapuri, "Altul" cu text in description', () => {
-    const flow = getFlow('PANTRY');
+    const flow = getFlow('PANTRY', 2);
     expect(flow.version).toBe(2);
 
     // rafturi deschise: fara intrebare de sisteme
@@ -855,7 +863,7 @@ describe('v2 pentru pantry/laundry/balcony + piese ghidate (item 1, aliniere buc
       materialCabinetsOther: 'placaj mesteacan',
       systemsCabinets: ['PUSH'],
     };
-    expect(validateRoomAnswers('PANTRY', answers, { partial: false })).toEqual({ ok: true });
+    expect(validateRoomAnswers('PANTRY', answers, { partial: false, version: 2 })).toEqual({ ok: true });
     const derived = flow.deriveRoom(answers);
     expect(derived.items.map((i) => i.name)).toEqual(['Rafturi debara', 'Dulapuri debara']);
     expect(derived.items[1].material).toBe('ALTUL');
@@ -865,11 +873,11 @@ describe('v2 pentru pantry/laundry/balcony + piese ghidate (item 1, aliniere buc
     // ALTUL fara text pica la publish (textul liber e obligatoriu cand e vizibil)
     const { materialCabinetsOther, ...noText } = answers;
     void materialCabinetsOther;
-    expect(validateRoomAnswers('PANTRY', noText, { partial: false }).ok).toBe(false);
+    expect(validateRoomAnswers('PANTRY', noText, { partial: false, version: 2 }).ok).toBe(false);
   });
 
   it('laundry v2: material+sisteme per piesa, blatul fara sisteme, MDF infoliat recomandat fara ventilatie', () => {
-    const flow = getFlow('LAUNDRY');
+    const flow = getFlow('LAUNDRY', 2);
     expect(flow.version).toBe(2);
 
     const picked: AnswerMap = { piecesNeeded: ['APPLIANCE_HOUSING', 'COUNTERTOP'] };
@@ -895,10 +903,10 @@ describe('v2 pentru pantry/laundry/balcony + piese ghidate (item 1, aliniere buc
       systemsApplianceHousing: ['PUSH'],
       materialCountertop: 'PAL',
     };
-    expect(validateRoomAnswers('LAUNDRY', answers, { partial: false })).toEqual({ ok: true });
+    expect(validateRoomAnswers('LAUNDRY', answers, { partial: false, version: 2 })).toEqual({ ok: true });
     const derived = flow.deriveRoom(answers);
     expect(derived.items.map((i) => i.name)).toEqual([
-      'Dulap incastrare electrocasnice',
+      'Dulap încastrare electrocasnice',
       'Blat de lucru',
     ]);
     expect(derived.items[0].systems).toEqual(['PUSH']);
@@ -906,7 +914,7 @@ describe('v2 pentru pantry/laundry/balcony + piese ghidate (item 1, aliniere buc
   });
 
   it('balcony v2: piese cu material propriu, lemn masiv recomandat pe balcon deschis', () => {
-    const flow = getFlow('BALCONY');
+    const flow = getFlow('BALCONY', 2);
     expect(flow.version).toBe(2);
 
     const picked: AnswerMap = { piecesNeeded: ['SHELVES', 'TALL_CABINET'] };
@@ -927,7 +935,7 @@ describe('v2 pentru pantry/laundry/balcony + piese ghidate (item 1, aliniere buc
       dimensions: { balconyLength: 2.2, balconyDepth: 1, ceilingHeight: 2.6 },
       materialShelves: 'LEMN_MASIV',
     };
-    expect(validateRoomAnswers('BALCONY', answers, { partial: false })).toEqual({ ok: true });
+    expect(validateRoomAnswers('BALCONY', answers, { partial: false, version: 2 })).toEqual({ ok: true });
     expect(flow.deriveRoom(answers).items[0]).toMatchObject({
       name: 'Rafturi balcon',
       material: 'LEMN_MASIV',
@@ -958,15 +966,16 @@ describe('v2 pentru pantry/laundry/balcony + piese ghidate (item 1, aliniere buc
     expect(derived.items[0].description).toContain('Material dorit: ratan si stejar');
   });
 
-  it('piesele showroom curente pastreaza materialul Altul si cer configuratia 3D', () => {
+  it('piesele showroom v3 pastreaza materialul Altul si cer configuratia 3D', () => {
+    // etapa 6: v4 are setul de lemn la pat / masa (fara "Altul"); comportamentul v3 ramane pe v3
     for (const kind of ['BED', 'TABLE', 'BENCH'] as const) {
       const roomType = `PIECE_${kind}` as const;
-      const flow = getFlow(roomType);
+      const flow = getFlow(roomType, 3);
       const answers: AnswerMap = { config3d: defaultPieceConfig(kind), material: 'ALTUL', materialOther: 'ratan si stejar' };
       expect(flow.version).toBe(3);
-      expect(validateRoomAnswers(roomType, answers, { partial: false })).toEqual({ ok: true });
+      expect(validateRoomAnswers(roomType, answers, { partial: false, version: 3 })).toEqual({ ok: true });
       expect(flow.deriveRoom(answers).items[0].description).toContain('Material dorit: ratan si stejar');
-      expect(validateRoomAnswers(roomType, { material: 'PAL' }, { partial: false }).ok).toBe(false);
+      expect(validateRoomAnswers(roomType, { material: 'PAL' }, { partial: false, version: 3 }).ok).toBe(false);
     }
   });
 
@@ -1044,7 +1053,7 @@ describe('room-meta — ordinea fixa a intrebarilor', () => {
 
 describe('v3 dressing + living (feedback PO 2026-07-13, docs/12 S3)', () => {
   it('dressing v3: LED e modul interior, intrebarea separata a disparut', () => {
-    const flow = getFlow('DRESSING');
+    const flow = getFlow('DRESSING', 3);
     expect(flow.version).toBe(3);
     expect(flow.steps.find((s) => s.id === 'lighting')).toBeUndefined();
     const modules = flow.steps.find((s) => s.id === 'interiorModules');
@@ -1058,11 +1067,11 @@ describe('v3 dressing + living (feedback PO 2026-07-13, docs/12 S3)', () => {
       interiorModules: ['HANGING_RODS', 'LED_LIGHTING'],
       material: 'PAL',
     };
-    expect(validateRoomAnswers('DRESSING', answers, { partial: false })).toEqual({ ok: true });
+    expect(validateRoomAnswers('DRESSING', answers, { partial: false, version: 3 })).toEqual({ ok: true });
     const derived = flow.deriveRoom(answers);
     expect(derived.items[0].description).toContain('iluminare LED');
     // LED-ul nu apare de doua ori (nu e "mobilare", e anotare separata)
-    expect(derived.items[0].description).toContain('Interior: HANGING_RODS');
+    expect(derived.items[0].description).toContain('Interior: bare de agățat');
     expect(derived.items[0].description?.match(/LED/g)?.length).toBe(1);
 
     // raspunsurile v2 (cu lighting boolean) raman valide contra versiunii 2
@@ -1070,11 +1079,11 @@ describe('v3 dressing + living (feedback PO 2026-07-13, docs/12 S3)', () => {
     expect(validateRoomAnswers('DRESSING', v2Answers, { partial: false, version: 2 })).toEqual({
       ok: true,
     });
-    expect(validateRoomAnswers('DRESSING', v2Answers, { partial: false }).ok).toBe(false);
+    expect(validateRoomAnswers('DRESSING', v2Answers, { partial: false, version: 3 }).ok).toBe(false);
   });
 
   it('living v3: latime + inaltime per piesa selectata', () => {
-    const flow = getFlow('LIVING');
+    const flow = getFlow('LIVING', 3);
     expect(flow.version).toBe(3);
     const dimStep = flow.steps.find((s) => s.id === 'dimensions');
     if (dimStep?.type !== 'dimension-group') throw new Error('missing dimensions');
@@ -1094,7 +1103,7 @@ describe('v3 dressing + living (feedback PO 2026-07-13, docs/12 S3)', () => {
   });
 
   it('living v3: LED per corp — doar corpurile selectate apar ca optiuni si anoteaza itemul lor', () => {
-    const flow = getFlow('LIVING');
+    const flow = getFlow('LIVING', 3);
     const led = flow.steps.find((s) => s.id === 'ledPieces');
     if (led?.type !== 'multi-choice') throw new Error('missing ledPieces');
     expect(led.optional).toBe(true);
@@ -1125,11 +1134,11 @@ describe('v3 dressing + living (feedback PO 2026-07-13, docs/12 S3)', () => {
       systemsBookshelf: ['MANER'],
       ledPieces: ['BOOKSHELF'],
     };
-    expect(validateRoomAnswers('LIVING', full, { partial: false })).toEqual({ ok: true });
+    expect(validateRoomAnswers('LIVING', full, { partial: false, version: 3 })).toEqual({ ok: true });
     const derived = flow.deriveRoom(full);
     const byName = Object.fromEntries(derived.items.map((it) => [it.name, it]));
-    expect(byName['Biblioteca'].description).toContain('Cu iluminare LED');
-    expect(byName['Comoda TV'].description ?? '').not.toContain('LED');
+    expect(byName['Bibliotecă'].description).toContain('Cu iluminare LED');
+    expect(byName['Comodă TV'].description ?? '').not.toContain('LED');
   });
 });
 
@@ -1150,5 +1159,282 @@ describe('dimension-group — sloturi strict pozitive (E-client-2)', () => {
       }
     }
     expect(checked).toBeGreaterThan(0);
+  });
+});
+
+// Etapa 8 (nr. 39): slot lipsa ≠ valoare in afara intervalului
+describe('dimension-group — mesajul pentru slotul lipsa (etapa 8)', () => {
+  const flow = getFlow('LAUNDRY', 1);
+  const dimStep = flow.steps.find((s) => s.id === 'dimensions')!;
+  const message = (value: unknown) => {
+    const parsed = stepAnswerSchema(dimStep, {}).safeParse(value);
+    return parsed.success ? undefined : parsed.error.issues[0]?.message;
+  };
+
+  it('un slot lipsa da validation.dimensionRequired', () => {
+    expect(message({ ceilingHeight: 2.6 })).toBe('validation.dimensionRequired');
+  });
+
+  it('valoarea in afara intervalului, un text sau NaN raman validation.dimensionOutOfRange', () => {
+    expect(message({ runA: 999, ceilingHeight: 2.6 })).toBe('validation.dimensionOutOfRange');
+    expect(message({ runA: '2,4', ceilingHeight: 2.6 })).toBe('validation.dimensionOutOfRange');
+    expect(message({ runA: Number.NaN, ceilingHeight: 2.6 })).toBe('validation.dimensionOutOfRange');
+    expect(message({ runA: 2.4, ceilingHeight: 2.6 })).toBeUndefined();
+  });
+
+  it('validarea camerei raporteaza dimensionRequired pe pasul de dimensiuni', () => {
+    const res = validateRoomAnswers('LAUNDRY', { dimensions: { ceilingHeight: 2.6 } }, { partial: true, version: 1 });
+    expect(res).toEqual({ ok: false, errors: [{ stepId: 'dimensions', messageKey: 'validation.dimensionRequired' }] });
+  });
+});
+
+// Etapa 6 (valul 1, fundatia): capabilitatile noi ale motorului — toate optionale, deci
+// fluxurile vechi se comporta identic (acoperit si de score-invariance / firm-text).
+describe('etapa 6 — motor', () => {
+  it('not neaga conditia; atLeast cere cel putin N potriviri pe raspuns string[]', () => {
+    const answers: AnswerMap = { piecesNeeded: ['DESK', 'STORAGE', 'SHELVES'], same: true };
+    expect(evalCondition({ not: { questionId: 'same', equals: true } }, answers)).toBe(false);
+    expect(evalCondition({ not: { questionId: 'same', equals: true } }, {})).toBe(true);
+    expect(evalCondition({ questionId: 'piecesNeeded', in: ['DESK', 'STORAGE'], atLeast: 2 }, answers)).toBe(true);
+    expect(evalCondition({ questionId: 'piecesNeeded', in: ['DESK', 'BED'], atLeast: 2 }, answers)).toBe(false);
+    // implicit 1 = intersectie nevida, ca inainte
+    expect(evalCondition({ questionId: 'piecesNeeded', in: ['DESK', 'BED'] }, answers)).toBe(true);
+    // pe primitiv atLeast se ignora
+    expect(evalCondition({ questionId: 'layout', in: ['L_SHAPE'], atLeast: 3 }, { layout: 'L_SHAPE' })).toBe(true);
+    expect(evalCondition({ all: [{ not: { questionId: 'same', equals: false } }, { any: [{ questionId: 'piecesNeeded', in: ['X'] }] }] }, answers)).toBe(false);
+  });
+
+  const multi = (exclusive: boolean) => ({
+    id: 'systemsDesk',
+    type: 'multi-choice' as const,
+    titleKey: 't',
+    minSelected: 1,
+    options: [
+      { value: 'MANER', labelKey: 'a' },
+      { value: 'PUSH', labelKey: 'b' },
+      { value: 'NO_FRONTS', labelKey: 'c', ...(exclusive ? { exclusive: true } : {}) },
+      { value: 'FIRM_DECIDES', labelKey: 'd', ...(exclusive ? { exclusive: true } : {}) },
+    ],
+  });
+
+  it('optiunea exclusiva e acceptata singura si respinsa impreuna cu altele', () => {
+    const schema = stepAnswerSchema(multi(true), {});
+    expect(schema.safeParse(['FIRM_DECIDES']).success).toBe(true);
+    expect(schema.safeParse(['NO_FRONTS']).success).toBe(true);
+    expect(schema.safeParse(['MANER', 'PUSH']).success).toBe(true);
+    const mixed = schema.safeParse(['MANER', 'FIRM_DECIDES']);
+    expect(mixed.success).toBe(false);
+    if (!mixed.success) expect(mixed.error.issues[0].message).toBe('validation.exclusiveOption');
+    expect(schema.safeParse(['NO_FRONTS', 'FIRM_DECIDES']).success).toBe(false);
+    // fara steagul exclusive: comportamentul de dinainte
+    expect(stepAnswerSchema(multi(false), {}).safeParse(['MANER', 'FIRM_DECIDES']).success).toBe(true);
+  });
+
+  it('pasul pieces cu rowVersion 2 valideaza randurile cu pieceRowV2Schema', () => {
+    const base = { id: 'pieces', type: 'pieces' as const, titleKey: 't', minPieces: 1, maxPieces: 10 };
+    const row = { name: 'Dulap hol', material: 'PAL', systems: ['MANER'], quantity: 1, widthCm: 120 };
+    expect(stepAnswerSchema({ ...base, rowVersion: 2 }, {}).safeParse([row]).success).toBe(true);
+    // v2: fara deschidere → respins; v1 (requestItemSchema) il accepta ca azi
+    const noOpening = { name: 'Dulap hol', material: 'PAL', systems: [], quantity: 1 };
+    expect(stepAnswerSchema({ ...base, rowVersion: 2 }, {}).safeParse([noOpening]).success).toBe(false);
+    expect(stepAnswerSchema(base, {}).safeParse([noOpening]).success).toBe(true);
+    // v2 strict: camp necunoscut respins
+    expect(stepAnswerSchema({ ...base, rowVersion: 2 }, {}).safeParse([{ ...row, extra: 1 }]).success).toBe(false);
+  });
+
+  it('firmRecommendations: fluxurile vechi si camera cu ajutor → []', () => {
+    const flow = getFlow('BEDROOM', 2);
+    const answers = { piecesNeeded: ['DRESSER'], dimensions: { dresserWidth: 1.2, ceilingHeight: 2.6 }, materialDresser: 'PAL', systemsDresser: ['MANER'] };
+    expect(flow.deriveRoom(answers).firmRecommendations).toBeUndefined();
+    expect(firmRecommendations('BEDROOM', answers, 2)).toEqual([]);
+    expect(firmRecommendations('KITCHEN', {}, 3, { needsDesignHelp: true })).toEqual([]);
+  });
+
+  it('versiunile noi sunt inregistrate, iar CURRENT_FLOW_VERSION a trecut pe ele (valul 3)', () => {
+    const expected: Partial<Record<RoomType, number>> = {
+      KITCHEN: 4, DRESSING: 4, LIVING: 4, OFFICE: 3, BEDROOM: 3, BATHROOM: 3, PANTRY: 3, LAUNDRY: 3, BALCONY: 3,
+      HALLWAY: 2, PIECES: 2, PIECE_WARDROBE: 4, PIECE_TV_UNIT: 4, PIECE_BOOKCASE: 4, PIECE_DESK: 4, PIECE_DRESSER: 4,
+      PIECE_SHOE_CABINET: 4, PIECE_NIGHTSTAND: 4, PIECE_BED: 4, PIECE_TABLE: 4, PIECE_BENCH: 4, PIECE_SIDEBOARD: 2,
+      PIECE_WALL_CABINET: 2, PIECE_BATHROOM_VANITY: 2, PIECE_ENTRYWAY: 2, PIECE_SOFA: 2, PIECE_ARMCHAIR: 2, PIECE_OTTOMAN: 2,
+    };
+    expect(Object.keys(expected).sort()).toEqual([...ROOM_TYPES].sort());
+    for (const roomType of ROOM_TYPES) {
+      const v = expected[roomType]!;
+      const before = FLOW_VERSIONS_BEFORE_ETAPA6[roomType];
+      expect(ETAPA6_FLOW_VERSION[roomType], roomType).toBe(v);
+      expect(isFlowVersionRegistered(roomType, v), roomType).toBe(true);
+      expect(getFlow(roomType, v).version, roomType).toBe(v);
+      expect(getFlow(roomType, v).roomType, roomType).toBe(roomType);
+      expect(before, roomType).toEqual(Array.from({ length: v - 1 }, (_, i) => i + 1));
+      expect(before.every((old) => isFlowVersionRegistered(roomType, old)), roomType).toBe(true);
+      // etapa 10 (valul 2): curentul a trecut mai departe, pe ETAPA10_FLOW_VERSION
+      expect(CURRENT_FLOW_VERSION[roomType], roomType).toBe(ETAPA10_FLOW_VERSION[roomType]);
+      expect(v, roomType).toBeGreaterThan(Math.max(...before));
+    }
+  });
+});
+
+describe('etapa 10 — motor', () => {
+  const dims: DimensionGroupStep = {
+    id: 'dimensions',
+    type: 'dimension-group',
+    titleKey: 'flows.TOY.dimensions.title',
+    slots: () => [
+      pieceWidthSlot('wardrobeWidth', 'flows.TOY.slots.wardrobeWidth', { min: 0.6, max: 5 }),
+      optionalHeightSlot('wardrobeHeight', 'flows.TOY.slots.wardrobeHeight', { min: 1.8, max: 3.2 }, 2.4),
+    ],
+  };
+  const toy: RoomFlow = { roomType: 'BEDROOM', version: 990, steps: [dims], deriveRoom: () => ({ lengthM: 0, widthM: 0, heightM: 0, items: [] }) };
+  // fluxul-jucarie intra in registru doar pe durata unui test (summarizeAnswers / validateRoomAnswers cer un flux inregistrat)
+  function withToy<T>(fn: () => T): T {
+    FLOW_REGISTRY.BEDROOM[990] = toy;
+    try {
+      return fn();
+    } finally {
+      delete FLOW_REGISTRY.BEDROOM[990];
+    }
+  }
+  const beforeEtapa10 = allFixtureFlows().filter(({ roomType, version }) => FLOW_VERSIONS_BEFORE_ETAPA10[roomType].includes(version));
+
+  it('slot optional gol acceptat la publicare; valoarea data se valideaza; slotul obligatoriu gol tot dimensionRequired', () => {
+    withToy(() => {
+      const publish = (d: Record<string, unknown>) =>
+        validateRoomAnswers('BEDROOM', { dimensions: d } as AnswerMap, { partial: false, version: 990 });
+      expect(publish({ wardrobeWidth: 2 })).toEqual({ ok: true });
+      expect(publish({ wardrobeWidth: 2, wardrobeHeight: 2.6 })).toEqual({ ok: true });
+      expect(publish({ wardrobeWidth: 2, wardrobeHeight: 3.5 })).toEqual({
+        ok: false, errors: [{ stepId: 'dimensions', messageKey: 'validation.dimensionOutOfRange' }],
+      });
+      expect(publish({ wardrobeHeight: 2.4 })).toEqual({
+        ok: false, errors: [{ stepId: 'dimensions', messageKey: 'validation.dimensionRequired' }],
+      });
+      expect(publish({ wardrobeWidth: 2, wardrobeHeight: null })).toEqual({
+        ok: false, errors: [{ stepId: 'dimensions', messageKey: 'validation.dimensionOutOfRange' }],
+      });
+      expect(publish({ wardrobeWidth: 2, wardrobeHeight: 'mult' })).toEqual({
+        ok: false, errors: [{ stepId: 'dimensions', messageKey: 'validation.dimensionOutOfRange' }],
+      });
+      expect(publish({ wardrobeWidth: 2, ceilingHeight: 2.5 })).toEqual({
+        ok: false, errors: [{ stepId: 'dimensions', messageKey: 'validation.unknownAnswer' }],
+      });
+    });
+    // un pas doar cu sloturi optionale accepta raspunsul gol
+    const onlyOptional: DimensionGroupStep = { ...dims, slots: () => [optionalHeightSlot('h', 'l', { min: 1, max: 2 })] };
+    expect(stepAnswerSchema(onlyOptional, {}).safeParse({}).success).toBe(true);
+  });
+
+  it('fluxurile de dinainte de etapa 10 nu au sloturi optionale si nici valori tipice (schema identica)', () => {
+    for (const { roomType, version, flow } of beforeEtapa10) {
+      for (const variant of FIXTURE_VARIANTS) {
+        const answers = fixtureAnswers(flow, variant);
+        for (const step of visibleSteps(flow, answers)) {
+          if (step.type !== 'dimension-group') continue;
+          for (const slot of step.slots(answers)) {
+            expect(slot.optional, `${roomType} v${version} ${slot.id}`).toBeUndefined();
+            expect(slot.typicalM, `${roomType} v${version} ${slot.id}`).toBeUndefined();
+          }
+        }
+      }
+    }
+  });
+
+  it('summarizeAnswers: `missing` doar pentru sloturile optionale lasate goale', () => {
+    withToy(() => {
+      expect(summarizeAnswers('BEDROOM', { dimensions: { wardrobeWidth: 2 } }, 990)).toEqual([{
+        kind: 'dimensions',
+        stepId: 'dimensions',
+        labelKey: 'flows.TOY.dimensions.title',
+        slots: [{ labelKey: 'flows.TOY.slots.wardrobeWidth', value: 2 }],
+        missing: [{ labelKey: 'flows.TOY.slots.wardrobeHeight', typicalM: 2.4 }],
+      }]);
+      const full = summarizeAnswers('BEDROOM', { dimensions: { wardrobeWidth: 2, wardrobeHeight: 2.5 } }, 990);
+      expect(full).toHaveLength(1);
+      expect('missing' in full[0]).toBe(false);
+      // doar sloturi goale: intrarea apare tot (cu slots gol), ca firma sa vada ce lipseste
+      expect(summarizeAnswers('BEDROOM', { dimensions: {} }, 990)).toEqual([{
+        kind: 'dimensions', stepId: 'dimensions', labelKey: 'flows.TOY.dimensions.title', slots: [],
+        missing: [{ labelKey: 'flows.TOY.slots.wardrobeHeight', typicalM: 2.4 }],
+      }]);
+    });
+  });
+
+  it('summarizeAnswers pe fluxurile de dinainte de etapa 10: nicio intrare cu `missing`', () => {
+    for (const { roomType, version, flow } of beforeEtapa10) {
+      for (const variant of FIXTURE_VARIANTS) {
+        const entries = summarizeAnswers(roomType, fixtureAnswers(flow, variant), version);
+        for (const e of entries) expect('missing' in e, `${roomType} v${version} ${variant}`).toBe(false);
+      }
+    }
+  });
+
+  it('features: sofa.sleeper respins pe PIECE_SOFA v2 (validation.unknownAnswer), acceptat pe un pas care il declara', () => {
+    const sofa = defaultPieceConfig('SOFA');
+    const sleeper = { ...sofa, sofa: { ...sofa.sofa!, sleeper: true } };
+    const both = { ...sofa, sofa: { ...sofa.sofa!, sleeper: true, storage: true } };
+    expect(validateRoomAnswers('PIECE_SOFA', { config3d: sofa }, { partial: true, version: 2 })).toEqual({ ok: true });
+    expect(validateRoomAnswers('PIECE_SOFA', { config3d: sleeper }, { partial: true, version: 2 })).toEqual({
+      ok: false, errors: [{ stepId: 'config3d', messageKey: 'validation.unknownAnswer' }],
+    });
+    const v2Step = getFlow('PIECE_SOFA', 2).steps.find((s) => s.type === 'configurator-3d') as Configurator3dStep;
+    expect(v2Step.features).toBeUndefined();
+    const toyStep: Configurator3dStep = { ...v2Step, features: ['SOFA_SLEEPER', 'SOFA_STORAGE'] };
+    expect(stepAnswerSchema(toyStep, {}).safeParse(sofa).success).toBe(true);
+    expect(stepAnswerSchema(toyStep, {}).safeParse(sleeper).success).toBe(true);
+    expect(stepAnswerSchema(toyStep, {}).safeParse(both).success).toBe(true);
+    // doar functiile declarate trec
+    const onlyStorage = stepAnswerSchema({ ...v2Step, features: ['SOFA_STORAGE'] }, {}).safeParse(sleeper);
+    expect(onlyStorage.success ? null : onlyStorage.error.issues[0].message).toBe('validation.unknownAnswer');
+  });
+
+  it('features: campurile noi de pat / masa / bancuta respinse pe versiunile 4', () => {
+    const step = (rt: RoomType) => getFlow(rt, 4).steps.find((s) => s.type === 'configurator-3d') as Configurator3dStep;
+    const bed = defaultPieceConfig('BED');
+    const table = defaultPieceConfig('TABLE');
+    const bench = defaultPieceConfig('BENCH');
+    expect(stepAnswerSchema(step('PIECE_BED'), {}).safeParse(bed).success).toBe(true);
+    expect(stepAnswerSchema(step('PIECE_TABLE'), {}).safeParse(table).success).toBe(true);
+    expect(stepAnswerSchema(step('PIECE_BENCH'), {}).safeParse(bench).success).toBe(true);
+    expect(stepAnswerSchema(step('PIECE_BED'), {}).safeParse({ ...bed, bed: { ...bed.bed!, customSize: { widthM: 1.2, lengthM: 2 } } }).success).toBe(false);
+    expect(stepAnswerSchema(step('PIECE_TABLE'), {}).safeParse({ ...table, table: { ...table.table!, customHeightM: 0.75 } }).success).toBe(false);
+    expect(stepAnswerSchema(step('PIECE_TABLE'), {}).safeParse({ ...table, table: { ...table.table!, shape: 'EXTENDABLE', openLengthM: 2 } }).success).toBe(false);
+    expect(stepAnswerSchema(step('PIECE_BENCH'), {}).safeParse({ ...bench, bench: { ...bench.bench!, customHeightM: 0.45 } }).success).toBe(false);
+  });
+
+  it('ETAPA6_FLOW_VERSION ramane pe valorile etapei 6; cele 14 versiuni noi sunt inregistrate si CURRENT_FLOW_VERSION = ETAPA10 (valul 2)', () => {
+    const NEW: Partial<Record<RoomType, number>> = {
+      KITCHEN: 5, DRESSING: 5, LIVING: 5, OFFICE: 4, BEDROOM: 4, BATHROOM: 4, PANTRY: 4, LAUNDRY: 4, BALCONY: 4, HALLWAY: 3,
+      PIECE_BED: 5, PIECE_TABLE: 5, PIECE_BENCH: 5, PIECE_SOFA: 3,
+    };
+    expect(Object.keys(NEW)).toHaveLength(14);
+    for (const rt of ROOM_TYPES) {
+      const v = NEW[rt] ?? ETAPA6_FLOW_VERSION[rt];
+      expect(ETAPA10_FLOW_VERSION[rt], rt).toBe(v);
+      expect(isFlowVersionRegistered(rt, v), rt).toBe(true);
+      expect(getFlow(rt, v).version, rt).toBe(v);
+      expect(getFlow(rt, v).roomType, rt).toBe(rt);
+      expect(CURRENT_FLOW_VERSION[rt], rt).toBe(ETAPA10_FLOW_VERSION[rt]);
+      expect(FLOW_VERSIONS_BEFORE_ETAPA10[rt], rt).toEqual([...FLOW_VERSIONS_BEFORE_ETAPA6[rt], ETAPA6_FLOW_VERSION[rt]]);
+      // registrul = versiunile de dinainte + (cel mult) versiunea noua
+      const expected = NEW[rt] ? [...FLOW_VERSIONS_BEFORE_ETAPA10[rt], NEW[rt]!] : FLOW_VERSIONS_BEFORE_ETAPA10[rt];
+      expect(Object.keys(FLOW_REGISTRY[rt]).map(Number).sort((a, b) => a - b), rt).toEqual(expected);
+      if (NEW[rt]) expect(ETAPA6_FLOW_VERSION[rt], rt).toBeLessThan(NEW[rt]!);
+    }
+  });
+
+  it('allFixtureFlows: legacy / etapa6 neschimbate, etapa10 = doar versiunile noi', () => {
+    const key = (l: { roomType: RoomType; version: number }[]) => l.map((f) => `${f.roomType}:${f.version}`);
+    expect(key(allFixtureFlows({ only: 'etapa6' }))).toEqual(ROOM_TYPES.map((rt) => `${rt}:${ETAPA6_FLOW_VERSION[rt]}`));
+    expect(key(allFixtureFlows({ only: 'legacy' }))).toEqual(ROOM_TYPES.flatMap((rt) => FLOW_VERSIONS_BEFORE_ETAPA6[rt].map((v) => `${rt}:${v}`)));
+    expect(key(allFixtureFlows({ only: 'etapa10' }))).toEqual(
+      ROOM_TYPES.filter((rt) => ETAPA10_FLOW_VERSION[rt] !== ETAPA6_FLOW_VERSION[rt]).map((rt) => `${rt}:${ETAPA10_FLOW_VERSION[rt]}`),
+    );
+    expect(allFixtureFlows({ only: 'etapa10' })).toHaveLength(14);
+  });
+
+  it('fixture-urile: sloturile optionale completate in first / middle, goale in last / requiredOnly', () => {
+    expect(fixtureAnswers(toy, 'first').dimensions).toEqual({ wardrobeWidth: 2.8, wardrobeHeight: 2.5 });
+    expect(Object.keys(fixtureAnswers(toy, 'middle').dimensions as object).sort()).toEqual(['wardrobeHeight', 'wardrobeWidth']);
+    expect(fixtureAnswers(toy, 'last').dimensions).toEqual({ wardrobeWidth: 0.6 });
+    expect(fixtureAnswers(toy, 'requiredOnly').dimensions).toEqual({ wardrobeWidth: 2.8 });
   });
 });

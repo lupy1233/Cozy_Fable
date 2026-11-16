@@ -8,7 +8,17 @@ export interface GeoResult {
   lat: number;
   lng: number;
   displayName: string | null;
+  // h1 (etapa 11): la ce treapta s-a gasit — ADDRESS = adresa+oras+judet, CITY = doar
+  // orasul (centrul localitatii). Lipseste la raspunsurile din cache (treapta nu se salveaza).
+  precision?: 'ADDRESS' | 'CITY';
 }
+
+// h1 (etapa 11): adresele pe care Nominatim a raspuns clar "nu exista" la TOATE treptele se
+// tin minte 10 minute (in memorie, aceeasi cheie ca la cache), ca aceeasi adresa gresita sa
+// nu mai plece spre serviciul extern. Erorile de retea / HTTP / timeout NU intra aici
+// (o pana Nominatim nu are voie sa blocheze 10 minute cererile clientilor).
+const NEGATIVE_CACHE_TTL_MS = 10 * 60 * 1000;
+const NEGATIVE_CACHE_MAX = 5000;
 
 // Invarianta 3.8: geocoding la scriere via Nominatim, rezultatul cache-uit
 // 90 zile in geocoding_cache. Esec → GEOCODING_FAILED (clientul reincearca).
@@ -32,6 +42,8 @@ export class GeoService {
   private readonly logger = new Logger(GeoService.name);
   private readonly baseUrl: string;
   private readonly userAgent: string;
+  // h1: cache negativ in memorie (queryKey → expira la, ms)
+  private readonly notFound = new Map<string, number>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -90,16 +102,24 @@ export class GeoService {
       ].map((parts) => parts.filter((p) => p && p.trim()).join(', ')),
     )].filter((q) => q.length > 0);
 
+    if (this.isKnownNotFound(queryKey)) throw this.failed();
+
     let result: GeoResult | null = null;
+    let allNotFound = true;
     for (let i = 0; i < attempts.length && !result; i++) {
       if (i > 0) await sleep(RETRY_DELAY_MS);
-      result = await this.tryNominatim(attempts[i], cc, i + 1, attempts.length);
+      const outcome = await this.tryNominatim(attempts[i], cc, i + 1, attempts.length);
+      if (outcome === 'NOT_FOUND') continue;
+      if (outcome === null) {
+        allNotFound = false;
+        continue;
+      }
+      // prima treapta contine adresa doar cand adresa curatata nu e goala
+      result = { ...outcome, precision: i === 0 && cleanAddress.trim() ? 'ADDRESS' : 'CITY' };
     }
     if (!result) {
-      throw new HttpException(
-        { code: ERROR_CODES.GEOCODING_FAILED, message: 'Geocoding failed' },
-        HttpStatus.BAD_GATEWAY,
-      );
+      if (allNotFound) this.rememberNotFound(queryKey);
+      throw this.failed();
     }
 
     const expiresAt = new Date(Date.now() + CACHE_TTL_DAYS * 24 * 60 * 60 * 1000);
@@ -118,7 +138,38 @@ export class GeoService {
     return result;
   }
 
-  private async tryNominatim(q: string, countryCode: string, tier: number, tiers: number): Promise<GeoResult | null> {
+  private failed(): HttpException {
+    return new HttpException(
+      { code: ERROR_CODES.GEOCODING_FAILED, message: 'Geocoding failed' },
+      HttpStatus.BAD_GATEWAY,
+    );
+  }
+
+  private isKnownNotFound(queryKey: string): boolean {
+    const until = this.notFound.get(queryKey);
+    if (until === undefined) return false;
+    if (until > Date.now()) return true;
+    this.notFound.delete(queryKey);
+    return false;
+  }
+
+  private rememberNotFound(queryKey: string): void {
+    // plafon de memorie: cea mai veche intrare iese prima (Map pastreaza ordinea inserarii)
+    if (this.notFound.size >= NEGATIVE_CACHE_MAX) {
+      const oldest = this.notFound.keys().next().value;
+      if (oldest !== undefined) this.notFound.delete(oldest);
+    }
+    this.notFound.delete(queryKey);
+    this.notFound.set(queryKey, Date.now() + NEGATIVE_CACHE_TTL_MS);
+  }
+
+  // GeoResult = gasit; 'NOT_FOUND' = raspuns valid, fara rezultat; null = eroare (retea/HTTP/timeout)
+  private async tryNominatim(
+    q: string,
+    countryCode: string,
+    tier: number,
+    tiers: number,
+  ): Promise<GeoResult | 'NOT_FOUND' | null> {
     const url = new URL('/search', this.baseUrl);
     url.searchParams.set('q', q);
     url.searchParams.set('format', 'jsonv2');
@@ -143,7 +194,7 @@ export class GeoService {
     } catch (err) {
       // E-admin-platform-8: fara adresa/oras/judet in log — doar treapta, tara si clasificarea
       this.logger.warn(`geocoding attempt failed tier=${tier}/${tiers} country=${countryCode}: ${safeErrorSummary(err)}`);
-      return null;
+      return (err as { code?: string }).code === 'ENORESULT' ? 'NOT_FOUND' : null;
     }
   }
 }

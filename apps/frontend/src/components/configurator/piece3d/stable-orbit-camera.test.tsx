@@ -39,11 +39,51 @@ describe('camera ownership after initial framing', () => {
     expect(controls.update).toHaveBeenCalledTimes(1);
     const pose = orbit();
     store.current.size = { width: 320, height: 600 };
-    view.rerender(<StrictMode><PieceCameraRig width={3} height={1} depth={1.5} /></StrictMode>);
+    // etapa 9: o schimbare mica, cu piesa tot in cadru, nu muta orbita aleasa de om
+    view.rerender(<StrictMode><PieceCameraRig width={1.1} height={2} depth={0.7} /></StrictMode>);
     expectPose(pose);
-    view.rerender(<StrictMode><PieceCameraRig width={3} height={1} depth={1.5} /></StrictMode>);
+    view.rerender(<StrictMode><PieceCameraRig width={1.1} height={2} depth={0.7} /></StrictMode>);
     expectPose(pose);
     expect(controls.update).toHaveBeenCalledTimes(1);
+  });
+
+  it('etapa 9: reframes when the piece grows by more than ~20%', () => {
+    const view = render(<PieceCameraRig width={1} height={2} depth={0.6} />);
+    const pose = orbit();
+    view.rerender(<PieceCameraRig width={3} height={1} depth={1.5} />);
+    expect(controls.update).toHaveBeenCalledTimes(2);
+    expect(camera.position.toArray()).not.toEqual(pose.position);
+    expect(controls.target.toArray()).toEqual([0, 0.5, 0]);
+  });
+
+  it('etapa 9: reframes when a smaller change pushes the piece out of the frame', () => {
+    const view = render(<PieceCameraRig width={1} height={2} depth={0.6} />);
+    expect(controls.update).toHaveBeenCalledTimes(1);
+    // +15% inaltime: sub pragul de crestere, dar varful iese din cadru
+    view.rerender(<PieceCameraRig width={1} height={2.3} depth={0.6} />);
+    expect(controls.update).toHaveBeenCalledTimes(2);
+    expect(controls.target.y).toBeCloseTo(1.15);
+  });
+
+  it('etapa 9: a piece the user zoomed past does not pull the camera back on edits', () => {
+    const view = render(<PieceCameraRig width={1} height={2} depth={0.6} />);
+    camera.position.copy(controls.target).add(new Vector3(0, 0, 0.9));
+    camera.lookAt(controls.target);
+    const position = camera.position.toArray();
+    view.rerender(<PieceCameraRig width={1} height={2.1} depth={0.6} />);
+    expect(camera.position.toArray()).toEqual(position);
+    expect(controls.update).toHaveBeenCalledTimes(1);
+  });
+
+  it('etapa 9: the Reframe button (reframeKey) frames the piece again', () => {
+    const view = render(<PieceCameraRig width={1} height={2} depth={0.6} reframeKey={0} />);
+    const pose = orbit();
+    view.rerender(<PieceCameraRig width={1} height={2} depth={0.6} reframeKey={0} />);
+    expectPose(pose);
+    view.rerender(<PieceCameraRig width={1} height={2} depth={0.6} reframeKey={1} />);
+    expect(controls.update).toHaveBeenCalledTimes(2);
+    expect(controls.target.toArray()).toEqual([0, 1, 0]);
+    expect(camera.position.toArray()).not.toEqual(pose.position);
   });
 
   it('waits for usable viewport and orbit controls before framing', () => {

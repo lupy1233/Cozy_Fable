@@ -11,6 +11,7 @@ import { MessageCryptoService } from './message-crypto.service';
   imports: [AuthModule, OutboxModule, UploadsModule],
   controllers: [ChatController, CompanyChatController],
   providers: [ChatService, MessageCryptoService, CompanyApprovedGuard],
-  exports: [ChatService],
+  // a4: MessageCryptoService exportat pentru mesajele de sistem scrise de QuotesService
+  exports: [ChatService, MessageCryptoService],
 })
 export class ChatModule {}

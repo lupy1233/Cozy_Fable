@@ -117,6 +117,23 @@ describe('AdminSizingService', () => {
     expect(preview.examples).toEqual([]);
   });
 
+  // d1-1 (PO): camera cu "am nevoie de ajutor" se recalculeaza ca la publicare — fara piesele
+  // puse din oficiu (bucataria v3 goala ar primi 2 corpuri → ITEM_QUANTITY QTY_2_3 = 2 puncte)
+  it('o camera bifata "am nevoie de ajutor" se recalculeaza fara punctele pieselor', async () => {
+    const helpRoom = { roomType: 'KITCHEN', flowVersion: 3, answers: {}, needsDesignHelp: true };
+    const { service } = makeService([
+      { ...kitchenRequest, id: 'help', rooms: [helpRoom] },
+      // aceeasi camera fara bifa: piesele implicite inca puncteaza
+      { ...kitchenRequest, id: 'no-flag', rooms: [{ ...helpRoom, needsDesignHelp: false }] },
+    ]);
+    const preview = await service.preview([{ id: KITCHEN_ID, weight: 9 }]);
+    expect(preview.sampleSize).toBe(2);
+    const byId = Object.fromEntries(preview.examples.map((e) => [e.requestId, e]));
+    // bifata: ROOM_TYPE 8 + ROOM_SIZE UNDER_2M 1 + QTY_1 0 = 9 (→ 10 cu ponderea propusa)
+    expect(byId.help).toMatchObject({ currentCreditCost: 9, proposedCreditCost: 10 });
+    expect(byId['no-flag']).toMatchObject({ currentCreditCost: 11, proposedCreditCost: 12 });
+  });
+
   it('id necunoscut → 404, id duplicat → 400', async () => {
     const { service, prisma } = makeService();
     await expect(service.updateWeights([{ id: uuid(99), weight: 3 }])).rejects.toBeInstanceOf(NotFoundException);

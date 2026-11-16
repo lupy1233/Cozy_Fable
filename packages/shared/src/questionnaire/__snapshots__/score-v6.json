@@ -1,0 +1,2782 @@
+{
+ "KITCHEN@v4/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "KITCHEN"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "OVER_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_2_3"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "KITCHEN_LAYOUT",
+   "optionKey": "STRAIGHT"
+  },
+  {
+   "category": "KITCHEN_ISLAND",
+   "optionKey": "YES"
+  },
+  {
+   "category": "KITCHEN_COUNTERTOP",
+   "optionKey": "PAL"
+  }
+ ],
+ "KITCHEN@v4/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "KITCHEN"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_2_3"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH",
+    "GOLA"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH",
+    "GOLA",
+    "AVENTOS"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "KITCHEN_LAYOUT",
+   "optionKey": "U_SHAPE"
+  },
+  {
+   "category": "KITCHEN_COUNTERTOP",
+   "optionKey": "FIRM_DECIDES"
+  }
+ ],
+ "KITCHEN@v4/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "KITCHEN"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "OVER_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_2_3"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "PUSH",
+    "GOLA"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "GOLA",
+    "AVENTOS"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "PUSH",
+    "GOLA"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "KITCHEN_LAYOUT",
+   "optionKey": "L_SHAPE"
+  },
+  {
+   "category": "KITCHEN_ISLAND",
+   "optionKey": "YES"
+  },
+  {
+   "category": "KITCHEN_COUNTERTOP",
+   "optionKey": "QUARTZ"
+  }
+ ],
+ "KITCHEN@v4/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "KITCHEN"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "OVER_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_2_3"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "KITCHEN_LAYOUT",
+   "optionKey": "STRAIGHT"
+  },
+  {
+   "category": "KITCHEN_COUNTERTOP",
+   "optionKey": "PAL"
+  }
+ ],
+ "DRESSING@v4/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "DRESSING"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "OVER_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "GLISANTE"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "DRESSING_LAYOUT",
+   "optionKey": "LINEAR"
+  }
+ ],
+ "DRESSING@v4/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "DRESSING"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "DRESSING_LAYOUT",
+   "optionKey": "WALK_IN"
+  }
+ ],
+ "DRESSING@v4/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "DRESSING"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "OVER_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "DRESSING_LAYOUT",
+   "optionKey": "U_SHAPE"
+  }
+ ],
+ "DRESSING@v4/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "DRESSING"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "OVER_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "GLISANTE"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "DRESSING_LAYOUT",
+   "optionKey": "LINEAR"
+  }
+ ],
+ "LIVING@v4/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "LIVING"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER"
+   ],
+   "pick": "max"
+  }
+ ],
+ "LIVING@v4/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "LIVING"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_4_PLUS"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH",
+    "AVENTOS"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "TV_MEDIA_WALL",
+   "optionKey": "YES"
+  }
+ ],
+ "LIVING@v4/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "LIVING"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "OVER_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_2_3"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "PUSH"
+   ],
+   "pick": "max"
+  }
+ ],
+ "LIVING@v4/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "LIVING"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER"
+   ],
+   "pick": "max"
+  }
+ ],
+ "OFFICE@v3/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "OFFICE"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER"
+   ],
+   "pick": "max"
+  }
+ ],
+ "OFFICE@v3/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "OFFICE"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_4_PLUS"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "OFFICE@v3/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "OFFICE"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_2_3"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  }
+ ],
+ "OFFICE@v3/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "OFFICE"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER"
+   ],
+   "pick": "max"
+  }
+ ],
+ "BEDROOM@v3/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "BEDROOM"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "GLISANTE"
+   ],
+   "pick": "max"
+  }
+ ],
+ "BEDROOM@v3/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "BEDROOM"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_4_PLUS"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH",
+    "AVENTOS"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "BED_STORAGE",
+   "optionKey": "DRAWERS"
+  }
+ ],
+ "BEDROOM@v3/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "BEDROOM"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_2_3"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "PUSH"
+   ],
+   "pick": "max"
+  }
+ ],
+ "BEDROOM@v3/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "BEDROOM"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "GLISANTE"
+   ],
+   "pick": "max"
+  }
+ ],
+ "BATHROOM@v3/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "BATHROOM"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER"
+   ],
+   "pick": "max"
+  }
+ ],
+ "BATHROOM@v3/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "BATHROOM"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_2_3"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  }
+ ],
+ "BATHROOM@v3/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "BATHROOM"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_2_3"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "LEMN_MASIV"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "LEMN_MASIV"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "PUSH"
+   ],
+   "pick": "max"
+  }
+ ],
+ "BATHROOM@v3/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "BATHROOM"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER"
+   ],
+   "pick": "max"
+  }
+ ],
+ "PIECES@v2/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECES"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_2_3"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECES@v2/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECES"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_2_3"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECES@v2/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECES"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_2_3"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECES@v2/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECES"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_2_3"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "HALLWAY@v2/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "HALLWAY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER"
+   ],
+   "pick": "max"
+  }
+ ],
+ "HALLWAY@v2/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "HALLWAY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_4_PLUS"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "HALLWAY@v2/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "HALLWAY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_2_3"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_VOPSIT"
+  }
+ ],
+ "HALLWAY@v2/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "HALLWAY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER"
+   ],
+   "pick": "max"
+  }
+ ],
+ "PANTRY@v3/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PANTRY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PANTRY@v3/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PANTRY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_2_3"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  }
+ ],
+ "PANTRY@v3/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PANTRY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "PUSH"
+   ],
+   "pick": "max"
+  }
+ ],
+ "PANTRY@v3/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PANTRY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "LAUNDRY@v3/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "LAUNDRY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER"
+   ],
+   "pick": "max"
+  }
+ ],
+ "LAUNDRY@v3/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "LAUNDRY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_4_PLUS"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  }
+ ],
+ "LAUNDRY@v3/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "LAUNDRY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_2_3"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "PUSH"
+   ],
+   "pick": "max"
+  }
+ ],
+ "LAUNDRY@v3/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "LAUNDRY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER"
+   ],
+   "pick": "max"
+  }
+ ],
+ "BALCONY@v3/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "BALCONY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "OVER_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER"
+   ],
+   "pick": "max"
+  }
+ ],
+ "BALCONY@v3/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "BALCONY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_4_PLUS"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER",
+    "PUSH"
+   ],
+   "pick": "max"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "BALCONY@v3/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "BALCONY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_2_3"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  }
+ ],
+ "BALCONY@v3/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "BALCONY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "OVER_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "MANER"
+   ],
+   "pick": "max"
+  }
+ ],
+ "PIECE_WARDROBE@v4/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_WARDROBE"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_WARDROBE@v4/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_WARDROBE"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_WARDROBE@v4/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_WARDROBE"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  }
+ ],
+ "PIECE_WARDROBE@v4/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_WARDROBE"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_TV_UNIT@v4/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_TV_UNIT"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_TV_UNIT@v4/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_TV_UNIT"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_TV_UNIT@v4/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_TV_UNIT"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  }
+ ],
+ "PIECE_TV_UNIT@v4/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_TV_UNIT"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_BOOKCASE@v4/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_BOOKCASE"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_BOOKCASE@v4/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_BOOKCASE"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_BOOKCASE@v4/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_BOOKCASE"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  }
+ ],
+ "PIECE_BOOKCASE@v4/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_BOOKCASE"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_DESK@v4/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_DESK"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_DESK@v4/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_DESK"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_DESK@v4/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_DESK"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  }
+ ],
+ "PIECE_DESK@v4/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_DESK"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_BED@v4/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_BED"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "LEMN_MASIV"
+  }
+ ],
+ "PIECE_BED@v4/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_BED"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_BED@v4/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_BED"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_BED@v4/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_BED"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "LEMN_MASIV"
+  }
+ ],
+ "PIECE_DRESSER@v4/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_DRESSER"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_DRESSER@v4/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_DRESSER"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_DRESSER@v4/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_DRESSER"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  }
+ ],
+ "PIECE_DRESSER@v4/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_DRESSER"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_TABLE@v4/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_TABLE"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "LEMN_MASIV"
+  }
+ ],
+ "PIECE_TABLE@v4/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_TABLE"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_TABLE@v4/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_TABLE"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_TABLE@v4/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_TABLE"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "LEMN_MASIV"
+  }
+ ],
+ "PIECE_SHOE_CABINET@v4/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_SHOE_CABINET"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_SHOE_CABINET@v4/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_SHOE_CABINET"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_SHOE_CABINET@v4/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_SHOE_CABINET"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  }
+ ],
+ "PIECE_SHOE_CABINET@v4/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_SHOE_CABINET"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_NIGHTSTAND@v4/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_NIGHTSTAND"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_NIGHTSTAND@v4/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_NIGHTSTAND"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_2_3"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_NIGHTSTAND@v4/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_NIGHTSTAND"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_2_3"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  }
+ ],
+ "PIECE_NIGHTSTAND@v4/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_NIGHTSTAND"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_BENCH@v4/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_BENCH"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_BENCH@v4/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_BENCH"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_BENCH@v4/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_BENCH"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  }
+ ],
+ "PIECE_BENCH@v4/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_BENCH"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_SIDEBOARD@v2/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_SIDEBOARD"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "AVENTOS"
+   ],
+   "pick": "max"
+  }
+ ],
+ "PIECE_SIDEBOARD@v2/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_SIDEBOARD"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_SIDEBOARD@v2/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_SIDEBOARD"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "AVENTOS"
+   ],
+   "pick": "max"
+  }
+ ],
+ "PIECE_SIDEBOARD@v2/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_SIDEBOARD"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_WALL_CABINET@v2/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_WALL_CABINET"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "AVENTOS"
+   ],
+   "pick": "max"
+  }
+ ],
+ "PIECE_WALL_CABINET@v2/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_WALL_CABINET"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_WALL_CABINET@v2/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_WALL_CABINET"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "AVENTOS"
+   ],
+   "pick": "max"
+  }
+ ],
+ "PIECE_WALL_CABINET@v2/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_WALL_CABINET"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_BATHROOM_VANITY@v2/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_BATHROOM_VANITY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "PUSH"
+   ],
+   "pick": "max"
+  }
+ ],
+ "PIECE_BATHROOM_VANITY@v2/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_BATHROOM_VANITY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "PUSH"
+   ],
+   "pick": "max"
+  }
+ ],
+ "PIECE_BATHROOM_VANITY@v2/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_BATHROOM_VANITY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "LEMN_MASIV"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "PUSH"
+   ],
+   "pick": "max"
+  }
+ ],
+ "PIECE_BATHROOM_VANITY@v2/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_BATHROOM_VANITY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  },
+  {
+   "category": "SYSTEM",
+   "optionKeys": [
+    "PUSH"
+   ],
+   "pick": "max"
+  }
+ ],
+ "PIECE_ENTRYWAY@v2/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_ENTRYWAY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_ENTRYWAY@v2/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_ENTRYWAY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_ENTRYWAY@v2/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_ENTRYWAY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "MDF_FURNIR"
+  }
+ ],
+ "PIECE_ENTRYWAY@v2/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_ENTRYWAY"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "PAL"
+  }
+ ],
+ "PIECE_SOFA@v2/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_SOFA"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_SOFA@v2/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_SOFA"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_SOFA@v2/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_SOFA"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_SOFA@v2/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_SOFA"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "FROM_2_TO_4M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_ARMCHAIR@v2/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_ARMCHAIR"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_ARMCHAIR@v2/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_ARMCHAIR"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_ARMCHAIR@v2/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_ARMCHAIR"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_ARMCHAIR@v2/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_ARMCHAIR"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_OTTOMAN@v2/first": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_OTTOMAN"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_OTTOMAN@v2/last": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_OTTOMAN"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_OTTOMAN@v2/middle": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_OTTOMAN"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ],
+ "PIECE_OTTOMAN@v2/requiredOnly": [
+  {
+   "category": "ROOM_TYPE",
+   "optionKey": "PIECE_OTTOMAN"
+  },
+  {
+   "category": "ROOM_SIZE",
+   "optionKey": "UNDER_2M"
+  },
+  {
+   "category": "ITEM_QUANTITY",
+   "optionKey": "QTY_1"
+  },
+  {
+   "category": "MATERIAL",
+   "optionKey": "ALTUL"
+  }
+ ]
+}

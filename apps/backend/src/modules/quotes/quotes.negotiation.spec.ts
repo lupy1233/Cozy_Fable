@@ -187,7 +187,7 @@ describe('QuotesService — actiuni pe oferte inchise (QUOTE_NOT_MODIFIABLE)', (
     await expect(run('extra', 3, ctx)).rejects.toMatchObject({ response: { code: 'QUOTE_NOT_MODIFIABLE' } });
     expect(ctx.tx.quote.updateMany).toHaveBeenCalledWith({
       where: { id: 'q1', status: { in: ['SENT', 'EXPIRED'] } },
-      data: { extraVersionsCount: { increment: 1 }, status: 'SENT' },
+      data: { extraVersionsCount: { increment: 1 }, status: 'SENT', currency: 'RON' },
     });
   });
 
@@ -202,7 +202,8 @@ describe('QuotesService.reviseQuote / rejectChange — cererea de modificare', (
     const ctx = makeService({ snapshot: snapshotWith(1, { pendingOnLatest: true }) });
     ctx.tx.quoteChangeRequest.updateMany.mockResolvedValue({ count: 0 });
     await expect(run('revise', 1, ctx)).rejects.toMatchObject({ response: { code: 'CHANGE_REQUEST_NOT_PENDING' } });
-    expect(ctx.tx.quoteVersion.create).not.toHaveBeenCalled();
+    // a4: varianta se creeaza intai (answered_by_version_id); count 0 → rollback-ul tranzactiei o anuleaza
+    expect(ctx.tx.quoteVersionRoomPrice.createMany).not.toHaveBeenCalled();
   });
 
   it('revise: FULFILLED conditionat pe PENDING + oferta; oferta redeschisa conditionat; chitanta cu v2', async () => {
@@ -210,11 +211,11 @@ describe('QuotesService.reviseQuote / rejectChange — cererea de modificare', (
     const out = await run('revise', 1, ctx);
     expect(ctx.tx.quoteChangeRequest.updateMany).toHaveBeenCalledWith({
       where: { id: 'cr1', status: 'PENDING', quoteVersion: { quoteId: 'q1' } },
-      data: { status: 'FULFILLED', respondedAt: expect.any(Date) },
+      data: { status: 'FULFILLED', respondedAt: expect.any(Date), answeredByVersionId: 'v-new-2' },
     });
     expect(ctx.tx.quote.updateMany).toHaveBeenCalledWith({
       where: { id: 'q1', status: { in: ['SENT', 'EXPIRED'] } },
-      data: { status: 'SENT', updatedAt: expect.any(Date) },
+      data: { status: 'SENT', updatedAt: expect.any(Date), currency: 'RON' },
     });
     expect(out.versions.map((v: Any) => v.version)).toEqual([1, 2]);
     expect(out.versions[0].changeRequest).toMatchObject({ id: 'cr1', status: 'FULFILLED' });

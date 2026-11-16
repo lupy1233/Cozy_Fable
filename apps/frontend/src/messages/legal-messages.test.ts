@@ -89,6 +89,8 @@ describe('texte juridice', () => {
       'days',
       // E-company-21: intervalul costului unei preluari (sections.credits.costRange / costMin)
       'min', 'max',
+      // i3 (etapa 12): termenele fara repetitii si consecintele fara „0 puncte” (calculate in componenta)
+      'terms', 'slaMiss', 'withdrawalLate',
       // unitatile de plural primesc doar {n}
       'n',
     ]);

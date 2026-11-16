@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const disconnect = vi.fn();
 vi.mock('@/hooks/use-socket', () => ({ disconnectRealtime: () => disconnect() }));
 
-import { useConfiguratorStore } from '@/stores/configurator-store';
+import { enterEditSession, leaveEditSession, useConfiguratorStore } from '@/stores/configurator-store';
 import { useStudioStore } from '@/stores/studio-store';
 import {
   adoptLocalOwner,
@@ -102,5 +102,52 @@ describe('hasUnpublishedLocalDraft', () => {
     expect(hasUnpublishedLocalDraft()).toBe(true);
     localStorage.setItem(CONFIGURATOR_KEY, '{not json');
     expect(hasUnpublishedLocalDraft()).toBe(false);
+  });
+
+  // b8: o editare a unei cereri publicate nu e o ciorna nepublicata
+  const SERVER_ROOM_ID = '5f0c1a2b-3c4d-4e5f-8a9b-0c1d2e3f4a5b';
+  it('ignores an abandoned edit written by older builds into the new-draft key', () => {
+    localStorage.setItem(
+      CONFIGURATOR_KEY,
+      JSON.stringify({ state: { roomInstances: [{ localId: SERVER_ROOM_ID }], details: { city: 'Cluj' } }, version: 4 }),
+    );
+    expect(hasUnpublishedLocalDraft()).toBe(false);
+  });
+
+  it('ignores an edit in progress and still sees the real new draft next to it', () => {
+    sessionStorage.clear();
+    enterEditSession('req-1');
+    useConfiguratorStore.getState().loadSnapshot({
+      phase: 'cart',
+      startMode: 'STANDARD',
+      roomInstances: [{ localId: SERVER_ROOM_ID, roomType: 'BATHROOM', flowVersion: 1, answers: {}, completed: true }],
+      activeRoomIndex: 0,
+      activeStepIndex: 0,
+      details: { city: 'Cluj' },
+      inspirationPhotoIds: [],
+      updatedAt: Date.now(),
+    });
+    // editarea sta in sessionStorage; cheia cererii noi ramane goala
+    expect(hasUnpublishedLocalDraft()).toBe(false);
+    leaveEditSession();
+    useConfiguratorStore.getState().addRoom('KITCHEN');
+    expect(hasUnpublishedLocalDraft()).toBe(true);
+  });
+});
+
+// m2: deconectarea de pe pagina de editare nu lasa in tab o editare goala
+describe('clearUserLocalData during an edit', () => {
+  it('leaves nothing in sessionStorage; reopening the same request starts from the server', async () => {
+    sessionStorage.clear();
+    enterEditSession('req-x');
+    useConfiguratorStore.getState().setDetails({ city: 'Cluj' });
+    expect(sessionStorage.getItem('mm_configurator_edit_v1:req-x')).not.toBeNull();
+    await clearUserLocalData(new QueryClient());
+    expect(sessionStorage.getItem('mm_configurator_edit_v1:req-x')).toBeNull();
+    // o scriere ulterioara a store-ului merge in memoria cererii noi, nu in editare
+    useConfiguratorStore.getState().setPhase('cart');
+    expect(sessionStorage.getItem('mm_configurator_edit_v1:req-x')).toBeNull();
+    expect(enterEditSession('req-x')).toBe(false);
+    leaveEditSession();
   });
 });

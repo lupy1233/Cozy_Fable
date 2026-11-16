@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   MARKETPLACE_DISTANCE_BANDS,
   PROJECT_SIZES,
@@ -10,9 +10,11 @@ import {
   type ProjectSize,
 } from '@marketplace/shared';
 import { ArrowRight, Inbox } from 'lucide-react';
-import { Link, useRouter } from '@/i18n/routing';
-import { useMe } from '@/hooks/use-auth';
+import { Link } from '@/i18n/routing';
+import { RoleOnlyScreen, useRequireAuth } from '@/lib/require-auth';
 import { useMarketplace, useWallet } from '@/hooks/use-marketplace';
+import { useBudgetFormat } from '@/hooks/use-budget-format';
+import { useDisplayAddress } from '@/components/configurator/use-display-address';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -25,15 +27,18 @@ import { ContactSafeText } from '@/components/ui/contact-safe-text';
 import { useRelativeTime } from '@/lib/relative-time';
 import { distanceLabel } from '@/lib/marketplace-distance';
 import { cn } from '@/lib/utils';
-import { AccessBlocked } from './_components/access-blocked';
+import { AccessBlocked, isSubscriptionInactive } from './_components/access-blocked';
+import { SubscriptionStatusNotice, useSubscriptionLapsed } from './_components/subscription-status-notice';
 import { RequestTag } from './_components/request-tag';
 import { SlotBars } from './_components/slot-bars';
 import { WorksheetButton } from './_components/worksheet-button';
+import { MinBudgetFilter } from './min-budget-filter';
 
 // Design 2026-11 (canvas): fiecare stare a cardului are pasul ei, langa cost (Fitts,
 // Von Restorff); cererile pline sunt estompate ca sa nu para preluabile (Signifiers);
 // soldul sta in antet (pastila de credite), nu se mai repeta in pagina. Filtrele si
-// sortarea sunt doar pe UI (state local), peste lista deja incarcata.
+// sortarea sunt doar pe UI (state local), peste lista deja incarcata — afara de bugetul minim
+// (b11-3), filtrat pe server.
 type Filter = 'all' | 'open' | 'mine';
 type Sort = 'newest' | 'cheapest';
 type SizeFilter = 'ANY' | ProjectSize;
@@ -58,10 +63,19 @@ function cardState(r: MarketplaceItemDto, available: number | null): CardState {
 export default function MarketplacePage() {
   const t = useTranslations('Marketplace');
   const tr = useTranslations('Requests');
-  const router = useRouter();
-  const me = useMe();
-  const list = useMarketplace();
+  // f4: fara sesiune → login cu intoarcere; alt rol → ecranul „Pagina e doar pentru firme”
+  const auth = useRequireAuth('COMPANY_USER');
+  const me = auth.me;
+  // b11-3: glisorul de buget minim (0 = oricare) se trimite serverului
+  const [minBudget, setMinBudget] = useState(0);
+  // m7: "Reseteaza filtrele" monteaza din nou glisorul → mutarea in asteptare se anuleaza
+  const [filterResets, setFilterResets] = useState(0);
+  const list = useMarketplace(minBudget);
+  const budgetFormat = useBudgetFormat();
+  // b12: oras + judet fara dubluri ("Bucuresti, Bucuresti")
+  const displayAddress = useDisplayAddress();
   const wallet = useWallet();
+  const lapsed = useSubscriptionLapsed(me.data?.role === 'COMPANY_USER');
   const relTime = useRelativeTime();
   const [filter, setFilter] = useState<Filter>('all');
   const [size, setSize] = useState<SizeFilter>('ANY');
@@ -101,23 +115,25 @@ export default function MarketplacePage() {
     setFilter('all');
     setSize('ANY');
     setDistance('ANY');
+    setMinBudget(0);
+    setFilterResets((n) => n + 1);
   };
+  // cu bugetul minim pus, o lista goala de la server inseamna 'niciun rezultat pentru filtre'
+  const filtering = minBudget > 0;
 
-  // Acces doar COMPANY_USER; restul → dashboard / login
-  useEffect(() => {
-    if (me.isError) router.replace('/login');
-    else if (me.data && me.data.role !== 'COMPANY_USER') router.replace('/dashboard');
-  }, [me.isError, me.data, router]);
-
-  if (me.isPending) {
+  // me in eroare → garda duce la login; pana atunci scheletul (ca pe Panou), fara sa montam
+  // componentele care cer cont (D1: ele reporneau cererile la fiecare randare)
+  if (auth.status === 'loading') {
     return <QueryState pending onRetry={() => void me.refetch()} skeleton={<SkeletonPage variant="list" />} />;
   }
+  if (auth.status === 'wrongRole') return <RoleOnlyScreen role="COMPANY_USER" />;
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
+      <SubscriptionStatusNotice />
 
-      {list.isSuccess && list.data.length > 0 && (
+      {list.isSuccess && (list.data.length > 0 || filtering) && (
         <Card
           padding="none"
           className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3.5 px-5 py-4 shadow-none"
@@ -130,6 +146,7 @@ export default function MarketplacePage() {
             className="[&>button]:min-h-10"
           />
           <div className="flex flex-wrap gap-3">
+            <MinBudgetFilter key={filterResets} value={minBudget} onChange={setMinBudget} />
             <div className="flex flex-col gap-1">
               <label htmlFor="mk-size" className="text-xs text-muted-foreground">
                 {t('size')}
@@ -188,12 +205,15 @@ export default function MarketplacePage() {
       )}
 
       {list.isPending && <SkeletonList variant="cards" rows={4} className="lg:grid-cols-2" />}
-      {/* 403/404 (firma neaprobata / suspendata / fara abonament) → ecran de blocaj cu CTA */}
-      {list.isError && <AccessBlocked error={list.error} onRetry={() => void list.refetch()} />}
-      {list.isSuccess && list.data.length === 0 && (
+      {/* 403/404 (firma neaprobata / suspendata / fara abonament) → ecran de blocaj cu CTA.
+          h2: fara abonament, mesajul comun de sus tine locul ecranului de blocaj (nu dublam). */}
+      {list.isError && !(lapsed && isSubscriptionInactive(list.error)) && (
+        <AccessBlocked error={list.error} onRetry={() => void list.refetch()} />
+      )}
+      {list.isSuccess && list.data.length === 0 && !filtering && (
         <EmptyState variant="card" icon={Inbox} title={t('empty')} />
       )}
-      {list.isSuccess && list.data.length > 0 && items.length === 0 && (
+      {list.isSuccess && (list.data.length > 0 || filtering) && items.length === 0 && (
         <EmptyState
           variant="card"
           icon={Inbox}
@@ -239,11 +259,12 @@ export default function MarketplacePage() {
                 </p>
                 <div className="flex flex-wrap gap-x-2 gap-y-1.5">
                   <RequestTag>
-                    {r.city}, {r.county}
+                    {displayAddress({ city: r.city, county: r.county })}
                   </RequestTag>
                   <RequestTag title={t('distanceHint')}>{distanceLabel(r, t)}</RequestTag>
                   {r.size && <RequestTag tone="walnut">{tr(`sizeValue.${r.size}`)}</RequestTag>}
-                  <RequestTag>{tr(`budget.${r.budgetRange}`)}</RequestTag>
+                  {/* b11 / M2: doar suma aleasa de client, in lei; altfel "Buget nedeclarat" */}
+                  <RequestTag title={budgetFormat.firmLabel(r)}>{budgetFormat.firmAmount(r)}</RequestTag>
                   {r.includesPaidDesign && <RequestTag tone="sage">{t('includesPaidDesign')}</RequestTag>}
                   {r.hasOwnProject && <RequestTag tone="info">{t('hasOwnProject')}</RequestTag>}
                 </div>

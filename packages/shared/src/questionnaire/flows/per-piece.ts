@@ -66,13 +66,16 @@ export function selectedPieces(answers: AnswerMap): string[] {
 // Marcheaza un material cu badge "Recomandat" conditionat pe toate intrebarile
 // de material din steps (ex. MDF infoliat cand incaperea nu e ventilata,
 // lemn masiv cand balconul e deschis). Pur prezentational, nu schimba validarea.
+// exceptStepIds: pasii de material care NU primesc badge-ul (ex. blatul — c6,
+// materialul de corp nu e o recomandare potrivita pentru blat).
 export function withRecommendedMaterial(
   steps: QuestionStep[],
   material: string,
   cond: Condition,
+  exceptStepIds: ReadonlySet<string> = new Set(),
 ): QuestionStep[] {
   return steps.map((s) =>
-    s.type === 'single-choice' && s.id.startsWith('material')
+    s.type === 'single-choice' && s.id.startsWith('material') && !exceptStepIds.has(s.id)
       ? {
           ...s,
           options: s.options.map((o) => (o.value === material ? { ...o, recommendedIf: cond } : o)),

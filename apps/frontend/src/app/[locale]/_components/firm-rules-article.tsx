@@ -90,6 +90,23 @@ export function FirmRulesArticle({ children }: { children?: ReactNode }) {
     contactEmail,
   };
 
+  // i3 (etapa 12): termenele pe marimi fara repetitii (valori egale → o singura mentiune) si
+  // consecintele fara „0 puncte” (regula cu 0 puncte → doar consumul creditelor), ca in sectiunea 7.
+  const { SMALL: s, MEDIUM: m, LARGE: l } = data.sla.workingDays;
+  const termsKey =
+    s === m && m === l ? 'all' : s === m ? 'smallMedium' : m === l ? 'mediumLarge' : s === l ? 'smallLarge' : 'distinct';
+  const slaPoints = data.penalties.points.SLA_MISS;
+  const withdrawalPoints = data.penalties.points.VOLUNTARY_WITHDRAWAL;
+  const bodyArgs = {
+    ...args,
+    terms: t(`sections.sla.terms.${termsKey}`, args),
+    slaMiss: slaPoints > 0 ? t('sections.sla.missPoints', { points: slaPoints }) : t('sections.sla.missNoPoints'),
+    withdrawalLate:
+      withdrawalPoints > 0
+        ? t('sections.withdrawals.latePoints', { points: withdrawalPoints })
+        : t('sections.withdrawals.lateNoPoints'),
+  };
+
   // „Pe scurt”: aceleasi argumente ca textul sectiunilor. O regula cu 0 puncte nu afiseaza
   // „0 puncte” (ca in lista de penalizari), ramane doar consumul creditelor.
   const penaltyValue = (rule: (typeof PENALTY_ITEMS)[number], points: string) =>
@@ -154,7 +171,7 @@ export function FirmRulesArticle({ children }: { children?: ReactNode }) {
           <section key={key} id={key} className="flex scroll-mt-24 flex-col gap-2.5">
             <h2 className="font-serif text-2xl leading-tight">{t(`sections.${key}.h`)}</h2>
             <div className="flex flex-col gap-3">
-              <LegalBody text={t(`sections.${key}.${bodyKey}`, args)} className={BODY_CLS} />
+              <LegalBody text={t(`sections.${key}.${bodyKey}`, bodyArgs)} className={BODY_CLS} />
               {key === 'credits' && (
                 <>
                   {/* E-admin-platform-10: regula in vigoare pentru preluare dupa prima oferta */}

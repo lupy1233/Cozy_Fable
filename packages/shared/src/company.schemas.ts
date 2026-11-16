@@ -78,7 +78,7 @@ export type CompanyMemberRoleInput = z.infer<typeof companyMemberRoleSchema>;
 export const portfolioItemSchema = z.object({
   title: z.string().trim().min(2, 'titleTooShort').max(150),
   description: z.string().trim().max(2000).optional().or(z.literal('')),
-  imageUrl: z.string().url('invalidUrl').max(2000).optional().or(z.literal('')),
+  // poza lucrarii NU mai vine ca link: se urca separat (presign → confirm) si se ataseaza dupa (etapa 11)
 });
 export type PortfolioItemInput = z.infer<typeof portfolioItemSchema>;
 
@@ -180,13 +180,43 @@ export interface CompanyDashboardStatsDto {
   perMember: { userId: string | null; name: string | null; activeClaims: number }[];
   // oferte trimise/acceptate + valoarea totala a ultimei versiuni per oferta
   quotesSent: number;
-  quotesTotalRon: number;
+  // h3 (etapa 9): totalurile pe moneda ofertei, fara conversie ("X lei + Y EUR")
+  quotesTotals: { RON: number; EUR: number };
   wallet: { balance: number; reserved: number; available: number };
   creditsConsumed7d: number;
   creditsConsumed30d: number;
   activePenaltyPoints: number;
   // E-admin-platform-44 — "De facut acum" (preluari neatribuite, termene SLA apropiate)
   actions: DashboardActionItemDto[];
+  // h1 (etapa 11): pasii "Pregateste-ti firma"; null pentru angajati (nu pot face pasii).
+  // Optional in tip: raspunsurile vechi (cache) nu il au.
+  setup?: CompanySetupDto | null;
+}
+
+// h1 (etapa 11) — pasii de pornire ai firmei, calculati pe server din datele existente.
+// Obligatorii: PORTFOLIO, LOCATIONS, BILLING_EMAIL. Optionale (nu intra in progres): TEAM si
+// OFFER_PERMISSIONS (doar proprietarului; doar legatura, niciodata „facut” — revizuire m1).
+export const COMPANY_SETUP_STEPS = [
+  'PORTFOLIO',
+  'LOCATIONS',
+  'TEAM',
+  'BILLING_EMAIL',
+  'OFFER_PERMISSIONS',
+] as const;
+export type CompanySetupStepKey = (typeof COMPANY_SETUP_STEPS)[number];
+
+export interface CompanySetupStepDto {
+  key: CompanySetupStepKey;
+  done: boolean;
+  optional: boolean;
+}
+
+export interface CompanySetupDto {
+  steps: CompanySetupStepDto[];
+  // doar pasii obligatorii
+  requiredDone: number;
+  requiredTotal: number;
+  complete: boolean;
 }
 
 // Partener afisat public pe landing (/partners): firma APPROVED + portofoliu.

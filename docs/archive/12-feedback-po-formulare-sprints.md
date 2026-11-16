@@ -47,6 +47,7 @@ Module afectate: `packages/shared` (flows, engine test, piece3d),
 - `engine.test.ts`: asertia veche „hasIsland pe ecran separat" se inverseaza.
 
 ### S2 — Intrebari separate material vs deschidere per piesa
+> Inlocuita la 2026-11-14 pentru versiunile noi ale formularului (etapa 6, PO c14-1): materialul si deschiderea aceleiasi piese stau pe un singur ecran — vezi `docs/07-decisions-log.md` D-E6-9.
 - `per-piece.ts`: sistemele de deschidere primesc ecran propriu
   (`piece:<VALUE>:systems`) cu titlu per piesa; materialul ramane pe ecranul
   lui. Se propaga automat in living, dormitor, birou, hol, spalatorie, balcon.

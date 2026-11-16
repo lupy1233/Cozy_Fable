@@ -9,13 +9,23 @@ import {
   type InfoContentRef,
   type QuestionStep,
   type RoomType,
-  ITEM_SYSTEMS,
-  MATERIALS,
+  type ItemSystem,
+  type Material,
   type RequestItemInput,
+  type PieceRowV2,
+  FIRM_DECIDES,
+  NO_FRONTS,
+  PIECE_ROW_DESCRIPTION_MAX,
+  PIECE_ROW_DIM_MAX_CM,
+  PIECE_ROW_DIM_MIN_CM,
+  PIECE_ROW_V2_SYSTEMS,
+  pieceRowV2Schema,
 } from '@marketplace/shared';
 import { Info, Plus, X } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useId } from 'react';
+import { DIMENSION_UNIT_FACTOR, DIMENSION_UNITS, formatDimension, formatDimensionRange } from '@/lib/dimension-format';
+import { rememberDimensionUnit } from '@/lib/dimension-unit';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -29,8 +39,11 @@ import { getQuestionTargets, QuestionTargetStrip } from './illustrations/questio
 import { getDimensionFigure } from './dimension-figures';
 import { Configurator3dStep } from './piece3d/dynamic';
 import { CompactChoiceCard, PlayingCard } from './playing-card';
+import { isNotRecommendedHere, NotRecommendedTag } from './material-warning';
 import { RoomSketchUpload } from './room-sketch-upload';
 import { ContactInTextHint } from './contact-in-text-hint';
+import { useDecimalField } from './use-decimal-field';
+import type { StepIssue } from './room-screens';
 
 interface StepRendererProps {
   step: QuestionStep;
@@ -41,7 +54,8 @@ interface StepRendererProps {
   flowVersion?: number;
   onChange: (value: AnswerValue) => void;
   onInfo: (info: InfoContentRef) => void;
-  error?: string;
+  // eroarea pasului dupa un "Continua" respins (validateStepIssue); un string = doar cheia
+  error?: StepIssue | string;
   // step secundar pe acelasi ecran (screenGroup): titlu mai mic, UI compact
   inline?: boolean;
   // pur vizual: "1/3" in fata titlului cand ecranul are mai multe intrebari
@@ -70,7 +84,7 @@ function StepShell({
   answers: AnswerMap;
   flowVersion?: number;
   onInfo: (info: InfoContentRef) => void;
-  error?: string;
+  error?: StepIssue;
   inline?: boolean;
   counter?: string;
   children: React.ReactNode;
@@ -104,7 +118,7 @@ function StepShell({
             <button
               type="button"
               onClick={() => onInfo(step.info!)}
-              aria-label={t('info.showInfo')}
+              aria-label={t('info.showInfoFor', { option: t(step.titleKey) })}
               className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-walnut-soft hover:text-walnut"
             >
               <Info className="h-4 w-4" />
@@ -117,20 +131,117 @@ function StepShell({
       </div>
       {targets && <QuestionTargetStrip data={targets} />}
       {children}
-      {error && <p className="text-sm text-crimson">{t(error)}</p>}
+      {error && (
+        <p data-step-error className="text-sm text-crimson">
+          {t(error.key, error.values)}
+        </p>
+      )}
     </div>
   );
 }
-
-// factorii de conversie pentru afisarea dimensiunilor (stocarea ramane in metri)
-const UNIT_FACTOR = { m: 1, cm: 100, mm: 1000 } as const;
 
 const cnUnit = (active: boolean) =>
   'rounded-full px-2 py-0.5 uppercase tracking-[0.06em] transition-colors ' +
   (active ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground');
 
+// Rangul unei litere de pe plansa (etapa 10, §8): A, B, C… (alfabetic), apoi H1, H2…,
+// apoi H (tavanul / inaltimea camerei) la final.
+function letterRank(letter: string): [number, number] {
+  if (letter === 'H') return [2, 0];
+  const h = /^H(\d+)$/.exec(letter);
+  if (h) return [1, Number(h[1])];
+  return [0, letter.codePointAt(0) ?? 0];
+}
+
+// Sloturile cu litera in ordinea literelor, cele fara litera dupa ele, in ordinea fluxului.
+export function sortSlotsByLetter<T extends { id: string }>(slots: readonly T[], letters: Record<string, string>): T[] {
+  const lettered = slots.filter((s) => letters[s.id]);
+  const rest = slots.filter((s) => !letters[s.id]);
+  lettered.sort((a, b) => {
+    const [ga, na] = letterRank(letters[a.id]!);
+    const [gb, nb] = letterRank(letters[b.id]!);
+    return ga - gb || na - nb;
+  });
+  return [...lettered, ...rest];
+}
+
+// Campul comun de dimensiuni din pasii camerelor (b1): text cu virgula, ciorna
+// locala a textului; in raspuns se scrie doar textul care se poate citi.
+function DimensionSlotInput({
+  id,
+  metersVal,
+  factor,
+  unit,
+  outOfRange,
+  missing,
+  onMeters,
+  hint,
+  hintId,
+}: {
+  id: string;
+  metersVal: number | undefined;
+  factor: number;
+  unit: string;
+  outOfRange: boolean;
+  // camp gol marcat dupa un "Continua" respins (39)
+  missing: boolean;
+  // invalid = text care nu se poate citi (etapa 10: la slotul optional se scrie null, ca sa nu para gol)
+  onMeters: (meters: number | undefined, invalid: boolean) => void;
+  hint: React.ReactNode;
+  hintId: string;
+}) {
+  const field = useDecimalField({
+    value: metersVal === undefined ? undefined : metersVal * factor,
+    commitOn: 'change',
+    onValue: (v, info) => onMeters(v === undefined ? undefined : v / factor, info?.invalid === true),
+  });
+  const invalid = outOfRange || missing || field.error !== null;
+  const errorId = `${id}-error`;
+  return (
+    <>
+      <div className="relative">
+        <Input
+          id={id}
+          {...field.inputProps}
+          aria-describedby={field.error ? errorId : hintId}
+          aria-invalid={invalid || undefined}
+          className={invalid ? 'border-crimson pr-10' : 'pr-10'}
+        />
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+          {unit}
+        </span>
+      </div>
+      {field.error ? (
+        <p id={errorId} className="mt-1 text-meta text-crimson">
+          {field.error}
+        </p>
+      ) : (
+        hint
+      )}
+    </>
+  );
+}
+
+// Tipul de intrebare "numar simplu" (nefolosit azi in fluxuri) — acelasi cititor.
+function NumberStepInput({
+  value,
+  onValue,
+}: {
+  value: number | undefined;
+  onValue: (value: number | undefined) => void;
+}) {
+  const field = useDecimalField({ value, onValue, commitOn: 'change' });
+  return (
+    <>
+      <Input {...field.inputProps} className={field.error ? 'max-w-40 border-crimson' : 'max-w-40'} />
+      {field.error && <p className="mt-1 text-meta text-crimson">{field.error}</p>}
+    </>
+  );
+}
+
 export function StepRenderer(props: StepRendererProps) {
   const inputId = useId();
+  const locale = useLocale();
   const {
     step,
     answers,
@@ -138,12 +249,13 @@ export function StepRenderer(props: StepRendererProps) {
     flowVersion,
     onChange,
     onInfo,
-    error,
+    error: rawError,
     inline,
     counter,
     uploadContext,
     config3dContext,
   } = props;
+  const error: StepIssue | undefined = typeof rawError === 'string' ? { key: rawError } : rawError;
   const t = useTranslations('Configurator');
   const dimensionUnit = useConfiguratorStore((s) => s.dimensionUnit);
   const setDimensionUnit = useConfiguratorStore((s) => s.setDimensionUnit);
@@ -160,6 +272,9 @@ export function StepRenderer(props: StepRendererProps) {
     );
   };
 
+  // c13: "Nerecomandat aici" langa insigna "Recomandat" (doar afisare, din raspunsurile date)
+  const notRecommended = (opt: ChoiceOption) => isNotRecommendedHere(roomType, step, opt.value, answers);
+
   const optionCard = (opt: ChoiceOption, selected: boolean, multi: boolean, onSelect: () => void) => (
     <PlayingCard
       key={opt.value}
@@ -167,7 +282,16 @@ export function StepRenderer(props: StepRendererProps) {
       selected={selected}
       onSelect={onSelect}
       title={t(opt.labelKey)}
-      sub={opt.descriptionKey ? t(opt.descriptionKey) : undefined}
+      sub={
+        notRecommended(opt) ? (
+          <>
+            {opt.descriptionKey ? t(opt.descriptionKey) : null}
+            <NotRecommendedTag />
+          </>
+        ) : opt.descriptionKey ? (
+          t(opt.descriptionKey)
+        ) : undefined
+      }
       visual={optionVisual(opt)}
       info={opt.info}
       recommended={opt.recommendedIf ? evalCondition(opt.recommendedIf, answers) : false}
@@ -186,7 +310,16 @@ export function StepRenderer(props: StepRendererProps) {
         multi={multi}
         selected={selected}
         onSelect={onSelect}
-        title={t(opt.labelKey)}
+        title={
+          notRecommended(opt) ? (
+            <>
+              {t(opt.labelKey)}
+              <NotRecommendedTag />
+            </>
+          ) : (
+            t(opt.labelKey)
+          )
+        }
         visual={
           Illustration ? (
             <Illustration />
@@ -205,7 +338,9 @@ export function StepRenderer(props: StepRendererProps) {
   };
 
   // grila cartonaselor mari (intrebarea principala a ecranului) si a celor compacte
-  const cardGrid = 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3';
+  // j1: doua coloane si pe telefon (cartonasul are imaginea mai mica sub sm)
+  const cardGrid = 'grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3';
+  const pairGrid = 'grid grid-cols-2 gap-3 sm:gap-4';
   const tileGrid = 'grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(150px,1fr))]';
 
   // Conventie: ecranele din screenGroup 'materials' (material per piesa, v2)
@@ -236,8 +371,15 @@ export function StepRenderer(props: StepRendererProps) {
   if (step.type === 'multi-choice') {
     const options = visibleOptions(step, answers);
     const selected = Array.isArray(value) ? (value as string[]) : [];
-    const toggle = (v: string) =>
-      onChange(selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v]);
+    // etapa 6: optiunile `exclusive` ("Nu stiu — vreau recomandarea firmei", "Fara usi
+    // sau sertare") se aleg singure — bifarea lor goleste restul, bifarea altei optiuni
+    // le scoate. Fara optiuni exclusive (versiunile vechi): comportament neschimbat.
+    const exclusiveValues = new Set(step.options.filter((o) => o.exclusive).map((o) => o.value));
+    const toggle = (v: string) => {
+      if (selected.includes(v)) return onChange(selected.filter((x) => x !== v));
+      if (exclusiveValues.has(v)) return onChange([v]);
+      onChange([...selected.filter((x) => !exclusiveValues.has(x)), v]);
+    };
     if (inline) {
       return (
         <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} inline counter={counter}>
@@ -283,6 +425,31 @@ export function StepRenderer(props: StepRendererProps) {
     // inline (add-on pe acelasi ecran, ex. insula): acelasi card "carte de joc"
     // ca optiunile intrebarii principale, dar cu bifa de checkbox (U1, PO r4) —
     // aliniat in aceeasi grila ca sa citeasca drept "inca un cartonas"
+    // M1 (etapa 6): o intrebare da / nu OBLIGATORIE pe un ecran cu alte intrebari (ex.
+    // sameFinishAll, bedUpholstered din dormitor v3) e perechea Da / Nu, fara nimic ales
+    // (PO c14-2); starea aleasa e anuntata prin aria-pressed, ca la celelalte cartonase.
+    // Bifele optionale (insula, LED) raman cartonasul unic de mai jos.
+    if (inline && !step.optional) {
+      const YesIllu = getIllustration(roomType, step.id, 'YES') ?? BOOLEAN_ILLUSTRATIONS.yes;
+      return (
+        <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} inline counter={counter}>
+          <div role="group" aria-label={t(step.titleKey)} data-boolean-pair className={pairGrid}>
+            <PlayingCard
+              selected={value === true}
+              onSelect={() => onChange(true)}
+              title={t('common.boolean.yes')}
+              visual={<YesIllu />}
+            />
+            <PlayingCard
+              selected={value === false}
+              onSelect={() => onChange(false)}
+              title={t('common.boolean.no')}
+              visual={<BOOLEAN_ILLUSTRATIONS.no />}
+            />
+          </div>
+        </StepShell>
+      );
+    }
     if (inline) {
       const Illu = getIllustration(roomType, step.id, 'YES');
       const on = value === true;
@@ -315,7 +482,7 @@ export function StepRenderer(props: StepRendererProps) {
     const NoIllu = BOOLEAN_ILLUSTRATIONS.no;
     return (
       <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} counter={counter}>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className={pairGrid}>
           <PlayingCard
             selected={value === true}
             onSelect={() => onChange(true)}
@@ -338,31 +505,45 @@ export function StepRenderer(props: StepRendererProps) {
     const values = (value && typeof value === 'object' && !Array.isArray(value)
       ? value
       : {}) as Record<string, number>;
-    const factor = UNIT_FACTOR[dimensionUnit];
+    const factor = DIMENSION_UNIT_FACTOR[dimensionUnit];
     // afisare fara artefacte float (0.30000000000000004 → 0.3)
     const fmtNum = (v: number) => Math.round(v * 10000) / 10000;
+    // formatatorul unic (41): "1,6 m" / "245,5 cm" dupa limba; ce se salveaza ramane in metri
+    const fmt = { unit: dimensionUnit, locale };
+    // campurile marcate dupa "Continua" (39): gol → "Completeaza {camp}"
+    const fieldIssues = error?.fields ?? {};
+    const isOutOfRange = (slot: { id: string; min: number; max: number }) =>
+      Number.isFinite(values[slot.id]) && (values[slot.id] < slot.min || values[slot.id] > slot.max);
+    const isMissing = (slotId: string) =>
+      fieldIssues[slotId]?.key === 'validation.fillField' && !Number.isFinite(values[slotId]);
+    // etapa 10 (revizuire M1): slot optional cu text nevalid (salvat null) dupa "Continua"
+    const isBadText = (slotId: string) =>
+      fieldIssues[slotId]?.key === 'validation.notANumber' && !Number.isFinite(values[slotId]);
     // plansa cu litere (A/B/C/H...) — valorile completate apar si langa litere
     // pe desen (feedback PO 2026-07-13), pe langa legenda si campuri
     const valueLabels: Record<string, string> = {};
     for (const s of slots) {
-      if (Number.isFinite(values[s.id])) {
-        valueLabels[s.id] = `${fmtNum(values[s.id] * factor)} ${dimensionUnit}`;
-      }
+      if (Number.isFinite(values[s.id])) valueLabels[s.id] = formatDimension(values[s.id], fmt);
     }
+    // 38: cota gresita (in afara intervalului sau goala dupa "Continua") e rosie pe schita
+    const invalidSlots = slots.filter((s) => isOutOfRange(s) || isMissing(s.id) || isBadText(s.id)).map((s) => s.id);
     const figure =
       step.id === 'dimensions' || step.id === 'bedCustomSize'
-        ? getDimensionFigure(roomType, answers, slots.map((s) => s.id), valueLabels)
+        ? getDimensionFigure(roomType, answers, slots.map((s) => s.id), valueLabels, invalidSlots)
         : null;
     const letterOf = (slotId: string) => figure?.letters[slotId];
-    const legend = slots
+    // etapa 10 (§8): cu plansa, campurile apar in ordinea literelor (A, B, C…, H1, H2…, H
+    // la final), cele fara litera dupa ele, in ordinea fluxului. Doar afisarea; raspunsul nu se schimba.
+    const orderedSlots = figure ? sortSlotsByLetter(slots, figure.letters) : slots;
+    const legend = orderedSlots
       .filter((s) => letterOf(s.id) && Number.isFinite(values[s.id]))
-      .map((s) => `${letterOf(s.id)} = ${fmtNum(values[s.id] * factor)} ${dimensionUnit}`);
+      .map((s) => `${letterOf(s.id)} = ${formatDimension(values[s.id], fmt)}`);
     return (
       <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} counter={counter}>
         {figure && (
           <figure className="rounded-xl border border-border-2 bg-surface-2 p-4">
             {figure.node}
-            <figcaption className="mt-2 text-center text-xs text-muted-foreground">
+            <figcaption className="mt-2 text-center text-sm text-muted-foreground sm:text-xs">
               {legend.length > 0 ? (
                 <span className="font-mono tabular-nums">{legend.join(' · ')}</span>
               ) : (
@@ -374,12 +555,16 @@ export function StepRenderer(props: StepRendererProps) {
         {/* comutator unitate de masura — valorile raman in metri in answers */}
         <div className="flex justify-end">
           <div className="inline-flex items-center rounded-full border border-border-2 bg-surface-2 p-0.5 font-mono text-meta">
-            {(['m', 'cm', 'mm'] as const).map((u) => (
+            {DIMENSION_UNITS.map((u) => (
               <button
                 key={u}
                 type="button"
                 aria-pressed={dimensionUnit === u}
-                onClick={() => setDimensionUnit(u)}
+                onClick={() => {
+                  setDimensionUnit(u);
+                  // D1: preferinta ramane si dupa publicare (pagina cererii clientului)
+                  rememberDimensionUnit(u);
+                }}
                 className={cnUnit(dimensionUnit === u)}
               >
                 {u}
@@ -388,60 +573,92 @@ export function StepRenderer(props: StepRendererProps) {
           </div>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          {slots.map((slot) => {
+          {orderedSlots.map((slot) => {
             const metersVal = values[slot.id];
             const hasValue = Number.isFinite(metersVal);
-            const outOfRange = hasValue && (metersVal < slot.min || metersVal > slot.max);
-            const rangeText = `${fmtNum(slot.min * factor)}–${fmtNum(slot.max * factor)} ${dimensionUnit}`;
+            const outOfRange = isOutOfRange(slot);
+            const missing = isMissing(slot.id);
+            const badText = isBadText(slot.id);
+            const rangeText = formatDimensionRange(slot.min, slot.max, fmt);
+            const hintId = `${inputId}-${slot.id}-hint`;
             const letter = letterOf(slot.id);
+            // etapa 10 (c5): slot optional → "(opțional)" langa eticheta + "de obicei {valoare}"
+            // in unitatea aleasa; golul e valid (nu se marcheaza rosu)
+            const optionalTag = slot.optional ? (
+              <span data-optional-tag className="font-normal text-muted-foreground">
+                ({t('dimensions.optionalTag')})
+              </span>
+            ) : null;
+            const typicalText =
+              slot.optional && typeof slot.typicalM === 'number'
+                ? t('dimensions.typicalHint', { value: formatDimension(slot.typicalM, fmt) })
+                : null;
             return (
               <Field
                 key={slot.id}
                 htmlFor={`${inputId}-${slot.id}`}
                 label={
                   letter ? (
-                    <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-flex flex-wrap items-center gap-1.5">
                       <span className="grid h-5 w-5 place-items-center rounded-full border border-brass/60 font-mono text-meta font-bold text-brass">
                         {letter}
                       </span>
                       {t(slot.labelKey)}
+                      {optionalTag}
+                    </span>
+                  ) : optionalTag ? (
+                    <span className="inline-flex flex-wrap items-center gap-1.5">
+                      {t(slot.labelKey)}
+                      {optionalTag}
                     </span>
                   ) : (
                     t(slot.labelKey)
                   )
                 }
               >
-                <div className="relative">
-                  <Input
-                    id={`${inputId}-${slot.id}`}
-                    type="number"
-                    inputMode="decimal"
-                    step={fmtNum((slot.step ?? 0.1) * factor)}
-                    min={fmtNum(slot.min * factor)}
-                    max={fmtNum(slot.max * factor)}
-                    value={hasValue ? fmtNum(metersVal * factor) : ''}
-                    aria-invalid={outOfRange || undefined}
-                    onChange={(e) => {
-                      const raw = e.target.value;
-                      const next = { ...values };
-                      if (raw === '') delete next[slot.id];
-                      else next[slot.id] = fmtNum(Number(raw) / factor);
-                      onChange(next);
-                    }}
-                    className={outOfRange ? 'border-crimson pr-10' : 'pr-10'}
-                  />
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    {dimensionUnit}
-                  </span>
-                </div>
-                {/* validare imediata per camp, nu doar la Continua */}
-                {outOfRange ? (
-                  <p className="mt-1 text-meta text-crimson">
-                    {t('validation.dimensionRange', { range: rangeText })}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-meta text-muted-foreground">{rangeText}</p>
-                )}
+                <DimensionSlotInput
+                  id={`${inputId}-${slot.id}`}
+                  metersVal={hasValue ? metersVal : undefined}
+                  factor={factor}
+                  unit={dimensionUnit}
+                  outOfRange={outOfRange}
+                  missing={missing || badText}
+                  hintId={hintId}
+                  onMeters={(meters, invalidText) => {
+                    const next = { ...values };
+                    // etapa 10 (revizuire M1): la slotul OPTIONAL golul (cheie lipsa) ar insemna
+                    // "nu ai dat-o"; textul nevalid se scrie null → pasul il marcheaza, motorul il respinge.
+                    // Slotul obligatoriu ramane ca in etapa 8 (cheia se sterge → "Completeaza").
+                    if (meters === undefined && invalidText && slot.optional) (next as Record<string, number | null>)[slot.id] = null;
+                    else if (meters === undefined) delete next[slot.id];
+                    else next[slot.id] = fmtNum(meters);
+                    onChange(next);
+                  }}
+                  hint={
+                    /* validare imediata per camp, nu doar la Continua */
+                    outOfRange ? (
+                      <p id={hintId} className="mt-1 text-meta text-crimson">
+                        {t('validation.dimensionRange', { range: rangeText })}
+                      </p>
+                    ) : missing ? (
+                      <p id={hintId} className="mt-1 text-meta text-crimson">
+                        {t('validation.fillField', { field: t(slot.labelKey) })}
+                      </p>
+                    ) : badText ? (
+                      <p id={hintId} className="mt-1 text-meta text-crimson">
+                        {t('validation.notANumber')}
+                      </p>
+                    ) : typicalText ? (
+                      <p id={hintId} data-typical-hint className="mt-1 text-meta text-muted-foreground">
+                        {typicalText} · {rangeText}
+                      </p>
+                    ) : (
+                      <p id={hintId} className="mt-1 text-meta text-muted-foreground">
+                        {rangeText}
+                      </p>
+                    )
+                  }
+                />
               </Field>
             );
           })}
@@ -453,38 +670,44 @@ export function StepRenderer(props: StepRendererProps) {
   if (step.type === 'number') {
     return (
       <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} inline={inline} counter={counter}>
-        <Input
-          type="number"
-          inputMode="decimal"
-          step={step.step ?? 1}
-          min={step.min}
-          max={step.max}
-          value={typeof value === 'number' ? value : ''}
-          onChange={(e) => onChange(e.target.value === '' ? (undefined as never) : Number(e.target.value))}
-          className="max-w-40"
+        <NumberStepInput
+          value={typeof value === 'number' ? value : undefined}
+          onValue={(v) => onChange(v === undefined ? (undefined as never) : v)}
         />
       </StepShell>
     );
   }
 
   if (step.type === 'text') {
+    const text = typeof value === 'string' ? value : '';
+    // c7: contor "x / max" sub campurile cu limita (de ex. materialul scris la "Altul"),
+    // ca la randul "Alta piesa"; limita din validare ramane cea din flux
+    const textCounterId = `${inputId}-text-counter`;
+    const hasMax = typeof step.maxLength === 'number';
     return (
       <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} inline={inline} counter={counter}>
         {step.multiline ? (
           <Textarea
             rows={4}
             maxLength={step.maxLength}
-            value={typeof value === 'string' ? value : ''}
+            aria-describedby={hasMax ? textCounterId : undefined}
+            value={text}
             onChange={(e) => onChange(e.target.value)}
           />
         ) : (
           <Input
             maxLength={step.maxLength}
-            value={typeof value === 'string' ? value : ''}
+            aria-describedby={hasMax ? textCounterId : undefined}
+            value={text}
             onChange={(e) => onChange(e.target.value)}
           />
         )}
-        <ContactInTextHint value={typeof value === 'string' ? value : ''} />
+        {hasMax && (
+          <p id={textCounterId} className="mt-1 text-right text-micro text-muted-foreground">
+            {t('pieces.charCounter', { count: text.length, max: step.maxLength })}
+          </p>
+        )}
+        <ContactInTextHint value={text} />
       </StepShell>
     );
   }
@@ -494,6 +717,7 @@ export function StepRenderer(props: StepRendererProps) {
       <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} inline={inline} counter={counter}>
         <Configurator3dStep
           piece={step.piece}
+          features={step.features}
           value={value}
           onChange={(config) => onChange(config)}
           onSnapshot={config3dContext?.onSnapshot}
@@ -520,22 +744,167 @@ export function StepRenderer(props: StepRendererProps) {
     );
   }
 
-  // pieces
-  const pieces = Array.isArray(value) ? (value as RequestItemInput[]) : [];
-  const update = (next: RequestItemInput[]) => onChange(next);
+  // pieces — rowVersion 2 (etapa 6, "Alta piesa" v2) are randul nou; v1 ramane neschimbat
+  const v2Rows = step.rowVersion === 2 && Array.isArray(value) ? (value as unknown as PieceRowV2[]) : [];
+  // m2: la v2, eroarea unui rand se arata langa campul lui; sus ramane doar eroarea
+  // pasului care nu tine de un rand (de ex. "adauga cel putin o piesa")
+  const rowHasError = Boolean(error) && v2Rows.some((r) => Object.keys(pieceRowV2Errors(r)).length > 0);
+  return (
+    <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={rowHasError ? undefined : error} counter={counter}>
+      {step.rowVersion === 2 ? (
+        <PieceRowsV2
+          pieces={v2Rows}
+          onChange={(next) => onChange(next as unknown as AnswerValue)}
+          showErrors={Boolean(error)}
+          maxPieces={step.maxPieces}
+        />
+      ) : (
+        <PieceRows
+          pieces={Array.isArray(value) ? (value as RequestItemInput[]) : []}
+          onChange={(next) => onChange(next)}
+          maxPieces={step.maxPieces}
+        />
+      )}
+    </StepShell>
+  );
+}
+
+// c10: listele de pe randul "Alta piesa" arata doar ce se ofera azi — aceleasi seturi ca
+// OFFERED_MATERIALS / GENERAL_SYSTEMS din flows/common.ts (shared nu le exporta).
+// Validarea (requestItemSchema) accepta in continuare toate valorile din enum, iar o valoare
+// veche deja aleasa (MDF simplu, BUTON_PRESIUNE, GOLA, AVENTOS) ramane afisata si selectata.
+export const PIECE_ROW_MATERIALS: readonly Material[] = [
+  'PAL',
+  'MDF_INFOLIAT',
+  'MDF_VOPSIT',
+  'MDF_FURNIR',
+  'LEMN_MASIV',
+  'ALTUL',
+];
+export const PIECE_ROW_SYSTEMS: readonly ItemSystem[] = ['MANER', 'PUSH', 'GLISANTE'];
+// limitele din requestItemSchema (name max 150, description max 2000)
+export const PIECE_NAME_MAX = 150;
+export const PIECE_DETAILS_MAX = 2000;
+// limita cantitatii din requestItemSchema (D11: doar afisata, fara limita noua)
+export const PIECE_QUANTITY_MAX = 999;
+
+const quantityTooHigh = (q: unknown) => typeof q === 'number' && q > PIECE_QUANTITY_MAX;
+
+// Campul "Cantitate" comun randurilor v1 / v2: plafonul 999 + mesajul langa camp.
+function PieceQuantityInput({
+  id,
+  value,
+  onValue,
+  fallbackError,
+}: {
+  // pus de Field (legatura eticheta → camp)
+  id?: string;
+  value: number;
+  onValue: (q: number) => void;
+  // eroarea randului dupa un "Continua" respins (v2), cand nu e plafonul
+  fallbackError?: React.ReactNode;
+}) {
+  const t = useTranslations('Configurator');
+  const errorId = `${useId()}-quantity-error`;
+  const tooHigh = quantityTooHigh(value);
+  return (
+    <>
+      <Input
+        id={id}
+        type="number"
+        min={1}
+        max={PIECE_QUANTITY_MAX}
+        value={value}
+        aria-invalid={tooHigh || undefined}
+        aria-describedby={tooHigh ? errorId : undefined}
+        className={tooHigh ? 'border-crimson' : undefined}
+        onChange={(e) => onValue(Number(e.target.value) || 1)}
+      />
+      {tooHigh ? (
+        <p id={errorId} className="text-meta text-crimson">
+          {t('pieces.quantityMax', { max: PIECE_QUANTITY_MAX })}
+        </p>
+      ) : (
+        fallbackError
+      )}
+    </>
+  );
+}
+
+// Butonul "Adauga piesa" cu plafonul pasului (maxPieces, de obicei 10).
+function AddPieceButton({ count, maxPieces, onAdd }: { count: number; maxPieces: number; onAdd: () => void }) {
+  const t = useTranslations('Configurator');
+  const hintId = `${useId()}-max-pieces`;
+  const full = count >= maxPieces;
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={onAdd}
+        disabled={full}
+        aria-describedby={full ? hintId : undefined}
+        className="self-start"
+      >
+        <Plus className="mr-1 h-4 w-4" />
+        {t('pieces.add')}
+      </Button>
+      {full && (
+        <p id={hintId} className="text-meta text-muted-foreground">
+          {t('pieces.maxReached', { max: maxPieces })}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function PieceRows({
+  pieces,
+  onChange,
+  maxPieces,
+}: {
+  pieces: RequestItemInput[];
+  onChange: (next: RequestItemInput[]) => void;
+  maxPieces: number;
+}) {
+  const t = useTranslations('Configurator');
+  const uid = useId();
+  const update = onChange;
   const addPiece = () =>
     update([...pieces, { name: '', material: 'PAL', systems: [], quantity: 1, description: '' }]);
   const setPiece = (i: number, patch: Partial<RequestItemInput>) =>
     update(pieces.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
 
   return (
-    <StepShell roomType={roomType} answers={answers} flowVersion={flowVersion} step={step} onInfo={onInfo} error={error} counter={counter}>
       <div className="flex flex-col gap-3">
-        {pieces.map((piece, i) => (
+        {pieces.map((piece, i) => {
+          const materials = PIECE_ROW_MATERIALS.includes(piece.material)
+            ? PIECE_ROW_MATERIALS
+            : [piece.material, ...PIECE_ROW_MATERIALS];
+          const systems = [
+            ...PIECE_ROW_SYSTEMS,
+            ...piece.systems.filter((s) => !PIECE_ROW_SYSTEMS.includes(s)),
+          ];
+          const details = piece.description ?? '';
+          const nameCounterId = `${uid}-${i}-name-counter`;
+          const detailsCounterId = `${uid}-${i}-details-counter`;
+          // m8: indemnul de la "Altul" e legat de campul Detalii (cititoare de ecran)
+          const otherHintId = `${uid}-${i}-other-material-hint`;
+          const otherMaterial = piece.material === 'ALTUL';
+          return (
           <div key={i} className="flex flex-col gap-2 rounded-lg border border-border-2 bg-surface-2 p-3">
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               <Field label={t('pieces.name')} className="col-span-2">
-                <Input value={piece.name} onChange={(e) => setPiece(i, { name: e.target.value })} />
+                <Input
+                  value={piece.name}
+                  maxLength={PIECE_NAME_MAX}
+                  aria-describedby={nameCounterId}
+                  onChange={(e) => setPiece(i, { name: e.target.value })}
+                />
+                <p id={nameCounterId} className="self-end text-micro text-muted-foreground">
+                  {t('pieces.charCounter', { count: piece.name.length, max: PIECE_NAME_MAX })}
+                </p>
                 <ContactInTextHint value={piece.name} />
               </Field>
               <Field label={t('pieces.material')}>
@@ -543,7 +912,7 @@ export function StepRenderer(props: StepRendererProps) {
                   value={piece.material}
                   onChange={(e) => setPiece(i, { material: e.target.value as RequestItemInput['material'] })}
                 >
-                  {MATERIALS.map((m) => (
+                  {materials.map((m) => (
                     <option key={m} value={m}>
                       {t(`common.materials.${m}.label`)}
                     </option>
@@ -551,16 +920,30 @@ export function StepRenderer(props: StepRendererProps) {
                 </Select>
               </Field>
               <Field label={t('pieces.quantity')}>
-                <Input
-                  type="number"
-                  min={1}
-                  value={piece.quantity}
-                  onChange={(e) => setPiece(i, { quantity: Number(e.target.value) || 1 })}
-                />
+                <PieceQuantityInput value={piece.quantity} onValue={(quantity) => setPiece(i, { quantity })} />
               </Field>
             </div>
+            <Field label={t('pieces.details')}>
+              <Textarea
+                rows={2}
+                value={details}
+                maxLength={PIECE_DETAILS_MAX}
+                placeholder={t('pieces.detailsPlaceholder')}
+                aria-describedby={otherMaterial ? `${otherHintId} ${detailsCounterId}` : detailsCounterId}
+                onChange={(e) => setPiece(i, { description: e.target.value })}
+              />
+              {otherMaterial && (
+                <p id={otherHintId} className="text-xs text-muted-foreground">
+                  {t('pieces.otherMaterialHint')}
+                </p>
+              )}
+              <p id={detailsCounterId} className="self-end text-micro text-muted-foreground">
+                {t('pieces.charCounter', { count: details.length, max: PIECE_DETAILS_MAX })}
+              </p>
+              <ContactInTextHint value={details} />
+            </Field>
             <div className="flex flex-wrap gap-3 text-sm">
-              {ITEM_SYSTEMS.map((s) => {
+              {systems.map((s) => {
                 const checked = piece.systems.includes(s);
                 return (
                   <label key={s} className="flex items-center gap-1.5">
@@ -589,12 +972,324 @@ export function StepRenderer(props: StepRendererProps) {
               </button>
             </div>
           </div>
-        ))}
-        <Button type="button" variant="secondary" size="sm" onClick={addPiece} className="self-start">
-          <Plus className="mr-1 h-4 w-4" />
-          {t('pieces.add')}
-        </Button>
+          );
+        })}
+        <AddPieceButton count={pieces.length} maxPieces={maxPieces} onAdd={addPiece} />
       </div>
-    </StepShell>
+  );
+}
+
+// Etapa 6 (c10, DESIGN §5.11): randul "Alta piesa" v2 — dimensiuni optionale in cm,
+// "Nu stiu — vreau recomandarea firmei" la material (salvat ca ALTUL + materialChoice) si
+// deschiderea obligatorie cu iesirile exclusive "Decide firma" / "Fara usi sau sertare"
+// (openingChoice, fara sisteme). Validarea = pieceRowV2Schema din shared.
+type PieceRowDimKey = 'widthCm' | 'heightCm' | 'depthCm';
+type PieceRowOptionalKey = PieceRowDimKey | 'materialChoice' | 'openingChoice';
+const PIECE_ROW_DIMS: { key: PieceRowDimKey; labelKey: string }[] = [
+  { key: 'widthCm', labelKey: 'pieces.width' },
+  { key: 'heightCm', labelKey: 'pieces.height' },
+  { key: 'depthCm', labelKey: 'pieces.depth' },
+];
+const PIECE_ROW_OPENING_EXITS = [FIRM_DECIDES, NO_FRONTS] as const;
+
+// m2 (revizuire): erorile fiecarui rand, dupa camp — din aceeasi schema ca pe server.
+// Cheile fara prefixul `validation.` (itemNameTooShort, quantityTooLow) primesc textul campului.
+export type PieceRowField = 'name' | 'material' | 'quantity' | 'description' | 'systems' | PieceRowDimKey;
+export function pieceRowV2Errors(row: unknown): Partial<Record<PieceRowField, string>> {
+  const parsed = pieceRowV2Schema.safeParse(row);
+  if (parsed.success) return {};
+  const out: Partial<Record<PieceRowField, string>> = {};
+  for (const issue of parsed.error.issues) {
+    const field = issue.path[0];
+    const key: PieceRowField =
+      typeof field === 'string' && ['name', 'material', 'quantity', 'description', 'widthCm', 'heightCm', 'depthCm'].includes(field)
+        ? (field as PieceRowField)
+        : 'systems';
+    if (out[key]) continue;
+    if (key === 'name') out.name = 'pieces.errors.name';
+    else if (key === 'systems') out.systems = issue.message === 'validation.exclusiveOption' ? issue.message : 'pieces.errors.opening';
+    else if (key === 'widthCm' || key === 'heightCm' || key === 'depthCm')
+      out[key] = typeof (row as Record<string, unknown> | null)?.[key] === 'string' ? 'pieces.errors.wholeCm' : 'validation.dimensionOutOfRange';
+    else out[key] = issue.message.startsWith('validation.') ? issue.message : 'validation.answerInvalid';
+  }
+  return out;
+}
+
+// m1 (revizuire + hotararea coordonatorului): ce vede omul e ce sta in raspuns. Un intreg se
+// salveaza ca numar; un text nevalid ("12,5", "60.5", litere) se salveaza ca TEXT — marcaj pe
+// care pieceRowV2Schema il respinge (validation.dimensionOutOfRange), deci "Continua" e blocat
+// si randul nu se poate publica; eroarea apare pe camp. Gol → cheia scoasa (dimensiune optionala).
+export function pieceDimFromText(raw: string): number | string | undefined {
+  const trimmed = raw.trim();
+  if (trimmed === '') return undefined;
+  return /^\d+$/.test(trimmed) ? Number(trimmed) : raw;
+}
+
+function PieceDimInput({
+  id,
+  value,
+  describedBy,
+  onValue,
+}: {
+  id: string;
+  // number = valoarea salvata; string = textul nevalid pastrat ca marcaj
+  value: unknown;
+  describedBy: string;
+  onValue: (v: number | string | undefined) => void;
+}) {
+  const t = useTranslations('Configurator');
+  const text = typeof value === 'number' || typeof value === 'string' ? String(value) : '';
+  const notWhole = typeof value === 'string';
+  const invalidRange = typeof value === 'number' && (value < PIECE_ROW_DIM_MIN_CM || value > PIECE_ROW_DIM_MAX_CM);
+  const invalid = notWhole || invalidRange;
+  const errorId = `${id}-error`;
+  return (
+    <>
+      <div className="relative">
+        <Input
+          id={id}
+          inputMode="numeric"
+          maxLength={6}
+          value={text}
+          aria-describedby={invalid ? `${errorId} ${describedBy}` : describedBy}
+          aria-invalid={invalid || undefined}
+          className={invalid ? 'border-crimson pr-10' : 'pr-10'}
+          onChange={(e) => onValue(pieceDimFromText(e.target.value))}
+        />
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+          cm
+        </span>
+      </div>
+      {invalid && (
+        <p id={errorId} className="mt-1 text-meta text-crimson">
+          {notWhole
+            ? t('pieces.errors.wholeCm')
+            : `${t('validation.dimensionOutOfRange')} (${PIECE_ROW_DIM_MIN_CM}–${PIECE_ROW_DIM_MAX_CM} cm)`}
+        </p>
+      )}
+    </>
+  );
+}
+
+function PieceRowsV2({
+  pieces,
+  onChange,
+  showErrors,
+  maxPieces,
+}: {
+  pieces: PieceRowV2[];
+  onChange: (next: PieceRowV2[]) => void;
+  // dupa un "Continua" respins: erorile fiecarui rand, langa campul cu problema
+  showErrors: boolean;
+  maxPieces: number;
+}) {
+  const t = useTranslations('Configurator');
+  const uid = useId();
+  const addPiece = () =>
+    onChange([...pieces, { name: '', material: 'PAL', systems: [], quantity: 1, description: '' }]);
+  // patch + chei scoase de tot (schema e .strict(): campurile renuntate nu raman in raspuns)
+  const setPiece = (i: number, patch: Partial<PieceRowV2>, remove: PieceRowOptionalKey[] = []) =>
+    onChange(
+      pieces.map((p, idx) => {
+        if (idx !== i) return p;
+        const next: PieceRowV2 = { ...p, ...patch };
+        for (const k of remove) delete next[k];
+        return next;
+      }),
+    );
+  const checkLabel = 'flex min-h-11 cursor-pointer items-center gap-2 pr-1';
+
+  return (
+    <div className="flex flex-col gap-3">
+      {pieces.map((piece, i) => {
+        const firmMaterial = piece.materialChoice === FIRM_DECIDES;
+        const materialValue = firmMaterial ? FIRM_DECIDES : piece.material;
+        const materials: string[] = PIECE_ROW_MATERIALS.includes(piece.material) || firmMaterial
+          ? [...PIECE_ROW_MATERIALS]
+          : [piece.material, ...PIECE_ROW_MATERIALS];
+        const systems: string[] = [
+          ...PIECE_ROW_V2_SYSTEMS,
+          ...piece.systems.filter((s) => !(PIECE_ROW_V2_SYSTEMS as readonly string[]).includes(s)),
+        ];
+        const details = piece.description ?? '';
+        const nameCounterId = `${uid}-${i}-name-counter`;
+        const nameErrorId = `${uid}-${i}-name-error`;
+        const detailsCounterId = `${uid}-${i}-details-counter`;
+        const otherHintId = `${uid}-${i}-other-material-hint`;
+        const dimsHintId = `${uid}-${i}-dims-hint`;
+        const openingErrorId = `${uid}-${i}-opening-error`;
+        const otherMaterial = piece.material === 'ALTUL' && !firmMaterial;
+        const errors = showErrors ? pieceRowV2Errors(piece) : {};
+        const fieldError = (key: 'material' | 'quantity' | 'description') =>
+          errors[key] ? <p className="text-meta text-crimson">{t(errors[key]!)}</p> : null;
+        return (
+          <div
+            key={i}
+            data-piece-row-version="2"
+            data-row-invalid={Object.keys(errors).length > 0 || undefined}
+            className={`flex flex-col gap-2 rounded-lg border bg-surface-2 p-3 ${
+              Object.keys(errors).length > 0 ? 'border-crimson' : 'border-border-2'
+            }`}
+          >
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <Field label={t('pieces.name')} className="col-span-2">
+                <Input
+                  value={piece.name}
+                  maxLength={PIECE_NAME_MAX}
+                  aria-describedby={errors.name ? `${nameErrorId} ${nameCounterId}` : nameCounterId}
+                  aria-invalid={errors.name ? true : undefined}
+                  className={errors.name ? 'border-crimson' : undefined}
+                  onChange={(e) => setPiece(i, { name: e.target.value })}
+                />
+                {errors.name && (
+                  <p id={nameErrorId} className="text-meta text-crimson">
+                    {t(errors.name)}
+                  </p>
+                )}
+                <p id={nameCounterId} className="self-end text-micro text-muted-foreground">
+                  {t('pieces.charCounter', { count: piece.name.length, max: PIECE_NAME_MAX })}
+                </p>
+                <ContactInTextHint value={piece.name} />
+              </Field>
+              <Field label={t('pieces.material')}>
+                <Select
+                  value={materialValue}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === FIRM_DECIDES) setPiece(i, { material: 'ALTUL', materialChoice: FIRM_DECIDES });
+                    else setPiece(i, { material: v as Material }, ['materialChoice']);
+                  }}
+                >
+                  {materials.map((m) => (
+                    <option key={m} value={m}>
+                      {t(`common.materials.${m}.label`)}
+                    </option>
+                  ))}
+                  {/* eticheta scurta incape in lista (cea lunga se taia); textul lung = descrierea de sub lista */}
+                  <option value={FIRM_DECIDES} title={t('pieces.firmDecides')}>
+                    {t('pieces.firmDecidesShort')}
+                  </option>
+                </Select>
+                {firmMaterial && (
+                  <p data-firm-decides-hint className="text-xs text-muted-foreground">
+                    {t('pieces.firmDecides')}
+                  </p>
+                )}
+                {fieldError('material')}
+              </Field>
+              <Field label={t('pieces.quantity')}>
+                <PieceQuantityInput
+                  value={piece.quantity}
+                  onValue={(quantity) => setPiece(i, { quantity })}
+                  fallbackError={fieldError('quantity')}
+                />
+              </Field>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              {PIECE_ROW_DIMS.map(({ key, labelKey }) => {
+                const v = piece[key];
+                const id = `${uid}-${i}-${key}`;
+                return (
+                  <Field key={key} label={t(labelKey)} htmlFor={id}>
+                    <PieceDimInput
+                      id={id}
+                      value={v}
+                      describedBy={dimsHintId}
+                      onValue={(next) => {
+                        if (next === undefined) setPiece(i, {}, [key]);
+                        else {
+                          // textul nevalid ramane in raspuns ca marcaj respins de schema
+                          setPiece(i, { [key]: next } as unknown as Partial<PieceRowV2>);
+                        }
+                      }}
+                    />
+                  </Field>
+                );
+              })}
+              <p id={dimsHintId} className="col-span-3 text-meta text-muted-foreground">
+                {t('pieces.dimensionsHint')}
+              </p>
+            </div>
+            <Field label={t('pieces.details')}>
+              <Textarea
+                rows={2}
+                value={details}
+                maxLength={PIECE_ROW_DESCRIPTION_MAX}
+                placeholder={t('pieces.detailsPlaceholder')}
+                aria-describedby={otherMaterial ? `${otherHintId} ${detailsCounterId}` : detailsCounterId}
+                onChange={(e) => setPiece(i, { description: e.target.value })}
+              />
+              {otherMaterial && (
+                <p id={otherHintId} className="text-xs text-muted-foreground">
+                  {t('pieces.otherMaterialHint')}
+                </p>
+              )}
+              {fieldError('description')}
+              <p id={detailsCounterId} className="self-end text-micro text-muted-foreground">
+                {t('pieces.charCounter', { count: details.length, max: PIECE_ROW_DESCRIPTION_MAX })}
+              </p>
+              <ContactInTextHint value={details} />
+            </Field>
+            <fieldset
+              className="flex flex-wrap items-center gap-x-4 text-sm"
+              aria-describedby={errors.systems ? openingErrorId : undefined}
+              aria-invalid={errors.systems ? true : undefined}
+            >
+              <legend className="mb-1 w-full text-xs font-medium text-muted-foreground">
+                {t('pieces.openingTitle')}
+              </legend>
+              {systems.map((s) => (
+                <label key={s} className={checkLabel}>
+                  <input
+                    type="checkbox"
+                    className="h-5 w-5 shrink-0 accent-walnut"
+                    checked={!piece.openingChoice && piece.systems.includes(s as ItemSystem)}
+                    onChange={(e) => {
+                      const set = new Set(piece.systems);
+                      if (e.target.checked) set.add(s as ItemSystem);
+                      else set.delete(s as ItemSystem);
+                      // o deschidere reala scoate iesirea exclusiva
+                      setPiece(i, { systems: [...set] }, ['openingChoice']);
+                    }}
+                  />
+                  {t(`common.systems.${s}.label`)}
+                </label>
+              ))}
+              {PIECE_ROW_OPENING_EXITS.map((exit) => (
+                <label key={exit} className={checkLabel}>
+                  <input
+                    type="checkbox"
+                    className="h-5 w-5 shrink-0 accent-walnut"
+                    checked={piece.openingChoice === exit}
+                    onChange={(e) => {
+                      if (e.target.checked) setPiece(i, { systems: [], openingChoice: exit });
+                      else setPiece(i, {}, ['openingChoice']);
+                    }}
+                  />
+                  {t(exit === FIRM_DECIDES ? 'pieces.firmDecides' : 'pieces.noFronts')}
+                </label>
+              ))}
+              {errors.systems && (
+                <p id={openingErrorId} className="w-full text-meta text-crimson">
+                  {t(errors.systems)}
+                </p>
+              )}
+            </fieldset>
+            {/* m6: "Sterge" tine de rand, nu de grupul "Cum se deschide" */}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => onChange(pieces.filter((_, idx) => idx !== i))}
+                className="flex min-h-11 items-center gap-1 px-2 text-sm text-crimson"
+              >
+                <X className="h-4 w-4" />
+                {t('pieces.remove')}
+              </button>
+            </div>
+          </div>
+        );
+      })}
+      <AddPieceButton count={pieces.length} maxPieces={maxPieces} onAdd={addPiece} />
+    </div>
   );
 }

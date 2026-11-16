@@ -4,6 +4,8 @@ import { writeFile } from 'node:fs/promises';
 import { mockGuestDraft, textFor } from './helpers/guided-request';
 
 async function startRoom(page: Page, room: string, locale: 'en' | 'ro') {
+  // prima deschidere a /requests/new o compileaza `next dev` (poate trece de 30 s)
+  test.setTimeout(Math.max(test.info().timeout, 120_000));
   await mockGuestDraft(page);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto(`/${locale}/requests/new`);
@@ -51,7 +53,7 @@ test('standalone sliding artwork loads through responsive image optimization', a
   await page.getByRole('button', { name: 'm', exact: true }).click();
   for (const slot of dimensionStep.slots({ layout: 'LINEAR' })) {
     const label = t(slot.labelKey).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    await page.getByRole('spinbutton', { name: new RegExp(`${label}$`) }).fill(String(Math.max(slot.min, Math.min(slot.max, 2.4))));
+    await page.getByRole('textbox', { name: new RegExp(`${label}$`) }).fill(String(Math.max(slot.min, Math.min(slot.max, 2.4))));
   }
   await page.getByRole('button', { name: t('nav.next'), exact: true }).click();
   const image = page.locator('[data-option-art="sliding-doors"]');

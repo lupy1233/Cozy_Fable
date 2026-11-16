@@ -102,3 +102,74 @@ test('slow failed publication prevents duplicates, focuses its error, and preser
   expect(saved.details.budgetRange).toBe('UNDISCLOSED');
   expect(saved.phase).toBe('review');
 });
+
+// etapa 2 (b3 + b8): dupa publicare nu se mai salveaza ciorna, nu reapare pasul 1, apare mesajul de reusita
+test('successful publication goes straight to the request page without saving or showing step 1', async ({ page }) => {
+  test.setTimeout(90_000);
+  let publishBody: { rooms?: { needsDesignHelp?: unknown }[]; budgetRange?: string; budgetEstimateRon?: unknown; budgetDeclared?: unknown } | undefined;
+  let patchesAfterPublish = 0;
+  // raspunsul publicarii e un RequestDto complet: usePublishDraft il pune in cache-ul ['request', id],
+  // iar pagina cererii randeaza direct din el (un obiect partial o face sa cada in ecranul de eroare)
+  const now = new Date().toISOString();
+  const published = {
+    id: 'published-test', status: 'IN_MARKETPLACE', title: 'Bedroom', description: '', budgetRange: 'UNDISCLOSED', budgetEstimateRon: null, budgetDeclared: false,
+    deadlineBucket: null, includesPaidDesign: true, hasOwnProject: false, addressText: 'Synthetic address', county: 'Cluj', city: 'Cluj-Napoca',
+    country: 'RO', lat: null, lng: null, sizing: null, preClaimEditsUsed: 0, postClaimEditsUsed: 0, publishedAt: now,
+    expiresAt: new Date(Date.now() + 14 * 86_400_000).toISOString(), cancelledAt: null, repostUsed: false, createdAt: now,
+    rooms: [{ id: 'room-test', roomType: 'BEDROOM', lengthM: 0, widthM: 0, heightM: 0, items: [], answers: {}, flowVersion: 2, needsDesignHelp: true }],
+    contactPreferences: [{ id: 'contact-test', channel: 'EMAIL', value: 'demo@example.test' }], attachments: [],
+    inspirationPhotoIds: [], inspirationPhotos: [], configuratorState: null, studioScenes: [],
+  };
+  await page.route('**/api/v1/**', async route => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path.endsWith('/publish')) {
+      publishBody = request.postDataJSON();
+      return route.fulfill({ json: published });
+    }
+    if (publishBody && request.method() === 'PATCH' && path.includes('/requests/drafts/')) patchesAfterPublish++;
+    if (path.endsWith('/requests/published-test')) return route.fulfill({ json: published });
+    if (path.endsWith('/requests/published-test/visibility')) return route.fulfill({ json: { requestId: 'published-test', projectVisibleInMarketplace: true, contactHolders: [] } });
+    return route.fulfill({ json: path.endsWith('/auth/me') ? { user: { id: 'test-user', role: 'CLIENT', emailVerified: true } } : path.includes('/requests/drafts/') ? { id: 'test-draft', attachments: [], configuratorState: null } : [] });
+  });
+  await page.addInitScript(() => {
+    localStorage.setItem('mm_draft_token', 'test-only-draft');
+    localStorage.setItem('mm_configurator_v1', JSON.stringify({ version: 0, state: {
+      phase: 'review', startMode: 'DESIGN_HELP', activeRoomIndex: 0, activeStepIndex: 0,
+      roomInstances: [{ localId: 'bedroom-test', roomType: 'BEDROOM', flowVersion: 2, answers: {}, completed: false }],
+      details: { budgetRange: 'UNDISCLOSED', includesPaidDesign: true, addressText: 'Synthetic address', city: 'Cluj-Napoca', county: 'Cluj', country: 'RO', contactPreferences: [{ channel: 'EMAIL', value: 'demo@example.test' }] },
+      inspirationPhotoIds: [], updatedAt: Date.now(),
+    } }));
+  });
+  await page.goto('/en/requests/new');
+  await page.getByRole('button', { name: en.Configurator.resume.continue, exact: true }).click();
+  const publish = page.getByRole('button', { name: en.Requests.publish, exact: true });
+  await expect(publish).toBeEnabled();
+  // navigarea e client-side: un observator ramas in pagina vede daca pasul 1 apare inainte de pagina cererii
+  // (si daca a aparut mesajul de reusita: toast-ul apare pe pagina cererii, dupa navigare)
+  type Seen = { __sawStartStep?: boolean; __sawToast?: boolean };
+  await page.evaluate(([startTitle, toastText]) => {
+    const w = window as unknown as Seen;
+    w.__sawStartStep = false;
+    w.__sawToast = false;
+    new MutationObserver(() => {
+      if ([...document.querySelectorAll('button')].some(button => button.textContent?.startsWith(startTitle))) w.__sawStartStep = true;
+      if (document.body.innerText.includes(toastText)) w.__sawToast = true;
+    }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  }, [en.Configurator.start.STANDARD.title, en.Configurator.review.publishedToast]);
+  await publish.click();
+  // prima deschidere a paginii cererii o compileaza `next dev`: poate dura zeci de secunde
+  await expect(page).toHaveURL(/\/en\/requests\/published-test$/, { timeout: 60_000 });
+  // pagina cererii e montata (nu ecranul de eroare)
+  await expect(page.getByRole('heading', { level: 1, name: 'Bedroom', exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect.poll(() => page.evaluate(() => (window as unknown as Seen).__sawToast), { timeout: 15_000 }).toBe(true);
+  expect(await page.evaluate(() => (window as unknown as Seen).__sawStartStep)).toBe(false);
+  expect(patchesAfterPublish).toBe(0);
+  // modul vechi DESIGN_HELP a fost migrat: camera pleaca bifata "am nevoie de ajutor"
+  expect(publishBody?.rooms?.[0]?.needsDesignHelp).toBe(true);
+  // etapa 3 (b11): "Prefer sa nu spun" pleaca nedeclarat, fara suma
+  expect(publishBody?.budgetRange).toBe('UNDISCLOSED');
+  expect(publishBody?.budgetDeclared).toBe(false);
+  expect(publishBody?.budgetEstimateRon ?? null).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem('mm_draft_token'))).toBeNull();
+});

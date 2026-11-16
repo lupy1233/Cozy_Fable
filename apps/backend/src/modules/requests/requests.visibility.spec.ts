@@ -12,6 +12,7 @@ function setup(opts: {
   request?: Record<string, unknown> | null;
   slots?: Record<string, unknown>[];
   settings?: Record<string, string>;
+  covered?: boolean;
 } = {}) {
   const request = opts.request === undefined
     ? {
@@ -25,6 +26,8 @@ function setup(opts: {
     claimSlot: {
       findMany: jest.fn(async ({ where }: any) => allSlots.filter((s: any) => where.status.in.includes(s.status))),
     },
+    // a6: interogarea de acoperire (hasCoveringCompany) — doar da / nu
+    $queryRaw: jest.fn().mockResolvedValue([{ covered: opts.covered ?? true }]),
   };
   const values: Record<string, string> = opts.settings ?? {};
   const settings: any = {
@@ -85,8 +88,64 @@ describe('RequestsService.getVisibilityForClient (E-client-9)', () => {
       request: { id: 'r1', clientUserId: 'client-1', status: 'IN_MARKETPLACE', deletedAt: null, publishedAt: new Date(), lat: 1, lng: 1, deliveredAt: null },
     });
     await expect(service.getVisibilityForClient('client-1', 'r1')).resolves.toEqual({
-      requestId: 'r1', projectVisibleInMarketplace: true, contactHolders: [],
+      requestId: 'r1', projectVisibleInMarketplace: true, contactHolders: [], marketplaceClosedReason: null,
+      coverage: 'COVERED', pastContactAccess: [],
     });
+  });
+
+  // e4: dupa ce o firma renunta, caseta nu mai spune "Nicio firma inca" — istoricul fara nume
+  it('istoric: firma care a avut contactele si a renuntat → pana pe <data inchiderii>, fara nume', async () => {
+    const claimed = new Date(Date.now() - 600 * MIN);
+    const closed = new Date(Date.now() - 60 * MIN);
+    const { service, prisma } = setup({
+      request: { id: 'r1', clientUserId: 'client-1', status: 'IN_MARKETPLACE', deletedAt: null, publishedAt: claimed, lat: 1, lng: 1, deliveredAt: null },
+      slots: [{ ...slot('s1', 'WITHDRAWN_VOLUNTARY', claimed), updatedAt: closed }],
+    });
+    const res = await service.getVisibilityForClient('client-1', 'r1');
+    expect(res.contactHolders).toEqual([]);
+    expect(res.pastContactAccess).toEqual([{ until: closed.toISOString() }]);
+    expect(JSON.stringify(res.pastContactAccess)).not.toContain('Firma');
+    // a doua interogare = doar preluarile inchise
+    const closedQuery = prisma.claimSlot.findMany.mock.calls[1][0];
+    expect(closedQuery.where.status.in).not.toContain('ACTIVE');
+    expect(closedQuery.where.status.in).toContain('WITHDRAWN');
+  });
+
+  // revizie m2: data vine din withdrawnAt (scris la decontare), nu din updatedAt
+  it('istoric: data = withdrawnAt, chiar daca randul a fost atins mai tarziu', async () => {
+    const claimed = new Date(Date.now() - 600 * MIN);
+    const withdrawn = new Date(Date.now() - 120 * MIN);
+    const touched = new Date(Date.now() - 5 * MIN);
+    const { service } = setup({
+      slots: [{ ...slot('s1', 'WITHDRAWN', claimed), withdrawnAt: withdrawn, updatedAt: touched }],
+    });
+    expect((await service.getVisibilityForClient('client-1', 'r1')).pastContactAccess).toEqual([{ until: withdrawn.toISOString() }]);
+  });
+
+  it('istoric: firma care a renuntat in gratie (AFTER_GRACE, contacte inca ascunse) → nu apare', async () => {
+    const claimed = new Date(Date.now() - 60 * MIN);
+    const { service } = setup({
+      slots: [{ ...slot('s1', 'WITHDRAWN_VOLUNTARY', claimed), updatedAt: new Date(claimed.getTime() + 5 * MIN) }],
+      settings: { claim_contact_reveal_policy: 'AFTER_GRACE' },
+    });
+    expect((await service.getVisibilityForClient('client-1', 'r1')).pastContactAccess).toEqual([]);
+  });
+
+  // a6 (PO a6-1): doar da / nu, fara numar de firme
+  it('acoperire: nicio firma pe raza → NONE; firma pe raza → COVERED', async () => {
+    const none = setup({ covered: false });
+    expect((await none.service.getVisibilityForClient('client-1', 'r1')).coverage).toBe('NONE');
+    expect(none.prisma.$queryRaw).toHaveBeenCalledTimes(1);
+    const covered = setup({ covered: true });
+    expect((await covered.service.getVisibilityForClient('client-1', 'r1')).coverage).toBe('COVERED');
+  });
+
+  it('acoperire: cerere fara coordonate → UNKNOWN, fara interogare', async () => {
+    const { service, prisma } = setup({
+      request: { id: 'r1', clientUserId: 'client-1', status: 'IN_MARKETPLACE', deletedAt: null, publishedAt: new Date(), lat: null, lng: null, deliveredAt: null },
+    });
+    expect((await service.getVisibilityForClient('client-1', 'r1')).coverage).toBe('UNKNOWN');
+    expect(prisma.$queryRaw).not.toHaveBeenCalled();
   });
 
   it('ACCEPTED / sloturi pline → proiectul nu mai e in marketplace; COMPLETED ramane detinator', async () => {
@@ -105,9 +164,37 @@ describe('RequestsService.getVisibilityForClient (E-client-9)', () => {
 
   it('flag-ul claims_open_after_first_offer: OFFERS_RECEIVED vizibil doar cu flag pornit', async () => {
     const req = { id: 'r1', clientUserId: 'client-1', status: 'OFFERS_RECEIVED', deletedAt: null, publishedAt: new Date(), lat: 1, lng: 1, deliveredAt: null };
-    const off = setup({ request: req });
-    expect((await off.service.getVisibilityForClient('client-1', 'r1')).projectVisibleInMarketplace).toBe(false);
+    const off = setup({ request: req, settings: { claims_open_after_first_offer: 'false' } });
+    const offRes = await off.service.getVisibilityForClient('client-1', 'r1');
+    expect(offRes.projectVisibleInMarketplace).toBe(false);
+    expect(offRes.marketplaceClosedReason).toBe('FIRST_OFFER_RULE');
     const on = setup({ request: req, settings: { claims_open_after_first_offer: 'true' } });
-    expect((await on.service.getVisibilityForClient('client-1', 'r1')).projectVisibleInMarketplace).toBe(true);
+    const onRes = await on.service.getVisibilityForClient('client-1', 'r1');
+    expect(onRes.projectVisibleInMarketplace).toBe(true);
+    expect(onRes.marketplaceClosedReason).toBeNull();
+  });
+
+  // a1 (PO 2026-11-13): implicit cererea ramane in piata dupa prima oferta (si dupa o cerere
+  // de modificare, NEGOTIATION) cat are locuri libere
+  it.each(['OFFERS_RECEIVED', 'NEGOTIATION'])('setarea implicita: %s cu 1/3 locuri → vizibila, fara motiv', async (status) => {
+    const t = new Date(Date.now() - 60 * MIN);
+    const { service } = setup({
+      request: { id: 'r1', clientUserId: 'client-1', status, deletedAt: null, publishedAt: t, lat: 1, lng: 1, deliveredAt: null },
+      slots: [slot('s1', 'OFFER_SENT', t)],
+    });
+    const res = await service.getVisibilityForClient('client-1', 'r1');
+    expect(res.projectVisibleInMarketplace).toBe(true);
+    expect(res.marketplaceClosedReason).toBeNull();
+  });
+
+  it('motivul inchiderii: locuri ocupate / oferta acceptata / expirata', async () => {
+    const t = new Date(Date.now() - 600 * MIN);
+    const req = (status: string) => ({ id: 'r1', clientUserId: 'client-1', status, deletedAt: null, publishedAt: t, lat: 1, lng: 1, deliveredAt: null });
+    const full = setup({ request: req('OFFERS_RECEIVED'), slots: [slot('a', 'ACTIVE', t), slot('b', 'OFFER_SENT', t), slot('c', 'OFFER_SENT', t)] });
+    expect((await full.service.getVisibilityForClient('client-1', 'r1')).marketplaceClosedReason).toBe('SLOTS_FULL');
+    const accepted = setup({ request: req('ACCEPTED'), slots: [slot('a', 'OFFER_SENT', t)] });
+    expect((await accepted.service.getVisibilityForClient('client-1', 'r1')).marketplaceClosedReason).toBe('OFFER_ACCEPTED');
+    const expired = setup({ request: req('EXPIRED') });
+    expect((await expired.service.getVisibilityForClient('client-1', 'r1')).marketplaceClosedReason).toBe('EXPIRED');
   });
 });

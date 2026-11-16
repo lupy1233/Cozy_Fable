@@ -1,8 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { boardItemMetaSchema, INSPIRATION_NOTE_MAX } from './inspiration.schemas';
 import {
+  ATTACHMENT_ACCEPT,
+  checkAttachmentFile,
+  MAX_ATTACHMENT_BYTES,
+  maxAttachmentsForRequest,
+  presignUploadSchema,
+  remainingAttachmentSlots,
+  resolveAttachmentMime,
   BUDGET_RON_PER_POINT,
   budgetRangeFromRon,
+  budgetSliderBounds,
+  budgetView,
+  BUDGET_SLIDER_FALLBACK,
+  isBudgetBelowEstimate,
+  firmBudgetView,
+  sizingBudgetRange,
   CLAIM_COST_DEFAULTS,
   configuratorContentSchema,
   CREDIT_VALUE_RON,
@@ -10,8 +23,51 @@ import {
   mergeAccountEmail,
   resolveBudgetFields,
   resolveClaimCostRules,
+  requestDraftPatchSchema,
   type ContactPreferenceInput,
 } from './request.schemas';
+
+// b5: limitele de atasamente vin dintr-un singur loc (FE + server)
+describe('checkAttachmentFile / resolveAttachmentMime (b5)', () => {
+  it('foloseste tipul browserului cand e permis', () => {
+    expect(resolveAttachmentMime('plan.pdf', 'application/pdf')).toBe('application/pdf');
+    expect(resolveAttachmentMime('arhiva.zip', 'application/x-zip-compressed')).toBe('application/x-zip-compressed');
+  });
+
+  it('fara tip (Windows) → extensia, doar pentru extensiile permise', () => {
+    expect(resolveAttachmentMime('POZA.JPG', '')).toBe('image/jpeg');
+    expect(resolveAttachmentMime('plan.pdf', 'application/octet-stream')).toBe('application/pdf');
+    expect(resolveAttachmentMime('plan.dwg', '')).toBeNull();
+    expect(resolveAttachmentMime('poza.heic', '')).toBeNull();
+    expect(resolveAttachmentMime('fara-extensie', '')).toBeNull();
+  });
+
+  it('un tip cunoscut dar nepermis nu e salvat de extensie', () => {
+    expect(resolveAttachmentMime('note.txt', 'text/plain')).toBeNull();
+    expect(resolveAttachmentMime('poza.png', 'image/heic')).toBeNull();
+  });
+
+  it('refuza tip, fisier gol si peste 25 MB, cu motivul', () => {
+    expect(checkAttachmentFile({ name: 'a.txt', type: 'text/plain', size: 10 })).toEqual({ ok: false, reason: 'TYPE' });
+    expect(checkAttachmentFile({ name: 'a.pdf', type: 'application/pdf', size: 0 })).toEqual({ ok: false, reason: 'EMPTY' });
+    expect(checkAttachmentFile({ name: 'a.pdf', type: 'application/pdf', size: MAX_ATTACHMENT_BYTES + 1 })).toEqual({ ok: false, reason: 'SIZE' });
+    expect(checkAttachmentFile({ name: 'a.pdf', type: 'application/pdf', size: MAX_ATTACHMENT_BYTES })).toEqual({ ok: true, mimeType: 'application/pdf' });
+  });
+
+  it('ce trece de verificare trece si de schema serverului', () => {
+    const check = checkAttachmentFile({ name: 'scan.png', type: '', size: 85 });
+    expect(check.ok).toBe(true);
+    if (check.ok) expect(presignUploadSchema.safeParse({ filename: 'scan.png', mimeType: check.mimeType, sizeBytes: 85 }).success).toBe(true);
+  });
+
+  it('accept include extensiile, locurile ramase nu scad sub zero', () => {
+    expect(ATTACHMENT_ACCEPT).toContain('.pdf');
+    expect(ATTACHMENT_ACCEPT).toContain('application/pdf');
+    expect(maxAttachmentsForRequest(2)).toBe(26);
+    expect(remainingAttachmentSlots(2, 20)).toBe(6);
+    expect(remainingAttachmentSlots(0, 12)).toBe(0);
+  });
+});
 
 describe('resolveBudgetFields', () => {
   it('deriva bucket-ul din estimarea RON', () => {
@@ -120,6 +176,98 @@ describe('resolveClaimCostRules', () => {
       min: 3,
       max: 25,
     });
+  });
+});
+
+describe('budgetView (b11)', () => {
+  it('suma aleasa de client = DECLARED', () => {
+    expect(budgetView({ budgetRange: 'OVER_15K', budgetEstimateRon: 12000, budgetDeclared: true })).toEqual({ kind: 'DECLARED', amountRon: 12000 });
+  });
+  it('cerere veche cu suma = INDICATIVE (fara "declarat de client")', () => {
+    expect(budgetView({ budgetRange: 'OVER_15K', budgetEstimateRon: 33000, budgetDeclared: false })).toEqual({ kind: 'INDICATIVE', amountRon: 33000 });
+    expect(budgetView({ budgetRange: 'OVER_15K', budgetEstimateRon: 33000 })).toEqual({ kind: 'INDICATIVE', amountRon: 33000 });
+  });
+  it('fara suma sau "Prefer sa nu spun" = nedeclarat, niciodata o treapta', () => {
+    expect(budgetView({ budgetRange: 'UNDER_5K', budgetEstimateRon: null, budgetDeclared: false })).toEqual({ kind: 'UNDISCLOSED', amountRon: null });
+    expect(budgetView({ budgetRange: 'UNDISCLOSED', budgetEstimateRon: 9000, budgetDeclared: true })).toEqual({ kind: 'UNDISCLOSED', amountRon: null });
+  });
+});
+
+describe('firmBudgetView (b11 / M2)', () => {
+  it('the firm sees only an amount chosen by the client', () => {
+    expect(firmBudgetView({ budgetRange: 'OVER_15K', budgetEstimateRon: 20000, budgetDeclared: true })).toEqual({ kind: 'DECLARED', amountRon: 20000 });
+    expect(firmBudgetView({ budgetRange: 'OVER_15K', budgetEstimateRon: 24000, budgetDeclared: false })).toEqual({ kind: 'UNDISCLOSED', amountRon: null });
+    expect(firmBudgetView({ budgetRange: 'UNDISCLOSED', budgetEstimateRon: null })).toEqual({ kind: 'UNDISCLOSED', amountRon: null });
+  });
+});
+
+describe('sizingBudgetRange (b11 / M3)', () => {
+  it('the band used for the project size never goes below the estimate minimum', () => {
+    expect(sizingBudgetRange('FROM_5K_TO_15K', 8000, 24000)).toBe('OVER_15K');
+    expect(sizingBudgetRange('OVER_15K', 24000, 24000)).toBe('OVER_15K');
+    expect(sizingBudgetRange('OVER_15K', 50000, 24000)).toBe('OVER_15K');
+    expect(sizingBudgetRange('FROM_5K_TO_15K', 12000, 9000)).toBe('FROM_5K_TO_15K');
+    expect(sizingBudgetRange('UNDER_5K', 3000, 0)).toBe('UNDER_5K');
+  });
+  it('"I prefer not to share" stays undisclosed; no amount keeps the sent band', () => {
+    expect(sizingBudgetRange('UNDISCLOSED', null, 24000)).toBe('UNDISCLOSED');
+    expect(sizingBudgetRange('UNDER_5K', undefined, 24000)).toBe('UNDER_5K');
+  });
+});
+
+describe('configuratorContentSchema budget (m1)', () => {
+  it('rejects an amount under the slider step', () => {
+    const base = { budgetRange: 'UNDER_5K', hasOwnProject: false, addressText: 'Str. 1', county: 'Cluj', city: 'Cluj', rooms: [{ roomType: 'KITCHEN', flowVersion: 1, answers: {} }], contactPreferences: [{ channel: 'EMAIL', value: 'a@b.ro' }] };
+    expect(configuratorContentSchema.safeParse({ ...base, budgetEstimateRon: 0 }).success).toBe(false);
+    expect(configuratorContentSchema.safeParse({ ...base, budgetEstimateRon: 499 }).success).toBe(false);
+    expect(configuratorContentSchema.safeParse({ ...base, budgetEstimateRon: 500 }).success).toBe(true);
+  });
+});
+
+describe('configuratorContentSchema address (b12)', () => {
+  const base = { budgetRange: 'UNDER_5K', hasOwnProject: false, addressText: 'Str. 1', county: 'Cluj', city: 'Cluj', rooms: [{ roomType: 'KITCHEN', flowVersion: 1, answers: {} }], contactPreferences: [{ channel: 'EMAIL', value: 'a@b.ro' }] };
+  const messages = (input: unknown) => {
+    const r = configuratorContentSchema.safeParse(input);
+    return r.success ? [] : r.error.issues.map((i) => `${i.path.join('.')}:${i.message}`);
+  };
+  it('bloc / scara / apartament e optional (ciorne si cereri vechi raman valide)', () => {
+    expect(configuratorContentSchema.safeParse(base).success).toBe(true);
+    const parsed = configuratorContentSchema.parse({ ...base, addressDetails: '  bl. A2, ap. 14 ' });
+    expect(parsed.addressDetails).toBe('bl. A2, ap. 14');
+    expect(messages({ ...base, addressDetails: 'x'.repeat(101) })).toContain('addressDetails:addressDetailsTooLong');
+  });
+  it('orasul doar din spatii primeste "Completeaza orasul"', () => {
+    // formularul (zodResolver) arata primul mesaj al campului
+    expect(messages({ ...base, city: '   ' })[0]).toBe('city:cityRequired');
+    expect(messages({ ...base, city: '' })[0]).toBe('city:cityRequired');
+    expect(messages({ ...base, city: 'X' })).toEqual(['city:cityTooShort']);
+  });
+  it('ciorna accepta campul nou', () => {
+    expect(requestDraftPatchSchema.safeParse({ addressDetails: 'ap. 3' }).success).toBe(true);
+  });
+});
+
+describe('budgetSliderBounds (b11-2)', () => {
+  it('coboara la o treime din estimare, rotunjit in jos la 500 lei', () => {
+    expect(budgetSliderBounds({ minRon: 25000, maxRon: 75000 })).toEqual({ minRon: 8000, maxRon: 75000 });
+    expect(budgetSliderBounds({ minRon: 33000, maxRon: 99000 })).toEqual({ minRon: 11000, maxRon: 99000 });
+  });
+  it('estimare foarte mica: minimul nu scade sub un pas', () => {
+    expect(budgetSliderBounds({ minRon: 1000, maxRon: 3000 })).toEqual({ minRon: 500, maxRon: 3000 });
+  });
+  it('fara estimare: scara fixa', () => {
+    expect(budgetSliderBounds(null)).toEqual(BUDGET_SLIDER_FALLBACK);
+    expect(budgetSliderBounds({ minRon: 0, maxRon: 0 })).toEqual(BUDGET_SLIDER_FALLBACK);
+  });
+});
+
+describe('isBudgetBelowEstimate (b11-2)', () => {
+  it('doar o suma aleasa sub minimul estimarii', () => {
+    expect(isBudgetBelowEstimate(10000, 25000)).toBe(true);
+    expect(isBudgetBelowEstimate(25000, 25000)).toBe(false);
+    expect(isBudgetBelowEstimate(null, 25000)).toBe(false);
+    expect(isBudgetBelowEstimate(10000, null)).toBe(false);
+    expect(isBudgetBelowEstimate(10000, 0)).toBe(false);
   });
 });
 

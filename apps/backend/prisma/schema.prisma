@@ -223,6 +223,8 @@ enum ClaimSlotStatus {
   CANCELLED_PROJECT
   // E-admin-platform-3: oferta expirata fara decizie a clientului, inchisa automat (setari)
   CANCELLED_OFFER_EXPIRED
+  // a4 (2026-11-13, PO a4-1): clientul a refuzat oferta firmei — loc inchis, credite consumate
+  OFFER_DECLINED
 
   @@map("claim_slot_status")
 }
@@ -233,6 +235,8 @@ enum ProjectCaseReason {
   CLIENT_UNRESPONSIVE
   MUTUAL_CANCEL_REQUEST
   OTHER
+  // e2-2: reclamatie a clientului dupa finalizare, in fereastra de garantie
+  WARRANTY_CLAIM
 
   @@map("project_case_reason")
 }
@@ -314,6 +318,16 @@ enum ReviewDisputeStatus {
   @@map("review_dispute_status")
 }
 
+// e1-2 (PO 2026-11-13): etape informative dupa acceptare, bifate de firma castigatoare.
+enum ExecutionStage {
+  MEASUREMENTS
+  CONTRACT
+  PRODUCTION
+  INSTALLATION
+
+  @@map("execution_stage")
+}
+
 // mock_billing_orders.order_type / status (Sprint 8; nedefinit verbatim, confirmat sesiune). 4.16/4.17.
 enum BillingOrderType {
   SUBSCRIPTION
@@ -345,6 +359,8 @@ enum EInvoiceStatus {
 // docs/04 §5.2 request_company_exclusions — motiv excludere re-claim (4.11).
 enum RequestExclusionReason {
   SLA_BREACH
+  // a4: refuzul clientului e definitiv — firma refuzata nu mai preia aceeasi cerere
+  QUOTE_DECLINED
 
   @@map("request_exclusion_reason")
 }
@@ -366,8 +382,45 @@ enum QuoteStatus {
   EXPIRED
   ACCEPTED
   SUPERSEDED
+  // a4 (2026-11-13): refuzata de client (definitiv; motiv optional in quotes.decline_*)
+  DECLINED
 
   @@map("quote_status")
+}
+
+// a3 (2026-11-13, PO a3-1) — rubrica de TVA a unei versiuni de oferta.
+enum QuoteVatMode {
+  VAT_INCLUDED
+  VAT_EXCLUDED
+  NOT_VAT_PAYER
+
+  @@map("quote_vat_mode")
+}
+
+// a3 (PO a3-2) — unitatea termenului de livrare structurat.
+enum QuoteDeliveryTermUnit {
+  WEEKS
+  WORKING_DAYS
+
+  @@map("quote_delivery_term_unit")
+}
+
+// a4 (PO a4-2) — motivul optional al refuzului ofertei de catre client.
+enum QuoteDeclineReason {
+  PRICE
+  DELIVERY_TERM
+  OTHER_COMPANY
+  GAVE_UP
+
+  @@map("quote_decline_reason")
+}
+
+// a4 — mesaj de sistem in conversatia client ↔ firma (cerere de modificare, refuz).
+enum MessageSystemKind {
+  QUOTE_CHANGE_REQUESTED
+  QUOTE_DECLINED
+
+  @@map("message_system_kind")
 }
 
 // Status cerere de modificare client (4.13). FULFILLED = firma a raspuns cu versiune noua;
@@ -425,6 +478,7 @@ model User {
   inspirationBoards  InspirationBoard[]
   chatThreadReads    ChatThreadRead[]
   studioDrafts       StudioDraft[]
+  executionStagesCompleted RequestExecutionStage[]
 
   @@map("users")
 }
@@ -451,6 +505,8 @@ model Company {
   suspendedUntil  DateTime?     @map("suspended_until") @db.Timestamptz()
   deletedAt       DateTime?     @map("deleted_at") @db.Timestamptz()
   createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  // g1-2 (etapa 9): pana unde a ajuns rezumatul zilnic „cereri noi in zona ta” (fara dubluri)
+  newRequestsDigestUntil DateTime? @map("new_requests_digest_until") @db.Timestamptz()
 
   members             CompanyMember[]
   locations           CompanyLocation[]
@@ -588,10 +644,15 @@ model Request {
   budgetRange        BudgetRange?  @map("budget_range")
   // bugetul ales pe sliderul estimat din scor (F5, item 18); bucket-ul ramane pentru filtre
   budgetEstimateRon  Int?          @map("budget_estimate_ron")
+  // b11: suma aleasa de client pe glisor (formularul nou); false = cerere veche / nedeclarat
+  budgetDeclared     Boolean       @default(false) @map("budget_declared")
   deadlineBucket     DesiredDeadlineBucket? @map("desired_deadline_bucket")
   includesPaidDesign Boolean       @default(false) @map("includes_paid_design")
   hasOwnProject      Boolean       @default(false) @map("has_own_project")
   addressText        String?       @map("address_text")
+  // b12: "Bloc, scara, apartament" — separat de strada, ca alegerea unei sugestii sa nu-l stearga;
+  // adresa exacta ca addressText (firmele il vad doar cu acces la contacte). NULL la cererile vechi.
+  addressDetails     String?       @map("address_details") @db.VarChar(100)
   county             String?
   city               String?
   // ISO2, implicit RO — livram si international (F5, item 19)
@@ -615,6 +676,9 @@ model Request {
   deliveredAt        DateTime?     @map("delivered_at") @db.Timestamptz()
   // E-admin-platform-3: momentul in care adminul a inchis proiectul (status CANCELLED)
   cancelledAt        DateTime?     @map("cancelled_at") @db.Timestamptz()
+  // e2-2: momentul finalizarii (DELIVERED_BY_COMPANY → COMPLETED, confirmata sau automata);
+  // de aici curge fereastra de raportare in garantie. NULL la cererile finalizate inainte.
+  completedAt        DateTime?     @map("completed_at") @db.Timestamptz()
   createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
 
@@ -629,6 +693,7 @@ model Request {
   studioScenes       RequestStudioScene[]
   projectCases       RequestProjectCase[]
   contactDetections  RequestContactDetection[]
+  executionStages    RequestExecutionStage[]
 
   @@index([clientUserId])
   @@index([status])
@@ -825,6 +890,12 @@ model RequestRoom {
   // raspunsuri brute chestionar configurator; null = cerere legacy
   answers     Json?
   flowVersion Int?     @map("flow_version")
+  // b8 (PO g0-8): clientul cere ajutor la camera asta → pleaca la firme doar cu tipul,
+  // schitele si mesajul (fara raspunsuri); cererea e "cu proiectare" daca macar o camera e bifata
+  needsDesignHelp Boolean @default(false) @map("needs_design_help")
+  // d3 (PO d3-2): lungimea aproximativa data de client doar cu "Am deja un proiect";
+  // conteaza la treapta ROOM_SIZE doar cand lungimea derivata din dimensiuni e 0
+  approxLengthM Decimal? @map("approx_length_m") @db.Decimal(5, 2)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   request     Request                 @relation(fields: [requestId], references: [id], onDelete: Cascade)
@@ -1157,6 +1228,10 @@ model Quote {
   // E-client-1: versiunea confirmata de client la accept (docs/04); NULL pe accepturile
   // dinainte de migrare → cititorii cad pe ultima versiune
   acceptedVersionId  String?       @unique @map("accepted_version_id")
+  // a4: refuzul clientului (status DECLINED); motivul si nota le vede firma
+  declinedAt         DateTime?           @map("declined_at") @db.Timestamptz()
+  declineReason      QuoteDeclineReason? @map("decline_reason")
+  declineNote        String?             @map("decline_note")
   createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
 
@@ -1193,11 +1268,28 @@ model QuoteVersion {
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   // E-admin-platform-3: clientul a cerut prelungirea unei oferte EXPIRED (o singura data per versiune)
   extensionRequestedAt DateTime? @map("extension_requested_at") @db.Timestamptz()
+  // a4: moneda VARIANTEI (backfill din quotes.currency; NULL doar pe variantele scrise de codul
+  // vechi in fereastra blue/green → cititorii cad pe quotes.currency)
+  currency          QuoteCurrency?
+  // a3: rubrici structurate, obligatorii la variantele noi (NULL pe cele vechi, imuabile)
+  vatMode           QuoteVatMode?          @map("vat_mode")
+  // a3 (revizuire M1): cota de TVA inghetata la trimiterea variantei; NULL pe variantele vechi
+  // (cititorii cad pe system_settings.vat_rate)
+  vatRatePercent    Decimal?               @map("vat_rate_percent") @db.Decimal(5, 2)
+  deliveryTermValue Int?                   @map("delivery_term_value")
+  deliveryTermUnit  QuoteDeliveryTermUnit? @map("delivery_term_unit")
+  warrantyMonths    Int?                   @map("warranty_months")
+  includesTransport Boolean?               @map("includes_transport")
+  includesAssembly  Boolean?               @map("includes_assembly")
+  // g0-11: "ce include proiectarea" (obligatoriu odata cu design_fee)
+  designIncludes    String?                @map("design_includes")
 
   quote              Quote                    @relation("QuoteVersions", fields: [quoteId], references: [id], onDelete: Cascade)
   // E-client-1: oferta care a acceptat aceasta versiune (docs/04)
   acceptedByQuote    Quote?                   @relation("QuoteAcceptedVersion")
-  changeRequests     QuoteChangeRequest[]
+  changeRequests     QuoteChangeRequest[]     @relation("ChangeRequestedOnVersion")
+  // a4: cererile de modificare la care aceasta versiune a raspuns
+  answeredChanges    QuoteChangeRequest[]     @relation("ChangeAnsweredByVersion")
   validityExtensions QuoteValidityExtension[]
   roomPrices         QuoteVersionRoomPrice[]
 
@@ -1233,8 +1325,11 @@ model QuoteChangeRequest {
   status         QuoteChangeRequestStatus @default(PENDING)
   respondedAt    DateTime?                @map("responded_at") @db.Timestamptz()
   createdAt      DateTime                 @default(now()) @map("created_at") @db.Timestamptz()
+  // a4: versiunea care a raspuns cererii (FULFILLED); NULL pe randurile vechi → dedusa la citire
+  answeredByVersionId String?           @map("answered_by_version_id")
 
-  quoteVersion QuoteVersion @relation(fields: [quoteVersionId], references: [id], onDelete: Cascade)
+  quoteVersion      QuoteVersion  @relation("ChangeRequestedOnVersion", fields: [quoteVersionId], references: [id], onDelete: Cascade)
+  answeredByVersion QuoteVersion? @relation("ChangeAnsweredByVersion", fields: [answeredByVersionId], references: [id], onDelete: SetNull)
 
   // index partial unic quote_change_requests_one_pending_per_version traieste DOAR in SQL (20260929213000)
   @@index([quoteVersionId])
@@ -1287,6 +1382,9 @@ model Message {
   senderUserId String   @map("sender_user_id")
   body         String?
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  // a4: mesaj de sistem (scris de server in numele actorului); payload doar cu id-uri/coduri
+  systemKind    MessageSystemKind? @map("system_kind")
+  systemPayload Json?              @map("system_payload")
 
   chatThread ChatThread @relation(fields: [chatThreadId], references: [id], onDelete: Cascade)
 
@@ -1348,6 +1446,23 @@ model RequestProjectCase {
   @@index([requestId])
   @@index([status])
   @@map("request_project_cases")
+}
+
+// e1-2 (PO 2026-11-13): un rand = etapa bifata de firma castigatoare (debifarea sterge randul).
+// Informativ: NU blocheaza livrarea si nu schimba starea cererii.
+model RequestExecutionStage {
+  id               String         @id @default(uuid())
+  requestId        String         @map("request_id")
+  stage            ExecutionStage
+  completedAt      DateTime       @map("completed_at") @db.Timestamptz()
+  completedByUserId String        @map("completed_by_user_id")
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz()
+
+  request     Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  completedBy User    @relation(fields: [completedByUserId], references: [id])
+
+  @@unique([requestId, stage])
+  @@map("request_execution_stages")
 }
 
 // docs/04 §5.1 + 4.11 — clarificare ceruta firmei catre client; pune SLA pe pauza (+1 zi lucr.).
@@ -1495,6 +1610,9 @@ model MockBillingOrder {
   // momentul reminderului de plata (trimis o singura data)
   paymentClaimedAt       DateTime?  @map("payment_claimed_at") @db.Timestamptz()
   transferReminderSentAt DateTime?  @map("transfer_reminder_sent_at") @db.Timestamptz()
+  // g4 (etapa 7): primul e-mail cu proforma ATASATA chiar a plecat; null = nu (inca) sau comanda
+  // veche → pagina nu promite proforma pe e-mail, indeamna la descarcare
+  proformaEmailedAt      DateTime?  @map("proforma_emailed_at") @db.Timestamptz()
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 

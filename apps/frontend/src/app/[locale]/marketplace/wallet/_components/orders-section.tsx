@@ -4,6 +4,7 @@ import type { BillingOrderDto } from '@marketplace/shared';
 import { CreditCard } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useMoney } from '@/hooks/use-money';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
 import { cn } from '@/lib/utils';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +34,8 @@ export function OrdersSection({
   onContinuePayment,
   onShowBankDetails,
   onDownloadInvoice,
+  onCancelOrder,
+  cancelPendingId = null,
   className,
 }: {
   pending: boolean;
@@ -46,6 +49,9 @@ export function OrdersSection({
   onContinuePayment: (order: BillingOrderDto) => void;
   onShowBankDetails: (order: BillingOrderDto) => void;
   onDownloadInvoice: (order: BillingOrderDto) => void;
+  /** h3: "Anuleaza comanda" (deschide confirmarea); lipsa = fara buton */
+  onCancelOrder?: (order: BillingOrderDto) => void;
+  cancelPendingId?: string | null;
   className?: string;
 }) {
   const tb = useTranslations('Billing');
@@ -98,6 +104,18 @@ export function OrdersSection({
                     {shortRef(o.id)}
                   </span>
                   {o.testMode && <span className="text-xs text-muted-foreground">{tb('testOrder')}</span>}
+                  {/* h3: termenul anularii automate (doar cand setarea e pornita; chitantele vechi = undefined) */}
+                  {o.status === 'PENDING' && o.transferExpiresAt && (
+                    <span className="text-xs text-muted-foreground">
+                      {tb('orderValidUntil', {
+                        date: format.dateTime(new Date(o.transferExpiresAt), {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                          timeZone: APP_TIME_ZONE,
+                        }),
+                      })}
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                   <Badge tone={STATUS_TONE[o.status]} dot>
@@ -125,6 +143,18 @@ export function OrdersSection({
                       onClick={() => onShowBankDetails(o)}
                     >
                       {tb('bankTransfer.show')}
+                    </Button>
+                  )}
+                  {o.status === 'PENDING' && !o.paymentClaimedAt && onCancelOrder && (
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-11 px-0 text-crimson"
+                      disabled={cancelPendingId === o.id}
+                      aria-busy={cancelPendingId === o.id}
+                      onClick={() => onCancelOrder(o)}
+                    >
+                      {tb('cancelOrder.action')}
                     </Button>
                   )}
                   {o.status === 'CONFIRMED' && o.invoiceLabel && (
