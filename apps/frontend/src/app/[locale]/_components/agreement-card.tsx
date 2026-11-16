@@ -1,10 +1,13 @@
 'use client';
 
+import { CheckCircle2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import type { QuoteDto } from '@marketplace/shared';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { displayedVersion } from '@/lib/quote-version';
+import { cn } from '@/lib/utils';
 
 // E-admin-platform-3 — "Acordul vostru": ce s-a convenit la acceptare (firma, pret, termen,
 // garantie, data acordului), vizibil clientului si firmei castigatoare. Data de livrare
@@ -26,6 +29,7 @@ export function AgreementCard({
   mode: 'client' | 'company';
 }) {
   const t = useTranslations('Fulfillment.agreement');
+  const titleId = useId();
   // E-client-1: versiunea confirmata la accept (fallback: ultima, pe accepturile vechi)
   const current = displayedVersion(quote);
   if (!current) return null;
@@ -44,7 +48,7 @@ export function AgreementCard({
     label: t('price'),
     value: (
       <>
-        <span className="font-semibold tabular-nums">
+        <span className="font-mono font-medium">
           {fmt(current.price)} {quote.currency}
         </span>
         <span className="ml-2 text-xs text-muted-foreground">
@@ -58,7 +62,7 @@ export function AgreementCard({
       label: t('designFee'),
       value: (
         <>
-          <span className="tabular-nums">
+          <span className="font-mono">
             {fmt(current.designFee)} {quote.currency}
           </span>
           <span className="ml-2 text-xs text-muted-foreground">
@@ -72,7 +76,7 @@ export function AgreementCard({
       label: t('total'),
       value: (
         <>
-          <span className="font-serif text-base font-semibold tabular-nums">
+          <span className="font-mono text-base font-medium">
             {fmt(current.total)} {quote.currency}
           </span>
           <span className="ml-2 text-xs text-muted-foreground">
@@ -82,32 +86,45 @@ export function AgreementCard({
       ),
     });
   }
-  if (deliveryLabel) rows.push({ label: t('deliveryDate'), value: deliveryLabel });
+  if (deliveryLabel) {
+    rows.push({ label: t('deliveryDate'), value: <span className="font-mono">{deliveryLabel}</span> });
+  }
   if (current.deliveryTerm) rows.push({ label: t('deliveryTerm'), value: current.deliveryTerm });
   if (current.warranty) rows.push({ label: t('warranty'), value: current.warranty });
   if (quote.acceptedAt) {
-    rows.push({ label: t('acceptedAt'), value: new Date(quote.acceptedAt).toLocaleDateString() });
+    rows.push({
+      label: t('acceptedAt'),
+      value: <span className="font-mono">{new Date(quote.acceptedAt).toLocaleDateString()}</span>,
+    });
   }
 
+  // salvie = acord incheiat; carmin doar cand data de livrare a trecut pe un proiect inca in lucru
   return (
-    <section className="rounded-xl border border-border bg-surface p-4 shadow-sm">
+    <Card as="section" aria-labelledby={titleId} className={cn(overdue && 'border-crimson/40')}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-serif text-lg">{t('title')}</h2>
-        {overdue && (
+        <h2 id={titleId} className="heading-card">
+          {t('title')}
+        </h2>
+        {overdue ? (
           <Badge tone="crimson" dot>
             {t('overdue')}
           </Badge>
+        ) : (
+          <CheckCircle2 className="h-5 w-5 shrink-0 text-sage" aria-hidden />
         )}
       </div>
-      <dl className="mt-3 grid grid-cols-[minmax(0,auto)_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-sm">
+      <dl className="mt-3 flex flex-col text-sm">
         {rows.map((r) => (
-          <div key={r.label} className="contents">
+          <div
+            key={r.label}
+            className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 border-t border-border py-2 first:border-t-0 first:pt-0 last:pb-0"
+          >
             <dt className="text-muted-foreground">{r.label}</dt>
-            <dd className="text-right">{r.value}</dd>
+            <dd className="min-w-0 text-right">{r.value}</dd>
           </div>
         ))}
       </dl>
       {overdue && <p className="mt-3 text-sm text-crimson">{t('overdueHint')}</p>}
-    </section>
+    </Card>
   );
 }

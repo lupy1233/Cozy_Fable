@@ -18,12 +18,16 @@ export function Avatar({
   tone?: 'walnut' | 'sage' | 'ink';
   className?: string;
 }) {
-  const initials = name
-    .split(' ')
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
+  // numele poate lipsi din raspuns (cont vechi, API simulat in teste): fara el nu aruncam,
+  // aratam un semn neutru — avatarul sta in antet, deci o eroare aici ar darama toata pagina
+  const initials =
+    (name ?? '')
+      .split(' ')
+      .filter(Boolean)
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() || '?';
   return (
     <div
       className={cn(

@@ -2,8 +2,8 @@
 
 import type { AnswerMap, RequestDto } from '@marketplace/shared';
 import { motion } from 'framer-motion';
-import { FilePlus2, History } from 'lucide-react';
-import { useLocale, useTranslations } from 'next-intl';
+import { ArrowLeft, Check, CloudOff, FilePlus2, History, Loader2 } from 'lucide-react';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,7 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Stepper } from '@/components/ui/stepper';
 import {
   useCreateDraft,
   useDiscardDraft,
@@ -27,7 +26,9 @@ import {
 import { track } from '@/lib/analytics';
 import { ApiError } from '@/lib/api';
 import { DRAFT_TOKEN_KEY } from '@/lib/session-cleanup';
-import { useRouter } from '@/i18n/routing';
+import { APP_TIME_ZONE } from '@/lib/sla-deadline';
+import { cn } from '@/lib/utils';
+import { Link, useRouter } from '@/i18n/routing';
 import {
   useConfiguratorStore,
   type ConfiguratorPhase,
@@ -37,7 +38,9 @@ import {
   type StartMode,
 } from '@/stores/configurator-store';
 import { DetailsStep } from './details-step';
+import { RequestSheet } from './review-rail';
 import { ReviewStep } from './review-step';
+import { CartBasket } from './cart-basket';
 import { RoomCartStep } from './room-cart-step';
 import { RoomFlowRunner } from './room-flow-runner';
 import { screenIndexForStep } from './room-screens';
@@ -123,6 +126,121 @@ function snapshotHasProgress(state: ConfiguratorSnapshot): boolean {
     state.roomInstances.length > 0 ||
     Object.keys(state.details).length > 0 ||
     (state.phase !== 'cart' && state.phase !== 'start')
+  );
+}
+
+// Limitele de editare (docs/03 §4.3): 3 inainte de prima preluare, 1 dupa.
+const MAX_PRE_CLAIM_EDITS = 3;
+const MAX_POST_CLAIM_EDITS = 1;
+
+// Fazele cererii: o bara pe faza (salvie = facuta, nuc = curenta, gri = urmeaza).
+// Pe telefon raman doar barele + "Faza X din Y · nume"; etichetele apar de la sm.
+function PhaseTrack({ labels, current }: { labels: string[]; current: number }) {
+  const t = useTranslations('Configurator');
+  return (
+    <div className="rounded-xl border border-border bg-surface px-4 py-3.5 sm:px-5 sm:py-4">
+      <ol
+        aria-label={t('phasesLabel')}
+        className="grid grid-flow-col auto-cols-fr gap-1.5 sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-[repeat(auto-fit,minmax(min(140px,100%),1fr))] sm:gap-3"
+      >
+        {labels.map((label, i) => {
+          const state = i < current ? 'done' : i === current ? 'now' : 'next';
+          return (
+            <li key={i} aria-current={state === 'now' ? 'step' : undefined} className="flex flex-col gap-2">
+              <span
+                aria-hidden
+                className={cn(
+                  'h-1 rounded-full',
+                  state === 'done' ? 'bg-sage' : state === 'now' ? 'bg-walnut' : 'bg-border-2',
+                )}
+              />
+              <span
+                className={cn(
+                  'hidden items-baseline gap-1.5 text-ui sm:flex',
+                  state === 'done' ? 'text-sage' : state === 'now' ? 'font-semibold text-foreground' : 'text-muted-foreground',
+                )}
+              >
+                <span className="font-mono text-meta">{i + 1}</span>
+                {label}
+              </span>
+              <span className="sr-only sm:hidden">{label}</span>
+            </li>
+          );
+        })}
+      </ol>
+      <p className="mt-2.5 flex items-baseline gap-2 sm:hidden">
+        <span className="font-mono text-meta text-muted-foreground">
+          {t('sheet.phaseLabel', { current: current + 1, total: labels.length })}
+        </span>
+        <span className="text-sm font-semibold">{labels[current]}</span>
+      </p>
+    </div>
+  );
+}
+
+// Starea ciornei, la vedere: progresul e mereu salvat in browser, iar copia de pe
+// server (reluare de pe alt dispozitiv) urmeaza la ~1,5 s dupa fiecare schimbare.
+// Fara role="status": pagina are deja o zona de stare (publicarea), iar anuntarea
+// fiecarei salvari ar fi zgomot pentru cititoarele de ecran.
+function DraftStatus({ saving, failed, savedAt }: { saving: boolean; failed: boolean; savedAt: number }) {
+  const t = useTranslations('Configurator');
+  const format = useFormatter();
+  const base = 'inline-flex min-h-11 items-center gap-2 font-mono text-xs';
+  if (saving) {
+    return (
+      <p className={cn(base, 'text-muted-foreground')}>
+        <Loader2 aria-hidden className="h-3.5 w-3.5 animate-spin" />
+        {t('draft.saving')}
+      </p>
+    );
+  }
+  if (failed) {
+    return (
+      <p className={cn(base, 'text-amber')}>
+        <CloudOff aria-hidden className="h-3.5 w-3.5" />
+        {t('draft.localOnly')}
+      </p>
+    );
+  }
+  return (
+    <p className={cn(base, 'text-sage')}>
+      <Check aria-hidden className="h-3.5 w-3.5" strokeWidth={2.5} />
+      {savedAt > 0
+        ? t('draft.savedAt', {
+            time: format.dateTime(new Date(savedAt), { hour: '2-digit', minute: '2-digit', timeZone: APP_TIME_ZONE }),
+          })
+        : t('draft.saved')}
+    </p>
+  );
+}
+
+// Mod editare: a cata editare este si cate mai raman, din contoarele cererii
+// deja incarcate (preClaimEditsUsed / postClaimEditsUsed). Salvarea consuma una.
+function EditNotice({ request, className }: { request: RequestDto; className?: string }) {
+  const t = useTranslations('Configurator');
+  const preClaim = request.status === 'IN_MARKETPLACE';
+  const postClaim = request.status === 'CLAIMED_PARTIAL' || request.status === 'CLAIMED_FULL';
+  if (!preClaim && !postClaim) return null;
+  const max = preClaim ? MAX_PRE_CLAIM_EDITS : MAX_POST_CLAIM_EDITS;
+  const used = Math.min(max, preClaim ? request.preClaimEditsUsed : request.postClaimEditsUsed);
+  const exhausted = used >= max;
+  const current = exhausted ? max : used + 1;
+  return (
+    <div className={cn('flex flex-col gap-2 rounded-xl border border-amber/30 bg-amber-soft px-4 py-4 text-amber sm:px-5', className)}>
+      <p className="font-semibold">{exhausted ? t('edit.noneLeft') : t('edit.counter', { current, max })}</p>
+      <div aria-hidden className={cn('grid max-w-xs gap-1.5', preClaim ? 'grid-cols-3' : 'grid-cols-1')}>
+        {Array.from({ length: max }, (_, i) => (
+          <span key={i} className={cn('h-1.5 rounded-full', i < current ? 'bg-amber' : 'bg-amber/25')} />
+        ))}
+      </div>
+      {/* cu toate editarile folosite serverul refuza salvarea: fara notele despre "consuma una" */}
+      {!exhausted && (
+        <>
+          <p className="text-ui">{preClaim ? t('edit.preClaimNote', { max }) : t('edit.postClaimNote')}</p>
+          <p className="text-ui">{t('edit.saveHint')}</p>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -347,8 +465,26 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
   const phaseIndex = Math.max(0, phaseOrder.indexOf(phase));
   const phaseLabels = phaseOrder.map((p) => t(`phases.${p}`));
 
+  // sumarul isi are propria asezare (carduri + coloana de publicare); "Fisa cererii"
+  // insoteste fazele in care exista deja camere de urmarit
+  const inReview = phase === 'review';
+  const showSheet = phase === 'rooms' || phase === 'uploads' || phase === 'details';
+  // la pasul de camere, coloana din dreapta tine cosul; "Fisa cererii" ii ia locul
+  // cand incep intrebarile, deci asezarea paginii nu sare intre cele doua faze
+  const showBasket = phase === 'cart';
+  const showSide = showSheet || showBasket;
+  const headTitle = inReview ? t('review.title') : t(isEdit ? 'editTitle' : 'title');
+  const headSubtitle = inReview
+    ? t('review.subtitle')
+    : isEdit
+      ? t('editSubtitle')
+      : phase === 'start'
+        ? t('subtitle')
+        : null;
+  const editedRequest = isEdit ? editRequest.data : undefined;
+
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-8">
+    <div className="flex flex-col gap-6">
       {/* cerere neterminata gasita: continua sau incepe din nou (fara salvare) */}
       <Dialog open={resumePrompt} onOpenChange={setResumePrompt}>
         <DialogContent>
@@ -370,43 +506,76 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
         </DialogContent>
       </Dialog>
 
-      <div>
-        <p className="kicker">{t(isEdit ? 'editKicker' : 'kicker')}</p>
-        <h1 className="page-title mt-1.5">{t(isEdit ? 'editTitle' : 'title')}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {t(isEdit ? 'editSubtitle' : 'subtitle')}
-        </p>
-      </div>
+      <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+        <div className="flex min-w-0 flex-col gap-2">
+          {isEdit && editId && (
+            <Link
+              href={`/requests/${editId}`}
+              className="inline-flex min-h-11 items-center gap-1.5 self-start text-sm font-medium text-walnut hover:text-walnut-deep"
+            >
+              <ArrowLeft aria-hidden className="h-4 w-4" />
+              {t('edit.backToRequest')}
+            </Link>
+          )}
+          <p className="kicker">{t(isEdit ? 'editKicker' : 'kicker')}</p>
+          <h1 className="page-title">{headTitle}</h1>
+          {headSubtitle && <p className="max-w-3xl text-lead text-muted-foreground">{headSubtitle}</p>}
+        </div>
+        {/* la editare nu exista ciorna: modificarile se salveaza abia din Sumar */}
+        {!isEdit && (
+          <DraftStatus
+            saving={patchDraft.isPending}
+            failed={patchDraft.isError}
+            savedAt={patchDraft.isSuccess ? draft.dataUpdatedAt : 0}
+          />
+        )}
+      </header>
 
-      {/* plansa de atelier: colturi de registru + cartus (title block) */}
-      <div className="relative">
-        <span aria-hidden className="pointer-events-none absolute -left-1.5 -top-1.5 h-3 w-3 border-l border-t border-ink/30" />
-        <span aria-hidden className="pointer-events-none absolute -right-1.5 -top-1.5 h-3 w-3 border-r border-t border-ink/30" />
-        <span aria-hidden className="pointer-events-none absolute -bottom-1.5 -left-1.5 h-3 w-3 border-b border-l border-ink/30" />
-        <span aria-hidden className="pointer-events-none absolute -bottom-1.5 -right-1.5 h-3 w-3 border-b border-r border-ink/30" />
+      {/* sub antet pe ecrane mici si in fazele fara coloana laterala; altfel sta in coloana */}
+      {editedRequest && <EditNotice request={editedRequest} className={cn(showSide && 'lg:hidden')} />}
 
-        <div className="border border-ink/15 bg-surface shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-ink/15 px-6 py-3.5">
-            <div className="flex items-baseline gap-3">
-              <span className="font-mono text-micro uppercase tracking-[0.14em] text-muted-2">
-                {t('sheet.phaseLabel', {
-                  current: phaseIndex + 1,
-                  total: phaseOrder.length,
-                })}
-              </span>
-              <span className="font-serif text-lg tracking-[-0.01em]">
-                {phaseLabels[phaseIndex]}
-              </span>
-            </div>
-            <Stepper steps={phaseLabels} current={phaseIndex} labeled />
-          </div>
+      <PhaseTrack labels={phaseLabels} current={phaseIndex} />
 
-          <motion.div
+      {inReview ? (
+        <motion.div
+          key="review"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+        >
+          <ReviewStep
+            token={token}
+            editId={editId}
+            uploadTarget={uploadTarget}
+            onBack={() => setPhase('details')}
+            onEditRoom={(i, stepId) => {
+              // "Completeaza" din sumar: camera se redeschide exact la pasul problema
+              const state = store.getState();
+              const room = state.roomInstances[i];
+              if (!room) return;
+              state.markRoomCompleted(room.localId, false);
+              state.focusRoomStep(i, stepId ? screenIndexForStep(room, stepId, state.details.hasOwnProject === true) : 0);
+              setPhase('rooms');
+            }}
+            onEditDetails={() => setPhase('details')}
+            onEditFiles={() => setPhase('uploads')}
+            onPublished={(id) => {
+              // tokenul moare la publicare (SEC2-4): nu se mai pastreaza per cerere;
+              // repostul/editarea merg pe rutele autentificate :id
+              if (!isEdit) localStorage.removeItem(DRAFT_TOKEN_KEY);
+              store.getState().reset();
+              router.push(`/requests/${id}`);
+            }}
+          />
+        </motion.div>
+      ) : (
+        <div className={cn('grid items-start gap-6', showSide && 'lg:grid-cols-[minmax(0,1fr)_320px]')}>
+          <motion.section
             key={phase}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="p-6 sm:p-7"
+            className="min-w-0 rounded-xl border border-border bg-surface p-5 shadow sm:p-7"
           >
         {phase === 'start' && (
           <StartModeStep value={startMode} onPick={pickStartMode} />
@@ -442,35 +611,26 @@ export function ConfiguratorWizard({ editId }: { editId?: string }) {
         {phase === 'details' && (
           <DetailsStep onBack={() => setPhase('uploads')} onContinue={() => setPhase('review')} />
         )}
-        {phase === 'review' && (
-          <ReviewStep
-            token={token}
-            editId={editId}
-            uploadTarget={uploadTarget}
-            onBack={() => setPhase('details')}
-            onEditRoom={(i, stepId) => {
-              // "Completeaza" din sumar: camera se redeschide exact la pasul problema
-              const state = store.getState();
-              const room = state.roomInstances[i];
-              if (!room) return;
-              state.markRoomCompleted(room.localId, false);
-              state.focusRoomStep(i, stepId ? screenIndexForStep(room, stepId, state.details.hasOwnProject === true) : 0);
-              setPhase('rooms');
-            }}
-            onEditDetails={() => setPhase('details')}
-            onEditFiles={() => setPhase('uploads')}
-            onPublished={(id) => {
-              // tokenul moare la publicare (SEC2-4): nu se mai pastreaza per cerere;
-              // repostul/editarea merg pe rutele autentificate :id
-              if (!isEdit) localStorage.removeItem(DRAFT_TOKEN_KEY);
-              store.getState().reset();
-              router.push(`/requests/${id}`);
-            }}
-          />
-        )}
-          </motion.div>
+          </motion.section>
+
+          {showSide && (
+            <div
+              className={cn(
+                'min-w-0 flex-col gap-5 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6.5rem)] lg:overflow-y-auto',
+                // cosul are pe ecrane mici banda lui din pas (CartBasketStrip)
+                showBasket ? 'hidden lg:flex' : 'flex',
+              )}
+            >
+              {editedRequest && <EditNotice request={editedRequest} className="hidden lg:flex" />}
+              {showBasket ? (
+                <CartBasket />
+              ) : (
+                <RequestSheet phase={phase} phaseOrder={phaseOrder} designHelp={designHelp} />
+              )}
+            </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }

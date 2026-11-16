@@ -8,7 +8,7 @@ import {
   type ConfiguratorContentInput,
   type ContactPreferenceInput,
 } from '@marketplace/shared';
-import { ArrowLeft, Loader2, LogIn, Send, Wrench } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, LogIn, Send, Wrench } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
@@ -27,6 +27,7 @@ import { useConfiguratorStore, type RoomInstance } from '@/stores/configurator-s
 import { synchronizeStudioSnapshots, invalidStudioRequestEntries } from '@/stores/studio-transfer';
 import { InspirationPicker } from './inspiration-picker';
 import { ReviewFactsCard } from './review-facts-card';
+import { RailNode } from './review-rail';
 import { ReviewRoomCard, type ReviewRoomIssue } from './review-room-card';
 import { roomIssue } from './room-screens';
 import { AttachmentThumb } from './attachment-item';
@@ -328,13 +329,9 @@ export function ReviewStep({
         </div>
       )}
 
-      <div>
-        <h2 className="font-serif text-2xl tracking-[-0.01em]">{t('review.title')}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{t('review.subtitle')}</p>
-      </div>
-
-      <div>
-        <div className="flex flex-col gap-5">
+      {/* titlul pasului ("Verifica si publica") sta in antetul paginii (wizard) */}
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="flex min-w-0 flex-col gap-6">
           {/* Detalii generale */}
           <ReviewFactsCard details={details} complete={detailsComplete} designHelp={designHelp} onEdit={onEditDetails} />
 
@@ -345,6 +342,7 @@ export function ReviewStep({
           {rooms.map((room, i) => <ReviewRoomCard
             key={room.localId}
             room={room}
+            index={i + 1}
             attachments={attachments}
             designHelp={designHelp}
             onEdit={() => onEditRoom(i)}
@@ -352,13 +350,27 @@ export function ReviewStep({
             onFix={() => onEditRoom(i, roomIssues[i]?.stepId ?? undefined)}
           />)}
 
-          {projectFiles.length > 0 && <section className="rounded-xl border border-border bg-surface p-5">
-            <h3 className="font-serif text-xl">{t('review.filesTitle')}</h3>
-            <div className="mt-3 flex flex-wrap gap-2">{projectFiles.map((attachment) => <AttachmentThumb key={attachment.id} attachment={attachment} />)}</div>
+          {projectFiles.length > 0 && <section aria-labelledby="review-files-title" className="flex flex-col gap-3.5 rounded-xl border border-border bg-surface px-5 py-5 sm:px-6">
+            <h2 id="review-files-title" className="heading-section">{t('review.filesTitle')}</h2>
+            <div className="flex flex-wrap gap-2">{projectFiles.map((attachment) => <AttachmentThumb key={attachment.id} attachment={attachment} />)}</div>
           </section>}
 
           <InspirationPicker blockedNoteIds={blockedNoteIds} />
 
+          {droppedContacts.length > 0 && (
+            <Alert tone="info">
+              {t('review.contactsAdjusted', { removed: droppedContacts.map((c) => c.value).join(', ') })}
+            </Alert>
+          )}
+
+          <Button type="button" variant="outline" size="lg" className="h-11 self-start" onClick={onBack}>
+            <ArrowLeft aria-hidden />
+            {t('nav.back')}
+          </Button>
+        </div>
+
+        {/* coloana de publicare: eroarea serverului, starea cererii, actiunea principala */}
+        <div className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6.5rem)] lg:overflow-y-auto">
           {apiErr && (
             <div ref={errorRef} tabIndex={-1} role="alert" className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-crimson">
             <Alert tone="crimson">
@@ -404,75 +416,113 @@ export function ReviewStep({
             </div>
           )}
 
-          {droppedContacts.length > 0 && (
-            <Alert tone="info">
-              {t('review.contactsAdjusted', { removed: droppedContacts.map((c) => c.value).join(', ') })}
-            </Alert>
-          )}
+          <section
+            aria-labelledby="review-publish-title"
+            className="flex flex-col gap-4 rounded-xl border border-brass bg-surface p-5 shadow-sheet sm:p-6"
+          >
+            <h2 id="review-publish-title" className="font-serif text-2xl leading-tight">
+              {readyToPublish
+                ? t(isEdit ? 'review.readyTitleEdit' : 'review.readyTitle')
+                : t('review.notReadyTitle')}
+            </h2>
 
-          {/* Poti completa cererea ca vizitator, dar publicarea necesita cont */}
-          {!authed && !me.isPending && readyToPublish && (
-            <Alert tone="info">{t('review.loginToPublishHint')}</Alert>
-          )}
-        </div>
-      </div>
-
-      <div>
-        <div className="border-t border-ink/15 pt-4">
-          {/* randul-sumar al comenzii — doar din datele deja existente */}
-          {readyToPublish ? (
-            <p className="font-mono text-meta leading-relaxed text-muted-2">
-              {t('cart.totalRooms', { count: rooms.length })}
-              {' — '}
-              {rooms.map((r) => t(`rooms.type.${r.roomType}`)).join(', ')}
-              {details.city ? ` · ${details.city}` : ''}
-            </p>
-          ) : (
-            <div className="flex flex-col gap-0.5 text-ui text-amber">
-              {!detailsComplete && <p>{t('review.detailsIncomplete')}</p>}
-              {rooms.length === 0 && <p>{t('cart.totalRooms', { count: 0 })}</p>}
-              {!designHelp &&
-                rooms
+            {/* starea cererii — doar din datele deja existente */}
+            <ul className="flex flex-col gap-2.5 text-sm">
+              <li className="flex items-start gap-2.5">
+                <ReadyMark ok={allRoomsComplete} />
+                <span className="min-w-0 break-words">
+                  {t('cart.totalRooms', { count: rooms.length })}
+                  {rooms.length > 0 && ` — ${rooms.map((r) => t(`rooms.type.${r.roomType}`)).join(', ')}`}
+                </span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <ReadyMark ok={detailsComplete} />
+                <span className={detailsComplete ? undefined : 'text-amber'}>
+                  {detailsComplete ? t('review.checkDetails') : t('review.detailsIncomplete')}
+                </span>
+              </li>
+              {attachments.length > 0 && (
+                <li className="flex items-start gap-2.5">
+                  <ReadyMark ok />
+                  <span>{t('summaryFiles.count', { n: attachments.length })}</span>
+                </li>
+              )}
+            </ul>
+            {!designHelp && localIssues.some((issue) => issue !== null) && (
+              <div className="flex flex-col gap-0.5 text-ui text-amber">
+                {rooms
                   .filter((_, i) => localIssues[i] !== null)
                   .map((r) => (
                     <p key={r.localId}>
                       {t(`rooms.type.${r.roomType}`)} — {t('review.roomIncomplete')}
                     </p>
                   ))}
-            </div>
-          )}
+              </div>
+            )}
 
-          <div className="mt-4 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <Button type="button" variant="ghost" onClick={onBack}>
-              <ArrowLeft className="mr-1 h-4 w-4" />
-              {t('nav.back')}
-            </Button>
+            {/* singura actiune principala a ecranului */}
             {authed ? (
               <Button
                 type="button"
                 variant="walnut"
-                size="lg"
+                size="xl"
+                className="w-full px-4"
                 disabled={!detailsComplete || !allRoomsComplete || publish.isPending || preparing}
                 onClick={() => void doPublish()}
               >
-                <Send className="mr-1 h-4 w-4" />
+                <Send aria-hidden />
                 {isEdit ? t('review.saveEdit') : tr('publish')}
               </Button>
             ) : (
               <Button
                 type="button"
                 variant="walnut"
-                size="lg"
+                size="xl"
+                className="h-auto min-h-12 w-full whitespace-normal px-4 py-2 text-sm"
                 disabled={!detailsComplete || !allRoomsComplete || me.isPending}
                 onClick={() => router.push('/login?redirect=/requests/new')}
               >
-                <LogIn className="mr-1 h-4 w-4" />
+                <LogIn aria-hidden />
                 {t('review.loginToPublish')}
               </Button>
             )}
-          </div>
+
+            {/* Poti completa cererea ca vizitator, dar publicarea necesita cont */}
+            {!authed && !me.isPending && readyToPublish ? (
+              <p className="text-ui text-muted-foreground">{t('review.loginToPublishHint')}</p>
+            ) : (
+              authed && !isEdit && <p className="text-ui text-muted-foreground">{t('review.publishNote')}</p>
+            )}
+          </section>
+
+          {/* cine vede cererea: aceleasi doua propozitii ca pana acum, mutate din cardul de detalii */}
+          <section
+            aria-labelledby="review-visibility-title"
+            className="flex flex-col gap-3 rounded-xl border border-border bg-surface-2 px-5 py-5 sm:px-6"
+          >
+            <h2 id="review-visibility-title" className="heading-card">
+              {tr('visibility.title')}
+            </h2>
+            <div>
+              <h3 className="text-sm font-semibold">{tr('visibility.projectLabel')}</h3>
+              <p className="text-ui text-muted-foreground">{t('review.facts.projectVisibility')}</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold">{tr('visibility.contactsLabel')}</h3>
+              <p className="text-ui text-muted-foreground">{t('review.facts.contactVisibility')}</p>
+            </div>
+          </section>
         </div>
       </div>
     </div>
+  );
+}
+
+// Bifa salvie = in regula; nod chihlimbar = mai e ceva de completat.
+function ReadyMark({ ok }: { ok: boolean }) {
+  return ok ? (
+    <Check aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-sage" strokeWidth={2.5} />
+  ) : (
+    <RailNode state="issue" className="mx-[3px] mt-[5px]" />
   );
 }

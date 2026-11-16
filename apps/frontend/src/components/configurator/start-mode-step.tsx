@@ -85,7 +85,7 @@ export function StartModeStep({
   return (
     <div className="flex flex-col gap-7">
       <div>
-        <h2 className="font-serif text-2xl tracking-[-0.01em]">{t('start.title')}</h2>
+        <h2 className="font-serif text-2xl leading-[1.2] sm:text-3xl">{t('start.title')}</h2>
         <p className="mt-1 text-sm text-muted-foreground">{t('start.subtitle')}</p>
       </div>
 
@@ -102,10 +102,10 @@ export function StartModeStep({
               onClick={() => onPick(mode)}
               aria-pressed={selected}
               className={cn(
-                'group relative flex min-h-[19rem] flex-col overflow-hidden rounded-xl border p-5 pt-7 text-left shadow-sm transition-all sm:min-h-[21rem]',
+                'group relative flex min-h-[19rem] flex-col overflow-hidden rounded-xl border p-5 pt-7 text-left transition-all sm:min-h-[21rem]',
                 selected
-                  ? 'border-walnut bg-walnut-soft shadow-[0_0_0_3px_hsl(var(--walnut)/0.14)]'
-                  : 'border-border-2 bg-surface hover:-translate-y-0.5 hover:border-walnut/60 hover:shadow-md',
+                  ? 'border-walnut bg-surface-2 shadow-[0_0_0_1px_hsl(var(--walnut))]'
+                  : 'border-border bg-surface hover:-translate-y-0.5 hover:border-walnut/60 hover:shadow',
               )}
             >
               {/* indicatorul radio — acelasi limbaj ca pe cardurile de raspuns */}

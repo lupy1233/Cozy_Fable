@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Loader2 } from 'lucide-react';
+import { Bookmark, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useSavePhoto, useUnsavePhoto } from '@/hooks/use-inspiration-boards';
@@ -12,32 +12,30 @@ import { BoardPicker } from './board-picker';
 // E-client-34: popover-ul e o lista de colectii cu bife — o poza se salveaza in mai multe
 // colectii deodata (bifa = salveaza, debifare = scoate); ramane deschis intre bife.
 // Mutarea intre colectii ramane pe detaliul colectiei.
+// Design 2026-11: pastila alba cu semn de carte, mereu vizibila pe cartonas (nu doar la
+// hover); salvat = pastila espresso cu semnul plin.
 export function SaveButton({
   photoId,
   savedBoardIds,
   authed,
   onRequireAuth,
-  onOpenChange,
+  compact = false,
 }: {
   photoId: string;
   // colectiile in care e salvata poza (gol = nesalvata)
   savedBoardIds: string[];
   authed: boolean;
   onRequireAuth: () => void;
-  // pin-ul isi tine valul de hover vizibil cat timp popover-ul e deschis
-  onOpenChange?: (open: boolean) => void;
+  // pe cartonasele inguste de pe telefon (2 coloane) ramane doar iconita;
+  // textul sta in continuare in numele accesibil
+  compact?: boolean;
 }) {
   const t = useTranslations('Inspiration');
-  const [open, setOpenRaw] = useState(false);
+  const [open, setOpen] = useState(false);
   const save = useSavePhoto();
   const unsave = useUnsavePhoto();
   // colectiile cu o bifa in curs de confirmare (spinner pe rand)
   const [pending, setPending] = useState<string[]>([]);
-
-  const setOpen = (o: boolean) => {
-    setOpenRaw(o);
-    onOpenChange?.(o);
-  };
 
   const saved = savedBoardIds.length > 0;
   const busy = pending.length > 0;
@@ -56,29 +54,32 @@ export function SaveButton({
   };
 
   // neautentificat: nu deschide picker-ul, ci cere login-ul
-  const onOpenChangeRaw = (o: boolean) => {
+  const onOpenChange = (o: boolean) => {
     if (o && !authed) return onRequireAuth();
     setOpen(o);
   };
 
   return (
-    <Popover open={open} onOpenChange={onOpenChangeRaw}>
+    <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <button
           type="button"
           className={cn(
-            'flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold shadow-md transition-colors',
+            'inline-flex h-10 min-w-0 max-w-full items-center justify-center gap-1.5 rounded-full border text-ui font-medium shadow-sm transition-colors',
+            compact ? 'w-10 sm:w-auto sm:px-3.5' : 'px-3.5',
             saved
-              ? 'bg-foreground text-background hover:bg-ink-2'
-              : 'bg-crimson text-white hover:brightness-110',
+              ? 'border-foreground bg-foreground text-primary-foreground hover:bg-ink-2'
+              : 'border-border-2 bg-surface text-foreground hover:border-muted-2 hover:bg-surface-2',
           )}
         >
           {busy ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : saved ? (
-            <Check className="h-4 w-4" />
-          ) : null}
-          {saved ? t('savedInCount', { count: savedBoardIds.length }) : t('save')}
+            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+          ) : (
+            <Bookmark className={cn('h-3.5 w-3.5 shrink-0', saved && 'fill-current')} aria-hidden />
+          )}
+          <span className={compact ? 'sr-only sm:not-sr-only sm:min-w-0 sm:truncate' : 'min-w-0 truncate'}>
+            {saved ? t('savedInCount', { count: savedBoardIds.length }) : t('save')}
+          </span>
         </button>
       </PopoverTrigger>
 

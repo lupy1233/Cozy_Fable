@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { resetPasswordSchema, type ResetPasswordInput } from '@marketplace/shared';
+import { Check, CircleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
@@ -10,9 +11,10 @@ import { Link } from '@/i18n/routing';
 import { apiErrorKey } from '@/lib/error-messages';
 import { useResetPassword } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Alert } from '@/components/ui/alert';
+import { AuthStateIcon, authFooterCls, authLinkCls, authTitleCls } from '../_components/auth-parts';
+import { PasswordInput } from '../_components/password-input';
 
 // L0-A: parola noua pe baza tokenului din link (one-time, 60 min).
 function ResetPasswordInner() {
@@ -43,35 +45,45 @@ function ResetPasswordInner() {
   const apiErr = reset.error ? apiErrorKey(reset.error) : null;
   // link incomplet sau token respins de server → trimitem la "parola uitata"
   const tokenInvalid = token.length !== 64 || apiErr?.key === 'apiErrors.RESET_TOKEN_INVALID';
+  const backLink = (
+    <p className={authFooterCls}>
+      <Link href="/login" className={authLinkCls}>
+        ← {t('backToLogin')}
+      </Link>
+    </p>
+  );
 
   if (reset.isSuccess) {
     return (
-      <div className="flex flex-col gap-4">
-        <h1 className="font-serif text-2xl">{t('resetTitle')}</h1>
-        <Alert tone="sage">{t('resetSuccess')}</Alert>
-        <Link href="/login" className="text-walnut underline">
-          {t('goToLogin')}
-        </Link>
+      <div role="status" className="flex flex-col gap-5">
+        <AuthStateIcon icon={Check} tone="sage" />
+        <h1 className={authTitleCls}>{t('resetDoneTitle')}</h1>
+        <p className="text-sm text-muted-foreground">{t('resetDoneBody')}</p>
+        <Button asChild variant="walnut" size="xl" className="w-full text-lead">
+          <Link href="/login">{t('goToLogin')}</Link>
+        </Button>
       </div>
     );
   }
 
   if (tokenInvalid) {
     return (
-      <div className="flex flex-col gap-4">
-        <h1 className="font-serif text-2xl">{t('resetTitle')}</h1>
-        <Alert tone="crimson">{t('resetTokenInvalid')}</Alert>
-        <Link href="/forgot-password" className="text-walnut underline">
-          {t('resetRequestNewLink')}
-        </Link>
+      <div role="alert" className="flex flex-col gap-5">
+        <AuthStateIcon icon={CircleAlert} tone="crimson" />
+        <h1 className={authTitleCls}>{t('linkInvalidTitle')}</h1>
+        <p className="text-sm text-muted-foreground">{t('resetTokenInvalid')}</p>
+        <Button asChild variant="walnut" size="xl" className="w-full text-lead">
+          <Link href="/forgot-password">{t('resetRequestNewLink')}</Link>
+        </Button>
+        {backLink}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="font-serif text-2xl">{t('resetTitle')}</h1>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2.5">
+        <h1 className={authTitleCls}>{t('resetTitle')}</h1>
         <p className="text-sm text-muted-foreground">{t('resetBody')}</p>
       </div>
 
@@ -80,32 +92,29 @@ function ResetPasswordInner() {
 
         <Field
           label={t('newPassword')}
+          hint={t('passwordHint')}
           error={errors.newPassword && t(`validation.${errors.newPassword.message}`)}
         >
-          <Input type="password" autoComplete="new-password" {...register('newPassword')} />
+          <PasswordInput autoComplete="new-password" {...register('newPassword')} />
         </Field>
 
         <Field
           label={t('confirmPassword')}
           error={errors.confirmPassword && t(`validation.${errors.confirmPassword.message}`)}
         >
-          <Input type="password" autoComplete="new-password" {...register('confirmPassword')} />
+          <PasswordInput autoComplete="new-password" {...register('confirmPassword')} />
         </Field>
 
         {apiErr && (
           <Alert tone="crimson">{t.has(apiErr.key) ? t(apiErr.key) : apiErr.fallback}</Alert>
         )}
 
-        <Button type="submit" disabled={reset.isPending} className="w-full">
+        <Button type="submit" variant="walnut" size="xl" disabled={reset.isPending} className="w-full text-lead">
           {t('resetSubmit')}
         </Button>
       </form>
 
-      <p className="text-sm text-muted-foreground">
-        <Link href="/login" className="text-walnut underline">
-          {t('backToLogin')}
-        </Link>
-      </p>
+      {backLink}
     </div>
   );
 }

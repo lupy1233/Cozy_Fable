@@ -38,3 +38,18 @@ export const FIRM_RULES_SECTIONS = [
   'suspension',
   'changes',
 ] as const;
+
+// Design 2026-11: randurile cardului „Pe scurt” (Legal.<pagina>.summary.*). Text nou, in afara
+// lui `sections` (textul juridic versionat); fiecare rand reia o afirmatie din sectiunile de mai sus.
+export const TERMS_SUMMARY = ['contract', 'claims', 'offers', 'reviews'] as const;
+
+export const PRIVACY_SUMMARY = ['contacts', 'masked', 'accessEnds', 'marketing'] as const;
+
+// Legal.firmRules.summary.rows.* — valorile vin din aceleasi argumente ca textul sectiunilor.
+export const FIRM_RULES_SUMMARY = [
+  'freeWithdrawal',
+  'slaMiss',
+  'voluntaryWithdrawal',
+  'suspension',
+  'reapply',
+] as const;

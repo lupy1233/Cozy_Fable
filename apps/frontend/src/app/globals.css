@@ -56,6 +56,7 @@
     --amber-soft: 43 64% 89%;
     --brass: 38 57% 45%;               /* alama — detalii premium */
     --brass-2: 41 55% 54%;
+    --brass-ink: 39 68% 32%;           /* alama pentru TEXT (kicker): contrast pe ivoriu */
     --crimson: 7 54% 40%;
     --crimson-soft: 10 58% 90%;
     --info: 204 40% 39%;
@@ -113,6 +114,7 @@
     --amber-soft: 40 30% 16%;
     --brass: 38 58% 58%;
     --brass-2: 41 70% 68%;
+    --brass-ink: 41 70% 68%;
     --crimson: 8 56% 63%;
     --crimson-soft: 8 30% 18%;
     --info: 202 43% 65%;
@@ -256,7 +258,7 @@
     font-weight: 600;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: hsl(var(--brass));
+    color: hsl(var(--brass-ink));
   }
   .page-title {
     font-family: var(--font-serif), Georgia, serif;
@@ -408,4 +410,33 @@
     transform: none !important;
     transition: none !important;
   }
+}
+
+/* Ecranele de cont (design 2026-11, varianta B aleasa de PO): fundal intr-un singur degrade,
+   nuc inchis sus → ivoriu jos, fara margine intre ele, plus doua lumini slabe sus.
+   Culorile sunt trepte fixe intre --walnut-deep si --background (nu au token propriu). */
+.auth-backdrop {
+  background-color: hsl(var(--background));
+  background-image:
+    radial-gradient(900px 520px at 10% 0%, rgba(255, 255, 255, 0.14), transparent 60%),
+    radial-gradient(760px 520px at 94% 14%, rgba(202, 161, 73, 0.2), transparent 62%),
+    linear-gradient(180deg, #5a3820 0%, #6b4127 20%, #8a5e3f 38%, #b89774 54%, #dcc8ac 67%, #f1eadf 80%);
+  background-repeat: no-repeat;
+}
+/* sigla pe nuc: fumul de alama are nevoie de o treapta mai deschisa */
+.auth-brand {
+  --brass: 41 67% 72%;
+}
+.auth-accent {
+  color: #f2ddae;
+}
+.auth-card {
+  box-shadow:
+    0 40px 70px -24px rgba(26, 23, 20, 0.5),
+    0 10px 22px -10px rgba(26, 23, 20, 0.2);
+}
+.auth-tile {
+  box-shadow:
+    0 32px 54px -24px rgba(26, 23, 20, 0.55),
+    0 10px 20px -12px rgba(26, 23, 20, 0.28);
 }

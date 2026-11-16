@@ -44,6 +44,8 @@ describe('RequestVisibilityCard', () => {
     expect(screen.getByText('B Design')).toBeTruthy();
     expect(screen.queryByText(ro.Requests.visibility.contactsNone)).toBeNull();
     expect(screen.getAllByRole('listitem')).toHaveLength(2);
+    // contactele sunt deja vizibile: langa nume apare momentul preluarii, in ora Romaniei
+    expect(screen.getAllByText(/^preluată pe .*11:00/)).toHaveLength(2);
   });
 
   it('contacte in asteptare (AFTER_GRACE): "din {ora}" in ora Romaniei, si in engleza', () => {
@@ -54,6 +56,7 @@ describe('RequestVisibilityCard', () => {
     };
     renderCard(v);
     expect(screen.getByText(/din 11:30/)).toBeTruthy();
+    expect(screen.queryByText(/preluată pe/)).toBeNull();
     const { container } = renderCard(v, 'en');
     expect(container.textContent).toContain('Who can see this request');
     expect(container.textContent).toMatch(/from 11:30/);

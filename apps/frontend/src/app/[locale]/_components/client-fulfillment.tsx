@@ -1,9 +1,15 @@
 'use client';
 
+import { ArrowDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type { QuoteDto } from '@marketplace/shared';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { ApiError } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import { useConfirmDelivery, useCreateReview, useProjectCase, useReview } from '@/hooks/use-fulfillment';
 import { AgreementCard } from './agreement-card';
 import { ProjectCasePanel } from './project-case-panel';
@@ -16,15 +22,18 @@ export function ClientFulfillment({
   acceptedCompany,
   acceptedQuote,
   cancelledAt,
+  onOpenCompanyChat,
 }: {
   requestId: string;
   status: string;
-  // firma castigatoare — pentru panoul "ce urmeaza" + ancora spre conversatia ei
+  // firma castigatoare — pentru panoul "ce urmeaza" + drumul spre conversatia ei
   acceptedCompany?: { name: string; claimSlotId: string } | null;
   // E-admin-platform-3: oferta acceptata — pentru cardul "Acordul vostru"
   acceptedQuote?: QuoteDto | null;
   // E-admin-platform-3: momentul inchiderii proiectului (status CANCELLED)
   cancelledAt?: string | null;
+  // pagina arata o firma pe rand: deschide firma castigatoare; fara el ramane ancora #firm-<claimSlotId>
+  onOpenCompanyChat?: (claimSlotId: string) => void;
 }) {
   const t = useTranslations('Fulfillment');
   const confirm = useConfirmDelivery();
@@ -50,14 +59,14 @@ export function ClientFulfillment({
   if (status === 'CANCELLED') {
     const closedAt = cancelledAt ?? projectCase.data?.resolvedAt ?? null;
     return (
-      <section className="rounded-xl border border-border bg-surface-2 p-4">
-        <h2 className="font-serif text-lg">{t('projectCase.cancelledTitle')}</h2>
+      <Card as="section" tone="muted">
+        <h2 className="heading-section">{t('projectCase.cancelledTitle')}</h2>
         {closedAt && (
           <p className="mt-1 text-sm text-muted-foreground">
             {t('projectCase.cancelledBody', { date: new Date(closedAt).toLocaleDateString() })}
           </p>
         )}
-      </section>
+      </Card>
     );
   }
 
@@ -65,18 +74,18 @@ export function ClientFulfillment({
   if (inProgress) {
     return (
       <div className="flex flex-col gap-4">
-        <section className="rounded-xl border border-sage/30 bg-sage-soft p-4">
-          <h2 className="font-serif text-lg text-sage">{t('acceptedTitle')}</h2>
+        <Card as="section" tone="sage">
+          <h2 className="heading-section text-sage">{t('acceptedTitle')}</h2>
           <p className="mt-1 text-sm">
             {acceptedCompany
               ? t('acceptedIntro', { company: acceptedCompany.name })
               : t('acceptedIntroNoName')}
           </p>
-          <ol className="mt-3 flex flex-col gap-2 text-sm">
+          <ol className="mt-3 flex max-w-prose flex-col gap-2.5 text-sm">
             {[t('acceptedStep1'), t('acceptedStep2'), t('acceptedStep3'), t('acceptedStep4')].map(
               (step, i) => (
                 <li key={i} className="flex gap-2.5">
-                  <span className="grid h-5 w-5 flex-none place-items-center rounded-full bg-sage/15 font-serif text-meta text-sage">
+                  <span className="grid h-5 w-5 flex-none place-items-center rounded-full bg-sage/15 font-mono text-meta text-sage">
                     {i + 1}
                   </span>
                   <span>{step}</span>
@@ -84,15 +93,28 @@ export function ClientFulfillment({
               ),
             )}
           </ol>
-          {acceptedCompany && (
-            <a
-              href={`#firm-${acceptedCompany.claimSlotId}`}
-              className="mt-3 inline-block text-sm font-medium text-walnut hover:underline"
-            >
-              {t('acceptedOpenChat', { company: acceptedCompany.name })} ↓
-            </a>
-          )}
-        </section>
+          {acceptedCompany &&
+            (onOpenCompanyChat ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={() => onOpenCompanyChat(acceptedCompany.claimSlotId)}
+                className="mt-4 h-auto min-h-10 whitespace-normal py-2 text-left"
+              >
+                {t('acceptedOpenChat', { company: acceptedCompany.name })}
+                <ArrowDown aria-hidden />
+              </Button>
+            ) : (
+              <a
+                href={`#firm-${acceptedCompany.claimSlotId}`}
+                className="mt-3 inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-walnut hover:underline"
+              >
+                {t('acceptedOpenChat', { company: acceptedCompany.name })}
+                <ArrowDown className="size-4" aria-hidden />
+              </a>
+            ))}
+        </Card>
         {acceptedQuote && <AgreementCard quote={acceptedQuote} requestStatus={status} mode="client" />}
         {!projectCase.isPending && (
           <ProjectCasePanel requestId={requestId} mode="client" projectCase={projectCase.data ?? null} canAct />
@@ -101,28 +123,36 @@ export function ClientFulfillment({
     );
   }
 
+  // e randul clientului: confirma primirea (chihlimbar = cere atentie)
   if (status === 'DELIVERED_BY_COMPANY') {
     return (
-      <section className="rounded-xl border border-info/30 bg-info-soft p-4">
-        <h2 className="font-serif text-lg text-info">{t('deliveredTitle')}</h2>
-        <p className="mt-1 text-sm text-info">{t('deliveredBody')}</p>
-        <button
+      <Card as="section" tone="amber">
+        <h2 className="heading-section text-amber">{t('deliveredTitle')}</h2>
+        <p className="mt-1 max-w-prose text-sm">{t('deliveredBody')}</p>
+        <Button
+          type="button"
+          variant="walnut"
+          size="lg"
           onClick={() => confirm.mutate(requestId)}
           disabled={confirm.isPending}
-          className="mt-2 rounded-md bg-sage px-4 py-2 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-50"
+          className="mt-3"
         >
           {t('confirmDelivery')}
-        </button>
-        {apiErr(confirm) && <p className="mt-2 text-sm text-crimson">{apiErr(confirm)}</p>}
-      </section>
+        </Button>
+        {apiErr(confirm) && (
+          <p role="alert" className="mt-2 text-sm text-crimson">
+            {apiErr(confirm)}
+          </p>
+        )}
+      </Card>
     );
   }
 
-  if ((status === 'COMPLETED' || status === 'DISPUTED')) {
+  if (status === 'COMPLETED' || status === 'DISPUTED') {
     if (review.data) {
       return (
-        <section className="rounded-xl border border-border bg-surface p-4 shadow-sm">
-          <h2 className="font-serif text-lg">{t('reviewTitle')}</h2>
+        <Card as="section">
+          <h2 className="heading-section">{t('reviewTitle')}</h2>
           <p className="mt-1 text-sm">
             <span className="text-brass">
               {'★'.repeat(review.data.rating)}
@@ -131,42 +161,45 @@ export function ClientFulfillment({
             · {review.data.comment}
             {review.data.disputed ? ` · ${t('disputed')}` : ''}
           </p>
-        </section>
+        </Card>
       );
     }
     return (
-      <section className="flex flex-col gap-2 rounded-xl border border-sage/30 bg-sage-soft p-4">
-        <h2 className="font-serif text-lg text-sage">{t('reviewTitle')}</h2>
-        <div className="flex gap-1 text-2xl">
+      <Card as="section" tone="sage" className="flex flex-col gap-3">
+        <h2 className="heading-section text-sage">{t('reviewTitle')}</h2>
+        <div className="flex gap-0.5">
           {[1, 2, 3, 4, 5].map((n) => (
             <button
               key={n}
+              type="button"
               onClick={() => {
                 setRating(n);
                 setLowRatingWarned(false);
               }}
               aria-label={t('ratingStar', { n })}
               aria-pressed={n <= rating}
-              className={n <= rating ? 'text-brass' : 'text-border-2'}
+              className={cn(
+                'grid h-10 w-10 place-items-center rounded-md text-2xl leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-walnut',
+                n <= rating ? 'text-brass' : 'text-border-2',
+              )}
             >
               ★
             </button>
           ))}
         </div>
-        <textarea
+        <Textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           rows={2}
           placeholder={t('reviewPlaceholder')}
-          className="rounded-md border border-border-2 bg-surface px-3 py-2 text-sm focus-visible:border-foreground focus-visible:outline-none"
+          aria-label={t('reviewPlaceholder')}
+          className="min-h-[64px] max-w-2xl"
         />
-        {lowRatingWarned && lowRating && (
-          <div className="rounded-md border border-amber/25 bg-amber-soft px-3 py-2 text-sm text-amber">
-            {t('lowRatingWarning')}
-          </div>
-        )}
+        {lowRatingWarned && lowRating && <Alert tone="amber">{t('lowRatingWarning')}</Alert>}
         <div className="flex flex-wrap gap-2">
-          <button
+          <Button
+            type="button"
+            size="lg"
             onClick={() => {
               if (lowRating && !lowRatingWarned) {
                 setLowRatingWarned(true);
@@ -175,21 +208,21 @@ export function ClientFulfillment({
               createReview.mutate({ rating, comment: comment.trim() || undefined });
             }}
             disabled={createReview.isPending}
-            className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-ink-2 disabled:opacity-50"
           >
             {lowRatingWarned && lowRating ? t('lowRatingConfirm') : t('sendReview')}
-          </button>
+          </Button>
           {lowRatingWarned && lowRating && (
-            <button
-              onClick={() => setLowRatingWarned(false)}
-              className="rounded-lg border border-border-2 bg-surface px-4 py-2 text-sm transition-colors hover:bg-secondary"
-            >
+            <Button type="button" variant="outline" size="lg" onClick={() => setLowRatingWarned(false)}>
               {t('lowRatingCancel')}
-            </button>
+            </Button>
           )}
         </div>
-        {apiErr(createReview) && <p className="text-sm text-crimson">{apiErr(createReview)}</p>}
-      </section>
+        {apiErr(createReview) && (
+          <p role="alert" className="text-sm text-crimson">
+            {apiErr(createReview)}
+          </p>
+        )}
+      </Card>
     );
   }
 

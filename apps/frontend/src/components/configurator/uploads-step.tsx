@@ -82,7 +82,7 @@ export function UploadsStep({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="font-serif text-2xl tracking-[-0.01em]">{t('uploads.title')}</h2>
+        <h2 className="font-serif text-2xl leading-[1.2] sm:text-3xl">{t('uploads.title')}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {ownProject ? t('uploads.subtitleOwnProject') : t('uploads.subtitle')}
         </p>
@@ -105,7 +105,7 @@ export function UploadsStep({
 
       {projectFiles.length > 0 && (
         <section className="flex flex-col gap-2">
-          <h3 className="font-serif text-lg">{t('uploads.projectFilesTitle')}</h3>
+          <h3 className="heading-section">{t('uploads.projectFilesTitle')}</h3>
           <ul className="flex flex-col gap-1.5 text-sm">
             {projectFiles.map((a) => (
               <AttachmentRow
@@ -121,7 +121,7 @@ export function UploadsStep({
       {roomFiles.length > 0 && (
         <section className="flex flex-col gap-2" data-room-files>
           <div>
-            <h3 className="font-serif text-lg">{t('uploads.roomSketchesTitle')}</h3>
+            <h3 className="heading-section">{t('uploads.roomSketchesTitle')}</h3>
             <p className="text-xs text-muted-foreground">{t('uploads.roomSketchesHint')}</p>
           </div>
           {roomFiles.map((group) => (
@@ -137,21 +137,27 @@ export function UploadsStep({
 
       {blocked && <p className="text-sm text-amber" role="status">{t('uploads.projectRequired')}</p>}
 
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Button type="button" variant="ghost" onClick={onBack}>
-          <ArrowLeft className="mr-1 h-4 w-4" />
+      <div className="flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <Button type="button" variant="outline" size="xl" className="px-4 text-sm" onClick={onBack}>
+          <ArrowLeft aria-hidden />
           {t('nav.back')}
         </Button>
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
           {ownProject && (
-            <Button type="button" variant="outline" onClick={switchToGuided}>
-              <Ruler className="mr-1 h-4 w-4" />
+            <Button
+              type="button"
+              variant="outline"
+              size="xl"
+              className="h-auto min-h-12 whitespace-normal px-4 py-2 text-sm"
+              onClick={switchToGuided}
+            >
+              <Ruler aria-hidden />
               {t('uploads.switchToGuided')}
             </Button>
           )}
-          <Button type="button" variant="walnut" onClick={onContinue} disabled={blocked}>
+          <Button type="button" variant="walnut" size="xl" onClick={onContinue} disabled={blocked}>
             {t('nav.continue')}
-            <ArrowRight className="ml-1 h-4 w-4" />
+            <ArrowRight aria-hidden />
           </Button>
         </div>
       </div>

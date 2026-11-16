@@ -6,18 +6,27 @@ import {
   type CompanyDto,
   type CompanyOnboardingInput,
 } from '@marketplace/shared';
+import { AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
+import { apiErrorKey } from '@/lib/error-messages';
 import { useMe } from '@/hooks/use-auth';
 import { useMyCompany, useOnboardCompany } from '@/hooks/use-company';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Field } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { PageHeader } from '@/components/ui/page-header';
+import { QueryState } from '@/components/ui/query-state';
+import { SkeletonPage } from '@/components/ui/skeleton';
 import { firmRulesChunk } from '../_components/firm-rules-link';
 import { CompanyDashboard } from './_components/company-dashboard';
 
 export default function CompanyPage() {
-  const t = useTranslations('Company');
   const router = useRouter();
   const me = useMe();
   const company = useMyCompany();
@@ -28,18 +37,30 @@ export default function CompanyPage() {
     else if (me.data && me.data.role !== 'COMPANY_USER') router.replace('/dashboard');
   }, [me.isError, me.data, router]);
 
-  if (me.isPending || company.isPending) {
-    return <p className="py-20 text-center text-muted-foreground">{t('loading')}</p>;
+  const loading = me.isPending || company.isPending;
+  if (!loading) {
+    // 404 (NOT_FOUND) = userul nu are inca firma → formular onboarding
+    const noCompany = company.isError && company.error instanceof ApiError && company.error.status === 404;
+    if (noCompany) return <OnboardingForm />;
+    if (company.data) return <CompanyDashboard company={company.data as CompanyDto} />;
   }
 
-  // 404 (NOT_FOUND) = userul nu are inca firma → formular onboarding
-  const noCompany = company.isError && company.error instanceof ApiError && company.error.status === 404;
-  if (noCompany) return <OnboardingForm />;
-
-  if (company.data) return <CompanyDashboard company={company.data as CompanyDto} />;
-
-  return <p className="py-20 text-center text-muted-foreground">{t('loading')}</p>;
+  // cat timp ruleaza redirectul (sesiune expirata / alt rol) ramane scheletul, nu o eroare
+  const redirecting = me.isError || (!!me.data && me.data.role !== 'COMPANY_USER');
+  return (
+    <QueryState
+      pending={loading || redirecting}
+      error={company.error}
+      onRetry={() => {
+        void me.refetch();
+        void company.refetch();
+      }}
+      skeleton={<SkeletonPage variant="list" />}
+    />
+  );
 }
+
+const TEXT_FIELDS = ['name', 'cui', 'regComNumber', 'addressText', 'county', 'city'] as const;
 
 function OnboardingForm() {
   const t = useTranslations('Company');
@@ -54,73 +75,68 @@ function OnboardingForm() {
   });
 
   const onSubmit = handleSubmit((values) => onboard.mutate(values));
-  const apiErr = onboard.error instanceof ApiError ? onboard.error.code : null;
+  const apiErr = onboard.error ? apiErrorKey(onboard.error) : null;
 
-  const Field = ({
-    name,
-    type = 'text',
-    step,
-  }: {
-    name: keyof CompanyOnboardingInput;
-    type?: string;
-    step?: string;
-  }) => (
-    <label className="flex flex-col gap-1.5 text-sm">
-      <span className="font-mono text-meta uppercase tracking-[0.06em] text-muted-foreground">
-        {t(name)}
-      </span>
-      <input
-        type={type}
-        step={step}
-        className="h-10 rounded-md border border-border-2 bg-surface px-3 py-2 text-sm focus-visible:border-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/5"
-        {...register(name, type === 'number' ? { valueAsNumber: true } : {})}
-      />
-      {errors[name] && (
-        <span className="text-xs text-crimson">{t(`validation.${errors[name]?.message}`)}</span>
-      )}
-    </label>
-  );
+  // mesajele schemei sunt chei i18n (Company.validation.*); restul cad pe mesajul generic
+  const fieldError = (name: keyof CompanyOnboardingInput) => {
+    const message = errors[name]?.message;
+    if (!message) return undefined;
+    const key = `validation.${message}`;
+    return t.has(key) ? t(key) : t('apiErrors.VALIDATION_ERROR');
+  };
+
+  const field = (name: keyof CompanyOnboardingInput) => {
+    const numeric = !(TEXT_FIELDS as readonly string[]).includes(name);
+    return (
+      <Field label={t(name)} error={fieldError(name)}>
+        <Input
+          className="h-11"
+          type={numeric ? 'number' : 'text'}
+          step={numeric ? 'any' : undefined}
+          aria-invalid={errors[name] ? true : undefined}
+          {...register(name, numeric ? { valueAsNumber: true } : {})}
+        />
+      </Field>
+    );
+  };
 
   return (
     <div className="mx-auto flex max-w-lg flex-col gap-6">
-      <div>
-        <h1 className="page-title">{t('onboardingTitle')}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{t('onboardingSubtitle')}</p>
-      </div>
+      <PageHeader title={t('onboardingTitle')} subtitle={t('onboardingSubtitle')} />
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-        <Field name="name" />
-        <div className="grid grid-cols-2 gap-4">
-          <Field name="cui" />
-          <Field name="regComNumber" />
-        </div>
-        <p className="-mt-2 text-xs text-muted-foreground">{t('cuiVatHint')}</p>
-        <Field name="addressText" />
-        <div className="grid grid-cols-2 gap-4">
-          <Field name="county" />
-          <Field name="city" />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <Field name="lat" type="number" step="any" />
-          <Field name="lng" type="number" step="any" />
-        </div>
+      <Card padding="lg">
+        <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+          {field('name')}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {field('cui')}
+            {field('regComNumber')}
+          </div>
+          <p className="-mt-2 text-xs text-muted-foreground">{t('cuiVatHint')}</p>
+          {field('addressText')}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {field('county')}
+            {field('city')}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {field('lat')}
+            {field('lng')}
+          </div>
 
-        {apiErr && (
-          <p className="rounded-md border border-crimson/25 bg-crimson-soft px-3 py-2 text-sm text-crimson">
-            {t.has(`apiErrors.${apiErr}`) ? t(`apiErrors.${apiErr}`) : t('apiErrors.INTERNAL_ERROR')}
+          {apiErr && (
+            <Alert tone="crimson" icon={<AlertTriangle />} role="alert">
+              {t.has(apiErr.key) ? t(apiErr.key) : t('apiErrors.INTERNAL_ERROR')}
+            </Alert>
+          )}
+
+          <p className="text-sm text-muted-foreground">
+            {t.rich('rulesNotice', { rules: firmRulesChunk(undefined, true) })}
           </p>
-        )}
 
-        <p className="text-sm text-muted-foreground">{t.rich('rulesNotice', { rules: firmRulesChunk(undefined, true) })}</p>
-
-        <button
-          type="submit"
-          disabled={onboard.isPending}
-          className="rounded-md bg-walnut px-5 py-2.5 font-medium text-primary-foreground shadow-sm transition hover:brightness-110 disabled:opacity-50"
-        >
-          {t('submit')}
-        </button>
-      </form>
+          <Button type="submit" variant="walnut" size="xl" disabled={onboard.isPending}>
+            {t('submit')}
+          </Button>
+        </form>
+      </Card>
     </div>
   );
 }

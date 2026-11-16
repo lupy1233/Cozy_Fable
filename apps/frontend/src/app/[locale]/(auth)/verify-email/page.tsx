@@ -1,10 +1,13 @@
 'use client';
 
+import { Check, CircleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { Link } from '@/i18n/routing';
 import { useVerifyEmail } from '@/hooks/use-auth';
+import { Button } from '@/components/ui/button';
+import { AuthStateIcon, authFooterCls, authLinkCls, authTitleCls } from '../_components/auth-parts';
 import { ResendVerification } from '../_components/resend-verification';
 
 function VerifyEmailInner() {
@@ -20,24 +23,42 @@ function VerifyEmailInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  return (
-    <div className="flex flex-col gap-4 text-center">
-      <h1 className="font-serif text-2xl">{t('verifyTitle')}</h1>
-      {!token && <p className="text-crimson">{t('verifyMissingToken')}</p>}
-      {verify.isPending && <p className="text-muted-foreground">{t('verifyPending')}</p>}
-      {verify.isSuccess && (
-        <>
-          <p className="text-sage">{t('verifySuccess')}</p>
-          <Link href="/login" className="text-walnut underline">
-            {t('goToLogin')}
+  if (verify.isSuccess) {
+    return (
+      <div role="status" className="flex flex-col gap-5">
+        <AuthStateIcon icon={Check} tone="sage" />
+        <h1 className={authTitleCls}>{t('verifySuccessTitle')}</h1>
+        <p className="text-sm text-muted-foreground">{t('verifySuccessBody')}</p>
+        <Button asChild variant="walnut" size="xl" className="w-full text-lead">
+          <Link href="/login">{t('goToLogin')}</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  // L0-A: link invalid/expirat sau lipsa → cere adresa si retrimite
+  if (verify.isError || !token) {
+    return (
+      <div className="flex flex-col gap-5">
+        <AuthStateIcon icon={CircleAlert} tone="crimson" />
+        <h1 className={authTitleCls}>{t('linkInvalidTitle')}</h1>
+        <p role="alert" className="text-sm text-muted-foreground">
+          {token ? t('verifyError') : t('verifyMissingToken')}
+        </p>
+        <ResendVerification prompt={t('resendPromptExpired')} />
+        <p className={authFooterCls}>
+          <Link href="/login" className={authLinkCls}>
+            ← {t('backToLogin')}
           </Link>
-        </>
-      )}
-      {verify.isError && <p className="text-crimson">{t('verifyError')}</p>}
-      {/* L0-A: link invalid/expirat sau lipsa → cere adresa si retrimite */}
-      {(verify.isError || !token) && (
-        <ResendVerification prompt={t('resendPromptExpired')} className="text-left" />
-      )}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div role="status" className="flex flex-col gap-5">
+      <h1 className={authTitleCls}>{t('verifyTitle')}</h1>
+      <p className="text-sm text-muted-foreground">{t('verifyPending')}</p>
     </div>
   );
 }

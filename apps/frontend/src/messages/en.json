@@ -3,19 +3,19 @@
     "close": "Close"
   },
   "LandingV2": {
-    "eyebrow": "Custom furniture, from verified workshops",
-    "title1": "Three workshops.",
+    "eyebrow": "Custom furniture, from verified companies",
+    "title1": "Three companies.",
     "title2": "Three offers.",
     "title3": "Side by side.",
-    "subtitle": "Describe your furniture once. Verified furniture workshops reply with offers on the same fields, so you can compare them fairly.",
+    "subtitle": "Describe your furniture once. Verified furniture companies reply with offers on the same fields, so you can compare them fairly.",
     "ctaPrimary": "Get 3 offers for free",
     "ctaNote": "No obligation. Choose only if you want to.",
     "compare": {
       "title": "L-shaped kitchen with island",
       "example": "Example",
-      "firmA": "Workshop A",
-      "firmB": "Workshop B",
-      "firmC": "Workshop C",
+      "firmA": "Company A",
+      "firmB": "Company B",
+      "firmC": "Company C",
       "rowPrice": "Price",
       "rowTerm": "Lead time",
       "rowWarranty": "Warranty",
@@ -23,7 +23,8 @@
       "fastest": "fastest",
       "weeks": "{n} wks",
       "months": "{n} months",
-      "caption": "Illustrative example. Real offers appear in your account, in the same table."
+      "caption": "Illustrative example. Real offers appear in your account, in the same table.",
+      "field": "Field"
     },
     "journeyKicker": "How it works",
     "journeyTitle": "The road to your furniture",
@@ -35,35 +36,50 @@
     },
     "p2": {
       "phase": "The claim",
-      "title": "Up to 3 workshops take it",
-      "body": "Only verified workshops, who pay to work on your request.",
-      "who": "Workshops · you pay nothing"
+      "title": "Up to 3 companies take it",
+      "body": "Only verified companies, who pay to work on your request.",
+      "who": "Companies · you pay nothing"
     },
     "p3": {
       "phase": "The offers",
       "title": "Compare in black and white",
-      "body": "Offers sit side by side, on the same fields, with a chat for each workshop.",
+      "body": "Offers sit side by side, on the same fields, with a chat for each company.",
       "who": "You · choose or decline"
     },
     "p4": {
       "phase": "Home",
       "title": "Your furniture, installed",
       "body": "Made to your measurements. At the end you leave a review for the next clients.",
-      "who": "Chosen workshop · you pay them directly"
+      "who": "Chosen company · you pay them directly"
     },
     "materialsKicker": "Before you ask for offers",
     "materialsTitle": "Materials, explained simply",
     "materialsSub": "Tap a material. You will find the same explanations in the form.",
     "materialsPrice": "Indicative price for fronts",
     "materialsPro": "Upside",
-    "materialsCon": "Downside",
+    "materialsCon": "Good to know",
     "ideasKicker": "Idea book",
     "ideasTitle": "Inspiration from real projects",
-    "ideasSub": "Save what you like and attach the ideas to your request. Workshops see exactly what you want.",
+    "ideasSub": "Save what you like and attach the ideas to your request. Companies see exactly what you want.",
     "ideasCta": "See all ideas",
-    "bandTitle": "Find out what your furniture costs, from three workshops.",
+    "bandTitle": "Find out what your furniture costs, from three companies.",
     "bandCta": "Get 3 offers for free",
-    "bandCompany": "Run a furniture workshop? Sign up"
+    "bandCompany": "Run a furniture workshop? Sign up",
+    "guarantees": {
+      "verified": "Verified companies only",
+      "free": "You pay nothing for the offers",
+      "upTo3": "Up to 3 companies per request"
+    },
+    "materialsPick": "Choose a material",
+    "materialsScaleMax": "{max} RON/lm",
+    "materialsScaleAria": "{material}: {price}, on a scale from {min} to {max} RON per linear metre",
+    "firms": {
+      "kicker": "For companies",
+      "title": "Run a furniture company?",
+      "body": "Get clear, ready-to-quote requests from clients in your area.",
+      "rules": "Rules for firms",
+      "cta": "Register your company"
+    }
   },
   "Landing": {
     "footerTagline": "The marketplace for custom furniture",
@@ -116,7 +132,7 @@
     "claims": "Claims",
     "messages": "Messages",
     "wallet": "Wallet",
-    "partners": "Partners",
+    "partners": "Partner firms",
     "inspiration": "The Idea Book",
     "studio": "3D Studio",
     "sketchGuide": "Sketch guide",
@@ -132,7 +148,16 @@
     "accountMenu": "Account menu",
     "changePassword": "Change password",
     "signedInAs": "Signed in as",
-    "accountCompany": "Company"
+    "accountCompany": "Company",
+    "panel": "Dashboard",
+    "mainNav": "Main navigation",
+    "credits": "Credits",
+    "creditsAria": "Available credits: {count}",
+    "unreadCount": "({count, plural, one {# unread message} other {# unread messages}})",
+    "footerClients": "For clients",
+    "footerLegal": "Legal",
+    "registerCompany": "Register your firm",
+    "firmRules": "Rules for firms"
   },
   "Studio": {
     "workspace": {
@@ -157,7 +182,9 @@
       "collisionFurniture": "Furniture cannot overlap. Move or rotate the piece into a free space.",
       "collisionRoomBounds": "The piece must fit inside the room, including its height.",
       "collisionNoSpace": "There is no free space for this piece in the room.",
-      "collisionHouseRooms": "Rooms cannot overlap. Move the room or reduce its size to fit."
+      "collisionHouseRooms": "Rooms cannot overlap. Move the room or reduce its size to fit.",
+      "minimizeShort": "Close",
+      "capacity": "{rooms}/{maxRooms} rooms · {pieces}/{maxPieces} pieces"
     },
     "title": "3D Studio",
     "subtitle": "Build your furniture pieces, arrange them in a 3D room and, when you like the result, send them straight into a request.",
@@ -362,7 +389,13 @@
       },
       "sendHint": "Send all rooms in this house with their furniture to the request. Repeating the transfer updates the same entries and preserves their material and attachment answers."
     },
-    "sceneChipsLabel": "Choose a room"
+    "sceneChipsLabel": "Choose a room",
+    "inRoom": "{count, plural, =1 {in room} other {in room ×#}}",
+    "removeShort": "Remove",
+    "cycleWallShort": "Next wall (R)",
+    "renameShort": "Rename",
+    "gapsLabel": "Distance to walls (cm)",
+    "gapsWallLabel": "Distance to the wall ends (cm)"
   },
   "Partners": {
     "title": "Our partner companies",
@@ -373,7 +406,19 @@
     "loadError": "We couldn't load the partner list.",
     "retry": "Retry",
     "rating": "Average rating",
-    "verified": "Verified company"
+    "verified": "Verified company",
+    "county": "County",
+    "allCounties": "All counties",
+    "count": "{count, plural, =1 {1 company} other {# companies}}",
+    "clientCta": {
+      "title": "Want offers from companies like these?",
+      "body": "Describe your furniture once and up to 3 companies reply with comparable offers."
+    },
+    "firmCta": {
+      "title": "Run a furniture company?",
+      "body": "Fill in your company profile, an administrator verifies it, then you see client requests from your area.",
+      "action": "Register your company"
+    }
   },
   "Inspiration": {
     "imageUnavailable": "Photo unavailable",
@@ -393,12 +438,12 @@
     "noBoardsYet": "You have no collections yet — create the first one below.",
     "newBoardPlaceholder": "New collection (e.g. Dream kitchen)",
     "createBoard": "New collection",
-    "createBoardCta": "Create",
+    "createBoardCta": "Create collection",
     "boardNameTaken": "You already have a collection with this name.",
     "boardError": "Could not save. Please try again.",
     "myBoards": "My collections",
     "backToGallery": "Back to the Idea Book",
-    "boardsSubtitle": "Your saved ideas, organised Pinterest-style — in collections.",
+    "boardsSubtitle": "Your saved ideas, organised in collections. A whole collection can be attached to a request.",
     "noBoardsTitle": "No collections yet",
     "noBoardsHint": "Hit “Save” on any idea in the gallery and organise it into your collections.",
     "exploreGallery": "Explore the Idea Book",
@@ -469,16 +514,32 @@
     "requestGeneral": "For the whole home",
     "requestRoomHeading": "{index}. {room}",
     "clientNote": "Client's note",
-    "seeRoom": "See room"
+    "seeRoom": "See room",
+    "searchLabel": "Search ideas",
+    "removeFilter": "Remove filter {name}",
+    "nextStep": {
+      "kicker": "Next step",
+      "title": "Found something you like?",
+      "body": "Attach your saved ideas to your request. Companies see exactly what you want."
+    },
+    "boardNameLabel": "Collection name",
+    "boardNamePlaceholder": "e.g. Dream kitchen",
+    "boardNameHint": "Up to {max} characters",
+    "useInRequest": "Use in a request",
+    "emptyBoardCover": "Hit “Save” on any idea in the gallery",
+    "notesPrivate": "only you see the notes until you attach the collection to a request",
+    "removedFromBoard": "Removed “{title}” from the collection.",
+    "undo": "Undo",
+    "undoError": "We couldn't put the idea back. Please try again."
   },
   "SketchGuidePage": {
     "kicker": "Sketch guide",
     "title": "How to sketch your space",
     "subtitle": "No architect needed — four simple steps give the companies everything they need to quote accurately. The sheet on the left shows exactly what your sketch needs to include.",
     "sheetTitle": "Kitchen sketch — example",
-    "legendWall": "The wall, measured corner to corner — width and height",
-    "legendSocket": "Sockets and pipes, marked with ✕ or a dashed circle",
-    "legendFurniture": "The furniture you want, drawn simply over the wall",
+    "legendWall": "The walls, measured corner to corner",
+    "legendSocket": "Doors, windows and sockets, marked on the wall",
+    "legendFurniture": "The furniture you want, drawn simply along the walls",
     "legendDimensions": "The furniture dimensions, noted right on the drawing",
     "steps": {
       "measure": {
@@ -494,7 +555,7 @@
       "mark": {
         "title": "Mark what can't move",
         "body": "Doors with their swing, windows, sockets, pipes, radiators. Anything the future furniture could touch.",
-        "tip": "An ✕ for sockets, a double line for windows — like the socket mark on the sheet."
+        "tip": "An ✕ for sockets, a double line for windows — like on the example sheet."
       },
       "photo": {
         "title": "Photograph and attach",
@@ -504,7 +565,14 @@
     },
     "ctaTitle": "Sketch ready?",
     "ctaHint": "Attach it while configuring your request — the companies receive it along with your dimensions.",
-    "cta": "Create a request"
+    "cta": "Create a request",
+    "sheetAlt": "Example sketch: a kitchen plan seen from above, 3400 by 2800 millimetres, with a window, a door, one socket and L-shaped furniture of 2900 and 2300 millimetres",
+    "plan": {
+      "window": "window",
+      "door": "door",
+      "socket": "socket",
+      "topView": "seen from above"
+    }
   },
   "Dashboard": {
     "client": {
@@ -515,7 +583,8 @@
       "recent": "Recent activity",
       "allRequests": "All requests",
       "noRequests": "No requests yet. Create your first one and get offers from verified companies.",
-      "newRequest": "New request"
+      "newRequest": "New request",
+      "summaryTitle": "Your requests at a glance"
     },
     "company": {
       "claimsTotal": "Total claims",
@@ -523,7 +592,7 @@
       "quotesSent": "Offers sent",
       "quotesTotalRon": "Total offer value",
       "credits": "Credits",
-      "walletLink": "Wallet & billing",
+      "walletLink": "Wallet and billing",
       "available": "Available",
       "reserved": "Reserved",
       "consumed7d": "Used in the last 7 days",
@@ -535,7 +604,17 @@
       "penalties": "Penalties",
       "penaltyPoints": "active points",
       "toMarketplace": "Go to marketplace",
-      "toClaims": "My claims"
+      "toClaims": "My claims",
+      "statusPill": {
+        "PENDING_VERIFICATION": "Company being verified",
+        "APPROVED": "Company approved",
+        "REJECTED": "Application rejected",
+        "SUSPENDED": "Company suspended"
+      },
+      "noSubscription": "No active subscription",
+      "penaltyOf": "out of {threshold}",
+      "penaltyRules": "How points are assigned",
+      "startOnboarding": "Complete the company profile"
     },
     "todo": {
       "title": "To do now",
@@ -549,7 +628,24 @@
         "REQUEST_EXPIRING": "Request expires soon with no claim",
         "UNASSIGNED_CLAIM": "Unassigned claim",
         "SLA_DUE_SOON": "Offer deadline is close"
+      },
+      "summary": "{count, plural, =0 {Nothing to do right now.} one {You have # thing to do.} other {You have # things to do.}}",
+      "summaryFirm": "{count, plural, =0 {Nothing urgent right now.} one {You have # urgent item.} other {You have # urgent items.}}",
+      "nearest": "The nearest deadline is {when}.",
+      "autoCancel": "auto-cancels {when}",
+      "expires": "expires {when}",
+      "cta": {
+        "OFFERS_TO_REVIEW": "Compare offers",
+        "DELIVERY_TO_CONFIRM": "Confirm delivery",
+        "CLARIFICATION_TO_ANSWER": "Reply",
+        "REQUEST_EXPIRING": "View request",
+        "UNASSIGNED_CLAIM": "Choose assignee",
+        "SLA_DUE_SOON": "Write the offer"
       }
+    },
+    "greeting": "Hi, {name}",
+    "account": {
+      "title": "Your account"
     }
   },
   "Auth": {
@@ -590,7 +686,8 @@
       "nameTooShort": "Your name needs at least 2 characters.",
       "termsRequired": "You need to accept the Terms and Conditions to create your account.",
       "passwordsMismatch": "The passwords don't match.",
-      "required": "This field is required."
+      "required": "This field is required.",
+      "totpInvalid": "The code has 6 digits."
     },
     "apiErrors": {
       "INVALID_CREDENTIALS": "That email and password don't match. Check them and try again.",
@@ -638,7 +735,29 @@
     "resendPromptExpired": "Enter your account email and we'll send you a new confirmation link.",
     "resendSuccess": "If an unconfirmed account exists for this email, you've received a new confirmation link. Check your Spam folder too.",
     "termsLabel": "I have read and accept the <terms>Terms and Conditions</terms> and the <privacy>Privacy Policy</privacy>.",
-    "termsLabelCompany": "I have read and accept the <terms>Terms and Conditions</terms>, the <rules>Rules for firms</rules> and the <privacy>Privacy Policy</privacy>."
+    "termsLabelCompany": "I have read and accept the <terms>Terms and Conditions</terms>, the <rules>Rules for firms</rules> and the <privacy>Privacy Policy</privacy>.",
+    "taglineLead": "Three firms. Three offers.",
+    "taglineAccent": "Side by side.",
+    "show": "Show",
+    "hide": "Hide",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "passwordHint": "At least 8 characters",
+    "roleClientTitle": "Client",
+    "roleClientHint": "I'm looking for custom furniture",
+    "roleCompanyTitle": "Firm",
+    "roleCompanyHint": "We make custom furniture",
+    "forgotSentTitle": "Check your email",
+    "forgotResend": "Send again",
+    "forgotResent": "We sent the link again.",
+    "resetDoneTitle": "Your password was changed",
+    "resetDoneBody": "You can log in with your new password.",
+    "linkInvalidTitle": "This link is no longer valid",
+    "verifySuccessTitle": "Your email is confirmed",
+    "verifySuccessBody": "You can log in now.",
+    "changePasswordDoneBody": "The other devices you were logged in on have been signed out.",
+    "totpLabel": "Two-step authentication code",
+    "totpHint": "The 6 digits from your authenticator app."
   },
   "Company": {
     "onboardingTitle": "Register your company",
@@ -754,7 +873,42 @@
       "save": "Save",
       "saved": "Billing email saved",
       "invalid": "Enter a valid email address"
-    }
+    },
+    "dashboardSubtitle": "Your company's profile, locations, team and portfolio.",
+    "sectionsNav": "Page sections",
+    "navPermissions": "Offer permissions",
+    "locationsHint": "You see the requests within each location's radius",
+    "newLocationAddress": "New location address",
+    "coverageRadius": "Coverage radius",
+    "deleteLocationAction": "Delete…",
+    "deleteLocationAria": "Delete location {address}",
+    "deleteLocationConfirm": {
+      "title": "Delete this location?",
+      "body": "{address}. Marketplace requests will only be shown based on your remaining locations.",
+      "confirm": "Delete location"
+    },
+    "deleting": "Deleting…",
+    "changeRole": "Change role",
+    "changeRoleAria": "Change role for {name}",
+    "removeMemberAction": "Remove…",
+    "removeMemberAria": "Remove {name} from the team",
+    "removeMemberConfirm": {
+      "title": "Remove this member from the team?",
+      "body": "{name} ({email}) will no longer be part of your company.",
+      "confirm": "Remove member"
+    },
+    "removing": "Removing…",
+    "portfolioHint": "Shown on the Partner firms page and during company verification",
+    "addPortfolioHint": "Title, description and a link to a photo",
+    "addPortfolioTitle": "Add a project to your portfolio",
+    "portfolioImageUrlHint": "Optional. A public link to a photo of the piece, like https://…",
+    "deletePortfolioAria": "Delete project {title}",
+    "deletePortfolioConfirm": {
+      "title": "Delete this project from your portfolio?",
+      "body": "“{title}” will no longer appear in the company portfolio.",
+      "confirm": "Delete project"
+    },
+    "permissionAria": "{field} — {role}"
   },
   "AdminInspiration": {
     "title": "The Idea Book",
@@ -766,12 +920,13 @@
       "imageUrl": "Image URL (optional)",
       "imageUrlHint": "You can leave this empty and upload the image after creating.",
       "sourceUrl": "Project link (source)",
-      "sourceUrlHint": "Link to the project in the company's portfolio — shown as \"View project\"."
+      "sourceUrlHint": "Link to the project in the company's portfolio — shown as \"View project\".",
+      "companyPlaceholder": "Choose the firm…"
     },
     "addButton": "Add to gallery",
-    "empty": "No pieces yet. Add the first one above.",
+    "empty": "No work yet. Add the first one from the form.",
     "published": "Published",
-    "featured": "On landing",
+    "featured": "On the home page",
     "uploadImage": "Upload image",
     "delete": "Delete",
     "noImage": "No image",
@@ -781,7 +936,45 @@
     "confirmDeleteBody": "The photo disappears from the gallery and from collections, and clients who chose it will not be able to keep it the next time they edit their request. Continue?",
     "confirmUnpublish": "Remove from gallery",
     "confirmDelete": "Delete photo",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "subtitle": "Work by partner firms that appears in the public gallery and on the home page.",
+    "emptyFiltered": "No work matches the filter or the search.",
+    "showAll": "Show all",
+    "filterLabel": "Filter the work",
+    "filter": {
+      "all": "All",
+      "published": "Published",
+      "featured": "On the home page",
+      "noImage": "No image"
+    },
+    "search": "Search by title or firm",
+    "noImageUpload": "No image — upload one",
+    "replaceImage": "Replace image",
+    "uploading": "Uploading…",
+    "uploadError": "The image could not be uploaded. Try again.",
+    "invalidImage": "The image must be a JPG, PNG or WebP file.",
+    "usageRequests": "{count, plural, one {# active request} other {# active requests}}",
+    "usageBoards": "{count, plural, one {# collection} other {# collections}}",
+    "unused": "not used yet",
+    "statePublishedNoImage": "published without an image",
+    "stateUnpublishedNoImage": "not published — image missing",
+    "editTags": "Edit tags",
+    "editTitle": "Edit work",
+    "editHint": "The title, the furniture type and the tags clients use to filter the gallery.",
+    "saveEdit": "Save",
+    "updated": "The work was updated.",
+    "titleTooShort": "The title needs at least 3 characters.",
+    "deleteAction": "Delete…",
+    "confirmDeleteTitle": "Delete this work?",
+    "confirmDeleteUnusedBody": "“{title}” will be removed from the gallery. No request and no collection uses it.",
+    "actionError": "We could not save. Try again.",
+    "dropLabel": "Drag the image here or click to upload it",
+    "dropHint": "You can also add the image after creating the work",
+    "removeFile": "Remove the chosen image",
+    "adding": "Adding…",
+    "addNote": "The work is published right away. You can withdraw it from the list at any time.",
+    "created": "The work was added to the gallery.",
+    "createdUploadFailed": "The work was added, but the image did not upload. Upload it from the list."
   },
   "AdminCompanies": {
     "title": "Company verification",
@@ -818,7 +1011,75 @@
       "INSUFFICIENT_REVIEWS": "Too few reviews",
       "LOW_RATING": "Low rating"
     },
-    "filterLabel": "Filter companies by status"
+    "filterLabel": "Filter companies by status",
+    "subtitle": "Those waiting for a decision come first, oldest at the top.",
+    "searchLabel": "Search companies",
+    "searchPlaceholder": "Search by name or CUI",
+    "noMatch": "No company matches your search.",
+    "clearSearch": "Clear search",
+    "registered": "Registered",
+    "actions": "Actions",
+    "verify": "Review",
+    "statusValue": {
+      "PENDING_VERIFICATION": "Pending",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected",
+      "SUSPENDED": "Suspended"
+    },
+    "registeredWhen": "Registered {when}.",
+    "decisionIntro": "Everything you need for the decision is on this page.",
+    "identity": {
+      "title": "Identification details",
+      "cuiValid": "check digit is correct",
+      "cuiInvalid": "check digit does not match"
+    },
+    "yes": "Yes",
+    "no": "No",
+    "membersAndLocations": "Members and locations",
+    "noMembers": "The company has no members.",
+    "noLocations": "The company has no locations.",
+    "portfolioEmptyTitle": "No projects in the portfolio",
+    "portfolioEmptyHint": "The company has not uploaded any work. You can write to a member and ask them to complete the portfolio before approval — a rejection blocks a new application for 3 months.",
+    "decision": {
+      "title": "Your decision",
+      "titleDone": "Company status",
+      "approvedNote": "The company is approved and sees the requests in its area. There is no decision to make here.",
+      "rejectedAt": "Rejected on",
+      "rejectedNote": "The company sees the reason on its page and can apply again 3 months after the rejection."
+    },
+    "check": {
+      "ok": "OK",
+      "attention": "Needs attention",
+      "identityOk": "Identification details complete",
+      "identityMissing": "Identification details incomplete",
+      "cuiInvalid": "CUI: check digit does not match",
+      "team": "{members, plural, =0 {no members} one {# member} other {# members}}, {locations, plural, =0 {no locations} one {# location} other {# locations}}",
+      "portfolio": "Portfolio: {count, plural, =0 {no projects} one {# project} other {# projects}}"
+    },
+    "approveOpen": "Approve company…",
+    "approveNote": "Once approved, the company immediately sees the requests in its area. We will ask you to confirm.",
+    "rejectHint": "At least {min} characters. The company sees it on its page and can apply again after 3 months.",
+    "rejectOpen": "Reject company…",
+    "unsuspendOpen": "Lift suspension…",
+    "actionError": "The action failed. Reload the page and try again.",
+    "confirm": {
+      "cancel": "Cancel",
+      "approve": {
+        "title": "Approve {name}?",
+        "body": "The company immediately sees the requests in its area and its members are notified. If the trial period is enabled in settings, it starts now.",
+        "cta": "Yes, approve company"
+      },
+      "reject": {
+        "title": "Reject {name}?",
+        "body": "The company sees the reason below on its page and its members are notified. A new application is possible only after 3 months.",
+        "cta": "Confirm rejection"
+      },
+      "unsuspend": {
+        "title": "Lift the suspension for {name}?",
+        "body": "The company returns to the marketplace immediately and its members are notified.",
+        "cta": "Yes, lift suspension"
+      }
+    }
   },
   "Requests": {
     "loading": "Loading…",
@@ -832,7 +1093,7 @@
     "sectionAttachments": "Attachments",
     "addContact": "Add contact",
     "room": "Room",
-    "publish": "Publish",
+    "publish": "Publish request",
     "repost": "Repost",
     "reposted": "Request reposted.",
     "repostHint": "This request expired without being claimed by a company. You can repost it once, with a new expiry date.",
@@ -1001,13 +1262,108 @@
       "contactsLabel": "Name, address and contact details",
       "contactsNone": "No company yet — only a company that claims your request receives them.",
       "contactsFrom": "from {time}",
-      "note": "Access ends when the company withdraws its claim or when you accept another company's offer. Phone numbers and emails written in texts are hidden from companies that haven't claimed the request."
+      "note": "Access ends when the company withdraws its claim or when you accept another company's offer. Phone numbers and emails written in texts are hidden from companies that haven't claimed the request.",
+      "claimedOn": "claimed {date}"
     },
-    "tabsLabel": "Filter requests by stage"
+    "tabsLabel": "Filter requests by stage",
+    "searchLabel": "Search requests",
+    "searchPlaceholder": "Search by title or city",
+    "searchEmpty": "No request matches your search.",
+    "searchClear": "Clear search",
+    "sortLabel": "Sort requests",
+    "sort": {
+      "ATTENTION": "Waiting on you first",
+      "NEWEST": "Newest first"
+    },
+    "sheet": {
+      "label": "Project sheet"
+    },
+    "journey": {
+      "label": "Request journey",
+      "step": {
+        "PUBLISHED": "Published",
+        "CLAIMED": "Claimed by companies",
+        "OFFERS": "Offers received",
+        "ACCEPTED": "Offer chosen",
+        "DELIVERED": "Furniture delivered"
+      },
+      "state": {
+        "done": "done",
+        "current": "current step",
+        "upcoming": "upcoming"
+      }
+    },
+    "next": {
+      "label": "What's next:",
+      "cta": {
+        "compare": "Compare offers",
+        "confirmDelivery": "Confirm delivery",
+        "view": "View request"
+      },
+      "line": {
+        "DRAFT": "the request is still a draft — companies only see it once you publish it.",
+        "IN_MARKETPLACE": "we're waiting for companies to claim your request.",
+        "IN_MARKETPLACE_DATED": "we're waiting for companies. The request expires on {date} if nobody claims it.",
+        "CLAIMED_PARTIAL": "{c, plural, =0 {the companies that claimed your request are preparing their offers} =1 {one company is preparing its offer} other {# companies are preparing their offers}}. Other companies can still claim it.",
+        "CLAIMED_FULL": "{c, plural, =1 {the company that claimed your request is preparing its offer} other {the companies that claimed your request are preparing their offers}}. There are no free slots left for other companies.",
+        "OFFERS_RECEIVED": "{n, plural, =0 {your turn — compare the offers you received and pick one.} =1 {your turn — you have one offer to review.} other {your turn — you have # offers to compare.}}",
+        "NEGOTIATION": "you're discussing changes with the company. You can accept an offer whenever it suits you.",
+        "ACCEPTED": "you've chosen the offer. The company is preparing the work and keeps you posted in the conversation.",
+        "IN_EXECUTION": "the company is working on your furniture. We'll ask you to confirm once it marks the delivery.",
+        "DELIVERED_BY_COMPANY": "your turn — confirm you received the furniture. With no answer, the delivery is confirmed automatically.",
+        "COMPLETED": "nothing — the work is finished.",
+        "DISPUTED": "the Cozy Home team is reviewing the dispute and will let you know when it's resolved.",
+        "EXPIRED": "the request expired without being claimed. From its page you can repost it once or start a new request.",
+        "CANCELLED": "nothing — the project was cancelled. Offers and conversations stay as history."
+      },
+      "title": {
+        "DRAFT": "The request is still a draft",
+        "IN_MARKETPLACE": "Waiting for companies",
+        "CLAIMED_PARTIAL": "{c, plural, =0 {Companies are preparing their offers} =1 {One company is preparing its offer} other {# companies are preparing their offers}}",
+        "CLAIMED_FULL": "{c, plural, =1 {The company is preparing its offer} other {Companies are preparing their offers}}",
+        "OFFERS_RECEIVED": "{n, plural, =0 {Your turn: compare the offers you received} =1 {Your turn: you have one offer to review} other {Your turn: you have # offers to compare}}",
+        "NEGOTIATION": "You're discussing changes with the company",
+        "ACCEPTED": "You've chosen the offer",
+        "IN_EXECUTION": "The company is working on your furniture",
+        "DELIVERED_BY_COMPANY": "Your turn: confirm you received the furniture",
+        "COMPLETED": "The work is finished",
+        "DISPUTED": "The dispute is under review",
+        "EXPIRED": "The request has expired",
+        "CANCELLED": "The project was cancelled"
+      },
+      "body": {
+        "DRAFT": "Companies only see it once you publish it.",
+        "IN_MARKETPLACE": "Verified companies in your area can see the request. We'll let you know when a company claims it.",
+        "IN_MARKETPLACE_DATED": "Verified companies in your area can see the request. It expires on {date} if nobody claims it.",
+        "CLAIMED_PARTIAL": "Other companies can still claim it. Meanwhile you can talk to the companies in the conversations.",
+        "CLAIMED_FULL": "There are no free slots left for other companies. We'll let you know when the first offer arrives.",
+        "OFFERS_RECEIVED": "{w, plural, =0 {Pick the offer that suits you or ask the company for changes.} =1 {One company is still working on its offer. You can choose now or wait a little longer.} other {# companies are still working on their offers. You can choose now or wait a little longer.}}",
+        "NEGOTIATION": "Follow the conversation. You can accept an offer whenever it suits you.",
+        "ACCEPTED": "The company is preparing the work and keeps you posted in the conversation.",
+        "IN_EXECUTION": "We'll ask you to confirm once the company marks the delivery.",
+        "DELIVERED_BY_COMPANY": "The company marked the work as delivered. With no answer from you, the delivery is confirmed automatically.",
+        "COMPLETED": "If you haven't already, you can leave the company a review.",
+        "DISPUTED": "The Cozy Home team is looking into it and will let you know when it's resolved.",
+        "EXPIRED": "It expired without being claimed by a company.",
+        "CANCELLED": "Offers and conversations stay as history."
+      }
+    },
+    "edits": {
+      "title": "Changes",
+      "preClaim": "{remaining, plural, =1 {You can edit the request one more time} other {You can edit the request # more times}} before a company claims it.",
+      "postClaim": "Companies have already claimed this request. You have one edit left: the project will be re-scored, and companies may withdraw their claim after your changes.",
+      "noneLeft": "You have used all the edits available at this stage.",
+      "locked": "The request can no longer be edited at this stage.",
+      "used": "Edits used: {pre}/{preMax} before a claim · {post}/{postMax} after"
+    },
+    "deleteSection": {
+      "title": "Deleting the request",
+      "hint": "Companies' active claims will be cancelled. We'll ask you to confirm first."
+    }
   },
   "Marketplace": {
     "title": "Marketplace",
-    "subtitle": "Requests eligible for your company",
+    "subtitle": "Requests eligible for your company. The exact address and the client’s details appear after you claim a request.",
     "availableCredits": "{n} credits",
     "empty": "No requests available right now.",
     "distanceApprox": "≈{km} km",
@@ -1029,7 +1385,7 @@
     "alreadyClaimed": "Already claimed by your company",
     "view": "Details",
     "manageOffer": "Offer & chat",
-    "back": "← Marketplace",
+    "back": "Marketplace",
     "includesPaidDesign": "Paid design included",
     "hasOwnProject": "Has own project",
     "desiredDeadline": "Desired deadline",
@@ -1056,7 +1412,9 @@
       "reservedHint": "Reserved credits are held by your active claims and can't be used for another claim until they are settled.",
       "readOnlyNote": "Only the owner or a manager can buy credits and subscriptions and see the company's orders.",
       "pageTitle": "Wallet and subscription",
-      "pageSubtitle": "Your company's credits, subscription, orders and penalties."
+      "pageSubtitle": "Your company's credits, subscription, orders and penalties.",
+      "sectionsNav": "Page sections",
+      "navCredits": "Credits"
     },
     "subscription": {
       "title": "Subscription",
@@ -1086,11 +1444,14 @@
       "planMarketplaceAccess": {
         "included": "Includes marketplace requests and claims",
         "notIncluded": "No marketplace access"
-      }
+      },
+      "activeLine": "The {plan} plan is active.",
+      "priceSuffix": "RON + VAT / 30 days",
+      "priceSuffixFree": "RON / 30 days"
     },
     "myClaims": {
       "title": "My claims",
-      "subtitle": "Every request your company has claimed, with its stage and offer.",
+      "subtitle": "Every request your company has claimed, with its stage and offer. Urgent ones come first.",
       "empty": "No claims yet.",
       "unassigned": "Unassigned",
       "goToPage": "See your claims — assignee, stage and offers",
@@ -1101,7 +1462,36 @@
       "stage": "Stage",
       "sla": "Offer deadline (SLA)",
       "slaPaused": "paused",
-      "newMessages": "{n, plural, =1 {one new message} other {# new messages}}"
+      "newMessages": "{n, plural, =1 {one new message} other {# new messages}}",
+      "emptyCta": "Browse marketplace requests",
+      "emptyFiltered": "No claims match these filters.",
+      "filterLabel": "Filter claims by stage",
+      "filter": {
+        "all": "All",
+        "toOffer": "To quote",
+        "offerSent": "Offer sent",
+        "closed": "Closed"
+      },
+      "assigneeAny": "Anyone",
+      "assigneeNone": "Unassigned",
+      "claimed": "Claimed",
+      "actions": "Actions",
+      "cta": {
+        "assign": "Choose an assignee",
+        "writeOffer": "Write the offer",
+        "offerAndChat": "Offer and chat",
+        "open": "Open worksheet"
+      },
+      "slaLeftTwo": "{a} and {b} left",
+      "slaLeftOne": "{a} left",
+      "slaOverdue": "Deadline passed — send the offer now",
+      "slaPausedLine": "Paused — clarification in progress",
+      "slaUnassigned": "No assignee — it will be cancelled automatically",
+      "slaUnassignedRule": "No assignee — cancelled automatically {minutes} after claiming",
+      "offerBy": "offer due by {date}",
+      "slaOfferSent": "The offer has been sent",
+      "slaNotApplicable": "the deadline no longer applies",
+      "slaMissed": "Deadline missed"
     },
     "apiErrors": {
       "CLAIM_NOT_ALLOWED": "This request can no longer be claimed.",
@@ -1166,14 +1556,37 @@
     },
     "emptyFiltered": "No requests for this filter.",
     "notEnoughCredits": "Not enough credits",
-    "viewAndClaim": "View and claim"
+    "viewAndClaim": "View and claim",
+    "filterAny": "Any",
+    "distanceFilter": "Distance",
+    "resetFilters": "Clear filters",
+    "slotsMine": "Slots {active}/{max} · already claimed by your company",
+    "creditsShort": "{cost} credits · {missing} short",
+    "openWorksheet": "Open the claim worksheet",
+    "detailMeta": "published {when} · the client’s details and the exact address appear after you claim it",
+    "summaryLabel": "Request summary",
+    "location": "Location",
+    "claimPanel": {
+      "label": "Claiming the request",
+      "title": "Claim the request",
+      "cost": "Cost",
+      "remaining": "You will have left",
+      "cta": "Claim the request…",
+      "mineHint": "The offer, the conversation with the client and the response deadline are in the claim worksheet.",
+      "ruleReserve": "When you claim, the credits are <b>reserved</b>.",
+      "ruleGrace": "You can withdraw for free within the first {minutes}.",
+      "ruleSla": "If you do not send the offer within the response deadline, the credits are consumed and the firm receives penalty points.",
+      "rulesLink": "Rules for firms"
+    }
   },
   "Chat": {
     "empty": "No messages yet. Write the first one.",
     "placeholder": "Write a message…",
     "send": "Send",
     "attach": "Attach a file",
-    "readOnly": "This conversation is read-only — no new messages can be sent."
+    "readOnly": "This conversation is read-only — no new messages can be sent.",
+    "you": "You",
+    "messageTo": "Message to {name}"
   },
   "Messages": {
     "title": "Messages",
@@ -1190,7 +1603,14 @@
     "attachmentOnly": "file attached",
     "noMessagesYet": "No messages yet.",
     "readOnly": "read-only",
-    "tabsLabel": "Conversation type"
+    "tabsLabel": "Conversation type",
+    "newCount": "{n} new",
+    "listLabel": "Conversations",
+    "searchLabel": "Search conversations",
+    "searchPlaceholder": "Search by request",
+    "searchEmpty": "No conversations match your search.",
+    "threadLabel": "Conversation for {title}",
+    "offerDue": "offer due by {date}"
   },
   "Quotes": {
     "loading": "Loading…",
@@ -1223,12 +1643,25 @@
       "descriptionLabel": "Client's message",
       "noDescription": "The client left no message.",
       "roomsSection": "Project rooms",
-      "filesSection": "Request files"
+      "filesSection": "Request files",
+      "statusLabel": "Claim status",
+      "claimedByAt": "Claimed by {name} {time}",
+      "slaLeft": "{left} left",
+      "daysHours": "{days, plural, one {# day} other {# days}}{hours, plural, =0 {} one { and # hour} other { and # hours}}",
+      "slaOverdue": "Deadline passed",
+      "slaGraceLeft": "{left} of grace left before the penalty",
+      "tabsLabel": "Worksheet sections",
+      "tabChat": "Conversation",
+      "tabProject": "Client's project",
+      "tabLifecycle": "Clarifications & withdrawal",
+      "recentMessages": "Latest messages",
+      "replyInChat": "Reply in the conversation",
+      "clientPrivacyNote": "Contact details are visible only to the colleague who claimed or works on this request and to the firm's owner, managers and employees with full access."
     },
     "offersTitle": "Offers & conversations",
     "offersSubtitle": "Your request's journey with every company that claimed it: discussions, offers, acceptance.",
     "noThreads": "No company has claimed your request yet. We'll notify you as soon as one does.",
-    "noOfferYet": "{company} hasn't sent an offer yet — until then, you can discuss the details in the conversation below.",
+    "noOfferYet": "{company} hasn't sent an offer yet. Until then, you can discuss the details in your conversation with them.",
     "claimedAt": "claimed the request {time}",
     "lastMessageAt": "last message {time}",
     "unreadMessages": "{n, plural, =1 {one new message} other {# new messages}}",
@@ -1247,7 +1680,7 @@
     "expired": "Offer expired",
     "accepted": "You accepted this offer.",
     "acceptedByClient": "The client accepted the offer.",
-    "accept": "Accept offer",
+    "accept": "Accept offer…",
     "acceptConfirmTitle": "Accept the offer from {company}?",
     "acceptConfirmBody": "This choice is final: the other companies are notified, their offers close, and their conversations become read-only.",
     "acceptConfirmPrice": "Offer price",
@@ -1311,11 +1744,30 @@
       "warranty": "Warranty",
       "validityDays": "Validity (days)",
       "description": "Description",
-      "submit": "Send"
+      "submit": "Send",
+      "versionOf": "Version {n} of at most {max}",
+      "submitCreate": "Send offer",
+      "createNote": "Once sent, the SLA deadline no longer applies. You can withdraw the offer or reply with a new version if the client asks for a change.",
+      "descriptionHint": "Say what is included: materials, hardware, transport, installation, VAT. The client compares offers on the same lines.",
+      "validity": "Offer validity",
+      "unitMonths": "months",
+      "unitDays": "days",
+      "unit": {
+        "RON": "RON",
+        "EUR": "EUR"
+      },
+      "termUnitLabel": "Term unit",
+      "termUnit": {
+        "WEEKS": "weeks",
+        "WORKING_DAYS": "working days"
+      },
+      "termWeeks": "{n, plural, one {# week} other {# weeks}}"
     },
     "validation": {
       "priceInvalid": "The price you entered is not valid.",
-      "descriptionRequired": "A description is required."
+      "descriptionRequired": "A description is required.",
+      "wholeNumber": "Enter a whole number greater than zero.",
+      "amountInvalid": "The amount you entered is not valid."
     },
     "apiErrors": {
       "QUOTE_VERSION_LIMIT_REACHED": "You've reached the limit of 3 offer versions.",
@@ -1382,14 +1834,14 @@
     "journey": {
       "label": "Request progress",
       "published": "Published",
-      "claimed": "Claimed by workshops",
+      "claimed": "Claimed by companies",
       "offers": "Offers received",
       "chosen": "Offer chosen",
       "done": "Furniture delivered"
     },
     "compare": {
       "title": "Offers, side by side",
-      "hint": "The same fields for every workshop",
+      "hint": "The same fields for every company",
       "field": "Field",
       "total": "Total",
       "term": "Lead time",
@@ -1400,8 +1852,22 @@
       "pending": "offer in progress",
       "validUntil": "until {date}",
       "openAndChoose": "View and choose",
-      "openChat": "View conversation"
-    }
+      "openChat": "View conversation",
+      "fastest": "fastest",
+      "daysLeft": "{n, plural, =0 {less than a day left} =1 {1 day left} other {# days left}}",
+      "openedBelow": "Open below"
+    },
+    "offersSubtitleFor": "{request} · your request's journey with every company that claimed it.",
+    "firmsTabsLabel": "Companies that claimed your request",
+    "offerFrom": "Offer from {company}",
+    "conversationWith": "Conversation with {company}",
+    "closedNoOffer": "{company} didn't send an offer and the conversation is closed. The messages stay available to read.",
+    "acceptHint": "This choice is final: the other companies are notified and their offers close. We'll show you a summary and ask you to confirm first.",
+    "sendChangeRequest": "Send change request",
+    "changeCancel": "Cancel",
+    "noDesignFee": "no design fee",
+    "deliveryBy": "by {date}",
+    "inactiveNote": "This offer is no longer active, so it can't be accepted."
   },
   "Lifecycle": {
     "slaTitle": "SLA & status",
@@ -1499,8 +1965,10 @@
     "history": {
       "customReason": "Your reason: {text}",
       "adminNote": "Administrator's note: {note}",
-      "decidedOn": "decided on {date}"
-    }
+      "decidedOn": "decided on {date}",
+      "title": "Withdrawal requests"
+    },
+    "noClarifications": "You haven't asked for any clarification on this claim."
   },
   "Penalties": {
     "title": "Penalties",
@@ -1513,7 +1981,8 @@
       "SLA_MISS": "Response deadline missed",
       "MASS_SLA_MISS": "Deadline missed by all firms",
       "VOLUNTARY_WITHDRAWAL": "Voluntary withdrawal after grace"
-    }
+    },
+    "pointsRest": "of {threshold} penalty points active"
   },
   "AdminUsers": {
     "title": "Users",
@@ -1546,14 +2015,47 @@
     "empty": "No users found.",
     "loadError": "Could not load users. Reload the page.",
     "actionError": "The action failed. Try again.",
-    "roleFilterLabel": "Filter users by role"
+    "roleFilterLabel": "Filter users by role",
+    "subtitle": "Find an account, see its status, and block or unblock it.",
+    "searchLabel": "Search users",
+    "colRegistered": "Registered",
+    "blockedSince": "since {date}",
+    "blockOpen": "Block…",
+    "unblockOpen": "Unblock…",
+    "capNote": "The list shows at most {count} accounts, newest first. Search by name or email to find a specific account.",
+    "unblockConfirmTitle": "Unblock the account {name}?",
+    "unblockConfirmBody": "The user will be able to log in again. They do not receive an email about the unblock.",
+    "unblockConfirmCta": "Yes, unblock"
   },
   "AdminWithdrawals": {
-    "title": "Claim withdrawals (custom)",
-    "empty": "No pending withdrawals.",
+    "title": "Claim withdrawals",
+    "empty": "No pending withdrawals",
     "notePlaceholder": "Note for the firm (optional, the firm sees it)",
-    "approve": "Approve",
-    "reject": "Reject"
+    "approve": "Approve withdrawal…",
+    "reject": "Reject withdrawal…",
+    "subtitle": "Withdrawal requests with “Other reason”, which need your decision.",
+    "pending": "Pending",
+    "emptyHint": "Withdrawals with “Other reason” show up here as soon as a company sends one.",
+    "ifApprove": "If you approve",
+    "ifApproveBody": "the company gets its credits back, with no penalty",
+    "ifReject": "If you reject",
+    "ifRejectBody": "the claim stays active, with its deadline",
+    "noteLabel": "Note for the company",
+    "noteOptional": "(optional, the company sees it)",
+    "approvedToast": "Withdrawal approved. The company has been notified.",
+    "rejectedToast": "Withdrawal rejected. The company has been notified.",
+    "confirm": {
+      "approveTitle": "Approve this withdrawal?",
+      "rejectTitle": "Reject this withdrawal?",
+      "approveBody": "The claim is closed: the company gets its credits back, with no penalty, and the slot is freed for other companies. If the company has already sent an offer, it is withdrawn. The company is notified of the decision.",
+      "rejectBody": "The claim stays active, with its deadline. The company is notified of the decision.",
+      "note": "Your note for the company: “{note}”",
+      "noNote": "You have not written a note for the company.",
+      "final": "This decision cannot be changed afterwards.",
+      "back": "Back",
+      "approveCta": "Yes, approve the withdrawal",
+      "rejectCta": "Yes, reject the withdrawal"
+    }
   },
   "Fulfillment": {
     "markDelivered": "Mark as delivered",
@@ -1730,17 +2232,24 @@
     "excludingVat": "+ VAT",
     "invoiceDownloadFailed": "We couldn't download the invoice. Please try again.",
     "freePlan": "Free",
-    "freePlanNote": "This plan cannot be bought online; the platform administrator activates it."
+    "freePlanNote": "This plan cannot be bought online; the platform administrator activates it.",
+    "buy": "Buy",
+    "buyPackageAria": "Buy the {n} credits package",
+    "buyCreditsIntro": "Credits are used to claim requests. Secure card payment (Stripe).",
+    "buyCreditsIntroBank": "Credits are used to claim requests. Payment is by bank transfer.",
+    "priceExVat": "{price} + VAT",
+    "perCredit": "{price} / credit",
+    "totalWithVat": "{total} incl. {rate}% VAT"
   },
   "AdminPayments": {
     "title": "Payments & subscriptions",
     "empty": "No orders in this category.",
-    "confirm": "Confirm payment",
+    "confirm": "Confirm payment received…",
     "orderType": {
       "SUBSCRIPTION": "Subscription",
       "CREDIT_PACKAGE": "Credit package"
     },
-    "stripeNote": "Card payments (Stripe) are confirmed automatically via webhook. Confirm manually only orders paid by bank transfer, once the money is in the account.",
+    "stripeNote": "Card payments (Stripe) are confirmed automatically. Confirm manually only orders paid by bank transfer, once the money is in the account.",
     "tabs": {
       "PENDING": "Pending",
       "CONFIRMED": "Paid",
@@ -1749,18 +2258,21 @@
     },
     "col": {
       "company": "Company",
-      "detail": "Type / detail",
+      "detail": "What was ordered",
       "total": "Total (incl. VAT)",
       "date": "Date",
       "source": "Source",
       "status": "Status",
-      "eInvoice": "e-Invoice"
+      "eInvoice": "e-Invoice",
+      "payment": "Payment",
+      "invoice": "Invoice",
+      "actions": "Actions"
     },
     "vatIncluded": "{base} RON + VAT {rate}%",
     "planLabel": "{tier} subscription",
     "packageLabel": "{n} credits package",
     "source": {
-      "stripe": "Stripe",
+      "stripe": "Card (Stripe)",
       "bank": "Bank transfer",
       "admin": "Transfer (confirmed manually)",
       "webhook": "Webhook"
@@ -1770,8 +2282,8 @@
       "CONFIRMED": "Paid",
       "CANCELLED": "Cancelled"
     },
-    "awaitingStripe": "Confirms automatically (Stripe)",
-    "cancel": "Cancel",
+    "awaitingStripe": "Confirms automatically",
+    "cancel": "Cancel order…",
     "confirmDialogTitle": "Confirm the payment?",
     "confirmDialogDesc": "{company} · {detail} · {total}. An invoice is issued (number consumed permanently) and the credits or subscription are delivered. This cannot be undone.",
     "cancelDialogTitle": "Cancel this order?",
@@ -1793,7 +2305,13 @@
       "note": "Internal note (optional, kept in the audit log)",
       "submit": "Grant subscription",
       "success": "Subscription granted to {company} until {date}.",
-      "freePlan": "free"
+      "freePlan": "free",
+      "review": "Grant subscription…",
+      "confirmTitle": "Grant this subscription?",
+      "confirmDesc": "{company} gets the {plan} plan for {days, plural, one {# day} other {# days}}.",
+      "confirmWithCredits": "The plan credits ({n}) are granted too.",
+      "confirmNoCredits": "The plan credits are not granted.",
+      "confirmCta": "Yes, grant the subscription"
     },
     "subscriptions": {
       "title": "Subscriptions",
@@ -1832,17 +2350,68 @@
       "exportHint": "Register of confirmed invoices for the chosen month (CSV), for e-Invoice reporting.",
       "exportButton": "Download CSV",
       "pdf": "PDF",
-      "pdfFailed": "The invoice PDF couldn't be downloaded."
+      "pdfFailed": "The invoice PDF couldn't be downloaded.",
+      "summaryTitle": "e-Invoice",
+      "summaryScope": "Counted from {n, plural, one {# paid order} other {# paid orders}} in the list.",
+      "showPending": "show the invoices to report",
+      "pendingOnly": "Showing only the invoices still to report in e-Invoice.",
+      "showAllPaid": "Show all paid",
+      "month": "Month"
     },
     "testOrder": "Test",
-    "paymentReported": "Company reported payment · {date}"
+    "paymentReported": "Company reported payment · {date}",
+    "zones": {
+      "label": "Page areas",
+      "orders": "Orders",
+      "subscriptions": "Subscriptions",
+      "grant": "Grant subscription",
+      "export": "Export for the accountant"
+    },
+    "statusFilterLabel": "Filter orders by status",
+    "flaggedFirst": "Orders reported as paid by companies come first",
+    "back": "Back",
+    "confirmDialogCta": "Yes, confirm the payment",
+    "cancelDialogCta": "Yes, cancel the order"
   },
   "AdminDisputes": {
     "title": "Review disputes",
-    "empty": "No open disputes.",
+    "empty": "No open disputes",
     "notePlaceholder": "Resolution note (optional)",
-    "resolve": "Resolve",
-    "dismiss": "Dismiss"
+    "resolve": "Resolve…",
+    "dismiss": "Dismiss…",
+    "subtitle": "A review under 3 stars opens a dispute automatically. Here you see the review and the project timeline before you decide.",
+    "open": "Open",
+    "emptyHint": "New disputes show up here and in the menu on the left, with a counter.",
+    "openedAgo": "opened {when}",
+    "reviewLabel": "The client review",
+    "stars": "{n, plural, one {# star} other {# stars}} out of 5",
+    "noComment": "The client did not write a comment.",
+    "timelineLink": "See the project timeline",
+    "noteLabel": "Resolution note",
+    "noteOptional": "(optional)",
+    "dismissTitle": "Dismiss the dispute",
+    "dismissBody": "The review is deleted permanently, and the client can leave a new one.",
+    "resolveTitle": "Resolve the dispute",
+    "resolveBody": "The review stays on record, exactly as the client wrote it.",
+    "resolvedToast": "Dispute resolved. The review stays on record.",
+    "dismissedToast": "Dispute dismissed. The review has been deleted.",
+    "confirm": {
+      "dismissTitle": "Dismiss this dispute?",
+      "resolveTitle": "Resolve this dispute?",
+      "dismissBody": "The review is deleted permanently and cannot be recovered; the client can leave a new one. The request goes back to “Completed”, and the client and the company are notified of the decision.",
+      "resolveBody": "The review stays on record. The request goes back to “Completed”, and the client and the company are notified of the decision.",
+      "final": "This decision cannot be changed afterwards.",
+      "back": "Back",
+      "dismissCta": "Yes, dismiss the dispute",
+      "resolveCta": "Yes, resolve the dispute"
+    },
+    "apiErrors": {
+      "DISPUTE_ALREADY_DECIDED": "This dispute was already decided by another administrator. Reload the page.",
+      "NOT_FOUND": "The dispute was not found. Reload the page.",
+      "VALIDATION_ERROR": "The note is too long (2,000 characters at most).",
+      "INTERNAL_ERROR": "Something went wrong. Please try again.",
+      "DATABASE_BUSY": "The server is responding slowly right now, so the action was not saved. Please try again in a few seconds."
+    }
   },
   "Admin": {
     "console": "Admin console",
@@ -1874,7 +2443,8 @@
       "audit": "Audit entries",
       "companies": "Companies by status",
       "requests": "Requests by status",
-      "subscriptionsByPlan": "Active subscriptions by plan"
+      "subscriptionsByPlan": "Active subscriptions by plan",
+      "none": "Nothing to show yet."
     },
     "audit": {
       "filterAction": "Filter by action…",
@@ -1882,7 +2452,125 @@
       "entity": "Entity",
       "role": "Role",
       "date": "Date",
-      "empty": "No audit entries."
+      "empty": "No audit entries.",
+      "subtitle": "The log of every audited action: who, what, on what and when. It cannot be changed.",
+      "allActions": "All actions",
+      "allRoles": "All roles",
+      "total": "{n, plural, one {# entry} other {# entries}}",
+      "rolePageNote": "The role filter applies only to the current page: {shown} of {loaded} entries.",
+      "emptyFiltered": "No entries for the chosen action.",
+      "emptyRole": "No entry on this page has the chosen role.",
+      "who": "Who",
+      "what": "What they did",
+      "target": "On what",
+      "system": "System",
+      "automatic": "automatic",
+      "groups": {
+        "billing": "Payments and invoices",
+        "companies": "Companies",
+        "projects": "Projects and cases",
+        "claims": "Claims and withdrawals",
+        "quotes": "Offers",
+        "users": "Users",
+        "settings": "Settings",
+        "content": "The Idea Book",
+        "other": "Other actions"
+      },
+      "actions": {
+        "PAYMENT_CONFIRMED": "Confirmed payment for an order",
+        "PAYMENT_CANCELLED": "Cancelled an order",
+        "PAYMENT_MARKED_PAID": "Reported a bank transfer payment",
+        "CREDITS_PURCHASE_REQUESTED": "Ordered a credit package",
+        "SUBSCRIPTION_PURCHASE_REQUESTED": "Ordered a subscription",
+        "CHECKOUT_REQUESTED": "Opened card payment",
+        "E_INVOICE_STATUS_UPDATED": "Updated the e-Invoice status",
+        "SUBSCRIPTION_GRANTED": "Granted a subscription",
+        "SELLER_DETAILS_UPDATED": "Changed the fiscal details",
+        "COMPANY_APPROVED": "Approved a company",
+        "COMPANY_REJECTED": "Rejected a company",
+        "COMPANY_UNSUSPENDED": "Lifted a company suspension",
+        "COMPANY_PROFILE_UPDATED": "Updated the company profile",
+        "COMPANY_LOCATION_CREATED": "Added a company location",
+        "COMPANY_LOCATION_UPDATED": "Changed a company location",
+        "COMPANY_LOCATION_DELETED": "Deleted a company location",
+        "PROJECT_CASE_OPENED": "Reported a case on a project",
+        "PROJECT_CASE_RESPONDED": "Replied to a reported case",
+        "PROJECT_CASE_DISMISSED": "Closed a case without cancelling",
+        "PROJECT_CLOSED": "Closed a project",
+        "DELIVERY_MARKED": "Marked the delivery",
+        "DELIVERY_CONFIRMED": "Confirmed the delivery",
+        "REVIEW_CREATED": "Left a review",
+        "DISPUTE_RESOLVED": "Decided a dispute",
+        "REQUEST_REPOSTED": "Reposted a request",
+        "CLAIM_CREATED": "Claimed a request",
+        "CLAIM_ASSIGNED": "Assigned a claim to a colleague",
+        "CLARIFICATION_REQUESTED": "Asked for a clarification",
+        "CLARIFICATION_ANSWERED": "Answered a clarification",
+        "CLAIM_WITHDRAWAL_REQUESTED": "Asked to withdraw a claim",
+        "WITHDRAWAL_REVIEWED": "Decided a withdrawal",
+        "QUOTE_CREATED": "Created an offer",
+        "QUOTE_REVISED": "Revised an offer",
+        "QUOTE_EXTRA_VERSION_CREATED": "Added an offer version",
+        "QUOTE_REOFFERED": "Sent a new offer after expiry",
+        "QUOTE_VALIDITY_EXTENDED": "Extended an offer's validity",
+        "QUOTE_EXTENSION_REQUESTED": "Asked for an offer extension",
+        "QUOTE_CHANGE_REQUESTED": "Asked for a change to an offer",
+        "QUOTE_CHANGE_REJECTED": "Refused the requested change",
+        "QUOTE_NEGOTIATION_ENDED": "Ended the negotiation",
+        "QUOTE_WITHDRAWN": "Withdrew an offer",
+        "QUOTE_ACCEPTED": "Accepted an offer",
+        "CONSULTATION_INVITED": "Sent a consultation invite",
+        "CONSULTATION_RESPONDED": "Replied to a consultation invite",
+        "USER_BLOCKED": "Blocked an account",
+        "USER_UNBLOCKED": "Unblocked an account",
+        "LEGAL_ACCEPTED": "Accepted the legal documents",
+        "LOGIN_COOLDOWN_STARTED": "Sign-in paused after too many attempts",
+        "SETTING_UPDATED": "Changed a system setting",
+        "PENALTY_RULE_UPDATED": "Changed a penalty rule",
+        "PLAN_CREATED": "Created a subscription plan",
+        "PLAN_UPDATED": "Changed a subscription plan",
+        "CREDIT_PACKAGE_CREATED": "Created a credit package",
+        "CREDIT_PACKAGE_UPDATED": "Changed a credit package",
+        "THRESHOLD_UPDATED": "Changed a size threshold",
+        "SIZING_WEIGHTS_UPDATED": "Changed the sizing points",
+        "CALENDAR_HOLIDAY_CREATED": "Added a calendar day",
+        "CALENDAR_HOLIDAY_UPDATED": "Changed a calendar day",
+        "CALENDAR_HOLIDAY_DELETED": "Deleted a calendar day",
+        "MAIL_TEST_SENT": "Sent a test email",
+        "JOB_RETRIED": "Retried a job",
+        "INSPIRATION_PHOTO_CREATED": "Added a photo to the Idea Book",
+        "INSPIRATION_PHOTO_UPDATED": "Changed a photo in the Idea Book",
+        "INSPIRATION_PHOTO_IMAGE_SET": "Replaced the image of a photo",
+        "INSPIRATION_PHOTO_UPLOAD_COMPLETED": "Uploaded an image",
+        "INSPIRATION_PHOTO_DELETED": "Deleted a photo from the Idea Book"
+      },
+      "entities": {
+        "mock_billing_order": "Order",
+        "subscription": "Subscription",
+        "company": "Company",
+        "company_location": "Company location",
+        "request": "Request",
+        "review": "Review",
+        "review_dispute": "Dispute",
+        "project_case": "Project case",
+        "claim_slot": "Claim",
+        "claim_withdrawal": "Withdrawal",
+        "clarification": "Clarification",
+        "quote": "Offer",
+        "consultation_invite": "Consultation invite",
+        "user": "User",
+        "system_setting": "Setting",
+        "penalty_rule": "Penalty rule",
+        "subscription_plan": "Subscription plan",
+        "credit_package": "Credit package",
+        "project_size_threshold": "Size threshold",
+        "project_sizing_config": "Sizing points",
+        "business_calendar_holiday": "Calendar day",
+        "mail": "Email",
+        "job": "Job",
+        "inspiration_photo": "Idea Book photo",
+        "attachment": "File"
+      }
     },
     "contactDetections": {
       "title": "Contact details in free text",
@@ -1897,7 +2585,11 @@
         "kinds": "Type",
         "excerpt": "Excerpt",
         "action": "Action",
-        "trigger": "When"
+        "trigger": "When",
+        "when": "When",
+        "where": "Where",
+        "found": "What was found",
+        "done": "What we did"
       },
       "fields": {
         "TITLE": "Title",
@@ -1921,6 +2613,18 @@
       "triggers": {
         "PUBLISH": "Publish",
         "EDIT": "Edit"
+      },
+      "total": "{n, plural, one {# detection} other {# detections}}",
+      "filter": {
+        "allKinds": "All types",
+        "allActions": "All actions",
+        "pageNote": "Filters apply only to the current page: {shown} of {loaded} detections.",
+        "emptyFiltered": "No detection on this page matches the filters.",
+        "clear": "Clear filters"
+      },
+      "moment": {
+        "PUBLISH": "on publish",
+        "EDIT": "on edit"
       }
     },
     "settings": {
@@ -1930,8 +2634,8 @@
       "packages": "Credit packages",
       "thresholds": "Project size thresholds",
       "creditCostNote": "Request cost is not set per threshold: 1 credit = {creditValue} RON of the minimum estimated budget, rounded up. Thresholds only decide the S/M/L size and its deadline.",
-      "creditCostRange": "Cost per claim: between {min} and {max, plural, one {# credit} other {# credits}} (credit_value_ron, claim_cost_min, claim_cost_max). Applies to requests published or edited after saving; existing claims keep their cost.",
-      "creditCostNoMax": "Cost per claim: at least {min, plural, one {# credit} other {# credits}}, no cap (claim_cost_max = 0). Applies to requests published or edited after saving; existing claims keep their cost.",
+      "creditCostRange": "Cost per claim: between {min} and {max, plural, one {# credit} other {# credits}} (<code>credit_value_ron</code>, <code>claim_cost_min</code>, <code>claim_cost_max</code>). Applies to requests published or edited after saving; existing claims keep their cost.",
+      "creditCostNoMax": "Cost per claim: at least {min, plural, one {# credit} other {# credits}}, no cap (<code>claim_cost_max</code> = 0). Applies to requests published or edited after saving; existing claims keep their cost.",
       "save": "Save",
       "saved": "Saved.",
       "saveError": "Could not save. Check the values and try again.",
@@ -1967,7 +2671,8 @@
           "PLACEHOLDER": "Sample value from setup — replace it with the real details.",
           "INVALID_cui": "Invalid tax ID: the check digit does not match.",
           "INVALID_iban": "Invalid IBAN: the checksum failed."
-        }
+        },
+        "unsaved": "The fiscal details have unsaved changes."
       },
       "weightsLink": "Option points are edited under Project sizing",
       "planHint": "Plans are data: the code cannot change, the price can be 0 (free plan, granted by an admin), and marketplace access is chosen per plan.",
@@ -1983,18 +2688,323 @@
         "credits": "Credits",
         "gating": "Access delay (min)",
         "marketplaceAccess": "Marketplace access and claims",
-        "active": "Active"
+        "active": "Active",
+        "planPrice": "Price excluding VAT",
+        "planPriceHint": "0 = free plan.",
+        "planCredits": "Included credits",
+        "planGating": "Delay for new requests",
+        "planGatingHint": "Minutes from publishing until the firm sees the request. 0 = right away.",
+        "packageCredits": "Credits",
+        "packagePrice": "Price excluding VAT",
+        "thresholdMin": "Minimum score",
+        "thresholdMax": "Maximum score"
       },
       "newPlan": {
         "title": "New plan",
         "submit": "Create plan",
         "created": "Plan created."
+      },
+      "subtitle": "The platform rules, by section. Every value has a name, a unit and an explanation.",
+      "navLabel": "Settings sections",
+      "sections": {
+        "fiscal": {
+          "title": "Fiscal details"
+        },
+        "billing": {
+          "title": "Invoices and VAT",
+          "description": "The VAT rate and the invoice number series."
+        },
+        "claims": {
+          "title": "Claims and credits",
+          "description": "The cost applies to requests published or edited after saving; existing claims keep their cost."
+        },
+        "quotes": {
+          "title": "Quotes and projects",
+          "description": "Default time limits for quotes, invitations and accepted projects."
+        },
+        "trial": {
+          "title": "Trial period",
+          "description": "What a new firm receives at the moment it is approved."
+        },
+        "penalties": {
+          "title": "Penalties and suspension",
+          "description": "The points firms receive for breaches and the threshold at which they are suspended."
+        },
+        "plans": {
+          "title": "Subscription plans",
+          "description": "A plan code never changes. The price can be 0 (a free plan, granted by an admin), and marketplace access is chosen per plan."
+        },
+        "packages": {
+          "title": "Credit packages",
+          "description": "The credit packages on sale. Prices exclude VAT."
+        },
+        "thresholds": {
+          "title": "Size thresholds",
+          "description": "The score ranges that give the project size (S, M or L) and, with it, the firm response time."
+        },
+        "contact": {
+          "title": "Contact details and firms",
+          "description": "When firms see the client contact details and what limits apply to a firm's locations."
+        },
+        "legal": {
+          "title": "Terms and legal identity",
+          "description": "The operator details shown publicly and the acceptance of the Terms."
+        },
+        "other": {
+          "title": "Other settings",
+          "description": "Settings that have no description on this page yet. They appear with their technical code."
+        },
+        "tools": {
+          "title": "Test tools",
+          "description": "They change no setting: they check email delivery and error reporting."
+        }
+      },
+      "items": {
+        "vat_rate": {
+          "label": "VAT rate",
+          "help": "Added to the price excluding VAT of subscriptions and credit packages."
+        },
+        "invoice_series": {
+          "label": "Invoice series",
+          "help": "The prefix in the number of every invoice issued."
+        },
+        "max_claims_per_request": {
+          "label": "Firms per request",
+          "help": "How many firms can claim the same request (3 at most)."
+        },
+        "credit_value_ron": {
+          "label": "Value of one credit",
+          "help": "The cost of a request: 1 credit for every this many lei of the estimated minimum budget, rounded up."
+        },
+        "claim_cost_min": {
+          "label": "Minimum cost of a claim",
+          "help": "No request costs less than this."
+        },
+        "claim_cost_max": {
+          "label": "Maximum cost of a claim",
+          "help": "0 means no cap."
+        },
+        "claims_open_after_first_offer": {
+          "label": "Claims allowed after the first quote",
+          "help": "When off, the request can no longer be claimed by other firms once the client receives the first quote."
+        },
+        "bank_transfer_reminder_days": {
+          "label": "Bank transfer reminder",
+          "help": "How many days after it was placed a reminder is sent for an unpaid bank transfer order. 0 means off. It only takes effect when it is lower than the cancellation limit."
+        },
+        "bank_transfer_expiry_days": {
+          "label": "Bank transfer order expiry",
+          "help": "After how many days an unpaid bank transfer order is cancelled automatically. 0 means off. Orders the firm has reported as paid are not cancelled."
+        },
+        "quote_validity_default_days": {
+          "label": "Default quote validity",
+          "help": "How many days a quote is valid when the firm does not choose another limit."
+        },
+        "consultation_invite_expiry_days": {
+          "label": "Expiry of the invitation to the firm office",
+          "help": "How many days the invitation sent to the client stays open."
+        },
+        "eur_ron_rate": {
+          "label": "Euro – leu rate",
+          "help": "The fixed rate used to show quote amounts to the client in the other currency as well."
+        },
+        "delivery_reminder_days_before": {
+          "label": "Reminder before delivery",
+          "help": "How many days before the delivery date in the accepted quote the firm receives a reminder."
+        },
+        "expired_offer_autoclose_enabled": {
+          "label": "Automatic closing of expired quotes",
+          "help": "When on, an expired quote the client has not decided on closes by itself after the number of days below. It only works when the credit outcome is chosen too."
+        },
+        "expired_offer_autoclose_days": {
+          "label": "Days until automatic closing",
+          "help": "How many days after the quote expires the client decision is awaited."
+        },
+        "expired_offer_autoclose_credit_outcome": {
+          "label": "Credits at automatic closing",
+          "help": "What happens to the firm's reserved credits when the quote closes automatically.",
+          "options": {
+            "UNSET": "Not chosen (automatic closing stays off)",
+            "REFUND": "Returned to the firm",
+            "CONSUME": "Consumed"
+          }
+        },
+        "trial_enabled": {
+          "label": "Trial period on approval",
+          "help": "When on, the firm receives the plan below for free, plus the bonus credits, at the moment it is approved."
+        },
+        "trial_plan": {
+          "label": "Trial period plan",
+          "help": "It must be an active plan."
+        },
+        "trial_duration_days": {
+          "label": "Trial period length",
+          "help": "How many days the free subscription lasts."
+        },
+        "trial_bonus_credits": {
+          "label": "Bonus credits",
+          "help": "Credits the firm receives at the start of the trial period."
+        },
+        "company_penalty_threshold": {
+          "label": "Suspension threshold",
+          "help": "The number of active points at which the firm is suspended."
+        },
+        "company_suspension_months": {
+          "label": "Suspension length",
+          "help": "How long a suspended firm cannot claim requests."
+        },
+        "claim_contact_reveal_policy": {
+          "label": "When the firm sees the client contact details",
+          "help": "Applies to firms that have claimed the request.",
+          "options": {
+            "ON_CLAIM": "Right after the claim",
+            "AFTER_GRACE": "After the first 30 minutes (the penalty-free withdrawal period)"
+          }
+        },
+        "completed_claim_contact_retention_days": {
+          "label": "Access to contact details after delivery",
+          "help": "How many days after delivery the firm employees still see the client contact details; the firm management keeps seeing them. 0 means no limit."
+        },
+        "pre_claim_contact_text_policy": {
+          "label": "Contact details written in the request texts",
+          "help": "What happens when the client writes a phone number, an email or a link in the title, the message or the answers.",
+          "options": {
+            "MASK": "Hidden from firms that have not claimed the request",
+            "BLOCK": "Publishing is refused"
+          }
+        },
+        "marketplace_distance_display": {
+          "label": "Distance shown before the claim",
+          "help": "How firms see the distance to the client before they claim the request.",
+          "options": {
+            "KM": "In whole kilometres",
+            "BAND": "Only as distance ranges"
+          }
+        },
+        "company_locations_max": {
+          "label": "Locations per firm",
+          "help": "How many locations a firm can have."
+        },
+        "company_location_changes_per_day": {
+          "label": "Location changes in 24 hours",
+          "help": "How many times a firm can change its locations within 24 hours."
+        },
+        "legal_contact_email": {
+          "label": "Legal contact email",
+          "help": "The address for legal and data protection requests. It can stay empty."
+        },
+        "legal_identity_published": {
+          "label": "Publish the operator identity",
+          "help": "When on, the operator fiscal details appear in the Terms, in the Privacy Policy and in the site footer."
+        },
+        "legal_reaccept_existing_users": {
+          "label": "Existing accounts accept the Terms again",
+          "help": "When on, users who accepted an older version must accept the current Terms and Policy. New accounts accept them at sign-up anyway; administrators are exempt. It applies within one minute."
+        }
+      },
+      "units": {
+        "minutes": "minutes",
+        "days": "days",
+        "months": "months",
+        "points": "points",
+        "ron": "lei",
+        "ronPerEur": "lei / EUR",
+        "percent": "%",
+        "credits": "credits",
+        "firms": "firms",
+        "locations": "locations",
+        "changes": "changes"
+      },
+      "on": "on",
+      "off": "off",
+      "emptyValue": "empty",
+      "savedValue": "Saved value:",
+      "was": "Saved: {value}",
+      "problems": {
+        "integer": "Enter a whole number, without decimals.",
+        "min": "The minimum value is {min}.",
+        "range": "The value must be between {min} and {max}.",
+        "decimal": "Enter a number; use a dot for decimals (for example 5.2).",
+        "email": "The email address is not valid.",
+        "planCode": "The plan code has capital letters, digits and _, between 2 and 32 characters.",
+        "costRange": "The maximum cost must be 0 (no cap) or at least the minimum cost."
+      },
+      "rules": {
+        "SLA_MISS": "Points received when the quote is not sent within the response time.",
+        "MASS_SLA_MISS": "Points received by each firm when all the firms that claimed the request miss the response time.",
+        "VOLUNTARY_WITHDRAWAL": "Points received for withdrawing after the first 30 minutes from the claim."
+      },
+      "ruleActive": "Rule active",
+      "ruleInactive": "Rule off",
+      "packageTitle": "{credits, plural, one {Package of # credit} other {Package of # credits}}",
+      "packageInactive": "Inactive.",
+      "unsaved": "{count, plural, one {# unsaved change} other {# unsaved changes}}",
+      "changeSummary": "{label}, {from} → {to}.",
+      "andMore": "{count, plural, one {And one more.} other {And # more.}}",
+      "fixInvalid": "Correct the values marked in red before saving.",
+      "discard": "Discard",
+      "saveChanges": "Save changes…",
+      "confirmTitle": "{count, plural, one {Save # change?} other {Save # changes?}}",
+      "confirmBody": "The values are sent one by one and apply to the platform right away.",
+      "confirmSave": "{count, plural, one {Save # change} other {Save # changes}}",
+      "cancel": "Cancel",
+      "close": "Close",
+      "savingTitle": "Saving…",
+      "savingBody": "Do not close the page until it finishes.",
+      "resultOkTitle": "The changes were saved",
+      "resultOkBody": "{count, plural, one {# setting was saved.} other {# settings were saved.}}",
+      "resultPartialTitle": "Some changes were not saved",
+      "resultPartialBody": "{saved} saved, {failed} not saved. The ones not saved stay marked on the page: correct them and save again.",
+      "becomes": "becomes",
+      "opSaved": "Saved.",
+      "savedCount": "{count, plural, one {# setting saved.} other {# settings saved.}}",
+      "savedPartial": "{saved} saved, {failed} not saved. Check the marked values.",
+      "errors": {
+        "PLAN_NOT_FOUND": "The trial period plan must be the code of an active plan.",
+        "CLAIM_COST_RANGE": "The maximum cost must be 0 (no cap) or at least the minimum cost.",
+        "SETTING_KEY_UNKNOWN": "The setting no longer exists. Reload the page.",
+        "NOT_FOUND": "The item no longer exists. Reload the page.",
+        "VALIDATION_ERROR": "The value was not accepted. Check it and try again.",
+        "DEPLOYMENT_STANDBY": "The server is under maintenance. Try again in a few minutes.",
+        "DATABASE_BUSY": "The server is responding slowly right now, so the value was not saved. Try again in a few seconds."
       }
     },
     "jobs": {
-      "empty": "No failed jobs.",
+      "empty": "No failed jobs",
       "attempts": "Attempts",
-      "retry": "Retry"
+      "retry": "Retry",
+      "subtitle": "Background tasks that failed and are waiting for a retry.",
+      "failedSummary": "<b>{n, plural, one {# failed job} other {# failed jobs}}</b>, the oldest queued {when}.",
+      "failedSummaryNoDate": "<b>{n, plural, one {# failed job} other {# failed jobs}}</b>.",
+      "emptyHint": "Jobs that fail show up here, with the reason reported by the server.",
+      "queuedAt": "Queued:",
+      "noReason": "The server did not report a reason.",
+      "retryAll": "Retry all…",
+      "retryAllTitle": "Retry all failed jobs?",
+      "retryAllBody": "{n, plural, one {The failed job in the list is put} other {The # failed jobs in the list are put}} back in the queue and run again. Those that succeed leave the list; those that fail again come back here. Each retry is recorded in the audit log.",
+      "retryAllCta": "Yes, retry all",
+      "back": "Back",
+      "retried": "The job is back in the queue.",
+      "retriedHint": "The card leaves the list; if the job fails again, it comes back here.",
+      "retriedAll": "{ok, plural, =0 {No job was put} one {# job was put} other {# jobs were put}} back in the queue.",
+      "retryAllFailed": "{failed, plural, one {# job could not be put} other {# jobs could not be put}} back in the queue. Reload the page and try again.",
+      "retryFailed": "The job could not be put back in the queue. Reload the page and try again.",
+      "queues": {
+        "notifications": "Notifications and emails",
+        "request-expiration": "Request expiry",
+        "claim-assign": "Claim assignment",
+        "quote-validity": "Offer validity",
+        "consultation-expiry": "Consultation invite expiry",
+        "sla-breach": "Claim SLA deadline",
+        "withdrawal-reminder": "Reminder for undecided withdrawals",
+        "subscription-expiry": "Subscription and bank transfer order expiry",
+        "delivery-autocomplete": "Automatic completion after delivery",
+        "reconciliation": "Daily reconciliation",
+        "uploads": "Uploaded files",
+        "domain-events": "Events to send",
+        "offer-expiry-settlement": "Closing of expired offers",
+        "project-deadlines": "Project delivery deadlines"
+      }
     },
     "requests": {
       "title": "Projects",
@@ -2031,7 +3041,9 @@
         "date": "Date",
         "type": "Type",
         "amount": "Credits",
-        "reason": "Reason (ledger)"
+        "reason": "Reason (ledger)",
+        "parties": "Client and company",
+        "actions": "Actions"
       },
       "detail": {
         "client": "Client",
@@ -2042,7 +3054,12 @@
         "slots": "Claims",
         "credits": "Credit movements",
         "noCredits": "No credit movements on this request’s claims.",
-        "case": "Reported case"
+        "case": "Reported case",
+        "parties": "Project parties",
+        "acceptedQuote": "accepted offer: {price}",
+        "claimCredits": "credits reserved at claim: {n}",
+        "claimedOn": "claimed on {date}",
+        "quoted": "“{text}”"
       },
       "caseStatus": {
         "OPEN": "Open",
@@ -2074,7 +3091,8 @@
         "consume": "Consume the credits ({n})",
         "note": "Reason for the decision (required, kept in the audit log)",
         "warning": "This is final: the request moves to “Project cancelled”, the conversation becomes read-only and the credits are settled exactly once.",
-        "confirm": "Close for good"
+        "confirm": "Close for good",
+        "open": "Close the project…"
       },
       "dismiss": "Close the case without cancelling",
       "dismissHint": "The project continues; both parties are told the case has been closed for now.",
@@ -2102,7 +3120,18 @@
         "CONCURRENT_MODIFICATION": "The project changed in the meantime. Reload the page and try again.",
         "INTERNAL_ERROR": "Something went wrong. Please try again.",
         "DATABASE_BUSY": "The server is responding slowly right now, so the action was not saved. Please try again in a few seconds."
-      }
+      },
+      "searchLabel": "Search projects",
+      "searchPlaceholder": "Search by project, client or company",
+      "searchPageOnly": "The search only covers the page shown.",
+      "noMatch": "No project on this page matches your search.",
+      "clearSearch": "Clear search",
+      "open": "Open",
+      "acceptedOn": "accepted on {date}",
+      "overdueBy": "{days, plural, one {# day} other {# days}} overdue",
+      "overdueByFlag": "Overdue by {days, plural, one {# day} other {# days}}",
+      "noteHint": "At least {min} characters.",
+      "dismissOpen": "Close the case without cancelling…"
     },
     "billingBanner": {
       "title": "Billing details incomplete",
@@ -2142,7 +3171,21 @@
         "DEPLOYMENT_STANDBY": "The server is under maintenance. Try again in a few minutes.",
         "INTERNAL_ERROR": "Something went wrong. Try again.",
         "DATABASE_BUSY": "The server is responding slowly right now, so the action was not saved. Please try again in a few seconds."
-      }
+      },
+      "legend": {
+        "holiday": "day off",
+        "forced": "forced working day",
+        "weekend": "weekend",
+        "working": "working day"
+      },
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "today": "today",
+      "actions": "Actions",
+      "typeFor": "Day type: {name}",
+      "removeAction": "Delete…",
+      "checkDays": "{days, plural, one {# working day} other {# working days}}",
+      "goToYear": "Go to {year}"
     },
     "sizing": {
       "title": "Project sizing",
@@ -2172,6 +3215,113 @@
         "DEPLOYMENT_STANDBY": "The server is under maintenance. Try again in a few minutes.",
         "INTERNAL_ERROR": "Something went wrong. Try again.",
         "DATABASE_BUSY": "The server is responding slowly right now, so the action was not saved. Please try again in a few seconds."
+      },
+      "search": "Search for a question or an option",
+      "noMatch": "No question or option matches the search.",
+      "clearSearch": "Clear the search",
+      "rangeNote": "Each option is worth between 0 and 100 points. Questions appear with the names from the form, and the technical code stays on the right, for developers.",
+      "pointsUnit": "pts",
+      "invalidValues": "Each option is worth a whole number between 0 and 100.",
+      "previewMatches": "The preview alongside matches exactly these changes.",
+      "previewAgain": "Preview again",
+      "previewIdle": "Change the points of an option, then preview the effect on recent requests.",
+      "discardAll": "Discard all",
+      "savePoints": "Save the points…",
+      "sizeCol": "Size",
+      "changedSizeLabel": "Requests that change size",
+      "changedCostLabel": "Requests that change their credit cost",
+      "avgCostLabel": "Average cost",
+      "avgCostValue": "{current} → {proposed} credits",
+      "thresholdsLink": "Thresholds are edited in Settings",
+      "groups": {
+        "ROOM_TYPE": {
+          "title": "The room or the piece",
+          "help": "The base points of every room or piece in the request."
+        },
+        "ROOM_SIZE": {
+          "title": "Furniture length",
+          "help": "By the linear metres of furniture in the room."
+        },
+        "ITEM_QUANTITY": {
+          "title": "Number of pieces",
+          "help": "By how many furniture pieces the room has."
+        },
+        "MATERIAL": {
+          "title": "Material",
+          "help": "Added for every piece, by the material chosen."
+        },
+        "SYSTEM": {
+          "title": "Opening system",
+          "help": "Added for every piece; when several systems are chosen, the one with the highest score counts."
+        },
+        "PAID_DESIGN": {
+          "title": "Paid design",
+          "help": "Added when the request includes paid design. It counts only towards the size, not towards the credit cost."
+        },
+        "BUDGET": {
+          "title": "The stated budget",
+          "help": "It counts only towards the size, not towards the credit cost."
+        },
+        "KITCHEN_LAYOUT": {
+          "title": "Kitchen · What shape is the kitchen?"
+        },
+        "KITCHEN_ISLAND": {
+          "title": "Kitchen · Island"
+        },
+        "KITCHEN_COUNTERTOP": {
+          "title": "Kitchen · Countertop"
+        },
+        "DRESSING_LAYOUT": {
+          "title": "Dressing room · Shape"
+        },
+        "WARDROBE_TO_CEILING": {
+          "title": "Wardrobe · Up to the ceiling"
+        },
+        "TV_MEDIA_WALL": {
+          "title": "TV unit · Media wall"
+        },
+        "BED_STORAGE": {
+          "title": "Bed · Storage"
+        },
+        "TABLE_EXTENDABLE": {
+          "title": "Table · Extendable"
+        }
+      },
+      "options": {
+        "ROOM_SIZE": {
+          "UNDER_2M": "Under 2 m",
+          "FROM_2_TO_4M": "2 – 4 m",
+          "OVER_4M": "Over 4 m"
+        },
+        "ITEM_QUANTITY": {
+          "QTY_1": "One piece",
+          "QTY_2_3": "2 – 3 pieces",
+          "QTY_4_PLUS": "4 or more pieces"
+        },
+        "KITCHEN_LAYOUT": {
+          "STRAIGHT": "Straight",
+          "L_SHAPE": "L-shaped",
+          "U_SHAPE": "U-shaped",
+          "PARALLEL": "Parallel"
+        },
+        "KITCHEN_COUNTERTOP": {
+          "LAMINATE": "Laminate (HPL)",
+          "QUARTZ": "Quartz composite",
+          "GRANITE": "Granite",
+          "WOOD": "Wood",
+          "PAL": "Chipboard",
+          "HPL": "HPL"
+        },
+        "DRESSING_LAYOUT": {
+          "LINEAR": "Straight",
+          "L_SHAPE": "L-shaped",
+          "U_SHAPE": "U-shaped",
+          "WALK_IN": "Walk-in"
+        },
+        "BED_STORAGE": {
+          "LIFT_UP": "Lift-up storage",
+          "DRAWERS": "Drawers"
+        }
       }
     },
     "apiErrors": {
@@ -2179,7 +3329,51 @@
       "VALIDATION_ERROR": "Invalid data. Check the code, price and credits."
     },
     "navHeading": "Administration",
-    "sidebarNote": "Cozy Home · operations console"
+    "sidebarNote": "Cozy Home · operations console",
+    "navGroups": {
+      "todo": "To resolve",
+      "records": "Records",
+      "content": "Content",
+      "config": "Configuration"
+    },
+    "navPending": "{count} to resolve",
+    "dashboardSubtitle": "First what needs you, then the platform’s figures.",
+    "queues": {
+      "title": "To resolve",
+      "clear": "Nothing to resolve right now.",
+      "companies": {
+        "label": "Companies to verify",
+        "waiting": "Waiting for review and a decision.",
+        "cta": "Review",
+        "view": "View companies"
+      },
+      "payments": {
+        "label": "Pending payments",
+        "waiting": "Orders not confirmed yet.",
+        "cta": "Confirm",
+        "view": "View payments"
+      },
+      "disputes": {
+        "label": "Open disputes",
+        "waiting": "Waiting to be resolved.",
+        "cta": "Resolve",
+        "view": "View disputes"
+      }
+    },
+    "figures": {
+      "title": "The platform in figures",
+      "now": "now",
+      "allCompanies": "across all companies",
+      "inActiveClaims": "in active claims",
+      "confirmedOrders": "from confirmed orders",
+      "sinceLaunch": "since launch"
+    },
+    "list": {
+      "pagination": "Pagination",
+      "prev": "Previous",
+      "next": "Next",
+      "range": "{from}–{to} of {total}"
+    }
   },
   "Unsubscribe": {
     "title": "Email unsubscribe",
@@ -2187,7 +3381,21 @@
     "done": "Done — we'll no longer send you notification emails. In-app notifications stay active.",
     "invalid": "This unsubscribe link is not valid or was already used.",
     "reenableHint": "You can turn them back on anytime from the notification bell after logging in.",
-    "backHome": "Back to the homepage"
+    "backHome": "Back to the homepage",
+    "effect": "We'll no longer send you notification emails. In-app notifications stay active.",
+    "confirm": "Yes, unsubscribe me",
+    "keep": "Keep the emails",
+    "failed": "We couldn't unsubscribe you. Check your internet connection and try again.",
+    "doneTitle": "Done, you're unsubscribed",
+    "resubscribe": "I clicked by mistake — resubscribe me",
+    "resubscribing": "Resubscribing…",
+    "resubscribeFailed": "We couldn't resubscribe you. Try from the notification bell.",
+    "resubscribedTitle": "You're subscribed again",
+    "resubscribedBody": "You'll receive notification emails again.",
+    "invalidTitle": "This link is no longer valid",
+    "invalidHint": "You can also turn the emails off from the notification bell after logging in.",
+    "invalidHintSignedIn": "You can also turn the emails off from the notification bell, in your account.",
+    "login": "Log in"
   },
   "Notifications": {
     "title": "Notifications",
@@ -2297,7 +3505,17 @@
       "retry": "Try again"
     },
     "sheet": {
-      "phaseLabel": "Phase {current} of {total}"
+      "phaseLabel": "Phase {current} of {total}",
+      "title": "Request sheet",
+      "progressLabel": "{done} of {total} required questions answered",
+      "sections": "{count, plural, =1 {1 section} other {# sections}}",
+      "questions": "{count, plural, =1 {1 question} other {# questions}}",
+      "optional": "optional",
+      "required": "required",
+      "roomDone": "done",
+      "withDesigner": "with the designer",
+      "missing": "to fill in",
+      "hint": "Click any row to go back to that section. Nothing you filled in is lost."
     },
     "phases": {
       "start": "Start",
@@ -2313,7 +3531,9 @@
       "continue": "Continue",
       "startQuestions": "Start",
       "toDetails": "To general info",
-      "toReview": "To summary"
+      "toReview": "To summary",
+      "roomsLabel": "Rooms in this request",
+      "nextUp": "Next: {label}"
     },
     "anchors": {
       "kitchenZones": {
@@ -2346,7 +3566,7 @@
       "subtitle": "Add as many rooms as you need — several of the same type is fine.",
       "designHelpSubtitle": "Pick the rooms or pieces you want furniture for — the design is worked out together with the company that claims your request.",
       "basketTitle": "Your request cart",
-      "basketEmpty": "Nothing here yet — pick rooms or pieces below.",
+      "basketEmpty": "Nothing here yet. Pick rooms or pieces.",
       "totalRooms": "{count, plural, =0 {No rooms} =1 {One room} other {# rooms}}",
       "hasOwnProject": "I already have a project for the whole home",
       "hasOwnProjectHint": "Upload it once at the Files step and skip the sketch steps for every room.",
@@ -2355,7 +3575,13 @@
       "addPieces": "Add pieces",
       "removePieces": "Remove",
       "addOne": "Add {type}",
-      "removeOne": "Remove {type}"
+      "removeOne": "Remove {type}",
+      "add": "Add",
+      "basketRemove": "Remove {type} from the cart",
+      "basketNext": "Questions come one at a time, in this order.",
+      "countRooms": "{count, plural, =1 {1 room} other {# rooms}}",
+      "countPieces": "{count, plural, =1 {1 piece} other {# pieces}}",
+      "summaryEmpty": "Nothing added"
     },
     "sketchUpload": {
       "skipNotice": "You marked that you have a project for the whole home — feel free to skip this step. Upload the project at the Files step so you don't attach it for every room.",
@@ -2510,7 +3736,13 @@
       "fixRoom": "Complete {room}",
       "issueRoomStep": "{room}: “{step}” — {problem}",
       "issueRoom": "{room}: this room has incomplete answers.",
-      "contactsAdjusted": "We put your account email first. To keep at most 2 emails and 4 contacts, we removed: {removed}."
+      "contactsAdjusted": "We put your account email first. To keep at most 2 emails and 4 contacts, we removed: {removed}.",
+      "readyTitle": "Ready to publish",
+      "readyTitleEdit": "Ready to save",
+      "notReadyTitle": "A few things left to fill in",
+      "checkDetails": "General details filled in",
+      "publishNote": "After publishing you can still change it 3 times until a company claims it, and once after that.",
+      "roomComplete": "done"
     },
     "inspirationPicker": {
       "title": "Gallery inspiration",
@@ -5347,6 +6579,21 @@
     "contactInText": {
       "hint": "It looks like you typed a phone number, email or link. Companies can't see these before they claim your request: add them in the Contact step and only the companies that claim it will get them.",
       "descriptionIssue": "Your message to companies contains contact details."
+    },
+    "phasesLabel": "Request phases",
+    "draft": {
+      "saved": "Draft saved",
+      "savedAt": "Draft saved at {time}",
+      "saving": "Saving draft…",
+      "localOnly": "Draft saved on this device only"
+    },
+    "edit": {
+      "backToRequest": "Back to request",
+      "counter": "This is edit {current} of {max}",
+      "noneLeft": "You have already used every available edit, so another save is no longer possible.",
+      "preClaimNote": "You have {max} edits before a company claims the request and a single one after. Saving now uses one.",
+      "postClaimNote": "The request has already been claimed, so this is the only edit left. After you save, companies may withdraw their claim.",
+      "saveHint": "Nothing changes until you press “Save changes” in Summary."
     }
   },
   "Legal": {
@@ -5408,6 +6655,12 @@
           "h": "11. Governing law and contact",
           "b": "These terms are governed by Romanian law. Disputes are settled amicably or, failing that, by the competent courts in Romania.\n\nFor any questions about these terms write to {contactEmail}."
         }
+      },
+      "summary": {
+        "contract": "The furniture contract is concluded directly between the client and the company; the platform operator is not a party to it.",
+        "claims": "A request can be claimed by a limited number of companies, and the client's contact details are visible only to the companies that claimed it.",
+        "offers": "Offers are the companies' own commercial proposals: prices, deadlines and warranties belong to the company that issues them, and the budget estimates shown by the platform are indicative.",
+        "reviews": "A review under 3 stars automatically opens a dispute, handled by the platform administrator."
       }
     },
     "privacy": {
@@ -5453,6 +6706,12 @@
           "h": "10. Contact",
           "b": "For any question about this policy or your data: {operator}, email {contactEmail}."
         }
+      },
+      "summary": {
+        "contacts": "Your name, full address and chosen contact channels reach only the companies that claimed your request.",
+        "masked": "While your request is published, verified companies whose coverage area includes your locality see the project, but phone numbers, email addresses and links written in texts are hidden from them.",
+        "accessEnds": "A company's access to your name, address and contact channels ends when it withdraws its claim or when you accept another company's offer.",
+        "marketing": "You can withdraw your consent to commercial communications at any time, via the unsubscribe link in every email; your use of the platform is not affected."
       }
     },
     "firmRules": {
@@ -5520,9 +6779,40 @@
           "h": "9. Changes to the values",
           "b": "The operator may change the values above; this page always shows the values in force. The cost and deadline of a claim already made stay the ones from the moment of the claim. If you have questions you can write to us at {contactEmail}."
         }
+      },
+      "summary": {
+        "title": "In short: the values in force now",
+        "rows": {
+          "freeWithdrawal": "Voluntary withdrawal with no penalty and credits refunded",
+          "slaMiss": "Response deadline missed by more than {graceHours}",
+          "voluntaryWithdrawal": "Voluntary withdrawal after the first {graceMinutes}",
+          "suspension": "Firm suspension",
+          "reapply": "New application after a rejected verification"
+        },
+        "values": {
+          "freeWithdrawal": "within the first {graceMinutes}",
+          "pointsAndCredits": "{points} of penalty · credits are consumed",
+          "creditsConsumed": "credits are consumed",
+          "suspension": "at {threshold} active · {months}",
+          "reapply": "after {reapplyMonths}"
+        }
+      },
+      "cta": {
+        "title": "Happy with the rules?",
+        "hint": "Signing up takes a few minutes.",
+        "action": "Register your firm"
       }
     },
-    "firmRulesCta": "Are you a firm? Read the <rules>Rules for firms</rules>: deadlines, penalty points, suspension and when credits are refunded."
+    "firmRulesCta": "Are you a firm? Read the <rules>Rules for firms</rules>: deadlines, penalty points, suspension and when credits are refunded.",
+    "toc": "Contents",
+    "summary": {
+      "title": "In short",
+      "note": "This summary helps you find your way around and does not replace the full text below."
+    },
+    "firmRulesCard": {
+      "lead": "Are you a firm?",
+      "body": "Deadlines, penalty points, suspension and credit refunds are covered in the Rules for firms."
+    }
   },
   "LegalAcceptance": {
     "title": "We have updated our Terms and Privacy Policy",
@@ -5580,7 +6870,9 @@
   "NotFound": {
     "title": "Page not found",
     "body": "The link is wrong or the page has moved. Head back to the home page — everything you need is there.",
-    "home": "Back home"
+    "home": "Back home",
+    "moreLinks": "Other useful pages",
+    "partners": "Partner companies"
   },
   "ErrorPage": {
     "title": "Something went wrong",

@@ -176,18 +176,15 @@ export function DetailsStep({
   });
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-6" noValidate>
-      <div>
-        <h2 className="font-serif text-2xl tracking-[-0.01em]">{t('sectionGeneral')}</h2>
-      </div>
+    <form onSubmit={submit} className="flex flex-col gap-7" noValidate>
+      <h2 className="font-serif text-2xl leading-[1.2] sm:text-3xl">{t('sectionGeneral')}</h2>
 
       {/* titlu generat automat — doar preview */}
-      <div className="flex items-start gap-2 rounded-lg border border-border-2 bg-surface-2 px-3 py-2.5">
-        <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-walnut" />
-        <div>
-          <p className="text-xs text-muted-foreground">{t('autoTitleLabel')}</p>
-          <p className="text-sm font-medium">{titlePreview || '—'}</p>
-        </div>
+      <div className="flex flex-col gap-1.5">
+        <p className="text-ui font-medium">{t('autoTitleLabel')}</p>
+        <p className="rounded-md border border-dashed border-border-2 bg-surface-2 px-3.5 py-3 font-serif text-lg leading-snug">
+          {titlePreview || '—'}
+        </p>
       </div>
 
       <Field
@@ -199,7 +196,8 @@ export function DetailsStep({
         <ContactInTextHint value={description} />
       </Field>
 
-      <Field label={t('field.budgetRange')}>
+      <fieldset className="min-w-0">
+        <legend className="heading-section mb-3">{t('field.budgetRange')}</legend>
         <BudgetSlider
           value={budget}
           onChange={(v) => setValue('budgetRange', v, { shouldValidate: true })}
@@ -209,10 +207,11 @@ export function DetailsStep({
             setValue('budgetEstimateRon', ron ?? undefined, { shouldValidate: true })
           }
         />
-      </Field>
+      </fieldset>
 
-      <Field label={t('field.desiredDeadline')}>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+      <fieldset className="min-w-0">
+        <legend className="heading-section mb-3">{t('field.desiredDeadline')}</legend>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(min(130px,100%),1fr))]">
           {DEADLINE_BUCKETS.map((d) => {
             const Icon = DEADLINE_ICONS[d];
             const selected = deadline === d;
@@ -225,19 +224,19 @@ export function DetailsStep({
                   setValue('deadlineBucket', selected ? undefined : d, { shouldValidate: true })
                 }
                 className={cn(
-                  'flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center text-xs font-medium transition-colors',
+                  'flex min-h-16 flex-col items-center justify-center gap-1.5 rounded-lg border px-3 py-3 text-center text-ui transition-colors',
                   selected
-                    ? 'border-walnut bg-walnut-soft text-walnut shadow-[0_0_0_3px_hsl(var(--walnut)/0.14)]'
-                    : 'border-border-2 bg-surface text-muted-foreground hover:border-muted-2',
+                    ? 'border-walnut bg-surface-2 font-semibold text-foreground shadow-[0_0_0_1px_hsl(var(--walnut))]'
+                    : 'border-border-2 bg-surface font-medium text-foreground hover:border-muted-2',
                 )}
               >
-                <Icon className="h-5 w-5" />
+                <Icon aria-hidden className={cn('h-4 w-4', selected ? 'text-walnut' : 'text-muted-foreground')} />
                 {t(`deadline.${d}`)}
               </button>
             );
           })}
         </div>
-      </Field>
+      </fieldset>
 
       {designHelp ? (
         // fluxul "am nevoie de ajutor": Proiectarea platita e parte din cerere,
@@ -250,14 +249,14 @@ export function DetailsStep({
           </div>
         </div>
       ) : (
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" className="accent-walnut" {...register('includesPaidDesign')} />
+        <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm">
+          <input type="checkbox" className="h-[18px] w-[18px] shrink-0 accent-walnut" {...register('includesPaidDesign')} />
           {t('field.includesPaidDesign')}
         </label>
       )}
 
-      <div className="border-t border-border-2 pt-5">
-        <h3 className="mb-3 font-serif text-xl">{t('sectionAddress')}</h3>
+      <div>
+        <h3 className="heading-section mb-3.5">{t('sectionAddress')}</h3>
         <div className="flex flex-col gap-4">
           {/* tara inaintea adresei: restrictioneaza sugestiile Places (item 19) */}
           <div className="grid gap-4 sm:grid-cols-3">
@@ -296,20 +295,8 @@ export function DetailsStep({
         </div>
       </div>
 
-      <div className="border-t border-border-2 pt-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="font-serif text-xl">{t('sectionContact')}</h3>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={contacts.fields.length >= 4}
-            onClick={() => contacts.append({ channel: 'PHONE', value: '' })}
-          >
-            <Plus className="mr-1 h-4 w-4" />
-            {t('addContact')}
-          </Button>
-        </div>
+      <div>
+        <h3 className="heading-section mb-3.5">{t('sectionContact')}</h3>
         {contactsRootError && (
           <p className="mb-2 text-sm text-crimson">{vmsg(contactsRootError)}</p>
         )}
@@ -395,16 +382,27 @@ export function DetailsStep({
             );
           })}
         </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          className="mt-3.5 h-11"
+          disabled={contacts.fields.length >= 4}
+          onClick={() => contacts.append({ channel: 'PHONE', value: '' })}
+        >
+          <Plus aria-hidden />
+          {t('addContact')}
+        </Button>
       </div>
 
-      <div className="flex items-center justify-between">
-        <Button type="button" variant="ghost" onClick={onBack}>
-          <ArrowLeft className="mr-1 h-4 w-4" />
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6">
+        <Button type="button" variant="outline" size="xl" className="px-4 text-sm" onClick={onBack}>
+          <ArrowLeft aria-hidden />
           {tc('nav.back')}
         </Button>
-        <Button type="submit" variant="walnut" size="lg">
+        <Button type="submit" variant="walnut" size="xl">
           {tc('nav.toReview')}
-          <ArrowRight className="ml-1 h-4 w-4" />
+          <ArrowRight aria-hidden />
         </Button>
       </div>
     </form>

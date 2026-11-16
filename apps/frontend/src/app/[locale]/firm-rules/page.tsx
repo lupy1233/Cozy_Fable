@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { FirmRulesArticle } from '../_components/firm-rules-article';
+import { FirmSignupCta } from '../_components/firm-signup-cta';
 import { pageMetadata } from '../_components/metadata';
 import { PublicShell } from '../_components/public-shell';
 
@@ -17,7 +18,9 @@ export async function generateMetadata({
 export default function FirmRulesPage() {
   return (
     <PublicShell>
-      <FirmRulesArticle />
+      <FirmRulesArticle>
+        <FirmSignupCta />
+      </FirmRulesArticle>
     </PublicShell>
   );
 }

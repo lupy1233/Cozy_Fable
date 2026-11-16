@@ -39,6 +39,8 @@ export function Badge({ className, tone, dot, children, ...props }: BadgeProps) 
 
 // StatusBadge — mapeaza statusurile pe tone + label key (i18n in pagina apelanta).
 type Tone = NonNullable<VariantProps<typeof badgeVariants>['tone']>;
+// Regula (design 2026-11): culoarea spune cine are mutarea — info = asteapta altcineva,
+// amber = e randul tau, sage = in regula, crimson = problema, muted = inactiv, ink = incheiat.
 export const STATUS_TONE: Record<string, Tone> = {
   DRAFT: 'muted',
   PUBLISHED: 'info',
@@ -49,7 +51,26 @@ export const STATUS_TONE: Record<string, Tone> = {
   REJECTED: 'crimson',
   EXPIRED: 'muted',
   IN_PROGRESS: 'walnut',
-  COMPLETED: 'sage',
+  COMPLETED: 'ink',
+  // starile reale ale cererii (REQUEST_STATUSES din shared) — inainte cadeau pe gri
+  IN_MARKETPLACE: 'info',
+  CLAIMED_PARTIAL: 'walnut',
+  CLAIMED_FULL: 'walnut',
+  OFFERS_RECEIVED: 'amber',
+  IN_EXECUTION: 'sage',
+  DELIVERED_BY_COMPANY: 'amber',
+  DISPUTED: 'crimson',
+  CANCELLED: 'muted',
+  // starile preluarii (CLAIM_SLOT_STATUSES): ACTIVE = firma lucreaza la oferta
+  ACTIVE: 'walnut',
+  SLA_EXPIRED: 'crimson',
+  WITHDRAWN: 'muted',
+  WITHDRAWN_VOLUNTARY: 'muted',
+  CANCELLED_UNASSIGNED: 'muted',
+  CANCELLED_BY_CLIENT: 'muted',
+  CANCELLED_REQUEST_ACCEPTED: 'muted',
+  CANCELLED_PROJECT: 'muted',
+  CANCELLED_OFFER_EXPIRED: 'muted',
   SMALL: 'muted',
   MEDIUM: 'walnut',
   LARGE: 'ink',

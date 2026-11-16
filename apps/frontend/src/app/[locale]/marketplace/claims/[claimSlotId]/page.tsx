@@ -1,22 +1,17 @@
 'use client';
 
 import type { AttachmentDto, ClaimQuoteContextDto } from '@marketplace/shared';
-import {
-  CalendarClock,
-  Mail,
-  MapPin,
-  Phone,
-  Timer,
-  UserRound,
-  Users,
-} from 'lucide-react';
+import { Mail, MapPin, Paperclip, Phone, Timer, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Link, useRouter } from '@/i18n/routing';
 import { ApiError } from '@/lib/api';
 import { companyCan } from '@/lib/company-permissions';
+import { latestVersion } from '@/lib/quote-version';
+import { cn } from '@/lib/utils';
 import { useMe } from '@/hooks/use-auth';
+import { useMessages, useThreads } from '@/hooks/use-chat';
 import { useMyCompany } from '@/hooks/use-company';
 import { useAssignClaim } from '@/hooks/use-marketplace';
 import { useClaimContext } from '@/hooks/use-quotes';
@@ -25,34 +20,59 @@ import { isFirmRules, useFirmRules } from '@/hooks/use-legal';
 import { useRealtimeSync } from '@/hooks/use-socket';
 import { useNow } from '@/hooks/use-now';
 import { useRelativeTime } from '@/lib/relative-time';
-import { slaPhase, slaPhaseClass, useDurationLeft, useSlaDateFormat } from '@/lib/sla-deadline';
+import { slaPhase, useDurationLeft, useSlaDateFormat } from '@/lib/sla-deadline';
 import { AttachmentThumb } from '@/components/configurator/attachment-item';
 import { RequestInspirationByRoom } from '@/components/configurator/request-inspiration-by-room';
 import { RoomSpecCard, RoomSpecNav } from '@/components/configurator/room-spec-card';
 import { StudioScenesButton } from '@/components/studio/scene-button';
-import { StatusBadge } from '@/components/ui/badge';
+import { Avatar } from '@/components/ui/avatar';
+import { Badge, StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { PageHeader } from '@/components/ui/page-header';
-import { SkeletonPage } from '@/components/ui/skeleton';
+import { SkeletonList, SkeletonPage } from '@/components/ui/skeleton';
 import { ContactSafeText } from '@/components/ui/contact-safe-text';
 import { Select } from '@/components/ui/select';
+import { Tabs } from '@/components/ui/tabs';
 import { ChatPanel } from '../../../_components/chat-panel';
 import { AgreementCard } from '../../../_components/agreement-card';
 import { ClaimLifecyclePanel } from '../../../_components/claim-lifecycle-panel';
 import { ActionConfirmDialog } from '../../../_components/action-confirm-dialog';
+import { FirmRulesLink } from '../../../_components/firm-rules-link';
 import { ProjectCasePanel } from '../../../_components/project-case-panel';
 import { OfferBuilder } from '../../../_components/offer-builder';
 import { OfferCard } from '../../../_components/offer-card';
 
-// Fisa de lucru a firmei pe un claim (redesign PO r6): bara de lucru sus
-// (atribuire — elementul central dupa revendicare — + SLA + stadiu), apoi
-// proiectul in stanga (mesaj, buget, camere cu snapshot/viewer 3D, fisiere)
-// si actiunile in dreapta (clientul cu datele de contact, oferta, chat).
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
+
+// Taburile fisei (design 2026-11). Valorile apar si in URL (?tab=), deci raman stabile.
+const TAB_IDS = ['offer', 'chat', 'project', 'lifecycle'] as const;
+type TabId = (typeof TAB_IDS)[number];
+
+// Tabul deschis implicit = cel cu pasul urmator al firmei: fara oferta, cu o modificare ceruta,
+// cu oferta expirata sau acceptata (livrare / caz raportat) → "Oferta"; oferta trimisa si nimic
+// de facut pe ea → "Conversatie" (se asteapta clientul, discutia e pasul urmator).
+function nextStepTab(c: ClaimQuoteContextDto): TabId {
+  const q = c.quote;
+  if (!q || !c.threadId || q.status !== 'SENT') return 'offer';
+  const pendingChange = q.versions.some((v) => v.changeRequest?.status === 'PENDING');
+  return pendingChange || latestVersion(q)?.isExpired ? 'offer' : 'chat';
+}
+
+// ?tab= din URL (linkurile fara parametru cad pe tabul implicit). Citit o singura data, la
+// montarea fisei — fisa se monteaza doar in browser, dupa ce contextul a fost incarcat.
+function readUrlTab(): TabId | null {
+  if (typeof window === 'undefined') return null;
+  const raw = new URLSearchParams(window.location.search).get('tab');
+  return TAB_IDS.find((id) => id === raw) ?? null;
+}
+
+// Fisa de lucru a firmei pe o preluare (design 2026-11): antet cu starea preluarii, bara de
+// lucru (atribuire + termen SLA + buget), apoi taburi — oferta, conversatia, proiectul
+// clientului, clarificari si retragere — cu clientul si ultimele mesaje mereu alaturi.
 export default function CompanyClaimPage() {
   const t = useTranslations('Quotes');
-  const tm = useTranslations('Marketplace');
   const params = useParams<{ claimSlotId: string }>();
   const claimSlotId = params.claimSlotId;
   const router = useRouter();
@@ -90,27 +110,98 @@ export default function CompanyClaimPage() {
   if (c.visibility === 'REDACTED' || c.visibility === 'TOMBSTONE') {
     return <ClosedClaimSummary ctx={c} />;
   }
+  return <ClaimWorkspace ctx={c} isManager={isManager} />;
+}
+
+function ClaimWorkspace({ ctx: c, isManager }: { ctx: ClaimQuoteContextDto; isManager: boolean }) {
+  const t = useTranslations('Quotes');
+  const tm = useTranslations('Marketplace');
+  const threads = useThreads('company');
+  const panelId = useId();
+  const tabsRef = useRef<HTMLDivElement>(null);
+  // tabul se fixeaza la montare: nu sare singur cand contextul se reimprospateaza (ex. dupa trimiterea ofertei)
+  const [tab, setTab] = useState<TabId>(() => readUrlTab() ?? nextStepTab(c));
+  const hasChat = !!c.threadId;
+  const current: TabId = tab === 'chat' && !hasChat ? 'offer' : tab;
+  // mesaje necitite pe conversatia acestei preluari (acelasi contor ca in lista de preluari)
+  const unread = threads.data?.find((th) => th.claimSlotId === c.claimSlotId)?.unreadCount ?? 0;
+
   // E-admin-platform-3: castigatorul vede acordul si poate raporta un proiect blocat
   const isWinner = c.quote?.status === 'ACCEPTED';
   const projectActive = c.requestStatus === 'ACCEPTED' || c.requestStatus === 'IN_EXECUTION';
 
+  const selectTab = (next: TabId) => {
+    setTab(next);
+    // tabul ramane in URL fara navigare (reincarcarea si linkul copiat pastreaza tabul)
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', next);
+    window.history.replaceState(null, '', url);
+  };
+  const openChat = () => {
+    selectTab('chat');
+    // pe mobil cardul "Ultimele mesaje" e sub panou: readucem taburile in ecran
+    tabsRef.current?.scrollIntoView({ block: 'nearest' });
+  };
+
+  const tabs: { value: TabId; label: ReactNode }[] = [
+    { value: 'offer', label: t('offerSection') },
+    ...(hasChat
+      ? [
+          {
+            value: 'chat' as const,
+            label: (
+              <span className="inline-flex items-center gap-1.5">
+                {t('workspace.tabChat')}
+                {unread > 0 && (
+                  <>
+                    <span
+                      aria-hidden
+                      className="grid h-[18px] min-w-[18px] place-items-center rounded-full bg-crimson px-1 font-mono text-meta leading-none tracking-normal text-white"
+                    >
+                      {unread}
+                    </span>
+                    <span className="sr-only">{tm('myClaims.newMessages', { n: unread })}</span>
+                  </>
+                )}
+              </span>
+            ),
+          },
+        ]
+      : []),
+    { value: 'project', label: t('workspace.tabProject') },
+    { value: 'lifecycle', label: t('workspace.tabLifecycle') },
+  ];
+
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
-      <PageHeader
-        back={{ href: '/marketplace/claims', label: t('backToClaims') }}
-        meta={<StatusBadge status={c.claimStatus} label={tm(`claimStatus.${c.claimStatus}`)} />}
-        title={<ContactSafeText text={c.requestTitle} />}
-      />
+      <ClaimHeader ctx={c} />
 
       <WorkBar ctx={c} />
 
-      {/* dreapta = actiunile (mobil: primele); stanga = proiectul */}
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
-        <div className="flex flex-col gap-6 lg:col-start-2 lg:row-start-1">
-          <ClientCard ctx={c} />
+      <div ref={tabsRef} className="scroll-mt-24">
+        <Tabs
+          tabs={tabs}
+          current={current}
+          onChange={(value) => {
+            const next = TAB_IDS.find((id) => id === value);
+            if (next) selectTab(next);
+          }}
+          panelId={panelId}
+          label={t('workspace.tabsLabel')}
+          className="mb-0 flex-wrap"
+        />
+      </div>
 
-          <section className="flex flex-col gap-3">
-            <h2 className="heading-section">{t('offerSection')}</h2>
+      <div className="flex flex-wrap items-start gap-6">
+        {/* Toate panourile raman montate (cele inactive sunt doar ascunse): oferta inceputa,
+            intrebarea scrisa sau mesajul neterminat nu se pierd cand firma schimba tabul. */}
+        <div
+          id={panelId}
+          role="tabpanel"
+          aria-labelledby={`${panelId}-tab-${current}`}
+          className="min-w-0 flex-[999_1_560px]"
+        >
+          <div className={current === 'offer' ? 'flex flex-col gap-4' : 'hidden'}>
             {isWinner && c.quote && <AgreementCard quote={c.quote} requestStatus={c.requestStatus} mode="company" />}
             {c.quote ? (
               <OfferCard
@@ -120,6 +211,7 @@ export default function CompanyClaimPage() {
                 rooms={c.rooms}
                 firmActions={c.firmActions}
                 slaPaused={c.slaPaused}
+                headingLevel="h2"
               />
             ) : (
               <OfferBuilder
@@ -133,9 +225,7 @@ export default function CompanyClaimPage() {
             {c.quote?.status === 'ACCEPTED' &&
               c.claimStatus === 'OFFER_SENT' &&
               (c.requestStatus === 'ACCEPTED' || c.requestStatus === 'IN_EXECUTION') &&
-              isManager && (
-                <DeliverButton requestId={c.requestId} />
-              )}
+              isManager && <DeliverButton requestId={c.requestId} />}
             {isWinner && (projectActive || c.projectCase?.status === 'CLOSED_PROJECT_CANCELLED') && (
               <ProjectCasePanel
                 requestId={c.requestId}
@@ -144,43 +234,72 @@ export default function CompanyClaimPage() {
                 canAct={isManager && projectActive}
               />
             )}
-          </section>
+          </div>
 
           {c.threadId && (
-            <section className="flex flex-col gap-3">
-              <h2 className="heading-section">{t('chatSection')}</h2>
-              <ChatPanel threadId={c.threadId} mode="company" />
-            </section>
+            <div className={current === 'chat' ? 'flex flex-col' : 'hidden'}>
+              <h2 className="sr-only">{t('workspace.tabChat')}</h2>
+              <ChatPanel
+                threadId={c.threadId}
+                mode="company"
+                counterpartName={c.client?.name || undefined}
+                messagesClassName="min-h-[320px] max-h-[60vh]"
+              />
+            </div>
           )}
 
-          <ClaimLifecyclePanel ctx={c} />
+          <div className={current === 'project' ? 'flex flex-col gap-6' : 'hidden'}>
+            <section className="flex flex-col gap-3">
+              <h2 className="heading-section">{t('workspace.roomsSection')}</h2>
+              {/* camera 3D din Studio (feedback PO r3) — amplasarea clientului */}
+              <StudioScenesButton scenes={c.detail.studioScenes} />
+              <RoomSpecNav rooms={c.detail.rooms} />
+              {c.detail.rooms.map((room, i) => (
+                <RoomSpecCard key={room.id} room={room} index={i + 1} attachments={c.detail.attachments} />
+              ))}
+            </section>
+
+            {/* inspiratia clientului, grupata pe camere, langa camere (E-client-34) */}
+            <RequestInspirationByRoom photos={c.detail.inspirationPhotos} rooms={c.detail.rooms} />
+
+            <GeneralFiles ctx={c} />
+          </div>
+
+          <div className={current === 'lifecycle' ? 'flex flex-col' : 'hidden'}>
+            <ClaimLifecyclePanel ctx={c} />
+          </div>
         </div>
 
-        <div className="flex flex-col gap-6 lg:col-start-1 lg:row-start-1">
-          <ProjectCard ctx={c} />
-
-          <section className="flex flex-col gap-3">
-            <h2 className="heading-section">{t('workspace.roomsSection')}</h2>
-            {/* camera 3D din Studio (feedback PO r3) — amplasarea clientului */}
-            <StudioScenesButton scenes={c.detail.studioScenes} />
-            <RoomSpecNav rooms={c.detail.rooms} />
-            {c.detail.rooms.map((room, i) => (
-              <RoomSpecCard
-                key={room.id}
-                room={room}
-                index={i + 1}
-                attachments={c.detail.attachments}
-              />
-            ))}
-          </section>
-
-          {/* inspiratia clientului, grupata pe camere, langa camere (E-client-34) */}
-          <RequestInspirationByRoom photos={c.detail.inspirationPhotos} rooms={c.detail.rooms} />
-
-          <GeneralFiles ctx={c} />
-        </div>
+        <aside className="flex min-w-0 flex-[1_1_340px] flex-col gap-5">
+          <ClientCard ctx={c} />
+          {c.threadId && current !== 'chat' && <RecentMessages threadId={c.threadId} onOpenChat={openChat} />}
+          <ClientNote ctx={c} />
+        </aside>
       </div>
     </div>
+  );
+}
+
+// Antetul fisei: inapoi la preluari, titlul cererii si starea preluarii langa titlu.
+function ClaimHeader({ ctx, subtitle }: { ctx: ClaimQuoteContextDto; subtitle?: ReactNode }) {
+  const t = useTranslations('Quotes');
+  const tm = useTranslations('Marketplace');
+  return (
+    <header className="flex flex-col gap-2">
+      <Link
+        href="/marketplace/claims"
+        className="inline-flex min-h-11 items-center self-start text-sm text-walnut hover:text-walnut-deep hover:underline"
+      >
+        ← {t('backToClaims')}
+      </Link>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <h1 className="page-title min-w-0 break-words">
+          <ContactSafeText text={ctx.requestTitle} />
+        </h1>
+        <StatusBadge status={ctx.claimStatus} label={tm(`claimStatus.${ctx.claimStatus}`)} />
+      </div>
+      {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+    </header>
   );
 }
 
@@ -189,15 +308,12 @@ export default function CompanyClaimPage() {
 // date de contact, camere sau fisiere.
 function ClosedClaimSummary({ ctx: c }: { ctx: ClaimQuoteContextDto }) {
   const t = useTranslations('Quotes');
-  const tm = useTranslations('Marketplace');
   const isWinner = c.quote?.status === 'ACCEPTED';
   const place = [c.detail.city, c.detail.county].filter(Boolean).join(', ');
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      <PageHeader
-        back={{ href: '/marketplace/claims', label: t('backToClaims') }}
-        meta={<StatusBadge status={c.claimStatus} label={tm(`claimStatus.${c.claimStatus}`)} />}
-        title={<ContactSafeText text={c.requestTitle} />}
+      <ClaimHeader
+        ctx={c}
         subtitle={
           place ? (
             <span className="inline-flex items-center gap-1.5">
@@ -234,18 +350,51 @@ function ClosedClaimSummary({ ctx: c }: { ctx: ClaimQuoteContextDto }) {
   );
 }
 
+// Randul mare al termenului: "Mai sunt 1 zi si 4 ore" / "Mai sunt 5 ore" / "Mai este o ora".
+// `count` alege doar acordul verbului (este / sunt); durata propriu-zisa vine in `left`.
+function useSlaLeftLine(): (ms: number) => string {
+  const t = useTranslations('Quotes');
+  const durationLeft = useDurationLeft();
+  return (ms: number) => {
+    if (ms >= DAY_MS) {
+      const days = Math.floor(ms / DAY_MS);
+      const hours = Math.floor((ms % DAY_MS) / HOUR_MS);
+      return t('workspace.slaLeft', {
+        count: hours === 0 ? days : 2,
+        left: t('workspace.daysHours', { days, hours }),
+      });
+    }
+    // aceeasi rotunjire ca useDurationLeft: >= 1h → ore (in sus), altfel minute (minim 1)
+    const count = ms >= HOUR_MS ? Math.ceil(ms / HOUR_MS) : Math.max(1, Math.ceil(ms / 60_000));
+    return t('workspace.slaLeft', { count, left: durationLeft(ms) });
+  };
+}
+
+type SlaTone = 'idle' | 'amber' | 'crimson' | 'info';
+// regula de culoare din design: chihlimbar = e randul firmei, carmin = termen depasit,
+// albastru = pauza (se asteapta clientul)
+const SLA_CELL: Record<SlaTone, string> = {
+  idle: 'bg-surface',
+  amber: 'bg-amber-soft text-amber',
+  crimson: 'bg-crimson-soft text-crimson',
+  info: 'bg-info-soft text-info',
+};
+
 // Bara de lucru: atribuirea (cine lucreaza — editabila de owner/manager),
-// termenul SLA si costul. Neatribuit = stare de alarma (auto-anulare la 1h).
+// termenul SLA si bugetul. Neatribuit = stare de alarma (auto-anulare la 1h).
 function WorkBar({ ctx }: { ctx: ClaimQuoteContextDto }) {
   const t = useTranslations('Quotes');
   const tm = useTranslations('Marketplace');
+  const tl = useTranslations('Lifecycle');
   const relTime = useRelativeTime();
   const fmtSla = useSlaDateFormat();
   const durationLeft = useDurationLeft();
-  // E-company-13: re-randare la 30 s → numaratorile ("în 42 de min") si fazele SLA avanseaza singure
+  const slaLeftLine = useSlaLeftLine();
+  // E-company-13: re-randare la 30 s → numaratorile ("Mai sunt 42 de minute") si fazele SLA avanseaza singure
   const now = useNow(30_000);
   const company = useMyCompany();
   const assign = useAssignClaim();
+  const assignId = useId();
 
   const active = ctx.claimStatus === 'ACTIVE';
   // E-admin-platform-58: aceeasi regula ca ClaimsService.assign (CLAIMS_ASSIGN = OWNER/MANAGER)
@@ -260,52 +409,58 @@ function WorkBar({ ctx }: { ctx: ClaimQuoteContextDto }) {
       ? slaPhase(ctx.slaDeadlineAt, ctx.firmActions.slaBreachAt, now)
       : null;
   const late = phase === 'GRACE' || phase === 'BREACHED';
+  const slaTone: SlaTone =
+    !active || !ctx.slaDeadlineAt ? 'idle' : ctx.slaPaused ? 'info' : late ? 'crimson' : 'amber';
 
   return (
     <Card
       as="section"
-      padding="sm"
-      className={
-        'grid gap-4 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-border-2 ' +
-        (late ? 'border-crimson/50' : unassigned && active ? 'border-amber/50' : '')
-      }
+      aria-label={t('workspace.statusLabel')}
+      padding="none"
+      className={cn(
+        // gap-px peste fundalul-bordura = linii fine intre celule, pe orice asezare
+        'grid gap-px overflow-hidden bg-border lg:grid-cols-3',
+        late ? 'border-crimson/50' : active ? 'border-amber/40' : '',
+      )}
     >
-      <div className="flex flex-col gap-1.5 sm:pr-4">
-        <span className="flex items-center gap-1.5 label">
-          <Users className="h-3 w-3" />
-          {t('workspace.assignLabel')}
-        </span>
+      <div className="flex flex-col gap-1.5 bg-surface px-5 py-4 sm:px-6">
         {canAssign ? (
-          <Select
-            value={ctx.assignment.assignedTo?.userId ?? ''}
-            disabled={assign.isPending}
-            onChange={(e) => {
-              if (e.target.value) {
-                assign.mutate({ claimId: ctx.claimSlotId, assignToUserId: e.target.value });
-              }
-            }}
-          >
-            <option value="" disabled>
-              {t('workspace.unassigned')}
-            </option>
-            {company.data?.members.map((m) => (
-              <option key={m.userId} value={m.userId}>
-                {m.name}
+          <>
+            <label htmlFor={assignId} className="label">
+              {t('workspace.assignLabel')}
+            </label>
+            <Select
+              id={assignId}
+              className="h-11"
+              value={ctx.assignment.assignedTo?.userId ?? ''}
+              disabled={assign.isPending}
+              onChange={(e) => {
+                if (e.target.value) {
+                  assign.mutate({ claimId: ctx.claimSlotId, assignToUserId: e.target.value });
+                }
+              }}
+            >
+              <option value="" disabled>
+                {t('workspace.unassigned')}
               </option>
-            ))}
-          </Select>
+              {company.data?.members.map((m) => (
+                <option key={m.userId} value={m.userId}>
+                  {m.name}
+                </option>
+              ))}
+            </Select>
+          </>
         ) : (
-          <p className="text-sm font-medium">
-            {ctx.assignment.assignedTo?.name ?? t('workspace.unassigned')}
-          </p>
+          <>
+            <span className="label">{t('workspace.assignLabel')}</span>
+            <p className="font-serif text-2xl leading-tight">
+              {ctx.assignment.assignedTo?.name ?? t('workspace.unassigned')}
+            </p>
+          </>
         )}
         {unassigned && active && ctx.assignment.assignDeadlineAt && (
-          <p
-            className={
-              'flex items-center gap-1 text-xs ' + (assignDue ? 'text-crimson' : 'text-amber')
-            }
-          >
-            <Timer className="h-3.5 w-3.5" />
+          <p className={cn('flex items-center gap-1 text-xs', assignDue ? 'text-crimson' : 'text-amber')}>
+            <Timer className="h-3.5 w-3.5 shrink-0" />
             {assignDue
               ? t('workspace.autoCancelDue')
               : t('workspace.autoCancel', { time: relTime(ctx.assignment.assignDeadlineAt) })}
@@ -318,16 +473,13 @@ function WorkBar({ ctx }: { ctx: ClaimQuoteContextDto }) {
         )}
         {ctx.assignment.claimedBy && (
           <p className="text-xs text-muted-foreground">
-            {t('workspace.claimedBy', { name: ctx.assignment.claimedBy.name })}
+            {t('workspace.claimedByAt', { name: ctx.assignment.claimedBy.name, time: relTime(ctx.claimedAt) })}
           </p>
         )}
       </div>
 
-      <div className="flex flex-col gap-1.5 sm:px-4">
-        <span className="flex items-center gap-1.5 label">
-          <CalendarClock className="h-3 w-3" />
-          {t('workspace.slaLabel')}
-        </span>
+      <div className={cn('flex flex-col gap-1.5 px-5 py-4 sm:px-6', SLA_CELL[slaTone])}>
+        <span className={cn('label', slaTone !== 'idle' && 'text-current')}>{t('workspace.slaLabel')}</span>
         {!active ? (
           // oferta trimisa / preluare inchisa: termenul SLA nu mai are obiect
           <p className="text-sm text-muted-foreground">
@@ -335,31 +487,38 @@ function WorkBar({ ctx }: { ctx: ClaimQuoteContextDto }) {
               ? t('workspace.slaOfferSent')
               : '—'}
           </p>
+        ) : !ctx.slaDeadlineAt ? (
+          <p className="text-sm font-medium">—</p>
         ) : (
           <>
-            <p className="text-sm font-medium">{ctx.slaDeadlineAt ? fmtSla(ctx.slaDeadlineAt) : '—'}</p>
-            {ctx.slaPaused && <p className="text-xs text-amber">{t('workspace.slaPaused')}</p>}
-            {ctx.slaDeadlineAt && phase && (phase === 'RUNNING' || phase === 'SOON') && (
-              <p className={'text-xs ' + slaPhaseClass[phase]}>{relTime(ctx.slaDeadlineAt)}</p>
-            )}
+            <p className="font-serif text-2xl leading-tight">
+              {ctx.slaPaused
+                ? t('workspace.slaPaused')
+                : late
+                  ? t('workspace.slaOverdue')
+                  : slaLeftLine(Date.parse(ctx.slaDeadlineAt) - now)}
+            </p>
+            {ctx.slaPaused && <p className="text-xs">{t('confirm.withdrawSlaPaused')}</p>}
             {phase === 'GRACE' && ctx.firmActions.slaBreachAt && (
-              <p className="text-xs font-medium text-crimson">
-                {t('workspace.slaGrace', {
+              <p className="text-xs font-medium">
+                {t('workspace.slaGraceLeft', {
                   left: durationLeft(Date.parse(ctx.firmActions.slaBreachAt) - now),
                 })}
               </p>
             )}
-            {phase === 'BREACHED' && (
-              <p className="text-xs font-medium text-crimson">{t('workspace.slaBreached')}</p>
-            )}
+            {phase === 'BREACHED' && <p className="text-xs font-medium">{t('workspace.slaBreached')}</p>}
+            <p className="font-mono text-xs">
+              {fmtSla(ctx.slaDeadlineAt)} ·{' '}
+              <FirmRulesLink anchor="sla" className="underline underline-offset-2 hover:no-underline">
+                {tl('rulesSlaLink')}
+              </FirmRulesLink>
+            </p>
           </>
         )}
       </div>
 
-      <div className="flex flex-col gap-1.5 sm:pl-4">
-        <span className="label">
-          {t('workspace.budgetLabel')}
-        </span>
+      <div className="flex flex-col gap-1.5 bg-surface px-5 py-4 sm:px-6">
+        <span className="label">{t('workspace.budgetLabel')}</span>
         <BudgetLine ctx={ctx} />
       </div>
     </Card>
@@ -372,7 +531,7 @@ function BudgetLine({ ctx }: { ctx: ClaimQuoteContextDto }) {
   const d = ctx.detail;
   return (
     <>
-      <p className="text-sm font-medium">
+      <p className="font-serif text-2xl leading-tight">
         {d.budgetEstimateRon != null
           ? `${new Intl.NumberFormat('ro-RO').format(d.budgetEstimateRon)} lei`
           : tr(`budget.${d.budgetRange}`)}
@@ -391,6 +550,7 @@ function BudgetLine({ ctx }: { ctx: ClaimQuoteContextDto }) {
 function ClientCard({ ctx }: { ctx: ClaimQuoteContextDto }) {
   const t = useTranslations('Quotes');
   const relTime = useRelativeTime();
+  const titleId = useId();
   if (!ctx.client) {
     let text: string;
     switch (ctx.clientHiddenReason) {
@@ -409,37 +569,38 @@ function ClientCard({ ctx }: { ctx: ClaimQuoteContextDto }) {
         text = t('workspace.clientHidden');
     }
     return (
-      <Card tone="muted" padding="sm" className="text-sm text-muted-foreground">
-        {text}
+      <Card as="section" tone="muted" aria-labelledby={titleId} className="flex flex-col gap-1.5">
+        <h2 id={titleId} className="label">
+          {t('workspace.clientSection')}
+        </h2>
+        <p className="text-sm text-muted-foreground">{text}</p>
       </Card>
     );
   }
-  const initials = ctx.client.name
-    .split(/\s+/)
-    .map((p) => p[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
+  const name = ctx.client.name.trim();
   return (
-    <Card as="section" padding="none" className="overflow-hidden">
-      <div className="flex items-center gap-3 border-b border-border bg-surface-2 px-4 py-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-walnut-soft font-serif text-sm text-walnut">
-          {initials || <UserRound className="h-5 w-5" />}
-        </span>
-        <div>
-          <p className="label">
+    <Card as="section" aria-labelledby={titleId} className="flex flex-col gap-3.5 sm:px-6">
+      <div className="flex items-center gap-3.5">
+        {name ? (
+          <Avatar name={name} size={48} />
+        ) : (
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-walnut text-on-walnut">
+            <UserRound className="h-5 w-5" />
+          </span>
+        )}
+        <div className="min-w-0">
+          <h2 id={titleId} className="label">
             {t('workspace.clientSection')}
-          </p>
-          <h2 className="heading-card leading-tight">{ctx.client.name || '—'}</h2>
+          </h2>
+          <p className="heading-section break-words">{name || '—'}</p>
         </div>
       </div>
-      <ul className="flex flex-col gap-2 p-4 text-sm">
+      <ul className="flex flex-col gap-0.5 text-sm">
         {ctx.client.contacts.map((c) => (
           <li key={c.id}>
             <a
               href={c.channel === 'EMAIL' ? `mailto:${c.value}` : `tel:${c.value}`}
-              className="inline-flex items-center gap-2 text-walnut hover:underline"
+              className="inline-flex min-h-10 items-center gap-2 font-medium text-walnut [overflow-wrap:anywhere] hover:text-walnut-deep hover:underline"
             >
               {c.channel === 'EMAIL' ? (
                 <Mail className="h-4 w-4 shrink-0" />
@@ -451,51 +612,100 @@ function ClientCard({ ctx }: { ctx: ClaimQuoteContextDto }) {
           </li>
         ))}
         {ctx.detail.addressText && (
-          <li className="flex items-start gap-2 text-muted-foreground">
-            <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+          <li className="flex items-start gap-2 pt-2 text-ink-2">
+            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
             <span>
               {ctx.detail.addressText}
-              <span className="block text-xs">
+              <span className="block text-xs text-muted-foreground">
                 {ctx.detail.city}, {ctx.detail.county}
               </span>
             </span>
           </li>
         )}
       </ul>
+      <p className="border-t border-border pt-3 text-xs text-muted-foreground">
+        {t('workspace.clientPrivacyNote')}
+      </p>
     </Card>
   );
 }
 
-// Rezumatul proiectului: mesajul clientului + etichetele cheie.
-function ProjectCard({ ctx }: { ctx: ClaimQuoteContextDto }) {
+// "Ultimele mesaje": ultimele doua mesaje din conversatia preluarii + drumul scurt spre tabul
+// de conversatie. Nu marcheaza nimic drept citit (asta face doar panoul de chat cand e vizibil).
+function RecentMessages({ threadId, onOpenChat }: { threadId: string; onOpenChat: () => void }) {
+  const t = useTranslations('Quotes');
+  const tmsg = useTranslations('Messages');
+  const relTime = useRelativeTime();
+  const messages = useMessages(threadId, 'company');
+  const titleId = useId();
+  const recent = (messages.data ?? []).slice(-2);
+  const last = recent[recent.length - 1];
+  return (
+    <Card as="section" aria-labelledby={titleId} className="flex flex-col gap-3 sm:px-6">
+      <h2 id={titleId} className="heading-section">
+        {t('workspace.recentMessages')}
+      </h2>
+      {messages.isPending ? (
+        <SkeletonList rows={2} variant="bubbles" />
+      ) : messages.isError ? null : recent.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{tmsg('noMessagesYet')}</p>
+      ) : (
+        <>
+          {recent.map((m) => (
+            <div
+              key={m.id}
+              className={cn(
+                'max-w-[90%] rounded-xl px-3.5 py-2.5 text-sm',
+                m.isMine ? 'self-end bg-walnut text-on-walnut' : 'self-start bg-surface-3',
+              )}
+            >
+              {m.body ? (
+                <p className="line-clamp-3 whitespace-pre-wrap break-words">{m.body}</p>
+              ) : (
+                <span className="inline-flex items-center gap-1.5">
+                  <Paperclip className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  {tmsg('attachmentOnly')}
+                </span>
+              )}
+            </div>
+          ))}
+          {last && (
+            <p className={cn('font-mono text-meta text-muted-foreground', last.isMine && 'self-end')}>
+              {last.senderName} · {relTime(last.createdAt)}
+            </p>
+          )}
+        </>
+      )}
+      <Button variant="outline" size="lg" className="h-11" onClick={onOpenChat}>
+        {t('workspace.replyInChat')}
+      </Button>
+    </Card>
+  );
+}
+
+// "Mesajul clientului": descrierea cererii + etichetele cheie ale proiectului.
+function ClientNote({ ctx }: { ctx: ClaimQuoteContextDto }) {
   const t = useTranslations('Quotes');
   const tm = useTranslations('Marketplace');
+  const titleId = useId();
   const d = ctx.detail;
   if (!d.description && !ctx.includesPaidDesign && !d.hasOwnProject) return null;
   return (
-    <Card as="section" padding="sm">
-      <h2 className="label mb-2">
+    <Card as="section" tone="muted" aria-labelledby={titleId} className="flex flex-col gap-2 sm:px-6">
+      <h2 id={titleId} className="heading-card">
         {t('workspace.descriptionLabel')}
       </h2>
       {d.description ? (
-        <p className="whitespace-pre-wrap text-sm">
+        <p className="whitespace-pre-wrap text-sm italic text-ink-2">
           <ContactSafeText text={d.description} />
         </p>
       ) : (
-        <p className="text-sm text-muted-2">{t('workspace.noDescription')}</p>
+        <p className="text-sm text-muted-foreground">{t('workspace.noDescription')}</p>
       )}
       {(ctx.includesPaidDesign || d.hasOwnProject) && (
-        <div className="mt-3 flex flex-wrap gap-2 text-xs">
-          {ctx.includesPaidDesign && (
-            <span className="rounded-full border border-sage/40 bg-sage-soft px-2.5 py-1 text-sage">
-              {tm('includesPaidDesign')}
-            </span>
-          )}
-          {d.hasOwnProject && (
-            <span className="rounded-full border border-border-2 bg-surface-2 px-2.5 py-1">
-              {tm('hasOwnProject')}
-            </span>
-          )}
+        <div className="mt-1 flex flex-wrap gap-2">
+          {ctx.includesPaidDesign && <Badge tone="sage">{tm('includesPaidDesign')}</Badge>}
+          {d.hasOwnProject && <Badge tone="outline">{tm('hasOwnProject')}</Badge>}
         </div>
       )}
     </Card>
@@ -540,6 +750,7 @@ function DeliverButton({ requestId }: { requestId: string }) {
     <div className="flex flex-col gap-2">
       <Button
         variant="walnut"
+        size="lg"
         className="self-start"
         onClick={() => {
           deliver.reset();

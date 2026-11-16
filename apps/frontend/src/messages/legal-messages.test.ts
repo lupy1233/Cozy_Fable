@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import en from './en.json';
 import ro from './ro.json';
-import { FIRM_RULES_SECTIONS, PRIVACY_SECTIONS, TERMS_SECTIONS } from '../app/[locale]/_components/legal-sections';
+import {
+  FIRM_RULES_SECTIONS,
+  FIRM_RULES_SUMMARY,
+  PRIVACY_SECTIONS,
+  PRIVACY_SUMMARY,
+  TERMS_SECTIONS,
+  TERMS_SUMMARY,
+} from '../app/[locale]/_components/legal-sections';
 
 // E-admin-platform-2: textele juridice nu mai au placeholdere, ambele limbi au aceleasi chei
 // si singurele argumente ICU din corpul Termenilor/Politicii sunt {operator} si {contactEmail}.
@@ -90,5 +97,42 @@ describe('texte juridice', () => {
       // doar argumentele de nivel superior: `{nume}` sau `{nume,` (in interiorul cazurilor de plural nu exista alte argumente)
       for (const m of text.matchAll(/(?:^|[^{])\{(\w+)\s*[},]/g)) expect(allowed.has(m[1])).toBe(true);
     }
+  });
+
+  // Design 2026-11: cardul „Pe scurt” — text nou, in afara lui `sections` (numarul de sectiuni ramane cel de mai sus).
+  it.each(Object.entries(locales))('%s: cardul „Pe scurt” are fiecare rand, pe toate cele trei pagini', (_l, messages) => {
+    const legal = messages.Legal as unknown as {
+      toc: unknown;
+      summary: Tree;
+      terms: { summary: Tree };
+      privacy: { summary: Tree };
+      firmRules: { summary: { title: unknown; rows: Tree; values: Tree } };
+    };
+    expect(typeof legal.toc).toBe('string');
+    expect(typeof legal.summary.title).toBe('string');
+    expect(typeof legal.summary.note).toBe('string');
+    for (const key of TERMS_SUMMARY) expect(typeof legal.terms.summary[key]).toBe('string');
+    for (const key of PRIVACY_SUMMARY) expect(typeof legal.privacy.summary[key]).toBe('string');
+    expect(Object.keys(legal.terms.summary)).toHaveLength(TERMS_SUMMARY.length);
+    expect(Object.keys(legal.privacy.summary)).toHaveLength(PRIVACY_SUMMARY.length);
+    expect(typeof legal.firmRules.summary.title).toBe('string');
+    for (const key of FIRM_RULES_SUMMARY) expect(typeof legal.firmRules.summary.rows[key]).toBe('string');
+    expect(Object.keys(legal.firmRules.summary.rows)).toHaveLength(FIRM_RULES_SUMMARY.length);
+    for (const key of ['freeWithdrawal', 'pointsAndCredits', 'creditsConsumed', 'suspension', 'reapply']) {
+      expect(typeof legal.firmRules.summary.values[key]).toBe('string');
+    }
+  });
+
+  it.each(Object.entries(locales))('%s: rezumatul Termenilor/Politicii nu are argumente ICU', (_l, messages) => {
+    const legal = messages.Legal as unknown as { terms: { summary: Tree }; privacy: { summary: Tree } };
+    for (const text of [...strings(legal.terms.summary), ...strings(legal.privacy.summary)]) {
+      expect(text).not.toMatch(/[{}]/);
+    }
+  });
+
+  // cifrele din rezumatul Regulilor pentru firme vin doar din argumente (aceleasi ca in text), niciodata scrise de mana
+  it.each(Object.entries(locales))('%s: rezumatul Regulilor pentru firme nu are cifre scrise de mana', (_l, messages) => {
+    const rules = (messages.Legal as unknown as { firmRules: { summary: Tree } }).firmRules;
+    for (const text of strings(rules.summary)) expect(text).not.toMatch(/\d/);
   });
 });

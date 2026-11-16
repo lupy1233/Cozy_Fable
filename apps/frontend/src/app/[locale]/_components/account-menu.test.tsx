@@ -51,9 +51,10 @@ describe('AccountMenu', () => {
     renderMenu('COMPANY_USER');
     await userEvent.click(screen.getByRole('button', { name: 'Meniul contului' }));
 
-    expect(await screen.findByText('Ion Popescu')).toBeInTheDocument();
+    // numele apare si pe butonul meniului (design 2026-11), si in panou
+    expect((await screen.findAllByText('Ion Popescu')).length).toBeGreaterThan(0);
     expect(screen.getByText('ion@firma.ro')).toBeInTheDocument();
-    expect(screen.getByText('A Mobila Premium')).toBeInTheDocument();
+    expect(screen.getAllByText('A Mobila Premium').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Utilizator firmă').length).toBeGreaterThan(0);
     expect(useMyCompany).toHaveBeenCalledWith(true);
   });
@@ -63,7 +64,8 @@ describe('AccountMenu', () => {
     renderMenu('CLIENT');
     await userEvent.click(screen.getByRole('button', { name: 'Meniul contului' }));
 
-    expect(await screen.findByText('Ion Popescu')).toBeInTheDocument();
+    // numele apare si pe butonul meniului (design 2026-11), si in panou
+    expect((await screen.findAllByText('Ion Popescu')).length).toBeGreaterThan(0);
     expect(useMyCompany).toHaveBeenCalledWith(false);
     expect(screen.queryByText('A Mobila Premium')).toBeNull();
   });

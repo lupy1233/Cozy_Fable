@@ -3,6 +3,7 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 // Tabs — controlat, stil din prototip (.tabs/.tab). Underline accent.
+// Design 2026-11: eticheta de 14px, fara majuscule (se citeste ca un titlu de sectiune, nu ca o eticheta).
 export function Tabs({
   tabs,
   current,
@@ -53,7 +54,7 @@ export function Tabs({
             }}
             onClick={() => onChange(t.value)}
             className={cn(
-              '-mb-px min-h-11 border-b-2 px-3.5 py-2.5 text-meta font-medium uppercase tracking-[0.08em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-walnut',
+              '-mb-px min-h-11 border-b-2 px-3.5 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-walnut',
               active
                 ? 'border-foreground text-foreground'
                 : 'border-transparent text-muted-foreground hover:text-ink-2',

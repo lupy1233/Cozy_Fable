@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-// Label — stil .label (sans uppercase spatiat).
+// Label — eticheta de camp (design 2026-11): 13px, medium, fara majuscule; sta deasupra campului.
+// Etichetele de sectiune (majuscule spatiate) raman clasa `.label` din globals.css.
 export const Label = React.forwardRef<
   HTMLLabelElement,
   React.LabelHTMLAttributes<HTMLLabelElement>
@@ -9,7 +10,7 @@ export const Label = React.forwardRef<
   <label
     ref={ref}
     className={cn(
-      'text-meta font-medium uppercase tracking-[0.08em] text-muted-foreground',
+      'text-ui font-medium text-foreground',
       'peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
       className,
     )}

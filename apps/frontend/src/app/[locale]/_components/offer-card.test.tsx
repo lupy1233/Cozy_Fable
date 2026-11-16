@@ -12,6 +12,7 @@ const state = vi.hoisted(() => ({
   fresh: undefined as unknown,
   acceptError: null as unknown,
   acceptMutate: vi.fn(),
+  changeMutate: vi.fn(),
 }));
 
 vi.mock('@/hooks/use-quotes', () => {
@@ -28,7 +29,7 @@ vi.mock('@/hooks/use-quotes', () => {
     useEndNegotiation: stub,
     useExtendValidity: stub,
     useRejectChange: stub,
-    useRequestChange: stub,
+    useRequestChange: () => ({ mutate: state.changeMutate, isPending: false, error: null, reset: vi.fn() }),
     useRequestExtension: stub,
     useRespondConsultationInvite: stub,
     useWithdrawQuote: stub,
@@ -107,17 +108,20 @@ function renderCard(q: QuoteDto) {
 }
 
 const NEW_VERSION = en.Quotes.acceptVersionChanged;
+// butonul din subsolul cardului care deschide dialogul de confirmare
+const ACCEPT = en.Quotes.accept;
 
 describe('OfferCard — dialogul de acceptare (E-client-1)', () => {
   beforeEach(() => {
     state.fresh = quote();
     state.acceptError = null;
     state.acceptMutate = vi.fn();
+    state.changeMutate = vi.fn();
   });
 
   it('arata pretul, proiectarea, totalul, livrarea si valabilitatea; nu accepta la deschidere', () => {
     renderCard(quote());
-    fireEvent.click(screen.getByRole('button', { name: 'Accept offer' }));
+    fireEvent.click(screen.getByRole('button', { name: ACCEPT }));
     const dialog = screen.getByRole('dialog', { name: 'Accept the offer from Firma A?' });
     const d = within(dialog);
     expect(d.getByText('Offer price')).toBeInTheDocument();
@@ -135,7 +139,7 @@ describe('OfferCard — dialogul de acceptare (E-client-1)', () => {
 
   it('confirmarea trimite id-ul versiunii afisate', () => {
     renderCard(quote());
-    fireEvent.click(screen.getByRole('button', { name: 'Accept offer' }));
+    fireEvent.click(screen.getByRole('button', { name: ACCEPT }));
     fireEvent.click(screen.getByRole('button', { name: 'Yes, accept the offer' }));
     expect(state.acceptMutate).toHaveBeenCalledTimes(1);
     expect(state.acceptMutate.mock.calls[0][0]).toEqual({ quoteId: 'q1', quoteVersionId: 'v1' });
@@ -143,7 +147,7 @@ describe('OfferCard — dialogul de acceptare (E-client-1)', () => {
 
   it('Back inchide dialogul fara acceptare', () => {
     renderCard(quote());
-    fireEvent.click(screen.getByRole('button', { name: 'Accept offer' }));
+    fireEvent.click(screen.getByRole('button', { name: ACCEPT }));
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(state.acceptMutate).not.toHaveBeenCalled();
@@ -154,7 +158,7 @@ describe('OfferCard — dialogul de acceptare (E-client-1)', () => {
       versions: [version(), version({ id: 'v2', version: 2, price: 9000, designFee: null })],
     });
     renderCard(quote());
-    fireEvent.click(screen.getByRole('button', { name: 'Accept offer' }));
+    fireEvent.click(screen.getByRole('button', { name: ACCEPT }));
     const d = within(screen.getByRole('dialog'));
     expect(d.getByText(NEW_VERSION)).toBeInTheDocument();
     expect(d.getByText('Version 2')).toBeInTheDocument();
@@ -166,19 +170,80 @@ describe('OfferCard — dialogul de acceptare (E-client-1)', () => {
   it('409 QUOTE_VERSION_CHANGED → mesajul de versiune noua o singura data', () => {
     state.acceptError = new ApiError('QUOTE_VERSION_CHANGED', 409, '');
     renderCard(quote());
-    fireEvent.click(screen.getByRole('button', { name: 'Accept offer' }));
+    fireEvent.click(screen.getByRole('button', { name: ACCEPT }));
     const d = within(screen.getByRole('dialog'));
     expect(d.getAllByText(NEW_VERSION)).toHaveLength(1);
   });
 
   it('oferta EXPIRED: fara buton de acceptare (doar cererea de prelungire)', () => {
     renderCard(quote({ status: 'EXPIRED', versions: [version({ isExpired: true })] }));
-    expect(screen.queryByRole('button', { name: 'Accept offer' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: ACCEPT })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: en.Quotes.requestExtension })).toBeInTheDocument();
+  });
+
+  it('oferta retrasa: fara actiuni de acceptare sau modificare', () => {
+    renderCard(quote({ status: 'WITHDRAWN' }));
+    expect(screen.queryByRole('button', { name: ACCEPT })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: en.Quotes.requestChange })).not.toBeInTheDocument();
   });
 
   it('cardul arata totalul ofertei cand exista proiectare', () => {
     renderCard(quote());
     expect(screen.getByText('Offer total')).toBeInTheDocument();
+    // lucrarea si proiectarea apar separat deasupra totalului
+    expect(screen.getByText(en.Quotes.workSubtotal)).toBeInTheDocument();
+    expect(screen.getByText(/11\.500,00 RON/)).toBeInTheDocument();
+  });
+
+  it('cardul arata totalul ofertei si fara proiectare, fara subtotal separat', () => {
+    renderCard(quote({ versions: [version({ designFee: null })] }));
+    expect(screen.getByText('Offer total')).toBeInTheDocument();
+    expect(screen.getByText(/10\.000,00 RON/)).toBeInTheDocument();
+    expect(screen.queryByText(en.Quotes.workSubtotal)).not.toBeInTheDocument();
+  });
+});
+
+describe('OfferCard — cererea de modificare', () => {
+  beforeEach(() => {
+    state.acceptMutate = vi.fn();
+    state.changeMutate = vi.fn();
+  });
+
+  it('formularul se deschide din buton si trimite textul pe ultima versiune', () => {
+    renderCard(quote());
+    // inchis la inceput: campul apare abia dupa click pe "Request a change"
+    expect(screen.queryByLabelText(en.Quotes.changePlaceholder)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: en.Quotes.requestChange }));
+    const field = screen.getByLabelText(en.Quotes.changePlaceholder);
+    const send = screen.getByRole('button', { name: 'Send change request' });
+    // sub 3 caractere nu se trimite
+    expect(send).toBeDisabled();
+    fireEvent.change(field, { target: { value: 'Alt blat' } });
+    expect(send).toBeEnabled();
+    fireEvent.click(send);
+    expect(state.changeMutate).toHaveBeenCalledTimes(1);
+    expect(state.changeMutate.mock.calls[0][0]).toEqual({ quoteVersionId: 'v1', requestedText: 'Alt blat' });
+    expect(state.acceptMutate).not.toHaveBeenCalled();
+  });
+
+  it('cu o modificare in asteptare nu se poate cere alta', () => {
+    renderCard(
+      quote({
+        versions: [
+          version({
+            changeRequest: {
+              id: 'cr1',
+              quoteVersionId: 'v1',
+              requestedText: 'Alt blat',
+              status: 'PENDING',
+              createdAt: new Date().toISOString(),
+              respondedAt: null,
+            },
+          }),
+        ],
+      }),
+    );
+    expect(screen.queryByRole('button', { name: en.Quotes.requestChange })).not.toBeInTheDocument();
+    expect(screen.getByText(en.Quotes.awaitingFirm)).toBeInTheDocument();
   });
 });

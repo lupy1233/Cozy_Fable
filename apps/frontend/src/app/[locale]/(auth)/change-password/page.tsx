@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { changePasswordSchema, type ChangePasswordInput } from '@marketplace/shared';
+import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -9,9 +10,10 @@ import { Link, useRouter } from '@/i18n/routing';
 import { apiErrorKey } from '@/lib/error-messages';
 import { useChangePassword, useMe } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Alert } from '@/components/ui/alert';
+import { AuthStateIcon, authFooterCls, authLinkCls, authTitleCls } from '../_components/auth-parts';
+import { PasswordInput } from '../_components/password-input';
 
 // L0-A: schimbare parola (doar autentificat). Serverul revoca celelalte sesiuni si
 // re-emite cookie-urile pentru dispozitivul curent → userul ramane logat aici.
@@ -45,10 +47,23 @@ export default function ChangePasswordPage() {
     return <p className="text-center text-sm text-muted-foreground">{t('loading')}</p>;
   }
 
+  if (change.isSuccess) {
+    return (
+      <div role="status" className="flex flex-col gap-5">
+        <AuthStateIcon icon={Check} tone="sage" />
+        <h1 className={authTitleCls}>{t('resetDoneTitle')}</h1>
+        <p className="text-sm text-muted-foreground">{t('changePasswordDoneBody')}</p>
+        <Button asChild variant="walnut" size="xl" className="w-full text-lead">
+          <Link href="/dashboard">{t('backToDashboard')}</Link>
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="font-serif text-2xl">{t('changePasswordTitle')}</h1>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2.5">
+        <h1 className={authTitleCls}>{t('changePasswordTitle')}</h1>
         <p className="text-sm text-muted-foreground">{t('changePasswordBody')}</p>
       </div>
 
@@ -57,40 +72,36 @@ export default function ChangePasswordPage() {
           label={t('currentPassword')}
           error={errors.currentPassword && t(`validation.${errors.currentPassword.message}`)}
         >
-          <Input
-            type="password"
-            autoComplete="current-password"
-            {...register('currentPassword')}
-          />
+          <PasswordInput autoComplete="current-password" {...register('currentPassword')} />
         </Field>
 
         <Field
           label={t('newPassword')}
+          hint={t('passwordHint')}
           error={errors.newPassword && t(`validation.${errors.newPassword.message}`)}
         >
-          <Input type="password" autoComplete="new-password" {...register('newPassword')} />
+          <PasswordInput autoComplete="new-password" {...register('newPassword')} />
         </Field>
 
         <Field
           label={t('confirmPassword')}
           error={errors.confirmPassword && t(`validation.${errors.confirmPassword.message}`)}
         >
-          <Input type="password" autoComplete="new-password" {...register('confirmPassword')} />
+          <PasswordInput autoComplete="new-password" {...register('confirmPassword')} />
         </Field>
 
         {apiErr && (
           <Alert tone="crimson">{t.has(apiErr.key) ? t(apiErr.key) : apiErr.fallback}</Alert>
         )}
-        {change.isSuccess && <Alert tone="sage">{t('changePasswordSuccess')}</Alert>}
 
-        <Button type="submit" disabled={change.isPending} className="w-full">
+        <Button type="submit" variant="walnut" size="xl" disabled={change.isPending} className="w-full text-lead">
           {t('changePasswordSubmit')}
         </Button>
       </form>
 
-      <p className="text-sm text-muted-foreground">
-        <Link href="/dashboard" className="text-walnut underline">
-          {t('backToDashboard')}
+      <p className={authFooterCls}>
+        <Link href="/dashboard" className={authLinkCls}>
+          ← {t('backToDashboard')}
         </Link>
       </p>
     </div>
